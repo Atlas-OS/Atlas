@@ -18,4 +18,4 @@ Atlas aims to be "Secure by Default" meaning, disabling features that can leak i
 Atlas is heavily stripped, preinstalled apps and other components are removed. This can break some compatability, but can be [re-added.](https://WIKILINKTOBE.ADDED) This significantly reduces ISO and install size. Functionalities such as Printing, are removed. This modification is focused on pure gaming and some work. As mention before, if you need a certain functionality, you have the ability to add this by [re-adding compatability.](https://WIKILINKTOBE.ADDED)
 
 #### **Performant**
-Atlas is pre-tweaked. Services, powerplan, msi-mode (***soon***), and more are already integrated. 
+Atlas is pre-tweaked. Services, drivers, powerplan, msi-mode (***soon***), and more are already integrated. 
