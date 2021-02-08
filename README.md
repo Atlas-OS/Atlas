@@ -29,4 +29,4 @@ Atlas is pre-tweaked. Services, drivers, powerplan, msi-mode (***soon***), and m
 
 
 ## Disclaimer
-By downloading, modifying, and utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are activated, you **must** use a genuine key.
+By downloading, modifying, and utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are activated, you **must** use a genuine key.
