@@ -15,7 +15,7 @@ Atlas attempts to remove all types of tracking embedded within Windows 10. Thoug
 Atlas aims to be "Secure by Default" meaning, disabling features that can leak information or be exploited. The only exception to this is [Spectre](https://spectreattack.com/spectre.pdf) and [Meltdown](https://meltdownattack.com/meltdown.pdf). These mitigations are disabled to improve performance.
 
 #### **Debloated**
-Atlas is heavily stripped, preinstalled apps and other components are removed. This can break some compatability, but can be [re-added.](https://WIKILINKTOBE.ADDED) This significantly reduces ISO and install size. Components such as Printing, are removed. This modification is focused on pure gaming and some work. As mentioned before, you have the ability to add this compatability by [re-adding compatability.](https://WIKILINKTOBE.ADDED)
+Atlas is heavily stripped, preinstalled apps and other components are removed. This can break some compatability, but can be [re-added.](https://WIKILINKTOBE.ADDED) This significantly reduces ISO and install size. Functionalities such as Printing, are removed. This modification is focused on pure gaming and some work. As mention before, if you need a certain functionality, you have the ability to add this by [re-adding compatability.](https://WIKILINKTOBE.ADDED)
 
 #### **Performant**
 Atlas is pre-tweaked. Services, powerplan, msi-mode (***soon***), and more are already integrated. 
