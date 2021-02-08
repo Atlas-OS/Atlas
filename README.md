@@ -2,6 +2,7 @@
 
 # Atlas
 An open and transparent modification of the Windows 10 operating system, designed to optimize performance and latency.
+<img src="https://discordapp.com/api/guilds/795710270000332800/widget.png?style=shield" alt="AtlasOS Discord"/>
 
 ### What are the benefits compared to regular windows?
 
