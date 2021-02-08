@@ -5,14 +5,17 @@ An open and transparent modification of the Windows 10 operating system, designe
 
 ### What are the benefits compared to regular windows?
 
-#### **Privacy**
+#### **Private**
 Atlas attempts to remove all types of tracking embedded within Windows 10. Though some features are not private, such as:
 - Microsoft Store
 - Linked Microsoft Account
 - Xbox
 
-#### **Security**
+#### **Secure**
 Atlas tries to be "Secure by Default" meaning, disabling features that can leak information or be exploited. The only exception to this is [Spectre](https://spectreattack.com/spectre.pdf) and [Meltdown](https://meltdownattack.com/meltdown.pdf). These mitigations are disabled to improve performance.
 
 #### **Debloated**
 Atlas is heavily stripped, preinstalled apps and other components are removed. This can break some compatability, but can be [re-added.](https://WIKILINKTOBE.ADDED) This significantly reduces ISO and install size. Components such as Printing, are removed. This modification is focused on pure gaming and some work. As mentioned before, you have the ability to add this compatability by [re-adding compatability.](https://WIKILINKTOBE.ADDED)
+
+#### **Performant**
+Atlas is pre-tweaked. Services, powerplan, msi-mode (***soon***), and more are already integrated. 
