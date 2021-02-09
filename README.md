@@ -1,5 +1,9 @@
 <img src="https://github.com/Atlas-OS/Atlas/blob/main/img/banner.jpg" width="100%"></img>
-<img src="https://discordapp.com/api/guilds/795710270000332800/widget.png?style=shield" alt="AtlasOS Discord"/>
+<p align="center">
+  <a href="https://discord.gg/8YcJbzQGED">
+    <img src="https://discord.com/api/guilds/795710270000332800/widget.png?style=shield" alt="Atlas Discord">
+</a>
+  
 # Atlas
 An open and transparent modification of the Windows 10 operating system, designed to optimize performance and latency.
 
