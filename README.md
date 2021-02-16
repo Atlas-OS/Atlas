@@ -1,5 +1,5 @@
 <h1 align="center">
-<img src="https://github.com/Atlas-OS/Atlas/blob/main/img/banner.jpg" alt="Banner?"</img>
+<img src="https://github.com/Atlas-OS/Atlas/blob/main/img/banner.jpg" alt="Banner"</img>
 </a>
   <br>
   Atlas
