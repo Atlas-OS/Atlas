@@ -3,7 +3,7 @@
 * [1. Intro](#1-intro)
 * [2. Standards](#2-Standards)
 * [3. Making your First Contribution](#3-Making-your-First-Contribution)
-  * [3.1. Adding to the code](#3-1-Adding-to-the-code)
+  * [3.1. Adding to the code](#31-Adding-to-the-code)
 * [4. Testing and Review](#4-Testing-and-review)
 
 
