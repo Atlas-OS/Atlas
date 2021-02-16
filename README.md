@@ -1,12 +1,12 @@
+<h1 align="center">
 <img src="https://github.com/Atlas-OS/Atlas/blob/main/img/banner.jpg" width="100%"></img>
-<p align="center">
-  <a href="https://discord.gg/8YcJbzQGED">
-    <img src="https://discord.com/api/guilds/795710270000332800/widget.png?style=shield" alt="Atlas Discord">
 </a>
-  
-# Atlas
-An open and transparent modification of the Windows 10 operating system, designed to optimize performance and latency.
-
+  <br>
+  Atlas
+  <br>
+</a>
+</h1>
+<h4 align="center">An open and transparent modification of the Windows 10 operating system, designed to optimize performance and latency.</h4>
 
 ### What are the benefits compared to regular windows?
 
