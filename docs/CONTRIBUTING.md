@@ -3,7 +3,7 @@
 * [1. Intro](#1-intro)
 * [2. Standards](#2-Standards)
 * [3. Making your First Contribution](#3-Making-your-First-Contribution)
- * [3.1. Adding to the code](#3.1-Adding-to-the-code)
+  * [3.1. Adding to the code](#3-1-Adding-to-the-code)
 * [4. Testing and Review](#4-Testing-and-review)
 
 
@@ -25,7 +25,7 @@ We love feedback, if you have any ideas, we would love to hear them! Whether it'
 - Fixing a bug
 - Reporting an issue
 
-# 3.1. Adding to the code.
+# 3.1. Adding to the code
 When contributing, please be mindful of what you are doing.
 Think of these while contributing:
 - Will this break anything? Can it be fixed while keeping the improvement?
