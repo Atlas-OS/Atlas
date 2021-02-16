@@ -32,8 +32,14 @@ We've done the following to do this:
 - Minimized Services
 - Disabled Drivers
 - Disabled Devices
-- Disabling Performance-Hungry Security Mitigations
+- Disabled Power Saving
+- Disabled Performance-Hungry Security Mitigations
 - Automatically enabled MSI Mode
+- Boot Configuration Optimization
+- Optimized Process Scheduling
+
+
+
 
 
 
