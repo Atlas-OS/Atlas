@@ -8,7 +8,7 @@
 
 
 # 1. Intro
-Welcome! First of all, I would like to thank you, for your interest in our project. We want to make this a simple process for you, so if you would like to contribute, please continue reading.
+Welcome! First of all, I would like to thank you for your interest in our project. We want to make this a simple process for you, so if you would like to contribute, please continue reading.
 
 # 2. Standards
 We want to keep this project a safe environment for anyone to contribute. We would like everyone to follow these guidelines to stay proffesional. 
