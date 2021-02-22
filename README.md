@@ -15,9 +15,7 @@
   •
   <a href="docs/FAQ.md">FAQ</a>
   •
-  <a href="#">Community</a>
-  •
-  <a href="#license">License</a>
+  <a href="#Discord">Community</a>
 </p>
 
 ### What are the benefits compared to regular windows?
@@ -64,7 +62,7 @@ We've done the following to do this:
 - Boot Configuration Optimization
 - Optimized Process Scheduling
 
-# Discord
+## Discord
 Go ahead and join our [discord](https://discord.gg/FdvUEEU864) if you have any questions!
 
 ## Disclaimer
