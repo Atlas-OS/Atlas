@@ -3,7 +3,7 @@ name: Bug report
 about: Create a bug report to help us improve Atlas
 title: A Short Issue Description
 labels: bug
-assignees: ''
+assignees: Zusier
 
 ---
 
