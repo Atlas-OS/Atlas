@@ -8,6 +8,18 @@
 </h1>
 <h4 align="center">An open and transparent modification of the Windows 10 operating system, designed to optimize performance and latency.</h4>
 
+<p align="center">
+  <a href="#Private">Overview</a>
+  •
+  <a href="docs/user-guides/Installing.md">Installation</a>
+  •
+  <a href="docs/FAQ.md">FAQ</a>
+  •
+  <a href="#">Community</a>
+  •
+  <a href="#license">License</a>
+</p>
+
 ### What are the benefits compared to regular windows?
 
 #### **Private**
@@ -51,6 +63,9 @@ We've done the following to do this:
 - Automatically enabled MSI Mode
 - Boot Configuration Optimization
 - Optimized Process Scheduling
+
+# Discord
+Go ahead and join our [discord](https://discord.gg/FdvUEEU864) if you have any questions!
 
 ## Disclaimer
 
