@@ -35,7 +35,7 @@ If you wish, these mitigations can be re-enabled by following the [Atlas Securit
 
 #### **Debloated**
 
-Atlas is heavily stripped, preinstalled apps and other components are removed. This can break some compatability, but can be [re-added.](https://WIKILINKTOBE.ADDED) This significantly reduces ISO and install size. Functionalities such as Printing, are removed. This modification is focused on pure gaming, but most work and education applications work. As mentioned before, if you need a certain functionality, you have the option to add this by [re-adding compatability.](https://WIKILINKTOBE.ADDED)
+Atlas is heavily stripped, preinstalled apps and other components are removed. This can break some compatability, but can be [re-added.](https://WIKILINKTOBE.ADDED) This significantly reduces ISO and install size. Functionalities such as Printing, are removed. This modification is focused on pure gaming, but most work and education applications work. As mentioned before, if you need a certain functionality, you have the option to add this by [re-adding compatability](https://WIKILINKTOBE.ADDED).
 
 #### **Performant**
 
