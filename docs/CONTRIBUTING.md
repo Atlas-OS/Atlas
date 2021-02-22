@@ -45,5 +45,5 @@ Testing and reviewing should be very easy here's what to test:
 - Test basic programs and functionalities.
 - Test on an actual machine now, repeat the steps.
 
-I (zusier), will be the main tester and reviewer, if you would like to become a reviewer/tester, please make an [issue.](https://github.com/Atlas-OS/Atlas/issues/new/)
+I [(zusier)](https://github.com/Zusier), will be the main tester and reviewer, if you would like to become a reviewer/tester, please make an [issue.](https://github.com/Atlas-OS/Atlas/issues/new/)
 
