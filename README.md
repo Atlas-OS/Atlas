@@ -32,7 +32,7 @@ Atlas removes all types of tracking embedded within Windows 10. Though some feat
 
 #### **Secure**
 
-Atlas aims to be *Secure by Default* by disabling features that can leak information or be exploited. There are exceptions to this such as [Spectre](https://spectreattack.com/spectre.pdf) and [Meltdown](https://meltdownattack.com/meltdown.pdf). These mitigations are disabled to improve performance.
+Atlas aims to be secure as possible without losing performance by disabling features that can leak information or be exploited. There are exceptions to this such as [Spectre](https://spectreattack.com/spectre.pdf) and [Meltdown](https://meltdownattack.com/meltdown.pdf). These mitigations are disabled to improve performance.
 If a security mitigation decreases performance, it will be disabled.
 Below are some features/mitigations that have been changed, if they contain a (P) they are security risks that have been fixed:
 
