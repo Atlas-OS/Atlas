@@ -40,8 +40,11 @@ Below are some features/mitigations that have been changed, if they contain a (P
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
 - [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
 - [ATMFD Exploit (P)](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
+There are also different components that have been removed or disabled, such as:
+Remote Desktop
+NetBios
 
-If you wish, these mitigations can be re-enabled by following the [Atlas Security Guide](docs/user-guides/Security.md)
+If you wish, these mitigations can be re-enabled by following the [Atlas Security Guide](https://github.com/Atlas-OS/Atlas/wiki/4.-Security)
 
 #### **Debloated**
 
