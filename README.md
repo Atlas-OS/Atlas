@@ -22,7 +22,7 @@
 
 #### **Private**
 
-Atlas removes all types of tracking embedded within Windows 10. Though some features are not/cannot private, such as:
+Atlas removes all types of tracking embedded within Windows 10. Though some features cannot be private, such as:
 
 - Microsoft Store
 - Linked Microsoft Account
