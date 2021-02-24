@@ -13,7 +13,7 @@
   •
   <a href="docs/user-guides/Installing.md">Installation</a>
   •
-  <a href="docs/FAQ.md">FAQ</a>
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
   •
   <a href="#Discord">Community</a>
 </p>
