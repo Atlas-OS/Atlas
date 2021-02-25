@@ -65,6 +65,9 @@ We've done the following to do this:
 ## Discord
 Go ahead and join our [discord](https://discord.gg/FdvUEEU864) if you have any questions!
 
+## Brand kit
+If you want to make your own wallpaper or cool graphic designs using our logo to help promote Atlas or for fun to contribute to Atlas you can download our brand kit below and use our high resolution .svg & .png exports. [Check out or brand kit](https://atlasos.net/brand/AtlasOS_Brand_Kit.7z).
+
 ## Disclaimer
 
 By downloading, modifying, and utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
