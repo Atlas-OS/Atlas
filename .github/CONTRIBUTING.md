@@ -5,6 +5,7 @@
 * [3. Making your First Contribution](#3-Making-your-First-Contribution)
   * [3.1. Adding to the code](#31-Adding-to-the-code)
 * [4. Testing and Review](#4-Testing-and-review)
+* [5. Rewards and Benefits](#5-Rewards-and-Benefits)
 
 
 # 1. Intro
@@ -46,3 +47,13 @@ Testing and reviewing should be very easy here's what to test:
 - Test on an actual machine now, repeat the steps.
 
 I [(zusier)](https://github.com/Zusier), will be the main tester and reviewer, if you would like to become a reviewer/tester, please make an [issue.](https://github.com/Atlas-OS/Atlas/issues/new/)
+
+# 5. Rewards and Benefits
+By contributing to the AtlasOS project, we may reward you as a thank you for the work you've done to help our community. You'll be able to redeem a "Contributor" role in our Discord as a thank you for your assistance.
+Whatever is enough to claim that role is up to us to decide; however, as long as you remain active within issues & discussions, ask for assistance, and report issues, you should be there in no time.
+
+Keep in mind. You'll only be able to claim the rewards and benefits if your responses are;
+- Properly structured
+- Contains solid advice and/or information
+- Understandable by anyone
+- Provides the help asked for and required
