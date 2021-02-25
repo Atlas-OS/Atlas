@@ -66,7 +66,7 @@ We've done the following to do this:
 Go ahead and join our [discord](https://discord.gg/FdvUEEU864) if you have any questions!
 
 ## Brand kit
-If you want to make your own wallpaper or cool graphic designs using our logo to help promote Atlas or for fun to contribute to Atlas you can download our brand kit below and use our high resolution .svg & .png exports. [Check out or brand kit](https://atlasos.net/brand/AtlasOS_Brand_Kit.7z).
+If you want to make your own wallpaper or cool graphic designs using our logo to help promote Atlas or for fun to contribute to Atlas you can download our brand kit below and use our high resolution .svg & .png exports. [Check out our brand kit](https://atlasos.net/brand/AtlasOS_Brand_Kit.7z).
 
 ## Disclaimer
 
