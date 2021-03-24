@@ -41,11 +41,15 @@ Below are some features/mitigations that have been changed, if they contain a (P
 - [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
 - [ATMFD Exploit (P)](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 
+Below are features that are removed from Atlas that have possible security issues:
+- [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
+- NetBIOS (*Possible Information Retrieval*)
+
 If you wish, these mitigations can be re-enabled by following the [Atlas Security Guide](https://github.com/Atlas-OS/Atlas/wiki/4.-Security)
 
 #### **Debloated**
 
-Atlas is heavily stripped, preinstalled apps and other components are removed. This can break some compatability, but can be [re-added.](https://WIKILINKTOBE.ADDED) This significantly reduces ISO and install size. Functionalities such as Printing, are removed. This modification is focused on pure gaming, but most work and education applications work. As mentioned before, if you need a certain functionality, you have the option to add this by [re-adding compatability](https://WIKILINKTOBE.ADDED).
+Atlas is heavily stripped, preinstalled apps and other components are removed. This can break some compatability. This significantly reduces ISO and install size. Functionalities such as Printing, are removed. This modification is focused on pure gaming, but most work and education applications work.
 
 #### **Performant**
 
