@@ -70,9 +70,9 @@ We've done the following to do this:
 Go ahead and join our [discord](https://discord.gg/FdvUEEU864) if you have any questions!
 
 ## Brand kit
-If you want to make your own wallpaper or cool graphic designs using our logo to help promote Atlas or for fun to contribute to Atlas you can download our brand kit below and use our high resolution .svg & .png exports. [Check out our brand kit](https://atlasos.net/brand/AtlasOS_Brand_Kit.7z).
+Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas accross the community. [Check out our brand kit](https://atlasos.net/brand/AtlasOS_Brand_Kit.7z).
 
-We also have our own dicussion page on GitHub dedicated to graphic design so you can share your own creations with users to be able to use! You can check the discussion page [here](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork).
+We also have our own dedicated area in the discussions tab so you can share your work with other creative geniuses and maybe even spark some inspiration too! [here](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork).
 
 ## Disclaimer
 
