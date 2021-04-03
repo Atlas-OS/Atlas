@@ -8,18 +8,36 @@ echo This echo should not be shown, permission check did not run.
 pause&exit
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
+:: set script version, not OS
+set ver=1.0.0
+set workdir=Atlas-%devbranch%
+set devbranch=update-test1-NOMERGE
 
 for /f "usebackq tokens=3,4,5" %%i in (`reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName`) DO set winprod=%%k
 if /i "%winprod%"=="Pro" goto ProdCheckGood
 if /i "%winprod%"=="Home" goto ProdCheckGood
 echo It seems you are using a Windows Product version that is not supported. This script only supports Pro and Home
 :ProdCheckGood
+IF %PROCESSOR_ARCHITECTURE% == x86 ( 
+    echo x86 Processor architechtures are not supported!
+    timeout 10
+    exit
+)
+if exist "Atlas.pow" (
+  goto powex
+) ELSE (
+     echo Atlas Powerplan does not exist.
+     echo Would you like to download and import it?
+     choice /c yn /m "" /n /t 10 /d y
+    :: https://stackoverflow.com/a/8616822
+    if !ERRORLEVEL! equ 1 (
+       aria2c https://github.com/Atlas-OS/Atlas/raw/%devbranch%/Atlas.pow
+       powercfg -import "C:\Windows\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
+       )
+    )
+:powex
 
 :updatecheck
-:: set script version, not OS
-set ver=1.0.0
-set workdir=Atlas-%devbranch%
-set devbranch=update-test1-NOMERGE
 if exist "ver.txt" del /f /q "ver.txt" >nul 2>&1
 aria2c https://raw.githubusercontent.com/Atlas-OS/Atlas/%devbranch%/ver.txt
 pause
@@ -33,7 +51,8 @@ if /i %ver% LSS %gitver% (
     echo.
     echo Current Version:   %ver%
     echo Available Version:   %gitver%
-    choice /c yn /m "Update? [y/n]" /n /t 100 /d y
+    :: if idled for 10 seconds, automatically answer yes
+    choice /c yn /m "Update? [y/n]" /n /t 10 /d y
     :: https://stackoverflow.com/a/8616822
     if !ERRORLEVEL! equ 1 (
         echo.
@@ -49,7 +68,6 @@ if /i %ver% LSS %gitver% (
     )
     echo Skipping Update...
 )
-
 
 :: will loop update check if debugging.
 if /i "%~1"=="/t"		   goto TestSuccess
@@ -71,7 +89,6 @@ if /i "%~1"=="/uwp"			goto uwp
 :: debugging purposes only
 if /i "%~1"=="/update"         goto updatecheck
 if /i "%~1"=="/test"         goto TestSuccess
-
 :argumentFAIL
 echo atlas-config had no arguements passed to it, either you are launching atlas-config directly or the script, "%~nx0" script is broken.
 echo Please report this to the Atlas discord or github.
