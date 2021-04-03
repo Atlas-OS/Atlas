@@ -20,18 +20,19 @@ echo It seems you are using a Windows Product version that is not supported. Thi
 set ver=1.0.0
 set workdir=Atlas-%devbranch%
 set devbranch=update-test1-NOMERGE
-
 if exist "ver.txt" del /f /q "ver.txt" >nul 2>&1
 aria2c https://raw.githubusercontent.com/Atlas-OS/Atlas/%devbranch%/ver.txt
+pause
 cls
-
 :: read from ver.txt
 for /f "tokens=*" %%i in (ver.txt) do set gitver=%%i
 :: checking if the current version number is less than git version
 if /i %ver% LSS %gitver% (
-    echo An update is available for atlas-config 
-    echo Current version:   %ver%
-    echo Available Version:    %gitver%
+    cls
+    echo An update is available!
+    echo.
+    echo Current Version:   %ver%
+    echo Available Version:   %gitver%
     choice /c yn /m "Update? [y/n]" /n /t 100 /d y
     :: https://stackoverflow.com/a/8616822
     if !ERRORLEVEL! equ 1 (
