@@ -86,6 +86,7 @@ if /i "%~1"=="/depD"         goto depD
 if /i "%~1"=="/ssD"         goto SearchStart
 if /i "%~1"=="/openshell"         goto openshellInstall
 if /i "%~1"=="/uwp"			goto uwp
+if /i "%~1"=="/mite"			goto mitE
 :: debugging purposes only
 if /i "%~1"=="/update"         goto updatecheck
 if /i "%~1"=="/test"         goto TestSuccess
@@ -96,6 +97,199 @@ pause&exit
 :TestSuccess
 echo Arguement Test Successful, good job mate!
 pause&exit
+:startup
+:: CREDITS
+:: CatGamerOP; some bcdedits
+:: Artanis; setting MSI mode
+:: Revision; SvcHostSplitThreshold
+Rundll32.exe advapi32.dll,ProcessIdleTasks
+C:\ProgramData\vcredist.exe /ai
+:: change ntp server from windows server to pool.ntp.org
+sc config W32Time start=demand
+sc start W32Time
+w32tm /config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"
+sc queryex "w32time"|Find "STATE"|Find /v "RUNNING"||(
+    net stop w32time
+    net start w32time
+)
+:: resync time to pool.ntp.org
+w32tm /config /update
+w32tm /resync
+sc stop W32Time
+sc config W32Time start=disabled
+cls
+echo Please wait. This may take a moment.
+:: Optimize NTFS parameters
+:: Disable Last Access information on directories, performance/privacy.
+fsutil behavior set disableLastAccess 1 
+:: https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security/
+fsutil behavior set disable8dot3 1
+
+:: Disable unneeded Tasks
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Windows Error Reporting\QueueReporting"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\DiskFootprint\Diagnostics"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Application Experience\StartupAppTask"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Autochk\Proxy"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\CloudExperienceHost\CreateObjectTask"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Defrag\ScheduledDefrag"
+schtasks /Change /DISABLE /TN "\MicrosoftEdgeUpdateBrowserReplacementTask"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Registry\RegIdleBackup"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Shell\CreateObjectTask"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Shell\IndexerAutomaticMaintenance"
+:: Should already be disabled
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskNetwork"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskLogon"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\StateRepository\MaintenanceTasks"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\UpdateOrchestrator\Report policies"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\UpdateOrchestrator\Schedule Scan Static Task"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\UpdateOrchestrator\UpdateModelTask"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\UpdateOrchestrator\USO_UxBroker"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\UpdateOrchestrator\Schedule Work"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\UPnP\UPnPHostConfig"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\WindowsUpdate\Scheduled Start"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\RetailDemo\CleanupOfflineContent"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Shell\FamilySafetyMonitor"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\InstallService\ScanForUpdates"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\InstallService\ScanForUpdatesAsUser"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\InstallService\SmartRetry"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\InstallService\ScanForUpdates"
+cls
+echo Please wait. This may take a moment.
+
+:: Enable MSI Mode on USB Controllers
+:: second command for each device deletes device priorty, setting it to undefined
+for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
+:: Eenable MSI Mode on GPU
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
+:: Enable MSI Mode on Network Adapters
+:: undefined priority on some VMs may break connection
+:: TODO: VM Detection, if VM = set to normal
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
+:: Enable MSI Mode on Sata controllers
+for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
+cls
+echo Please wait. This may take a moment.
+
+:: Disabling certain process mitigations
+
+::DEP
+::https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#data-execution-prevention
+powershell set-ProcessMitigation -System -Disable DEP
+powershell set-ProcessMitigation -System -Disable EmulateAtlThunks
+::ASLR
+::https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#address-space-layout-randomization
+powershell set-ProcessMitigation -System -Disable RequireInfo
+powershell set-ProcessMitigation -System -Disable BottomUp
+powershell set-ProcessMitigation -System -Disable HighEntropy
+powershell set-ProcessMitigation -System -Disable StrictHandle
+::BlockDynamicCode
+::AllowThreadsToOptOut
+::AuditDynamicCode
+::CFG
+::https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#control-flow-guard
+powershell set-ProcessMitigation -System -Disable CFG
+powershell set-ProcessMitigation -System -Disable StrictCFG
+powershell set-ProcessMitigation -System -Disable SuppressExports
+::SEHOP
+::https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#structured-exception-handling-overwrite-protection
+powershell set-ProcessMitigation -System -Disable SEHOP
+powershell set-ProcessMitigation -System -Disable AuditSEHOP
+powershell set-ProcessMitigation -System -Disable SEHOPTelemetry
+powershell set-ProcessMitigation -System -Disable ForceRelocateImages
+
+:: Import the powerplan
+:: send output to log to debug tell if missing file
+powercfg -import "C:\Windows\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
+:: Set current powerplan to Atlas
+:: TODO: implement laptop check and change to a more power friendly plan by default
+powercfg /s 11111111-1111-1111-1111-111111111111
+:: Delete power file after import
+del /F /Q C:\Windows\AtlasModules\Atlas.pow
+
+:: Set SvcSplitThreshold
+for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /format:value') do set mem=%%i
+set /a ram=%mem% + 1024000
+REG ADD "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
+echo SVCSplit: %ram%
+
+:: Disable Power savings on drives
+for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "StorPort"^| findstr "StorPort"') do reg add "%%i" /v "EnableIdlePowerManagement" /t REG_DWORD /d "0" /f
+cls
+echo Please wait. This may take a moment.
+
+sc stop wuauserv
+Reg.exe delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
+Reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
+
+:: disable hibernation
+powercfg -h off
+
+:: Disable Devices
+devmanview /disable "System Speaker"
+devmanview /disable "System Timer"
+devmanview /disable "WAN Miniport (IKEv2)"
+devmanview /disable "WAN Miniport (IP)"
+devmanview /disable "WAN Miniport (IPv6)"
+devmanview /disable "WAN Miniport (L2TP)"
+devmanview /disable "WAN Miniport (Network Monitor)"
+devmanview /disable "WAN Miniport (PPPOE)"
+devmanview /disable "WAN Miniport (PPTP)"
+devmanview /disable "WAN Miniport (SSTP)"
+devmanview /disable "UMBus Root Bus Enumerator"
+devmanview /disable "Microsoft System Management BIOS Driver"
+devmanview /disable "Programmable Interrupt Controller"
+devmanview /disable "High Precision Event Timer"
+devmanview /disable "PCI Encryption/Decryption Controller"
+devmanview /disable "AMD PSP"
+devmanview /disable "Intel SMBus"
+devmanview /disable "Intel Management Engine"
+devmanview /disable "PCI Memory Controller"
+devmanview /disable "PCI standard RAM Controller"
+devmanview /disable "Composite Bus Enumerator"
+devmanview /disable "Microsoft Kernel Debug Network Adapter"
+devmanview /disable "SM Bus Controller"
+devmanview /disable "NDIS Virtual Network Adapter Enumerator"
+del /F /Q C:\Windows\AtlasModules\DevManView.cfg
+:: lowering dual boot choice time
+:: No, this does NOT affect single OS boot time.
+:: This is directly shown in microsoft docs https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--timeout#parameters
+bcdedit /timeout 10
+:: Settings to No provides worse results, delete the value instead.
+:: This is here as a safeguard incase of User Error.
+bcdedit /deletevalue useplatformclock
+:: Disable synthetic timer
+bcdedit /set useplatformtick yes
+:: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
+bcdedit /set disabledynamictick Yes
+
+bcdedit /set debug no
+bcdedit /bootdebug off
+:: Disable DEP, may need to enable for FACEIT or Valorant
+:: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
+bcdedit /set nx AlwaysOff
+:: Trusted Platform Module is removed, keeping here until I can test if this affects anything.
+bcdedit /set tpmbootentropy ForceDisable
+:: Disable Early Launch Antimalware drivers
+:: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#verification-settings
+bcdedit /set disableelamdrivers yes
+:: disable EMS
+bcdedit /set ems No
+bcdedit /set bootems No 
+
+del /f C:\ProgramData\vcredist.exe
+
+:: re-enable UAC
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
+shutdown /r /f /t 10 /c "Required Reboot"
+timeout 20
+exit
 :notiD
 sc config WpnService start=disabled
 sc stop WpnService >nul 2>&1
@@ -220,7 +414,11 @@ aria2c -d C:\Windows\AtlasModules -o oshellI.exe --file-allocation=falloc https:
 :: Install silently
 echo.
 echo Openshell is installing...
+:: TODO: set openshell settings
+:: TODO: copy metro skin to openshell skins folder
+:: StartMenu.exe -xml <path>
 "oshellI.exe" /qn ADDLOCAL=StartMenu
+
 goto finishNRB
 :uwp
 IF EXIST "C:\Program Files\Open-Shell" goto uwpS
@@ -260,6 +458,20 @@ rmdir /S /Q C:\Windows\System32\RuntimeBroker.exe  >nul 2>nul
 taskkill /F /IM RuntimeBroker*  >nul 2>nul
 rmdir /S /Q C:\Windows\System32\RuntimeBroker.exe  >nul 2>nul
 goto finishNRB
+:mitE
+powershell set-ProcessMitigation -System -Enable DEP
+powershell set-ProcessMitigation -System -Enable EmulateAtlThunks
+powershell set-ProcessMitigation -System -Enable RequireInfo
+powershell set-ProcessMitigation -System -Enable BottomUp
+powershell set-ProcessMitigation -System -Enable HighEntropy
+powershell set-ProcessMitigation -System -Enable StrictHandle
+powershell set-ProcessMitigation -System -Enable CFG
+powershell set-ProcessMitigation -System -Enable StrictCFG
+powershell set-ProcessMitigation -System -Enable SuppressExports
+powershell set-ProcessMitigation -System -Enable SEHOP
+powershell set-ProcessMitigation -System -Enable AuditSEHOP
+powershell set-ProcessMitigation -System -Enable SEHOPTelemetry
+powershell set-ProcessMitigation -System -Enable ForceRelocateImages
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
 	pause&exit
