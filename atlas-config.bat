@@ -9,38 +9,26 @@ pause&exit
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 :: set script version, not OS
-set ver=1.0.0
+set ver=1.0.1
 set workdir=Atlas-%devbranch%
 set devbranch=update-test1-NOMERGE
 
 for /f "usebackq tokens=3,4,5" %%i in (`reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName`) DO set winprod=%%k
 if /i "%winprod%"=="Pro" goto ProdCheckGood
 if /i "%winprod%"=="Home" goto ProdCheckGood
-echo It seems you are using a Windows Product version that is not supported. This script only supports Pro and Home
+echo It seems you are using a Windows Product version that is not supported. This script only supports Pro and Home versions
 :ProdCheckGood
 IF %PROCESSOR_ARCHITECTURE% == x86 ( 
     echo x86 Processor architechtures are not supported!
     timeout 10
     exit
 )
-if exist "Atlas.pow" (
-  goto powex
-) ELSE (
-     echo Atlas Powerplan does not exist.
-     echo Would you like to download and import it?
-     choice /c yn /m "" /n /t 10 /d y
-    :: https://stackoverflow.com/a/8616822
-    if !ERRORLEVEL! equ 1 (
-       aria2c https://github.com/Atlas-OS/Atlas/raw/%devbranch%/Atlas.pow
-       powercfg -import "C:\Windows\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
-       )
-    )
-:powex
+:: bypass update check on postinstall for automation
+if /i "%~1"=="/start"		   goto startup
 
 :updatecheck
 if exist "ver.txt" del /f /q "ver.txt" >nul 2>&1
-aria2c https://raw.githubusercontent.com/Atlas-OS/Atlas/%devbranch%/ver.txt
-pause
+aria2c https://raw.githubusercontent.com/Atlas-OS/Atlas/%devbranch%/ver.txt >nul 2>&1
 cls
 :: read from ver.txt
 for /f "tokens=*" %%i in (ver.txt) do set gitver=%%i
@@ -102,6 +90,8 @@ pause&exit
 :: CatGamerOP; some bcdedits
 :: Artanis; setting MSI mode
 :: Revision; SvcHostSplitThreshold
+cls
+echo Please wait. This may take a moment.
 Rundll32.exe advapi32.dll,ProcessIdleTasks
 C:\ProgramData\vcredist.exe /ai
 :: change ntp server from windows server to pool.ntp.org
@@ -162,18 +152,25 @@ echo Please wait. This may take a moment.
 :: Enable MSI Mode on USB Controllers
 :: second command for each device deletes device priorty, setting it to undefined
 for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
+for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
 :: Eenable MSI Mode on GPU
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
 :: Enable MSI Mode on Network Adapters
 :: undefined priority on some VMs may break connection
 :: TODO: VM Detection, if VM = set to normal
+for /f "tokens=2 delims==" %%i in ('wmic bios get Manufacturer /value') do set vmchk=%%i
+
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
+if /i "%vmchk%"=="VMware, Inc." goto vmGO
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
+goto noVM
+:vmGO
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f
+:noVM
 :: Enable MSI Mode on Sata controllers
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
+for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
 cls
 echo Please wait. This may take a moment.
 
@@ -214,19 +211,41 @@ powercfg /s 11111111-1111-1111-1111-111111111111
 del /F /Q C:\Windows\AtlasModules\Atlas.pow
 
 :: Set SvcSplitThreshold
+:: Credits: revision
 for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /format:value') do set mem=%%i
 set /a ram=%mem% + 1024000
-REG ADD "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
-echo SVCSplit: %ram%
+reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
 
+:: tokens arg breaks path to just \Device instead of \Device Parameters
 :: Disable Power savings on drives
-for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "StorPort"^| findstr "StorPort"') do reg add "%%i" /v "EnableIdlePowerManagement" /t REG_DWORD /d "0" /f
+for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "StorPort"^| findstr "StorPort"') do reg add "%%i" /v "EnableIdlePowerManagement" /t REG_DWORD /d "0" /f
+
+:: tokens arg breaks path to just \Device instead of \Device Parameters
+for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\USB" /s /f "EnhancedPowerManagementEnabled"^| findstr "HKEY"') do (
+    reg add "%%i" /v "EnhancedPowerManagementEnabled" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "AllowIdleIrpInD3" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "EnableSelectiveSuspend" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "DeviceSelectiveSuspended" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "SelectiveSuspendEnabled" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "SelectiveSuspendOn" /t REG_DWORD /d "0" /f
+	reg add "%%1" /v "D3ColdSupported" /t REG_DWORD /d "0" /f
+)
+:: Some devices only have selective suspend or EnhancedPowerManagementEnabled etc etc. There is probably a more efficient way to do this.
+for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\USB" /s /f "DeviceSelectiveSuspended"^| findstr "HKEY"') do (
+    reg add "%%i" /v "EnhancedPowerManagementEnabled" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "AllowIdleIrpInD3" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "EnableSelectiveSuspend" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "DeviceSelectiveSuspended" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "SelectiveSuspendEnabled" /t REG_DWORD /d "0" /f
+    reg add "%%i" /v "SelectiveSuspendOn" /t REG_DWORD /d "0" /f
+	reg add "%%i" /v "D3ColdSupported" /t REG_DWORD /d "0" /f
+)
 cls
 echo Please wait. This may take a moment.
 
-sc stop wuauserv
-Reg.exe delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
-Reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
+sc stop wuauserv >nul 2>&1
+:: reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
 
 :: disable hibernation
 powercfg -h off
@@ -256,14 +275,13 @@ devmanview /disable "Composite Bus Enumerator"
 devmanview /disable "Microsoft Kernel Debug Network Adapter"
 devmanview /disable "SM Bus Controller"
 devmanview /disable "NDIS Virtual Network Adapter Enumerator"
-del /F /Q C:\Windows\AtlasModules\DevManView.cfg
 :: lowering dual boot choice time
 :: No, this does NOT affect single OS boot time.
 :: This is directly shown in microsoft docs https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--timeout#parameters
 bcdedit /timeout 10
 :: Settings to No provides worse results, delete the value instead.
 :: This is here as a safeguard incase of User Error.
-bcdedit /deletevalue useplatformclock
+bcdedit /deletevalue useplatformclock >nul 2>&1
 :: Disable synthetic timer
 bcdedit /set useplatformtick yes
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
@@ -276,6 +294,8 @@ bcdedit /bootdebug off
 bcdedit /set nx AlwaysOff
 :: Trusted Platform Module is removed, keeping here until I can test if this affects anything.
 bcdedit /set tpmbootentropy ForceDisable
+:: Hyper-V support is removed, other virtualization programs are supported
+bcdedit /set hypervisorlaunchtype off
 :: Disable Early Launch Antimalware drivers
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#verification-settings
 bcdedit /set disableelamdrivers yes
@@ -336,7 +356,7 @@ reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "No
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
 sc config InstallService start=disabled
 :: Insufficent permissions to disable
-:: sc config WinHttpAutoProxySvc start=disabled
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
 sc config mpssvc start=disabled
 sc config wlidsvc start=disabled
 sc config AppXSvc start=disabled
@@ -352,8 +372,8 @@ reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "No
 :: Allow Access to Windows Store
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
-:: Insufficent permissions to enable
-:: sc config WinHttpAutoProxySvc start=demand
+:: Insufficent permissions to enable through SC
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
 sc config mpssvc start=auto
 sc config wlidsvc start=demand
 sc config AppXSvc start=demand
@@ -377,6 +397,7 @@ powershell set-ProcessMitigation -System -Enable EmulateAtlThunks
 bcdedit /set nx OptIn
 goto finish
 :depD
+echo If you get issues with some anti-cheats, please re-enable DEP.
 powershell set-ProcessMitigation -System -Disable DEP
 powershell set-ProcessMitigation -System -Disable EmulateAtlThunks
 bcdedit /set nx AlwaysOff
@@ -418,7 +439,6 @@ echo Openshell is installing...
 :: TODO: copy metro skin to openshell skins folder
 :: StartMenu.exe -xml <path>
 "oshellI.exe" /qn ADDLOCAL=StartMenu
-
 goto finishNRB
 :uwp
 IF EXIST "C:\Program Files\Open-Shell" goto uwpS
@@ -426,9 +446,13 @@ IF EXIST "C:\Program Files (x86)\StartIsBack" goto uwpS
 echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the startmenu being removed.
 pause&exit
 :uwpS
-echo This will only remove Startmenu, Search and RuntimeBroker. Which should break the majority of UWP.
-echo Removing other UWP apps can be removed via Geek Uninstaller or Bulk Crap Uninstaller.
-echo Removal of other UWP apps will be supported later.
+echo This will only remove Startmenu, Search and RuntimeBroker. Which will break the majority of UWP.
+echo A reminder of a few things this may break.
+echo Searching in file explorer
+echo Store
+echo Xbox
+echo Immersive Control Panel
+echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 sc stop TabletInputService
 sc config TabletInputService start=disabled
@@ -472,11 +496,14 @@ powershell set-ProcessMitigation -System -Enable SEHOP
 powershell set-ProcessMitigation -System -Enable AuditSEHOP
 powershell set-ProcessMitigation -System -Enable SEHOPTelemetry
 powershell set-ProcessMitigation -System -Enable ForceRelocateImages
+goto finish
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
 	pause&exit
 :finish
-echo Finished, please reboot for changes to apply.
+	echo Finished, please reboot for changes to apply.
+	pause&exit
 :finishNRB
-echo Finished, changes have been applied.
+	echo Finished, changes have been applied.
+	pause&exit
 pause
