@@ -9,7 +9,7 @@ pause&exit
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 :: set script version, not OS
-set ver=1.0.1
+set ver=1.0.2
 set workdir=Atlas-%devbranch%
 set devbranch=update-test1-NOMERGE
 
