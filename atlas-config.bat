@@ -332,9 +332,9 @@ sc start WSearch >nul 2>&1
 goto finish
 :wifiD
 sc config netprofm start=disabled
-sc stop netprofm >nul 2>&1
-goto finish
-:: netprofm needs to be stopped before dependants are disabled
+::sc queryex "netprofm"|Find "STATE"|Find /v "RUNNING">Nul||(
+::sc stop netprofm
+::)
 sc config NlaSvc start=disabled
 sc config WlanSvc start=disabled
 goto finish
