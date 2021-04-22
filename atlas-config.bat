@@ -245,13 +245,17 @@ for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSe
 cls
 echo Please wait. This may take a moment.
 
-::powershell Get-NetAdapter |Find "Ethernet" >Nul|(
-::sc config netprofm start=disabled
-::sc config NlaSvc start=disabled
-::sc config WlanSvc start=disabled
-::sc config vwififlt start=disabled
-::)
+powershell Get-NetAdapter |Find "Wi-Fi" >Nul|(
+goto wifipresent
+)
+powershell Get-NetAdapter |Find "PCIE Wi-Fi" >Nul|(
+goto wifipresent
+)
+sc config NlaSvc start=disabled
+sc config WlanSvc start=disabled
+sc config vwififlt start=disabled
 
+:wifipresent
 sc stop wuauserv >nul 2>&1
 :: reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
