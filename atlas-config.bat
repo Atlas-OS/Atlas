@@ -9,9 +9,9 @@ pause&exit
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 :: set script version, not OS
-set ver=1.0.2
-set workdir=Atlas-%devbranch%
+set ver=1.0.3
 set devbranch=update-test1-NOMERGE
+set workdir=Atlas-%devbranch%
 
 for /f "usebackq tokens=3,4,5" %%i in (`reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName`) DO set winprod=%%k
 if /i "%winprod%"=="Pro" goto ProdCheckGood
@@ -69,6 +69,8 @@ if /i "%~1"=="/ds"         goto storeD
 if /i "%~1"=="/es"         goto storeE
 if /i "%~1"=="/btd"         goto btD
 if /i "%~1"=="/bte"         goto btE
+if /i "%~1"=="/hddd"         goto hddD
+if /i "%~1"=="/hdde"         goto hddE
 if /i "%~1"=="/depE"         goto depE
 if /i "%~1"=="/depD"         goto depD
 if /i "%~1"=="/ssD"         goto SearchStart
@@ -151,26 +153,26 @@ echo Please wait. This may take a moment.
 
 :: Enable MSI Mode on USB Controllers
 :: second command for each device deletes device priorty, setting it to undefined
-for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
+for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
 :: Eenable MSI Mode on GPU
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
 :: Enable MSI Mode on Network Adapters
 :: undefined priority on some VMs may break connection
 :: TODO: VM Detection, if VM = set to normal
 for /f "tokens=2 delims==" %%i in ('wmic bios get Manufacturer /value') do set vmchk=%%i
 
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 if /i "%vmchk%"=="VMware, Inc." goto vmGO
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
 goto noVM
 :vmGO
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f
 :noVM
 :: Enable MSI Mode on Sata controllers
-for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
+for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
 cls
 echo Please wait. This may take a moment.
 
@@ -214,14 +216,14 @@ del /F /Q C:\Windows\AtlasModules\Atlas.pow
 :: Credits: revision
 for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /format:value') do set mem=%%i
 set /a ram=%mem% + 1024000
-reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
 
 :: tokens arg breaks path to just \Device instead of \Device Parameters
 :: Disable Power savings on drives
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "StorPort"^| findstr "StorPort"') do reg add "%%i" /v "EnableIdlePowerManagement" /t REG_DWORD /d "0" /f
+for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum" /s /f "StorPort"^| findstr "StorPort"') do reg add "%%i" /v "EnableIdlePowerManagement" /t REG_DWORD /d "0" /f
 
 :: tokens arg breaks path to just \Device instead of \Device Parameters
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\USB" /s /f "EnhancedPowerManagementEnabled"^| findstr "HKEY"') do (
+for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\USB" /s /f "EnhancedPowerManagementEnabled"^| findstr "HKEY"') do (
     reg add "%%i" /v "EnhancedPowerManagementEnabled" /t REG_DWORD /d "0" /f
     reg add "%%i" /v "AllowIdleIrpInD3" /t REG_DWORD /d "0" /f
     reg add "%%i" /v "EnableSelectiveSuspend" /t REG_DWORD /d "0" /f
@@ -231,7 +233,7 @@ for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\USB" /s
 	reg add "%%1" /v "D3ColdSupported" /t REG_DWORD /d "0" /f
 )
 :: Some devices only have selective suspend or EnhancedPowerManagementEnabled etc etc. There is probably a more efficient way to do this.
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\USB" /s /f "DeviceSelectiveSuspended"^| findstr "HKEY"') do (
+for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\USB" /s /f "DeviceSelectiveSuspended"^| findstr "HKEY"') do (
     reg add "%%i" /v "EnhancedPowerManagementEnabled" /t REG_DWORD /d "0" /f
     reg add "%%i" /v "AllowIdleIrpInD3" /t REG_DWORD /d "0" /f
     reg add "%%i" /v "EnableSelectiveSuspend" /t REG_DWORD /d "0" /f
@@ -243,9 +245,16 @@ for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\USB" /s
 cls
 echo Please wait. This may take a moment.
 
+::powershell Get-NetAdapter |Find "Ethernet" >Nul|(
+::sc config netprofm start=disabled
+::sc config NlaSvc start=disabled
+::sc config WlanSvc start=disabled
+::sc config vwififlt start=disabled
+::)
+
 sc stop wuauserv >nul 2>&1
-:: reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
+:: reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
 
 :: disable hibernation
 powercfg -h off
@@ -306,7 +315,7 @@ bcdedit /set bootems No
 del /f C:\ProgramData\vcredist.exe
 
 :: re-enable UAC
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
 shutdown /r /f /t 10 /c "Required Reboot"
 timeout 20
 exit
@@ -337,11 +346,13 @@ sc config netprofm start=disabled
 ::)
 sc config NlaSvc start=disabled
 sc config WlanSvc start=disabled
+sc config vwififlt start=disabled
 goto finish
 :wifiE
 sc config netprofm start=demand
 sc config NlaSvc start=auto
 sc config WlanSvc start=demand
+sc config vwififlt start=system
 goto finish
 :storeD
 echo If you have a linked MS Account, you NEED to unlink it. Or you will NOT be able to login. 
@@ -390,6 +401,20 @@ goto finish
 :btE
 sc config BthAvctpSvc start=auto
 sc start BthAvctpSvc >nul 2>&1
+goto finish
+:hddD
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnablePrefetcher" /t REG_DWORD /d "0" /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnableSuperfetch" /t REG_DWORD /d "0" /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" /v "EnablePrefetcher" /t REG_DWORD /d "0" /f
+sc config SysMain start=disabled
+sc config FontCache start=disabled
+goto finish
+:hddE
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnablePrefetcher" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnableSuperfetch" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" /v "EnablePrefetcher" /t REG_DWORD /d "1" /f
+sc config SysMain start=auto
+sc config FontCache start=auto
 goto finish
 :depE
 powershell set-ProcessMitigation -System -Enable DEP
