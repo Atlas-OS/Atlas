@@ -40,7 +40,7 @@ if /i %ver% LSS %gitver% (
     echo Current Version:   %ver%
     echo Available Version:   %gitver%
     :: if idled for 10 seconds, automatically answer yes
-    choice /c yn /m "Update? [y/n]" /n /t 10 /d y
+    choice /c yn /m "Update? [y/n]" /n /t 20 /d y
     :: https://stackoverflow.com/a/8616822
     if !ERRORLEVEL! equ 1 (
         echo.
@@ -50,6 +50,7 @@ if /i %ver% LSS %gitver% (
         curl -L https://github.com/Atlas-OS/Atlas/archive/refs/heads/%devbranch%.zip -o update.zip
         7z -aoa -r e "update.zip" -o%~dp0\ >nul 2>&1
         cls
+        del /F /Q update.zip >nul 2>&1
         rmdir /S /Q Atlas-%devbranch% >nul 2>&1
         :: relaunch as updated
         nsudo -U:T -P:E atlas-config.bat %~1&exit
@@ -58,7 +59,7 @@ if /i %ver% LSS %gitver% (
 )
 
 :: will loop update check if debugging.
-if /i "%~1"=="/t"		   goto TestSuccess
+if /i "%~1"=="/t"         goto TestSuccess
 if /i "%~1"=="/dn"         goto notiD
 if /i "%~1"=="/en"         goto notiE
 if /i "%~1"=="/di"         goto indexD
