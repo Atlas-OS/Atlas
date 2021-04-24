@@ -78,6 +78,7 @@ if /i "%~1"=="/ssD"         goto SearchStart
 if /i "%~1"=="/openshell"         goto openshellInstall
 if /i "%~1"=="/uwp"			goto uwp
 if /i "%~1"=="/mite"			goto mitE
+if /i "%~1"=="/stico"          goto startlayout
 :: debugging purposes only
 if /i "%~1"=="/update"         goto updatecheck
 if /i "%~1"=="/test"         goto TestSuccess
@@ -477,7 +478,7 @@ IF EXIST "C:\Program Files (x86)\StartIsBack" goto uwpS
 echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the startmenu being removed.
 pause&exit
 :uwpS
-echo This will only remove Startmenu, Search and RuntimeBroker. Which will break the majority of UWP.
+echo This will remove all UWP packages that are currently installed. This will break many things.
 echo A reminder of a few things this may break.
 echo - Searching in file explorer
 echo - Store
@@ -486,8 +487,10 @@ echo - Immersive Control Panel
 echo - Adobe XD
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
+choice /c yn /m "Last warning, continue? [y/n]" /n
 sc stop TabletInputService
 sc config TabletInputService start=disabled
+
 icacls "C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" /t /c /q /grant administrators:F  >nul 2>nul
 takeown /F C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy /R /D Y  >nul 2>nul
 taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
@@ -498,14 +501,12 @@ taskkill /F /IM SearchApp*  >nul 2>nul
 rmdir /S /Q C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy  >nul 2>nul
 taskkill /F /IM SearchApp*  >nul 2>nul
 rmdir /S /Q C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy  >nul 2>nul
-
-icacls "C:\Program Files\WindowsApps\" /t /c /q /grant administrators:F  >nul 2>nul
-takeown /F C:\Program Files\WindowsApps\ /R /D Y  >nul 2>nul
-rmdir /S /Q C:\Program Files\WindowsApps\  >nul 2>nul
-
 icacls "C:\Windows\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy" /t /c /q /grant administrators:F  >nul 2>nul
 takeown /F C:\Windows\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy /R /D Y  >nul 2>nul
 rmdir /S /Q C:\Windows\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy  >nul 2>nul
+icacls "C:\Windows\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe" /t /c /q /grant administrators:F  >nul 2>nul
+takeown /F C:\Windows\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe /R /D Y  >nul 2>nul
+rmdir /S /Q C:\Windows\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe  >nul 2>nul
 
 icacls "C:\Windows\System32\RuntimeBroker.exe" /t /c /q /grant administrators:F  >nul 2>nul
 takeown /F C:\Windows\System32\RuntimeBroker.exe /R /D Y  >nul 2>nul
@@ -528,6 +529,11 @@ powershell set-ProcessMitigation -System -Enable SEHOP
 powershell set-ProcessMitigation -System -Enable AuditSEHOP
 powershell set-ProcessMitigation -System -Enable SEHOPTelemetry
 powershell set-ProcessMitigation -System -Enable ForceRelocateImages
+goto finish
+:startlayout
+reg delete "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f
+reg delete "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f
+reg delete "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /f
 goto finish
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
