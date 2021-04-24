@@ -18,11 +18,6 @@ if /i "%winprod%"=="Pro" goto ProdCheckGood
 if /i "%winprod%"=="Home" goto ProdCheckGood
 echo It seems you are using a Windows Product version that is not supported. This script only supports Pro and Home versions
 :ProdCheckGood
-IF %PROCESSOR_ARCHITECTURE% == x86 ( 
-    echo x86 Processor architechtures are not supported!
-    timeout 10
-    exit
-)
 :: bypass update check on postinstall for automation
 if /i "%~1"=="/start"		   goto startup
 
@@ -39,7 +34,7 @@ if /i %ver% LSS %gitver% (
     echo.
     echo Current Version:   %ver%
     echo Available Version:   %gitver%
-    :: if idled for 10 seconds, automatically answer yes
+    :: if idled for 20 seconds, automatically answer yes
     choice /c yn /m "Update? [y/n]" /n /t 20 /d y
     :: https://stackoverflow.com/a/8616822
     if !ERRORLEVEL! equ 1 (
@@ -253,9 +248,9 @@ goto wifipresent
 powershell Get-NetAdapter |Find "PCIE Wi-Fi" >Nul|(
 goto wifipresent
 )
-sc config NlaSvc start=disabled
-sc config WlanSvc start=disabled
-sc config vwififlt start=disabled
+::sc config NlaSvc start=disabled
+::sc config WlanSvc start=disabled
+::sc config vwififlt start=disabled
 
 :wifipresent
 sc stop wuauserv >nul 2>&1
@@ -458,6 +453,9 @@ taskkill /F /IM SearchApp*  >nul 2>nul
 rmdir /S /Q C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy  >nul 2>nul
 taskkill /F /IM SearchApp*  >nul 2>nul
 rmdir /S /Q C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy  >nul 2>nul
+reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
+taskkill /f /im explorer.exe
+start explorer.exe
 goto finish
 :stopS
 exit
@@ -514,6 +512,9 @@ taskkill /F /IM RuntimeBroker*  >nul 2>nul
 rmdir /S /Q C:\Windows\System32\RuntimeBroker.exe  >nul 2>nul
 taskkill /F /IM RuntimeBroker*  >nul 2>nul
 rmdir /S /Q C:\Windows\System32\RuntimeBroker.exe  >nul 2>nul
+reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
+taskkill /f /im explorer.exe
+start explorer.exe
 goto finishNRB
 :mitE
 powershell set-ProcessMitigation -System -Enable DEP
