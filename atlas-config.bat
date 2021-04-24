@@ -344,7 +344,8 @@ sc config WSearch start=delayed-auto
 sc start WSearch >nul 2>&1
 goto finish
 :wifiD
-sc config netprofm start=disabled
+:: netprofm seems to break internet connection checking for exaple in store or in spotify
+::sc config netprofm start=disabled
 ::sc queryex "netprofm"|Find "STATE"|Find /v "RUNNING">Nul||(
 ::sc stop netprofm
 ::)
@@ -477,10 +478,11 @@ pause&exit
 :uwpS
 echo This will only remove Startmenu, Search and RuntimeBroker. Which will break the majority of UWP.
 echo A reminder of a few things this may break.
-echo Searching in file explorer
-echo Store
-echo Xbox
-echo Immersive Control Panel
+echo - Searching in file explorer
+echo - Store
+echo - Xbox
+echo - Immersive Control Panel
+echo - Adobe XD
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 sc stop TabletInputService
