@@ -11,7 +11,7 @@
 <p align="center">
   <a href="#Private">Overview</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/3.-Installing">Installation</a>
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Installation</a>
   •
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
   •
