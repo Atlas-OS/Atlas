@@ -1,0 +1,649 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\xinputhid\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\WUDFRd\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\WpdUpFltr\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\vwififlt\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\vdrvroot\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\USBXHCI\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\USBHUB3\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\umbus\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\storahci\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\stornvme\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\NdisVirtualBus\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\msisadrv\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\mouhid\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\monitor\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\intelpep\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\CompositeBus\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\BasicRender\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\BasicDisplay\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\acpipagr\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\acpi\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\partmgr\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\xinputhid\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\pci\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\HDAudBus\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\NdisWan\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\kbhid\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\kbdclass\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\intellppm\Parameters]
+"DmaRemappingCompatible"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager]
+"RotatingLockScreenOverlayEnabled"=dword:00000000
+"SubscribedContent-310093Enabled"=dword:00000000
+"RotatingLockScreenEnabled"=dword:00000000
+"SoftLandingEnabled"=dword:00000000
+"SystemPaneSuggestionsEnabled"=dword:00000000
+"SilentInstalledAppsEnabled"=dword:00000000
+
+[HKEY_CURRENT_USER\Control Panel\Mouse]
+"MouseSensitivity"="10"
+"SmoothMouseXCurve"=hex:\
+	00,00,00,00,00,00,00,00,\
+	00,a0,00,00,00,00,00,00,\
+	00,40,01,00,00,00,00,00,\
+	00,80,02,00,00,00,00,00,\
+	00,00,05,00,00,00,00,00
+"SmoothMouseYCurve"=hex:\
+	00,00,00,00,00,00,00,00,\
+	66,a6,02,00,00,00,00,00,\
+	cd,4c,05,00,00,00,00,00,\
+	a0,99,0a,00,00,00,00,00,\
+	38,33,15,00,00,00,00,00
+
+[HKEY_CURRENT_USER\Control Panel\Mouse]
+"ActiveWindowTracking"=dword:00000000
+"MouseSensitivity"="10"
+"MouseSpeed"="0"
+"MouseThreshold1"="0"
+"MouseThreshold2"="0"
+
+[-HKEY_LOCAL_MACHINE\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge]
+
+[-HKEY_LOCAL_MACHINE\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update]
+
+[-HKEY_LOCAL_MACHINE\Software\Classes\MSEdgeHTM]
+
+[-HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\EventLog\Application\edgeupdate]
+
+[-HKEY_LOCAL_MACHINE\System\ControlSet001\Services\EventLog\Application\edgeupdatem]
+
+[-HKEY_LOCAL_MACHINE\Software\WOW6432Node\Clients\StartMenuInternet\Microsoft Edge]
+
+[-HKEY_LOCAL_MACHINE\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe]
+
+[-HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe]
+
+[-HKEY_LOCAL_MACHINE\Software\WOW6432Node\Microsoft\EdgeUpdate]
+
+[-HKEY_LOCAL_MACHINE\Software\WOW6432Node\Microsoft\Edge]
+
+[-HKEY_LOCAL_MACHINE\Software\Clients\StartMenuInternet\Microsoft Edge]
+
+[-HKEY_LOCAL_MACHINE\Software\Classes\MSEdgeHTM]
+
+[-HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Device Metadata]
+
+; remove filter
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}]
+"LowerFilters"=""
+"UpperFilters"=""
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\CrashControl]
+"AutoReboot"=dword:00000000
+"CrashDumpEnabled"=dword:00000000
+"DisplayParameters"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\fvevol]
+"Start"=dword:00000004
+
+; GPO for Startmenu (tiles)
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer]
+"StartLayoutFile"=hex(2):43,00,3A,00,5C,00,57,00,69,00,6E,00,64,00,6F,00,77,\
+00,73,00,5C,00,6C,00,61,00,79,00,6F,00,75,00,74,00,2E,00,78,00,6D,00,6C,00,\
+00,00
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer]
+"StartLayoutFile"=hex(2):43,00,3A,00,5C,00,57,00,69,00,6E,00,64,00,6F,00,77,\
+00,73,00,5C,00,6C,00,61,00,79,00,6F,00,75,00,74,00,2E,00,78,00,6D,00,6C,00,\
+00,00
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer]
+"LockedStartLayout"=dword:00000001
+
+; enable dark mode
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize]
+"SystemUsesLightTheme"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize]
+"AppsUseLightTheme"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize]
+"EnableTransparency"=dword:00000000
+
+; disable updates
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsUpdate]
+"ExcludeWUDriversInQualityUpdate"=dword:00000001
+"DisableWindowsUpdateAccess"=dword:00000001
+"AllowAutoWindowsUpdateDownloadOverMeteredNetwork"=dword:00000001
+"DisableDualScan"=dword:00000001
+"AUPowerManagement"=dword:00000000
+"SetAutoRestartNotificationDisable"=dword:00000001
+"ManagePreviewBuilds"=dword:00000001
+"ManagePreviewBuildsPolicyValue"=dword:00000000
+"DeferFeatureUpdates"=dword:00000001
+"BranchReadinessLevel"=dword:00000014
+"DeferFeatureUpdatesPeriodInDays"=dword:0000016d
+"DeferQualityUpdates"=dword:00000001
+"DeferQualityUpdatesPeriodInDays"=dword:00000004
+"SetDisableUXWUAccess"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsUpdate\AU]
+"AUOptions"=dword:00000002
+"AutoInstallMinorUpdates"=dword:00000000
+"NoAutoUpdate"=dword:00000001
+"NoAUAsDefaultShutdownOption"=dword:00000001
+"NoAUShutdownOption"=dword:00000001
+"NoAutoRebootWithLoggedOnUsers"=dword:00000001
+"IncludeRecommendedUpdates"=dword:00000000
+"EnableFeaturedSoftware"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\DriverSearching]
+"SearchOrderConfig"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Device Metadata]
+"PreventDeviceMetadataFromNetwork"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\CloudContent]
+"DisableWindowsConsumerFeatures"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore]
+"AutoDownload"=dword:00000002
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\PolicyManager\default\Update]
+"ExcludeWUDriversInQualityUpdate"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\PolicyManager\default\Update\ExcludeWUDriversInQualityUpdate]
+"value"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsUpdate\UX\Settings]
+"ExcludeWUDriversInQualityUpdate"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects]
+"VisualFXSetting"=dword:00000003
+
+[HKEY_CURRENT_USER\Control Panel\Desktop]
+"UserPreferencesMask"=hex:98,12,03,80,10,00,00,00
+
+; Equals 100 decimal
+[HKEY_CURRENT_USER\Control Panel\Desktop]
+"JPEGImportQuality"=dword:00000064
+
+; Disable CEIP via GPO
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\Messenger\Client]
+"CEIP"=dword:00000002
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\SQMClient\Windows]
+"CEIPEnable"=dword:00000000
+
+
+; Disable error reporting/reports
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\PCHealth\ErrorReporting]
+"DoReport"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\Windows\HandwritingErrorReports]
+"PreventHandwritingErrorReports"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\Windows\Windows Error Reporting]
+"Disabled"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\Windows Error Reporting]
+"DontSendAdditionalData"=dword:00000001
+"LoggingDisabled"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\Windows Error Reporting\Consent]
+"DefaultOverrideBehavior"=dword:00000001
+"DefaultConsent"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Power]
+"SleepStudyDisabled"=dword:00000001
+"HibernateEnabled"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\Windows NT\Printers]
+"DisableWebPnPDownload"=dword:00000001
+"DisableHTTPPrinting"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\EdgeUI]
+"DisableMFUTracking"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\EdgeUI]
+"DisableMFUTracking"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Diagnostics\Performance]
+"DisableDiagnosticTracing"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\MicrosoftEdge\Main]
+"AllowPrelaunch"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments]
+"SaveZoneInformation"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\FindMyDevice]
+"AllowFindMyDevice"=dword:00000000
+"LocationSyncEnabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\System]
+"EnableCdp"=dword:00000000
+"AllowClipboardHistory"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced]
+"ShowSyncProviderNotifications"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo]
+"Enabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\StorageSense]
+"AllowStorageSenseGlobal"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance]
+"MaintenanceDisabled"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity]
+"Enabled"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SettingSync]
+"SyncPolicy"=dword:00000005
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Personalization]
+"Enabled"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SettingSync\Groups\BrowserSettings]
+"Enabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers]
+"HwSchMode"=dword:00000002
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Credentials]
+"Enabled"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Accessibility]
+"Enabled"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows]
+"Enabled"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications]
+"GlobalUserDisabled"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search]
+"BackgroundAppGlobalToggle"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack]
+"ShowedToastAtLevel"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\DataCollection]
+"AllowTelemetry"=dword:00000000
+"MaxTelemetryAllowed"=dword:00000000
+"AllowDeviceNameInTelemetry"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer]
+"NoLowDiskSpaceChecks"=dword:00000001
+"LinkResolveIgnoreLinkInfo"=dword:00000001
+"NoResolveSearch"=dword:00000001
+"NoResolveTrack"=dword:00000001
+"NoInternetOpenWith"=dword:00000001
+"NoInstrumentation"=dword:00000001
+"UseDefaultTile"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications]
+"NoTileApplicationNotification"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Power\PowerThrottling]
+"PowerThrottlingOff"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\explorer\advanced]
+"Start_TrackProgs"=dword:00000000
+
+[HKEY_CURRENT_USER\Control Panel\International\User Profile]
+"HttpAcceptLanguageOptOut"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Personalization]
+"NoLockScreenCamera"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AppCompat]
+"DisableInventory"=dword:00000001
+"DisableUAR"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Speech]
+"AllowSpeechModelUpdate"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search]
+"SearchboxTaskbarMode"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer]
+"NoRemoteDestinations"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Microsoft\Input\TIPC]
+"Enabled"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Privacy]
+"TailoredExperiencesWithDiagnosticDataEnabled"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Siuf\Rules]
+"NumberOfSIUFInPeriod"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\mouclass\Parameters]
+"MouseDataQueueSize"=dword:00000032
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\kbdclass\Parameters]
+"KeyboardDataQueueSize"=dword:00000032
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\WcmSvc\wifinetworkmanager\config]
+"AutoConnectAllowedOEM"=dword:00000000
+
+[HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys]
+"Flags"=dword:00000000
+
+[HKEY_CURRENT_USER\Control Panel\Accessibility\Keyboard Response]
+"Flags"=dword:00000000
+
+[HKEY_CURRENT_USER\Control Panel\Accessibility\ToggleKeys]
+"Flags"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Search]
+"BingSearchEnabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsSelfHost\UI\Visibility]
+"HideInsiderPage"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\InputPersonalization]
+"RestrictImplicitTextCollection"=dword:00000001
+"RestrictImplicitInkCollection"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform]
+"NoGenTicket"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AdvertisingInfo]
+"DisabledByGroupPolicy"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\DataCollection]
+"LimitEnhancedDiagnosticDataWindowsAnalytics"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Maps]
+"AutoDownloadAndUpdateMapData"=dword:00000000
+"AllowUntriggeredNetworkTrafficOnSettingsPage"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\PreviewBuilds]
+"EnableConfigFlighting"=dword:00000000
+"AllowBuildPreview"=dword:00000000
+"EnableExperimentation"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\TabletPC]
+"PreventHandwritingDataSharing"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AppCompat]
+"AITEnable"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Windows Search]
+"ConnectedSearchUseWeb"=dword:00000000
+"DisableWebSearch"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\DataCollection]
+"DoNotShowFeedbackNotifications"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WMDRM]
+"DisableOnline"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NlaSvc\Parameters\Internet]
+"EnableActiveProbing"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\PushNotifications]
+"ToastEnabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\PriorityControl]
+"Win32PrioritySeparation"=dword:00000026
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced]
+"DisallowShaking"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control]
+"WaitToKillServiceTimeout"="2000"
+
+[HKEY_CURRENT_USER\Control Panel\Desktop]
+"AutoEndTasks"="1"
+"HungAppTimeout"="1000"
+"MenuShowDelay"="8"
+"WaitToKillAppTimeout"="2000"
+"LowLevelHooksTimeout"="1000"
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System]
+"EnableLUA"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AppPrivacy]
+"LetAppsRunInBackground"=dword:00000002
+"LetAppsRunInBackground_UserInControlOfTheseApps"=-
+"LetAppsRunInBackground_ForceAllowTheseApps"=-
+"LetAppsRunInBackground_ForceDenyTheseApps"=-
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel]
+"DisableExceptionChainValidation"=dword:00000001
+"KernelSEHOPEnabled"=dword:00000000
+"DistributeTimers"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile]
+"NetworkThrottlingIndex"=dword:0000000a
+"SystemResponsiveness"=dword:0000000a
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games]
+"Affinity"=dword:00000000
+"Background Only"="False"
+"Clock Rate"=dword:00002710
+"GPU Priority"=dword:00000012
+"Priority"=dword:00000006
+"Scheduling Category"="High"
+"SFIO Priority"="High"
+"Latency Sensitive"="True"
+"NoLazyMode"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Microsoft\GameBar] 
+"ShowStartupPanel"=dword:00000000 
+"GamePanelStartupTipIndex"=dword:00000003 
+"AllowAutoGameMode"=dword:00000000 
+"AutoGameModeEnabled"=dword:00000000 
+"UseNexusForGameBarEnabled"=dword:00000000
+
+[HKEY_CURRENT_USER\System\GameConfigStore] 
+"GameDVR_Enabled"=dword:00000000 
+"GameDVR_FSEBehaviorMode"=dword:00000002 
+"GameDVR_FSEBehavior"=dword:00000002 
+"GameDVR_HonorUserFSEBehaviorMode"=dword:00000001 
+"GameDVR_DXGIHonorFSEWindowsCompatible"=dword:00000001 
+"GameDVR_EFSEFeatureFlags"=dword:00000000 
+"GameDVR_DSEBehavior"=dword:00000002
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR] 
+"AllowGameDVR"=dword:00000000
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR] 
+"AppCaptureEnabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Internet Explorer\BrowserEmulation]
+"IntranetCompatibilityMode"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Internet Explorer]
+"DisableFlashInIE"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Internet Explorer\SQM]
+"DisableCustomerImprovementProgram"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Internet Explorer\DomainSuggestion]
+"Enabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Internet Explorer\Security]
+"DisableSecuritySettingsCheck"=dword:00000001
+"DisableFixSecuritySettings"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Internet Explorer\Privacy]
+"EnableInPrivateBrowsing"=dword:00000001
+"ClearBrowsingHistoryOnExit"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Internet Explorer\Main]
+"EnableAutoUpgrade"=dword:00000000
+"DisableFirstRunCustomize"=dword:00000001
+"HideNewEdgeButton"=dword:00000001
+"DoNotTrack"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Internet Explorer\Feed Discovery]
+"Enabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Internet Explorer\Feeds]
+"BackgroundSyncStatus"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Internet Explorer\FlipAhead]
+"Enabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Internet Explorer\Geolocation]
+"PolicyDisableGeolocation"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Internet Explorer\Suggested Sites]
+"Enabled"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Internet Explorer\TabbedBrowsing]
+"NewTabPageShow"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Policies\Microsoft\Internet Explorer\Control Panel]
+"HomePage"=dword:00000001
+
+[HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Internet Explorer\Main]
+"Start Page"="https://atlasos.net"
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management]
+"FeatureSettings"=dword:00000001
+"FeatureSettingsOverride"=dword:00000003
+"FeatureSettingsOverrideMask"=dword:00000003
+"EnableCfg"=dword:00000000
+"DisablePageCombining"=dword:00000001
+"EnablePrefetcher"=dword:00000000
+"EnableSuperfetch"=dword:00000000
+"DisablePagingExecutive"=dword:00000001
+
+; disable Fault Tolerant Heap
+; https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
+; Doc listed as only affected in windows 7, is also in 7+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\FTH]
+"Enabled"=dword:00000000
+
+; show all tasks on control panel, credits to tenforums
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}]
+@="All Tasks"
+"InfoTip"="View list of all Control Panel tasks"
+"System.ControlPanel.Category"="5"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\DefaultIcon]
+@="%SystemRoot%\\System32\\imageres.dll,-27"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\Shell\Open\Command]
+@="explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}]
+@="All Tasks"
+
+; remove "Share" Option in Context Menu
+[-HKEY_CLASSES_ROOT\*\shellex\ContextMenuHandlers\ModernSharing]
+
+; remove "Previous Version" in Context Menu
+; properties tab
+[-HKEY_CLASSES_ROOT\AllFilesystemObjects\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}]
+
+[-HKEY_CLASSES_ROOT\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}]
+
+[-HKEY_CLASSES_ROOT\Directory\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}]
+
+[-HKEY_CLASSES_ROOT\Drive\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}]
+
+; context menu
+[-HKEY_CLASSES_ROOT\AllFilesystemObjects\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}]
+
+[-HKEY_CLASSES_ROOT\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}]
+
+[-HKEY_CLASSES_ROOT\Directory\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}]
+
+[-HKEY_CLASSES_ROOT\Drive\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}]
+
+; Hide "Meet Now" button, already removed. For future proofing
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer]
+"HideSCAMeetNow"=dword:00000001
+
+; remove readyboost tab
+[-HKEY_CLASSES_ROOT\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}]
+
+; install cab context menu
+[-HKEY_CLASSES_ROOT\CABFolder\Shell\RunAs]
+
+[HKEY_CLASSES_ROOT\CABFolder\Shell\RunAs]
+@="Install"
+"HasLUAShield"=""
+
+[HKEY_CLASSES_ROOT\CABFolder\Shell\RunAs\Command]
+@="cmd /k dism /online /add-package /packagepath:\"%1\""
+
+; remove include in library context menu
+[-HKEY_CLASSES_ROOT\Folder\ShellEx\ContextMenuHandlers\Library Location]
+
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location]
