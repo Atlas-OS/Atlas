@@ -260,6 +260,10 @@ reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpd
 :: disable hibernation
 powercfg -h off
 
+start explorer.exe
+taskkill /f /im explorer.exe
+start explorer.exe
+
 :: Disable Devices
 devmanview /disable "System Speaker"
 devmanview /disable "System Timer"
