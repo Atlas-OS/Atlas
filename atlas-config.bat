@@ -9,7 +9,7 @@ pause&exit
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 :: set script version, not OS
-set ver=1.0.4
+set ver=1.0.5
 set devbranch=update-test1-NOMERGE
 set workdir=Atlas-%devbranch%
 
@@ -242,17 +242,41 @@ for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSe
 cls
 echo Please wait. This may take a moment.
 
-powershell Get-NetAdapter |Find "Wi-Fi" >Nul|(
-goto wifipresent
+:: Unhide powerplan attributes
+:: Credits to: Eugene Muzychenko
+for /f "tokens=1-9* delims=\ " %%A in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings /s /f attributes /e') do (
+  if /i "%%A" == "HKEY_LOCAL_MACHINE" (
+    set Ident=
+    if not "%%G" == "" (
+      set Err=
+      set Group=%%G
+      set Setting=%%H
+      if "!Group:~35,1!" == "" set Err=group
+      if not "!Group:~36,1!" == "" set Err=group
+      if not "!Setting!" == "" (
+        if "!Setting:~35,1!" == "" set Err=setting
+        if not "!Setting:~36,1!" == "" set Err=setting
+        Set Ident=!Group!:!Setting!
+      ) else (
+        Set Ident=!Group!
+      )
+      if not "!Err!" == "" (
+        echo ***** Error in !Err! GUID: !Ident"
+      )
+    )
+  ) else if "%%A" == "Attributes" (
+    if "!Ident!" == "" (
+      echo ***** No group/setting GUIDs before Attributes value
+    )
+    set /a Attr = %%C
+    set /a Hidden = !Attr! ^& 1
+    if !Hidden! equ 1 (
+      echo Unhiding !Ident!
+      powercfg -attributes !Ident::= ! -attrib_hide
+    )
+  )
 )
-powershell Get-NetAdapter |Find "PCIE Wi-Fi" >Nul|(
-goto wifipresent
-)
-::sc config NlaSvc start=disabled
-::sc config WlanSvc start=disabled
-::sc config vwififlt start=disabled
 
-:wifipresent
 sc stop wuauserv >nul 2>&1
 :: reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
@@ -289,6 +313,10 @@ devmanview /disable "Composite Bus Enumerator"
 devmanview /disable "Microsoft Kernel Debug Network Adapter"
 devmanview /disable "SM Bus Controller"
 devmanview /disable "NDIS Virtual Network Adapter Enumerator"
+devmanview /disable "Microsoft Virtual Drive Enumerator"
+devmanview /disable "Numeric Data Processor"
+devmanview /disable "Microsoft RRAS Root Enumerator"
+
 :: lowering dual boot choice time
 :: No, this does NOT affect single OS boot time.
 :: This is directly shown in microsoft docs https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--timeout#parameters
@@ -300,9 +328,8 @@ bcdedit /deletevalue useplatformclock >nul 2>&1
 bcdedit /set useplatformtick yes
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
 bcdedit /set disabledynamictick Yes
-
 bcdedit /set debug no
-bcdedit /bootdebug off
+bcdedit /set bootdebug off
 :: Disable DEP, may need to enable for FACEIT or Valorant
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 bcdedit /set nx AlwaysOff
@@ -317,10 +344,12 @@ bcdedit /set disableelamdrivers yes
 bcdedit /set ems No
 bcdedit /set bootems No 
 
+for /F "tokens=* skip=1" %%n in ('wmic cpu get numberOfLogicalProcessors ^| findstr "."') do set THREADS=%%n
+:: on 4 cores and lower disable distribute timers
+if %THREADS% LSS 5 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "DistributeTimers" /t REG_DWORD /d "0" /f
+
 del /f C:\ProgramData\vcredist.exe
 
-:: re-enable UAC
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
 shutdown /r /f /t 10 /c "Required Reboot"
 timeout 20
 exit
@@ -345,7 +374,7 @@ sc config WSearch start=delayed-auto
 sc start WSearch >nul 2>&1
 goto finish
 :wifiD
-:: netprofm seems to break internet connection checking for exaple in store or in spotify
+:: netprofm seems to break internet connection checking for example in store or in spotify
 ::sc config netprofm start=disabled
 ::sc queryex "netprofm"|Find "STATE"|Find /v "RUNNING">Nul||(
 ::sc stop netprofm
@@ -359,6 +388,10 @@ sc config netprofm start=demand
 sc config NlaSvc start=auto
 sc config WlanSvc start=demand
 sc config vwififlt start=system
+:: If wifi is still not working, set wlansvc to auto
+ping -n 1 -4 1.1.1.1 |Find "Failulre"|(
+    sc config WlanSvc start=auto
+)
 goto finish
 :storeD
 echo If you have a linked MS Account, you NEED to unlink it. Or you will NOT be able to login. 
@@ -513,9 +546,9 @@ rmdir /S /Q C:\Windows\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8
 icacls "C:\Windows\System32\RuntimeBroker.exe" /t /c /q /grant administrators:F  >nul 2>nul
 takeown /F C:\Windows\System32\RuntimeBroker.exe /R /D Y  >nul 2>nul
 taskkill /F /IM RuntimeBroker*  >nul 2>nul
-rmdir /S /Q C:\Windows\System32\RuntimeBroker.exe  >nul 2>nul
+del /S /F /Q C:\Windows\System32\RuntimeBroker.exe  >nul 2>nul
 taskkill /F /IM RuntimeBroker*  >nul 2>nul
-rmdir /S /Q C:\Windows\System32\RuntimeBroker.exe  >nul 2>nul
+del /S /F /Q C:\Windows\System32\RuntimeBroker.exe  >nul 2>nul
 reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
 start explorer.exe
