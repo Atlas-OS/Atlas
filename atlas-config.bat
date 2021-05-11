@@ -277,6 +277,12 @@ for /f "tokens=1-9* delims=\ " %%A in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\Curr
   )
 )
 
+for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "cbdhsvc" ') do (
+  reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
+  sc start %%~nI
+)
+sc config CDPSvc start=disabled
+
 sc stop wuauserv >nul 2>&1
 :: reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
@@ -329,7 +335,7 @@ bcdedit /set useplatformtick yes
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
 bcdedit /set disabledynamictick Yes
 bcdedit /set debug no
-bcdedit /set bootdebug off
+bcdedit /set bootdebug no
 :: Disable DEP, may need to enable for FACEIT or Valorant
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 bcdedit /set nx AlwaysOff
@@ -436,10 +442,20 @@ goto finish
 :btD
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc >nul 2>&1
+for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "cbdhsvc" ') do (
+  reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
+  sc start %%~nI
+)
+sc config CDPSvc start=disabled
 goto finish
 :btE
 sc config BthAvctpSvc start=auto
 sc start BthAvctpSvc >nul 2>&1
+for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "cbdhsvc" ') do (
+  reg add "%%I" /v "Start" /t REG_DWORD /d "2" /f
+  sc stop %%~nI
+)
+sc config CDPSvc start=auto
 goto finish
 :hddD
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnablePrefetcher" /t REG_DWORD /d "0" /f
