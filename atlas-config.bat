@@ -74,6 +74,8 @@ if /i "%~1"=="/openshell"         goto openshellInstall
 if /i "%~1"=="/uwp"			goto uwp
 if /i "%~1"=="/mite"			goto mitE
 if /i "%~1"=="/stico"          goto startlayout
+if /i "%~1"=="/sleepD"         goto sleepD
+if /i "%~1"=="/sleepE"         goto sleepE
 :: debugging purposes only
 if /i "%~1"=="/update"         goto updatecheck
 if /i "%~1"=="/test"         goto TestSuccess
@@ -589,6 +591,18 @@ reg delete "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v 
 reg delete "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f
 reg delete "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /f
 goto finish
+:sleepD
+:: Disable Away Mode policy
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 0
+:: Disable Idle States
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 0
+goto finishNRB
+:sleepE
+:: Enable Away Mode policy
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 1
+:: Enable Idle States
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 1
+goto finishNRB
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
 	pause&exit
