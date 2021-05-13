@@ -93,6 +93,7 @@ pause&exit
 :: Revision; SvcHostSplitThreshold
 cls
 echo Please wait. This may take a moment.
+
 Rundll32.exe advapi32.dll,ProcessIdleTasks
 C:\ProgramData\vcredist.exe /ai
 :: change ntp server from windows server to pool.ntp.org
@@ -279,12 +280,6 @@ for /f "tokens=1-9* delims=\ " %%A in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\Curr
   )
 )
 
-for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "cbdhsvc" ') do (
-  reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
-  sc start %%~nI
-)
-sc config CDPSvc start=disabled
-
 sc stop wuauserv >nul 2>&1
 :: reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
@@ -444,7 +439,7 @@ goto finish
 :btD
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc >nul 2>&1
-for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "cbdhsvc" ') do (
+for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
   sc start %%~nI
 )
@@ -453,7 +448,7 @@ goto finish
 :btE
 sc config BthAvctpSvc start=auto
 sc start BthAvctpSvc >nul 2>&1
-for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "cbdhsvc" ') do (
+for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "2" /f
   sc stop %%~nI
 )
