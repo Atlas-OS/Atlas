@@ -48,7 +48,7 @@ if /i %ver% LSS %gitver% (
         del /F /Q update.zip >nul 2>&1
         rmdir /S /Q Atlas-%devbranch% >nul 2>&1
         :: relaunch as updated
-        nsudo -U:T -P:E atlas-config.bat %~1&exit
+        C:\Windows\AtlasModules\nsudo -U:T -P:E atlas-config.bat %~1&exit
     )
     echo Skipping Update...
 )
@@ -93,7 +93,7 @@ pause&exit
 :: Revision; SvcHostSplitThreshold
 cls
 echo Please wait. This may take a moment.
-
+setx path "%path%;C:\Windows\AtlasModules;" -m
 Rundll32.exe advapi32.dll,ProcessIdleTasks
 C:\ProgramData\vcredist.exe /ai
 :: change ntp server from windows server to pool.ntp.org
@@ -441,7 +441,7 @@ sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc >nul 2>&1
 for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
-  sc start %%~nI
+  sc stop %%~nI
 )
 sc config CDPSvc start=disabled
 goto finish
@@ -450,7 +450,7 @@ sc config BthAvctpSvc start=auto
 sc start BthAvctpSvc >nul 2>&1
 for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "2" /f
-  sc stop %%~nI
+  sc start %%~nI
 )
 sc config CDPSvc start=auto
 goto finish
