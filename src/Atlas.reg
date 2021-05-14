@@ -1,8 +1,5 @@
 Windows Registry Editor Version 5.00
 
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\xinputhid\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
 [HKEY_LOCAL_MACHINE\System\ControlSet001\Services\WUDFRd\Parameters]
 "DmaRemappingCompatible"=dword:00000000
 
@@ -106,10 +103,7 @@ Windows Registry Editor Version 5.00
 	cd,4c,05,00,00,00,00,00,\
 	a0,99,0a,00,00,00,00,00,\
 	38,33,15,00,00,00,00,00
-
-[HKEY_CURRENT_USER\Control Panel\Mouse]
 "ActiveWindowTracking"=dword:00000000
-"MouseSensitivity"="10"
 "MouseSpeed"="0"
 "MouseThreshold1"="0"
 "MouseThreshold2"="0"
@@ -136,8 +130,6 @@ Windows Registry Editor Version 5.00
 
 [-HKEY_LOCAL_MACHINE\Software\Clients\StartMenuInternet\Microsoft Edge]
 
-[-HKEY_LOCAL_MACHINE\Software\Classes\MSEdgeHTM]
-
 [-HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Device Metadata]
 
 ; remove filter
@@ -158,23 +150,18 @@ Windows Registry Editor Version 5.00
 "StartLayoutFile"=hex(2):43,00,3A,00,5C,00,57,00,69,00,6E,00,64,00,6F,00,77,\
 00,73,00,5C,00,6C,00,61,00,79,00,6F,00,75,00,74,00,2E,00,78,00,6D,00,6C,00,\
 00,00
+"LockedStartLayout"=dword:00000001
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer]
 "StartLayoutFile"=hex(2):43,00,3A,00,5C,00,57,00,69,00,6E,00,64,00,6F,00,77,\
 00,73,00,5C,00,6C,00,61,00,79,00,6F,00,75,00,74,00,2E,00,78,00,6D,00,6C,00,\
 00,00
 
-[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer]
-"LockedStartLayout"=dword:00000001
 
-; enable dark mode
+; enable dark mode, disable transparency
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize]
 "SystemUsesLightTheme"=dword:00000000
-
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize]
 "AppsUseLightTheme"=dword:00000000
-
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize]
 "EnableTransparency"=dword:00000000
 
 ; disable updates
@@ -216,24 +203,11 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore]
 "AutoDownload"=dword:00000002
 
-[HKEY_LOCAL_MACHINE\Software\Microsoft\PolicyManager\default\Update]
-"ExcludeWUDriversInQualityUpdate"=dword:00000001
-
 [HKEY_LOCAL_MACHINE\Software\Microsoft\PolicyManager\default\Update\ExcludeWUDriversInQualityUpdate]
 "value"=dword:00000001
 
-[HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsUpdate\UX\Settings]
-"ExcludeWUDriversInQualityUpdate"=dword:00000001
-
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects]
 "VisualFXSetting"=dword:00000003
-
-[HKEY_CURRENT_USER\Control Panel\Desktop]
-"UserPreferencesMask"=hex:98,12,03,80,10,00,00,00
-
-; Equals 100 decimal
-[HKEY_CURRENT_USER\Control Panel\Desktop]
-"JPEGImportQuality"=dword:00000064
 
 ; Disable CEIP via GPO
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\Messenger\Client]
@@ -241,7 +215,6 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\SQMClient\Windows]
 "CEIPEnable"=dword:00000000
-
 
 ; Disable error reporting/reports
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\PCHealth\ErrorReporting]
@@ -269,9 +242,6 @@ Windows Registry Editor Version 5.00
 "DisableWebPnPDownload"=dword:00000001
 "DisableHTTPPrinting"=dword:00000001
 
-[HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\EdgeUI]
-"DisableMFUTracking"=dword:00000001
-
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\EdgeUI]
 "DisableMFUTracking"=dword:00000001
 
@@ -291,9 +261,6 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\System]
 "EnableCdp"=dword:00000000
 "AllowClipboardHistory"=dword:00000000
-
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced]
-"ShowSyncProviderNotifications"=dword:00000000
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo]
 "Enabled"=dword:00000000
@@ -333,6 +300,11 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search]
 "BackgroundAppGlobalToggle"=dword:00000000
+"SearchboxTaskbarMode"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Search]
+"BingSearchEnabled"=dword:00000000
+
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack]
 "ShowedToastAtLevel"=dword:00000001
@@ -341,6 +313,7 @@ Windows Registry Editor Version 5.00
 "AllowTelemetry"=dword:00000000
 "MaxTelemetryAllowed"=dword:00000000
 "AllowDeviceNameInTelemetry"=dword:00000000
+"DoNotShowFeedbackNotifications"=dword:00000001
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer]
 "NoLowDiskSpaceChecks"=dword:00000001
@@ -349,7 +322,6 @@ Windows Registry Editor Version 5.00
 "NoResolveTrack"=dword:00000001
 "NoInternetOpenWith"=dword:00000001
 "NoInstrumentation"=dword:00000001
-"UseDefaultTile"=dword:00000001
 
 [HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications]
 "NoTileApplicationNotification"=dword:00000001
@@ -357,24 +329,21 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Power\PowerThrottling]
 "PowerThrottlingOff"=dword:00000001
 
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\explorer\advanced]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced]
+"DisallowShaking"=dword:00000001
 "Start_TrackProgs"=dword:00000000
+"ShowSyncProviderNotifications"=dword:00000000
 
 [HKEY_CURRENT_USER\Control Panel\International\User Profile]
 "HttpAcceptLanguageOptOut"=dword:00000001
 
-[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Personalization]
-"NoLockScreenCamera"=dword:00000001
-
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AppCompat]
 "DisableInventory"=dword:00000001
 "DisableUAR"=dword:00000001
+"AITEnable"=dword:00000000
 
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Speech]
 "AllowSpeechModelUpdate"=dword:00000000
-
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search]
-"SearchboxTaskbarMode"=dword:00000001
 
 [HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer]
 "NoRemoteDestinations"=dword:00000001
@@ -406,15 +375,15 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\Control Panel\Accessibility\ToggleKeys]
 "Flags"=dword:00000000
 
-[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Search]
-"BingSearchEnabled"=dword:00000000
-
 [HKEY_LOCAL_MACHINE\Software\Microsoft\WindowsSelfHost\UI\Visibility]
 "HideInsiderPage"=dword:00000001
 
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\InputPersonalization]
 "RestrictImplicitTextCollection"=dword:00000001
 "RestrictImplicitInkCollection"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Personalization]
+"NoLockScreenCamera"=dword:00000001
 
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform]
 "NoGenTicket"=dword:00000001
@@ -437,30 +406,22 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\TabletPC]
 "PreventHandwritingDataSharing"=dword:00000001
 
-[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AppCompat]
-"AITEnable"=dword:00000000
-
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Windows Search]
 "ConnectedSearchUseWeb"=dword:00000000
 "DisableWebSearch"=dword:00000001
 
-[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\DataCollection]
-"DoNotShowFeedbackNotifications"=dword:00000001
-
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WMDRM]
 "DisableOnline"=dword:00000001
 
+; Disable post-install
 [HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NlaSvc\Parameters\Internet]
-"EnableActiveProbing"=dword:00000000
+"EnableActiveProbing"=dword:00000001
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\PushNotifications]
 "ToastEnabled"=dword:00000000
 
 [HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\PriorityControl]
 "Win32PrioritySeparation"=dword:00000026
-
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced]
-"DisallowShaking"=dword:00000001
 
 [HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control]
 "WaitToKillServiceTimeout"="2000"
@@ -471,9 +432,8 @@ Windows Registry Editor Version 5.00
 "MenuShowDelay"="8"
 "WaitToKillAppTimeout"="2000"
 "LowLevelHooksTimeout"="1000"
-
-[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System]
-"EnableLUA"=dword:00000000
+"UserPreferencesMask"=hex:98,12,03,80,10,00,00,00
+"JPEGImportQuality"=dword:00000064
 
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AppPrivacy]
 "LetAppsRunInBackground"=dword:00000002
@@ -643,7 +603,139 @@ Windows Registry Editor Version 5.00
 [HKEY_CLASSES_ROOT\CABFolder\Shell\RunAs\Command]
 @="cmd /k dism /online /add-package /packagepath:\"%1\""
 
+; add run with priority context menu
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority]
+"MUIVerb"="Run with priority"
+"SubCommands"=""
+"Icon"="shell32.dll,-25"
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell]
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\01Low]
+"MUIVerb"="Low"
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\01Low\Command]
+@="cmd.exe /c start \"\" /Low \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\02BelowNormal]
+"MUIVerb"="Below normal"
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\02BelowNormal\Command]
+@="cmd.exe /c start \"\" /BelowNormal \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\03Normal]
+"MUIVerb"="Normal"
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\03Normal\Command]
+@="cmd.exe /c start \"\" /Normal \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\04AboveNormal]
+"MUIVerb"="Above Normal"
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\04AboveNormal\Command]
+@="cmd.exe /c start \"\" /AboveNormal \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\05High]
+"MUIVerb"="High"
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\05High\Command]
+@="cmd.exe /c start \"\" /High \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\06Realtime]
+"MUIVerb"="Realtime"
+
+[HKEY_CURRENT_USER\Software\Classes\exefile\Shell\RunWithPriority\shell\06Realtime\Command]
+@="cmd.exe /c start \"\" /Realtime \"%1\""
+
+; add batch to new file menu
+[HKEY_LOCAL_MACHINE\Software\Classes\.bat\ShellNew]
+"ItemName"=hex(2):40,00,43,00,3A,00,5C,00,57,00,69,00,6E,00,64,00,6F,00,77,\
+00,73,00,5C,00,53,00,79,00,73,00,74,00,65,00,6D,00,33,00,32,00,5C,00,61,00,\
+63,00,70,00,70,00,61,00,67,00,65,00,2E,00,64,00,6C,00,6C,00,2C,00,2D,00,36,\
+00,30,00,30,00,32,00,00,00
+"NullFile"=""
+
+; add reg to new file menu
+[HKEY_LOCAL_MACHINE\Software\Classes\.reg\ShellNew]
+"ItemName"=hex(2):40,00,43,00,3A,00,5C,00,57,00,69,00,6E,00,64,00,6F,00,77,\
+00,73,00,5C,00,72,00,65,00,67,00,65,00,64,00,69,00,74,00,2E,00,65,00,78,00,\
+65,00,2C,00,2D,00,33,00,30,00,39,00,00,00
+"NullFile"=""
+
 ; remove include in library context menu
 [-HKEY_CLASSES_ROOT\Folder\ShellEx\ContextMenuHandlers\Library Location]
 
 [-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location]
+
+; Group Policy to disable animations when restoring, minimizing, and maximizing windows. 
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DWM]
+"DisallowAnimations"=dword:00000001
+
+; double click to import power plans
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\powerplan\DefaultIcon]
+@="%SystemRoot%\\System32\\powercpl.dll,1"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\powerplan\Shell\open\command]
+@="powercfg /import \"%1\""
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\.pow]
+@="powerplan"
+"FriendlyTypeName"="PowerPlan"
+
+; remove print context menu
+[HKEY_CLASSES_ROOT\SystemFileAssociations\image\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\batfile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\cmdfile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\docxfile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\fonfile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\htmlfile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\inffile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\inifile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\JSEFile\Shell\Print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\otffile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\pfmfile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\regfile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\rtffile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\ttcfile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\ttffile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\txtfile\shell\print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\VBEFile\Shell\Print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\VBSFile\Shell\Print]
+"ProgrammaticAccessOnly"=""
+
+[HKEY_CLASSES_ROOT\WSFFile\Shell\Print]
+"ProgrammaticAccessOnly"=""
