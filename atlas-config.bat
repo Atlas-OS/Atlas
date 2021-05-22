@@ -134,6 +134,7 @@ schtasks /Change /DISABLE /TN "\Microsoft\Windows\Shell\IndexerAutomaticMaintena
 :: Should already be disabled
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskNetwork"
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskLogon"
+
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\StateRepository\MaintenanceTasks"
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\UpdateOrchestrator\Report policies"
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\UpdateOrchestrator\Schedule Scan Static Task"
@@ -148,6 +149,13 @@ schtasks /Change /DISABLE /TN "\Microsoft\Windows\InstallService\ScanForUpdates"
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\InstallService\ScanForUpdatesAsUser"
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\InstallService\SmartRetry"
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\InstallService\ScanForUpdates"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Application Experience\PcaPatchDbTask"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\WindowsUpdate\Scheduled Start"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\WaaSMedic\PerformRemediation"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\UpdateOrchestrator\Schedule Scan"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\DiskCleanup\SilentCleanup"
+schtasks /Change /DISABLE /TN "\Microsoft\Windows\Diagnosis\Scheduled"
+
 cls
 echo Please wait. This may take a moment.
 
@@ -331,18 +339,11 @@ bcdedit /deletevalue useplatformclock >nul 2>&1
 bcdedit /set useplatformtick yes
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
 bcdedit /set disabledynamictick Yes
-bcdedit /set debug no
-bcdedit /set bootdebug no
-:: Disable DEP, may need to enable for FACEIT or Valorant
+:: Disable DEP, may need to enable for FACEIT, Valorant, and other Anti-Cheats.
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 bcdedit /set nx AlwaysOff
-:: Trusted Platform Module is removed, keeping here until I can test if this affects anything.
-bcdedit /set tpmbootentropy ForceDisable
 :: Hyper-V support is removed, other virtualization programs are supported
 bcdedit /set hypervisorlaunchtype off
-:: Disable Early Launch Antimalware drivers
-:: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#verification-settings
-bcdedit /set disableelamdrivers yes
 :: disable EMS
 bcdedit /set ems No
 bcdedit /set bootems No 
@@ -608,6 +609,13 @@ powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 goto finishNRB
+:harden
+:: TODO:
+:: - Harden Process Mitigations (lower compatibilty for legacy apps)
+:: - Open scripts in notepad to preview instead of executing when clicking
+:: - ElamDrivers
+:: - block unsigned processes running from USBS
+
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
 	pause&exit
