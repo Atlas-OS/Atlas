@@ -615,7 +615,9 @@ goto finishNRB
 :: - Open scripts in notepad to preview instead of executing when clicking
 :: - ElamDrivers
 :: - block unsigned processes running from USBS
-
+:: - Kerebos Hardening
+:: - UAC Enable
+:: - Firewall rules
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
 	pause&exit
