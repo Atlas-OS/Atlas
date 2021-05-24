@@ -94,7 +94,8 @@ pause&exit
 cls
 echo Please wait. This may take a moment.
 setx path "%path%;C:\Windows\AtlasModules;" -m
-Rundll32.exe advapi32.dll,ProcessIdleTasks
+:: Breaks setting keyboard language
+:: Rundll32.exe advapi32.dll,ProcessIdleTasks
 C:\ProgramData\vcredist.exe /ai
 :: change ntp server from windows server to pool.ntp.org
 sc config W32Time start=demand
@@ -129,7 +130,8 @@ schtasks /Change /DISABLE /TN "\Microsoft\Windows\DiskDiagnostic\Microsoft-Windo
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\Defrag\ScheduledDefrag"
 schtasks /Change /DISABLE /TN "\MicrosoftEdgeUpdateBrowserReplacementTask"
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\Registry\RegIdleBackup"
-schtasks /Change /DISABLE /TN "\Microsoft\Windows\Shell\CreateObjectTask"
+:: Breaks setting Lock Screen
+:: schtasks /Change /DISABLE /TN "\Microsoft\Windows\Shell\CreateObjectTask"
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\Shell\IndexerAutomaticMaintenance"
 :: Should already be disabled
 schtasks /Change /DISABLE /TN "\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskNetwork"
