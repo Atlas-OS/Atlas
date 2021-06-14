@@ -1,94 +1,5 @@
 Windows Registry Editor Version 5.00
 
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\WUDFRd\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\WpdUpFltr\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\vwififlt\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\vdrvroot\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\USBXHCI\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\USBHUB3\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\umbus\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\storahci\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\stornvme\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\NdisVirtualBus\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\msisadrv\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\mouhid\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\monitor\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\intelpep\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\CompositeBus\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\BasicRender\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\BasicDisplay\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\acpipagr\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\acpi\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\partmgr\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\xinputhid\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\pci\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\HDAudBus\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\NdisWan\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\kbhid\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\kbdclass\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_LOCAL_MACHINE\System\ControlSet001\Services\intellppm\Parameters]
-"DmaRemappingCompatible"=dword:00000000
-
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager]
-"RotatingLockScreenOverlayEnabled"=dword:00000000
-"SubscribedContent-310093Enabled"=dword:00000000
-"RotatingLockScreenEnabled"=dword:00000000
-"SoftLandingEnabled"=dword:00000000
-"SystemPaneSuggestionsEnabled"=dword:00000000
-"SilentInstalledAppsEnabled"=dword:00000000
-
 [HKEY_CURRENT_USER\Control Panel\Mouse]
 "MouseSensitivity"="10"
 "SmoothMouseXCurve"=hex:\
@@ -151,6 +62,7 @@ Windows Registry Editor Version 5.00
 00,73,00,5C,00,6C,00,61,00,79,00,6F,00,75,00,74,00,2E,00,78,00,6D,00,6C,00,\
 00,00
 "LockedStartLayout"=dword:00000001
+"DisableNotificationCenter"=dword:00000001
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer]
 "StartLayoutFile"=hex(2):43,00,3A,00,5C,00,57,00,69,00,6E,00,64,00,6F,00,77,\
@@ -210,10 +122,13 @@ Windows Registry Editor Version 5.00
 "VisualFXSetting"=dword:00000003
 
 ; Disable CEIP via GPO
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\Messenger\Client]
+[HKEY_CURRENT_USER\Software\Policies\Microsoft\Messenger\Client]
 "CEIP"=dword:00000002
 
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\SQMClient\Windows]
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\SQMClient\Windows]
+"CEIPEnable"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\AppV\CEIP]
 "CEIPEnable"=dword:00000000
 
 ; Disable error reporting/reports
@@ -238,12 +153,19 @@ Windows Registry Editor Version 5.00
 "SleepStudyDisabled"=dword:00000001
 "HibernateEnabled"=dword:00000000
 
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power]
+"EventProcessorEnabled"=dword:00000000
+"HibernateEnabled"=dword:00000000
+
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2D8F40DB-C59F-443B-B322-1237F8E0A57D}Machine\Software\Policies\Microsoft\Windows NT\Printers]
 "DisableWebPnPDownload"=dword:00000001
 "DisableHTTPPrinting"=dword:00000001
 
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\EdgeUI]
 "DisableMFUTracking"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Edge]
+"EnableMediaRouter"=dword:00000000
 
 [HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Diagnostics\Performance]
 "DisableDiagnosticTracing"=dword:00000001
@@ -382,9 +304,6 @@ Windows Registry Editor Version 5.00
 "RestrictImplicitTextCollection"=dword:00000001
 "RestrictImplicitInkCollection"=dword:00000001
 
-[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Personalization]
-"NoLockScreenCamera"=dword:00000001
-
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform]
 "NoGenTicket"=dword:00000001
 
@@ -432,8 +351,18 @@ Windows Registry Editor Version 5.00
 "MenuShowDelay"="8"
 "WaitToKillAppTimeout"="2000"
 "LowLevelHooksTimeout"="1000"
-"UserPreferencesMask"=hex:98,12,03,80,10,00,00,00
+"UserPreferencesMask"=hex(3):9A,12,03,80,10,00,00,00
 "JPEGImportQuality"=dword:00000064
+
+[HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics]
+"MinAnimate"="0"
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced]
+"TaskbarAnimations"=dword:00000000
+"ListviewShadow"=dword:00000000
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\DWM]
+"EnableAeroPeek"=dword:00000000
 
 [HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AppPrivacy]
 "LetAppsRunInBackground"=dword:00000002
@@ -739,3 +668,48 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CLASSES_ROOT\WSFFile\Shell\Print]
 "ProgrammaticAccessOnly"=""
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Personalization]
+"NoLockScreenCamera"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager]
+"RotatingLockScreenOverlayEnabled"=dword:00000000
+"SubscribedContent-310093Enabled"=dword:00000000
+"RotatingLockScreenEnabled"=dword:00000000
+"SoftLandingEnabled"=dword:00000000
+"SystemPaneSuggestionsEnabled"=dword:00000000
+"SilentInstalledAppsEnabled"=dword:00000000
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Multimedia\Audio]
+"UserDuckingPreference"=dword:00000003
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\csrss.exe\PerfOptions]
+"CpuPriorityClass"=dword:00000004
+"IoPriority"=dword:00000003
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\Main]
+"NoUpdateCheck"=dword:00000001
+"Enable Browser Extensions"="no"
+"Isolation"="PMEM"
+"Isolation64Bit"=dword:00000001
+"DisableFirstRunCustomize"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Psched]
+"NonBestEffortLimit"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\QoS]
+"Do not use NLA"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\EdgeUpdate]
+"DoNotUpdateToEdgeWithChromium"=dword:00000000
+
+; Harden NetBT
+; NetBT is disabled. If it manages to become enabled, protect against NBT-NS poisoning attacks
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NetBT\Parameters]
+"NodeType"=dword:00000002
+
+; Disable Remote Assistance
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Remote Assistance]
+"fAllowFullControl"=dword:00000000
+"fAllowToGetHelp"=dword:00000000
+"fEnableChatControl"=dword:00000000
