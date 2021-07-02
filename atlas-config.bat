@@ -81,7 +81,7 @@ if /i "%~1"=="/vcreR"         goto vcreR
 if /i "%~1"=="/update"         goto updatecheck
 if /i "%~1"=="/test"         goto TestSuccess
 :argumentFAIL
-echo atlas-config had no arguements passed to it, either you are launching atlas-config directly or the script, "%~nx0" script is broken.
+echo atlas-config had no arguments passed to it, either you are launching atlas-config directly or the script, "%~nx0" script is broken.
 echo Please report this to the Atlas discord or github.
 pause&exit
 :startup
