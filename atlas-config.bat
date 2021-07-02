@@ -53,7 +53,6 @@ if /i %ver% LSS %gitver% (
 )
 
 :: will loop update check if debugging.
-if /i "%~1"=="/t"         goto TestSuccess
 if /i "%~1"=="/dn"         goto notiD
 if /i "%~1"=="/en"         goto notiE
 if /i "%~1"=="/di"         goto indexD
@@ -84,9 +83,6 @@ if /i "%~1"=="/test"         goto TestSuccess
 :argumentFAIL
 echo atlas-config had no arguements passed to it, either you are launching atlas-config directly or the script, "%~nx0" script is broken.
 echo Please report this to the Atlas discord or github.
-pause&exit
-:TestSuccess
-echo Arguement Test Successful, good job mate!
 pause&exit
 :startup
 :: CREDITS
