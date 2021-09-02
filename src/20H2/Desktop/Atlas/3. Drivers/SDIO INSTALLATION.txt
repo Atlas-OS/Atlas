@@ -1,0 +1,24 @@
+If you are familiar with SDIO, you do not need to read this.
+
+1. Navigate to SDIO's site: https://www.snappy-driver-installer.org/download-page/
+2. Click "Application Only" to download SDIO
+3. Extract the .zip file and open "SDIO_x64_RXXX.exe"
+4. Accept the Terms
+5. Click "Download Indexes Only"
+6. Wait for Indexes to download
+7. Tick the Devices you'd like to update drivers for. Remember, less is usually better so don't download them all unless you need to
+8. Done!
+
+If you're not sure what to install, read below.
+
+Minimal:
+- Networking (Will loose network tweaks, check the troubleshooting folder to redo them!)
+- USB
+- Graphics (from your vendor's website, not SDIO)
+
+Recommended:
+- Networking (Will loose network tweaks, check the troubleshooting folder to redo them!)
+- USB
+- Graphics (from your vendor's website, not SDIO)
+- Audio 
+- Bluetooth
