@@ -69,6 +69,7 @@ if /i "%~1"=="/vcreR"         goto vcreR
 if /i "%~1"=="/dwmCon"		goto dwmCon
 :: User Account Control
 if /i "%~1"=="/uacD"		goto uacD
+if /i "%~1"=="/uacE"		goto uacE
 :: Workstation Service (SMB)
 if /i "%~1"=="/workD"		goto workstationD
 if /i "%~1"=="/workE"		goto workstationE
@@ -1549,6 +1550,13 @@ reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\S
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\luafv" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Appinfo" /v "Start" /t REG_DWORD /d "4" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UAC Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+:uacE
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\luafv" /v "Start" /t REG_DWORD /d "2" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Appinfo" /v "Start" /t REG_DWORD /d "3" /f
+IF %ERRORLEVEL% EQU 0 echo %date% - %time% UAC Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :dwmKILL
 
