@@ -1214,6 +1214,8 @@ sc config ClipSVC start=disabled
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 ) ELSE (
 	echo You can not run this script with a Microsoft account.
+	pause
+	exit
 )
 goto finish
 :storeE
@@ -1388,6 +1390,10 @@ echo - Microsoft Accounts
 echo - Microsoft Store
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
+:: Detect if user is using a Microsoft Account
+set MSACCOUNT=NO
+powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES
+if "%MSACCOUNT%"=="NO" (
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
 sc config TabletInputService start=disabled
@@ -1422,6 +1428,12 @@ taskkill /f /im explorer.exe
 start explorer.exe
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UWP Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
+) ELSE (
+	echo You can not run this script with a Microsoft account.
+	pause
+	exit
+)
+pause
 :uwpE
 sc config TabletInputService start=demand
 
@@ -1559,7 +1571,6 @@ reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\S
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\luafv" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Appinfo" /v "Start" /t REG_DWORD /d "4" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UAC Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
-goto finish
 :uacE
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f
