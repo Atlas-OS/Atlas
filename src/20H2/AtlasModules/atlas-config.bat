@@ -1185,8 +1185,6 @@ ping -n 1 -4 1.1.1.1 |Find "Failulre"|(
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Wi-Fi Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :storeD
-echo If you have a linked MS Account, you NEED to unlink it. Or you will NOT be able to login. 
-echo Take this into consideration before running this and rebooting.
 echo This will break a majority of UWP apps and their deployment.
 echo Extra note: This breaks the "about" page in settings. If you require it, enable the AppX service.
 :: This includes Windows Firewall, I only see the point in keeping it because of Store. 
@@ -1213,9 +1211,21 @@ sc config AppXSVC start=disabled
 sc config ClipSVC start=disabled
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 ) ELSE (
-	echo You can not run this script with a Microsoft account.
-	pause
-	exit
+:: Disable the option for Windows Store in the "Open With" dialog
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
+:: Block Access to Windows Store
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
+sc config InstallService start=disabled
+:: Insufficent permissions to disable
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
+sc config mpssvc start=disabled
+sc config AppXSvc start=disabled
+sc config BFE start=disabled
+sc config TokenBroker start=disabled
+sc config LicenseManager start=disabled
+sc config AppXSVC start=disabled
+sc config ClipSVC start=disabled
+IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Disabled (MS account)...>> C:\Windows\AtlasModules\logs\userScript.log
 )
 goto finish
 :storeE
@@ -1429,9 +1439,39 @@ start explorer.exe
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UWP Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 ) ELSE (
-	echo You can not run this script with a Microsoft account.
-	pause
-	exit
+choice /c yn /m "Last warning, continue? [Y/N]" /n
+sc stop TabletInputService
+sc config TabletInputService start=disabled
+
+:: Disable the option for Windows Store in the "Open With" dialog
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
+:: Block Access to Windows Store
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
+sc config InstallService start=disabled
+:: Insufficent permissions to disable
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
+sc config mpssvc start=disabled
+sc config AppXSvc start=disabled
+sc config BFE start=disabled
+sc config TokenBroker start=disabled
+sc config LicenseManager start=disabled
+sc config AppXSVC start=disabled
+sc config ClipSVC start=disabled
+
+taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
+ren C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
+taskkill /F /IM SearchApp*  >nul 2>nul
+ren C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
+ren C:\Windows\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old
+ren C:\Windows\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old
+
+taskkill /F /IM RuntimeBroker*  >nul 2>nul
+ren C:\Windows\System32\RuntimeBroker.exe RuntimeBroker.exe.old
+C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
+taskkill /f /im explorer.exe
+start explorer.exe
+IF %ERRORLEVEL% EQU 0 echo %date% - %time% UWP Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finishNRB
 )
 pause
 :uwpE
@@ -1564,7 +1604,12 @@ IF %ERRORLEVEL% EQU 0 echo %date% - %time% Visual C++ Runtimes Reinstalled...>> 
 goto finishNRB
 :uacD
 echo Disabling UAC breaks fullscreen on certain UWP applications, one of them being Minecraft Windows 10 Edition. It is also less secure to disable UAC.
-pause
+set /p uacDconfirm="Do you want to continue? (y/N): "
+if %uacDconfirm%==Y goto uacdisable
+if %uacDconfirm%==y goto uacdisable
+if %uacDconfirm%==N exit
+if %uacDconfirm%==n exit
+:uacdisable
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "0" /f
