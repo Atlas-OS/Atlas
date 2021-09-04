@@ -1192,6 +1192,10 @@ echo Extra note: This breaks the "about" page in settings. If you require it, en
 :: This includes Windows Firewall, I only see the point in keeping it because of Store. 
 :: If you notice something else breaks when firewall/store is disabled please open an issue.
 pause
+:: Detect if user is using a Microsoft Account
+set MSACCOUNT=NO
+powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES
+if "%MSACCOUNT%"=="NO" (
 :: Disable the option for Windows Store in the "Open With" dialog
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
 :: Block Access to Windows Store
@@ -1208,6 +1212,9 @@ sc config LicenseManager start=disabled
 sc config AppXSVC start=disabled
 sc config ClipSVC start=disabled
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+) ELSE (
+	echo You can not run this script with a Microsoft account.
+)
 goto finish
 :storeE
 :: Enable the option for Windows Store in the "Open With" dialog
