@@ -1401,44 +1401,8 @@ echo - Microsoft Store
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 :: Detect if user is using a Microsoft Account
-set MSACCOUNT=NO
-powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES
-if "%MSACCOUNT%"=="NO" (
-choice /c yn /m "Last warning, continue? [Y/N]" /n
-sc stop TabletInputService
-sc config TabletInputService start=disabled
-
-:: Disable the option for Windows Store in the "Open With" dialog
-reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
-:: Block Access to Windows Store
-reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
-sc config InstallService start=disabled
-:: Insufficent permissions to disable
-reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
-sc config mpssvc start=disabled
-sc config wlidsvc start=disabled
-sc config AppXSvc start=disabled
-sc config BFE start=disabled
-sc config TokenBroker start=disabled
-sc config LicenseManager start=disabled
-sc config AppXSVC start=disabled
-sc config ClipSVC start=disabled
-
-taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
-ren C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
-taskkill /F /IM SearchApp*  >nul 2>nul
-ren C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
-ren C:\Windows\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old
-ren C:\Windows\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old
-
-taskkill /F /IM RuntimeBroker*  >nul 2>nul
-ren C:\Windows\System32\RuntimeBroker.exe RuntimeBroker.exe.old
-C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
-taskkill /f /im explorer.exe
-start explorer.exe
-IF %ERRORLEVEL% EQU 0 echo %date% - %time% UWP Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
-goto finishNRB
-) ELSE (
+powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
 sc config TabletInputService start=disabled
@@ -1471,8 +1435,7 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Softwar
 taskkill /f /im explorer.exe
 start explorer.exe
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UWP Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
-goto finishNRB
-)
+goto finish
 pause
 :uwpE
 sc config TabletInputService start=demand
@@ -1504,7 +1467,7 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Softwar
 taskkill /f /im explorer.exe
 start explorer.exe
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UWP Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
-goto finishNRB
+goto finish
 :mitE
 powershell set-ProcessMitigation -System -Enable DEP
 powershell set-ProcessMitigation -System -Enable EmulateAtlThunks
@@ -1604,12 +1567,11 @@ IF %ERRORLEVEL% EQU 0 echo %date% - %time% Visual C++ Runtimes Reinstalled...>> 
 goto finishNRB
 :uacD
 echo Disabling UAC breaks fullscreen on certain UWP applications, one of them being Minecraft Windows 10 Edition. It is also less secure to disable UAC.
-set /p uacDconfirm="Do you want to continue? (y/N): "
-if %uacDconfirm%==Y goto uacdisable
-if %uacDconfirm%==y goto uacdisable
-if %uacDconfirm%==N exit
-if %uacDconfirm%==n exit
-:uacdisable
+set /P c="Do you want to continue? [Y/N]: "
+if /I "%c%" EQU "Y" goto uacDconfirm
+if /I "%c%" EQU "N" exit
+exit
+:uacDconfirm
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "0" /f
