@@ -1189,13 +1189,15 @@ ping -n 1 -4 1.1.1.1 |Find "Failulre"|(
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Wi-Fi Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :storeD
-echo If you have a linked MS Account, you NEED to unlink it. Or you will NOT be able to login. 
-echo Take this into consideration before running this and rebooting.
 echo This will break a majority of UWP apps and their deployment.
 echo Extra note: This breaks the "about" page in settings. If you require it, enable the AppX service.
 :: This includes Windows Firewall, I only see the point in keeping it because of Store. 
 :: If you notice something else breaks when firewall/store is disabled please open an issue.
 pause
+:: Detect if user is using a Microsoft Account
+set MSACCOUNT=NO
+powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES
+if "%MSACCOUNT%"=="NO" (
 :: Disable the option for Windows Store in the "Open With" dialog
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
 :: Block Access to Windows Store
@@ -1212,6 +1214,23 @@ sc config LicenseManager start=disabled
 sc config AppXSVC start=disabled
 sc config ClipSVC start=disabled
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+) ELSE (
+:: Disable the option for Windows Store in the "Open With" dialog
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
+:: Block Access to Windows Store
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
+sc config InstallService start=disabled
+:: Insufficent permissions to disable
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
+sc config mpssvc start=disabled
+sc config AppXSvc start=disabled
+sc config BFE start=disabled
+sc config TokenBroker start=disabled
+sc config LicenseManager start=disabled
+sc config AppXSVC start=disabled
+sc config ClipSVC start=disabled
+IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Disabled (MS account)...>> C:\Windows\AtlasModules\logs\userScript.log
+)
 goto finish
 :storeE
 :: Enable the option for Windows Store in the "Open With" dialog
@@ -1395,6 +1414,9 @@ echo - Microsoft Accounts
 echo - Microsoft Store
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
+:: Detect if user is using a Microsoft Account
+powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
 sc config TabletInputService start=disabled
@@ -1407,7 +1429,6 @@ sc config InstallService start=disabled
 :: Insufficent permissions to disable
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
 sc config mpssvc start=disabled
-sc config wlidsvc start=disabled
 sc config AppXSvc start=disabled
 sc config BFE start=disabled
 sc config TokenBroker start=disabled
@@ -1427,7 +1448,8 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Softwar
 taskkill /f /im explorer.exe
 start explorer.exe
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UWP Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
-goto finishNRB
+goto finish
+pause
 :uwpE
 sc config TabletInputService start=demand
 
@@ -1458,7 +1480,7 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Softwar
 taskkill /f /im explorer.exe
 start explorer.exe
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UWP Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
-goto finishNRB
+goto finish
 :mitE
 powershell set-ProcessMitigation -System -Enable DEP
 powershell set-ProcessMitigation -System -Enable EmulateAtlThunks
@@ -1558,12 +1580,19 @@ echo Installation Finished or Cancelled.
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Visual C++ Runtimes Reinstalled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 :uacD
+echo Disabling UAC breaks fullscreen on certain UWP applications, one of them being Minecraft Windows 10 Edition. It is also less secure to disable UAC.
+set /P c="Do you want to continue? [Y/N]: "
+if /I "%c%" EQU "Y" goto uacDconfirm
+if /I "%c%" EQU "N" exit
+exit
+:uacDconfirm
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\luafv" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Appinfo" /v "Start" /t REG_DWORD /d "4" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UAC Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finish
 :uacE
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f
