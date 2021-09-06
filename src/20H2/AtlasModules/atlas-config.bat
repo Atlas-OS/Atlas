@@ -1307,11 +1307,19 @@ if /I "%c%" EQU "Y" goto continSS
 if /I "%c%" EQU "N" goto stopS
 :continSS
 :: Rename Start Menu
-taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
-ren C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
+chdir /d C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+:restartStart
+taskkill /F /IM StartMenuExperienceHost*
+ren StartMenuExperienceHost.exe StartMenuExperienceHost.old
+:: Loop if it fails to rename the first time
+if exist "C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto restartStart
 :: Rename Search
+chdir /d C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+:restartSearch
 taskkill /F /IM SearchApp*  >nul 2>nul
-ren C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
+ren SearchApp.exe SearchApp.old
+:: Loop if it fails to rename the first time
+if exist "C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto restartSearch
 :: Search Icon
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
@@ -1320,9 +1328,11 @@ IF %ERRORLEVEL% EQU 0 echo %date% - %time% Search and Start Menu Disabled...>> C
 goto finish
 :enableStart
 :: Rename Start Menu
-ren C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+chdir /d C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+ren StartMenuExperienceHost.old StartMenuExperienceHost.exe
 :: Rename Search
-ren C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy.old Microsoft.Windows.Search_cw5n1h2txyewy
+chdir /d C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+ren SearchApp.old SearchApp.exe
 :: Search Icon
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f
 taskkill /f /im explorer.exe
