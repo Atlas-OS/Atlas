@@ -1,4 +1,0 @@
-[submodule "AtlasModules"]
-	path = src/AtlasModules
-	url = https://github.com/Atlas-OS/Atlas.git
-	branch = update-test1-NOMERGE
