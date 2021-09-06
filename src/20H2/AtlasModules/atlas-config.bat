@@ -1398,7 +1398,6 @@ sc config AppXSvc start=disabled
 sc config BFE start=disabled
 sc config TokenBroker start=disabled
 sc config LicenseManager start=disabled
-sc config AppXSVC start=disabled
 sc config ClipSVC start=disabled
 
 taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
