@@ -1167,10 +1167,15 @@ IF %ERRORLEVEL% EQU 0 echo %date% - %time% Search Indexing Enabled...>> C:\Windo
 goto finish
 :wifiD
 echo Applications like Store and Spotify may not function correctly when disabled. If this is a problem, enable the wifi and restart the computer.
-sc config netprofm start=disabled
-sc config NlaSvc start=disabled
 sc config WlanSvc start=disabled
 sc config vwififlt start=disabled
+set /P c="Would you like to disable the Network Icon? (disables 2 extra services) [Y/N]: "
+if /I "%c%" EQU "Y" goto wifiDconfirm
+if /I "%c%" EQU "N" goto wifiDskip
+:wifiDconfirm
+sc config netprofm start=disabled
+sc config NlaSvc start=disabled
+:wifiDskip
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Wi-Fi Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :wifiE
