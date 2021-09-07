@@ -43,10 +43,11 @@ There are plenty of reasons to build atlas from source such as:
 9. Done!
 ## Contributing
 
-### Creating scripts and making them accessible
-First, you'll need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/4d0b53506631be2dda469dce3330722507e9aaec/atlas-config.bat#L65) to `atlas-config.bat`. This will allow it to be called from a seperate script on the desktop.
+### Creating Scripts
+First, you'll need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L44) to `atlas-config.bat`. This will allow it to be called from a seperate script on the desktop.
 
-For this we will use the [Bluetooth Disable Script](https://github.com/Atlas-OS/Atlas/blob/4d0b53506631be2dda469dce3330722507e9aaec/atlas-config.bat#L529) as an example. 
+For this we will use the [Bluetooth Disable Script](hhttps://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L1235) as an example. 
+
 ```batch
 :: the :btD flag is part of allowing the script to be called when a specific flag is used, as mentioned previously.
 :btD
@@ -63,14 +64,28 @@ sc config CDPSvc start=disabled
 :: If the script does not need to reboot, use "goto finishNRB"
 goto finish
 ```
-<!-- 
-TODO:
- - Add sample for desktop script
--->
+
+Now that we have the script available in `atlas-config`, let's make a desktop script to easily launch it.
+
+```batch
+@echo off
+C:\Windows\AtlasModules\nsudo -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /btd
+```
+
+This file will go in the "Atlas" Folder
 
 ### Code Formatting
 
+To keep code "unified" we have a few guidelines. This way it is easier to understand when contributing.
 
+#### Labels
+
+When creating [labels](http://elearning.algonquincollege.com/coursemat/viljoed/gis8746/concepts/dosbatch/advanced/labels.htm), we use camelCase:
+
+```batch
+:btD
+echo this stands for "Bluetooth Disable"
+```
 
 ## Resources
 - [VCRedist](https://github.com/abbodi1406/vcredist)
