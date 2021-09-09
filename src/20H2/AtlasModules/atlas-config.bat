@@ -316,6 +316,11 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NetBT\Parameters" 
 :: Mitigate against HiveNightmare/SeriousSAM
 icacls %windir%\system32\config\*.* /inheritance:e
 
+:: Do Not Save Zone Information
+C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\SOFSoftware\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v "SaveZoneInformation" /t REG_SZ /d "1" /f
+
+:: TODO: Check for other users
+
 :: Import the powerplan
 powercfg -import "C:\Windows\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
 :: Set current powerplan to Atlas
@@ -1688,6 +1693,10 @@ echo The spooler will not accept client connections nor allow users to share pri
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers" /v "RegisterSpoolerRemoteRpcEndPoint" /t REG_DWORD /d "2" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /v "RestrictDriverInstallationToAdministrators" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /v "Restricted" /t REG_DWORD /d "1" /f
+:: Prevent Print Drivers over HTTP
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableWebPnPDownload" /t REG_DWORD /d "1" /f
+:: Disable Printing over HTTP
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableHTTPPrinting" /t REG_DWORD /d "1" /f
 :printECont
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Spooler" /v "Start" /t REG_DWORD /d "2" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Printing Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
