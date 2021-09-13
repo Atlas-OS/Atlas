@@ -1677,15 +1677,15 @@ set /P c="Do you want to continue? [Y/N]: "
 if /I "%c%" EQU "Y" goto aniEconfirm
 if /I "%c%" EQU "N" exit
 :aniEconfirm
-reg delete "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations"
-reg delete "HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics" /v "MinAnimate"
+reg delete "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /f
+reg delete "HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /f
 SystemPropertiesPerformance
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Animations Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :aniD
 echo A performance options panel will appear, you need to un-check the animations you do not want then click OK.
 set /P c="Do you want to continue? [Y/N]: "
-if /I "%c%" EQU "Y" goto aniEconfirm
+if /I "%c%" EQU "Y" goto aniDconfirm
 if /I "%c%" EQU "N" exit
 :aniDconfirm
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /t REG_DWORD /d "1" /f
