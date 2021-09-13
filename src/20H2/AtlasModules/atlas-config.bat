@@ -31,6 +31,9 @@ if /i "%~1"=="/start"		   goto startup
 :: Notifications
 if /i "%~1"=="/dn"         goto notiD
 if /i "%~1"=="/en"         goto notiE
+:: Animations
+if /i "%~1"=="/ad"         goto aniD
+if /i "%~1"=="/ae"         goto aniE
 :: Search Indexing
 if /i "%~1"=="/di"         goto indexD
 if /i "%~1"=="/ei"         goto indexE
@@ -1668,6 +1671,28 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\mpssvc" /v "Start"
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BFE" /v "Start" /t REG_DWORD /d "2" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Firewall Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
+:aniE
+echo Enabling animations will make Windows feel less snappy and fast, especially on low end machines. A performance options panel will appear, you need to check the animations you want then click OK.
+set /P c="Do you want to continue? [Y/N]: "
+if /I "%c%" EQU "Y" goto aniEconfirm
+if /I "%c%" EQU "N" exit
+:aniEconfirm
+reg delete "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations"
+reg delete "HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics" /v "MinAnimate"
+SystemPropertiesPerformance
+IF %ERRORLEVEL% EQU 0 echo %date% - %time% Animations Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finish
+:aniD
+echo A performance options panel will appear, you need to un-check the animations you do not want then click OK.
+set /P c="Do you want to continue? [Y/N]: "
+if /I "%c%" EQU "Y" goto aniEconfirm
+if /I "%c%" EQU "N" exit
+:aniDconfirm
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /t REG_DWORD /d "1" /f
+reg add "HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /t REG_DWORD /d "0" /f
+SystemPropertiesPerformance
+IF %ERRORLEVEL% EQU 0 echo %date% - %time% Animations Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finish
 :workstationD
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\rdbss" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\KSecPkg" /v "Start" /t REG_DWORD /d "4" /f
@@ -1695,7 +1720,7 @@ if /I "%c%" EQU "N" goto printECont
 goto nightmareGPO
 :nightmareGPO
 echo The spooler will not accept client connections nor allow users to share printers.
-reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers" /v "RegisterSpoolerRemoteRpcEndPoint" /t REG_DWORD /d "2" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers" /v "RegisterSpoolerRemoteRpcEndPoint" /t REG_DWORD /d "2" /fs
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /v "RestrictDriverInstallationToAdministrators" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /v "Restricted" /t REG_DWORD /d "1" /f
 :: Prevent Print Drivers over HTTP
