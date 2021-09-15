@@ -223,11 +223,14 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PC
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 :: Enable MSI Mode on Network Adapters
 :: undefined priority on some VMs may break connection
-:: TODO: VM Detection, if VM = set to normal
 for /f "tokens=2 delims==" %%i in ('wmic bios get Manufacturer /value') do set machines=%%i
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-:: If using vmware, skip setting to undefined.
-if /i "%vmchk%"=="VMware, Inc." goto vmGO
+:: If e.g. vmware is used, skip setting to undefined.
+set VMlist=HVM,innotek,KVM,Microsoft Corp,Parallels,Red Hat,Virtual,VMware,Xen
+for %%a in ("%VMlist:,=" "%") do (
+  wmic computersystem get manufacturer /format:value| findstr /i /C:%%a&&goto vmGO
+  wmic computersystem get model /format:value| findstr /i /C:%%a&&goto vmGO
+)
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 goto noVM
 :vmGO
