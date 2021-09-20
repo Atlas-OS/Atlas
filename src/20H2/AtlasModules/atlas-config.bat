@@ -1,6 +1,5 @@
 :: Name: Atlas Configuration Script
 :: Description: This is the master script used to congigure the Atlas Operating System.
-:: Last Updated: September 1st, 2021
 :: Version: 0.5
 :: Branch: 20H2
 
@@ -447,7 +446,7 @@ reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\DNSClient" /v
 :: Configure NIC Setting
 :: Get nic driver settings path by querying for dword
 :: If you see a way to optimize this segment, feel free to open a pull request.
-for /f %%a in ('reg query HKLM /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
+for /f %%a in ('reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
     :: Check if the value exists, to prevent errors and uneeded settings
     for /f %%i in ('reg query "%%a" /v "GigaLite" ^| findstr "HKEY"') do (
         :: add the value
@@ -563,6 +562,70 @@ devmanview /disable "Microsoft RRAS Root Enumerator"
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Devices...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Devices! >> C:\Windows\AtlasModules\logs\install.log)
 set ERRORLEVEL=0
+
+:: Backup Default Windows Services and Drivers
+:: Services
+set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Services.reg"
+echo Windows Registry Editor Version 5.00 >> %filename%
+echo. >> %filename%
+for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "TermService"') do (
+	set svc=%%i
+	set svc=!svc: =!
+	for /f "tokens=3" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
+		set start=%%i
+		if !start!==0x4 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000004 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x3 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000003 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x2 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000002 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x1 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000001 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x0 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000000 >> %filename%
+			echo. >> %filename% )
+	)
+) >nul 2>&1
+
+:: Drivers
+set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Drivers.reg"
+echo Windows Registry Editor Version 5.00 >> %filename%
+echo. >> %filename%
+for /f "delims=," %%i in ('driverquery /FO CSV') do (
+	set svc=%%~i
+	for /f "tokens=3" %%f in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\%%~i" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
+		set start=%%f
+		if !start!==0x4 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000004 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x3 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000003 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x2 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000002 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x1 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000001 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x0 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000000 >> %filename%
+			echo. >> %filename% )
+	) 
+) >nul 2>&1
 
 :: Services
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\AppIDSvc" /v "Start" /t REG_DWORD /d "4" /f
@@ -693,6 +756,70 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\fvevol" /v "Start"
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Services...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Services! >> C:\Windows\AtlasModules\logs\install.log)
 set ERRORLEVEL=0
+
+:: Backup Default Atlas Services and Drivers
+:: Services
+set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Services.reg"
+echo Windows Registry Editor Version 5.00 >> %filename%
+echo. >> %filename%
+for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "TermService"') do (
+	set svc=%%i
+	set svc=!svc: =!
+	for /f "tokens=3" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
+		set start=%%i
+		if !start!==0x4 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000004 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x3 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000003 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x2 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000002 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x1 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000001 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x0 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000000 >> %filename%
+			echo. >> %filename% )
+	)
+) >nul 2>&1
+
+:: Drivers
+set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Drivers.reg"
+echo Windows Registry Editor Version 5.00 >> %filename%
+echo. >> %filename%
+for /f "delims=," %%i in ('driverquery /FO CSV') do (
+	set svc=%%~i
+	for /f "tokens=3" %%f in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\%%~i" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
+		set start=%%f
+		if !start!==0x4 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000004 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x3 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000003 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x2 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000002 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x1 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000001 >> %filename%
+			echo. >> %filename% )
+		if !start!==0x0 (
+			echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+			echo "Start"=dword:00000000 >> %filename%
+			echo. >> %filename% )
+	) 
+) >nul 2>&1
 
 :: Registry
 :: Done through script now, HKCU\.. keys often don't integrate correctly.
@@ -1679,7 +1806,6 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Softwar
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9e3e078012000000" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Animations Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
-pause&exit
 :aniD
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /t REG_DWORD /d "1" /f
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /t REG_DWORD /d "0" /f
@@ -1688,7 +1814,6 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Softwar
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9012038010000000" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Animations Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
-pause&exit
 :workstationD
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\rdbss" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\KSecPkg" /v "Start" /t REG_DWORD /d "4" /f
