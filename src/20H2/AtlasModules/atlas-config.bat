@@ -130,8 +130,6 @@ ping -n 1 -4 1.1.1.1 |Find "Failulre"|(
     choice /c yn /m "" /n /t 20 /d n
     IF %ERRORLEVEL% EQU 1 ( set netStat=1 ) ELSE ( set netStat=0 )
 )
-
-
 :: Static
 set /P c="Would you like to set a Static IP and disable DHCP? [Y/N]: "
 if /I "%c%" EQU "Y" goto interactiveStatic
@@ -139,10 +137,10 @@ if /I "%c%" EQU "N" goto staticSkip
 :interactiveStatic
 IF %netStat% EQU 1 (
   :: https://stackoverflow.com/questions/5898763/how-do-i-get-the-ip-address-into-a-batch-file-variable#17634009
-  for /f "delims=[] tokens=2" %%a in ('ping -4 -n 1 %ComputerName% ^| findstr [') do set NetworkIP=%%a
+  for /f "delims=[] tokens=2" %%a in ('ping -4 -n 1 %ComputerName% ^| findstr [') do set LocalIP=%%a
   :: 1. Get IP for current NIC^
-  :: TODO:
-  :: 2. reg query for dhcp ip under "HKLM\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" from current ip
+  ::reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" /s /e /d /f "%LocalIP%" /t REG_SZ^| findstr "HKLM\"
+  :: 2. reg query for dhcp ip under "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" from current ip
   :: 3. Get gateway and subnet
   :: 4. Change DNS/Prompt
   :: 5. Disable DHCP
