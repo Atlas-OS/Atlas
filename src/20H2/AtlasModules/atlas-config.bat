@@ -156,6 +156,8 @@ IF %netStat% EQU 1 (
   :: prompt dns
   reg add "!IPInterface!" /v "NameServer" /t REG_SZ /d "!dns1!,!dns2!"
   reg add "!IPInterface!" /v "EnableDhcp" /t REG_DWORD /d "0" /f
+  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Dhcp" /v "Start" /t REG_DWORD /d "4" /f
+  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\tdx" /v "Start" /t REG_DWORD /d "4" /f
 ) else ( echo "Currently in Offline mode! Cannot set Static IP with No Network Access!" )
 
 
