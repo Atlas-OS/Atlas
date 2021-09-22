@@ -135,21 +135,23 @@ set /P c="Would you like to set a Static IP and disable DHCP? [Y/N]: "
 if /I "%c%" EQU "Y" goto interactiveStatic
 if /I "%c%" EQU "N" goto staticSkip
 :interactiveStatic
+
+
+:: 1. Get IP for current NIC^
+:: 2. reg query for dhcp ip under "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" from current ip^
+:: 3. Get gateway and subnet^
+:: 4. Change DNS/Prompt
+:: 5. Disable DHCP
+:: 6. Disable Drivers
 IF %netStat% EQU 1 (
-  :: https://stackoverflow.com/questions/5898763/how-do-i-get-the-ip-address-into-a-batch-file-variable#17634009
-  for /f "delims=[] tokens=2" %%a in ('ping -4 -n 1 %ComputerName% ^| findstr [') do set LocalIP=%%a
-  :: 1. Get IP for current NIC^
-  for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" /s /e /d /f "%LocalIP%" /t REG_SZ^| findstr "HKLM\"') do set IPInterface=%%i
-  :: 2. reg query for dhcp ip under "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" from current ip^
-  for /f "tokens=*" %%i in ('reg query "%IPInterface%" /s /v "DefaultGateway" /t REG_SZ^| findstr "HKLM\"') do set DHCPGateway=%%i
-  for /f "tokens=*" %%i in ('reg query "%IPInterface%" /s /v "DhcpSubnetMask" /t REG_SZ^| findstr "HKLM\"') do set DHCPSubnetMask=%%i
-  :: 3. Get gateway and subnet^
-  :: 4. Change DNS/Prompt
-  reg add "%IPInterface%" /v "IPAddress" /t REG_SZ /d "%LocalIP%" /f
-  reg add "%IPInterface%" /v "EnableDhcp" /t REG_DWORD /d "0" /f
-  :: 5. Disable DHCP
-  :: 6. Disable Drivers
+	for /f "delims=[] tokens=2" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
+	for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" /s /e /f "!LocalIP!" /t REG_SZ^| findstr }') do set IPInterface=%%i
+	for /f "tokens=3" %%i in ('reg query "!IPInterface!" /s /v "DhcpDefaultGateway" /t REG_MULTI_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPGateway=%%i
+	for /f "tokens=3" %%i in ('reg query "!IPInterface!" /s /v "DhcpSubnetMask" /t REG_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPSubnetMask=%%i
+  reg add "!IPInterface!" /v "IPAddress" /t REG_SZ /d "%LocalIP%" /f
+  reg add "!IPInterface!" /v "EnableDhcp" /t REG_DWORD /d "0" /f
 ) else ( echo "Currently in Offline mode! Cannot set Static IP with No Network Access!" )
+
 
 :staticSkip
 
