@@ -136,7 +136,8 @@ if /I "%c%" EQU "Y" goto interactiveStatic
 if /I "%c%" EQU "N" goto staticSkip
 :interactiveStatic
 
-
+set /P dns1="Set DNS Server 1 (e.g. 1.1.1.1): "
+set /P dns2="Set DNS Server 1 (e.g. 1.0.0.1): "
 :: 1. Get IP for current NIC^
 :: 2. reg query for dhcp ip under "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" from current ip^
 :: 3. Get gateway and subnet^
@@ -153,7 +154,7 @@ IF %netStat% EQU 1 (
   reg add "!IPInterface!" /v "SubnetMask" /t REG_SZ /d "%DHCPSubnet%" /f
   reg add "!IPInterface!" /v "DefaultGateway" /t REG_SZ /d "%DHCPGateway%"
   :: prompt dns
-  reg add "!IPInterface!" /v "NameServer" /t REG_SZ /d "1.1.1.1,1.0.0.1"
+  reg add "!IPInterface!" /v "NameServer" /t REG_SZ /d "!dns1!,!dns2!"
   reg add "!IPInterface!" /v "EnableDhcp" /t REG_DWORD /d "0" /f
 ) else ( echo "Currently in Offline mode! Cannot set Static IP with No Network Access!" )
 
