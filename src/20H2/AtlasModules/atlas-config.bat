@@ -138,26 +138,20 @@ if /I "%c%" EQU "N" goto staticSkip
 
 set /P dns1="Set DNS Server 1 (e.g. 1.1.1.1): "
 set /P dns2="Set DNS Server 1 (e.g. 1.0.0.1): "
-:: 1. Get IP for current NIC^
-:: 2. reg query for dhcp ip under "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" from current ip^
-:: 3. Get gateway and subnet^
-:: 4. Change DNS/Prompt
-:: 5. Disable DHCP
-:: 6. Disable Drivers
 IF %netStat% EQU 1 (
-	for /f "delims=[] tokens=2" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
-	for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" /s /e /f "!LocalIP!" /t REG_SZ^| findstr }') do set IPInterface=%%i
-	for /f "tokens=3" %%i in ('reg query "!IPInterface!" /s /v "DhcpDefaultGateway" /t REG_MULTI_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPGateway=%%i
-	for /f "tokens=3" %%i in ('reg query "!IPInterface!" /s /v "DhcpSubnetMask" /t REG_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPSubnetMask=%%i
-  :: todo: check reg value type
+  for /f "delims=[] tokens=2" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
+  for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" /s /e /f "!LocalIP!" /t REG_SZ^| findstr }') do set IPInterface=%%i
+  for /f "tokens=3" %%i in ('reg query "%IPInterface%" /s /v "DhcpDefaultGateway" /t REG_MULTI_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPGateway=%%i
+  for /f "tokens=3" %%i in ('reg query "%IPInterface%" /s /v "DhcpSubnetMask" /t REG_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPSubnetMask=%%i
   reg add "%IPInterface%" /v "IPAddress" /t REG_SZ /d "%LocalIP%" /f
-  reg add "%IPInterface%" /v "SubnetMask" /t REG_SZ /d "%DHCPSubnet%" /f
-  reg add "%IPInterface%" /v "DefaultGateway" /t REG_SZ /d "%DHCPGateway%" /f
-  :: prompt dns
+  reg add "%IPInterface%" /v "SubnetMask" /t REG_SZ /d "%DHCPSubnetMask%" /f
+  reg add "%IPInterface%" /v "DefaultGateway" /t REG_SZ /d "%DHCPGateway%"
   reg add "%IPInterface%" /v "NameServer" /t REG_SZ /d "%dns1%,%dns2%" /f
   reg add "%IPInterface%" /v "EnableDhcp" /t REG_DWORD /d "0" /f
+  reg delete "%IPInterface%" /v "DhcpDefaultGateway" /f
   ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Dhcp" /v "Start" /t REG_DWORD /d "4" /f
-  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\tdx" /v "Start" /t REG_DWORD /d "4" /f
+  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NlaSvc" /v "Start" /t REG_DWORD /d "4" /f
+  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\netprofm" /v "Start" /t REG_DWORD /d "4" /f
 ) else ( echo "Currently in Offline mode! Cannot set Static IP with No Network Access!" )
 
 
