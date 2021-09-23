@@ -150,12 +150,12 @@ IF %netStat% EQU 1 (
 	for /f "tokens=3" %%i in ('reg query "!IPInterface!" /s /v "DhcpDefaultGateway" /t REG_MULTI_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPGateway=%%i
 	for /f "tokens=3" %%i in ('reg query "!IPInterface!" /s /v "DhcpSubnetMask" /t REG_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPSubnetMask=%%i
   :: todo: check reg value type
-  reg add "!IPInterface!" /v "IPAddress" /t REG_SZ /d "%LocalIP%" /f
-  reg add "!IPInterface!" /v "SubnetMask" /t REG_SZ /d "%DHCPSubnet%" /f
-  reg add "!IPInterface!" /v "DefaultGateway" /t REG_SZ /d "%DHCPGateway%"
+  reg add "%IPInterface%" /v "IPAddress" /t REG_SZ /d "%LocalIP%" /f
+  reg add "%IPInterface%" /v "SubnetMask" /t REG_SZ /d "%DHCPSubnet%" /f
+  reg add "%IPInterface%" /v "DefaultGateway" /t REG_SZ /d "%DHCPGateway%" /f
   :: prompt dns
-  reg add "!IPInterface!" /v "NameServer" /t REG_SZ /d "!dns1!,!dns2!"
-  reg add "!IPInterface!" /v "EnableDhcp" /t REG_DWORD /d "0" /f
+  reg add "%IPInterface%" /v "NameServer" /t REG_SZ /d "%dns1%,%dns2%" /f
+  reg add "%IPInterface%" /v "EnableDhcp" /t REG_DWORD /d "0" /f
   ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Dhcp" /v "Start" /t REG_DWORD /d "4" /f
   ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\tdx" /v "Start" /t REG_DWORD /d "4" /f
 ) else ( echo "Currently in Offline mode! Cannot set Static IP with No Network Access!" )
