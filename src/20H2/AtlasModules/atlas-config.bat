@@ -121,7 +121,8 @@ echo false > C:\Users\Public\success.txt
 echo Would you like the run the interactive setup? This is for ADVANCED USERS ONLY
 :: Use choice for timeout ability
 choice /c yn /m "Run Interactive Setup? [Y/N]" /n /t 20 /d n
-IF %ERRORLEVEL% EQU 1 ( goto interactive ) ELSE ( goto auto )
+IF %ERRORLEVEL% EQU 1 ( goto interactive )
+IF %ERRORLEVEL% EQU 2 ( goto auto )
 echo "Choice Failed!" >> C:\Windows\AtlasModules\logs\install.log & exit
 :interactive
 ping -n 1 -4 1.1.1.1 |Find "Failulre"|(
@@ -129,8 +130,8 @@ ping -n 1 -4 1.1.1.1 |Find "Failulre"|(
     echo "Y" To continue online, "N" to setup offline.
     choice /c yn /m "" /n /t 20 /d n
     IF %ERRORLEVEL% EQU 1 ( set netStat=1 ) ELSE ( set netStat=0 )
-)
-:: Static
+) 
+:: Static IP
 set /P c="Would you like to set a Static IP and disable DHCP? [Y/N]: "
 if /I "%c%" EQU "Y" goto interactiveStatic
 if /I "%c%" EQU "N" goto staticSkip
