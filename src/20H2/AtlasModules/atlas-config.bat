@@ -125,12 +125,20 @@ IF %ERRORLEVEL% EQU 1 ( goto interactive )
 IF %ERRORLEVEL% EQU 2 ( goto auto )
 echo "Choice Failed!" >> C:\Windows\AtlasModules\logs\install.log & exit
 :interactive
+ping -n 1 -4 1.1.1.1 |Find "Received = 1"|(
+    echo Ethernet Detected.. Disabling Wi-Fi
+    echo Applications like Store and Spotify may not function correctly when disabled. If this is a problem, enable the wifi and restart the computer.
+    sc config WlanSvc start=disabled
+    sc config vwififlt start=disabled
+    sc config netprofm start=disabled
+    sc config NlaSvc start=disabled
+)
 ping -n 1 -4 1.1.1.1 |Find "Failulre"|(
     echo Network is not connected! Please connect to a network before continuing.
     echo "Y" To continue online, "N" to setup offline.
     choice /c yn /m "" /n /t 20 /d n
     IF %ERRORLEVEL% EQU 1 ( set netStat=1 ) ELSE ( set netStat=0 )
-) 
+)
 :: Static IP
 set /P c="Would you like to set a Static IP and disable DHCP? [Y/N]: "
 if /I "%c%" EQU "Y" goto interactiveStatic
