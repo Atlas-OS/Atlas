@@ -162,11 +162,32 @@ IF %netStat% EQU 1 (
   ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NlaSvc" /v "Start" /t REG_DWORD /d "4" /f
   ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\netprofm" /v "Start" /t REG_DWORD /d "4" /f
 ) else ( echo "Currently in Offline mode! Cannot set Static IP with No Network Access!" )
-
-
 :staticSkip
-
-
+set /P c="Would you like to disable Windows Media Player? [Y/N]: "
+if /I "%c%" EQU "Y" dism /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /norestart
+if /I "%c%" EQU "N" goto WMPskip
+:WMPskip
+set /P c="Would you like to disable Internet Explorer? A browser can be installed later. [Y/N]: "
+if /I "%c%" EQU "Y" dism /Online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart
+if /I "%c%" EQU "N" goto scoop
+:scoop
+echo Installing scoop...
+set /P c="Review Install script before executing? [Y/N]: "
+if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o C:\Windows\AtlasModules\install.ps1 && notepad C:\Windows\AtlasModules\install.ps1
+if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o C:\Windows\AtlasModules\install.ps1
+powershell Set-ExecutionPolicy RemoteSigned -scope CurrentUser
+powershell C:\Windows\AtlasModules\install.ps1
+echo Refreshing environment for Scoop...
+call C:\Windows\AtlasModules\refreshenv.bat
+echo Adding extra bucket...
+scoop bucket add extras
+multiplechoice "Ungoogled-Chromium;Firefox;Brave;GoogleChrome;" "Pick a Browser" "Browser" > C:\Windows\AtlasModules\tmp.txt
+for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
+	set filter=%%i
+	set filtered=!filter:;= !
+)
+:: must launch in separate process, scoop seems to exit the whole script if not
+cmd /c scoop install %filtered%
 :auto
 C:\Windows\AtlasModules\vcredist.exe /ai
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> C:\Windows\AtlasModules\logs\install.log
