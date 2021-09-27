@@ -179,9 +179,17 @@ powershell Set-ExecutionPolicy RemoteSigned -scope CurrentUser
 powershell C:\Windows\AtlasModules\install.ps1
 echo Refreshing environment for Scoop...
 call C:\Windows\AtlasModules\refreshenv.bat
-echo Adding extra bucket...
+echo Adding extras bucket...
 scoop bucket add extras
 multiplechoice "Ungoogled-Chromium;Firefox;Brave;GoogleChrome;" "Pick a Browser" "Browser" > C:\Windows\AtlasModules\tmp.txt
+for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
+	set filter=%%i
+	set filtered=!filter:;= !
+)
+:: must launch in separate process, scoop seems to exit the whole script if not
+cmd /c scoop install %filtered%
+:: Findstr for 7zip-zstd, add versions bucket if errlvl 0
+multiplechoice "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;" "Install Common Software" "Common Software" > C:\Windows\AtlasModules\tmp.txt
 for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
 	set filter=%%i
 	set filtered=!filter:;= !
