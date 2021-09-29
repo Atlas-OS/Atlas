@@ -196,6 +196,14 @@ for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
 )
 :: must launch in separate process, scoop seems to exit the whole script if not
 cmd /c scoop install %filtered%
+set /P c="Enable Bluetooth? [Y/N]: "
+if /I "%c%" EQU "Y" call :btD int
+set /P c="Disable Store? [Y/N]: "
+if /I "%c%" EQU "Y" call :storeD int
+set /P c="Disable UAC? [Y/N]: "
+if /I "%c%" EQU "Y" call :uacD int
+set /P c="Disable Firewall? [Y/N]: "
+if /I "%c%" EQU "Y" call :firewallD int
 :auto
 C:\Windows\AtlasModules\vcredist.exe /ai
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> C:\Windows\AtlasModules\logs\install.log
@@ -1432,6 +1440,7 @@ sc config LicenseManager start=disabled
 sc config AppXSVC start=disabled
 sc config ClipSVC start=disabled
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :storeE
 :: Enable the option for Windows Store in the "Open With" dialog
@@ -1460,6 +1469,7 @@ for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services"
 )
 sc config CDPSvc start=disabled
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Bluetooth Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :btE
 sc config BthAvctpSvc start=auto
@@ -1793,6 +1803,7 @@ reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\S
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\luafv" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Appinfo" /v "Start" /t REG_DWORD /d "4" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UAC Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :uacE
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
@@ -1871,6 +1882,7 @@ exit
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\mpssvc" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BFE" /v "Start" /t REG_DWORD /d "4" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Firewall Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :firewallE
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\mpssvc" /v "Start" /t REG_DWORD /d "2" /f
