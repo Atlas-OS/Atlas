@@ -204,6 +204,12 @@ set /P c="Disable UAC? [Y/N]: "
 if /I "%c%" EQU "Y" call :uacD int
 set /P c="Disable Firewall? [Y/N]: "
 if /I "%c%" EQU "Y" call :firewallD int
+echo "ONLY DISABLE IF YOU KNOW WHAT YOU ARE DOING! ONLY YOU ARE RESPONSIBLE FOR ISSUES YOU EXPERIENCE WITH THIS DISABLED!"
+set /P c="Disable Event Log? [Y/N]: "
+if /I "%c%" EQU "Y" sc config EventLog start=disabled
+echo "ONLY DISABLE IF YOU KNOW WHAT YOU ARE DOING! ONLY YOU ARE RESPONSIBLE FOR ISSUES YOU EXPERIENCE WITH THIS DISABLED!"
+set /P c="Disable Task Scheduler? [Y/N]: "
+if /I "%c%" EQU "Y" sc config Schedule start=disabled
 :auto
 C:\Windows\AtlasModules\vcredist.exe /ai
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> C:\Windows\AtlasModules\logs\install.log
