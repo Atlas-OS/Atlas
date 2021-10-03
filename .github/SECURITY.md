@@ -2,7 +2,7 @@
 
 ### Reporting a Vulnerability
 
-We at Atlas try our best to do improvments to security out-of-the-box for all users installing our operating system.
+We at Atlas try our best to do improvements to security out-of-the-box for all users installing our operating system.
 
 Since AtlasOS is based around Windows 10, a closed-source OS by Microsoft, we don't have a lot of options when it comes to solutions to security vulnerabilities. Therefore, we kindly ask you to report any security vulnerabilities with our operating system you find to Microsoft and not us. 
 
