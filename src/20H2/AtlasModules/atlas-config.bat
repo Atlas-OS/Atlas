@@ -1426,6 +1426,10 @@ goto finish
 powershell set-ProcessMitigation -System -Enable DEP
 powershell set-ProcessMitigation -System -Enable EmulateAtlThunks
 bcdedit /set nx OptIn
+:: Enable CFG for Valorant related processes
+for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
+  powershell -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
+)
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% DEP Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :depD
