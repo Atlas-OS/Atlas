@@ -210,6 +210,32 @@ if /I "%c%" EQU "Y" sc config EventLog start=disabled
 echo "ONLY DISABLE IF YOU KNOW WHAT YOU ARE DOING! ONLY YOU ARE RESPONSIBLE FOR ISSUES YOU EXPERIENCE WITH THIS DISABLED!"
 set /P c="Disable Task Scheduler? [Y/N]: "
 if /I "%c%" EQU "Y" sc config Schedule start=disabled
+
+:: Overview
+
+
+:: 1. Get core/thread amount, check if using HT/ST
+:: 2. Prompt which core will be USB/Dump core
+:: 3. Set Affinities for USB and processes to dump core
+:: 4. GPU Affinity Tests:
+::   4.1. First test the last core, e.g. "8" if you have an eight core, 8 thread cpu
+::   4.2. Write to avg (lows also? Need to figure out a way to capture from cli) to results file (with core num appended to end of number e.g. 240.8, 240 being the average, 8 being the core)
+::   4.3. Loop for other cores (make sure to account for HT)
+::   4.4. Compare all values and find the best core
+:: 5. Set GPU affinity to "best" core
+
+
+echo Beginning Affinity Script...
+echo WARNING: You are required to have installed your Display Drivers
+echo WARNING: Your Monitor WILL Flash momentarily, please be patient
+
+
+
+
+
+
+
+
 :auto
 C:\Windows\AtlasModules\vcredist.exe /ai
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> C:\Windows\AtlasModules\logs\install.log
