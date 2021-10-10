@@ -227,7 +227,9 @@ if /I "%c%" EQU "N" goto skipGPUAffinity
 :GPUAffinity
 cls
 echo Python required for Affinity Script. Installing...
-cmd /c scoop install python -g
+curl -L --output pysetup.exe "https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe"
+pysetup.exe InstallAllUsers=1 CompileAll Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath Shortcuts=0
+del /f /q pysetup.exe
 call C:\Windows\AtlasModules\refreshenv.bat
 echo Installing OCAT...
 ::scoop install ocat
@@ -251,7 +253,7 @@ if %cores% EQU %NUMBER_OF_PROCESSORS% (set HT=0) ELSE (set HT=1)
 
 :: Estimated time, 80 seconds per core (60 seconds of bench, ~20 seconds of loading/processing)
 set /a est=%cores% * 80
-for /f "tokens=1" %%i in ('calc.py divint %est% 60') do (
+for /f "tokens=1" %%i in ('py calc.py divint %est% 60') do (
     set est=%%i
 )
 echo Beginning Affinity Script...
@@ -349,16 +351,16 @@ taskkill /F /IM lava-triangle.exe >nul 2>nul
 
 :: Get length of benchmark
 for %%i in (%capDir%\OCAT-lava-*.csv) do (
-	for /f "tokens=1" %%a in ('calc.py parse %%i') do (
+	for /f "tokens=1" %%a in ('py calc.py parse %%i') do (
         set lows=%%a
     )
 )
 if "%test%" equ "1" set T1cpu%testingCore%=%lows%
 if "%test%" equ "2" set T2cpu%testingCore%=%lows%
 if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
-	for /f "tokens=1" %%a in ('calc.py add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
-		for /f "tokens=1" %%b in ('calc.py div %%a 2') do (
-			for /f "tokens=1" %%c in ('calc.py rnd %%b') do (set cpu%testingCore%=%%c)
+	for /f "tokens=1" %%a in ('py calc.py add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
+		for /f "tokens=1" %%b in ('py calc.py div %%a 2') do (
+			for /f "tokens=1" %%c in ('py calc.py rnd %%b') do (set cpu%testingCore%=%%c)
 		)
 	)
 )
