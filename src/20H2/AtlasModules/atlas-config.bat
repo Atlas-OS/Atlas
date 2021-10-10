@@ -196,42 +196,222 @@ for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
 )
 :: must launch in separate process, scoop seems to exit the whole script if not
 cmd /c scoop install %filtered%
+cls
 set /P c="Enable Bluetooth? [Y/N]: "
 if /I "%c%" EQU "Y" call :btD int
+cls
 set /P c="Disable Store? [Y/N]: "
 if /I "%c%" EQU "Y" call :storeD int
+cls
 set /P c="Disable UAC? [Y/N]: "
 if /I "%c%" EQU "Y" call :uacD int
+cls
 set /P c="Disable Firewall? [Y/N]: "
 if /I "%c%" EQU "Y" call :firewallD int
+cls
 echo "ONLY DISABLE IF YOU KNOW WHAT YOU ARE DOING! ONLY YOU ARE RESPONSIBLE FOR ISSUES YOU EXPERIENCE WITH THIS DISABLED!"
 set /P c="Disable Event Log? [Y/N]: "
 if /I "%c%" EQU "Y" sc config EventLog start=disabled
+cls
 echo "ONLY DISABLE IF YOU KNOW WHAT YOU ARE DOING! ONLY YOU ARE RESPONSIBLE FOR ISSUES YOU EXPERIENCE WITH THIS DISABLED!"
 set /P c="Disable Task Scheduler? [Y/N]: "
 if /I "%c%" EQU "Y" sc config Schedule start=disabled
+cls
+set /P c="Automatically test and set GPU Affinity? [Y/N]: "
+if /I "%c%" EQU "N" goto skipGPUAffinity
+:GPUAffinity
+cls
+echo Python required for Affinity Script. Installing...
+scoop install python
+echo Installing OCAT...
+::scoop install ocat
+curl -L --output ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
+ocatsetup.exe /silent /install
+move "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules"
+echo Install LibLava...
+curl -L --output liblava.zip "https://github.com/liblava/liblava/releases/download/0.5.5/liblava-demo_2020_win.zip"
+:: Only extract required files
+7z -aoa -r -i!lava-triangle.exe -i!res.zip e "liblava.zip" -o"C:\Windows\AtlasModules\liblava"
+del /f /q liblava.zip
+:: This segment of the script is LARGELY based on AMIT's "AutoGPUAffinity" script, which can be found here: https://github.com/amitxvv/AutoGpuAffinity
+:: Extra Ideas:
+:: - Prompt for Benchmark Time
+:: - Improve run time estimation, account for HT
 
-:: Overview
+:: Get amount of cores or threads
+for /F "skip=1" %%i in ('wmic cpu get NumberOfCores^| findstr "."') do set /a cores=%%i
+:: Check for HT
+if %cores% EQU %NUMBER_OF_PROCESSORS% (set HT=0) ELSE (set HT=1)
 
-
-:: 1. Get core/thread amount, check if using HT/ST
-:: 2. Prompt which core will be USB/Dump core
-:: 3. Set Affinities for USB and processes to dump core
-:: 4. GPU Affinity Tests:
-::   4.1. First test the last core, e.g. "8" if you have an eight core, 8 thread cpu
-::   4.2. Write to avg (lows also? Need to figure out a way to capture from cli) to results file (with core num appended to end of number e.g. 240.8, 240 being the average, 8 being the core)
-::   4.3. Loop for other cores (make sure to account for HT)
-::   4.4. Compare all values and find the best core
-:: 5. Set GPU affinity to "best" core
-
-
+:: Estimated time, 80 seconds per core (60 seconds of bench, ~20 seconds of loading/processing)
+set /a est=%cores% * 80
+for /f "tokens=1" %%i in ('python calc.py divint %est% 60') do (
+    set est=%%i
+)
 echo Beginning Affinity Script...
+echo Estimated Run Time: %est% minutes
 echo WARNING: You are required to have installed your Display Drivers
-echo WARNING: Your Monitor WILL Flash momentarily, please be patient
+echo WARNING: At some point your Monitor WILL Flash momentarily, please be patient
+pause
 
+:: initialize gpu testing...
+set testingCore=%NUMBER_OF_PROCESSORS%
+set /a cpus=%NUMBER_OF_PROCESSORS% - 1
+set entries=0
+set total=0
+set test=0
+set max_num=1
+set capDir=%userprofile%\Documents\OCAT\Captures
+set log=C:\Windows\AtlasModules\logs\gpuAffinity.log
+set config="%userprofile%\Documents\OCAT\Config\settings.ini"
+if exist lava.log del /f /q lava.log
+if exist %log% del /f /q %log%
 
+echo Creating OCAT config...
+if exist "%userprofile%\Documents\OCAT\Config\settings.ini" del /f /q "%userprofile%\Documents\OCAT\Config\settings.ini" >nul 2>nul
 
+:: Write Config file to OCAT dir
+echo [Recording] >> %config% 
+echo toggleCaptureHotkey=121 >> %config% 
+echo toggleOverlayHotkey=120 >> %config% 
+echo toggleFramegraphOverlayHotkey=118 >> %config% 
+echo toggleColoredBarOverlayHotkey=119 >> %config%
+echo toggleLagIndicatorOverlayHotkey=117 >> %config% 
+echo lagIndicatorHotkey=145 >> %config%
+echo overlayPosition=1 >> %config% 
+echo captureTime=60 >> %config% 
+echo captureDelay=0 >> %config% 
+echo captureAllProcesses=0 >> %config% 
+echo audioCue=0 >> %config% 
+echo altKeyComb=0 >> %config% 
+echo disableOverlayDuringCapture=1 >> %config% 
+echo injectOnStart=1 >> %config% 
+echo captureOutputFolder=%capDir% >> %config% 
 
+:coreTestLoop
+if %test% equ 2 set test=0 
+if %test% equ 0 if %HT% equ 1 set /a testingCore=%testingCore% - 2
+if %test% equ 0 if %HT% equ 0 set /a testingCore=%testingCore% - 1
+if %test% lss 2 (set /a test=%test% + 1)
+:: Skip core 0..
+if %testingCore% equ 0 goto coreTestFinish
+
+:: set to 2 to the power of %testingCore%
+set /a "dec=1<<%testingCore%"
+
+:: Convert dec to binary big endian
+set "bin="
+for /L %%A in (1,1,32) do (
+    set /a "bit=dec&1, dec>>=1"
+    set bin=!bit!!bin!
+)
+::echo %bin%
+
+:: Convert to hex for Process affinity and Little endian
+call :bin2hex hex !bin:~-%NUMBER_OF_PROCESSORS%!
+::echo %hex%
+
+:: Get Little Endian version for Affinity
+call :ChangeByteOrder %hex%
+::echo %LittleEndian%
+
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f >nul 2>nul
+	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "%BytesLE%" /f >nul 2>nul
+)
+
+:: Remove Previous Captures
+del /f /q %capDir%\*.csv
+
+:: Restart Display Adapter to apply affinity changes
+if %trials% equ 1 start "" ".\restart64.exe" /q
+
+start "" "OCAT\OCAT.exe"
+cmd /c start "" /affinity %hex% ".\liblava\lava-triangle.exe"
+timeout 5 >nul 2>nul
+rundll32.exe user32.dll,SetCursorPos
+wscript ".\keypress.vbs"
+call :testInfo
+timeout 32 >nul 2>nul
+wscript ".\keypress.vbs"
+:: Slight delay for csv to be written
+timeout 3 >nul 2>nul
+
+taskkill /F /IM OCAT.exe >nul 2>nul
+taskkill /F /IM GlobalHook64.exe >nul 2>nul
+taskkill /F /IM lava-triangle.exe >nul 2>nul
+
+:: Get length of benchmark
+for %%i in (%capDir%\OCAT-lava-*.csv) do (
+	for /f "tokens=1" %%a in ('python calc.py parse %%i') do (
+        set lows=%%a
+    )
+)
+if "%test%" equ "1" set T1cpu%testingCore%=%lows%
+if "%test%" equ "2" set T2cpu%testingCore%=%lows%
+if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
+	for /f "tokens=1" %%a in ('python calc.py add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
+		for /f "tokens=1" %%b in ('python calc.py div %%a 2') do (
+			for /f "tokens=1" %%c in ('python calc.py rnd %%b') do (set cpu%testingCore%=%%c)
+		)
+	)
+)
+if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
+	echo CPU %testingCore%: >> "%log%" 
+	echo Test 1 - !T1cpu%testingCore%! >> "%log%" 
+	echo Test 2 - !T2cpu%testingCore%! >> "%log%" 
+	echo Average - !cpu%testingCore%! >> "%log%" 
+    echo. >> "%log%" 
+)
+goto coreTestLoop
+:coreTestFinish
+cls
+if %HT% equ 0 for /L %%n in (%cpus%,-1,0) do (
+    echo CPU %%n : !cpu%%n!
+)
+:: Make sure to only print cores with values
+if %HT% equ 1 for /L %%n in (%NUMBER_OF_PROCESSORS%,-2,0) do (
+    echo CPU %%n : !cpu%%n! | findstr /v "0 %NUMBER_OF_PROCESSORS%"
+)
+echo.
+echo Benchmark Finished! Analyzing...
+for /L %%n in (%cpus%,-1,0) do (
+	for %%a in (!cpu%%n!) do (
+		if %%a gtr !max_num! set "max_num=%%a" & set "highestfps-cpu=%%n"
+	)
+)
+echo it appears that CPU !highestfps-cpu! overall had the highest 0.01 lows - !max_num! fps
+set /P c="Set GPU Affinity to !highestfps-cpu!? [Y/N]: "
+if /I "%c%" EQU "Y" goto setGPUAffinity
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+	reg delete "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /f
+	reg delete "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /f
+) >nul 2>nul
+:setGPUAffinity
+set /a "dec=1<<%highestfps-cpu%"
+
+:: Convert dec to binary big endian
+set "bin="
+for /L %%A in (1,1,32) do (
+    set /a "bit=dec&1, dec>>=1"
+    set bin=!bit!!bin!
+)
+::echo %bin%
+
+:: Convert to hex for Process affinity and Little endian
+call :bin2hex hex !bin:~-%NUMBER_OF_PROCESSORS%!
+::echo %hex%
+
+:: Get Little Endian version for Affinity
+call :ChangeByteOrder %hex%
+::echo %LittleEndian%
+
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f >nul 2>nul
+	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "%BytesLE%" /f >nul 2>nul
+)
+echo GPU affinity set!
+:skipGPUAffinity
 
 
 
@@ -2152,4 +2332,36 @@ goto finish
 :finishNRB
 	echo Finished, changes have been applied.
 	pause&exit
-pause
+exit
+:: Begin Batch Functions
+:bin2hex <var_to_set> <bin_value>
+set "hextable=0000-0;0001-1;0010-2;0011-3;0100-4;0101-5;0110-6;0111-7;1000-8;1001-9;1010-A;1011-B;1100-C;1101-D;1110-E;1111-F"
+:bin2hexloop
+if "%~2"=="" (
+    endlocal & set "%~1=%~3"
+    goto :EOF
+)
+set "bin=000%~2"
+set "oldbin=%~2"
+set "bin=%bin:~-4%"
+set "hex=!hextable:*%bin:~-4%-=!"
+set hex=%hex:;=&rem.%
+endlocal & call :bin2hexloop "%~1" "%oldbin:~0,-4%" %hex%%~3
+goto :EOF
+
+:ChangeByteOrder  <data:hex>
+set "LittleEndian="
+set "BigEndian=%~1"
+:ChangeByteOrderLoop
+if "%BigEndian:~-2%"=="%BigEndian:~-1%" (
+    set "LittleEndian=%LittleEndian%0%BigEndian:~-1%"
+) else set "LittleEndian=%LittleEndian%%BigEndian:~-2%"
+set "BigEndian=%BigEndian:~0,-2%"
+if not defined BigEndian exit /B
+goto :ChangeByteOrderLoop
+
+:testInfo
+cls
+echo "Current Affinity: %testingCore%"
+echo "Test: %test%/2"
+goto :EOF
