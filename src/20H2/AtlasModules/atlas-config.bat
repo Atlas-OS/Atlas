@@ -227,11 +227,12 @@ if /I "%c%" EQU "N" goto skipGPUAffinity
 :GPUAffinity
 cls
 echo Python required for Affinity Script. Installing...
-scoop install python
+cmd /c scoop install python -g
+call C:\Windows\AtlasModules\refreshenv.bat
 echo Installing OCAT...
 ::scoop install ocat
-curl -L --output ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
-ocatsetup.exe /silent /install
+curl -LO "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
+OCAT_v1.6.1.exe /silent /install
 move "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules"
 echo Install LibLava...
 curl -L --output liblava.zip "https://github.com/liblava/liblava/releases/download/0.5.5/liblava-demo_2020_win.zip"
@@ -250,7 +251,7 @@ if %cores% EQU %NUMBER_OF_PROCESSORS% (set HT=0) ELSE (set HT=1)
 
 :: Estimated time, 80 seconds per core (60 seconds of bench, ~20 seconds of loading/processing)
 set /a est=%cores% * 80
-for /f "tokens=1" %%i in ('python calc.py divint %est% 60') do (
+for /f "tokens=1" %%i in ('calc.py divint %est% 60') do (
     set est=%%i
 )
 echo Beginning Affinity Script...
@@ -348,16 +349,16 @@ taskkill /F /IM lava-triangle.exe >nul 2>nul
 
 :: Get length of benchmark
 for %%i in (%capDir%\OCAT-lava-*.csv) do (
-	for /f "tokens=1" %%a in ('python calc.py parse %%i') do (
+	for /f "tokens=1" %%a in ('calc.py parse %%i') do (
         set lows=%%a
     )
 )
 if "%test%" equ "1" set T1cpu%testingCore%=%lows%
 if "%test%" equ "2" set T2cpu%testingCore%=%lows%
 if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
-	for /f "tokens=1" %%a in ('python calc.py add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
-		for /f "tokens=1" %%b in ('python calc.py div %%a 2') do (
-			for /f "tokens=1" %%c in ('python calc.py rnd %%b') do (set cpu%testingCore%=%%c)
+	for /f "tokens=1" %%a in ('calc.py add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
+		for /f "tokens=1" %%b in ('calc.py div %%a 2') do (
+			for /f "tokens=1" %%c in ('calc.py rnd %%b') do (set cpu%testingCore%=%%c)
 		)
 	)
 )
