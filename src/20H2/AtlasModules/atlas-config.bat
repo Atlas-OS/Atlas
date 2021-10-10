@@ -120,11 +120,13 @@ break>C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
 echo Would you like the run the interactive setup? This is for ADVANCED USERS ONLY
 :: Use choice for timeout ability
+endlocal
 choice /c yn /m "Run Interactive Setup? [Y/N]" /n /t 20 /d n
 IF %ERRORLEVEL% EQU 1 goto interactive
 IF %ERRORLEVEL% EQU 2 goto auto
 echo "Choice Failed!" >> C:\Windows\AtlasModules\logs\install.log & exit
 :interactive
+startlocal
 ping -n 1 -4 1.1.1.1 |Find "Received = 1"|(
     echo Ethernet Detected.. Disabling Wi-Fi
     echo Applications like Store and Spotify may not function correctly when disabled. If this is a problem, enable the wifi and restart the computer.
@@ -179,23 +181,26 @@ powershell Set-ExecutionPolicy RemoteSigned -scope CurrentUser
 powershell C:\Windows\AtlasModules\install.ps1
 echo Refreshing environment for Scoop...
 call C:\Windows\AtlasModules\refreshenv.bat
+echo Installing git...
+:: Scoop isn't very nice with batch scripts, and will break the whole script if a warning or error shows..
+cmd /c scoop install git -g
+call C:\Windows\AtlasModules\refreshenv.bat
 echo Adding extras bucket...
-scoop bucket add extras
+cmd /c scoop bucket add extras
 multiplechoice "Ungoogled-Chromium;Firefox;Brave;GoogleChrome;" "Pick a Browser" "Browser" > C:\Windows\AtlasModules\tmp.txt
 for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
 	set filter=%%i
 	set filtered=!filter:;= !
 )
 :: must launch in separate process, scoop seems to exit the whole script if not
-cmd /c scoop install %filtered%
+cmd /c scoop install %filtered% -g
 :: Findstr for 7zip-zstd, add versions bucket if errlvl 0
 multiplechoice "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;" "Install Common Software" "Common Software" > C:\Windows\AtlasModules\tmp.txt
 for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
 	set filter=%%i
 	set filtered=!filter:;= !
 )
-:: must launch in separate process, scoop seems to exit the whole script if not
-cmd /c scoop install %filtered%
+cmd /c scoop install %filtered% -g
 cls
 set /P c="Enable Bluetooth? [Y/N]: "
 if /I "%c%" EQU "Y" call :btD int
@@ -417,6 +422,7 @@ echo GPU affinity set!
 
 
 :auto
+startlocal
 C:\Windows\AtlasModules\vcredist.exe /ai
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributable Runtimes! >> C:\Windows\AtlasModules\logs\install.log)
@@ -524,11 +530,9 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PC
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 :: Enable MSI Mode on Network Adapters
 :: undefined priority on some VMs may break connection
-:: TODO: VM Detection, if VM = set to normal
-for /f "tokens=2 delims==" %%i in ('wmic bios get Manufacturer /value') do set machines=%%i
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-:: If using vmware, skip setting to undefined.
-if /i "%vmchk%"=="VMware, Inc." goto vmGO
+:: If e.g. vmware is used, skip setting to undefined.
+wmic computersystem get manufacturer /format:value| findstr /i /C:VMWare&&goto vmGO
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 goto noVM
 :vmGO
@@ -1634,7 +1638,7 @@ echo Extra note: This breaks the "about" page in settings. If you require it, en
 :: If you notice something else breaks when firewall/store is disabled please open an issue.
 pause
 :: Detect if user is using a Microsoft Account
-powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+wmic PATH Win32_UserAccount WHERE Name='%USERNAME%' get LocalAccount | findstr "TRUE" >nul 2>&1 && set "MSACCOUNT=NO"
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 :: Disable the option for Windows Store in the "Open With" dialog
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
@@ -1729,6 +1733,10 @@ goto finish
 powershell set-ProcessMitigation -System -Enable DEP
 powershell set-ProcessMitigation -System -Enable EmulateAtlThunks
 bcdedit /set nx OptIn
+:: Enable CFG for Valorant related processes
+for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
+  powershell -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
+)
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% DEP Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :depD
