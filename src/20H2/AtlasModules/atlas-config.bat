@@ -100,6 +100,8 @@ echo atlas-config had no arguements passed to it, either you are launching atlas
 echo Please report this to the Atlas discord or github.
 pause&exit
 :TestPrompt
+set /p c="Test with echo on?"
+if %c% equ Y echo on
 set /p argPrompt="Which script would you like to test? e.g. (:testScript)"
 goto %argPrompt%
 echo You should not reach this message!
@@ -126,7 +128,8 @@ IF %ERRORLEVEL% EQU 1 goto interactive
 IF %ERRORLEVEL% EQU 2 goto auto
 echo "Choice Failed!" >> C:\Windows\AtlasModules\logs\install.log & exit
 :interactive
-startlocal
+cd C:\Windows\AtlasModules
+SETLOCAL EnableDelayedExpansion
 ping -n 1 -4 1.1.1.1 |Find "Received = 1"|(
     echo Ethernet Detected.. Disabling Wi-Fi
     echo Applications like Store and Spotify may not function correctly when disabled. If this is a problem, enable the wifi and restart the computer.
@@ -227,20 +230,20 @@ if /I "%c%" EQU "N" goto skipGPUAffinity
 :GPUAffinity
 cls
 echo Python required for Affinity Script. Installing...
-curl -L --output pysetup.exe "https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe"
-pysetup.exe InstallAllUsers=1 CompileAll Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath Shortcuts=0
-del /f /q pysetup.exe
+curl -L --output C:\Windows\AtlasModules\pysetup.exe "https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe"
+C:\Windows\AtlasModules\pysetup.exe InstallAllUsers=1 CompileAll Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath Shortcuts=0
+del /f /q "C:\Windows\AtlasModules\pysetup.exe"
 call C:\Windows\AtlasModules\refreshenv.bat
 echo Installing OCAT...
 ::scoop install ocat
-curl -LO "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
-OCAT_v1.6.1.exe /silent /install
-move "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules"
-echo Install LibLava...
+curl -L --output C:\Windows\AtlasModules\ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
+C:\Windows\AtlasModules\ocatsetup.exe /silent /install
+if not exist "C:\Windows\AtlasModules\OCAT" if exist "C:\Program Files (x86)\OCAT" move "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules"
+echo Installing LibLava...
 curl -L --output liblava.zip "https://github.com/liblava/liblava/releases/download/0.5.5/liblava-demo_2020_win.zip"
 :: Only extract required files
-7z -aoa -r -i!lava-triangle.exe -i!res.zip e "liblava.zip" -o"C:\Windows\AtlasModules\liblava"
-del /f /q liblava.zip
+7z -aoa -r -i!lava-triangle.exe -i!res.zip e "liblava.zip" -o"C:\Windows\AtlasModules\liblava" >nul 2>nul
+del /f /q "C:\Windows\AtlasModules\liblava.zip"
 :: This segment of the script is LARGELY based on AMIT's "AutoGPUAffinity" script, which can be found here: https://github.com/amitxvv/AutoGpuAffinity
 :: Extra Ideas:
 :: - Prompt for Benchmark Time
@@ -272,29 +275,31 @@ set max_num=1
 set capDir=%userprofile%\Documents\OCAT\Captures
 set log=C:\Windows\AtlasModules\logs\gpuAffinity.log
 set config="%userprofile%\Documents\OCAT\Config\settings.ini"
+mkdir "%userprofile%\Documents\OCAT\Config"
 if exist lava.log del /f /q lava.log
 if exist %log% del /f /q %log%
 
 echo Creating OCAT config...
-if exist "%userprofile%\Documents\OCAT\Config\settings.ini" del /f /q "%userprofile%\Documents\OCAT\Config\settings.ini" >nul 2>nul
+:: Testing Purposes Only, fresh install will not have this.
+::if exist "%userprofile%\Documents\OCAT\Config\settings.ini" del /f /q "%userprofile%\Documents\OCAT\Config\settings.ini" >nul 2>nul
 
 :: Write Config file to OCAT dir
-echo [Recording] >> %config% 
-echo toggleCaptureHotkey=121 >> %config% 
-echo toggleOverlayHotkey=120 >> %config% 
-echo toggleFramegraphOverlayHotkey=118 >> %config% 
-echo toggleColoredBarOverlayHotkey=119 >> %config%
-echo toggleLagIndicatorOverlayHotkey=117 >> %config% 
-echo lagIndicatorHotkey=145 >> %config%
-echo overlayPosition=1 >> %config% 
-echo captureTime=60 >> %config% 
-echo captureDelay=0 >> %config% 
-echo captureAllProcesses=0 >> %config% 
-echo audioCue=0 >> %config% 
-echo altKeyComb=0 >> %config% 
-echo disableOverlayDuringCapture=1 >> %config% 
-echo injectOnStart=1 >> %config% 
-echo captureOutputFolder=%capDir% >> %config% 
+echo "[Recording]" >> %config% 
+echo "toggleCaptureHotkey=121" >> %config% 
+echo "toggleOverlayHotkey=120" >> %config% 
+echo "toggleFramegraphOverlayHotkey=118" >> %config% 
+echo "toggleColoredBarOverlayHotkey=119" >> %config%
+echo "toggleLagIndicatorOverlayHotkey=117" >> %config% 
+echo "lagIndicatorHotkey=145" >> %config%
+echo "overlayPosition=1" >> %config% 
+echo "captureTime=60" >> %config% 
+echo "captureDelay=0" >> %config% 
+echo "captureAllProcesses=0" >> %config% 
+echo "audioCue=0" >> %config% 
+echo "altKeyComb=0" >> %config% 
+echo "disableOverlayDuringCapture=1" >> %config% 
+echo "injectOnStart=1" >> %config%  
+echo "captureOutputFolder=%capDir%" >> %config% 
 
 :coreTestLoop
 if %test% equ 2 set test=0 
@@ -303,52 +308,39 @@ if %test% equ 0 if %HT% equ 0 set /a testingCore=%testingCore% - 1
 if %test% lss 2 (set /a test=%test% + 1)
 :: Skip core 0..
 if %testingCore% equ 0 goto coreTestFinish
-
 :: set to 2 to the power of %testingCore%
 set /a "dec=1<<%testingCore%"
-
 :: Convert dec to binary big endian
 set "bin="
 for /L %%A in (1,1,32) do (
     set /a "bit=dec&1, dec>>=1"
     set bin=!bit!!bin!
 )
-::echo %bin%
-
 :: Convert to hex for Process affinity and Little endian
 call :bin2hex hex !bin:~-%NUMBER_OF_PROCESSORS%!
-::echo %hex%
-
 :: Get Little Endian version for Affinity
 call :ChangeByteOrder %hex%
-::echo %LittleEndian%
-
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
 	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f >nul 2>nul
 	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "%BytesLE%" /f >nul 2>nul
 )
-
 :: Remove Previous Captures
 del /f /q %capDir%\*.csv
-
 :: Restart Display Adapter to apply affinity changes
-if %trials% equ 1 start "" ".\restart64.exe" /q
-
+if %test% equ 1 start "" "C:\Windows\AtlasModules\restart64.exe" /q
 start "" "OCAT\OCAT.exe"
-cmd /c start "" /affinity %hex% ".\liblava\lava-triangle.exe"
+cmd /c start "" /affinity %hex% "C:\Windows\AtlasModules\liblava\lava-triangle.exe"
 timeout 5 >nul 2>nul
 rundll32.exe user32.dll,SetCursorPos
-wscript ".\keypress.vbs"
+wscript "C:\Windows\AtlasModules\keypress.vbs"
 call :testInfo
 timeout 32 >nul 2>nul
-wscript ".\keypress.vbs"
+wscript "C:\Windows\AtlasModules\keypress.vbs"
 :: Slight delay for csv to be written
 timeout 3 >nul 2>nul
-
 taskkill /F /IM OCAT.exe >nul 2>nul
 taskkill /F /IM GlobalHook64.exe >nul 2>nul
 taskkill /F /IM lava-triangle.exe >nul 2>nul
-
 :: Get length of benchmark
 for %%i in (%capDir%\OCAT-lava-*.csv) do (
 	for /f "tokens=1" %%a in ('py calc.py parse %%i') do (
@@ -404,16 +396,10 @@ for /L %%A in (1,1,32) do (
     set /a "bit=dec&1, dec>>=1"
     set bin=!bit!!bin!
 )
-::echo %bin%
-
 :: Convert to hex for Process affinity and Little endian
 call :bin2hex hex !bin:~-%NUMBER_OF_PROCESSORS%!
-::echo %hex%
-
 :: Get Little Endian version for Affinity
 call :ChangeByteOrder %hex%
-::echo %LittleEndian%
-
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
 	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f >nul 2>nul
 	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "%BytesLE%" /f >nul 2>nul
@@ -425,7 +411,7 @@ echo GPU affinity set!
 
 
 :auto
-startlocal
+SETLOCAL EnableDelayedExpansion
 C:\Windows\AtlasModules\vcredist.exe /ai
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributable Runtimes! >> C:\Windows\AtlasModules\logs\install.log)
