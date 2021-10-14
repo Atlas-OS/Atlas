@@ -1,5 +1,4 @@
 import sys
-#import pandas as pd
 import csv
 
 # declare variables
