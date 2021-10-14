@@ -1957,6 +1957,7 @@ goto finishNRB
 :: - UAC Enable
 :: - Firewall rules
 :: - Disable TsX to mitigate ZombieLoad
+:: - Static ARP Entry
 :xboxU
 choice /c yn /m "This is currently IRREVERSIBLE, continue? [Y/N]" /n
 echo Removing via PowerShell...
