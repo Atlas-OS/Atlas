@@ -262,9 +262,15 @@ for /f "tokens=1" %%i in ('py calc.py divint %est% 60') do (
 echo Beginning Affinity Script...
 echo Estimated Run Time: %est% minutes
 echo WARNING: You are required to have installed your Display Drivers
+echo. 
 echo WARNING: At some point your Monitor WILL Flash momentarily, please be patient
+echo.
+echo IF YOU HAVEN'T ALREADY; INSTALL YOUR GRAPHICS DRIVERS! This script is useless without them.
 pause
-
+:checkMSAdapter
+for /F "skip=1" %%i in ('wmic path win32_VideoController get name') do (
+    if "%%i" equ "Microsoft Basic Display Adapter" echo Graphics Driver not installed! This is REQUIRED for this script to work. & pause & goto checkMSAdapter
+)
 :: initialize gpu testing...
 set testingCore=%NUMBER_OF_PROCESSORS%
 set /a cpus=%NUMBER_OF_PROCESSORS% - 1
