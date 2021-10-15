@@ -898,7 +898,6 @@ for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "T
 ) >nul 2>&1
 
 :: Drivers
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo. >> %filename%
 for /f "delims=," %%i in ('driverquery /FO CSV') do (
@@ -1059,7 +1058,6 @@ IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Services...>> C:\Windows\At
 
 :: Backup Default Atlas Services and Drivers
 :: Services
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo. >> %filename%
 for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "TermService"') do (
@@ -1091,7 +1089,6 @@ for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "T
 ) >nul 2>&1
 
 :: Drivers
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo. >> %filename%
 for /f "delims=," %%i in ('driverquery /FO CSV') do (
@@ -2369,3 +2366,6 @@ cls
 echo "Current Affinity: %testingCore%"
 echo "Test: %test%/2"
 goto :EOF
+
+:setSvc <service_name> <start_1-4>
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f
