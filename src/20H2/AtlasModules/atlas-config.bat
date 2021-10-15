@@ -115,7 +115,6 @@ echo Please wait, this may take a moment.
 setx path "%path%;C:\Windows\AtlasModules;" -m  >nul 2>nul
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Atlas Modules Path Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules Path! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 :: Breaks setting keyboard language
 :: Rundll32.exe advapi32.dll,ProcessIdleTasks
 break>C:\Users\Public\success.txt
@@ -440,7 +439,6 @@ SETLOCAL EnableDelayedExpansion
 C:\Windows\AtlasModules\vcredist.exe /ai
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributable Runtimes! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 :: change ntp server from windows server to pool.ntp.org
 sc config W32Time start=demand >nul 2>nul
 sc start W32Time >nul 2>nul
@@ -456,7 +454,6 @@ sc stop W32Time
 sc config W32Time start=disabled
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% NTP Server Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set NTP Server! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 cls
 echo Please wait. This may take a moment.
 :: Optimize NTFS parameters
@@ -470,7 +467,6 @@ fsutil behavior set disablecompression 1
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% FS Optimized...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Optimize FS! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 :: https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/language-packs-known-issue
 schtasks /Change /Disable /TN "\Microsoft\Windows\LanguageComponentsInstaller\Uninstallation" >nul 2>nul
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Control Panel\International" /v "BlockCleanupOfUnusedPreinstalledLangPacks" /t REG_DWORD /d "1" /f
@@ -531,7 +527,6 @@ schtasks /Change /Disable /TN "\Microsoft\Windows\Mobile Broadband Accounts\MNO 
 schtasks /Change /Disable /TN "\Microsoft\Windows\WindowsUpdate\Scheduled Start" >nul 2>nul
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Scheduled Tasks...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Scheduled Tasks! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 cls
 echo Please wait. This may take a moment.
 
@@ -558,7 +553,6 @@ for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% MSI Mode Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set MSI Mode! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 cls
 echo Please wait. This may take a moment.
 
@@ -590,7 +584,6 @@ powershell set-ProcessMitigation -System -Disable SEHOPTelemetry
 powershell set-ProcessMitigation -System -Disable ForceRelocateImages
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Mitigations Disabled...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Mitigations! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: --- Hardening ---
 
@@ -646,7 +639,6 @@ powercfg -import "C:\Windows\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111
 powercfg /s 11111111-1111-1111-1111-111111111111
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% PowerPlan Imported...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to import PowerPlan! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Set SvcSplitThreshold
 :: Credits: revision
@@ -655,14 +647,12 @@ set /a ram=%mem% + 1024000
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Service Memory Split Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Service Memory Split! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: tokens arg breaks path to just \Device instead of \Device Parameters
 :: Disable Power savings on drives
 for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum" /s /f "StorPort"^| findstr "StorPort"') do reg add "%%i" /v "EnableIdlePowerManagement" /t REG_DWORD /d "0" /f
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Storage Powersaving...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Storage Powersaving! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Disable Power Saving
 :: Now lists PnP devices, instead of the previously used 'reg query'
@@ -678,7 +668,6 @@ for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "US
 powershell -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Powersaving...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Powersaving! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 cls
 echo Please wait. This may take a moment.
@@ -719,7 +708,6 @@ for /f "tokens=1-9* delims=\ " %%A in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\Curr
 )
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Enabled Hidden PowerPlan Attributes...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Enable Hidden PowerPlan Attributes! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Residual File Cleanup
 :: Files are removed in official ISO
@@ -822,7 +810,6 @@ for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 )
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Network Optimized...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Optimize Network! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 :: Disable Network Adapters
 :: IPv6
 powershell -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6"
@@ -878,7 +865,6 @@ devmanview /disable "Numeric Data Processor"
 devmanview /disable "Microsoft RRAS Root Enumerator"
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Devices...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Devices! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Backup Default Windows Services and Drivers
 :: Services
@@ -1072,7 +1058,6 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\fvevol" /v "Start"
 
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Services...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Services! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Backup Default Atlas Services and Drivers
 :: Services
@@ -1533,7 +1518,6 @@ reg add "HKEY_LOCAL_MACHINE\Software\Classes\.pow" /v "FriendlyTypeName" /t REG_
 
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Registry Tweaks Applied...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Apply Registry Tweaks! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Disable DmaRemapping
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
@@ -1564,7 +1548,6 @@ wmic process where name="dwm.exe" CALL setpriority "normal"
 
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Process Priorities Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Set Priorities! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: lowering dual boot choice time
 :: No, this does NOT affect single OS boot time.
