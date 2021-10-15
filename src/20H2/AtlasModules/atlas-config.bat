@@ -631,8 +631,6 @@ icacls %windir%\system32\config\*.* /inheritance:e
 :: Do Not Save Zone Information
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\SOFSoftware\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v "SaveZoneInformation" /t REG_SZ /d "1" /f
 
-:: TODO: Check for other users
-
 :: Import the powerplan
 powercfg -import "C:\Windows\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
 :: Set current powerplan to Atlas
