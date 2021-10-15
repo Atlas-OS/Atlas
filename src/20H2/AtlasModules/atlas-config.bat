@@ -121,8 +121,9 @@ set ERRORLEVEL=0
 break>C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
 echo Would you like the run the interactive setup? This is for ADVANCED USERS ONLY
-:: Use choice for timeout ability
+:: choice + errorlevel does not work with delayed expansion
 endlocal
+:: Use choice for timeout ability
 choice /c yn /m "Run Interactive Setup? [Y/N]" /n /t 20 /d n
 IF %ERRORLEVEL% EQU 1 goto interactive
 IF %ERRORLEVEL% EQU 2 goto auto
@@ -413,7 +414,7 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PC
 echo GPU affinity set!
 :skipGPUAffinity
 set /P c="Set DSCP Values for Games (recommended)? [Y/N]: "
-if /I "%c%" EQU "N" goto auto
+if /I "%c%" EQU "N" goto :GPUScaling
 :: To be expanded...
 for %%i in (csgo VALORANT-Win64-Shipping javaw FortniteClient-Win64-Shipping ModernWarfare r5apex) do (
     reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Application Name" /t REG_SZ /d "%%i.exe" /f
@@ -428,7 +429,12 @@ for %%i in (csgo VALORANT-Win64-Shipping javaw FortniteClient-Win64-Shipping Mod
     reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "DSCP Value" /t REG_SZ /d "46" /f
     reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Throttle Rate" /t REG_SZ /d "-1" /f
 ) >nul 2>nul
-
+:GPUScaling
+set /P c="Disable Display Scaling? (results vary, test) [Y/N]: "
+if /I "%c%" EQU "N" goto auto
+for /f %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f Scaling ^| find /i "Configuration\"') do (
+	reg add "%%i" /v "Scaling" /t REG_DWORD /d "1" /f
+)
 :auto
 SETLOCAL EnableDelayedExpansion
 C:\Windows\AtlasModules\vcredist.exe /ai
