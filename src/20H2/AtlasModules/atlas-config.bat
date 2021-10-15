@@ -100,6 +100,8 @@ echo atlas-config had no arguements passed to it, either you are launching atlas
 echo Please report this to the Atlas discord or github.
 pause&exit
 :TestPrompt
+set /p c="Test with echo on?"
+if %c% equ Y echo on
 set /p argPrompt="Which script would you like to test? e.g. (:testScript)"
 goto %argPrompt%
 echo You should not reach this message!
@@ -113,15 +115,330 @@ echo Please wait, this may take a moment.
 setx path "%path%;C:\Windows\AtlasModules;" -m  >nul 2>nul
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Atlas Modules Path Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules Path! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 :: Breaks setting keyboard language
 :: Rundll32.exe advapi32.dll,ProcessIdleTasks
 break>C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
+echo Would you like the run the interactive setup? This is for ADVANCED USERS ONLY
+:: choice + errorlevel does not work with delayed expansion
+endlocal
+:: Use choice for timeout ability
+choice /c yn /m "Run Interactive Setup? [Y/N]" /n /t 20 /d n
+IF %ERRORLEVEL% EQU 1 goto interactive
+IF %ERRORLEVEL% EQU 2 goto auto
+echo "Choice Failed!" >> C:\Windows\AtlasModules\logs\install.log & exit
+:interactive
+cd C:\Windows\AtlasModules
+SETLOCAL EnableDelayedExpansion
+ping -n 1 -4 1.1.1.1 |Find "Received = 1"|(
+    echo Ethernet Detected.. Disabling Wi-Fi
+    echo Applications like Store and Spotify may not function correctly when disabled. If this is a problem, enable the wifi and restart the computer.
+    sc config WlanSvc start=disabled
+    sc config vwififlt start=disabled
+    sc config netprofm start=disabled
+    sc config NlaSvc start=disabled
+)
+ping -n 1 -4 1.1.1.1 |Find "Failulre"|(
+    echo Network is not connected! Please connect to a network before continuing.
+    echo "Y" To continue online, "N" to setup offline.
+    choice /c yn /m "" /n /t 20 /d n
+    IF %ERRORLEVEL% EQU 1 ( set netStat=1 ) ELSE ( set netStat=0 )
+)
+:: Static IP
+set /P c="Would you like to set a Static IP and disable DHCP? [Y/N]: "
+if /I "%c%" EQU "Y" goto interactiveStatic
+if /I "%c%" EQU "N" goto staticSkip
+:interactiveStatic
+
+set /P dns1="Set DNS Server 1 (e.g. 1.1.1.1): "
+set /P dns2="Set DNS Server 1 (e.g. 1.0.0.1): "
+IF %netStat% EQU 1 (
+  for /f "delims=[] tokens=2" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
+  for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" /s /e /f "!LocalIP!" /t REG_SZ^| findstr }') do set IPInterface=%%i
+  for /f "tokens=3" %%i in ('reg query "%IPInterface%" /s /v "DhcpDefaultGateway" /t REG_MULTI_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPGateway=%%i
+  for /f "tokens=3" %%i in ('reg query "%IPInterface%" /s /v "DhcpSubnetMask" /t REG_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPSubnetMask=%%i
+  reg add "%IPInterface%" /v "IPAddress" /t REG_SZ /d "%LocalIP%" /f
+  reg add "%IPInterface%" /v "SubnetMask" /t REG_SZ /d "%DHCPSubnetMask%" /f
+  reg add "%IPInterface%" /v "DefaultGateway" /t REG_SZ /d "%DHCPGateway%"
+  reg add "%IPInterface%" /v "NameServer" /t REG_SZ /d "%dns1%,%dns2%" /f
+  reg add "%IPInterface%" /v "EnableDhcp" /t REG_DWORD /d "0" /f
+  reg delete "%IPInterface%" /v "DhcpDefaultGateway" /f
+  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Dhcp" /v "Start" /t REG_DWORD /d "4" /f
+  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NlaSvc" /v "Start" /t REG_DWORD /d "4" /f
+  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\netprofm" /v "Start" /t REG_DWORD /d "4" /f
+) else ( echo "Currently in Offline mode! Cannot set Static IP with No Network Access!" )
+:staticSkip
+set /P c="Would you like to disable Windows Media Player? [Y/N]: "
+if /I "%c%" EQU "Y" dism /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /norestart
+if /I "%c%" EQU "N" goto WMPskip
+:WMPskip
+set /P c="Would you like to disable Internet Explorer? A browser can be installed later. [Y/N]: "
+if /I "%c%" EQU "Y" dism /Online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart
+if /I "%c%" EQU "N" goto scoop
+:scoop
+echo Installing scoop...
+set /P c="Review Install script before executing? [Y/N]: "
+if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o C:\Windows\AtlasModules\install.ps1 && notepad C:\Windows\AtlasModules\install.ps1
+if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o C:\Windows\AtlasModules\install.ps1
+powershell Set-ExecutionPolicy RemoteSigned -scope CurrentUser
+powershell C:\Windows\AtlasModules\install.ps1
+echo Refreshing environment for Scoop...
+call C:\Windows\AtlasModules\refreshenv.bat
+echo Installing git...
+:: Scoop isn't very nice with batch scripts, and will break the whole script if a warning or error shows..
+cmd /c scoop install git -g
+call C:\Windows\AtlasModules\refreshenv.bat
+echo Adding extras bucket...
+cmd /c scoop bucket add extras
+multiplechoice "Ungoogled-Chromium;Firefox;Brave;GoogleChrome;" "Pick a Browser" "Browser" > C:\Windows\AtlasModules\tmp.txt
+for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
+	set filter=%%i
+	set filtered=!filter:;= !
+)
+:: must launch in separate process, scoop seems to exit the whole script if not
+cmd /c scoop install %filtered% -g
+:: Findstr for 7zip-zstd, add versions bucket if errlvl 0
+multiplechoice "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;" "Install Common Software" "Common Software" > C:\Windows\AtlasModules\tmp.txt
+for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
+	set filter=%%i
+	set filtered=!filter:;= !
+)
+cmd /c scoop install %filtered% -g
+cls
+set /P c="Enable Bluetooth? [Y/N]: "
+if /I "%c%" EQU "Y" call :btD int
+cls
+set /P c="Disable Store? [Y/N]: "
+if /I "%c%" EQU "Y" call :storeD int
+cls
+set /P c="Disable UAC? [Y/N]: "
+if /I "%c%" EQU "Y" call :uacD int
+cls
+set /P c="Disable Firewall? [Y/N]: "
+if /I "%c%" EQU "Y" call :firewallD int
+cls
+echo "ONLY DISABLE IF YOU KNOW WHAT YOU ARE DOING! ONLY YOU ARE RESPONSIBLE FOR ISSUES YOU EXPERIENCE WITH THIS DISABLED!"
+set /P c="Disable Event Log? [Y/N]: "
+if /I "%c%" EQU "Y" sc config EventLog start=disabled
+cls
+echo "ONLY DISABLE IF YOU KNOW WHAT YOU ARE DOING! ONLY YOU ARE RESPONSIBLE FOR ISSUES YOU EXPERIENCE WITH THIS DISABLED!"
+set /P c="Disable Task Scheduler? [Y/N]: "
+if /I "%c%" EQU "Y" sc config Schedule start=disabled
+cls
+set /P c="Automatically test and set GPU Affinity? [Y/N]: "
+if /I "%c%" EQU "N" goto skipGPUAffinity
+:GPUAffinity
+cls
+echo Python required for Affinity Script. Installing...
+curl -L --output C:\Windows\AtlasModules\pysetup.exe "https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe"
+C:\Windows\AtlasModules\pysetup.exe InstallAllUsers=1 CompileAll Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath Shortcuts=0
+del /f /q "C:\Windows\AtlasModules\pysetup.exe"
+call C:\Windows\AtlasModules\refreshenv.bat
+echo Installing OCAT...
+::scoop install ocat
+curl -L --output C:\Windows\AtlasModules\ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
+C:\Windows\AtlasModules\ocatsetup.exe /silent /install
+if not exist "C:\Windows\AtlasModules\OCAT" if exist "C:\Program Files (x86)\OCAT" move "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules"
+echo Installing LibLava...
+curl -L --output liblava.zip "https://github.com/liblava/liblava/releases/download/0.5.5/liblava-demo_2020_win.zip"
+:: Only extract required files
+7z -aoa -r -i!lava-triangle.exe -i!res.zip e "liblava.zip" -o"C:\Windows\AtlasModules\liblava" >nul 2>nul
+del /f /q "C:\Windows\AtlasModules\liblava.zip"
+:: This segment of the script is LARGELY based on AMIT's "AutoGPUAffinity" script, which can be found here: https://github.com/amitxvv/AutoGpuAffinity
+:: Extra Ideas:
+:: - Prompt for Benchmark Time
+:: - Improve run time estimation, account for HT
+
+:: Get amount of cores or threads
+for /F "skip=1" %%i in ('wmic cpu get NumberOfCores^| findstr "."') do set /a cores=%%i
+:: Check for HT
+if %cores% EQU %NUMBER_OF_PROCESSORS% (set HT=0) ELSE (set HT=1)
+
+:: Estimated time, 80 seconds per core (60 seconds of bench, ~20 seconds of loading/processing)
+set /a est=%cores% * 80
+for /f "tokens=1" %%i in ('py calc.py divint %est% 60') do (
+    set est=%%i
+)
+echo Beginning Affinity Script...
+echo Estimated Run Time: %est% minutes
+echo WARNING: You are required to have installed your Display Drivers
+echo. 
+echo WARNING: At some point your Monitor WILL Flash momentarily, please be patient
+echo.
+echo IF YOU HAVEN'T ALREADY; INSTALL YOUR GRAPHICS DRIVERS! This script is useless without them.
+pause
+:checkMSAdapter
+for /F "skip=1" %%i in ('wmic path win32_VideoController get name') do (
+    if "%%i" equ "Microsoft Basic Display Adapter" echo Graphics Driver not installed! This is REQUIRED for this script to work. & pause & goto checkMSAdapter
+)
+:: initialize gpu testing...
+set testingCore=%NUMBER_OF_PROCESSORS%
+set /a cpus=%NUMBER_OF_PROCESSORS% - 1
+set entries=0
+set total=0
+set test=0
+set max_num=1
+set capDir=%userprofile%\Documents\OCAT\Captures
+set log=C:\Windows\AtlasModules\logs\gpuAffinity.log
+set config="%userprofile%\Documents\OCAT\Config\settings.ini"
+mkdir "%userprofile%\Documents\OCAT\Config"
+if exist lava.log del /f /q lava.log
+if exist %log% del /f /q %log%
+
+echo Creating OCAT config...
+:: Testing Purposes Only, fresh install will not have this.
+::if exist "%userprofile%\Documents\OCAT\Config\settings.ini" del /f /q "%userprofile%\Documents\OCAT\Config\settings.ini" >nul 2>nul
+
+:: Write Config file to OCAT dir
+echo "[Recording]" >> %config% 
+echo "toggleCaptureHotkey=121" >> %config% 
+echo "toggleOverlayHotkey=120" >> %config% 
+echo "toggleFramegraphOverlayHotkey=118" >> %config% 
+echo "toggleColoredBarOverlayHotkey=119" >> %config%
+echo "toggleLagIndicatorOverlayHotkey=117" >> %config% 
+echo "lagIndicatorHotkey=145" >> %config%
+echo "overlayPosition=1" >> %config% 
+echo "captureTime=60" >> %config% 
+echo "captureDelay=0" >> %config% 
+echo "captureAllProcesses=0" >> %config% 
+echo "audioCue=0" >> %config% 
+echo "altKeyComb=0" >> %config% 
+echo "disableOverlayDuringCapture=1" >> %config% 
+echo "injectOnStart=1" >> %config%  
+echo "captureOutputFolder=%capDir%" >> %config% 
+
+:coreTestLoop
+if %test% equ 2 set test=0 
+if %test% equ 0 if %HT% equ 1 set /a testingCore=%testingCore% - 2
+if %test% equ 0 if %HT% equ 0 set /a testingCore=%testingCore% - 1
+if %test% lss 2 (set /a test=%test% + 1)
+:: Skip core 0..
+if %testingCore% equ 0 goto coreTestFinish
+:: set to 2 to the power of %testingCore%
+set /a "dec=1<<%testingCore%"
+:: Convert dec to binary big endian
+set "bin="
+for /L %%A in (1,1,32) do (
+    set /a "bit=dec&1, dec>>=1"
+    set bin=!bit!!bin!
+)
+:: Convert to hex for Process affinity and Little endian
+call :bin2hex hex !bin:~-%NUMBER_OF_PROCESSORS%!
+:: Get Little Endian version for Affinity
+call :ChangeByteOrder %hex%
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f >nul 2>nul
+	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "%BytesLE%" /f >nul 2>nul
+)
+:: Remove Previous Captures
+del /f /q %capDir%\*.csv
+:: Restart Display Adapter to apply affinity changes
+if %test% equ 1 start "" "C:\Windows\AtlasModules\restart64.exe" /q
+start "" "OCAT\OCAT.exe"
+cmd /c start "" /affinity %hex% "C:\Windows\AtlasModules\liblava\lava-triangle.exe"
+timeout 5 >nul 2>nul
+rundll32.exe user32.dll,SetCursorPos
+wscript "C:\Windows\AtlasModules\keypress.vbs"
+call :testInfo
+timeout 32 >nul 2>nul
+wscript "C:\Windows\AtlasModules\keypress.vbs"
+:: Slight delay for csv to be written
+timeout 3 >nul 2>nul
+taskkill /F /IM OCAT.exe >nul 2>nul
+taskkill /F /IM GlobalHook64.exe >nul 2>nul
+taskkill /F /IM lava-triangle.exe >nul 2>nul
+:: Get length of benchmark
+for %%i in (%capDir%\OCAT-lava-*.csv) do (
+	for /f "tokens=1" %%a in ('py calc.py parse %%i') do (
+        set lows=%%a
+    )
+)
+if "%test%" equ "1" set T1cpu%testingCore%=%lows%
+if "%test%" equ "2" set T2cpu%testingCore%=%lows%
+if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
+	for /f "tokens=1" %%a in ('py calc.py add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
+		for /f "tokens=1" %%b in ('py calc.py div %%a 2') do (
+			for /f "tokens=1" %%c in ('py calc.py rnd %%b') do (set cpu%testingCore%=%%c)
+		)
+	)
+)
+if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
+	echo CPU %testingCore%: >> "%log%" 
+	echo Test 1 - !T1cpu%testingCore%! >> "%log%" 
+	echo Test 2 - !T2cpu%testingCore%! >> "%log%" 
+	echo Average - !cpu%testingCore%! >> "%log%" 
+    echo. >> "%log%" 
+)
+goto coreTestLoop
+:coreTestFinish
+cls
+if %HT% equ 0 for /L %%n in (%cpus%,-1,0) do (
+    echo CPU %%n : !cpu%%n!
+)
+:: Make sure to only print cores with values
+if %HT% equ 1 for /L %%n in (%NUMBER_OF_PROCESSORS%,-2,0) do (
+    echo CPU %%n : !cpu%%n! | findstr /v "0 %NUMBER_OF_PROCESSORS%"
+)
+echo.
+echo Benchmark Finished! Analyzing...
+for /L %%n in (%cpus%,-1,0) do (
+	for %%a in (!cpu%%n!) do (
+		if %%a gtr !max_num! set "max_num=%%a" & set "highestfps-cpu=%%n"
+	)
+)
+echo it appears that CPU !highestfps-cpu! overall had the highest 0.01 lows - !max_num! fps
+set /P c="Set GPU Affinity to !highestfps-cpu!? [Y/N]: "
+if /I "%c%" EQU "Y" goto setGPUAffinity
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+	reg delete "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /f
+	reg delete "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /f
+) >nul 2>nul
+:setGPUAffinity
+set /a "dec=1<<%highestfps-cpu%"
+
+:: Convert dec to binary big endian
+set "bin="
+for /L %%A in (1,1,32) do (
+    set /a "bit=dec&1, dec>>=1"
+    set bin=!bit!!bin!
+)
+:: Convert to hex for Process affinity and Little endian
+call :bin2hex hex !bin:~-%NUMBER_OF_PROCESSORS%!
+:: Get Little Endian version for Affinity
+call :ChangeByteOrder %hex%
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f >nul 2>nul
+	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "%BytesLE%" /f >nul 2>nul
+)
+echo GPU affinity set!
+:skipGPUAffinity
+set /P c="Set DSCP Values for Games (recommended)? [Y/N]: "
+if /I "%c%" EQU "N" goto :GPUScaling
+:: To be expanded...
+for %%i in (csgo VALORANT-Win64-Shipping javaw FortniteClient-Win64-Shipping ModernWarfare r5apex) do (
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Application Name" /t REG_SZ /d "%%i.exe" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Version" /t REG_SZ /d "1.0" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Protocol" /t REG_SZ /d "*" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Local Port" /t REG_SZ /d "*" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Local IP" /t REG_SZ /d "*" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Local IP Prefix Length" /t REG_SZ /d "*" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Remote Port" /t REG_SZ /d "*" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Remote IP" /t REG_SZ /d "*" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Remote IP Prefix Length" /t REG_SZ /d "*" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "DSCP Value" /t REG_SZ /d "46" /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%i" /v "Throttle Rate" /t REG_SZ /d "-1" /f
+) >nul 2>nul
+:GPUScaling
+set /P c="Disable Display Scaling? (results vary, test) [Y/N]: "
+if /I "%c%" EQU "N" goto auto
+for /f %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f Scaling ^| find /i "Configuration\"') do (
+	reg add "%%i" /v "Scaling" /t REG_DWORD /d "1" /f
+)
+:auto
+SETLOCAL EnableDelayedExpansion
 C:\Windows\AtlasModules\vcredist.exe /ai
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributable Runtimes! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 :: change ntp server from windows server to pool.ntp.org
 sc config W32Time start=demand >nul 2>nul
 sc start W32Time >nul 2>nul
@@ -137,7 +454,6 @@ sc stop W32Time
 sc config W32Time start=disabled
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% NTP Server Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set NTP Server! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 cls
 echo Please wait. This may take a moment.
 :: Optimize NTFS parameters
@@ -151,7 +467,6 @@ fsutil behavior set disablecompression 1
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% FS Optimized...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Optimize FS! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 :: https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/language-packs-known-issue
 schtasks /Change /Disable /TN "\Microsoft\Windows\LanguageComponentsInstaller\Uninstallation" >nul 2>nul
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Control Panel\International" /v "BlockCleanupOfUnusedPreinstalledLangPacks" /t REG_DWORD /d "1" /f
@@ -212,7 +527,6 @@ schtasks /Change /Disable /TN "\Microsoft\Windows\Mobile Broadband Accounts\MNO 
 schtasks /Change /Disable /TN "\Microsoft\Windows\WindowsUpdate\Scheduled Start" >nul 2>nul
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Scheduled Tasks...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Scheduled Tasks! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 cls
 echo Please wait. This may take a moment.
 
@@ -239,7 +553,6 @@ for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% MSI Mode Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set MSI Mode! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 cls
 echo Please wait. This may take a moment.
 
@@ -271,7 +584,6 @@ powershell set-ProcessMitigation -System -Disable SEHOPTelemetry
 powershell set-ProcessMitigation -System -Disable ForceRelocateImages
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Mitigations Disabled...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Mitigations! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: --- Hardening ---
 
@@ -319,15 +631,12 @@ icacls %windir%\system32\config\*.* /inheritance:e
 :: Do Not Save Zone Information
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\SOFSoftware\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v "SaveZoneInformation" /t REG_SZ /d "1" /f
 
-:: TODO: Check for other users
-
 :: Import the powerplan
 powercfg -import "C:\Windows\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
 :: Set current powerplan to Atlas
 powercfg /s 11111111-1111-1111-1111-111111111111
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% PowerPlan Imported...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to import PowerPlan! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Set SvcSplitThreshold
 :: Credits: revision
@@ -336,14 +645,12 @@ set /a ram=%mem% + 1024000
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Service Memory Split Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Service Memory Split! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: tokens arg breaks path to just \Device instead of \Device Parameters
 :: Disable Power savings on drives
 for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum" /s /f "StorPort"^| findstr "StorPort"') do reg add "%%i" /v "EnableIdlePowerManagement" /t REG_DWORD /d "0" /f
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Storage Powersaving...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Storage Powersaving! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Disable Power Saving
 :: Now lists PnP devices, instead of the previously used 'reg query'
@@ -359,7 +666,6 @@ for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "US
 powershell -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Powersaving...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Powersaving! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 cls
 echo Please wait. This may take a moment.
@@ -400,7 +706,6 @@ for /f "tokens=1-9* delims=\ " %%A in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\Curr
 )
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Enabled Hidden PowerPlan Attributes...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Enable Hidden PowerPlan Attributes! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Residual File Cleanup
 :: Files are removed in official ISO
@@ -503,7 +808,6 @@ for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 )
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Network Optimized...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Optimize Network! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 :: Disable Network Adapters
 :: IPv6
 powershell -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6"
@@ -559,7 +863,6 @@ devmanview /disable "Numeric Data Processor"
 devmanview /disable "Microsoft RRAS Root Enumerator"
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Devices...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Devices! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Backup Default Windows Services and Drivers
 :: Services
@@ -753,7 +1056,6 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\fvevol" /v "Start"
 
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Services...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Services! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Backup Default Atlas Services and Drivers
 :: Services
@@ -1214,7 +1516,6 @@ reg add "HKEY_LOCAL_MACHINE\Software\Classes\.pow" /v "FriendlyTypeName" /t REG_
 
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Registry Tweaks Applied...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Apply Registry Tweaks! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: Disable DmaRemapping
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
@@ -1245,7 +1546,6 @@ wmic process where name="dwm.exe" CALL setpriority "normal"
 
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Process Priorities Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Set Priorities! >> C:\Windows\AtlasModules\logs\install.log)
-set ERRORLEVEL=0
 
 :: lowering dual boot choice time
 :: No, this does NOT affect single OS boot time.
@@ -1351,6 +1651,7 @@ sc config LicenseManager start=disabled
 sc config AppXSVC start=disabled
 sc config ClipSVC start=disabled
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :storeE
 :: Enable the option for Windows Store in the "Open With" dialog
@@ -1379,6 +1680,7 @@ for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services"
 )
 sc config CDPSvc start=disabled
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Bluetooth Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :btE
 sc config BthAvctpSvc start=auto
@@ -1661,6 +1963,7 @@ goto finishNRB
 :: - UAC Enable
 :: - Firewall rules
 :: - Disable TsX to mitigate ZombieLoad
+:: - Static ARP Entry
 :xboxU
 choice /c yn /m "This is currently IRREVERSIBLE, continue? [Y/N]" /n
 echo Removing via PowerShell...
@@ -1716,6 +2019,7 @@ reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\S
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\luafv" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Appinfo" /v "Start" /t REG_DWORD /d "4" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UAC Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :uacE
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
@@ -1794,6 +2098,7 @@ exit
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\mpssvc" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BFE" /v "Start" /t REG_DWORD /d "4" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Firewall Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :firewallE
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\mpssvc" /v "Start" /t REG_DWORD /d "2" /f
@@ -2031,4 +2336,36 @@ goto finish
 :finishNRB
 	echo Finished, changes have been applied.
 	pause&exit
-pause
+exit
+:: Begin Batch Functions
+:bin2hex <var_to_set> <bin_value>
+set "hextable=0000-0;0001-1;0010-2;0011-3;0100-4;0101-5;0110-6;0111-7;1000-8;1001-9;1010-A;1011-B;1100-C;1101-D;1110-E;1111-F"
+:bin2hexloop
+if "%~2"=="" (
+    endlocal & set "%~1=%~3"
+    goto :EOF
+)
+set "bin=000%~2"
+set "oldbin=%~2"
+set "bin=%bin:~-4%"
+set "hex=!hextable:*%bin:~-4%-=!"
+set hex=%hex:;=&rem.%
+endlocal & call :bin2hexloop "%~1" "%oldbin:~0,-4%" %hex%%~3
+goto :EOF
+
+:ChangeByteOrder  <data:hex>
+set "LittleEndian="
+set "BigEndian=%~1"
+:ChangeByteOrderLoop
+if "%BigEndian:~-2%"=="%BigEndian:~-1%" (
+    set "LittleEndian=%LittleEndian%0%BigEndian:~-1%"
+) else set "LittleEndian=%LittleEndian%%BigEndian:~-2%"
+set "BigEndian=%BigEndian:~0,-2%"
+if not defined BigEndian exit /B
+goto :ChangeByteOrderLoop
+
+:testInfo
+cls
+echo "Current Affinity: %testingCore%"
+echo "Test: %test%/2"
+goto :EOF
