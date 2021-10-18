@@ -1014,7 +1014,7 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\fdc" /v "Start" /t
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\flpydisk" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\fvevol" /v "Start" /t REG_DWORD /d "4" /f
 ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\FileInfo" /v "Start" /t REG_DWORD /d "4" /f < Breaks installing Store Apps to different disk. (Now disabled via store script)
-reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\FileCrypt" /v "Start" /t REG_DWORD /d "4" /f
+::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\FileCrypt" /v "Start" /t REG_DWORD /d "4" /f < Breaks installing Store Apps to different disk. (Now disabled via store script)
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\GpuEnergyDrv" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\mrxsmb" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\mrxsmb20" /v "Start" /t REG_DWORD /d "4" /f
@@ -1648,6 +1648,7 @@ sc config LicenseManager start=disabled
 sc config AppXSVC start=disabled
 sc config ClipSVC start=disabled
 sc config FileInfo start=disabled
+sc config FileCrypt start=disabled
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
@@ -1668,6 +1669,7 @@ sc config LicenseManager start=demand
 sc config wuauserv start=demand
 sc config AppXSVC start=demand
 sc config FileInfo start=boot
+sc config FileCrypt start=system
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :btD
