@@ -138,35 +138,33 @@ ping -n 1 -4 1.1.1.1 |Find "Received = 1"|(
     sc config netprofm start=disabled
     sc config NlaSvc start=disabled
 )
-ping -n 1 -4 1.1.1.1 |Find "Failulre"|(
+:netcheck
+ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
+	echo %errorlevel%
     echo Network is not connected! Please connect to a network before continuing.
-    echo "Y" To continue online, "N" to setup offline.
-    choice /c yn /m "" /n /t 20 /d n
-    IF %ERRORLEVEL% EQU 1 ( set netStat=1 ) ELSE ( set netStat=0 )
+	pause
+	goto netcheck
 )
 :: Static IP
 set /P c="Would you like to set a Static IP and disable DHCP? [Y/N]: "
 if /I "%c%" EQU "Y" goto interactiveStatic
 if /I "%c%" EQU "N" goto staticSkip
 :interactiveStatic
-
 set /P dns1="Set DNS Server 1 (e.g. 1.1.1.1): "
 set /P dns2="Set DNS Server 1 (e.g. 1.0.0.1): "
-IF %netStat% EQU 1 (
-  for /f "delims=[] tokens=2" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
-  for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" /s /e /f "!LocalIP!" /t REG_SZ^| findstr }') do set IPInterface=%%i
-  for /f "tokens=3" %%i in ('reg query "%IPInterface%" /s /v "DhcpDefaultGateway" /t REG_MULTI_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPGateway=%%i
-  for /f "tokens=3" %%i in ('reg query "%IPInterface%" /s /v "DhcpSubnetMask" /t REG_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPSubnetMask=%%i
-  reg add "%IPInterface%" /v "IPAddress" /t REG_SZ /d "%LocalIP%" /f
-  reg add "%IPInterface%" /v "SubnetMask" /t REG_SZ /d "%DHCPSubnetMask%" /f
-  reg add "%IPInterface%" /v "DefaultGateway" /t REG_SZ /d "%DHCPGateway%"
-  reg add "%IPInterface%" /v "NameServer" /t REG_SZ /d "%dns1%,%dns2%" /f
-  reg add "%IPInterface%" /v "EnableDhcp" /t REG_DWORD /d "0" /f
-  reg delete "%IPInterface%" /v "DhcpDefaultGateway" /f
-  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Dhcp" /v "Start" /t REG_DWORD /d "4" /f
-  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NlaSvc" /v "Start" /t REG_DWORD /d "4" /f
-  ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\netprofm" /v "Start" /t REG_DWORD /d "4" /f
-) else ( echo "Currently in Offline mode! Cannot set Static IP with No Network Access!" )
+for /f "delims=[] tokens=2" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
+for /f "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" /s /e /f "!LocalIP!" /t REG_SZ^| findstr }') do set IPInterface=%%i
+for /f "tokens=3" %%i in ('reg query "%IPInterface%" /s /v "DhcpDefaultGateway" /t REG_MULTI_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPGateway=%%i
+for /f "tokens=3" %%i in ('reg query "%IPInterface%" /s /v "DhcpSubnetMask" /t REG_SZ^| findstr "[0-9][0-9][0-9].[0-9][0-9][0-9].*.*"') do set DHCPSubnetMask=%%i
+reg add "%IPInterface%" /v "IPAddress" /t REG_SZ /d "%LocalIP%" /f
+reg add "%IPInterface%" /v "SubnetMask" /t REG_SZ /d "%DHCPSubnetMask%" /f
+reg add "%IPInterface%" /v "DefaultGateway" /t REG_SZ /d "%DHCPGateway%"
+reg add "%IPInterface%" /v "NameServer" /t REG_SZ /d "%dns1%,%dns2%" /f
+reg add "%IPInterface%" /v "EnableDhcp" /t REG_DWORD /d "0" /f
+reg delete "%IPInterface%" /v "DhcpDefaultGateway" /f
+::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Dhcp" /v "Start" /t REG_DWORD /d "4" /f
+::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NlaSvc" /v "Start" /t REG_DWORD /d "4" /f
+::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\netprofm" /v "Start" /t REG_DWORD /d "4" /f
 :staticSkip
 set /P c="Would you like to disable Windows Media Player? [Y/N]: "
 if /I "%c%" EQU "Y" dism /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /norestart
