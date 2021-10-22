@@ -87,6 +87,17 @@ When creating [labels](http://elearning.algonquincollege.com/coursemat/viljoed/g
 echo this stands for "Bluetooth Disable"
 ```
 
+## Compatability
+
+A simple sheet to track what components break what, if not listed on NTLite. This is not complete.
+
+| Component          | Affected Feature                     | Version Tested | Notes                                                                     |
+| ------------------ | ------------------------------------ | -------------- | ------------------------------------------------------------------------- |
+| Mobile PC Sensors  | Xbox App                             | 20H2           | The old xbox app can function without it, but once updated it will crash. |
+| Active Directory   | Store Sign In & Organization Sign In | 20H2           |                                                                           |
+| Photo Codec 32-bit | Photos App                           | 20H2           | Test again                                                                |
+
+
 ## Resources
 - [VCRedist](https://github.com/abbodi1406/vcredist)
 - [DevManView](https://www.nirsoft.net/utils/device_manager_view.html)
