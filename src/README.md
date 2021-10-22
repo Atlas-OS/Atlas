@@ -87,7 +87,7 @@ When creating [labels](http://elearning.algonquincollege.com/coursemat/viljoed/g
 echo this stands for "Bluetooth Disable"
 ```
 
-## Compatability
+## Compatibility
 
 A simple sheet to track what components break what, if not listed on NTLite. This is not complete.
 
