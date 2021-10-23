@@ -188,19 +188,23 @@ cmd /c scoop install git -g
 call C:\Windows\AtlasModules\refreshenv.bat
 echo Adding extras bucket...
 cmd /c scoop bucket add extras
+:browser
 multiplechoice "Ungoogled-Chromium;Firefox;Brave;GoogleChrome;" "Pick a Browser" "Browser" > C:\Windows\AtlasModules\tmp.txt
 for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
-	set filter=%%i
+	set filter="%%i"
 	set filtered=!filter:;= !
 )
+if "%filtered%" == "" echo You need to install a browser! You will need it later on. && pause && goto browser
 :: must launch in separate process, scoop seems to exit the whole script if not
 cmd /c scoop install %filtered% -g
 :: Findstr for 7zip-zstd, add versions bucket if errlvl 0
 multiplechoice "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;" "Install Common Software" "Common Software" > C:\Windows\AtlasModules\tmp.txt
+multiplechoice "Ungoogled-Chromium;Firefox;Brave;GoogleChrome;" "Pick a Browser" "Browser" > C:\Windows\AtlasModules\tmp.txt
 for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
-	set filter=%%i
+	set filter="%%i"
 	set filtered=!filter:;= !
 )
+if "%filtered%" == "" echo You must install a browser! You will need it later on. && goto 
 cmd /c scoop install %filtered% -g
 cls
 set /P c="Enable Bluetooth? [Y/N]: "
