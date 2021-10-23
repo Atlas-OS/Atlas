@@ -26,6 +26,7 @@ pause&exit
 SETLOCAL EnableDelayedExpansion
 
 if /i "%~1"=="/start"		   goto startup
+if /i "%~1"=="/intsetup"		   goto interactive
 :: will loop update check if debugging.
 :: Notifications
 if /i "%~1"=="/dn"         goto notiD
@@ -119,14 +120,8 @@ IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Atlas Modules Path Set...>> C:\Windo
 :: Rundll32.exe advapi32.dll,ProcessIdleTasks
 break>C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
-echo Would you like the run the interactive setup? This is for ADVANCED USERS ONLY
-:: choice + errorlevel does not work with delayed expansion
-endlocal
-:: Use choice for timeout ability
-choice /c yn /m "Run Interactive Setup? [Y/N]" /n /t 20 /d n
-IF %ERRORLEVEL% EQU 1 goto interactive
-IF %ERRORLEVEL% EQU 2 goto auto
-echo "Choice Failed!" >> C:\Windows\AtlasModules\logs\install.log & exit
+goto auto
+:: Now moved to AFTER automatic setup
 :interactive
 cd C:\Windows\AtlasModules
 SETLOCAL EnableDelayedExpansion
@@ -192,9 +187,11 @@ cmd /c scoop bucket add extras
 multiplechoice "Ungoogled-Chromium;Firefox;Brave;GoogleChrome;" "Pick a Browser" "Browser" > C:\Windows\AtlasModules\tmp.txt
 for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
 	set filter="%%i"
+	pause
 	set filtered=!filter:;= !
 )
-if "%filtered%" == "" echo You need to install a browser! You will need it later on. && pause && goto browser
+pause
+::if "%filtered%" == "" echo You need to install a browser! You will need it later on. && pause && goto browser
 :: must launch in separate process, scoop seems to exit the whole script if not
 cmd /c scoop install %filtered% -g
 :: Findstr for 7zip-zstd, add versions bucket if errlvl 0
@@ -232,7 +229,7 @@ if /I "%c%" EQU "N" goto skipGPUAffinity
 cls
 echo Python required for Affinity Script. Installing...
 curl -L --output C:\Windows\AtlasModules\pysetup.exe "https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe"
-C:\Windows\AtlasModules\pysetup.exe /quiet InstallAllUsers=1 CompileAll Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath Shortcuts=0
+C:\Windows\AtlasModules\pysetup.exe /quiet InstallAllUsers=1 CompileAll=1 Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath=1 Shortcuts=1
 del /f /q "C:\Windows\AtlasModules\pysetup.exe"
 call C:\Windows\AtlasModules\refreshenv.bat
 echo Installing OCAT...
@@ -244,8 +241,7 @@ if not exist "C:\Windows\AtlasModules\OCAT" if exist "C:\Program Files (x86)\OCA
 echo Installing LibLava...
 curl -L --output liblava.zip "https://github.com/liblava/liblava/releases/download/0.5.5/liblava-demo_2020_win.zip"
 :: Only extract required files
-7z -aoa -r -i!lava-triangle.exe -i!res.zip e "liblava.zip" -o"C:\Windows\AtlasModules\liblava" >nul 2>nul
-if not exist "C:\Windows\AtlasModules\liblava" echo Liblava download/extract failed! && goto liblava
+7z -aoa -r e "C:\Windows\AtlasModules\liblava.zip" -o"C:\Windows\AtlasModules\liblava" >nul 2>nul
 del /f /q "C:\Windows\AtlasModules\liblava.zip"
 :: This segment of the script is LARGELY based on AMIT's "AutoGPUAffinity" script, which can be found here: https://github.com/amitxvv/AutoGpuAffinity
 :: Extra Ideas:
@@ -259,14 +255,14 @@ if %cores% EQU %NUMBER_OF_PROCESSORS% (set HT=0) ELSE (set HT=1)
 
 :: Estimated time, 80 seconds per core (60 seconds of bench, ~20 seconds of loading/processing)
 set /a est=%cores% * 80
-for /f "tokens=1" %%i in ('py calc.py divint %est% 60') do (
+for /f "tokens=1" %%i in ('python calc.py divint %est% 60') do (
     set est=%%i
 )
 echo Beginning Affinity Script...
 echo Estimated Run Time: %est% minutes
 echo WARNING: You are required to have installed your Display Drivers
 echo. 
-echo WARNING: At some point your Monitor WILL Flash momentarily, please be patient
+echo WARNING: Your Monitor will flash multiple times, this is normal.
 echo.
 echo IF YOU HAVEN'T ALREADY; INSTALL YOUR GRAPHICS DRIVERS! This script is useless without them.
 pause
@@ -274,11 +270,6 @@ pause
 for /F "skip=1" %%i in ('wmic path win32_VideoController get name') do (
     if "%%i" equ "Microsoft Basic Display Adapter" echo Graphics Driver not installed! This is REQUIRED for this script to work. & pause & goto checkMSAdapter
 )
-:: Need to retrieve username while running as trusted installer
-for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Volatile Environment" /t REG_SZ /s /c /f "USERPROFILE" /e ^| findstr "Users"') do (
-	set usrdir="%%i"
-)
-
 :: initialize gpu testing...
 set testingCore=%NUMBER_OF_PROCESSORS%
 set /a cpus=%NUMBER_OF_PROCESSORS% - 1
@@ -286,10 +277,10 @@ set entries=0
 set total=0
 set test=0
 set max_num=1
-set capDir=%usrdir%\Documents\OCAT\Captures
+set capDir=%userprofile%\Documents\OCAT\Captures
 set log=C:\Windows\AtlasModules\logs\gpuAffinity.log
-set config="%usrdir%\Documents\OCAT\Config\settings.ini"
-mkdir "%usrdir%\Documents\OCAT\Config"
+set config="%userprofile%\Documents\OCAT\Config\settings.ini"
+mkdir -p "%userprofile%\Documents\OCAT\Config"
 if exist lava.log del /f /q lava.log
 if exist "%log%" del /f /q "%log%"
 
@@ -342,6 +333,7 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PC
 del /f /q %capDir%\*.csv
 :: Restart Display Adapter to apply affinity changes
 if %test% equ 1 start "" "C:\Windows\AtlasModules\restart64.exe" /q
+timeout 5
 start "" "OCAT\OCAT.exe"
 cmd /c start "" /affinity %hex% "C:\Windows\AtlasModules\liblava\lava-triangle.exe"
 timeout 5 >nul 2>nul
@@ -442,6 +434,9 @@ if /I "%c%" EQU "N" goto auto
 for /f %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f Scaling ^| find /i "Configuration\"') do (
 	reg add "%%i" /v "Scaling" /t REG_DWORD /d "1" /f
 )
+echo Interactive setup finished!
+pause
+exit
 :auto
 SETLOCAL EnableDelayedExpansion
 C:\Windows\AtlasModules\vcredist.exe /ai
