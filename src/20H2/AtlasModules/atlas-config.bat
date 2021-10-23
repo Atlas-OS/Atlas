@@ -240,10 +240,12 @@ echo Installing OCAT...
 curl -L --output C:\Windows\AtlasModules\ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
 C:\Windows\AtlasModules\ocatsetup.exe /silent /install
 if not exist "C:\Windows\AtlasModules\OCAT" if exist "C:\Program Files (x86)\OCAT" move "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules"
+:liblava
 echo Installing LibLava...
 curl -L --output liblava.zip "https://github.com/liblava/liblava/releases/download/0.5.5/liblava-demo_2020_win.zip"
 :: Only extract required files
 7z -aoa -r -i!lava-triangle.exe -i!res.zip e "liblava.zip" -o"C:\Windows\AtlasModules\liblava" >nul 2>nul
+if not exist "C:\Windows\AtlasModules\liblava" echo Liblava download/extract failed! && goto liblava
 del /f /q "C:\Windows\AtlasModules\liblava.zip"
 :: This segment of the script is LARGELY based on AMIT's "AutoGPUAffinity" script, which can be found here: https://github.com/amitxvv/AutoGpuAffinity
 :: Extra Ideas:
@@ -272,6 +274,11 @@ pause
 for /F "skip=1" %%i in ('wmic path win32_VideoController get name') do (
     if "%%i" equ "Microsoft Basic Display Adapter" echo Graphics Driver not installed! This is REQUIRED for this script to work. & pause & goto checkMSAdapter
 )
+:: Need to retrieve username while running as trusted installer
+for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Volatile Environment" /t REG_SZ /s /c /f "USERPROFILE" /e ^| findstr "Users"') do (
+	set usrdir="%%i"
+)
+
 :: initialize gpu testing...
 set testingCore=%NUMBER_OF_PROCESSORS%
 set /a cpus=%NUMBER_OF_PROCESSORS% - 1
@@ -279,12 +286,12 @@ set entries=0
 set total=0
 set test=0
 set max_num=1
-set capDir=%userprofile%\Documents\OCAT\Captures
+set capDir=%usrdir%\Documents\OCAT\Captures
 set log=C:\Windows\AtlasModules\logs\gpuAffinity.log
-set config="%userprofile%\Documents\OCAT\Config\settings.ini"
-mkdir "%userprofile%\Documents\OCAT\Config"
+set config="%usrdir%\Documents\OCAT\Config\settings.ini"
+mkdir "%usrdir%\Documents\OCAT\Config"
 if exist lava.log del /f /q lava.log
-if exist %log% del /f /q %log%
+if exist "%log%" del /f /q "%log%"
 
 echo Creating OCAT config...
 :: Testing Purposes Only, fresh install will not have this.
