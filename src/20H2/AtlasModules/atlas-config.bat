@@ -232,7 +232,7 @@ if /I "%c%" EQU "N" goto skipGPUAffinity
 cls
 echo Python required for Affinity Script. Installing...
 curl -L --output C:\Windows\AtlasModules\pysetup.exe "https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe"
-C:\Windows\AtlasModules\pysetup.exe InstallAllUsers=1 CompileAll Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath Shortcuts=0
+C:\Windows\AtlasModules\pysetup.exe /quiet InstallAllUsers=1 CompileAll Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath Shortcuts=0
 del /f /q "C:\Windows\AtlasModules\pysetup.exe"
 call C:\Windows\AtlasModules\refreshenv.bat
 echo Installing OCAT...
