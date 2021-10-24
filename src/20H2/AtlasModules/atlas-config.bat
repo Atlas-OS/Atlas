@@ -141,9 +141,11 @@ ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
 	goto netcheck
 )
 :: Static IP
+:staticIP
 set /P c="Would you like to set a Static IP and disable DHCP? [Y/N]: "
 if /I "%c%" EQU "Y" goto interactiveStatic
 if /I "%c%" EQU "N" goto staticSkip
+call :invalidInput staticIP
 :interactiveStatic
 set /P dns1="Set DNS Server 1 (e.g. 1.1.1.1): "
 for /f "tokens=4" %%i in ('netsh int show interface ^| find "Connected"') do set devicename=%%i
@@ -2375,3 +2377,7 @@ goto :EOF
 
 :setSvc <service_name> <start_1-4>
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f
+
+:invalidInput <label>
+if "%c%"=="" echo Empty Input! Please enter Y or N. & goto %~1
+if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid Input! Please enter Y or N. & goto %~1
