@@ -1632,7 +1632,7 @@ echo Extra note: This breaks the "about" page in settings. If you require it, en
 :: If you notice something else breaks when firewall/store is disabled please open an issue.
 pause
 :: Detect if user is using a Microsoft Account
-wmic PATH Win32_UserAccount WHERE Name='%USERNAME%' get LocalAccount | findstr "TRUE" >nul 2>&1 && set "MSACCOUNT=NO"
+powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 :: Disable the option for Windows Store in the "Open With" dialog
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
