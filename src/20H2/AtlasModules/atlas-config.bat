@@ -125,13 +125,11 @@ goto auto
 :interactive
 cd C:\Windows\AtlasModules
 SETLOCAL EnableDelayedExpansion
+:ethernetCheck
 ping -n 1 -4 1.1.1.1 |Find "Received = 1"|(
-    echo Ethernet Detected.. Disabling Wi-Fi
-    echo Applications like Store and Spotify may not function correctly when disabled. If this is a problem, enable the wifi and restart the computer.
-    sc config WlanSvc start=disabled
-    sc config vwififlt start=disabled
-    sc config netprofm start=disabled
-    sc config NlaSvc start=disabled
+    set /P c="Ethernet Detected.. Would you like to disable Wi-Fi? [Y/N]: "
+    if /I "%c%" EQU "Y" call wifiD int
+    call :invalidInput ethernetCheck
 )
 :netcheck
 ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
@@ -859,7 +857,7 @@ devmanview /disable "Composite Bus Enumerator"
 devmanview /disable "Microsoft Kernel Debug Network Adapter"
 devmanview /disable "SM Bus Controller"
 devmanview /disable "NDIS Virtual Network Adapter Enumerator"
-::devmanview /disable "Microsoft Virtual Drive Enumerator"
+::devmanview /disable "Microsoft Virtual Drive Enumerator" < Breaks ISO mounts
 devmanview /disable "Numeric Data Processor"
 devmanview /disable "Microsoft RRAS Root Enumerator"
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Devices...>> C:\Windows\AtlasModules\logs\install.log
@@ -1615,6 +1613,7 @@ sc config netprofm start=disabled
 sc config NlaSvc start=disabled
 :wifiDskip
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Wi-Fi Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :wifiE
 sc config netprofm start=demand
@@ -2380,3 +2379,4 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\%~1" /v "Start" /t
 :invalidInput <label>
 if "%c%"=="" echo Empty Input! Please enter Y or N. & goto %~1
 if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid Input! Please enter Y or N. & goto %~1
+goto :EOF
