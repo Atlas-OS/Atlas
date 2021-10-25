@@ -133,7 +133,6 @@ ping -n 1 -4 1.1.1.1 |Find "Received = 1"|(
 )
 :netcheck
 ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
-	echo %errorlevel%
     echo Network is not connected! Please connect to a network before continuing.
 	pause
 	goto netcheck
