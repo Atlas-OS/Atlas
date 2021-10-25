@@ -1792,8 +1792,7 @@ goto finish
 :stopS
 exit
 :openshellInstall
-:: Download OpenShell through aria2c
-aria2c -d C:\Windows\AtlasModules -o oshellI.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.160/OpenShellSetup_4_4_160.exe
+curl -L --output C:\Windows\AtlasModules\oshellI.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.160/OpenShellSetup_4_4_160.exe
 IF EXIST "C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
 IF EXIST "C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existOS
 goto rmSSOS
