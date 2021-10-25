@@ -278,7 +278,7 @@ set max_num=1
 set capDir=%userprofile%\Documents\OCAT\Captures
 set log=C:\Windows\AtlasModules\logs\gpuAffinity.log
 set config="%userprofile%\Documents\OCAT\Config\settings.ini"
-mkdir -p "%userprofile%\Documents\OCAT\Config"
+mkdir "%userprofile%\Documents\OCAT\Config"
 if exist lava.log del /f /q lava.log
 if exist "%log%" del /f /q "%log%"
 
