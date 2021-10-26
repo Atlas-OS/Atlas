@@ -159,10 +159,12 @@ powershell -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -
 set /P c="Would you like to disable Windows Media Player? [Y/N]: "
 if /I "%c%" EQU "Y" dism /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /norestart
 if /I "%c%" EQU "N" goto WMPskip
+call :invalidInput staticSkip
 :WMPskip
 set /P c="Would you like to disable Internet Explorer? A browser can be installed later. [Y/N]: "
 if /I "%c%" EQU "Y" dism /Online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart
 if /I "%c%" EQU "N" goto scoop
+call :invalidInput WMPskip
 :scoop
 echo Installing scoop...
 set /P c="Review Install script before executing? [Y/N]: "
@@ -425,10 +427,11 @@ for %%i in (csgo VALORANT-Win64-Shipping javaw FortniteClient-Win64-Shipping Mod
 ) >nul 2>nul
 :GPUScaling
 set /P c="Disable Display Scaling? (results vary, test) [Y/N]: "
-if /I "%c%" EQU "N" goto auto
+if /I "%c%" EQU "N" goto :intComplete
 for /f %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f Scaling ^| find /i "Configuration\"') do (
 	reg add "%%i" /v "Scaling" /t REG_DWORD /d "1" /f
 )
+:intComplete
 echo Interactive setup finished!
 pause
 exit
