@@ -1582,6 +1582,9 @@ echo ---------------------------------------------------------------------------
 break>C:\Users\Public\success.txt
 echo true > C:\Users\Public\success.txt
 echo %date% - %time% Post-Install Finished Redirecting to sub script...>> C:\Windows\AtlasModules\logs\install.log
+echo "C:\Windows\AtlasModules\nsudo -U:T -P:E -Wait C:\Windows\AtlasModules\atlas-config.bat /intsetup" > "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\intsetup.bat"
+echo echo If the script unexpectedly closed, launch it from the atlas folder. >>  "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\intsetup.bat"
+echo pause >> "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\intsetup.bat"
 exit
 :notiD
 sc config WpnService start=disabled
