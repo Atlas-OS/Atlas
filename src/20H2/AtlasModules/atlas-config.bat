@@ -131,12 +131,7 @@ ping -n 1 -4 1.1.1.1 |Find "Received = 1"|(
     if /I "%c%" EQU "Y" call wifiD int
     call :invalidInput ethernetCheck
 )
-:netcheck
-ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
-    echo Network is not connected! Please connect to a network before continuing.
-	pause
-	goto netcheck
-)
+call :netcheck
 :WMPD
 set /P c="Would you like to disable Windows Media Player? [Y/N]: "
 if /I "%c%" EQU "Y" dism /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /norestart
@@ -249,6 +244,7 @@ pause
 for /F "skip=1" %%i in ('wmic path win32_VideoController get name') do (
     if "%%i" equ "Microsoft Basic Display Adapter" echo Graphics Driver not installed! This is REQUIRED for this script to work. & pause & goto checkMSAdapter
 )
+call :netcheck
 :: initialize gpu testing...
 set testingCore=%NUMBER_OF_PROCESSORS%
 set /a cpus=%NUMBER_OF_PROCESSORS% - 1
@@ -420,6 +416,7 @@ if /I "%c%" EQU "Y" goto interactiveStatic
 if /I "%c%" EQU "N" goto auto
 call :invalidInput staticIP
 :interactiveStatic
+call :netcheck
 set /P dns1="Set DNS Server (e.g. 1.1.1.1): "
 for /f "tokens=4" %%i in ('netsh int show interface ^| find "Connected"') do set devicename=%%i
 ::for /f "tokens=2 delims=[]" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
@@ -2388,4 +2385,12 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\%~1" /v "Start" /t
 :invalidInput <label>
 if "%c%"=="" echo Empty Input! Please enter Y or N. & goto %~1
 if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid Input! Please enter Y or N. & goto %~1
+goto :EOF
+
+:netcheck
+ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
+    echo Network is not connected! Please connect to a network before continuing.
+	pause
+	goto netcheck
+)
 goto :EOF
