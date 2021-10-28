@@ -139,14 +139,14 @@ ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
 )
 :: Static IP
 :staticIP
-set /P c="Would you like to set a Static IP and disable DHCP? [Y/N]: "
+set /P c="Would you like to set a Static IP? [Y/N]: "
 if /I "%c%" EQU "Y" goto interactiveStatic
 if /I "%c%" EQU "N" goto staticSkip
 call :invalidInput staticIP
 :interactiveStatic
 set /P dns1="Set DNS Server 1 (e.g. 1.1.1.1): "
 for /f "tokens=4" %%i in ('netsh int show interface ^| find "Connected"') do set devicename=%%i
-for /f "tokens=2 delims=[]" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
+::for /f "tokens=2 delims=[]" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
 for /f "tokens=3" %%i in ('netsh int ip show config name=^"%devicename%" ^| findstr "IP Address:"') do set LocalIP=%%i
 for /f "tokens=3" %%i in ('netsh int ip show config name=^"%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%i
 for /f "tokens=2 delims=()" %%i in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /F "tokens=2" %%a in ("%%i") do set DHCPSubnetMask=%%a
