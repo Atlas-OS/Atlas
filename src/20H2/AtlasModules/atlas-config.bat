@@ -170,7 +170,7 @@ pause
 cmd /c scoop install %filtered% -g
 :: Findstr for 7zip-zstd, add versions bucket if errlvl 0
 set filter=""
-multiplechoice "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;" "Install Common Software" "Common Software" > C:\Windows\AtlasModules\tmp.txt
+multiplechoice "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;" "Install Common Software" "Common Software" > C:\Windows\AtlasModules\tmp.txt
 for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
 	set filter="%%i"
 	set filtered=!filter:;= !
