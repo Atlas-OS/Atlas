@@ -2394,3 +2394,26 @@ ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
 	goto netcheck
 )
 goto :EOF
+
+:dittoPreInstall
+reg query HKCU\Software\Microsoft\Clipboard /v EnableClipboardHistory
+if %ERRORLEVEL% EQU 0 goto :dittoDownloadAndInstall
+if %ERRORLEVEL% EQU 1 goto :dittoChoice
+:dittoChoice
+set /P c="It appears that you have the Microsoft Clipboard History enabled, would you like to disable it before installing Ditto?[Y/N]: "
+if /I "%c%" EQU "Y" goto :cbdhsvcD2
+if /I "%c%" EQU "N" goto :dittoDownloadAndInstall
+:cbdhsvcD2
+for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f cbdhsvc ^| find /i "cbdhsvc" ') do (
+  reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
+)
+C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Clipboard" /v "EnableClipboardHistory" /t REG_DWORD /d "0" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /t REG_DWORD /d "0" /f
+IF %ERRORLEVEL% EQU 0 echo %date% - %time% Clipboard History Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto dittoDownloadAndInstall
+:dittoDownloadAndInstall
+curl -L --output C:\Windows\AtlasModules\dittoI.exe https://github.com/sabrogden/Ditto/releases/download/3.24.214.0/DittoSetup_64bit_3_24_214_0.exe
+IF %ERRORLEVEL% EQU 0 echo %date% - %time% Ditto is being installed...>> C:\Windows\AtlasModules\logs\userScript.log
+"dittoI.exe"
+echo %date% - %time% Please complete the Ditto installation that will pop up after this message>> C:\Windows\AtlasModules\logs\userScript.log
+goto finishNRB
