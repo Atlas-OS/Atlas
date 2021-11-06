@@ -215,6 +215,21 @@ curl -L --output liblava.zip "https://github.com/liblava/liblava/releases/downlo
 :: Only extract required files
 7z -aoa -r e "C:\Windows\AtlasModules\liblava.zip" -o"C:\Windows\AtlasModules\liblava" >nul 2>nul
 del /f /q "C:\Windows\AtlasModules\liblava.zip"
+
+
+:: TODO: "automatic" Setup GPU Driver installation
+
+set /P c="Force P0 on Graphics Card (EXPERIMENTAL)? [Y/N]: "
+if /I "%c%" EQU "N" goto :skipP0
+:: Credits to Timecard
+:: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
+for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /s /e /f "DriverDesc" ^| findstr "HK"') do (
+	reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "0" /f
+)
+:skipP0
+
+
+
 :: This segment of the script is LARGELY based on AMIT's "AutoGPUAffinity" script, which can be found here: https://github.com/amitxvv/AutoGpuAffinity
 :: Extra Ideas:
 :: - Prompt for Benchmark Time
