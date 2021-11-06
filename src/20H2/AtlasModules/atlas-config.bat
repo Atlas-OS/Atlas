@@ -147,8 +147,8 @@ echo Installing scoop...
 set /P c="Review Install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o C:\Windows\AtlasModules\install.ps1 && notepad C:\Windows\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o C:\Windows\AtlasModules\install.ps1
-powershell Set-ExecutionPolicy RemoteSigned -scope CurrentUser
-powershell C:\Windows\AtlasModules\install.ps1
+powershell -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
+powershell -NoProfile C:\Windows\AtlasModules\install.ps1
 echo Refreshing environment for Scoop...
 call C:\Windows\AtlasModules\refreshenv.bat
 echo Installing git...
@@ -424,7 +424,7 @@ for /f "tokens=3" %%i in ('netsh int ip show config name=^"%devicename%" ^| find
 for /f "tokens=3" %%i in ('netsh int ip show config name=^"%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%i
 for /f "tokens=2 delims=()" %%i in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /F "tokens=2" %%a in ("%%i") do set DHCPSubnetMask=%%a
 netsh int ipv4 set address name="%devicename%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway%
-powershell -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
+powershell -NoProfile -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
 echo %date% - %time% Static IP set! The following was set: >> C:\Windows\AtlasModules\logs\install.log
 echo Private IP: %LocalIP% >> C:\Windows\AtlasModules\logs\install.log
 echo Gateway: %DHCPGateway% >> C:\Windows\AtlasModules\logs\install.log
@@ -562,28 +562,28 @@ echo Please wait. This may take a moment.
 
 ::DEP
 ::https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#data-execution-prevention
-powershell set-ProcessMitigation -System -Disable DEP
-powershell set-ProcessMitigation -System -Disable EmulateAtlThunks
+powershell -NoProfile set-ProcessMitigation -System -Disable DEP
+powershell -NoProfile set-ProcessMitigation -System -Disable EmulateAtlThunks
 ::ASLR
 ::https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#address-space-layout-randomization
-powershell set-ProcessMitigation -System -Disable RequireInfo
-powershell set-ProcessMitigation -System -Disable BottomUp
-powershell set-ProcessMitigation -System -Disable HighEntropy
-powershell set-ProcessMitigation -System -Disable StrictHandle
+powershell -NoProfile set-ProcessMitigation -System -Disable RequireInfo
+powershell -NoProfile set-ProcessMitigation -System -Disable BottomUp
+powershell -NoProfile set-ProcessMitigation -System -Disable HighEntropy
+powershell -NoProfile set-ProcessMitigation -System -Disable StrictHandle
 ::BlockDynamicCode
 ::AllowThreadsToOptOut
 ::AuditDynamicCode
 ::CFG
 ::https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#control-flow-guard
-powershell set-ProcessMitigation -System -Disable CFG
-powershell set-ProcessMitigation -System -Disable StrictCFG
-powershell set-ProcessMitigation -System -Disable SuppressExports
+powershell -NoProfile set-ProcessMitigation -System -Disable CFG
+powershell -NoProfile set-ProcessMitigation -System -Disable StrictCFG
+powershell -NoProfile set-ProcessMitigation -System -Disable SuppressExports
 ::SEHOP
 ::https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#structured-exception-handling-overwrite-protection
-powershell set-ProcessMitigation -System -Disable SEHOP
-powershell set-ProcessMitigation -System -Disable AuditSEHOP
-powershell set-ProcessMitigation -System -Disable SEHOPTelemetry
-powershell set-ProcessMitigation -System -Disable ForceRelocateImages
+powershell -NoProfile set-ProcessMitigation -System -Disable SEHOP
+powershell -NoProfile set-ProcessMitigation -System -Disable AuditSEHOP
+powershell -NoProfile set-ProcessMitigation -System -Disable SEHOPTelemetry
+powershell -NoProfile set-ProcessMitigation -System -Disable ForceRelocateImages
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Mitigations Disabled...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Mitigations! >> C:\Windows\AtlasModules\logs\install.log)
 
@@ -665,7 +665,7 @@ for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "US
  reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "SelectiveSuspendOn" /t REG_DWORD /d "0" /f
  reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "D3ColdSupported" /t REG_DWORD /d "0" /f
 )
-powershell -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
+powershell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Disabled Powersaving...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Powersaving! >> C:\Windows\AtlasModules\logs\install.log)
 
@@ -812,13 +812,13 @@ IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Network Optimized...>> C:\Windows\At
 ) ELSE (echo %date% - %time% Failed to Optimize Network! >> C:\Windows\AtlasModules\logs\install.log)
 :: Disable Network Adapters
 :: IPv6
-powershell -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6"
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6"
 :: Client for Microsoft Networks
-powershell -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient"
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient"
 :: QoS Packet Scheduler
-powershell -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_pacer"
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_pacer"
 :: File and Printer Sharing
-powershell -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_server"
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_server"
 
 sc stop wuauserv >nul 2>nul
 :: reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
@@ -833,7 +833,7 @@ taskkill /f /im explorer.exe
 start explorer.exe
 
 :: Disable Memory Compression
-powershell -Command "Disable-MMAgent -mc"
+powershell -NoProfile -NoProfile -Command "Disable-MMAgent -mc"
 
 :: Disable Devices
 devmanview /disable "System Speaker"
@@ -1639,7 +1639,7 @@ echo Extra note: This breaks the "about" page in settings. If you require it, en
 :: If you notice something else breaks when firewall/store is disabled please open an issue.
 pause
 :: Detect if user is using a Microsoft Account
-powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+powershell -NoProfile -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 :: Disable the option for Windows Store in the "Open With" dialog
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
@@ -1735,19 +1735,19 @@ sc config FontCache start=auto
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Hard Drive Prefetch Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :depE
-powershell set-ProcessMitigation -System -Enable DEP
-powershell set-ProcessMitigation -System -Enable EmulateAtlThunks
+powershell -NoProfile set-ProcessMitigation -System -Enable DEP
+powershell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
 bcdedit /set nx OptIn
 :: Enable CFG for Valorant related processes
 for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
-  powershell -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
+  powershell -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
 )
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% DEP Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :depD
 echo If you get issues with some anti-cheats, please re-enable DEP.
-powershell set-ProcessMitigation -System -Disable DEP
-powershell set-ProcessMitigation -System -Disable EmulateAtlThunks
+powershell -NoProfile set-ProcessMitigation -System -Disable DEP
+powershell -NoProfile set-ProcessMitigation -System -Disable EmulateAtlThunks
 bcdedit /set nx AlwaysOff
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% DEP Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
@@ -1850,7 +1850,7 @@ echo - Microsoft Store
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 :: Detect if user is using a Microsoft Account
-powershell -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+powershell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
@@ -1917,19 +1917,19 @@ start explorer.exe
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UWP Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :mitE
-powershell set-ProcessMitigation -System -Enable DEP
-powershell set-ProcessMitigation -System -Enable EmulateAtlThunks
-powershell set-ProcessMitigation -System -Enable RequireInfo
-powershell set-ProcessMitigation -System -Enable BottomUp
-powershell set-ProcessMitigation -System -Enable HighEntropy
-powershell set-ProcessMitigation -System -Enable StrictHandle
-powershell set-ProcessMitigation -System -Enable CFG
-powershell set-ProcessMitigation -System -Enable StrictCFG
-powershell set-ProcessMitigation -System -Enable SuppressExports
-powershell set-ProcessMitigation -System -Enable SEHOP
-powershell set-ProcessMitigation -System -Enable AuditSEHOP
-powershell set-ProcessMitigation -System -Enable SEHOPTelemetry
-powershell set-ProcessMitigation -System -Enable ForceRelocateImages
+powershell -NoProfile set-ProcessMitigation -System -Enable DEP
+powershell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
+powershell -NoProfile set-ProcessMitigation -System -Enable RequireInfo
+powershell -NoProfile set-ProcessMitigation -System -Enable BottomUp
+powershell -NoProfile set-ProcessMitigation -System -Enable HighEntropy
+powershell -NoProfile set-ProcessMitigation -System -Enable StrictHandle
+powershell -NoProfile set-ProcessMitigation -System -Enable CFG
+powershell -NoProfile set-ProcessMitigation -System -Enable StrictCFG
+powershell -NoProfile set-ProcessMitigation -System -Enable SuppressExports
+powershell -NoProfile set-ProcessMitigation -System -Enable SEHOP
+powershell -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
+powershell -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
+powershell -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
 goto finish
 :startlayout
 reg delete "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f
@@ -1975,8 +1975,8 @@ goto finishNRB
 :: - Static ARP Entry
 :xboxU
 choice /c yn /m "This is currently IRREVERSIBLE, continue? [Y/N]" /n
-echo Removing via PowerShell...
-nsudo -U:C -ShowWindowMode:Hide -Wait powershell -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
+echo Removing via powershell -NoProfile...
+nsudo -U:C -ShowWindowMode:Hide -Wait powershell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
 echo Removing manually...
 del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.Xbox.TCUI_1.23.28002.0_neutral_~_8wekyb3d8bbwe" >nul 2>nul
 del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.Xbox.TCUI_1.23.28002.0_x64__8wekyb3d8bbwe" >nul 2>nul
