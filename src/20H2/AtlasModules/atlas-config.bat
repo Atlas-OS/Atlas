@@ -19,9 +19,7 @@
 >nul 2>nul "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
 if '%errorlevel%' NEQ '0' (
     goto permFAIL
-) else ( goto permSUCCESS )
-echo This echo should not be shown, permission check did not run.
-pause&exit
+)
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 
