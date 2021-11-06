@@ -1,6 +1,6 @@
 :: Name: Atlas Configuration Script
 :: Description: This is the master script used to congigure the Atlas Operating System.
-:: Version: 0.5
+:: Version: 0.5.1
 :: Branch: 20H2
 
 :: CREDITS, in no particular order
