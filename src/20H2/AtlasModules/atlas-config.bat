@@ -224,7 +224,7 @@ if /I "%c%" EQU "N" goto :skipP0
 :: Credits to Timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
 for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /s /e /f "DriverDesc" ^| findstr "HK"') do (
-	reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "0" /f
+	reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
 )
 :skipP0
 
