@@ -1687,6 +1687,7 @@ sc config TokenBroker start=demand
 sc config LicenseManager start=demand
 sc config wuauserv start=demand
 sc config AppXSVC start=demand
+sc config ClipSVC start=demand
 sc config FileInfo start=boot
 sc config FileCrypt start=system
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Microsoft Store Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
