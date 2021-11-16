@@ -228,8 +228,6 @@ for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSe
 )
 :skipP0
 
-
-
 :: This segment of the script is LARGELY based on AMIT's "AutoGPUAffinity" script, which can be found here: https://github.com/amitxvv/AutoGpuAffinity
 :: Extra Ideas:
 :: - Prompt for Benchmark Time
