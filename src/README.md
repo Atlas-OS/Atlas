@@ -8,7 +8,7 @@ Here will contain the files required to build Atlas. Such as:
 ## Building From Source [WIP]
 
 There are plenty of reasons to build atlas from source such as:
-- To 2ontribute to the project.
+- To contribute to the project.
 - To personalize the build, by removing/restoring components you may/may not need.
 - It is safer to build from source, as you can ensure that the build is done with the same version of the source code.
 
