@@ -9,15 +9,15 @@ Here will contain the files required to build Atlas. Such as:
 
 There are plenty of reasons to build atlas from source such as:
 - To contribute to the project.
-- To personalize the build, by removing components you don't need.
+- To personalize the build, by removing/restoring components you may/may not need.
 - It is safer to build from source, as you can ensure that the build is done with the same version of the source code.
 
 ### Prerequisites
 
-- Currently you need NTLite with a "Home" or higher license.
+- NTLite with a "Home" or higher license.
 - An Archive Extractor (7-Zip, WinRar, etc.)
-- A local copy of the atlas repository.
-- A Default Windows Build from Microsoft.
+- A local copy of the Atlas repository.
+- A Default Windows Build from Microsoft. ([1](https://tb.rg-adguard.net/) [2](https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-iso-download-tool) [3](https://uupdump.net/known.php?q=19042.631))
 
 ### Getting Started
 
@@ -26,18 +26,22 @@ There are plenty of reasons to build atlas from source such as:
 3. Import the Atlas XML from the repo and apply it.
 4. Integrate Drivers and .reg's if needed.
 5. Copy the following Folders/Files to the NTLite Mount Directory (%temp%\NLTmpMount01)
+  ```
   - Web >> %temp%\NLTmpMount01\Windows\Web (Delete the existing folder first!)
   - layout.xml >> %temp%\NLTmpMount01\Windows\layout.xml
   - AtlasModules >> %temp%\NLTmpMount01\Windows\AtlasModules
   - Desktop/Atlas >> %temp%\NLTmpMount01\Users\Default\Desktop\Atlas
   - Atlas.bat >> %temp%\NLTmpMount01\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\Atlas.bat
+  ```
 6. Delete the following files with a program like IOBit Unlocker or Unlocker
+  ```
   - %temp%\NLTmpMount01\Windows\System32\mcupdate_genuineintel.dll
   - %temp%\NLTmpMount01\Windows\System32\mcupdate_authenticamd.dll
   - %temp%\NLTmpMount01\Windows\System32\mobsync.exe
   - %temp%\NLTmpMount01\Windows\System32\GameBarPresenceWriter.exe
   - %temp%\NLTmpMount01\Windows\WinSxS\Temp\PendingDeletes\*
   - %temp%\NLTmpMount01\Windows\System32\Catroot2
+  ```
 7. Make any changes you want to NTLite's Components, settings, services etc.
 8. Go to the "Apply" tab and click Process
 9. Done!
