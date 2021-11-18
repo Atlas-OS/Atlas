@@ -1642,7 +1642,6 @@ goto finishNRB
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1
 echo Idle Disabled.
 goto finishNRB
-
 :idleE
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0
 echo Idle Enabled.
@@ -1681,7 +1680,7 @@ del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxSpeechToTextOverlay_1.1
 del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxSpeechToTextOverlay_1.17.29001.0_neutral_~_8wekyb3d8bbwe" >nul 2>nul
 del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxSpeechToTextOverlay_1.17.29001.0_x64__8wekyb3d8bbwe" >nul 2>nul
 
-echo Removing via Regex...
+echo Removing via Wildcard...
 del /F /S /Q "C:\Program Files\WindowsApps\*Xbox*" >nul 2>nul
 
 echo Disabling Services...
