@@ -1637,6 +1637,17 @@ powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Sleep States Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
+
+:idleD
+powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1
+echo Idle Disabled.
+goto finishNRB
+
+:idleE
+powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0
+echo Idle Enabled.
+goto finishNRB
+
 :harden
 :: TODO:
 :: - Make it extremely clear that this is not aimed to maintain performance
