@@ -91,6 +91,20 @@ if /i "%~1"=="/cbdhsvcE"    goto cbdhsvcE
 :: VPN 
 if /i "%~1"=="/vpnD"    goto vpnD
 if /i "%~1"=="/vpnE"    goto vpnE
+
+
+:: Scoop
+if /i "%~1"=="/scoop" goto scoop
+if /i "%~1"=="/browser" goto browser
+if /i "%~1"=="/altsoftware" goto altSoftware
+if /i "%~1"=="/nvpstate" goto nvPstate
+if /i "%~1"=="/dscpauto" goto DSCPauto
+if /i "%~1"=="/displayscalingd" goto displayScalingD
+if /i "%~1"=="/staticip" goto staticIP
+if /i "%~1"=="/wmpd" goto wmpD
+if /i "%~1"=="/ied" goto ieD
+if /i "%~1"=="/gpuaffinity" goto gpuAffinity
+
 :: debugging purposes only
 if /i "%~1"=="/test"         goto TestPrompt
 :argumentFAIL
@@ -1257,9 +1271,6 @@ echo ---------------------------------------------------------------------------
 break>C:\Users\Public\success.txt
 echo true > C:\Users\Public\success.txt
 echo %date% - %time% Post-Install Finished Redirecting to sub script...>> C:\Windows\AtlasModules\logs\install.log
-echo "C:\Windows\AtlasModules\nsudo -U:T -P:E -Wait C:\Windows\AtlasModules\atlas-config.bat /intsetup" > "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\intsetup.bat"
-echo echo If the script unexpectedly closed, launch it from the atlas folder. >>  "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\intsetup.bat"
-echo pause >> "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\intsetup.bat"
 exit
 :notiD
 sc config WpnService start=disabled
@@ -1640,6 +1651,16 @@ powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Sleep States Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
+
+:idleD
+powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1
+echo Idle Disabled.
+goto finishNRB
+:idleE
+powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0
+echo Idle Enabled.
+goto finishNRB
+
 :harden
 :: TODO:
 :: - Make it extremely clear that this is not aimed to maintain performance
@@ -1673,7 +1694,7 @@ del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxSpeechToTextOverlay_1.1
 del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxSpeechToTextOverlay_1.17.29001.0_neutral_~_8wekyb3d8bbwe" >nul 2>nul
 del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxSpeechToTextOverlay_1.17.29001.0_x64__8wekyb3d8bbwe" >nul 2>nul
 
-echo Removing via Regex...
+echo Removing via Wildcard...
 del /F /S /Q "C:\Program Files\WindowsApps\*Xbox*" >nul 2>nul
 
 echo Disabling Services...
@@ -1892,7 +1913,11 @@ goto finish
 :netWinDefault
 netsh int ip reset 
 netsh winsock reset 
-:: TODO: Remove NIC device then rescan to reset Device settings to default
+:: Extremely awful way to do this
+for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connected^| findstr "Device Description:"') do (
+	devmanview /uninstall "%%i %%j"
+)
+pnputil /scan-devices
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Network Setting Reset to Windows Default...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :netAtlasDefault
@@ -2109,8 +2134,13 @@ goto finish
 : add check for nvidia card
 :: Credits to Timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
-for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /s /e /f "DriverDesc" ^| findstr "HK"') do (
-	reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
+echo "This will force P0 on your Nvidia card AT ALL TIMES, and is not recommended if you leave your computer on while idle."
+for /F "skip=1" %%i in ('wmic path win32_VideoController get name') do (
+    :: test when home
+    findstr /c:"NVIDIA" "%%i" || echo NVIDIA Card not detected. If you are on NVIDIA, please contact us on discord/github. & pause & exit
+    for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /s /e /f "%%i"^| findstr "HK"') do (
+        reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
+    )
 )
 goto finish
 
@@ -2301,7 +2331,13 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PC
 echo GPU affinity set!
 goto finish
 
-exit
+:debloatDiscord
+:debloatSpotify
+:debloatChrome
+:debloatFF
+
+
+
 :: Begin Batch Functions
 :bin2hex <var_to_set> <bin_value>
 set "hextable=0000-0;0001-1;0010-2;0011-3;0100-4;0101-5;0110-6;0111-7;1000-8;1001-9;1010-A;1011-B;1100-C;1101-D;1110-E;1111-F"
@@ -2350,6 +2386,10 @@ ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
 	goto netcheck
 )
 goto :EOF
+
+:FDel <location>
+:: With NSudo, shouldnt need things like icacls/takeown
+if exist "%~1" del /F /Q "%~1"
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
