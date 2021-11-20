@@ -2086,6 +2086,7 @@ for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
 	set filtered=!filter:;= !
 )
 cmd /c scoop install "%filtered%" -g
+goto finish
 
 :: Static IP
 :staticIP
@@ -2380,11 +2381,11 @@ if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid Input! Please enter Y or N. & got
 goto :EOF
 
 :netcheck
-ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
+ping -n 1 -4 1.1.1.1 | find "time=" >nul 2>nul ||(
     echo Network is not connected! Please connect to a network before continuing.
 	pause
 	goto netcheck
-)
+) >nul 2>nul
 goto :EOF
 
 :FDel <location>
