@@ -1913,7 +1913,11 @@ goto finish
 :netWinDefault
 netsh int ip reset 
 netsh winsock reset 
-:: TODO: Remove NIC device then rescan to reset Device settings to default
+:: Extremely awful way to do this
+for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connected^| findstr "Device Description:"') do (
+	devmanview /uninstall "%%i %%j"
+)
+pnputil /scan-devices
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% Network Setting Reset to Windows Default...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :netAtlasDefault
