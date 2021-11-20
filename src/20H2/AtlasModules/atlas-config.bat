@@ -91,6 +91,20 @@ if /i "%~1"=="/cbdhsvcE"    goto cbdhsvcE
 :: VPN 
 if /i "%~1"=="/vpnD"    goto vpnD
 if /i "%~1"=="/vpnE"    goto vpnE
+
+
+:: Scoop
+if /i "%~1"=="/scoop" goto scoop
+if /i "%~1"=="/browser" goto browser
+if /i "%~1"=="/altsoftware" goto altSoftware
+if /i "%~1"=="/nvpstate" goto nvPstate
+if /i "%~1"=="/dscpauto" goto DSCPauto
+if /i "%~1"=="/displayscalingd" goto displayScalingD
+if /i "%~1"=="/staticip" goto staticIP
+if /i "%~1"=="/wmpd" goto wmpD
+if /i "%~1"=="/ied" goto ieD
+if /i "%~1"=="/gpuaffinity" goto gpuAffinity
+
 :: debugging purposes only
 if /i "%~1"=="/test"         goto TestPrompt
 :argumentFAIL
@@ -2313,7 +2327,13 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PC
 echo GPU affinity set!
 goto finish
 
-exit
+:debloatDiscord
+:debloatSpotify
+:debloatChrome
+:debloatFF
+
+
+
 :: Begin Batch Functions
 :bin2hex <var_to_set> <bin_value>
 set "hextable=0000-0;0001-1;0010-2;0011-3;0100-4;0101-5;0110-6;0111-7;1000-8;1001-9;1010-A;1011-B;1100-C;1101-D;1110-E;1111-F"
@@ -2362,6 +2382,10 @@ ping -n 1 -4 1.1.1.1 ^|Find "Failulre"|(
 	goto netcheck
 )
 goto :EOF
+
+:FDel <location>
+:: With NSudo, shouldnt need things like icacls/takeown
+if exist "%~1" del /F /Q "%~1"
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
