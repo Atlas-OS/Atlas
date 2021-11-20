@@ -1738,25 +1738,8 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\luafv" /v "Start" 
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Appinfo" /v "Start" /t REG_DWORD /d "3" /f
 IF %ERRORLEVEL% EQU 0 echo %date% - %time% UAC Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
-:dwmKILL
 
-:: Two choices:
-:: 1. kill DWM
-:: 2. Create a script that automatically launches a user-specified process, then kill DWM
-set /P c=Would you like to create a script that launches your game and kills DWM? [Y/N]
-if /I "%c%" EQU "Y" goto dwmScript
-if /I "%c%" EQU "N" goto killDWM
-
-:dwmScript
-echo Please input the full path of your game, e.g. "C:\Program Files (x86)\My Game\MyGame.exe"
-echo. 
-set /p game="What is the full path of your game?"
-
-echo "C:\Windows\AtlasModules\nsudo -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /dwmCon %game%" > %HOMEPATH%\Desktop\KillDWM.bat
 :dwmCon
-:: if %game% is not found, then just kill DWM
-if /i "%~2"==""	goto killDWM
-goto customDWM
 :: Adapted from EverythingTech's script
 :killDWM
 taskkill /im explorer.exe /f
@@ -1767,33 +1750,10 @@ taskkill /im runtimebroker.exe /f
 taskkill /im textinputhost.exe /f
 taskkill /im dllhost.exe /f
 taskkill /im wmiprvse.exe /f
-start cmd.exe /K echo "Launch your game here!"
-cd C:\
-cls && echo Launch your game now! You have 1 minute until DWM is killed automatically.
-timeout /t 30
-pssuspend winlogon.exe
-taskkill /im dwm.exe /f
-echo DWM Killed! Press any key on this window to resume DWM.
-pause >nul 2>nul
-pssuspend -r winlogon.exe
-start explorer.exe
-echo DWM Restored! You may have to restart some applications for them to work properly.
-pause
-exit
-:customDWM
-taskkill /im explorer.exe /f
-taskkill /im shellexperiencehost.exe /f
-taskkill /im searchui.exe /f
-taskkill /im searchapp.exe /f
-taskkill /im runtimebroker.exe /f
-taskkill /im textinputhost.exe /f
-taskkill /im dllhost.exe /f
-taskkill /im wmiprvse.exe /f
-start cmd.exe
-cd C:\
-cls && echo Launching game..
-"%game%"
-timeout /t 5
+for /f %%i in ('C:\Windows\AtlasModules\filepicker.exe exe') do (
+    echo Launching %%~ni...
+    start %%i
+)
 pssuspend winlogon.exe
 taskkill /im dwm.exe /f
 echo DWM Killed! Press any key on this window to resume DWM.
