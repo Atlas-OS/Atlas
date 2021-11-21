@@ -2022,26 +2022,18 @@ cmd /c scoop bucket add extras
 goto finish
 
 :browser
-multiplechoice "Ungoogled-Chromium;Firefox;Brave;GoogleChrome;" "Pick a Browser" "Browser" > C:\Windows\AtlasModules\tmp.txt
-for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
-	set filter="%%i"
-	pause
-	set filtered=!filter:;= !
+for /f %%i in ('C:\Windows\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+    cmd /c scoop install %%i -g
 )
 ::if "%filtered%" == "" echo You need to install a browser! You will need it later on. && pause && goto browser
 :: must launch in separate process, scoop seems to exit the whole script if not
-cmd /c scoop install %filtered% -g
 goto finish
 
 :altSoftware
 :: Findstr for 7zip-zstd, add versions bucket if errlvl 0
-set filter=""
-multiplechoice "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;" "Install Common Software" "Common Software" > C:\Windows\AtlasModules\tmp.txt
-for /f %%i in (C:\Windows\AtlasModules\tmp.txt) do (
-	set filter="%%i"
-	set filtered=!filter:;= !
+for /f %%i in ('C:\Windows\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
+    cmd /c scoop install %%i -g
 )
-cmd /c scoop install "%filtered%" -g
 goto finish
 
 :: Static IP
