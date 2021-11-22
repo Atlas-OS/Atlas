@@ -2042,8 +2042,8 @@ call :netcheck
 set /P dns1="Set DNS Server (e.g. 1.1.1.1): "
 for /f "tokens=4" %%i in ('netsh int show interface ^| find "Connected"') do set devicename=%%i
 ::for /f "tokens=2 delims=[]" %%i in ('ping -4 -n 1 %ComputerName%^| findstr [') do set LocalIP=%%i
-for /f "tokens=3" %%i in ('netsh int ip show config name=^"%devicename%" ^| findstr "IP Address:"') do set LocalIP=%%i
-for /f "tokens=3" %%i in ('netsh int ip show config name=^"%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%i
+for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| findstr "IP Address:"') do set LocalIP=%%i
+for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%i
 for /f "tokens=2 delims=()" %%i in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /F "tokens=2" %%a in ("%%i") do set DHCPSubnetMask=%%a
 netsh int ipv4 set address name="%devicename%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway%
 powershell -NoProfile -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
