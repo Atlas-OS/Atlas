@@ -1262,7 +1262,7 @@ bcdedit /set hypervisorlaunchtype off
 :: Use legacy boot menu
 bcdedit /set bootmenupolicy Legacy
 :: Make dual boot menu more descriptive
-bcdedit /set description Atlas
+bcdedit /set description Atlas v0.5.1
 echo %date% - %time% BCD Options Set...>> C:\Windows\AtlasModules\logs\install.log
 
 :: Write to script log file
