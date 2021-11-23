@@ -2207,7 +2207,7 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PC
 del /f /q %capDir%\*.csv
 :: Restart Display Adapter to apply affinity changes
 if %test% equ 1 start "" "C:\Windows\AtlasModules\restart64.exe" /q
-timeout 5
+timeout 10
 start "" "OCAT\OCAT.exe"
 cmd /c start "" /affinity %hex% "C:\Windows\AtlasModules\liblava\lava-triangle.exe"
 timeout 5 >nul 2>nul
