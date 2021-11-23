@@ -2097,12 +2097,8 @@ goto finish
 :: Credits to Timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
 echo "This will force P0 on your Nvidia card AT ALL TIMES, and is not recommended if you leave your computer on while idle."
-for /F "skip=1" %%i in ('wmic path win32_VideoController get name') do (
-    :: test when home
-    findstr /c:"NVIDIA" "%%i" || echo NVIDIA Card not detected. If you are on NVIDIA, please contact us on discord/github. & pause & exit
-    for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /s /e /f "%%i"^| findstr "HK"') do (
-        reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
-    )
+for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA"^| findstr "HK"') do (
+    reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
 )
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic PStates Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
