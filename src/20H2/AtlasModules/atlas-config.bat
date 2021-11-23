@@ -1747,6 +1747,7 @@ taskkill /im textinputhost.exe /f
 taskkill /im dllhost.exe /f
 taskkill /im wmiprvse.exe /f
 for /f %%i in ('C:\Windows\AtlasModules\filepicker.exe exe') do (
+    if "%%i"=="cancelled by user" exit
     echo Launching %%~ni...
     start %%i
 )
@@ -2065,6 +2066,7 @@ goto finish
 
 :DSCPauto
 for /f "tokens=* delims=\" %%i in ('C:\Windows\AtlasModules\filepicker.exe exe') do (
+    if "%%i"=="cancelled by user" exit
     reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Application Name" /t REG_SZ /d "%%~ni%%~xi" /f
     reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Version" /t REG_SZ /d "1.0" /f
     reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Protocol" /t REG_SZ /d "*" /f
