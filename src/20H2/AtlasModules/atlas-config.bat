@@ -1220,7 +1220,7 @@ echo %date% - %time% Distribute Timers Set...>> C:\Windows\AtlasModules\logs\ins
 
 :: set CSRSS to high
 :: csrss is responsible for mouse input, setting to high may yield an improvement in input latency.
-reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\csrss.exe\PerfOptions" /v "CpuPriorityClass" /t REG_DWORD /d "4" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\csrss.exe\PerfOptions" /v "CpuPriorityClass" /t REG_DWORD /d "3" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\csrss.exe\PerfOptions" /v "IoPriority" /t REG_DWORD /d "3" /f
 
 :: Set System Processes Priority below normal
@@ -1232,7 +1232,7 @@ for %%i in (OriginWebHelperService.exe ShareX.exe EpicWebHelper.exe SocialClubHe
   reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%%i\PerfOptions" /v "CpuPriorityClass" /t REG_DWORD /d "5" /f
 )
 :: Set  DWM to normal
-wmic process where name="dwm.exe" CALL setpriority "normal"
+::wmic process where name="dwm.exe" CALL setpriority "normal"
 
 IF %ERRORLEVEL% EQU 0 (echo %date% - %time% Process Priorities Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Set Priorities! >> C:\Windows\AtlasModules\logs\install.log)
