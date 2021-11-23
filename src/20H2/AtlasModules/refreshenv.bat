@@ -33,5 +33,4 @@ goto main
     del /f /q "%TEMP%\_env.cmd" 2>nul
     SET "USERNAME=%OriginalUserName%"
     SET "PROCESSOR_ARCHITECTURE=%OriginalArchitecture%"
-    echo | set /p dummy="Finished."
 	goto :EOF

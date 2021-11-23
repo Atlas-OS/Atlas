@@ -2014,10 +2014,12 @@ powershell -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
 powershell -NoProfile C:\Windows\AtlasModules\install.ps1
 echo Refreshing environment for Scoop...
 call C:\Windows\AtlasModules\refreshenv.bat
+echo. 
 echo Installing git...
 :: Scoop isn't very nice with batch scripts, and will break the whole script if a warning or error shows..
 cmd /c scoop install git -g
 call C:\Windows\AtlasModules\refreshenv.bat
+echo .
 echo Adding extras bucket...
 cmd /c scoop bucket add extras
 goto finish
@@ -2101,6 +2103,7 @@ curl -L --output C:\Windows\AtlasModules\pysetup.exe "https://www.python.org/ftp
 C:\Windows\AtlasModules\pysetup.exe /quiet InstallAllUsers=1 CompileAll=1 Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath=1 Shortcuts=1
 del /f /q "C:\Windows\AtlasModules\pysetup.exe"
 call C:\Windows\AtlasModules\refreshenv.bat
+echo .
 echo Installing OCAT...
 ::scoop install ocat
 curl -L --output C:\Windows\AtlasModules\ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
