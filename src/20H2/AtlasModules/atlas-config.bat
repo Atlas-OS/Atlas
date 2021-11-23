@@ -92,18 +92,23 @@ if /i "%~1"=="/cbdhsvcE"    goto cbdhsvcE
 :: VPN 
 if /i "%~1"=="/vpnD"    goto vpnD
 if /i "%~1"=="/vpnE"    goto vpnE
-
-
 :: Scoop
 if /i "%~1"=="/scoop" goto scoop
 if /i "%~1"=="/browser" goto browser
 if /i "%~1"=="/altsoftware" goto altSoftware
+:: Nvidia PState 0
 if /i "%~1"=="/nvpstate" goto nvPstate
+:: DSCP
 if /i "%~1"=="/dscpauto" goto DSCPauto
+::Display Scaling
 if /i "%~1"=="/displayscalingd" goto displayScalingD
+::Static IP
 if /i "%~1"=="/staticip" goto staticIP
+:: Windows Media Player
 if /i "%~1"=="/wmpd" goto wmpD
+:: Internet Explorer
 if /i "%~1"=="/ied" goto ieD
+:: GPU Affinity
 if /i "%~1"=="/gpuaffinity" goto gpuAffinity
 
 :: debugging purposes only
