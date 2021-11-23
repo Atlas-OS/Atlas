@@ -2098,6 +2098,7 @@ for /F "skip=1" %%i in ('wmic path win32_VideoController get name') do (
 goto finish
 
 :GPUAffinity
+if exist "C:\Windows\AtlasModules\logs\gpuAffinity.log" goto gpuAffinityBegin
 echo Python required for Affinity Script. Installing...
 curl -L --output C:\Windows\AtlasModules\pysetup.exe "https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe"
 C:\Windows\AtlasModules\pysetup.exe /quiet InstallAllUsers=1 CompileAll=1 Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath=1 Shortcuts=1
@@ -2121,6 +2122,7 @@ del /f /q "C:\Windows\AtlasModules\liblava.zip"
 :: - Prompt for Benchmark Time
 :: - Improve run time estimation, account for HT
 :: Get amount of cores or threads
+:gpuAffinityBegin
 for /F "skip=1" %%i in ('wmic cpu get NumberOfCores^| findstr "."') do set /a cores=%%i
 :: Check for HT
 if %cores% EQU %NUMBER_OF_PROCESSORS% (set HT=0) ELSE (set HT=1)
