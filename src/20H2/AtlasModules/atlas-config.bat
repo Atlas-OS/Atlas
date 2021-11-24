@@ -113,6 +113,10 @@ if /i "%~1"=="/wmpd" goto wmpD
 if /i "%~1"=="/ied" goto ieD
 :: GPU Affinity
 if /i "%~1"=="/gpuaffinity" goto gpuAffinity
+:: Task Scheduler
+if /i "%~1"=="/schedulerd"  goto schedulerD
+:: Event Log
+if /i "%~1"=="/eventlogd" goto eventlogD
 
 :: debugging purposes only
 if /i "%~1"=="/test"         goto TestPrompt
@@ -1899,7 +1903,7 @@ reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Psched" /v "NonB
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosTimerResolution
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Psched" /v "TimerResolution" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\QoS" /v "Do not use NLA" /t REG_DWORD /d "1" /f
-reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f
+::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /t REG_DWORD /d "0" /f
 
 :: Configure NIC Setting
@@ -2014,6 +2018,14 @@ dism /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /norestart
 goto finish
 :ieD
 dism /Online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart
+goto finish
+:eventlogD
+echo This may break some applications such as CapFrameX.
+sc config EventLog start=disabled
+goto finish
+:schedulerD
+echo Disabling Task Scheduler will break some features in MSI AfterBurner.
+sc config Schedule start=disabled
 goto finish
 
 :scoop
@@ -2295,13 +2307,6 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PC
 )
 echo GPU affinity set!
 goto finish
-
-:debloatDiscord
-:debloatSpotify
-:debloatChrome
-:debloatFF
-
-
 
 :: Begin Batch Functions
 :bin2hex <var_to_set> <bin_value>
