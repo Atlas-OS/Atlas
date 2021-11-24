@@ -748,7 +748,7 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\VerifierExt" /v "S
 ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\volmgrx" /v "Start" /t REG_DWORD /d "4" /f < Breaks Dynamic Disks
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\vsmraid" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\VSTXRAID" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\wcifs" /v "Start" /t REG_DWORD /d "4" /f
+::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\wcifs" /v "Start" /t REG_DWORD /d "4" /f < Breaks various store games, erroring with "Filter not found"
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\wcnfs" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WindowsTrustedRTProxy" /v "Start" /t REG_DWORD /d "4" /f
 
