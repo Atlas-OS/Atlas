@@ -2048,7 +2048,7 @@ cmd /c scoop bucket add extras
 goto finish
 
 :browser
-for /f "tokens=* delims=;" %%i in ('C:\Windows\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+for /f "tokens=*" %%i in ('C:\Windows\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
     cmd /c scoop install %%i -g
 )
 ::if "%filtered%" == "" echo You need to install a browser! You will need it later on. && pause && goto browser
@@ -2057,7 +2057,7 @@ goto finish
 
 :altSoftware
 :: Findstr for 7zip-zstd, add versions bucket if errlvl 0
-for /f "tokens=* delims=;" %%i in ('C:\Windows\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
+for /f "tokens=*" %%i in ('C:\Windows\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
     cmd /c scoop install %%i -g
 )
 goto finish
