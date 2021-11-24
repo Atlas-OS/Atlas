@@ -62,6 +62,9 @@ if /i "%~1"=="/stico"          goto startlayout
 :: Sleep States
 if /i "%~1"=="/sleepD"         goto sleepD
 if /i "%~1"=="/sleepE"         goto sleepE
+:: Idle
+if /i "%~1"=="/idled"          goto idleD
+if /i "%~1"=="/idlee"          goto idleE
 :: Xbox
 if /i "%~1"=="/xboxU"         goto xboxU
 :: Reinstall VC++ redistributable
