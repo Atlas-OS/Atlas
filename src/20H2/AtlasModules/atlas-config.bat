@@ -2095,10 +2095,12 @@ echo Installing OCAT...
 ::scoop install ocat
 curl -L --output C:\Windows\AtlasModules\ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
 C:\Windows\AtlasModules\ocatsetup.exe /silent /install
-if not exist "C:\Windows\AtlasModules\OCAT" if exist "C:\Program Files (x86)\OCAT" move "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules"
+if not exist "C:\Windows\AtlasModules\OCAT" if exist "C:\Program Files (x86)\OCAT" copy /Y "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules"
+if not exist "C:\Windows\AtlasModules\OCAT" echo OCAT Directory not found! Please make sure you have a stable connection and try again! & pause & exit
 :liblava
 echo Installing LibLava...
 curl -L --output liblava.zip "https://github.com/liblava/liblava/releases/download/0.5.5/liblava-demo_2020_win.zip"
+if not exist "C:\Windows\AtlasModules\liblava.zip" echo LibLava file not found! Please make sure you have a stable connection and try again! & pause & exit
 :: Only extract required files
 7z -aoa -r e "C:\Windows\AtlasModules\liblava.zip" -o"C:\Windows\AtlasModules\liblava" >nul 2>nul
 del /f /q "C:\Windows\AtlasModules\liblava.zip"
