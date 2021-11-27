@@ -114,9 +114,11 @@ if /i "%~1"=="/ied" goto ieD
 :: GPU Affinity
 if /i "%~1"=="/gpuaffinity" goto gpuAffinity
 :: Task Scheduler
-if /i "%~1"=="/schedulerd"  goto schedulerD
+if /i "%~1"=="/scheduled"  goto scheduleD
+if /i "%~1"=="/schedulee"  goto scheduleE
 :: Event Log
 if /i "%~1"=="/eventlogd" goto eventlogD
+if /i "%~1"=="/eventloge" goto eventlogE
 
 :: debugging purposes only
 if /i "%~1"=="/test"         goto TestPrompt
@@ -1627,6 +1629,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Enabled...>> C:\Windows\Atl
 goto finishNRB
 
 :idleD
+echo THIS WILL CAUSE YOUR CPU USAGE TO DISPLAY AS 100%. ENABLE IDLE IF THIS IS AN ISSUE.
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1
 echo Idle Disabled.
 goto finishNRB
@@ -1985,12 +1988,20 @@ goto finish
 dism /Online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart
 goto finish
 :eventlogD
-echo This may break some applications such as CapFrameX.
+echo This may break some features:
+echo - CapFrameX
+echo - Network Menu
 sc config EventLog start=disabled
 goto finish
-:schedulerD
+:eventlogE
+sc config EventLog start=auto
+goto finish
+:scheduleD
 echo Disabling Task Scheduler will break some features in MSI AfterBurner.
 sc config Schedule start=disabled
+goto finish
+:scheduleE
+sc config Schedule start=auto
 goto finish
 
 :scoop
