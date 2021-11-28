@@ -1722,7 +1722,6 @@ goto finish
 echo Close any other apps you have open.
 echo Launch your game now and let it finish loading.
 pause
-echo Now alt-tab to your game.
 taskkill /im explorer.exe /f
 taskkill /im shellexperiencehost.exe /f
 taskkill /im searchui.exe /f
@@ -1733,7 +1732,7 @@ taskkill /im dllhost.exe /f
 taskkill /im wmiprvse.exe /f
 pssuspend winlogon.exe
 taskkill /im dwm.exe /f
-echo DWM Killed! Press any key on this window to resume DWM.
+echo DWM Killed! Now alt-tab to your game. Once you are done, press any key on this window to resume DWM.
 pause >nul 2>nul
 pssuspend -r winlogon.exe
 start explorer.exe
