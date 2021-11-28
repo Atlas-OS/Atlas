@@ -1719,6 +1719,10 @@ goto finish
 :dwmCon
 :: Adapted from EverythingTech's script
 :killDWM
+echo Close any other apps you have open.
+echo Launch your game now and let it finish loading.
+pause
+echo Now alt-tab to your game.
 taskkill /im explorer.exe /f
 taskkill /im shellexperiencehost.exe /f
 taskkill /im searchui.exe /f
@@ -1727,18 +1731,13 @@ taskkill /im runtimebroker.exe /f
 taskkill /im textinputhost.exe /f
 taskkill /im dllhost.exe /f
 taskkill /im wmiprvse.exe /f
-for /f %%i in ('C:\Windows\AtlasModules\filepicker.exe exe') do (
-    if "%%i"=="cancelled by user" exit
-    echo Launching %%~ni...
-    start %%i
-)
 pssuspend winlogon.exe
 taskkill /im dwm.exe /f
 echo DWM Killed! Press any key on this window to resume DWM.
 pause >nul 2>nul
 pssuspend -r winlogon.exe
 start explorer.exe
-echo DWM Restored! You may have to restart some applications for them to work properly.
+echo DWM Restored! You may have to restart explorer from task manager for the desktop to appear correctly.
 pause
 exit
 :firewallD
