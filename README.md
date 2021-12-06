@@ -33,7 +33,7 @@ Atlas removes all types of tracking embedded within Windows 10. Though some feat
 #### **Secure**
 
 Atlas aims to be secure as possible without losing performance by disabling features that can leak information or be exploited. There are exceptions to this such as [Spectre](https://spectreattack.com/spectre.pdf) and [Meltdown](https://meltdownattack.com/meltdown.pdf). These mitigations are disabled to improve performance.
-If a security mitigation decreases performance, it will be disabled.
+If a security mitigation measure decreases performance, it will be disabled.
 Below are some features/mitigations that have been changed, if they contain a (P) they are security risks that have been fixed:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
@@ -49,7 +49,7 @@ Below are features that are removed from Atlas that have possible security issue
 
 #### **Debloated**
 
-Atlas is heavily stripped, preinstalled apps and other components are removed. This can break some compatability. This significantly reduces ISO and install size. Functionalities such as Printing, are removed. This modification is focused on pure gaming, but most work and education applications work.
+Atlas is heavily stripped, preinstalled apps and other components are removed. Although this can break some compatibility, it significantly reduces ISO and installs size. Functionalities such as Printing, are removed. This modification is focused on pure gaming, but most work and education applications work.
 
 #### **Performant**
 
@@ -70,10 +70,10 @@ We've done the following to do this:
 Go ahead and join our [discord](https://discord.gg/FdvUEEU864) if you have any questions!
 
 ## Brand kit
-Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas accross the community. [Check out our brand kit](https://atlasos.net/brand/AtlasOS_Brand_Kit.7z).
+Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit](https://atlasos.net/brand/AtlasOS_Brand_Kit.7z).
 
-We also have our own dedicated area in the discussions tab so you can share your work with other creative geniuses and maybe even spark some inspiration too! [here](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork).
+We also have a dedicated area in the discussions tab so you can share your work with other creative geniuses and maybe even spark some inspiration too! [Here](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork).
 
 ## Disclaimer
 
-By downloading, modifying, and utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
+By downloading, modifying, and or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, and you **must** use a genuine key.
