@@ -2114,7 +2114,8 @@ echo Installing OCAT...
 ::scoop install ocat
 curl -L --output C:\Windows\AtlasModules\ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
 C:\Windows\AtlasModules\ocatsetup.exe /silent /install
-if not exist "C:\Windows\AtlasModules\OCAT" if exist "C:\Program Files (x86)\OCAT" copy /Y "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules"
+if not exist "C:\Windows\AtlasModules\OCAT" mkdir C:\Windows\AtlasModules\OCAT
+if not exist "C:\Windows\AtlasModules\OCAT\Bin" if exist "C:\Program Files (x86)\OCAT" xcopy /S /Q "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules\OCAT"
 if not exist "C:\Windows\AtlasModules\OCAT" echo OCAT Directory not found! Please make sure you have a stable connection and try again! & pause & exit
 :liblava
 echo Installing LibLava...
