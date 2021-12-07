@@ -1613,6 +1613,7 @@ powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 :: Disable Hybrid Sleep
 powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 0
 powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 0
+powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 :sleepE
@@ -1625,17 +1626,20 @@ powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 :: Enable Hybrid Sleep
 powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
+powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :idleD
 echo THIS WILL CAUSE YOUR CPU USAGE TO DISPLAY AS 100%. ENABLE IDLE IF THIS IS AN ISSUE.
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1
-echo Idle Disabled.
+powercfg -setactive scheme_current
+if %ERRORLEVEL%==0 echo %date% - %time% Idle Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 :idleE
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0
-echo Idle Enabled.
+powercfg -setactive scheme_current
+if %ERRORLEVEL%==0 echo %date% - %time% Idle Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :harden
@@ -2090,6 +2094,12 @@ for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSe
     reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
 )
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic PStates Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finish
+:revertNVPState
+for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA"^| findstr "HK"') do (
+    reg delete "%%i" /v "DisableDynamicPstate" /f
+)
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic PStates Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 
 :GPUAffinity
