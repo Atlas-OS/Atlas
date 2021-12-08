@@ -49,7 +49,7 @@ Below are features that are removed from Atlas that have possible security issue
 
 #### **Debloated**
 
-Atlas is heavily stripped, preinstalled apps and other components are removed. Although this can break some compatibility, it significantly reduces ISO and installs size. Functionalities such as Printing, are removed. This modification is focused on pure gaming, but most work and education applications work.
+Atlas is heavily stripped, preinstalled apps and other components are removed. Although this can break some compatibility, it significantly reduces ISO and install size. Functionalities such as Printing, are removed. This modification is focused on pure gaming, but most work and education applications work.
 
 #### **Performant**
 
@@ -76,4 +76,4 @@ We also have a dedicated area in the discussions tab so you can share your work 
 
 ## Disclaimer
 
-By downloading, modifying, and or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, and you **must** use a genuine key.
+By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
