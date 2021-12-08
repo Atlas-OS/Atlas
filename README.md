@@ -67,7 +67,7 @@ We've done the following to do this:
 - Optimized Process Scheduling
 
 ## Discord
-Go ahead and join our [discord](https://discord.gg/FdvUEEU864) if you have any questions!
+Go ahead and join our [discord](https://discord.gg/xx6S3g3HzE) if you have any questions!
 
 ## Brand kit
 Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit](https://atlasos.net/brand/AtlasOS_Brand_Kit.7z).
