@@ -53,12 +53,12 @@ First, you'll need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/bl
 For this we will use the [Bluetooth Disable Script](hhttps://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L1235) as an example. 
 
 ```batch
-:: the :btD flag is part of allowing the script to be called when a specific flag is used, as mentioned previously.
+:: the :btD label is part of allowing the script to be called when a specific flag is used, as mentioned previously.
 :btD
 :: Now the script disables the services required for bluetooth.
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc >nul 2>&1
-:: This line simply parses the registry for CDPUserSvc_xxxxx which can't be configured through "sc"
+:: This line simply parses the registry for CDPUserSvc_xxxxx which can't be configured through the "sc" command
 for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
   sc stop %%~nI
@@ -73,6 +73,8 @@ Now that we have the script available in `atlas-config`, let's make a desktop sc
 
 ```batch
 @echo off
+:: This launches the script with TrustedInstaller permissions
+:: Remove theses comments when contributing.
 C:\Windows\AtlasModules\nsudo -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /btd
 ```
 
@@ -84,7 +86,7 @@ To keep code "unified" we have a few guidelines. This way it is easier to unders
 
 #### Labels
 
-When creating [labels](http://elearning.algonquincollege.com/coursemat/viljoed/gis8746/concepts/dosbatch/advanced/labels.htm), we use camelCase:
+When creating [labels](http://elearning.algonquincollege.com/coursemat/viljoed/gis8746/concepts/dosbatch/advanced/labels.htm), we prefer the use of camelCase:
 
 ```batch
 :btD
@@ -93,14 +95,13 @@ echo this stands for "Bluetooth Disable"
 
 ## Compatibility
 
-A simple sheet to track what components break what, if not listed on NTLite. This is not complete.
+A simple sheet to track what components break what, if not listed on NTLite. This is **not** complete.
 
 | Component          | Affected Feature                     | Version Tested | Notes                                                                     |
 | ------------------ | ------------------------------------ | -------------- | ------------------------------------------------------------------------- |
 | Mobile PC Sensors  | Xbox App                             | 20H2           | The old xbox app can function without it, but once updated it will crash. |
 | Active Directory   | Store Sign In & Organization Sign In | 20H2           |                                                                           |
 | Photo Codec 32-bit | Photos App                           | 20H2           | Test again                                                                |
-
 
 ## Resources
 - [VCRedist](https://github.com/abbodi1406/vcredist)
