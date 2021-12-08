@@ -1,11 +1,11 @@
 # Atlas Source
-Here will contain the files required to build Atlas. Such as:
-- XML files (required for NTLite)
+Here you can find sources files used to build Atlas:
+- NTLite Preset (Altas.xml)
 - Registry Files
 - Scripts
 - Others, such as programs needed to interface with windows easier.
 
-## Building From Source [WIP]
+## Building From Source
 
 There are plenty of reasons to build atlas from source such as:
 - To contribute to the project.
