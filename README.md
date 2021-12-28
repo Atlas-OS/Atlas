@@ -1,10 +1,8 @@
 <h1 align="center">
 <img src="https://github.com/Atlas-OS/Atlas/blob/main/img/banner.jpg" alt="Banner"</img>
-</a>
   <br>
   Atlas
   <br>
-</a>
 </h1>
 <h4 align="center">An open and transparent modification of the Windows 10 operating system, designed to optimize performance and latency.</h4>
 
