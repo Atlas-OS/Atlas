@@ -1,6 +1,6 @@
 <h1 align="center">
 <img src="https://github.com/Atlas-OS/Atlas/blob/main/img/banner.jpg" alt="Banner"</img>
-</a>
+<a href="https://atlasos.net">
   <br>
   Atlas
   <br>
