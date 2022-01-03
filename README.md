@@ -47,7 +47,7 @@ Below are features that are removed from Atlas that have possible security issue
 
 #### **Debloated**
 
-Atlas is heavily stripped, preinstalled apps and other components are removed. Although this can break some compatibility, it significantly reduces ISO and install size. Functionalities such as Printing, are removed. This modification is focused on pure gaming, but most work and education applications work.
+Atlas is heavily stripped, preinstalled apps and other components are removed. Although this can break some compatibility, it significantly reduces ISO and install size. Functionalities such as Windows Defender, are [removed](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os). This modification is focused on pure gaming, but most work and education applications work.
 
 #### **Performant**
 
