@@ -1,7 +1,8 @@
 :: Name: Atlas Configuration Script
 :: Description: This is the master script used to congigure the Atlas Operating System.
-:: Version: 0.5.1
-:: Branch: 20H2
+:: Depending on your build, change theses vars to 1803 or 20H2, and update the version
+set branch="20H2"
+set ver="v0.5.2"
 
 :: CREDITS, in no particular order
 :: Amit
@@ -18,7 +19,7 @@
 :: Phlegm
 
 @echo off
->nul 2>nul "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
+>nul 2>nul "%WinDir%\System32\cacls.exe" "%WinDir%\System32\config\system"
 if '%errorlevel%' NEQ '0' (
     goto permFAIL
 )
@@ -135,6 +136,34 @@ goto %argPrompt%
 echo You should not reach this message!
 pause
 exit
+:20H2-exclusive
+devmanview /disable "WAN Miniport (IKEv2)"
+devmanview /disable "WAN Miniport (IP)"
+devmanview /disable "WAN Miniport (IPv6)"
+devmanview /disable "WAN Miniport (L2TP)"
+devmanview /disable "WAN Miniport (Network Monitor)"
+devmanview /disable "WAN Miniport (PPPOE)"
+devmanview /disable "WAN Miniport (PPTP)"
+devmanview /disable "WAN Miniport (SSTP)"
+
+:: Enable Hardware Accelerated Scheduling
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d "2" /f
+
+:: Disable Memory Compression
+powershell -NoProfile -Command "Disable-MMAgent -mc"
+
+:: Disable Network Adapters
+:: IPv6
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6"
+:: Client for Microsoft Networks
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient"
+:: QoS Packet Scheduler
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_pacer"
+:: File and Printer Sharing
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_server"
+
+:1803-exclusive
+
 :startup
 :: Create log directory, for troubleshooting
 mkdir C:\Windows\AtlasModules\logs
@@ -489,16 +518,8 @@ for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 )
 if %ERRORLEVEL%==0 (echo %date% - %time% Network Optimized...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Optimize Network! >> C:\Windows\AtlasModules\logs\install.log)
-:: Disable Network Adapters
-:: IPv6
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6"
-:: Client for Microsoft Networks
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient"
-:: QoS Packet Scheduler
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_pacer"
-:: File and Printer Sharing
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_server"
 
+:: Windows Server Update Client ID
 sc stop wuauserv >nul 2>nul
 :: reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
@@ -511,20 +532,9 @@ start explorer.exe
 taskkill /f /im explorer.exe
 start explorer.exe
 
-:: Disable Memory Compression
-powershell -NoProfile -Command "Disable-MMAgent -mc"
-
 :: Disable Devices
 devmanview /disable "System Speaker"
 devmanview /disable "System Timer"
-devmanview /disable "WAN Miniport (IKEv2)"
-devmanview /disable "WAN Miniport (IP)"
-devmanview /disable "WAN Miniport (IPv6)"
-devmanview /disable "WAN Miniport (L2TP)"
-devmanview /disable "WAN Miniport (Network Monitor)"
-devmanview /disable "WAN Miniport (PPPOE)"
-devmanview /disable "WAN Miniport (PPTP)"
-devmanview /disable "WAN Miniport (SSTP)"
 devmanview /disable "UMBus Root Bus Enumerator"
 devmanview /disable "Microsoft System Management BIOS Driver"
 devmanview /disable "Programmable Interrupt Controller"
@@ -849,6 +859,7 @@ reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\DriverSear
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Device Metadata" /v "PreventDeviceMetadataFromNetwork" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\CloudContent" /v "DisableWindowsConsumerFeatures" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "AutoDownload" /t REG_DWORD /d "2" /f
+:: May cause issues with Language Packs/Store (if planning to revert, remove reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d "1" /f)
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsUpdate" /v "	DoNotConnectToWindowsUpdateInternetLocations" /t REG_DWORD /d "1" /f
 
 :: Disable Speech Model Updates
@@ -897,9 +908,6 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\SOFTWAR
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer" /v "NoRemoteDestinations" /t REG_DWORD /d "1" /f
 :: Old Alt Tab
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "AltTabSettings" /t REG_DWORD /d "1" /f
-
-:: Enable Hardware Accelerated Scheduling
-reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d "2" /f
 
 :: Application Compatability
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AppCompat" /v "AITEnable" /t REG_DWORD /d "0" /f
@@ -1016,7 +1024,6 @@ reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Internet Explorer\Main" /v "NoUpd
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Internet Explorer\Main" /v "Enable Browser Extensions" /t REG_SZ /d "no" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Internet Explorer\Main" /v "Isolation" /t REG_SZ /d "PMEM" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Internet Explorer\Main" /v "Isolation64Bit" /t REG_DWORD /d "1" /f
-reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Internet Explorer\Main" /v "DisableFirstRunCustomize" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Internet Explorer\BrowserEmulation" /v "IntranetCompatibilityMode" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Internet Explorer" /v "DisableFlashInIE" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Internet Explorer\SQM" /v "DisableCustomerImprovementProgram" /t REG_DWORD /d "1" /f
@@ -1040,7 +1047,7 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\SOFTWAR
 reg add "HKEY_LOCAL_MACHINE\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /ve /t REG_SZ /d "All Tasks" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /v "InfoTip" /t REG_SZ /d "View list of all Control Panel tasks" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /v "System.ControlPanel.Category" /t REG_SZ /d "5" /f
-reg add "HKEY_LOCAL_MACHINE\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\DefaultIcon" /ve /t REG_SZ /d "%%SystemRoot%%\System32\imageres.dll,-27" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\DefaultIcon" /ve /t REG_SZ /d "%%WinDir%%\System32\imageres.dll,-27" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\Shell\Open\Command" /ve /t REG_SZ /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /ve /t REG_SZ /d "All Tasks" /f
 
@@ -1181,7 +1188,7 @@ reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandle
 reg delete "HKEY_CLASSES_ROOT\*\shellex\ContextMenuHandlers\ModernSharing" /f >nul 2>nul
 
 :: double click to import power plans
-reg add "HKEY_LOCAL_MACHINE\Software\Classes\powerplan\DefaultIcon" /ve /t REG_SZ /d "%%SystemRoot%%\System32\powercpl.dll,1" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Classes\powerplan\DefaultIcon" /ve /t REG_SZ /d "%%WinDir%%\System32\powercpl.dll,1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Classes\powerplan\Shell\open\command" /ve /t REG_SZ /d "powercfg /import \"%%1\"" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Classes\.pow" /ve /t REG_SZ /d "powerplan" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Classes\.pow" /v "FriendlyTypeName" /t REG_SZ /d "PowerPlan" /f
@@ -1238,7 +1245,7 @@ bcdedit /set hypervisorlaunchtype off
 :: Use legacy boot menu
 bcdedit /set bootmenupolicy Legacy
 :: Make dual boot menu more descriptive
-bcdedit /set description Atlas v0.5.1
+bcdedit /set description Atlas %branch% %ver%
 echo %date% - %time% BCD Options Set...>> C:\Windows\AtlasModules\logs\install.log
 
 :: Write to script log file
@@ -1490,7 +1497,6 @@ if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> C:\Wi
 echo.
 echo Openshell is installing...
 "oshellI.exe" /qn ADDLOCAL=StartMenu
-
 curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5/Fluent-Metro_1.5.zip -o skin.zip
 7z -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
 del /F /Q skin.zip >nul 2>nul
@@ -1645,17 +1651,111 @@ if %ERRORLEVEL%==0 echo %date% - %time% Idle Enabled...>> C:\Windows\AtlasModule
 goto finishNRB
 
 :harden
+:: LARGELY based on https://gist.github.com/ricardojba/ecdfe30dadbdab6c514a530bc5d51ef6
 :: TODO:
 :: - Make it extremely clear that this is not aimed to maintain performance
 :: - Harden Process Mitigations (lower compatibilty for legacy apps)
+powershell -NoProfile set-ProcessMitigation -System -Enable DEP
+powershell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
+powershell -NoProfile set-ProcessMitigation -System -Enable RequireInfo
+powershell -NoProfile set-ProcessMitigation -System -Enable BottomUp
+powershell -NoProfile set-ProcessMitigation -System -Enable HighEntropy
+powershell -NoProfile set-ProcessMitigation -System -Enable StrictHandle
+powershell -NoProfile set-ProcessMitigation -System -Enable CFG
+powershell -NoProfile set-ProcessMitigation -System -Enable StrictCFG
+powershell -NoProfile set-ProcessMitigation -System -Enable SuppressExports
+powershell -NoProfile set-ProcessMitigation -System -Enable SEHOP
+powershell -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
+powershell -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
+powershell -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
 :: - Open scripts in notepad to preview instead of executing when clicking
+ftype batfile="%WinDir%\System32\notepad.exe" "%1"
+ftype chmfile="%WinDir%\System32\notepad.exe" "%1"
+ftype cmdfile="%WinDir%\System32\notepad.exe" "%1"
+ftype htafile="%WinDir%\System32\notepad.exe" "%1"
+ftype jsefile="%WinDir%\System32\notepad.exe" "%1"
+ftype jsfile="%WinDir%\System32\notepad.exe" "%1"
+ftype regfile="%WinDir%\System32\notepad.exe" "%1"
+ftype sctfile="%WinDir%\System32\notepad.exe" "%1"
+ftype urlfile="%WinDir%\System32\notepad.exe" "%1"
+ftype vbefile="%WinDir%\System32\notepad.exe" "%1"
+ftype vbsfile="%WinDir%\System32\notepad.exe" "%1"
+ftype wscfile="%WinDir%\System32\notepad.exe" "%1"
+ftype wsffile="%WinDir%\System32\notepad.exe" "%1"
+ftype wsfile="%WinDir%\System32\notepad.exe" "%1"
+ftype wshfile="%WinDir%\System32\notepad.exe" "%1"
 :: - ElamDrivers?
 :: - block unsigned processes running from USBS
 :: - Kerebos Hardening
 :: - UAC Enable
-:: - Firewall rules
-:: - Disable TsX to mitigate ZombieLoad
+:: Firewall rules
+netsh Advfirewall set allprofiles state on
+netsh advfirewall firewall add rule name="Block calc.exe netconns" program="%WinDir%\System32\calc.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block certutil.exe netconns" program="%WinDir%\System32\certutil.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block cmstp.exe netconns" program="%WinDir%\System32\cmstp.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block cscript.exe netconns" program="%WinDir%\System32\cscript.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block esentutl.exe netconns" program="%WinDir%\System32\esentutl.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block expand.exe netconns" program="%WinDir%\System32\expand.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block extrac32.exe netconns" program="%WinDir%\System32\extrac32.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block findstr.exe netconns" program="%WinDir%\System32\findstr.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block hh.exe netconns" program="%WinDir%\System32\hh.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block makecab.exe netconns" program="%WinDir%\System32\makecab.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block mshta.exe netconns" program="%WinDir%\System32\mshta.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block msiexec.exe netconns" program="%WinDir%\System32\msiexec.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block nltest.exe netconns" program="%WinDir%\System32\nltest.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block Notepad.exe netconns" program="%WinDir%\System32\notepad.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block pcalua.exe netconns" program="%WinDir%\System32\pcalua.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block print.exe netconns" program="%WinDir%\System32\print.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block regsvr32.exe netconns" program="%WinDir%\System32\regsvr32.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block replace.exe netconns" program="%WinDir%\System32\replace.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block rundll32.exe netconns" program="%WinDir%\System32\rundll32.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block runscripthelper.exe netconns" program="%WinDir%\System32\runscripthelper.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block scriptrunner.exe netconns" program="%WinDir%\System32\scriptrunner.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block SyncAppvPublishingServer.exe netconns" program="%WinDir%\System32\SyncAppvPublishingServer.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block wmic.exe netconns" program="%WinDir%\System32\wbem\wmic.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block wscript.exe netconns" program="%WinDir%\System32\wscript.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block regasm.exe netconns" program="%WinDir%\System32\regasm.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block odbcconf.exe netconns" program="%WinDir%\System32\odbcconf.exe" protocol=tcp dir=out enable=yes action=block profile=any
+
+netsh advfirewall firewall add rule name="Block regasm.exe netconns" program="%WinDir%\SysWOW64\regasm.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block odbcconf.exe netconns" program="%WinDir%\SysWOW64\odbcconf.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block calc.exe netconns" program="%WinDir%\SysWOW64\calc.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block certutil.exe netconns" program="%WinDir%\SysWOW64\certutil.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block cmstp.exe netconns" program="%WinDir%\SysWOW64\cmstp.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block cscript.exe netconns" program="%WinDir%\SysWOW64\cscript.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block esentutl.exe netconns" program="%WinDir%\SysWOW64\esentutl.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block expand.exe netconns" program="%WinDir%\SysWOW64\expand.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block extrac32.exe netconns" program="%WinDir%\SysWOW64\extrac32.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block findstr.exe netconns" program="%WinDir%\SysWOW64\findstr.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block hh.exe netconns" program="%WinDir%\SysWOW64\hh.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block makecab.exe netconns" program="%WinDir%\SysWOW64\makecab.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block mshta.exe netconns" program="%WinDir%\SysWOW64\mshta.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block msiexec.exe netconns" program="%WinDir%\SysWOW64\msiexec.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block nltest.exe netconns" program="%WinDir%\SysWOW64\nltest.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block Notepad.exe netconns" program="%WinDir%\SysWOW64\notepad.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block pcalua.exe netconns" program="%WinDir%\SysWOW64\pcalua.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block print.exe netconns" program="%WinDir%\SysWOW64\print.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block regsvr32.exe netconns" program="%WinDir%\SysWOW64\regsvr32.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block replace.exe netconns" program="%WinDir%\SysWOW64\replace.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block rpcping.exe netconns" program="%WinDir%\SysWOW64\rpcping.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block rundll32.exe netconns" program="%WinDir%\SysWOW64\rundll32.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block runscripthelper.exe netconns" program="%WinDir%\SysWOW64\runscripthelper.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block scriptrunner.exe netconns" program="%WinDir%\SysWOW64\scriptrunner.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block SyncAppvPublishingServer.exe netconns" program="%WinDir%\SysWOW64\SyncAppvPublishingServer.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block wmic.exe netconns" program="%WinDir%\SysWOW64\wbem\wmic.exe" protocol=tcp dir=out enable=yes action=block profile=any
+netsh advfirewall firewall add rule name="Block wscript.exe netconns" program="%WinDir%\SysWOW64\wscript.exe" protocol=tcp dir=out enable=yes action=block profile=any
+:: Disable TsX to mitigate ZombieLoad
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "DisableTsx" /t REG_DWORD /d "1" /f
 :: - Static ARP Entry
+
+:: Harden lsass
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\lsass.exe" /v "AuditLevel" /t REG_DWORD /d "8" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\CredentialsDelegation" /v "AllowProtectedCreds" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa" /v "DisableRestrictedAdminOutboundCreds" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa" /v "DisableRestrictedAdmin" /t REG_DWORD /d "0" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa" /v "RunAsPPL" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Negotiate" /t REG_DWORD /d "0" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "UseLogonCredential" /t REG_DWORD /d "0" /f
 :xboxU
 choice /c yn /m "This is currently IRREVERSIBLE, continue? [Y/N]" /n
 echo Removing via powershell...
