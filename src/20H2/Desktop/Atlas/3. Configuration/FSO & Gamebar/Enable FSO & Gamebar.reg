@@ -1,21 +1,26 @@
 Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\SOFTWARE\Microsoft\GameBar]
-"ShowStartupPanel"=-
 "GamePanelStartupTipIndex"=-
 "AllowAutoGameMode"=-
 "AutoGameModeEnabled"=- 
-"UseNexusForGameBarEnabled"=dword:00000000
+"UseNexusForGameBarEnabled"=dword:00000001
+"ShowStartupPanel"=dword:00000001
 
 [HKEY_CURRENT_USER\System\GameConfigStore]
-"GameDVR_Enabled"=dword:00000000
-"GameDVR_FSEBehavior"=dword:00000002
+"GameDVR_Enabled"=dword:00000001
+"GameDVR_FSEBehavior"=dword:00000000
 "GameDVR_FSEBehaviorMode"=dword:00000002
 "GameDVR_HonorUserFSEBehaviorMode"=dword:00000000
 "GameDVR_DXGIHonorFSEWindowsCompatible"=dword:00000000
-"GameDVR_EFSEFeatureFlags"=dword:00000000
+"GameDVR_EFSEFeatureFlags"=dword:00000001
 "GameDVR_DSEBehavior"=-
 
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR]
-"AppCaptureEnabled"=-
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR]
+"AllowgameDVR"=-
 
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR]
+"AppCaptureEnabled"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\BcastDVRUserService]
+"Start"=dword:00000003
