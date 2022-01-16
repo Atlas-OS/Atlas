@@ -102,7 +102,8 @@ if /i "%~1"=="/scoop" goto scoop
 if /i "%~1"=="/browser" goto browser
 if /i "%~1"=="/altsoftware" goto altSoftware
 :: Nvidia PState 0
-if /i "%~1"=="/nvpstate" goto nvPstate
+if /i "%~1"=="/nvpstateD" goto NVPstate
+if /i "%~1"=="/nvpstateE" goto revertNVPState
 :: DSCP
 if /i "%~1"=="/dscpauto" goto DSCPauto
 ::Display Scaling
@@ -2187,7 +2188,7 @@ for /f "tokens=* delims=\" %%i in ('C:\Windows\AtlasModules\filepicker.exe exe')
 )
 goto finish
 
-:nvPstate
+:NVPstate
 : add check for nvidia card
 :: Credits to Timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
