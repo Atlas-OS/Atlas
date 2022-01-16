@@ -1,4 +1,5 @@
 :: Name: Atlas Configuration Script
+@echo off
 :: Description: This is the master script used to congigure the Atlas Operating System.
 :: Depending on your build, change theses vars to 1803 or 20H2, and update the version
 set branch="20H2"
@@ -18,7 +19,6 @@ set ver="v0.5.2"
 :: Timecard
 :: Phlegm
 
-@echo off
 >nul 2>nul "%WinDir%\System32\cacls.exe" "%WinDir%\System32\config\system"
 if '%errorlevel%' NEQ '0' (
     goto permFAIL
@@ -634,7 +634,7 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DisplayEnhancement
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DoSvc" /v "Start" /t REG_DWORD /d "3" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DPS" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DsmSvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DsSvc" /v "Start" /t REG_DWORD /d "4" /f
+::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DsSvc" /v "Start" /t REG_DWORD /d "4" /f < Can cause issues with Snip & Sketch 
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Eaphost" /v "Start" /t REG_DWORD /d "3" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\edgeupdate" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\edgeupdatem" /v "Start" /t REG_DWORD /d "4" /f
