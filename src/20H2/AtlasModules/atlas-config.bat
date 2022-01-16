@@ -2308,7 +2308,7 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PC
 	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "%BytesLE%" /f >nul 2>nul
 )
 :: Remove Previous Captures
-del /f /q %capDir%\*.csv
+del /f /q %capDir%\*.csv >nul 2>nul
 :: Restart Display Adapter to apply affinity changes
 if %test% equ 1 start "" "C:\Windows\AtlasModules\restart64.exe" /q
 timeout 10
