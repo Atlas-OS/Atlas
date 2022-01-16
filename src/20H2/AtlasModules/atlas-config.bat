@@ -152,16 +152,6 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers" /v
 :: Disable Memory Compression
 powershell -NoProfile -Command "Disable-MMAgent -mc"
 
-:: Disable Network Adapters
-:: IPv6
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6"
-:: Client for Microsoft Networks
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient"
-:: QoS Packet Scheduler
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_pacer"
-:: File and Printer Sharing
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_server"
-
 :1803-exclusive
 
 :startup
@@ -311,7 +301,7 @@ net user administrator /active:no
 :: Delete Adobe Font Type Manager
 reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Font Drivers" /v "Adobe Type Manager" /f
 
-:: Disable Autorun/play
+:: Disable USB Autorun/play
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoAutorun" /t REG_DWORD /d "1" /f
 
 :: Disable Camera Access when locked
@@ -532,12 +522,22 @@ start explorer.exe
 taskkill /f /im explorer.exe
 start explorer.exe
 
+:: Disable Network Adapters
+:: IPv6
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6"
+:: Client for Microsoft Networks
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient"
+:: QoS Packet Scheduler
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_pacer"
+:: File and Printer Sharing
+powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_server"
+
 :: Disable Devices
 devmanview /disable "System Speaker"
 devmanview /disable "System Timer"
 devmanview /disable "UMBus Root Bus Enumerator"
 devmanview /disable "Microsoft System Management BIOS Driver"
-devmanview /disable "Programmable Interrupt Controller"
+::devmanview /disable "Programmable Interrupt Controller" < https://media.discordapp.net/attachments/835904146413453333/931696968336551986/unknown.png
 devmanview /disable "High Precision Event Timer"
 devmanview /disable "PCI Encryption/Decryption Controller"
 devmanview /disable "AMD PSP"
@@ -2206,12 +2206,6 @@ goto finish
 
 :GPUAffinity
 if exist "C:\Windows\AtlasModules\logs\gpuAffinity.log" goto gpuAffinityBegin
-echo Python required for Affinity Script. Installing...
-curl -L --output C:\Windows\AtlasModules\pysetup.exe "https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe"
-C:\Windows\AtlasModules\pysetup.exe /quiet InstallAllUsers=1 CompileAll=1 Include_doc=0 Include_launcher=1 InstallLauncherAllUsers=1 PrependPath=1 Shortcuts=1
-del /f /q "C:\Windows\AtlasModules\pysetup.exe"
-call C:\Windows\AtlasModules\refreshenv.bat
-echo .
 echo Installing OCAT...
 ::scoop install ocat
 curl -L --output C:\Windows\AtlasModules\ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
@@ -2238,7 +2232,7 @@ for /F "skip=1" %%i in ('wmic cpu get NumberOfCores^| findstr "."') do set /a co
 if %cores% EQU %NUMBER_OF_PROCESSORS% (set HT=0) ELSE (set HT=1)
 :: Estimated time, 80 seconds per core (60 seconds of bench, ~20 seconds of loading/processing)
 set /a est=%cores% * 80
-for /f "tokens=1" %%i in ('python calc.py divint %est% 60') do (
+for /f "tokens=1" %%i in ('C:\Windows\AtlasModules\calc.exe divint %est% 60') do (
     set est=%%i
 )
 echo Beginning Affinity Script...
@@ -2333,16 +2327,16 @@ taskkill /F /IM GlobalHook64.exe >nul 2>nul
 taskkill /F /IM lava-triangle.exe >nul 2>nul
 :: Get length of benchmark
 for %%i in (%capDir%\OCAT-lava-*.csv) do (
-	for /f "tokens=1" %%a in ('py calc.py parse %%i') do (
+	for /f "tokens=1" %%a in ('C:\Windows\AtlasModules\calc.exe parse %%i') do (
         set lows=%%a
     )
 )
 if "%test%" equ "1" set T1cpu%testingCore%=%lows%
 if "%test%" equ "2" set T2cpu%testingCore%=%lows%
 if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
-	for /f "tokens=1" %%a in ('py calc.py add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
-		for /f "tokens=1" %%b in ('py calc.py div %%a 2') do (
-			for /f "tokens=1" %%c in ('py calc.py rnd %%b') do (set cpu%testingCore%=%%c)
+	for /f "tokens=1" %%a in (C:\Windows\AtlasModules\calc.exe add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
+		for /f "tokens=1" %%b in ('C:\Windows\AtlasModules\calc.exe div %%a 2') do (
+			for /f "tokens=1" %%c in ('C:\Windows\AtlasModules\calc.exe rnd %%b') do (set cpu%testingCore%=%%c)
 		)
 	)
 )
