@@ -152,9 +152,13 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers" /v
 
 :: Disable Memory Compression
 powershell -NoProfile -Command "Disable-MMAgent -mc"
-
+goto :EOF
 :1803-exclusive
-
+:: Remove irrelevant directories
+set SetupDir=C:%homepath%\Desktop\Atlas
+rmdir /s /q "%SetupDir%\3. Configuration\Printing" >nul 2>nul
+rmdir /s /q "C:\Users\Default\Desktop\Atlas\3. Configuration\Printing" >nul 2>nul
+goto :EOF
 :startup
 :: Create log directory, for troubleshooting
 mkdir C:\Windows\AtlasModules\logs
@@ -555,6 +559,9 @@ devmanview /disable "Numeric Data Processor"
 devmanview /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Devices! >> C:\Windows\AtlasModules\logs\install.log)
+
+if %branch%=="20H2" call :20H2-exclusive
+if %branch%=="1803" call :1803-exclusive
 
 :: Backup Default Windows Services and Drivers
 :: Services
