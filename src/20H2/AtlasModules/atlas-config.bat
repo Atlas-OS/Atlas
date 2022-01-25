@@ -1640,7 +1640,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Enabled...>> C:\Windows\Atl
 goto finishNRB
 
 :idleD
-echo THIS WILL CAUSE YOUR CPU USAGE TO DISPLAY AS 100%. ENABLE IDLE IF THIS IS AN ISSUE.
+echo THIS WILL CAUSE YOUR CPU USAGE TO *DISPLAY* AS 100%. ENABLE IDLE IF THIS IS AN ISSUE.
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1
 powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Idle Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
@@ -1758,25 +1758,9 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa" /v "RunAsPPL" 
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Negotiate" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "UseLogonCredential" /t REG_DWORD /d "0" /f
 :xboxU
-choice /c yn /m "This is currently IRREVERSIBLE, continue? [Y/N]" /n
+choice /c yn /m "This is currently IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]" /n
 echo Removing via powershell...
 nsudo -U:C -ShowWindowMode:Hide -Wait powershell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
-echo Removing manually...
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.Xbox.TCUI_1.23.28002.0_neutral_~_8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.Xbox.TCUI_1.23.28002.0_x64__8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxApp_48.49.31001.0_neutral_~_8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxGameOverlay_1.46.11001.0_neutral_split.scale-100_8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxGameOverlay_1.46.11001.0_neutral_~_8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxGameOverlay_1.46.11001.0_x64__8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxGamingOverlay_2.34.28001.0_neutral_split.scale-100_8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxGamingOverlay_2.34.28001.0_neutral_~_8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxGamingOverlay_2.34.28001.0_x64__8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxIdentityProvider_12.50.6001.0_neutral_~_8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxIdentityProvider_12.50.6001.0_x64__8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxSpeechToTextOverlay_1.17.29001.0_neutral_split.scale-100_8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxSpeechToTextOverlay_1.17.29001.0_neutral_~_8wekyb3d8bbwe" >nul 2>nul
-del /F /S /Q "C:\Program Files\WindowsApps\Microsoft.XboxSpeechToTextOverlay_1.17.29001.0_x64__8wekyb3d8bbwe" >nul 2>nul
 
 echo Removing via Wildcard...
 del /F /S /Q "C:\Program Files\WindowsApps\*Xbox*" >nul 2>nul
