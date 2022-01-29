@@ -2247,10 +2247,10 @@ set entries=0
 set total=0
 set test=0
 set max_num=1
-set capDir=%userprofile%\Documents\OCAT\Captures
+set capDir=C:%homepath%\Documents\OCAT\Captures
 set log=C:\Windows\AtlasModules\logs\gpuAffinity.log
-set config="%userprofile%\Documents\OCAT\Config\settings.ini"
-mkdir "%userprofile%\Documents\OCAT\Config"
+set config="C:%homepath%\Documents\OCAT\Config\settings.ini"
+mkdir "C:%homepath%\Documents\OCAT\Config"
 if exist lava.log del /f /q lava.log
 if exist "%log%" del /f /q "%log%"
 
@@ -2318,6 +2318,7 @@ taskkill /F /IM OCAT.exe >nul 2>nul
 taskkill /F /IM GlobalHook64.exe >nul 2>nul
 taskkill /F /IM lava-triangle.exe >nul 2>nul
 :: Get length of benchmark
+timeout 1
 for %%i in (%capDir%\OCAT-lava-*.csv) do (
 	for /f "tokens=1" %%a in ('C:\Windows\AtlasModules\calc.exe parse %%i') do (
         set lows=%%a
@@ -2326,7 +2327,7 @@ for %%i in (%capDir%\OCAT-lava-*.csv) do (
 if "%test%" equ "1" set T1cpu%testingCore%=%lows%
 if "%test%" equ "2" set T2cpu%testingCore%=%lows%
 if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
-	for /f "tokens=1" %%a in (C:\Windows\AtlasModules\calc.exe add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
+	for /f "tokens=1" %%a in ('C:\Windows\AtlasModules\calc.exe add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
 		for /f "tokens=1" %%b in ('C:\Windows\AtlasModules\calc.exe div %%a 2') do (
 			for /f "tokens=1" %%c in ('C:\Windows\AtlasModules\calc.exe rnd %%b') do (set cpu%testingCore%=%%c)
 		)
