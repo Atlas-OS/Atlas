@@ -1238,10 +1238,6 @@ echo %date% - %time% BCD Options Set...>> C:\Windows\AtlasModules\logs\install.l
 echo This script keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > C:\Windows\AtlasModules\logs\userScript.log
 echo ----------------------------------------------------------------------------------------------------------------------- >> C:\Windows\AtlasModules\logs\userScript.log
 
-:: Have sfc-fix launch after restart
-:: https://github.com/Atlas-OS/Atlas-Utilities/tree/main/sfc-fix
-reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce" /v "sfc-fix" /t REG_SZ /d "cmd /c C:\Windows\AtlasModules\sfc-fix.exe" /f
-
 :: clear false value
 break>C:\Users\Public\success.txt
 echo true > C:\Users\Public\success.txt
