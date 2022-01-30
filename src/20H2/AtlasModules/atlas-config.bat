@@ -505,16 +505,6 @@ start explorer.exe
 taskkill /f /im explorer.exe
 start explorer.exe
 
-:: Disable Network Adapters
-:: IPv6
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6"
-:: Client for Microsoft Networks
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient"
-:: QoS Packet Scheduler
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_pacer"
-:: File and Printer Sharing
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_server"
-
 :: Disable Devices
 devmanview /disable "System Speaker"
 devmanview /disable "System Timer"
