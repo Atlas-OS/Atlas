@@ -1225,8 +1225,8 @@ bcdedit /set description Atlas %branch% %ver%
 echo %date% - %time% BCD Options Set...>> C:\Windows\AtlasModules\logs\install.log
 
 :: Write to script log file
-echo This script keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > C:\Windows\AtlasModules\logs\userScript.log
-echo ----------------------------------------------------------------------------------------------------------------------- >> C:\Windows\AtlasModules\logs\userScript.log
+echo This log keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > C:\Windows\AtlasModules\logs\userScript.log
+echo -------------------------------------------------------------------------------------------------------------------- >> C:\Windows\AtlasModules\logs\userScript.log
 
 :: clear false value
 break>C:\Users\Public\success.txt
@@ -2127,7 +2127,7 @@ goto finish
 for /f %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f Scaling ^| find /i "Configuration\"') do (
 	reg add "%%i" /v "Scaling" /t REG_DWORD /d "1" /f
 )
-if %ERRORLEVEL%==0 echo %date% - %time% Display Scaling Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Display Scaling Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 
 :DSCPauto
