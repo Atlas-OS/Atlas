@@ -1410,7 +1410,7 @@ pause
 :existS
 set /P c=This will disable SearchApp and StartMenuExperienceHost, are you sure you want to continue[Y/N]?
 if /I "%c%" EQU "Y" goto continSS
-if /I "%c%" EQU "N" goto stopS
+if /I "%c%" EQU "N" exit
 :continSS
 :: Rename Start Menu
 chdir /d C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
@@ -1445,8 +1445,6 @@ taskkill /f /im explorer.exe
 start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
-:stopS
-exit
 :openshellInstall
 curl -L --output C:\Windows\AtlasModules\oshellI.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.160/OpenShellSetup_4_4_160.exe
 IF EXIST "C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
@@ -1458,11 +1456,19 @@ if /I "%c%" EQU "Y" goto rmSSOS
 if /I "%c%" EQU "N" goto skipRM
 :rmSSOS
 :: Rename Start Menu
-taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
-ren C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
+chdir /d C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+:OSrestartStart
+taskkill /F /IM StartMenuExperienceHost*
+ren StartMenuExperienceHost.exe StartMenuExperienceHost.old
+:: Loop if it fails to rename the first time
+if exist "C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto OSrestartStart
 :: Rename Search
+chdir /d C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+:OSrestartSearch
 taskkill /F /IM SearchApp*  >nul 2>nul
-ren C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
+ren SearchApp.exe SearchApp.old
+:: Loop if it fails to rename the first time
+if exist "C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto OSrestartSearch
 :: Search Icon
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
@@ -2054,15 +2060,19 @@ goto finish
 :eventlogD
 echo This may break some features:
 echo - CapFrameX
-echo - Network Menu
+echo - Network Menu/Icon
+echo If you experience random issues, please enable EventLog again.
 sc config EventLog start=disabled
 goto finish
 :eventlogE
 sc config EventLog start=auto
 goto finish
 :scheduleD
-echo Disabling Task Scheduler will break some features in MSI AfterBurner.
+echo Disabling Task Scheduler will break some features:
+echo - MSI Afterburner startup/Updates
+echo - UWP Typing (e.g. Search Bar)
 sc config Schedule start=disabled
+echo If you experience random issues, please enable Task Scheduler again.
 goto finish
 :scheduleE
 sc config Schedule start=auto
