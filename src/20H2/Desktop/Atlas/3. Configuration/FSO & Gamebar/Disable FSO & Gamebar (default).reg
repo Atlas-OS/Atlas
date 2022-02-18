@@ -24,3 +24,6 @@ Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\BcastDVRUserService]
 "Start"=dword:00000004
+
+[HKEY_CURRENT_USER\Environment]
+"__COMPAT_LAYER"="~ DISABLEDXMAXIMIZEDWINDOWEDMODE"
