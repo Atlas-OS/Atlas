@@ -25,5 +25,5 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\BcastDVRUserService]
 "Start"=dword:00000003
 
-[HKEY_CURRENT_USER\Environment]
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment]
 "__COMPAT_LAYER"=-
