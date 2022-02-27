@@ -114,8 +114,6 @@ if /i "%~1"=="/staticip" goto staticIP
 if /i "%~1"=="/wmpd" goto wmpD
 :: Internet Explorer
 if /i "%~1"=="/ied" goto ieD
-:: GPU Affinity
-if /i "%~1"=="/gpuaffinity" goto gpuAffinity
 :: Task Scheduler
 if /i "%~1"=="/scheduled"  goto scheduleD
 if /i "%~1"=="/schedulee"  goto scheduleE
@@ -2108,7 +2106,7 @@ goto finish
 
 :altSoftware
 :: Findstr for 7zip-zstd, add versions bucket if errlvl 0
-for /f "tokens=*" %%i in ('C:\Windows\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;steam;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
+for /f "tokens=*" %%i in ('C:\Windows\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
     cmd /c scoop install %%i -g
 )
 goto finish
@@ -2175,229 +2173,10 @@ for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic PStates Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 
-:GPUAffinity
-if exist "C:\Windows\AtlasModules\logs\gpuAffinity.log" goto gpuAffinityBegin
-echo Installing OCAT...
-::scoop install ocat
-curl -L --output C:\Windows\AtlasModules\ocatsetup.exe "https://github.com/GPUOpen-Tools/ocat/releases/download/v1.6.1/OCAT_v1.6.1.exe"
-C:\Windows\AtlasModules\ocatsetup.exe /silent /install
-if not exist "C:\Windows\AtlasModules\OCAT" mkdir C:\Windows\AtlasModules\OCAT
-if not exist "C:\Windows\AtlasModules\OCAT\Bin" if exist "C:\Program Files (x86)\OCAT" xcopy /S /Q "C:\Program Files (x86)\OCAT" "C:\Windows\AtlasModules\OCAT"
-if not exist "C:\Windows\AtlasModules\OCAT" echo OCAT Directory not found! Please make sure you have a stable connection and try again! & pause & exit
-:liblava
-echo Installing LibLava...
-curl -L --output liblava.zip "https://github.com/liblava/liblava/releases/download/0.5.5/liblava-demo_2020_win.zip"
-if not exist "C:\Windows\AtlasModules\liblava.zip" echo LibLava file not found! Please make sure you have a stable connection and try again! & pause & exit
-:: Only extract required files
-7z -aoa -r e "C:\Windows\AtlasModules\liblava.zip" -o"C:\Windows\AtlasModules\liblava" >nul 2>nul
-del /f /q "C:\Windows\AtlasModules\liblava.zip"
-
-:: This segment of the script is LARGELY based on AMIT's "AutoGPUAffinity" script, which can be found here: https://github.com/amitxvv/AutoGpuAffinity
-:: Extra Ideas:
-:: - Prompt for Benchmark Time
-:: - Improve run time estimation, account for HT
-:: Get amount of cores or threads
-:gpuAffinityBegin
-for /F "skip=1" %%i in ('wmic cpu get NumberOfCores^| findstr "."') do set /a cores=%%i
-:: Check for HT
-if %cores% EQU %NUMBER_OF_PROCESSORS% (set HT=0) ELSE (set HT=1)
-:: Estimated time, 80 seconds per core (60 seconds of bench, ~20 seconds of loading/processing)
-set /a est=%cores% * 80
-for /f "tokens=1" %%i in ('C:\Windows\AtlasModules\calc.exe divint %est% 60') do (
-    set est=%%i
-)
-echo Beginning Affinity Script...
-echo Estimated Run Time: %est% minutes
-echo WARNING: You are required to have installed your Display Drivers
-echo. 
-echo WARNING: Your Monitor will flash multiple times, this is normal.
-echo.
-echo IF YOU HAVEN'T ALREADY; INSTALL YOUR GRAPHICS DRIVERS! This script is useless without them.
-pause
-:checkMSAdapter
-for /F "skip=1" %%i in ('wmic path win32_VideoController get name') do (
-    if "%%i" equ "Microsoft Basic Display Adapter" echo Graphics Driver not installed! This is REQUIRED for this script to work. & pause & goto checkMSAdapter
-)
-call :netcheck
-:: initialize gpu testing...
-set testingCore=%NUMBER_OF_PROCESSORS%
-set /a cpus=%NUMBER_OF_PROCESSORS% - 1
-set entries=0
-set total=0
-set test=0
-set max_num=1
-set capDir=C:%homepath%\Documents\OCAT\Captures
-set log=C:\Windows\AtlasModules\logs\gpuAffinity.log
-set config="C:%homepath%\Documents\OCAT\Config\settings.ini"
-mkdir "C:%homepath%\Documents\OCAT\Config"
-if exist lava.log del /f /q lava.log
-if exist "%log%" del /f /q "%log%"
-
-echo Creating OCAT config...
-:: Testing Purposes Only, fresh install will not have this.
-::if exist "%userprofile%\Documents\OCAT\Config\settings.ini" del /f /q "%userprofile%\Documents\OCAT\Config\settings.ini" >nul 2>nul
-
-:: Write Config file to OCAT dir
-echo "[Recording]" >> %config% 
-echo "toggleCaptureHotkey=121" >> %config% 
-echo "toggleOverlayHotkey=120" >> %config% 
-echo "toggleFramegraphOverlayHotkey=118" >> %config% 
-echo "toggleColoredBarOverlayHotkey=119" >> %config%
-echo "toggleLagIndicatorOverlayHotkey=117" >> %config% 
-echo "lagIndicatorHotkey=145" >> %config%
-echo "overlayPosition=1" >> %config% 
-echo "captureTime=60" >> %config% 
-echo "captureDelay=0" >> %config% 
-echo "captureAllProcesses=0" >> %config% 
-echo "audioCue=0" >> %config% 
-echo "altKeyComb=0" >> %config% 
-echo "disableOverlayDuringCapture=1" >> %config% 
-echo "injectOnStart=1" >> %config%  
-echo "captureOutputFolder=%capDir%" >> %config% 
-
-:coreTestLoop
-if %test% equ 2 set test=0 
-if %test% equ 0 if %HT% equ 1 set /a testingCore=%testingCore% - 2
-if %test% equ 0 if %HT% equ 0 set /a testingCore=%testingCore% - 1
-if %test% lss 2 (set /a test=%test% + 1)
-:: Skip core 0..
-if %testingCore% equ 0 goto coreTestFinish
-:: set to 2 to the power of %testingCore%
-set /a "dec=1<<%testingCore%"
-:: Convert dec to binary big endian
-set "bin="
-for /L %%A in (1,1,32) do (
-    set /a "bit=dec&1, dec>>=1"
-    set bin=!bit!!bin!
-)
-:: Convert to hex for Process affinity and Little endian
-call :bin2hex hex !bin:~-%NUMBER_OF_PROCESSORS%!
-:: Get Little Endian version for Affinity
-call :ChangeByteOrder %hex%
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
-	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f >nul 2>nul
-	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "%BytesLE%" /f >nul 2>nul
-)
-:: Remove Previous Captures
-del /f /q %capDir%\*.csv >nul 2>nul
-:: Restart Display Adapter to apply affinity changes
-if %test% equ 1 start "" "C:\Windows\AtlasModules\restart64.exe" /q
-timeout 10
-start "" "OCAT\OCAT.exe"
-cmd /c start "" /affinity %hex% "C:\Windows\AtlasModules\liblava\lava-triangle.exe"
-timeout 5 >nul 2>nul
-rundll32.exe user32.dll,SetCursorPos
-wscript "C:\Windows\AtlasModules\keypress.vbs"
-call :testInfo
-timeout 32 >nul 2>nul
-wscript "C:\Windows\AtlasModules\keypress.vbs"
-:: Slight delay for csv to be written
-timeout 3 >nul 2>nul
-taskkill /F /IM OCAT.exe >nul 2>nul
-taskkill /F /IM GlobalHook64.exe >nul 2>nul
-taskkill /F /IM lava-triangle.exe >nul 2>nul
-:: Get length of benchmark
-timeout 1
-for %%i in (%capDir%\OCAT-lava-*.csv) do (
-	for /f "tokens=1" %%a in ('C:\Windows\AtlasModules\calc.exe parse %%i') do (
-        set lows=%%a
-    )
-)
-if "%test%" equ "1" set T1cpu%testingCore%=%lows%
-if "%test%" equ "2" set T2cpu%testingCore%=%lows%
-if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
-	for /f "tokens=1" %%a in ('C:\Windows\AtlasModules\calc.exe add !T1cpu%testingCore%! !T2cpu%testingCore%!') do (
-		for /f "tokens=1" %%b in ('C:\Windows\AtlasModules\calc.exe div %%a 2') do (
-			for /f "tokens=1" %%c in ('C:\Windows\AtlasModules\calc.exe rnd %%b') do (set cpu%testingCore%=%%c)
-		)
-	)
-)
-if defined T1cpu%testingCore% if defined T2cpu%testingCore% (
-	echo CPU %testingCore%: >> "%log%" 
-	echo Test 1 - !T1cpu%testingCore%! >> "%log%" 
-	echo Test 2 - !T2cpu%testingCore%! >> "%log%" 
-	echo Average - !cpu%testingCore%! >> "%log%" 
-    echo. >> "%log%" 
-)
-goto coreTestLoop
-:coreTestFinish
-cls
-if %HT% equ 0 for /L %%n in (%cpus%,-1,0) do (
-    echo CPU %%n : !cpu%%n!
-)
-:: Make sure to only print cores with values
-if %HT% equ 1 for /L %%n in (%NUMBER_OF_PROCESSORS%,-2,0) do (
-    echo CPU %%n : !cpu%%n! | findstr /v "0 %NUMBER_OF_PROCESSORS%"
-)
-echo.
-echo Benchmark Finished! Analyzing...
-for /L %%n in (%cpus%,-1,0) do (
-	for %%a in (!cpu%%n!) do (
-		if %%a gtr !max_num! set "max_num=%%a" & set "highestfps-cpu=%%n"
-	)
-)
-echo it appears that CPU !highestfps-cpu! overall had the highest 0.01 lows - !max_num! fps
-set /P c="Set GPU Affinity to !highestfps-cpu!? [Y/N]: "
-if /I "%c%" EQU "Y" goto setGPUAffinity
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
-	reg delete "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /f
-	reg delete "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /f
-) >nul 2>nul
-:setGPUAffinity
-set /a "dec=1<<%highestfps-cpu%"
-
-:: Convert dec to binary big endian
-set "bin="
-for /L %%A in (1,1,32) do (
-    set /a "bit=dec&1, dec>>=1"
-    set bin=!bit!!bin!
-)
-:: Convert to hex for Process affinity and Little endian
-call :bin2hex hex !bin:~-%NUMBER_OF_PROCESSORS%!
-:: Get Little Endian version for Affinity
-call :ChangeByteOrder %hex%
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
-	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f >nul 2>nul
-	reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "%BytesLE%" /f >nul 2>nul
-)
-echo GPU affinity set!
-goto finish
-
 :: Begin Batch Functions
-:bin2hex <var_to_set> <bin_value>
-set "hextable=0000-0;0001-1;0010-2;0011-3;0100-4;0101-5;0110-6;0111-7;1000-8;1001-9;1010-A;1011-B;1100-C;1101-D;1110-E;1111-F"
-:bin2hexloop
-if "%~2"=="" (
-    endlocal & set "%~1=%~3"
-    goto :EOF
-)
-set "bin=000%~2"
-set "oldbin=%~2"
-set "bin=%bin:~-4%"
-set "hex=!hextable:*%bin:~-4%-=!"
-set hex=%hex:;=&rem.%
-endlocal & call :bin2hexloop "%~1" "%oldbin:~0,-4%" %hex%%~3
-goto :EOF
-
-:ChangeByteOrder  <data:hex>
-set "LittleEndian="
-set "BigEndian=%~1"
-:ChangeByteOrderLoop
-if "%BigEndian:~-2%"=="%BigEndian:~-1%" (
-    set "LittleEndian=%LittleEndian%0%BigEndian:~-1%"
-) else set "LittleEndian=%LittleEndian%%BigEndian:~-2%"
-set "BigEndian=%BigEndian:~0,-2%"
-if not defined BigEndian exit /B
-goto :ChangeByteOrderLoop
-
-:testInfo
-cls
-echo "Current Affinity: %testingCore%"
-echo "Test: %test%/2"
-goto :EOF
-
 :setSvc <service_name> <start_1-4>
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f
+goto :EOF
 
 :invalidInput <label>
 if "%c%"=="" echo Empty Input! Please enter Y or N. & goto %~1
@@ -2415,6 +2194,7 @@ goto :EOF
 :FDel <location>
 :: With NSudo, shouldnt need things like icacls/takeown
 if exist "%~1" del /F /Q "%~1"
+goto :EOF
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
