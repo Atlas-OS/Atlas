@@ -312,6 +312,11 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NetBT\Parameters" 
 :: Mitigate against HiveNightmare/SeriousSAM
 icacls %windir%\system32\config\*.* /inheritance:e
 
+:: Set strong cryptography on 64 bit and 32 bit .Net Framework (version 4 and above) to fix a Scoop installation issue
+:: https://github.com/ScoopInstaller/Scoop/issues/2040#issuecomment-369686748
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v "SchUseStrongCrypto" /t REG_DWORD /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NetFramework\v4.0.30319" /v "SchUseStrongCrypto" /t REG_DWORD /d "1" /f
+
 :: Import the powerplan
 powercfg -import "C:\Windows\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
 :: Set current powerplan to Atlas
