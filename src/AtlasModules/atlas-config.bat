@@ -353,6 +353,14 @@ powershell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $power
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Powersaving...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Powersaving! >> C:\Windows\AtlasModules\logs\install.log)
 
+:: Make certain applications in the AtlasModules folder request UAC
+:: Although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\nsudo.exe.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\pssuspend.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\vcredist.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+
 cls
 echo Please wait. This may take a moment.
 
