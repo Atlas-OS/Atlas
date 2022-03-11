@@ -357,7 +357,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Powersaving...>> C:\Windows\At
 :: Although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\nsudo.exe.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\nsudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\pssuspend.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\vcredist.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 
