@@ -1,6 +1,6 @@
 If you are familiar with SDIO, you do not need to read this.
 
-1. Navigate to SDIO's site: https://www.snappy-driver-installer.org/download-page/
+1. Navigate to SDIO's site: https://www.glenn.delahoy.com/snappy-driver-installer-origin/
 2. Click "Application Only" to download SDIO
 3. Extract the .zip file and open "SDIO_x64_RXXX.exe"
 4. Accept the Terms
