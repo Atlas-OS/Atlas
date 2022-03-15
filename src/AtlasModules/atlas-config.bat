@@ -2076,19 +2076,23 @@ echo - CapFrameX
 echo - Network Menu/Icon
 echo If you experience random issues, please enable EventLog again.
 sc config EventLog start=disabled
+if %ERRORLEVEL%==0 echo %date% - %time% Event Log Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :eventlogE
 sc config EventLog start=auto
+if %ERRORLEVEL%==0 echo %date% - %time% Event Log Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :scheduleD
 echo Disabling Task Scheduler will break some features:
 echo - MSI Afterburner startup/Updates
 echo - UWP Typing (e.g. Search Bar)
 sc config Schedule start=disabled
+if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 echo If you experience random issues, please enable Task Scheduler again.
 goto finish
 :scheduleE
 sc config Schedule start=auto
+if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 
 :scoop
