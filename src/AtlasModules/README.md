@@ -48,8 +48,8 @@ To verify the legitmacy of these binaries (executables), there's information pro
 - `serviwin.exe` was extracted from the `.zip`
 
 ### Vcredist
-- SHA256 Hash: `30F4FD82421F8F5D9743AF93424E1E1BC0715D0DBD6FAFAE2AA72ED84849901C`
-- Source: https://github.com/abbodi1406/vcredist/releases/download/v0.58.0/VisualCppRedist_AIO_x86_x64_58.zip
+- SHA256 Hash: `C10AB50ECBC25DA725E217D63522625EEC27DFEC5C953D1E8171569B660D1D39`
+- Source: https://github.com/abbodi1406/vcredist/releases/download/v0.59.0/VisualCppRedist_AIO_x86_x64_59.zip
 - Repository: https://github.com/abbodi1406/vcredist
-- Last Verified: 05/03/2022 by he3als
+- Last Verified: 18/03/2022 by he3als
 - `VisualCppRedist_AIO_x86_x64.exe` was extracted from the `.zip` and renamed to `vcredist.exe`
