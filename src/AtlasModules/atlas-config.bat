@@ -358,8 +358,6 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Powersaving...>> C:\Windows\At
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\nsudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\pssuspend.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "C:\Windows\AtlasModules\vcredist.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 
 cls
 echo Please wait. This may take a moment.
@@ -1805,29 +1803,6 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Appinfo" /v "Start
 if %ERRORLEVEL%==0 echo %date% - %time% UAC Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 
-:dwmCon
-:: Adapted from EverythingTech's script
-:killDWM
-echo Close any other apps you have open.
-echo Launch your game now and let it finish loading.
-pause
-taskkill /im explorer.exe /f
-taskkill /im shellexperiencehost.exe /f
-taskkill /im searchui.exe /f
-taskkill /im searchapp.exe /f
-taskkill /im runtimebroker.exe /f
-taskkill /im textinputhost.exe /f
-taskkill /im dllhost.exe /f
-taskkill /im wmiprvse.exe /f
-pssuspend winlogon.exe
-taskkill /im dwm.exe /f
-echo DWM Killed! Now alt-tab to your game. Once you are done, press any key on this window to resume DWM.
-pause >nul 2>nul
-pssuspend -r winlogon.exe
-start explorer.exe
-echo DWM Restored! You may have to restart explorer from task manager for the desktop to appear correctly.
-pause
-exit
 :firewallD
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\mpssvc" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BFE" /v "Start" /t REG_DWORD /d "4" /f
