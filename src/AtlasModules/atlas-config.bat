@@ -71,8 +71,6 @@ if /i "%~1"=="/idlee"          goto idleE
 if /i "%~1"=="/xboxU"         goto xboxU
 :: Reinstall VC++ redistributable
 if /i "%~1"=="/vcreR"         goto vcreR
-:: DWM
-if /i "%~1"=="/dwmCon"		goto dwmCon
 :: User Account Control
 if /i "%~1"=="/uacD"		goto uacD
 if /i "%~1"=="/uacE"		goto uacE
