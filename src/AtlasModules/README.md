@@ -29,17 +29,11 @@ To verify the legitmacy of these binaries (executables), there's information pro
 - Renamed to `multichoice.exe`
 
 ### NSudo
-- SHA256 Hash: `871E4F28FE39BCAD8D295AE46E148BE458778C0195ED660B7DB18EB595D00BD8`
-- Source: https://github.com/M2Team/NSudo/releases/download/8.2/NSudo_8.2_All_Components.zip
+- SHA256 Hash: `5094ad359d8cf6dc5324598605c35f68519cc5af9c7ed5427e02a6b28121e4c7`
+- Source: https://github.com/M2Team/NSudo/releases/tag/9.0-Preview1
 - Repository: https://github.com/M2Team/NSudo
-- Last Verified: 05/03/2022 by he3als
+- Last Verified: 05/03/2022 by Zusier
 - `NSudoLG.exe` x64 was extracted from the `.zip` and renamed to `nsudo.exe`
-
-### Pssuspend
-- SHA256 Hash: `02EC8C37DD946A2CD74673993C2108F12FFF3E82019A1590231C4205CCB2F0D4`
-- Source: https://download.sysinternals.com/files/PSTools.zip
-- Last Verified: 05/03/2022 by he3als
-- `pssuspend.exe` was extracted from the `.zip` file
 
 ### Serviwin
 - SHA256 Hash: `FC2D32ED8A89AA4F73B34C0E9F00D195DCC4F9162E2D3D7BEB7718DA305ACCD3`
