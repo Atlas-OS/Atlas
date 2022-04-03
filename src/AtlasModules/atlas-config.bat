@@ -612,6 +612,7 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\AppVClient" /v "St
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\AppXSvc" /v "Start" /t REG_DWORD /d "3" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BthAvctpSvc" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\cbdhsvc" /v "Start" /t REG_DWORD /d "4" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\CDPSvc" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\CryptSvc" /v "Start" /t REG_DWORD /d "3" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\defragsvc" /v "Start" /t REG_DWORD /d "3" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\diagnosticshub.standardcollector.service" /v "Start" /t REG_DWORD /d "4" /f
@@ -635,7 +636,7 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\IKEEXT" /v "Start"
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\InstallService" /v "Start" /t REG_DWORD /d "3" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\iphlpsvc" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\IpxlatCfgSvc" /v "Start" /t REG_DWORD /d "4" /f
-::Causes issues with NVCleanstall and driver telemetry tweak
+::Causes issues with NVCleanstall's driver telemetry tweak
 :: reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\KeyIso" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\KtmRm" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\LanmanServer" /v "Start" /t REG_DWORD /d "4" /f
@@ -668,10 +669,6 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WinHttpAutoProxySv
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WPDBusEnum" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WSearch" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\wuauserv" /v "Start" /t REG_DWORD /d "3" /f
-for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
-  reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
-)
-sc config CDPSvc start=disabled
 
 :: Drivers
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\3ware" /v "Start" /t REG_DWORD /d "4" /f
@@ -1275,14 +1272,12 @@ echo Applications like Store and Spotify may not function correctly when disable
 sc config WlanSvc start=disabled
 sc config vwififlt start=disabled
 set /P c="Would you like to disable the Network Icon? (disables 2 extra services) [Y/N]: "
-if /I "%c%" EQU "Y" goto wifiDconfirm
 if /I "%c%" EQU "N" goto wifiDskip
-:wifiDconfirm
 sc config netprofm start=disabled
 sc config NlaSvc start=disabled
 :wifiDskip
 if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
-if "%~1" EQU "int" goto :EOF
+if "%~1"=="int" goto :EOF
 goto finish
 :wifiE
 sc config netprofm start=demand
@@ -1294,6 +1289,8 @@ ping -n 1 -4 1.1.1.1 |Find "Failure"|(
     sc config WlanSvc start=auto
 )
 if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
+sc config eventlog start=auto
+echo %date% - %time% EventLog enabled as Wi-Fi dependency...>> C:\Windows\AtlasModules\logs\userscript.log
 goto finish
 :storeD
 echo This will break a majority of UWP apps and their deployment.
