@@ -1053,8 +1053,19 @@ reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\FTH" /v "Enabled" /t REG_DWORD /d
 :: https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#structured-exception-handling-overwrite-protection
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "KernelSEHOPEnabled" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "1" /f
-reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "222222222222222222222222222222222222222222222222" /f
-reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /t REG_BINARY /d "222222222222222222222222222222222222222222222222" /f
+
+:: Find correct mitigation values for different windows versions - AMIT
+:: initialize bit mask in registry by disabling a random mitigation
+powershell -NoProfile -Command Set-ProcessMitigation -System -Disable CFG
+:: get bit mask
+for /f "tokens=3 skip=2" %%a in ('reg query "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do set mitigation_mask=%%a
+:: set all bits to 2 (disable)
+for /L %%a in (0,1,9) do (
+    set mitigation_mask=!mitigation_mask:%%a=2!
+)
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "%mitigation_mask%" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /t REG_BINARY /d "%mitigation_mask%" /f
+
 :: https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html
 ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "DisableTsx" /t REG_DWORD /d "1" /f
 :: https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
@@ -1753,9 +1764,6 @@ choice /c yn /m "This is currently IRREVERSIBLE (A reinstall is required to rest
 echo Removing via powershell...
 nsudo -U:C -ShowWindowMode:Hide -Wait powershell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
 
-echo Removing via Wildcard...
-del /F /S /Q "C:\Program Files\WindowsApps\*Xbox*" >nul 2>nul
-
 echo Disabling Services...
 sc config XblAuthManager start=disabled
 sc config XblGameSave start=disabled
@@ -1877,7 +1885,7 @@ echo Valid Value Range: 1-100
 set /P c="Enter the size you want to set Mouse Data Queue Size to: "
 :: Filter to numbers only
 echo %c%|findstr /r "[^0-9]" > nul
-if errorlevel 1 goto dataQueueMSet
+if %ERRORLEVEL%==1 goto dataQueueMSet
 cls
 echo Only values from 1-100 are allowed!
 goto dataQueueM
@@ -1896,7 +1904,7 @@ echo Valid Value Range: 1-100
 set /P c="Enter the size you want to set Keyboard Data Queue Size to: "
 :: Filter to numbers only
 echo %c%|findstr /r "[^0-9]" > nul
-if errorlevel 1 goto dataQueueKSet
+if %ERRORLEVEL%==1 goto dataQueueKSet
 cls
 echo Only values from 1-100 are allowed!
 goto dataQueueK
@@ -2152,7 +2160,7 @@ goto finish
 : add check for nvidia card
 :: Credits to Timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
-echo "This will force P0 on your Nvidia card AT ALL TIMES, and is not recommended if you leave your computer on while idle."
+echo "This will force P0 on your Nvidia card AT ALL TIMES, and is not recommended if you leave your computer on while idle or have bad temperatures."
 for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA"^| findstr "HK"') do (
     reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
 )
