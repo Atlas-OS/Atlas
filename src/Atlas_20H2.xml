@@ -4,7 +4,7 @@
 	<AppInfo>
 		<Version>2.3.1.8454</Version>
 		<Licensed>Yes</Licensed>
-		<Protections>Yes</Protections>
+		<Protections>No</Protections>
 		<Host>Windows 10 Pro (20H2) x64 - 10.0.19042.631 (en-US)</Host>
 	</AppInfo>
 	<ImageInfo>
@@ -332,7 +332,6 @@
 		<c>hwsupport_infrared 'Infrared devices'</c>
 		<c>hwsupport_modem 'Modem'</c>
 		<c>hwsupport_modemsettings 'Shared modem settings (mdmgl*.inf)'</c>
-		<c>hwsupport_scanner 'Scanner'</c>
 		<c>hwsupport_smartcard 'Smartcard'</c>
 		<c>hwsupport_telephony 'Telephony'</c>
 		<c>hwsupport_tv 'TV Tuner codecs and support'</c>
@@ -518,19 +517,19 @@
 		<c>winsat 'Windows System Assessment Tool (WinSAT)'</c>
 		<c>wwanautoconfig 'WWAN AutoConfig'</c>
 	</RemoveComponents>
-	<Compatibility protectHidden="true">
+	<Compatibility protectHidden="false">
 		<ComponentFeatures>
-			<Feature enabled="yes">CapFrameX</Feature>
-			<Feature enabled="yes">Discord</Feature>
-			<Feature enabled="yes">FileSharing</Feature>
+			<Feature enabled="no">CapFrameX</Feature>
+			<Feature enabled="no">Discord</Feature>
+			<Feature enabled="no">FileSharing</Feature>
 			<Feature enabled="no">Hyper-V</Feature>
 			<Feature enabled="no">Edge</Feature>
-			<Feature enabled="yes">OfficeSupport</Feature>
-			<Feature enabled="yes">Netflix</Feature>
+			<Feature enabled="no">OfficeSupport</Feature>
+			<Feature enabled="no">Netflix</Feature>
 			<Feature enabled="no">NetworkDiscovery</Feature>
 			<Feature enabled="no">NvidiaSetup</Feature>
-			<Feature enabled="yes">OOBE</Feature>
-			<Feature enabled="yes">Printing</Feature>
+			<Feature enabled="no">OOBE</Feature>
+			<Feature enabled="no">Printing</Feature>
 			<Feature enabled="no">Recommended-All</Feature>
 			<Feature enabled="no">SamsungSwitch</Feature>
 			<Feature enabled="no">ServicingStack</Feature>
@@ -545,18 +544,18 @@
 			<Feature enabled="no">VideoPlayback</Feature>
 			<Feature enabled="no">VPN</Feature>
 			<Feature enabled="no">VisualStudio</Feature>
-			<Feature enabled="yes">ActivationKMS</Feature>
-			<Feature enabled="yes">Activation</Feature>
-			<Feature enabled="yes">AppxSupport</Feature>
+			<Feature enabled="no">ActivationKMS</Feature>
+			<Feature enabled="no">Activation</Feature>
+			<Feature enabled="no">AppxSupport</Feature>
 			<Feature enabled="no">WindowsUpdate</Feature>
-			<Feature enabled="yes">WLAN</Feature>
+			<Feature enabled="no">WLAN</Feature>
 		</ComponentFeatures>
 		<MachineDrivers>
-			<Machine enabled="yes">HostMachine</Machine>
+			<Machine enabled="no">HostMachine</Machine>
 			<Machine enabled="no">Hyper-V VM</Machine>
 			<Machine enabled="no">Parallels VM</Machine>
-			<Machine enabled="yes">Virtual Box VM</Machine>
-			<Machine enabled="yes">VMware VM</Machine>
+			<Machine enabled="no">Virtual Box VM</Machine>
+			<Machine enabled="no">VMware VM</Machine>
 		</MachineDrivers>
 	</Compatibility>
 	<Features></Features>
