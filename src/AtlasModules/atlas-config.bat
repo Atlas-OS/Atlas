@@ -986,8 +986,12 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Mem
 :: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
 :: Doc listed as only affected in windows 7, is also in 7+
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\FTH" /v "Enabled" /t REG_DWORD /d "0" /f
+
 :: https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10#structured-exception-handling-overwrite-protection
-reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "KernelSEHOPEnabled" /t REG_DWORD /d "0" /f
+:: Not found in ntoskrnl strings, very likely depracated or never existed. It is also disabled in MitigationOptions below.
+::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "KernelSEHOPEnabled" /t REG_DWORD /d "0" /f
+
+:: Exists in ntoskrnl strings, keep for now.
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "1" /f
 
 :: Find correct mitigation values for different windows versions - AMIT
@@ -1004,6 +1008,7 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\ker
 
 :: https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html
 ::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\kernel" /v "DisableTsx" /t REG_DWORD /d "1" /f
+
 :: https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /t REG_DWORD /d "0" /f
 
