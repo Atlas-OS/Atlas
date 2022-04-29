@@ -20,13 +20,7 @@
 
 #### **Private**
 
-Atlas removes all types of tracking embedded within Windows 10. Though some features cannot be private, such as:
-
-- Microsoft Store
-- Linked Microsoft Account
-- Xbox
-- Apps and services not deployed by Atlas
-- Websites you visit
+Atlas removes all types of tracking embedded within Windows 10 and enforces hundreds of group policies to minimize data collection. Things outside the scope of Windows we cannot increase privacy for, such as websites you visit.
 
 #### **Secure**
 
