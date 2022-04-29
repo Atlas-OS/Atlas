@@ -1319,6 +1319,8 @@ goto finish
 for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f cbdhsvc ^| find /i "cbdhsvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
 )
+:: TODO: check if can be set to demand
+sc config DsSvc start=disabled
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Clipboard" /v "EnableClipboardHistory" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /t REG_DWORD /d "0" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
@@ -1327,6 +1329,7 @@ goto finish
 for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f cbdhsvc ^| find /i "cbdhsvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "3" /f
 )
+sc config DsSvc start=auto
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Clipboard" /v "EnableClipboardHistory" /t REG_DWORD /d "1" /f
 reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
