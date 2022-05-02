@@ -92,7 +92,7 @@ if /i "%~1"=="/netAtlasDefault"		goto netAtlasDefault
 :: Clipboard History Service (Also required for Snip and Sketch to copy correctly)
 if /i "%~1"=="/cbdhsvcD"    goto cbdhsvcD
 if /i "%~1"=="/cbdhsvcE"    goto cbdhsvcE
-:: VPN 
+:: VPN
 if /i "%~1"=="/vpnD"    goto vpnD
 if /i "%~1"=="/vpnE"    goto vpnE
 :: Scoop
@@ -118,6 +118,11 @@ if /i "%~1"=="/schedulee"  goto scheduleE
 :: Event Log
 if /i "%~1"=="/eventlogd" goto eventlogD
 if /i "%~1"=="/eventloge" goto eventlogE
+:: NVIDIA Display Container LS - he3als
+if /i "%~1"=="/nvcontainerD" goto nvcontainerD
+if /i "%~1"=="/nvcontainerE" goto nvcontainerE
+if /i "%~1"=="/nvcontainerCMD" goto nvcontainerCMD
+if /i "%~1"=="/nvcontainerCME" goto nvcontainerCME
 
 :: debugging purposes only
 if /i "%~1"=="/test"         goto TestPrompt
@@ -169,7 +174,7 @@ cls
 echo Please wait. This may take a moment.
 :: Optimize NTFS parameters
 :: Disable Last Access information on directories, performance/privacy.
-fsutil behavior set disableLastAccess 1 
+fsutil behavior set disableLastAccess 1
 :: https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security/
 fsutil behavior set disable8dot3 1
 :: Disable NTFS compression
@@ -590,7 +595,7 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DisplayEnhancement
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DoSvc" /v "Start" /t REG_DWORD /d "3" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DPS" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DsmSvc" /v "Start" /t REG_DWORD /d "3" /f
-::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DsSvc" /v "Start" /t REG_DWORD /d "4" /f < Can cause issues with Snip & Sketch 
+::reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DsSvc" /v "Start" /t REG_DWORD /d "4" /f < Can cause issues with Snip & Sketch
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Eaphost" /v "Start" /t REG_DWORD /d "3" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\edgeupdate" /v "Start" /t REG_DWORD /d "4" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\edgeupdatem" /v "Start" /t REG_DWORD /d "4" /f
@@ -904,7 +909,7 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Softwar
 :: Disable Sleep Study
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Power" /v "SleepStudyDisabled" /t REG_DWORD /d "1" /f
 
-:: Opt-out of sending KMS client activation data to Microsoft automatically. Enabling this setting prevents this computer from sending data to Microsoft regarding its activation state. 
+:: Opt-out of sending KMS client activation data to Microsoft automatically. Enabling this setting prevents this computer from sending data to Microsoft regarding its activation state.
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" /v "NoGenTicket" /t REG_DWORD /d "1" /f
 
 :: Disable Feedback
@@ -1065,7 +1070,7 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Softwar
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\DWM" /v "EnableAeroPeek" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /t REG_DWORD /d "1" /f
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\DWM" /v "Composition" /t REG_DWORD /d "0" /f
-:: Needs testing 
+:: Needs testing
 :: https://djdallmann.github.io/GamingPCSetup/CONTENT/RESEARCH/FINDINGS/registrykeys_dwm.txt
 ::reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\Dwm" /v "AnimationAttributionEnabled" /t REG_DWORD /d "0" /f
 
@@ -1204,7 +1209,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Notifications Disabled...>> C:\Windows\A
 goto finish
 :notiE
 sc config WpnUserService start=auto
-sc config WpnService start=auto 
+sc config WpnService start=auto
 reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "1" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "0" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Notifications Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
@@ -1247,7 +1252,7 @@ goto finish
 :storeD
 echo This will break a majority of UWP apps and their deployment.
 echo Extra note: This breaks the "about" page in settings. If you require it, enable the AppX service.
-:: This includes Windows Firewall, I only see the point in keeping it because of Store. 
+:: This includes Windows Firewall, I only see the point in keeping it because of Store.
 :: If you notice something else breaks when firewall/store is disabled please open an issue.
 pause
 :: Detect if user is using a Microsoft Account
@@ -1858,8 +1863,8 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\kbdclass\Parameter
 if %ERRORLEVEL%==0 echo %date% - %time% Keyboard Data Queue Size set to %c%...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :netWinDefault
-netsh int ip reset 
-netsh winsock reset 
+netsh int ip reset
+netsh winsock reset
 :: Extremely awful way to do this
 for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connected^| findstr "Device Description:"') do (
 	devmanview /uninstall "%%i %%j"
@@ -2030,7 +2035,7 @@ powershell -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
 powershell -NoProfile C:\Windows\AtlasModules\install.ps1
 echo Refreshing environment for Scoop...
 call C:\Windows\AtlasModules\refreshenv.bat
-echo. 
+echo.
 echo Installing git...
 :: Scoop isn't very nice with batch scripts, and will break the whole script if a warning or error shows..
 cmd /c scoop install git -g
@@ -2101,21 +2106,111 @@ for /f "tokens=* delims=\" %%i in ('C:\Windows\AtlasModules\filepicker.exe exe')
 goto finish
 
 :NVPstate
-: add check for nvidia card
 :: Credits to Timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
-echo "This will force P0 on your Nvidia card AT ALL TIMES, and is not recommended if you leave your computer on while idle or have bad temperatures."
+sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+if errorlevel 1 (
+    echo You do not have NVIDIA GPU drivers installed.
+    pause
+    exit /B
+)
+echo This will force P0 on your NVIDIA card AT ALL TIMES, it will always run at full power.
+echo It is not recommended if you leave your computer on while idle, have bad cooling or use a laptop.
+pause
 for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA"^| findstr "HK"') do (
     reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
 )
-if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic PStates Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
+
 :revertNVPState
 for /F "tokens=*" %%i in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA"^| findstr "HK"') do (
     reg delete "%%i" /v "DisableDynamicPstate" /f
 )
-if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic PStates Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
+
+:nvcontainerD
+:: Check if the service exists
+sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+if errorlevel 1 (
+    echo The NVIDIA Display Container LS service does not exist, you can not continue.
+    pause
+    exit /B
+)
+echo Disabling the NVIDIA Display Container LS service will stop the NVIDIA Control Panel from working.
+echo You can enable the NVIDIA Control Panel by running the other version of this script, which enables the service.
+echo Read README.txt for more info.
+pause
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" /v "Start" /t REG_DWORD /d "4" /f
+sc stop NVDisplay.ContainerLocalSystem
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finishNRB
+
+:nvcontainerE
+:: Check if the service exists
+sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+if errorlevel 1 (
+    echo The NVIDIA Display Container LS service does not exist, you can not continue.
+    pause
+    exit /B
+)
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" /v "Start" /t REG_DWORD /d "2" /f
+sc start NVDisplay.ContainerLocalSystem
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finishNRB
+
+:nvcontainerCME
+:: cm = context menu
+sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+if errorlevel 1 (
+    echo The NVIDIA Display Container LS service does not exist, you can not continue.
+    pause
+    exit /B
+)
+echo Explorer will be restarted to ensure that the context menu works.
+pause
+:: get icon exe
+cd C:\Windows\System32\DriverStore\FileRepository\nv_dispig.inf_?????_*\Display.NvContainer\
+copy "NVDisplay.Container.exe" "C:\Windows\System32\NvidiaIcon.exe" /B /Y
+Reg.exe add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "C:\Windows\System32\NvidiaIcon.exe,0" /f
+Reg.exe add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "MUIVerb" /t REG_SZ /d "NVIDIA Container" /f
+Reg.exe add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Position" /t REG_SZ /d "Bottom" /f
+Reg.exe add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "SubCommands" /t REG_SZ /d "" /f
+Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "HasLUAShield" /t REG_SZ /d "" /f
+Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "MUIVerb" /t REG_SZ /d "Enable NVIDIA Container" /f
+Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "C:\Windows\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /nvcontainerE" /f
+Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
+Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Container" /f
+Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "C:\Windows\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /nvcontainerD" /f
+taskkill /f /im explorer.exe
+start explorer.exe
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finishNRB
+
+:nvcontainerCMD
+:: cm = context menu
+sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+if errorlevel 1 (
+    echo The NVIDIA Display Container LS service does not exist, you can not continue.
+    pause
+    exit /B
+)
+reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" >nul 2>&1
+if errorlevel 1 (
+    echo The context menu does not exist, you can not continue.
+    pause
+    exit /B
+)
+echo Explorer will be restarted to ensure that the context menu is gone.
+pause
+Reg.exe delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f
+:: delete icon exe
+erase /F /Q "C:\Windows\System32\NvidiaIcon.exe"
+taskkill /f /im explorer.exe
+start explorer.exe
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finishNRB
 
 :: Begin Batch Functions
 :setSvc <service_name> <start_1-4>
