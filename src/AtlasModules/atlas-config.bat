@@ -2183,10 +2183,10 @@ Reg.exe add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Position" /t REG_
 Reg.exe add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "SubCommands" /t REG_SZ /d "" /f
 Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "HasLUAShield" /t REG_SZ /d "" /f
 Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "MUIVerb" /t REG_SZ /d "Enable NVIDIA Container" /f
-Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "C:\Windows\AtlasModules\nsudo -U:T -P:E -UseCurrentConsole -Wait C:\Users\he3als\Documents\GitHub\Atlas\src\AtlasModules\atlas-config.bat /nvcontainerE" /f
+Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "C:\Windows\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /nvcontainerE" /f
 Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
 Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Container" /f
-Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "C:\Windows\AtlasModules\nsudo -U:T -P:E -UseCurrentConsole -Wait C:\Users\he3als\Documents\GitHub\Atlas\src\AtlasModules\atlas-config.bat /nvcontainerD" /f
+Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "C:\Windows\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /nvcontainerD" /f
 taskkill /f /im explorer.exe
 start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
