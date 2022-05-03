@@ -1868,6 +1868,15 @@ for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connecte
 pnputil /scan-devices
 if %ERRORLEVEL%==0 echo %date% - %time% Network Setting Reset to Windows Default...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
+:netDataR
+:: Reset network data.
+ipconfig /flushdns
+ipconfig /registerdns
+ipconfig /release
+ipconfig /renew
+netsh winsock reset
+if %ERRORLEVEL%==0 echo %date% - %time% Network Data has been reset...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finish
 :netAtlasDefault
 :: Disable Nagle's Algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
