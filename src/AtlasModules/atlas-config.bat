@@ -87,6 +87,7 @@ if /i "%~1"=="/printE"		goto printE
 if /i "%~1"=="/dataQueueM"		goto dataQueueM
 if /i "%~1"=="/dataQueueK"		goto dataQueueK
 :: Network
+if /i "%~1"=="/netDataR"		goto netDataR
 if /i "%~1"=="/netWinDefault"		goto netWinDefault
 if /i "%~1"=="/netAtlasDefault"		goto netAtlasDefault
 :: Clipboard History Service (Also required for Snip and Sketch to copy correctly)
