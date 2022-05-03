@@ -26,9 +26,10 @@
   FSO (Fullscreen Optimizations) runs Fullscreen Exclusive games in a "highly optimized" borderless window. Which allows for faster alt-tabbing. 
   All you need to know is that Fullscreen Exclusive > borderless window, so it's highly recommended to keep it disabled.
 
-- HDD
+- HDD & SSD
   Default: Disabled
-  Enables features that improve hard disk performance, like prefetching and font caching.
+  Enables features that improve hard disk performance, like prefetching, font caching and search indexing..
+  Disables features that decrease SSD performance or is not needed at all, like prefetching and search indexing.
 
 - Notifications
   Default: Disabled
