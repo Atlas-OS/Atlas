@@ -87,6 +87,7 @@ if /i "%~1"=="/printE"		goto printE
 if /i "%~1"=="/dataQueueM"		goto dataQueueM
 if /i "%~1"=="/dataQueueK"		goto dataQueueK
 :: Network
+if /i "%~1"=="/netDataR"		goto netDataR
 if /i "%~1"=="/netWinDefault"		goto netWinDefault
 if /i "%~1"=="/netAtlasDefault"		goto netAtlasDefault
 :: Clipboard History Service (Also required for Snip and Sketch to copy correctly)
@@ -1858,15 +1859,22 @@ goto dataQueueK
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d "%c%" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Keyboard Data Queue Size set to %c%...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
-:netWinDefault
-netsh int ip reset
+:netDataR
+ipconfig /flushdns
+ipconfig /registerdns
+ipconfig /release
+ipconfig /renew
 netsh winsock reset
+netsh int ip reset
+if %ERRORLEVEL%==0 echo %date% - %time% Network Setting Reset to Windows Default...>> C:\Windows\AtlasModules\logs\userScript.log
+goto finish
+:netWinDefault
 :: Extremely awful way to do this
 for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connected^| findstr "Device Description:"') do (
 	devmanview /uninstall "%%i %%j"
 )
 pnputil /scan-devices
-if %ERRORLEVEL%==0 echo %date% - %time% Network Setting Reset to Windows Default...>> C:\Windows\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Resetting Network data...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :netAtlasDefault
 :: Disable Nagle's Algorithm
