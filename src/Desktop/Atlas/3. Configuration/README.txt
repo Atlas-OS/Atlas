@@ -1,4 +1,4 @@
-- Animations 
+- Animations
   Default: Disabled
   Virtually all windows animations are disabled
 
@@ -23,12 +23,16 @@
 
 - FSO
   Default: Disabled
-  FSO (Fullscreen Optimizations) runs Fullscreen Exclusive games in a "highly optimized" borderless window. Which allows for faster alt-tabbing. 
+  FSO (Fullscreen Optimizations) runs Fullscreen Exclusive games in a "highly optimized" borderless window. Which allows for faster alt-tabbing.
   All you need to know is that Fullscreen Exclusive > borderless window, so it's highly recommended to keep it disabled.
 
 - HDD
   Default: Disabled
   Enables features that improve hard disk performance, like prefetching and font caching.
+
+- Network Discovery
+  Default: Disabled
+  Also known as network sharing, used to, as the name implies share files over the netork. There is no disable script as it is only other dependencies.
 
 - Notifications
   Default: Disabled
@@ -36,8 +40,11 @@
 
 - Power
   Default: Enabled
-  https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install#sleep-states
-  Basically, allows you to use sleep/hibernate
+  - Sleep States:
+    https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install#sleep-states
+    Allows you to use sleep/hibernate.
+  - Idle:
+    Disables system idle, will DISPLAY your cpu being used at 100%. It is not actually under 100% load.
 
 - Printing
   Default: Disabled
@@ -70,4 +77,3 @@
 - Workstation (SMB)
   Default: Disabled
   If you use SMB shares or AMD Ryzen Master, enable this.
-

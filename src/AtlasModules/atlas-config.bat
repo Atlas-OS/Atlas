@@ -123,6 +123,8 @@ if /i "%~1"=="/nvcontainerD" goto nvcontainerD
 if /i "%~1"=="/nvcontainerE" goto nvcontainerE
 if /i "%~1"=="/nvcontainerCMD" goto nvcontainerCMD
 if /i "%~1"=="/nvcontainerCME" goto nvcontainerCME
+:: Network Sharing
+if /i "%~1"=="/networksharingE" goto networksharingE
 
 :: debugging purposes only
 if /i "%~1"=="/test"         goto TestPrompt
@@ -1800,6 +1802,7 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\srv2" /v "Start" /
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\LanmanWorkstation" /v "Start" /t REG_DWORD /d "2" /f
 dism /Online /Enable-Feature /FeatureName:SmbDirect /norestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
+if "%~1" EQU "int" goto :EOF
 goto finish
 :printE
 set /P c=You may be vulnerable to Print Nightmare Exploits while printing is enabled. Would you like to add Group Policies to protect against them? [Y/N]
@@ -2210,6 +2213,18 @@ taskkill /f /im explorer.exe
 start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
+
+:networksharingE
+echo Enabling Workstation as a dependency...
+call :workstationE "int"
+sc config eventlog start=auto
+echo %date% - %time% EventLog enabled as Network Sharing dependency...>> C:\Windows\AtlasModules\logs\userscript.log
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NlaSvc" /v "Start" /t REG_DWORD /d "2" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\lmhosts" /v "Start" /t REG_DWORD /d "3" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\netman" /v "Start" /t REG_DWORD /d "3" /f
+echo %date% - %time% Network Sharing enabled...>> C:\Windows\AtlasModules\logs\userscript.log
+echo To complete, enable Network Sharing in control panel.
+goto :finish
 
 :: Begin Batch Functions
 :setSvc <service_name> <start_1-4>
