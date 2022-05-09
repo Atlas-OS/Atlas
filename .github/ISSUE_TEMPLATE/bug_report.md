@@ -4,8 +4,8 @@ about: Create a bug report to help us improve Atlas
 title: A Short Issue Description
 labels: bug
 assignees: Zusier
-
 ---
+# Not filling out this template will lead to the issue being closed
 
 **Describe the bug**
 A clear and concise description of what the bug is. Providing an error code is highly recommended.
@@ -24,9 +24,9 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Desktop Info (please complete the following information):**
- - CPU [Intel or AMD]
- - System Drive Type [SSD or HDD]
- - Version [e.g. 1.2]
+ - CPU [Intel or AMD, include specifics]
+ - System Drive Type
+ - Version [e.g. 20H2 v0.5.1]
 
 **Additional context**
 Add any other context about the problem here.
