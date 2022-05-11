@@ -9,6 +9,6 @@ fltmc >nul 2>&1 || (
     exit 0
 )
 
-bcdedit /set {current} safeboot
+bcdedit /set {current} safeboot minimal
 echo Finished, please reboot for changes to apply.
 pause

@@ -10,5 +10,6 @@ fltmc >nul 2>&1 || (
 )
 
 bcdedit /deletevalue {current} safeboot
+bcdedit /deletevalue {current} safebootalternateshell
 echo Finished, please reboot for changes to apply.
 pause
