@@ -2048,17 +2048,19 @@ cmd /c scoop bucket add extras
 goto finish
 
 :browser
-for /f "tokens=*" %%i in ('C:\Windows\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
-    cmd /c scoop install %%i -g
+for /f "tokens=1 delims=;" %%i in ('C:\Windows\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+	set spacedelimited=%%i
+	set spacedelimited=!spacedelimited:;= !
+	cmd /c scoop install !spacedelimited! -g
 )
-::if "%filtered%" == "" echo You need to install a browser! You will need it later on. && pause && goto browser
 :: must launch in separate process, scoop seems to exit the whole script if not
 goto finish
 
 :altSoftware
-:: Findstr for 7zip-zstd, add versions bucket if errlvl 0
 for /f "tokens=*" %%i in ('C:\Windows\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
-    cmd /c scoop install %%i -g
+	set spacedelimited=%%i
+	set spacedelimited=!spacedelimited:;= !
+	cmd /c scoop install !spacedelimited! -g
 )
 goto finish
 
