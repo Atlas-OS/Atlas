@@ -12,12 +12,12 @@ If you are familiar with SDIO, you do not need to read this.
 If you're not sure what to install, read below.
 
 Minimal:
-- Networking (Will loose network tweaks, check the troubleshooting folder to redo them!)
+- Networking (Will lose networking tweaks, check the troubleshooting folder to redo them!)
 - USB
 - Graphics (from your vendor's website, not SDIO)
 
 Recommended:
-- Networking (Will loose network tweaks, check the troubleshooting folder to redo them!)
+- Networking (Will lose networking tweaks, check the troubleshooting folder to redo them!)
 - USB
 - Graphics (from your vendor's website, not SDIO)
 - Audio 
