@@ -125,6 +125,9 @@ if /i "%~1"=="/nvcontainerCMD" goto nvcontainerCMD
 if /i "%~1"=="/nvcontainerCME" goto nvcontainerCME
 :: Network Sharing
 if /i "%~1"=="/networksharingE" goto networksharingE
+:: Diagnostics
+if /i "%~1"=="/diagd" goto diagD
+if /i "%~1"=="/diage" goto diagE
 
 :: debugging purposes only
 if /i "%~1"=="/test"         goto TestPrompt
@@ -2226,6 +2229,16 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\lmhosts" /v "Start
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\netman" /v "Start" /t REG_DWORD /d "3" /f
 echo %date% - %time% Network Sharing enabled...>> C:\Windows\AtlasModules\logs\userscript.log
 echo To complete, enable Network Sharing in control panel.
+goto :finish
+
+:diagE
+sc config DPS start=auto
+echo %date% - %time% Diagnotics enabled...>> C:\Windows\AtlasModules\logs\userscript.log
+goto :finish
+
+:diagD
+sc config DPS start=disabled
+echo %date% - %time% Diagnotics disabled...>> C:\Windows\AtlasModules\logs\userscript.log
 goto :finish
 
 :: Begin Batch Functions
