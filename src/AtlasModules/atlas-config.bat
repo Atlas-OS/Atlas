@@ -1403,7 +1403,7 @@ if exist "C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp
 :: Search Icon
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-start explorer.exe
+nsudo -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :enableStart
@@ -1416,7 +1416,7 @@ ren SearchApp.old SearchApp.exe
 :: Search Icon
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f
 taskkill /f /im explorer.exe
-start explorer.exe
+nsudo -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :openshellInstall
@@ -1446,7 +1446,7 @@ if exist "C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp
 :: Search Icon
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-start explorer.exe
+nsudo -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> C:\Windows\AtlasModules\logs\userScript.log
 :skipRM
 :: Install silently
@@ -1457,7 +1457,7 @@ curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5/Fluent-
 7z -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
 del /F /Q skin.zip >nul 2>nul
 taskkill /f /im explorer.exe
-start explorer.exe
+nsudo -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell Installed...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 :uwp
@@ -1511,7 +1511,7 @@ taskkill /F /IM RuntimeBroker*  >nul 2>nul
 ren C:\Windows\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
-start explorer.exe
+nsudo -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 pause
@@ -1543,7 +1543,7 @@ taskkill /F /IM RuntimeBroker*  >nul 2>nul
 ren C:\Windows\System32\RuntimeBroker.exe.old RuntimeBroker.exe
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
-start explorer.exe
+nsudo -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :mitE
@@ -2191,7 +2191,7 @@ Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer0
 Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Container" /f
 Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "C:\Windows\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /nvcontainerD" /f
 taskkill /f /im explorer.exe
-start explorer.exe
+nsudo -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -2215,7 +2215,7 @@ Reg.exe delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f
 :: delete icon exe
 erase /F /Q "C:\Windows\System32\NvidiaIcon.exe"
 taskkill /f /im explorer.exe
-start explorer.exe
+nsudo -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 
