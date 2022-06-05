@@ -1713,7 +1713,11 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa" /v "RunAsPPL" 
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Negotiate" /t REG_DWORD /d "0" /f
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "UseLogonCredential" /t REG_DWORD /d "0" /f
 :xboxU
-choice /c yn /m "This is currently IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]" /n
+set /P c=This is IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]
+if /I "%c%" EQU "N" exit
+if /I "%c%" EQU "Y" goto :xboxConfirm
+exit
+:xboxConfirm
 echo Removing via powershell...
 nsudo -U:C -ShowWindowMode:Hide -Wait powershell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
 
