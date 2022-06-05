@@ -2232,12 +2232,16 @@ echo To complete, enable Network Sharing in control panel.
 goto :finish
 
 :diagE
-sc config DPS start=auto
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DPS" /v "Start" /t REG_DWORD /d "2" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WdiServiceHost" /v "Start" /t REG_DWORD /d "3" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WdiSystemHost" /v "Start" /t REG_DWORD /d "3" /f
 echo %date% - %time% Diagnotics enabled...>> C:\Windows\AtlasModules\logs\userscript.log
 goto :finish
 
 :diagD
-sc config DPS start=disabled
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\DPS" /v "Start" /t REG_DWORD /d "4" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WdiServiceHost" /v "Start" /t REG_DWORD /d "4" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WdiSystemHost" /v "Start" /t REG_DWORD /d "4" /f
 echo %date% - %time% Diagnotics disabled...>> C:\Windows\AtlasModules\logs\userscript.log
 goto :finish
 
