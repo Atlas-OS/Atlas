@@ -2250,7 +2250,7 @@ echo %date% - %time% Diagnotics disabled...>> C:\Windows\AtlasModules\logs\users
 goto :finish
 
 :: Begin Batch Functions
-:setSvc <service_name> <start_1-4>
+:setSvc <service_name> <start_0-4>
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f
 goto :EOF
 
