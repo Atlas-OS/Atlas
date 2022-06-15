@@ -1,7 +1,7 @@
 :: Name: Atlas Configuration Script
-@echo off
 :: Description: This is the master script used to congigure the Atlas Operating System.
 :: Depending on your build, change theses vars to 1803 or 20H2, and update the version
+@echo off
 set branch="20H2"
 set ver="v0.5.2"
 
@@ -251,13 +251,15 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Scheduled Tasks...>> C:\Window
 cls
 echo Please wait. This may take a moment.
 
+:: Set MSI Mode as undefined
+for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\PCI"^| findstr "HKEY"') do (
+for /f "tokens=*" %%a in ('reg query "%%i"^| findstr "HKEY"') do reg delete "%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>&1
+)
 :: Enable MSI Mode on USB Controllers
 :: second command for each device deletes device priorty, setting it to undefined
 for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 :: Enable MSI Mode on GPU
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 :: Enable MSI Mode on Network Adapters
 :: undefined priority on some VMs may break connection
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
@@ -271,7 +273,6 @@ for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI
 :noVM
 :: Enable MSI Mode on Sata controllers
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 if %ERRORLEVEL%==0 (echo %date% - %time% MSI Mode Set...>> C:\Windows\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set MSI Mode! >> C:\Windows\AtlasModules\logs\install.log)
 cls
@@ -306,6 +307,10 @@ reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Remote Assistance" 
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\LanManServer\Parameters" /v "RestrictNullSessAccess" /t REG_DWORD /d "1" /f
 :: Disable SMB Compression (Possible SMBGhost Vulnerability workaround)
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\LanManServer\Parameters" /v "DisableCompression" /t REG_DWORD /d "1" /f
+
+:: Patch for Follina
+:: https://msrc-blog.microsoft.com/2022/05/30/guidance-for-cve-2022-30190-microsoft-support-diagnostic-tool-vulnerability/
+reg delete "HKCR\ms-msdt" /f
 
 :: Restrict Enumeration of Anonymous SAM Accounts
 :: https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220929
@@ -1047,7 +1052,7 @@ C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\System\
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\System\GameConfigStore" /v "GameDVR_DSEBehavior" /t REG_DWORD /d "2" /f
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\GameDVR" /v "AllowGameDVR" /t REG_DWORD /d "0" /f
 C:\Windows\AtlasModules\nsudo -U:C -P:E -Wait reg add "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" /v "AppCaptureEnabled" /t REG_DWORD /d "0" /f
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__COMPAT_LAYER" /t REG_SZ /v "~ DISABLEDXMAXIMIZEDWINDOWEDMODE" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__COMPAT_LAYER" /t REG_SZ /d "~ DISABLEDXMAXIMIZEDWINDOWEDMODE" /f
 
 :: Disallow Background Apps
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsRunInBackground" /t REG_DWORD /d "2" /f
@@ -1468,14 +1473,13 @@ pause&exit
 echo This will remove all UWP packages that are currently installed. This will break multiple features that WILL NOT be supported while disabled.
 echo A reminder of a few things this may break.
 echo - Searching in file explorer
-echo - Store
+echo - Windows Store
 echo - Xbox
 echo - Immersive Control Panel (Settings)
 echo - Adobe XD
 echo - Startmenu context menu
 echo - Wi-Fi Menu
 echo - Microsoft Accounts
-echo - Microsoft Store
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 :: Detect if user is using a Microsoft Account
