@@ -62,7 +62,7 @@ We've done the following to do this:
 Go ahead and join our [discord](https://discord.gg/xx6S3g3HzE) if you have any questions!
 
 ## Brand kit
-Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit](https://github.com/r0sayo/Atlas/blob/main/src/atlas_os_logo.ps?raw=true)
+Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit](https://github.com/Atlas-OS/Atlas/blob/main/src/atlas_os_logo.ps?raw=true)
 
 We also have a dedicated area in the discussions tab so you can share your work with other creative geniuses and maybe even spark some inspiration too! [Here](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork).
 
