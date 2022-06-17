@@ -1261,9 +1261,9 @@ pause
 :: Detect if user is using a Microsoft Account
 powershell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
-:: Disable the option for Windows Store in the "Open With" dialog
+:: Disable the option for Microsoft Store in the "Open With" dialog
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
-:: Block Access to Windows Store
+:: Block Access to Microsoft Store
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
 sc config InstallService start=disabled
 :: Insufficent permissions to disable
@@ -1282,9 +1282,9 @@ if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store Disabled...>> C:\Windows
 if "%~1" EQU "int" goto :EOF
 goto finish
 :storeE
-:: Enable the option for Windows Store in the "Open With" dialog
+:: Enable the option for Microsoft Store in the "Open With" dialog
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
-:: Allow Access to Windows Store
+:: Allow Access to Microsoft Store
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
 :: Insufficent permissions to enable through SC
@@ -1468,14 +1468,13 @@ pause&exit
 echo This will remove all UWP packages that are currently installed. This will break multiple features that WILL NOT be supported while disabled.
 echo A reminder of a few things this may break.
 echo - Searching in file explorer
-echo - Store
+echo - Microsoft Store
 echo - Xbox
 echo - Immersive Control Panel (Settings)
 echo - Adobe XD
 echo - Startmenu context menu
 echo - Wi-Fi Menu
 echo - Microsoft Accounts
-echo - Microsoft Store
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 :: Detect if user is using a Microsoft Account
@@ -1485,9 +1484,9 @@ choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
 sc config TabletInputService start=disabled
 
-:: Disable the option for Windows Store in the "Open With" dialog
+:: Disable the option for Microsoft Store in the "Open With" dialog
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
-:: Block Access to Windows Store
+:: Block Access to Microsoft Store
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
 sc config InstallService start=disabled
 :: Insufficent permissions to disable
@@ -1517,9 +1516,9 @@ pause
 :uwpE
 sc config TabletInputService start=demand
 
-:: Disable the option for Windows Store in the "Open With" dialog
+:: Disable the option for Microsoft Store in the "Open With" dialog
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
-:: Block Access to Windows Store
+:: Block Access to Microsoft Store
 reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
 :: Insufficent permissions to disable
