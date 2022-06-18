@@ -1833,9 +1833,9 @@ goto finish
 :dataQueueM
 echo Mouse Data Queue Sizes
 echo This may affect stability and input latency. And if low enough may cause mouse skipping/mouse stutters.
+echo There has been no well proven evidence of this having a beneficial effect on latency, only "feel". Use with that in mind.
 echo.
-echo Windows Default: 100
-echo Atlas Default: 50
+echo Default: 100
 echo Valid Value Range: 1-100
 set /P c="Enter the size you want to set Mouse Data Queue Size to: "
 :: Filter to numbers only
@@ -1852,9 +1852,9 @@ goto finish
 :dataQueueK
 echo Keyboard Data Queue Sizes
 echo This may affect stability and input latency. And if low enough may cause general keyboard issues like ghosting.
+echo There has been no well proven evidence of this having a beneficial effect on latency, only "feel". Use with that in mind.
 echo.
-echo Windows Default: 100
-echo Atlas Default: 50
+echo Default: 100
 echo Valid Value Range: 1-100
 set /P c="Enter the size you want to set Keyboard Data Queue Size to: "
 :: Filter to numbers only
