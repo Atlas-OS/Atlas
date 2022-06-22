@@ -2199,7 +2199,7 @@ Reg.exe add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer0
 taskkill /f /im explorer.exe
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
-nsudo.exe -U:E -P:E -Wait explorer.exe
+nsudo.exe -U:C explorer.exe
 if %errorlevel%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -2225,7 +2225,7 @@ erase /F /Q "C:\Windows\System32\NvidiaIcon.exe"
 taskkill /f /im explorer.exe
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
-nsudo.exe -U:E -P:E -Wait explorer.exe
+nsudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Disabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finishNRB
 
