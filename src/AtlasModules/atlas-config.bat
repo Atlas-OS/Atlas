@@ -1316,10 +1316,8 @@ goto finish
 sc config BthAvctpSvc start=auto
 for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "2" /f
-  sc start %%~nI
 )
 sc config CDPSvc start=auto
-sc start BthAvctpSvc >nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth Enabled...>> C:\Windows\AtlasModules\logs\userScript.log
 goto finish
 :cbdhsvcD
