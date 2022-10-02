@@ -27,9 +27,9 @@ Whilst keeping our main focus on performance, we're also a great option to reduc
   - [What is the Atlas project?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
   - [How do I install Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
   - [What's removed in Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
-- <a href="#Windows vs. Atlas">Windows vs. Atlas</a>
+- [Windows vs. Atlas](https://github.com/Atlas-OS/Atlas#windows-vs-atlas)
 - [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Brand Kit]()
+- [Brand Kit](https://github.com/Atlas-OS/Atlas/tree/main/img)
 
 ## Windows vs. Atlas
 
