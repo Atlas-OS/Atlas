@@ -67,7 +67,7 @@ Atlas is pre-tweaked. Whilst maintaining compatibility, but also striving for pe
 - Optimized Process Scheduling
 
 ## Brand kit
-Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something amazing.](./img/atlas_os_logo.ps)
+Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something amazing.](./img/brand-kit.zip)
 
 We also have a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share your designs with other creative geniuses and maybe even spark some inspiration!
 
