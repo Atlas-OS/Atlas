@@ -26,7 +26,7 @@ Whilst keeping our main focus on performance, we're also a great option to reduc
   - [What's removed in Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#Windows vs. Atlas">Windows vs. Atlas</a>
 - [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Brand Kit]()
+- [Brand Kit](./img/brand-kit.zip)
 
 ## Windows vs. Atlas
 
