@@ -1,9 +1,6 @@
 <h1 align="center">
   <br>
-  <a href="http://atlasos.net/"><img src="https://github.com/Atlas-OS/Atlas/raw/main/img/banner.jpg" alt="Atlas" width="900"></a>
-  <br>
-  Atlas
-  <br>
+  <a href="http://atlasos.net/"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
 </h1>
 <h4 align="center">An open and transparent Windows operating system, designed to optimize performance and latency.</h4>
 
