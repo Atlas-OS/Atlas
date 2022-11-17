@@ -8,6 +8,7 @@ set ver="v0.5.2"
 
 :: Other variables (do not touch)
 set currentuser=%windir%\AtlasModules\nsudo -U:C -P:E -Wait
+set setSvc=call :setSvc
 
 :: CREDITS, in no particular order
 :: Amit
@@ -27,6 +28,9 @@ set currentuser=%windir%\AtlasModules\nsudo -U:C -P:E -Wait
 if '%errorlevel%' NEQ '0' (
     goto permFAIL
 )
+whoami /user | find /i "S-1-5-18" >nul 2>&1
+if not %errorlevel%==0 (set system=false)
+
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 
@@ -592,119 +596,119 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 ) >nul 2>&1
 
 :: Services
-reg add "HKLM\System\CurrentControlSet\Services\AppIDSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\AppVClient" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\AppXSvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\BthAvctpSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\cbdhsvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\CDPSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\CryptSvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\defragsvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\diagnosticshub.standardcollector.service" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\diagsvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\DispBrokerDesktopSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\DisplayEnhancementService" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\DoSvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\DPS" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\DsmSvc" /v "Start" /t REG_DWORD /d "3" /f
-::reg add "HKLM\System\CurrentControlSet\Services\DsSvc" /v "Start" /t REG_DWORD /d "4" /f < Can cause issues with Snip & Sketch
-reg add "HKLM\System\CurrentControlSet\Services\Eaphost" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\edgeupdate" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\edgeupdatem" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\EFS" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\fdPHost" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\FDResPub" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\FontCache" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\FontCache3.0.0.0" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\icssvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\IKEEXT" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\InstallService" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\iphlpsvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\IpxlatCfgSvc" /v "Start" /t REG_DWORD /d "4" /f
-:: reg add "HKLM\System\CurrentControlSet\Services\KeyIso" /v "Start" /t REG_DWORD /d "4" /f < Causes issues with NVCleanstall's driver telemetry tweak
-reg add "HKLM\System\CurrentControlSet\Services\KtmRm" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\LanmanServer" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\LanmanWorkstation" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\lmhosts" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\MSDTC" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\NetTcpPortSharing" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\PcaSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\PhoneSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\QWAVE" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\RasMan" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\SharedAccess" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\ShellHWDetection" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\SmsRouter" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\Spooler" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\sppsvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\SSDPSRV" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\SstpSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\Themes" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\UsoSvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\VaultSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\W32Time" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WarpJITSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WdiServiceHost" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WdiSystemHost" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\Wecsvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WEPHOSTSVC" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WPDBusEnum" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WSearch" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\wuauserv" /v "Start" /t REG_DWORD /d "3" /f
+%setSvc% AppIDSvc 4
+%setSvc% AppVClient 4
+%setSvc% AppXSvc 3
+%setSvc% BthAvctpSvc 4
+%setSvc% cbdhsvc 4
+%setSvc% CDPSvc 4
+%setSvc% CryptSvc 3
+%setSvc% defragsvc 3
+%setSvc% diagnosticshub.standardcollector.service 4
+%setSvc% diagsvc 4
+%setSvc% DispBrokerDesktopSvc 4
+%setSvc% DisplayEnhancementService 4
+%setSvc% DoSvc 3
+%setSvc% DPS 4
+%setSvc% DsmSvc 3
+:: %setSvc% DsSvc 4 < Can cause issues with Snip & Sketch
+%setSvc% Eaphost 3
+%setSvc% edgeupdate 4
+%setSvc% edgeupdatem 4
+%setSvc% EFS 3
+%setSvc% fdPHost 4
+%setSvc% FDResPub 4
+%setSvc% FontCache 4
+%setSvc% FontCache3.0.0.0 4
+%setSvc% icssvc 4
+%setSvc% IKEEXT 4
+%setSvc% InstallService 3
+%setSvc% iphlpsvc 4
+%setSvc% IpxlatCfgSvc 4
+:: %setSvc% KeyIso 4 < Causes issues with NVCleanstall's driver telemetry tweak
+%setSvc% KtmRm 4
+%setSvc% LanmanServer 4
+%setSvc% LanmanWorkstation 4
+%setSvc% lmhosts 4
+%setSvc% MSDTC 4
+%setSvc% NetTcpPortSharing 4
+%setSvc% PcaSvc 4
+%setSvc% PhoneSvc 4
+%setSvc% QWAVE 4
+%setSvc% RasMan 4
+%setSvc% SharedAccess 4
+%setSvc% ShellHWDetection 4
+%setSvc% SmsRouter 4
+%setSvc% Spooler 4
+%setSvc% sppsvc 3
+%setSvc% SSDPSRV 4
+%setSvc% SstpSvc 4
+%setSvc% SysMain 4
+%setSvc% Themes 4
+%setSvc% UsoSvc 3
+%setSvc% VaultSvc 4
+%setSvc% W32Time 4
+%setSvc% WarpJITSvc 4
+%setSvc% WdiServiceHost 4
+%setSvc% WdiSystemHost 4
+%setSvc% Wecsvc 4
+%setSvc% WEPHOSTSVC 4
+%setSvc% WinHttpAutoProxySvc 4
+%setSvc% WPDBusEnum 4
+%setSvc% WSearch 4
+%setSvc% wuauserv 3
 
 :: Drivers
-reg add "HKLM\System\CurrentControlSet\Services\3ware" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\ADP80XX" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\AmdK8" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\arcsas" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\AsyncMac" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\Beep" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\bindflt" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\buttonconverter" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\CAD" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\cdfs" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\CimFS" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\circlass" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\cnghwassist" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\CompositeBus" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\Dfsc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\ErrDev" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\fdc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\flpydisk" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\fvevol" /v "Start" /t REG_DWORD /d "4" /f
-::reg add "HKLM\System\CurrentControlSet\Services\FileInfo" /v "Start" /t REG_DWORD /d "4" /f < Breaks installing Store Apps to different disk. (Now disabled via store script)
-::reg add "HKLM\System\CurrentControlSet\Services\FileCrypt" /v "Start" /t REG_DWORD /d "4" /f < Breaks installing Store Apps to different disk. (Now disabled via store script)
-reg add "HKLM\System\CurrentControlSet\Services\GpuEnergyDrv" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\mrxsmb" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\mrxsmb20" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\NdisVirtualBus" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\nvraid" /v "Start" /t REG_DWORD /d "4" /f
-::reg add "HKLM\System\CurrentControlSet\Services\PEAUTH" /v "Start" /t REG_DWORD /d "4" /f < Breaks UWP streaming apps like Netflix, manual mode does not fix.
-reg add "HKLM\System\CurrentControlSet\Services\QWAVEdrv" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% 3ware 4
+%setSvc% ADP80XX 4
+%setSvc% AmdK8 4
+%setSvc% arcsas 4
+%setSvc% AsyncMac 4
+%setSvc% Beep 4
+%setSvc% bindflt 4
+%setSvc% buttonconverter 4
+%setSvc% CAD 4
+%setSvc% cdfs 4
+%setSvc% CimFS 4
+%setSvc% circlass 4
+%setSvc% cnghwassist 4
+%setSvc% CompositeBus 4
+%setSvc% Dfsc 4
+%setSvc% ErrDev 4
+%setSvc% fdc 4
+%setSvc% flpydisk 4
+%setSvc% fvevol 4
+:: %setSvc% FileInfo 4 < Breaks installing Store Apps to different disk. (Now disabled via store script)
+:: %setSvc% FileCrypt 4 < Breaks installing Store Apps to different disk. (Now disabled via store script)
+%setSvc% GpuEnergyDrv 4
+%setSvc% mrxsmb 4
+%setSvc% mrxsmb20 4
+%setSvc% NdisVirtualBus 4
+%setSvc% nvraid 4
+:: %setSvc% PEAUTH 4 < Breaks UWP streaming apps like Netflix, manual mode does not fix.
+%setSvc% QWAVEdrv 4
 :: Set to Manual instead of disabling (fixes WSL) Thanks Phlegm!
-reg add "HKLM\System\CurrentControlSet\Services\rdbss" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\rdyboost" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\KSecPkg" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\mrxsmb20" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\mrxsmb" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\srv2" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\sfloppy" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\SiSRaid2" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\SiSRaid4" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\Tcpip6" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\tcpipreg" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\Telemetry" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\udfs" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\umbus" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\VerifierExt" /v "Start" /t REG_DWORD /d "4" /f
-::reg add "HKLM\System\CurrentControlSet\Services\volmgrx" /v "Start" /t REG_DWORD /d "4" /f < Breaks Dynamic Disks
-reg add "HKLM\System\CurrentControlSet\Services\vsmraid" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\VSTXRAID" /v "Start" /t REG_DWORD /d "4" /f
-::reg add "HKLM\System\CurrentControlSet\Services\wcifs" /v "Start" /t REG_DWORD /d "4" /f < Breaks various store games, erroring with "Filter not found"
-reg add "HKLM\System\CurrentControlSet\Services\wcnfs" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WindowsTrustedRTProxy" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% rdbss 3
+%setSvc% rdyboost 4
+%setSvc% KSecPkg 4
+%setSvc% mrxsmb20 4
+%setSvc% mrxsmb 4
+%setSvc% srv2 4
+%setSvc% sfloppy 4
+%setSvc% SiSRaid2 4
+%setSvc% SiSRaid4 4
+%setSvc% Tcpip6 4
+%setSvc% tcpipreg 4
+%setSvc% Telemetry 4
+%setSvc% udfs 4
+%setSvc% umbus 4
+%setSvc% VerifierExt 4
+:: %setSvc% volmgrx 4 < Breaks Dynamic Disks
+%setSvc% vsmraid 4
+%setSvc% VSTXRAID 4
+:: %setSvc% wcifs 4 < Breaks various store games, erroring with "Filter not found"
+%setSvc% wcnfs 4
+%setSvc% WindowsTrustedRTProxy 4
 
 :: Remove dependencies
 reg add "HKLM\System\CurrentControlSet\Services\Dhcp" /v "DependOnService" /t REG_MULTI_SZ /d "NSI\0Afd" /f
@@ -1270,7 +1274,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
 sc config InstallService start=disabled
 :: Insufficent permissions to disable
-reg add "HKLM\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% WinHttpAutoProxySvc 4
 sc config mpssvc start=disabled
 sc config wlidsvc start=disabled
 sc config AppXSvc start=disabled
@@ -1291,7 +1295,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
 :: Insufficent permissions to enable through SC
-reg add "HKLM\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "3" /f
+%setSvc% WinHttpAutoProxySvc 3
 sc config mpssvc start=auto
 sc config wlidsvc start=demand
 sc config AppXSvc start=demand
@@ -1491,7 +1495,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
 sc config InstallService start=disabled
 :: Insufficent permissions to disable
-reg add "HKLM\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% WinHttpAutoProxySvc 4
 sc config mpssvc start=disabled
 sc config AppXSvc start=disabled
 sc config BFE start=disabled
@@ -1523,7 +1527,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
 :: Insufficent permissions to disable
-reg add "HKLM\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "3" /f
+%setSvc% WinHttpAutoProxySvc 3
 sc config mpssvc start=auto
 sc config wlidsvc start=demand
 sc config AppXSvc start=demand
@@ -1725,7 +1729,7 @@ sc config XblAuthManager start=disabled
 sc config XblGameSave start=disabled
 sc config XboxGipSvc start=disabled
 sc config XboxNetApiSvc start=disabled
-reg add "HKLM\System\CurrentControlSet\Services\BcastDVRUserService" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% BcastDVRUserService 4
 if %ERRORLEVEL%==0 echo %date% - %time% Xbox Related Apps and Services Removed...>> %windir%\AtlasModules\logs\userScript.log
 goto finishNRB
 :vcreR
@@ -1748,8 +1752,8 @@ exit
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "0" /f
-reg add "HKLM\System\CurrentControlSet\Services\luafv" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\Appinfo" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% luafv 4
+%setSvc% Appinfo 4
 if %ERRORLEVEL%==0 echo %date% - %time% UAC Disabled...>> %windir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
@@ -1757,20 +1761,20 @@ goto finish
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "5" /f
-reg add "HKLM\System\CurrentControlSet\Services\luafv" /v "Start" /t REG_DWORD /d "2" /f
-reg add "HKLM\System\CurrentControlSet\Services\Appinfo" /v "Start" /t REG_DWORD /d "3" /f
+%setSvc% luafv 2
+%setSvc% Appinfo 3
 if %ERRORLEVEL%==0 echo %date% - %time% UAC Enabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 
 :firewallD
-reg add "HKLM\System\CurrentControlSet\Services\mpssvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\BFE" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% mpssvc 4
+%setSvc% BFE 4
 if %ERRORLEVEL%==0 echo %date% - %time% Firewall Disabled...>> %windir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
 :firewallE
-reg add "HKLM\System\CurrentControlSet\Services\mpssvc" /v "Start" /t REG_DWORD /d "2" /f
-reg add "HKLM\System\CurrentControlSet\Services\BFE" /v "Start" /t REG_DWORD /d "2" /f
+%setSvc% mpssvc 2
+%setSvc% BFE 2
 if %ERRORLEVEL%==0 echo %date% - %time% Firewall Enabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :aniE
@@ -1790,22 +1794,22 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /
 if %ERRORLEVEL%==0 echo %date% - %time% Animations Disabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :workstationD
-reg add "HKLM\System\CurrentControlSet\Services\rdbss" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\KSecPkg" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\mrxsmb20" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\mrxsmb" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\srv2" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\LanmanWorkstation" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% rdbss 4
+%setSvc% KSecPkg 4
+%setSvc% mrxsmb20 4
+%setSvc% mrxsmb 4
+%setSvc% srv2 4
+%setSvc% LanmanWorkstation 4
 dism /Online /Disable-Feature /FeatureName:SmbDirect /norestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation Disabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :workstationE
-reg add "HKLM\System\CurrentControlSet\Services\rdbss" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\KSecPkg" /v "Start" /t REG_DWORD /d "0" /f
-reg add "HKLM\System\CurrentControlSet\Services\mrxsmb20" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\mrxsmb" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\srv2" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\LanmanWorkstation" /v "Start" /t REG_DWORD /d "2" /f
+%setSvc% rdbss 3
+%setSvc% KSecPkg 0
+%setSvc% mrxsmb20 3
+%setSvc% mrxsmb 3
+%setSvc% srv2 3
+%setSvc% LanmanWorkstation 2
 dism /Online /Enable-Feature /FeatureName:SmbDirect /norestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation Enabled...>> %windir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
@@ -1825,11 +1829,11 @@ reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableWebPnP
 :: Disable Printing over HTTP
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableHTTPPrinting" /t REG_DWORD /d "1" /f
 :printECont
-reg add "HKLM\System\CurrentControlSet\Services\Spooler" /v "Start" /t REG_DWORD /d "2" /f
+%setSvc% Spooler 2
 if %ERRORLEVEL%==0 echo %date% - %time% Printing Enabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :printD
-reg add "HKLM\System\CurrentControlSet\Services\Spooler" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% Spooler 4
 if %ERRORLEVEL%==0 echo %date% - %time% Printing Disabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :dataQueueM
@@ -1972,13 +1976,13 @@ devmanview /disable "WAN Miniport (PPTP)"
 devmanview /disable "WAN Miniport (SSTP)"
 devmanview /disable "NDIS Virtual Network Adapter Enumerator"
 devmanview /disable "Microsoft RRAS Root Enumerator"
-reg add "HKLM\System\CurrentControlSet\Services\IKEEXT" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\RasMan" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\SstpSvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\iphlpsvc" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\NdisVirtualBus" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\Eaphost" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% IKEEXT 4
+%setSvc% WinHttpAutoProxySvc 4
+%setSvc% RasMan 4
+%setSvc% SstpSvc 4
+%setSvc% iphlpsvc 4
+%setSvc% NdisVirtualBus 4
+%setSvc% Eaphost 4
 if %ERRORLEVEL%==0 echo %date% - %time% VPN Disabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :vpnE
@@ -1992,14 +1996,14 @@ devmanview /enable "WAN Miniport (PPTP)"
 devmanview /enable "WAN Miniport (SSTP)"
 devmanview /enable "NDIS Virtual Network Adapter Enumerator"
 devmanview /enable "Microsoft RRAS Root Enumerator"
-reg add "HKLM\System\CurrentControlSet\Services\IKEEXT" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\BFE" /v "Start" /t REG_DWORD /d "2" /f
-reg add "HKLM\System\CurrentControlSet\Services\WinHttpAutoProxySvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\RasMan" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\SstpSvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\iphlpsvc" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\NdisVirtualBus" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\Eaphost" /v "Start" /t REG_DWORD /d "3" /f
+%setSvc% IKEEXT 3
+%setSvc% BFE 2
+%setSvc% WinHttpAutoProxySvc 3
+%setSvc% RasMan 3
+%setSvc% SstpSvc 3
+%setSvc% iphlpsvc 3
+%setSvc% NdisVirtualBus 3
+%setSvc% Eaphost 3
 if %ERRORLEVEL%==0 echo %date% - %time% VPN Enabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -2087,9 +2091,9 @@ echo Gateway: %DHCPGateway%
 echo Subnet Mask: %DHCPSubnetMask%
 echo If this information appears to be incorrect or is blank, please report it on Discord (preferred) or Github.
 goto finish
-::reg add "HKLM\System\CurrentControlSet\Services\Dhcp" /v "Start" /t REG_DWORD /d "4" /f
-::reg add "HKLM\System\CurrentControlSet\Services\NlaSvc" /v "Start" /t REG_DWORD /d "4" /f
-::reg add "HKLM\System\CurrentControlSet\Services\netprofm" /v "Start" /t REG_DWORD /d "4" /f
+:: %setSvc% Dhcp 4
+:: %setSvc% NlaSvc 4
+:: %setSvc% netprofm 4
 
 :displayScalingD
 for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f Scaling ^| find /i "Configuration\"') do (
@@ -2152,8 +2156,8 @@ echo Disabling the NVIDIA Display Container LS service will stop the NVIDIA Cont
 echo You can enable the NVIDIA Control Panel by running the other version of this script, which enables the service.
 echo Read README.txt for more info.
 pause
-reg add "HKLM\System\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" /v "Start" /t REG_DWORD /d "4" /f
-sc stop NVDisplay.ContainerLocalSystem
+%setSvc% NVDisplay.ContainerLocalSystem 4
+sc stop NVDisplay.ContainerLocalSystem > nul
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Disabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -2165,8 +2169,8 @@ if %errorlevel% 1 (
     pause
     exit /B
 )
-reg add "HKLM\System\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" /v "Start" /t REG_DWORD /d "2" /f
-sc start NVDisplay.ContainerLocalSystem
+%setSvc% NVDisplay.ContainerLocalSystem 2
+sc start NVDisplay.ContainerLocalSystem > nul
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Enabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -2236,31 +2240,28 @@ echo Enabling Workstation as a dependency...
 call :workstationE "int"
 sc config eventlog start=auto
 echo %date% - %time% EventLog enabled as Network Sharing dependency...>> %windir%\AtlasModules\logs\userscript.log
-reg add "HKLM\System\CurrentControlSet\Services\NlaSvc" /v "Start" /t REG_DWORD /d "2" /f
-reg add "HKLM\System\CurrentControlSet\Services\lmhosts" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\netman" /v "Start" /t REG_DWORD /d "3" /f
+%setSvc% NlaSvc 2
+%setSvc% lmhosts 3
+%setSvc% netman 3
 echo %date% - %time% Network Sharing enabled...>> %windir%\AtlasModules\logs\userscript.log
 echo To complete, enable Network Sharing in control panel.
 goto :finish
 
 :diagE
-reg add "HKLM\System\CurrentControlSet\Services\DPS" /v "Start" /t REG_DWORD /d "2" /f
-reg add "HKLM\System\CurrentControlSet\Services\WdiServiceHost" /v "Start" /t REG_DWORD /d "3" /f
-reg add "HKLM\System\CurrentControlSet\Services\WdiSystemHost" /v "Start" /t REG_DWORD /d "3" /f
+%setSvc% DPS 2
+%setSvc% WdiServiceHost 3
+%setSvc% WdiSystemHost 3
 echo %date% - %time% Diagnotics enabled...>> %windir%\AtlasModules\logs\userscript.log
 goto :finish
 
 :diagD
-reg add "HKLM\System\CurrentControlSet\Services\DPS" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WdiServiceHost" /v "Start" /t REG_DWORD /d "4" /f
-reg add "HKLM\System\CurrentControlSet\Services\WdiSystemHost" /v "Start" /t REG_DWORD /d "4" /f
+%setSvc% DPS 4
+%setSvc% WdiServiceHost 4
+%setSvc% WdiSystemHost 4
 echo %date% - %time% Diagnotics disabled...>> %windir%\AtlasModules\logs\userscript.log
 goto :finish
 
 :: Begin Batch Functions
-:setSvc <service_name> <start_0-4>
-reg add "HKLM\System\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f
-goto :EOF
 
 :invalidInput <label>
 if "%c%"=="" echo Empty Input! Please enter Y or N. & goto %~1
@@ -2279,6 +2280,25 @@ goto :EOF
 :: With NSudo, shouldnt need things like icacls/takeown
 if exist "%~1" del /F /Q "%~1"
 goto :EOF
+
+:setSvc
+:: Example: %setSvc% AppInfo 4
+:: Last argument is the startup type: 0, 1, 2, 3, 4, 5
+if [%~1]==[] (echo You need to run this with a service/driver to disable. & exit /b 1)
+if [%~2]==[] (echo You need to run this with an argument ^(1-5^) to configure the service's startup. & exit /b 1)
+if %~2 LSS 0 (echo Invalid start value ^(%~2^) for %~1. & exit /b 1)
+if %~2 GTR 5 (echo Invalid start value ^(%~2^) for %~1. & exit /b 1)
+reg query "HKLM\System\CurrentControlSet\Services\%~1" >nul 2>&1 || (echo The specified service/driver ^(%~1^) is not found. & exit /b 1)
+if "%system%"=="false" (
+	if not "%setSvcWarning%"=="false" (
+		echo WARNING: Not running as System, could fail modifying some services/drivers with an access denied error.
+	)
+)
+reg add "HKLM\System\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f > nul || (
+	if "%system%"=="false" (echo Failed to set service %~1 with start value %~2! Not running as System, access denied?) else (
+	echo Failed to set service %~1 with start value %~2! Unknown error.)
+)
+exit /b 0
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
