@@ -199,61 +199,68 @@ if %ERRORLEVEL%==0 (echo %date% - %time% FS Optimized...>> %windir%\AtlasModules
 :: https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/language-packs-known-issue
 schtasks /Change /Disable /TN "\Microsoft\Windows\LanguageComponentsInstaller\Uninstallation" >nul 2>nul
 reg add "HKLM\Software\Policies\Microsoft\Control Panel\International" /v "BlockCleanupOfUnusedPreinstalledLangPacks" /t REG_DWORD /d "1" /f
+
 :: Disable unneeded Tasks
-schtasks /Change /Disable /TN "\MicrosoftEdgeUpdateTaskMachineCore" >nul 2>nul
-schtasks /Change /Disable /TN "\MicrosoftEdgeUpdateTaskMachineUA" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Windows Error Reporting\QueueReporting" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\DiskFootprint\Diagnostics" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Application Experience\StartupAppTask" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Autochk\Proxy" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Application Experience\PcaPatchDbTask" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\BrokerInfrastructure\BgTaskRegistrationMaintenanceTask" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\CloudExperienceHost\CreateObjectTask" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Defrag\ScheduledDefrag" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\DiskFootprint\StorageSense" >nul 2>nul
-schtasks /Change /Disable /TN "\MicrosoftEdgeUpdateBrowserReplacementTask" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Registry\RegIdleBackup" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Windows Filtering Platform\BfeOnServiceStartTypeChange" >nul 2>nul
+
 :: Breaks setting Lock Screen
 :: schtasks /Change /Disable /TN "\Microsoft\Windows\Shell\CreateObjectTask"
-schtasks /Change /Disable /TN "\Microsoft\Windows\Shell\IndexerAutomaticMaintenance" >nul 2>nul
-:: Should already be disabled
-schtasks /Change /Disable /TN "\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskNetwork" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskLogon" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\StateRepository\MaintenanceTasks" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\UpdateOrchestrator\Report policies" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\UpdateOrchestrator\Schedule Scan Static Task" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\UpdateOrchestrator\UpdateModelTask" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\UpdateOrchestrator\USO_UxBroker" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\UpdateOrchestrator\Schedule Work" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\UPnP\UPnPHostConfig" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\RetailDemo\CleanupOfflineContent" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Shell\FamilySafetyMonitor" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\InstallService\ScanForUpdates" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\InstallService\ScanForUpdatesAsUser" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\InstallService\SmartRetry" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\International\Synchronize Language Settings" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\MemoryDiagnostic\ProcessMemoryDiagnosticEvents" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Multimedia\Microsoft\Windows\Multimedia" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Printing\EduPrintProv" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\RemoteAssistance\RemoteAssistanceTask" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Ras\MobilityManager" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\PushToInstall\LoginCheck" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Time Synchronization\SynchronizeTime" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Time Synchronization\ForceSynchronizeTime" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Time Zone\SynchronizeTimeZone" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\UpdateOrchestrator\Schedule Scan" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\WaaSMedic\PerformRemediation" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\DiskCleanup\SilentCleanup" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Diagnosis\Scheduled" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Wininet\CacheTask" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Device Setup\Metadata Refresh" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\Mobile Broadband Accounts\MNO Metadata Parser" >nul 2>nul
-schtasks /Change /Disable /TN "\Microsoft\Windows\WindowsUpdate\Scheduled Start" >nul 2>nul
+
+for %%a in (
+	"\MicrosoftEdgeUpdateTaskMachineCore"
+	"\MicrosoftEdgeUpdateTaskMachineUA"
+	"\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem"
+	"\Microsoft\Windows\Windows Error Reporting\QueueReporting"
+	"\Microsoft\Windows\DiskFootprint\Diagnostics"
+	"\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser"
+	"\Microsoft\Windows\Application Experience\StartupAppTask"
+	"\Microsoft\Windows\Autochk\Proxy"
+	"\Microsoft\Windows\Application Experience\PcaPatchDbTask"
+	"\Microsoft\Windows\BrokerInfrastructure\BgTaskRegistrationMaintenanceTask"
+	"\Microsoft\Windows\CloudExperienceHost\CreateObjectTask"
+	"\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector"
+	"\Microsoft\Windows\Defrag\ScheduledDefrag"
+	"\Microsoft\Windows\DiskFootprint\StorageSense"
+	"\MicrosoftEdgeUpdateBrowserReplacementTask"
+	"\Microsoft\Windows\Registry\RegIdleBackup"
+	"\Microsoft\Windows\Windows Filtering Platform\BfeOnServiceStartTypeChange"
+	"\Microsoft\Windows\Shell\IndexerAutomaticMaintenance"
+	"\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskNetwork"
+	"\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskLogon"
+	"\Microsoft\Windows\StateRepository\MaintenanceTasks"
+	"\Microsoft\Windows\UpdateOrchestrator\Report policies"
+	"\Microsoft\Windows\UpdateOrchestrator\Schedule Scan Static Task"
+	"\Microsoft\Windows\UpdateOrchestrator\UpdateModelTask"
+	"\Microsoft\Windows\UpdateOrchestrator\USO_UxBroker"
+	"\Microsoft\Windows\UpdateOrchestrator\Schedule Work"
+	"\Microsoft\Windows\UPnP\UPnPHostConfig"
+	"\Microsoft\Windows\RetailDemo\CleanupOfflineContent"
+	"\Microsoft\Windows\Shell\FamilySafetyMonitor"
+	"\Microsoft\Windows\InstallService\ScanForUpdates"
+	"\Microsoft\Windows\InstallService\ScanForUpdatesAsUser"
+	"\Microsoft\Windows\InstallService\SmartRetry"
+	"\Microsoft\Windows\International\Synchronize Language Settings"
+	"\Microsoft\Windows\MemoryDiagnostic\ProcessMemoryDiagnosticEvents"
+	"\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic"
+	"\Microsoft\Windows\Multimedia\Microsoft\Windows\Multimedia"
+	"\Microsoft\Windows\Printing\EduPrintProv"
+	"\Microsoft\Windows\RemoteAssistance\RemoteAssistanceTask"
+	"\Microsoft\Windows\Ras\MobilityManager"
+	"\Microsoft\Windows\PushToInstall\LoginCheck"
+	"\Microsoft\Windows\Time Synchronization\SynchronizeTime"
+	"\Microsoft\Windows\Time Synchronization\ForceSynchronizeTime"
+	"\Microsoft\Windows\Time Zone\SynchronizeTimeZone"
+	"\Microsoft\Windows\UpdateOrchestrator\Schedule Scan"
+	"\Microsoft\Windows\WaaSMedic\PerformRemediation"
+	"\Microsoft\Windows\DiskCleanup\SilentCleanup"
+	"\Microsoft\Windows\Diagnosis\Scheduled"
+	"\Microsoft\Windows\Wininet\CacheTask"
+	"\Microsoft\Windows\Device Setup\Metadata Refresh"
+	"\Microsoft\Windows\Mobile Broadband Accounts\MNO Metadata Parser"
+	"\Microsoft\Windows\WindowsUpdate\Scheduled Start"
+) do (
+	schtasks /Change /Disable /TN %%a > nul
+)
+
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Scheduled Tasks...>> %windir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Scheduled Tasks! >> %windir%\AtlasModules\logs\install.log)
 cls
