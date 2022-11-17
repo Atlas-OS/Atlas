@@ -1,5 +1,6 @@
-:: Name: Atlas Configuration Script
 @echo off
+:: Name: Atlas Configuration Script
+
 :: Description: This is the master script used to congigure the Atlas Operating System.
 :: Depending on your build, change theses vars to 1803 or 20H2, and update the version
 set branch="20H2"
@@ -562,7 +563,7 @@ if %branch%=="1803" nsudo -U:C -P:E C:\Windows\AtlasModules\1803.bat
 :: Services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
-echo. >> %filename%
+echo] >> %filename%
 for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "TermService"') do (
 	set svc=%%i
 	set svc=!svc: =!
@@ -571,14 +572,14 @@ for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "T
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
-		echo. >> %filename%
+		echo] >> %filename%
 	)
 ) >nul 2>&1
 
 :: Drivers
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
-echo. >> %filename%
+echo] >> %filename%
 for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	set svc=%%~i
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
@@ -586,7 +587,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
-		echo. >> %filename%
+		echo] >> %filename%
 	)
 ) >nul 2>&1
 
@@ -720,7 +721,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Services...>> C:\Windows\Atlas
 :: Services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
-echo. >> %filename%
+echo] >> %filename%
 for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "TermService"') do (
 	set svc=%%i
 	set svc=!svc: =!
@@ -729,14 +730,14 @@ for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "T
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
-		echo. >> %filename%
+		echo] >> %filename%
 	)
 ) >nul 2>&1
 
 :: Drivers
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
-echo. >> %filename%
+echo] >> %filename%
 for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	set svc=%%~i
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
@@ -744,7 +745,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
-		echo. >> %filename%
+		echo] >> %filename%
 	)
 ) >nul 2>&1
 
@@ -1449,7 +1450,7 @@ nsudo -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> C:\Windows\AtlasModules\logs\userScript.log
 :skipRM
 :: Install silently
-echo.
+echo]
 echo Openshell is installing...
 "oshellI.exe" /qn ADDLOCAL=StartMenu
 curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5/Fluent-Metro_1.5.zip -o skin.zip
@@ -1731,7 +1732,7 @@ goto finishNRB
 echo Uninstalling Visual C++ Runtimes...
 C:\Windows\AtlasModules\vcredist.exe /aiR
 echo Finished uninstalling!
-echo.
+echo]
 echo Opening Visual C++ Runtimes installer, simply click next.
 C:\Windows\AtlasModules\vcredist.exe
 echo Installation Finished or Cancelled.
@@ -1835,7 +1836,7 @@ goto finish
 echo Mouse Data Queue Sizes
 echo This may affect stability and input latency. And if low enough may cause mouse skipping/mouse stutters.
 echo There has been no well proven evidence of this having a beneficial effect on latency, only "feel". Use with that in mind.
-echo.
+echo]
 echo Default: 100
 echo Valid Value Range: 1-100
 set /P c="Enter the size you want to set Mouse Data Queue Size to: "
@@ -1854,7 +1855,7 @@ goto finish
 echo Keyboard Data Queue Sizes
 echo This may affect stability and input latency. And if low enough may cause general keyboard issues like ghosting.
 echo There has been no well proven evidence of this having a beneficial effect on latency, only "feel". Use with that in mind.
-echo.
+echo]
 echo Default: 100
 echo Valid Value Range: 1-100
 set /P c="Enter the size you want to set Keyboard Data Queue Size to: "
@@ -2042,7 +2043,7 @@ powershell -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
 powershell -NoProfile C:\Windows\AtlasModules\install.ps1
 echo Refreshing environment for Scoop...
 call C:\Windows\AtlasModules\refreshenv.bat
-echo.
+echo]
 echo Installing git...
 :: Scoop isn't very nice with batch scripts, and will break the whole script if a warning or error shows..
 cmd /c scoop install git -g
