@@ -9,6 +9,7 @@ set ver="v0.5.2"
 :: Other variables (do not touch)
 set currentuser=%windir%\AtlasModules\nsudo -U:C -P:E -Wait
 set setSvc=call :setSvc
+set firewallBlockExe=call :firewallBlockExe
 
 :: CREDITS, in no particular order
 :: Amit
@@ -1605,7 +1606,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Enabled...>> %windir%\Atlas
 goto finishNRB
 
 :idleD
-echo THIS WILL CAUSE YOUR CPU USAGE TO *DISPLAY* AS 100%. ENABLE IDLE IF THIS IS AN ISSUE.
+echo THIS WILL CAUSE YOUR CPU USAGE TO *DISPLAY* AS 100% IN TASK MANAGER. ENABLE IDLE IF THIS IS AN ISSUE.
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1
 powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Idle Disabled...>> %windir%\AtlasModules\logs\userScript.log
@@ -1656,60 +1657,60 @@ ftype wshfile="%WinDir%\System32\notepad.exe" "%1"
 :: - UAC Enable
 :: Firewall rules
 netsh Advfirewall set allprofiles state on
-netsh advfirewall firewall add rule name="Block calc.exe netconns" program="%WinDir%\System32\calc.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block certutil.exe netconns" program="%WinDir%\System32\certutil.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block cmstp.exe netconns" program="%WinDir%\System32\cmstp.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block cscript.exe netconns" program="%WinDir%\System32\cscript.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block esentutl.exe netconns" program="%WinDir%\System32\esentutl.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block expand.exe netconns" program="%WinDir%\System32\expand.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block extrac32.exe netconns" program="%WinDir%\System32\extrac32.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block findstr.exe netconns" program="%WinDir%\System32\findstr.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block hh.exe netconns" program="%WinDir%\System32\hh.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block makecab.exe netconns" program="%WinDir%\System32\makecab.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block mshta.exe netconns" program="%WinDir%\System32\mshta.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block msiexec.exe netconns" program="%WinDir%\System32\msiexec.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block nltest.exe netconns" program="%WinDir%\System32\nltest.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block Notepad.exe netconns" program="%WinDir%\System32\notepad.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block pcalua.exe netconns" program="%WinDir%\System32\pcalua.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block print.exe netconns" program="%WinDir%\System32\print.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block regsvr32.exe netconns" program="%WinDir%\System32\regsvr32.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block replace.exe netconns" program="%WinDir%\System32\replace.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block rundll32.exe netconns" program="%WinDir%\System32\rundll32.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block runscripthelper.exe netconns" program="%WinDir%\System32\runscripthelper.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block scriptrunner.exe netconns" program="%WinDir%\System32\scriptrunner.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block SyncAppvPublishingServer.exe netconns" program="%WinDir%\System32\SyncAppvPublishingServer.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block wmic.exe netconns" program="%WinDir%\System32\wbem\wmic.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block wscript.exe netconns" program="%WinDir%\System32\wscript.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block regasm.exe netconns" program="%WinDir%\System32\regasm.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block odbcconf.exe netconns" program="%WinDir%\System32\odbcconf.exe" protocol=tcp dir=out enable=yes action=block profile=any
+%firewallBlockExe% "calc.exe" "%WinDir%\System32\calc.exe"
+%firewallBlockExe% "certutil.exe" "%WinDir%\System32\certutil.exe"
+%firewallBlockExe% "cmstp.exe" "%WinDir%\System32\cmstp.exe"
+%firewallBlockExe% "cscript.exe" "%WinDir%\System32\cscript.exe"
+%firewallBlockExe% "esentutl.exe" "%WinDir%\System32\esentutl.exe"
+%firewallBlockExe% "expand.exe" "%WinDir%\System32\expand.exe"
+%firewallBlockExe% "extrac32.exe" "%WinDir%\System32\extrac32.exe"
+%firewallBlockExe% "findstr.exe" "%WinDir%\System32\findstr.exe"
+%firewallBlockExe% "hh.exe" "%WinDir%\System32\hh.exe"
+%firewallBlockExe% "makecab.exe" "%WinDir%\System32\makecab.exe"
+%firewallBlockExe% "mshta.exe" "%WinDir%\System32\mshta.exe"
+%firewallBlockExe% "msiexec.exe" "%WinDir%\System32\msiexec.exe"
+%firewallBlockExe% "nltest.exe" "%WinDir%\System32\nltest.exe"
+%firewallBlockExe% "Notepad.exe" "%WinDir%\System32\notepad.exe"
+%firewallBlockExe% "pcalua.exe" "%WinDir%\System32\pcalua.exe"
+%firewallBlockExe% "print.exe" "%WinDir%\System32\print.exe"
+%firewallBlockExe% "regsvr32.exe" "%WinDir%\System32\regsvr32.exe"
+%firewallBlockExe% "replace.exe" "%WinDir%\System32\replace.exe"
+%firewallBlockExe% "rundll32.exe" "%WinDir%\System32\rundll32.exe"
+%firewallBlockExe% "runscripthelper.exe" "%WinDir%\System32\runscripthelper.exe"
+%firewallBlockExe% "scriptrunner.exe" "%WinDir%\System32\scriptrunner.exe"
+%firewallBlockExe% "SyncAppvPublishingServer.exe" "%WinDir%\System32\SyncAppvPublishingServer.exe"
+%firewallBlockExe% "wmic.exe" "%WinDir%\System32\wbem\wmic.exe"
+%firewallBlockExe% "wscript.exe" "%WinDir%\System32\wscript.exe"
+%firewallBlockExe% "regasm.exe" "%WinDir%\System32\regasm.exe"
+%firewallBlockExe% "odbcconf.exe" "%WinDir%\System32\odbcconf.exe"
 
-netsh advfirewall firewall add rule name="Block regasm.exe netconns" program="%WinDir%\SysWOW64\regasm.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block odbcconf.exe netconns" program="%WinDir%\SysWOW64\odbcconf.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block calc.exe netconns" program="%WinDir%\SysWOW64\calc.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block certutil.exe netconns" program="%WinDir%\SysWOW64\certutil.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block cmstp.exe netconns" program="%WinDir%\SysWOW64\cmstp.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block cscript.exe netconns" program="%WinDir%\SysWOW64\cscript.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block esentutl.exe netconns" program="%WinDir%\SysWOW64\esentutl.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block expand.exe netconns" program="%WinDir%\SysWOW64\expand.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block extrac32.exe netconns" program="%WinDir%\SysWOW64\extrac32.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block findstr.exe netconns" program="%WinDir%\SysWOW64\findstr.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block hh.exe netconns" program="%WinDir%\SysWOW64\hh.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block makecab.exe netconns" program="%WinDir%\SysWOW64\makecab.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block mshta.exe netconns" program="%WinDir%\SysWOW64\mshta.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block msiexec.exe netconns" program="%WinDir%\SysWOW64\msiexec.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block nltest.exe netconns" program="%WinDir%\SysWOW64\nltest.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block Notepad.exe netconns" program="%WinDir%\SysWOW64\notepad.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block pcalua.exe netconns" program="%WinDir%\SysWOW64\pcalua.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block print.exe netconns" program="%WinDir%\SysWOW64\print.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block regsvr32.exe netconns" program="%WinDir%\SysWOW64\regsvr32.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block replace.exe netconns" program="%WinDir%\SysWOW64\replace.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block rpcping.exe netconns" program="%WinDir%\SysWOW64\rpcping.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block rundll32.exe netconns" program="%WinDir%\SysWOW64\rundll32.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block runscripthelper.exe netconns" program="%WinDir%\SysWOW64\runscripthelper.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block scriptrunner.exe netconns" program="%WinDir%\SysWOW64\scriptrunner.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block SyncAppvPublishingServer.exe netconns" program="%WinDir%\SysWOW64\SyncAppvPublishingServer.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block wmic.exe netconns" program="%WinDir%\SysWOW64\wbem\wmic.exe" protocol=tcp dir=out enable=yes action=block profile=any
-netsh advfirewall firewall add rule name="Block wscript.exe netconns" program="%WinDir%\SysWOW64\wscript.exe" protocol=tcp dir=out enable=yes action=block profile=any
+%firewallBlockExe% "regasm.exe" "%WinDir%\SysWOW64\regasm.exe"
+%firewallBlockExe% "odbcconf.exe" "%WinDir%\SysWOW64\odbcconf.exe"
+%firewallBlockExe% "calc.exe" "%WinDir%\SysWOW64\calc.exe"
+%firewallBlockExe% "certutil.exe" "%WinDir%\SysWOW64\certutil.exe"
+%firewallBlockExe% "cmstp.exe" "%WinDir%\SysWOW64\cmstp.exe"
+%firewallBlockExe% "cscript.exe" "%WinDir%\SysWOW64\cscript.exe"
+%firewallBlockExe% "esentutl.exe" "%WinDir%\SysWOW64\esentutl.exe"
+%firewallBlockExe% "expand.exe" "%WinDir%\SysWOW64\expand.exe"
+%firewallBlockExe% "extrac32.exe" "%WinDir%\SysWOW64\extrac32.exe"
+%firewallBlockExe% "findstr.exe" "%WinDir%\SysWOW64\findstr.exe"
+%firewallBlockExe% "hh.exe" "%WinDir%\SysWOW64\hh.exe"
+%firewallBlockExe% "makecab.exe" "%WinDir%\SysWOW64\makecab.exe"
+%firewallBlockExe% "mshta.exe" "%WinDir%\SysWOW64\mshta.exe"
+%firewallBlockExe% "msiexec.exe" "%WinDir%\SysWOW64\msiexec.exe"
+%firewallBlockExe% "nltest.exe" "%WinDir%\SysWOW64\nltest.exe"
+%firewallBlockExe% "Notepad.exe" "%WinDir%\SysWOW64\notepad.exe"
+%firewallBlockExe% "pcalua.exe" "%WinDir%\SysWOW64\pcalua.exe"
+%firewallBlockExe% "print.exe" "%WinDir%\SysWOW64\print.exe"
+%firewallBlockExe% "regsvr32.exe" "%WinDir%\SysWOW64\regsvr32.exe"
+%firewallBlockExe% "replace.exe" "%WinDir%\SysWOW64\replace.exe"
+%firewallBlockExe% "rpcping.exe" "%WinDir%\SysWOW64\rpcping.exe"
+%firewallBlockExe% "rundll32.exe" "%WinDir%\SysWOW64\rundll32.exe"
+%firewallBlockExe% "runscripthelper.exe" "%WinDir%\SysWOW64\runscripthelper.exe"
+%firewallBlockExe% "scriptrunner.exe" "%WinDir%\SysWOW64\scriptrunner.exe"
+%firewallBlockExe% "SyncAppvPublishingServer.exe" "%WinDir%\SysWOW64\SyncAppvPublishingServer.exe"
+%firewallBlockExe% "wmic.exe" "%WinDir%\SysWOW64\wbem\wmic.exe"
+%firewallBlockExe% "wscript.exe" "%WinDir%\SysWOW64\wscript.exe"
 :: Disable TsX to mitigate ZombieLoad
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\kernel" /v "DisableTsx" /t REG_DWORD /d "1" /f
 :: - Static ARP Entry
@@ -2306,6 +2307,18 @@ reg add "HKLM\System\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d 
 	echo Failed to set service %~1 with start value %~2! Unknown error.)
 )
 exit /b 0
+
+:firewallBlockExe
+:: Usage: %fireBlockExe% "[NAME]" "[EXE]"
+:: Example: %fireBlockExe% "Calculator" "%WinDir%\System32\calc.exe"
+:: Have both in quotes.
+
+:: Get rid of any old rules (prevents duplicates)
+netsh advfirewall firewall delete rule name="Block %~1" protocol=any dir=in >nul 2>&1
+netsh advfirewall firewall delete rule name="Block %~1" protocol=any dir=out >nul 2>&1
+netsh advfirewall firewall add rule name="Block %~1" program=%2 protocol=any dir=in enable=yes action=block profile=any > nul
+netsh advfirewall firewall add rule name="Block %~1" program=%2 protocol=any dir=out enable=yes action=block profile=any > nul
+exit /b
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
