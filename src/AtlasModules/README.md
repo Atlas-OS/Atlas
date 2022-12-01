@@ -2,7 +2,7 @@
 To verify the legitmacy of these binaries (executables), there's information provided here for each binary for hashes, sources and when each was last verified/checked with the SHA256 hash. Verified using `Get-FileHash` in PowerShell. 
 
 ### DevManView
-- SHA256 Hash: `6FCDEC03A8E91D77D4682E9839622D8C42F5B47BD0DCD19DDC7F5F4764EDB7DA`
+- SHA256 Hash: `FC81134CFB57CD64A76BEEAC74CFAB29768D3B542EC6B25429F5337780790A1E`
 - Matching Hashes on Website: https://www.nirsoft.net/hash_check/?software=devmanview
 - Source: https://www.nirsoft.net/utils/device_manager_view.html
 - Last Verified: 2022-12-01 by JayXTQ
