@@ -15,7 +15,7 @@ There are plenty of reasons to build atlas from source such as:
 ### Prerequisites
 
 - NTLite with a "Home" or higher license.
-- An Archive Extractor (7-Zip, WinRar, etc.)
+- An archive extractor (7-Zip, WinRar, etc.)
 - A local copy of the Atlas repository.
 - A Default Windows Build from Microsoft. ([1](https://tb.rg-adguard.net/) [2](https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-iso-download-tool) [3](https://uupdump.net/known.php?q=19042.631))
 
