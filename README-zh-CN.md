@@ -14,13 +14,13 @@
 
 # Atlas是什么?
 
-Atlas是一个定制版的Windows，移除了 Windows系统中那些降低游戏性能的不足。 作为一个透明的开源项目，我们致力于为玩家争取平等权利，无论您是在土豆上还是高性能PC上玩游戏。
+Atlas是一个定制版的Windows，移除了 Windows系统中那些降低游戏性能的部分。 作为一个透明的开源项目，我们致力于为玩家争取平等权利，无论您是在土豆上，还是高性能PC上玩游戏。
 
-在关注性能的同时，我们也非常重视减少系统、网络延迟以及输入延迟并保持系统的私密性。
+在关注性能的同时，我们也非常重视减少系统、网络以及输入延迟并保持系统的私密性。
 
 ## 目录
 
-- [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
+- [常见问题](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
   - [Atlas项目是什么?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
   - [如何安装Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
   - [Atlas OS移除了什么?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
@@ -32,7 +32,7 @@ Atlas是一个定制版的Windows，移除了 Windows系统中那些降低游戏
 
 ### 隐私保护
 
-Atlas 删除了 Windows 中嵌入的所有类型的跟踪，同时利用数百个强制执行的组策略来减少数据收集。 对于那些超出 Windows 范围的部分，我们无法增强其隐私保护，例如您访问的网站。
+Atlas 删除了 Windows 中嵌入的所有类型的跟踪，同时利用数百个强制执行的组策略来减少数据收集。但对于那些超出 Windows 范围的部分，我们无法增强其隐私保护，例如您访问的网站。
 
 ### 安全性
 
