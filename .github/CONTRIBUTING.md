@@ -4,7 +4,7 @@
 * [2. Standards](#2-Standards)
 * [3. Making your First Contribution](#3-Making-your-First-Contribution)
   * [3.1. Adding to the code](#31-Adding-to-the-code)
-* [4. Testing and Review](#4-Testing-and-review)
+* [4. Testing and Review](#4-Testing-and-Review)
 * [5. Rewards and Benefits](#5-Rewards-and-Benefits)
 
 
@@ -17,7 +17,7 @@ We want to keep this project a safe environment for anyone to contribute. We wou
 - Being respectful towards opposing viewpoints, have a discussion, not a fight.
 - Be constructive, give feedback that we can build on.
 
-Thats it! If you follow these guidelines, you should have a very good time here.
+That's it! If you follow these guidelines, you should have a very good time here.
 
 # 3. Making your First Contribution
 We love feedback, if you have any ideas, we would love to hear them! Whether it's:
@@ -30,7 +30,7 @@ All of these can be done by either:
 - Making an [issue](https://github.com/Atlas-OS/Atlas/issues/new/choose)
 - Creating a [pull request](https://github.com/Atlas-OS/Atlas/pulls)
 
-# 3.1. Adding to the code
+## 3.1. Adding to the code
 When contributing, please be mindful of what you are doing.
 Think of these while contributing:
 - Will this break anything? Can it be fixed while keeping the improvement?
@@ -41,12 +41,12 @@ Think of these while contributing:
 Doing all of these aren't required but appreciated. Please mention in the pull request what you have completed.
 Testing and reviewing should be very easy here's what to test:
 - Look over your changes, make sure there's nothing you missed.
-- First, test it on a virtual machine, my recommedation is VMWare Workstation. A good alternative is Oracle VirtualBox.
+- First, test it on a virtual machine, my recommedation is VMware Workstation. A good alternative is Oracle VirtualBox.
 - Test what your contribution affects, this is dependant on what you change.
 - Test basic programs and functionalities.
 - Test on an actual machine now, repeat the steps.
 
-I [(zusier)](https://github.com/Zusier), will be the main tester and reviewer, if you would like to become a reviewer/tester, please make an [issue.](https://github.com/Atlas-OS/Atlas/issues/new/)
+I [(Zusier)](https://github.com/Zusier), will be the main tester and reviewer, if you would like to become a reviewer/tester, please make an [issue.](https://github.com/Atlas-OS/Atlas/issues/new/)
 
 # 5. Rewards and Benefits
 By contributing to the AtlasOS project, we may reward you as a thank you for the work you've done to help our community. You'll be able to redeem a "Contributor" role in our Discord as a thank you for your assistance.
