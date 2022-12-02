@@ -1,0 +1,76 @@
+<h1 align="center">
+  <br>
+  <a href="http://atlasos.net/"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
+</h1>
+<h4 align="center">一个开放的Windows操作系统，旨在优化性能和延迟。</h4>
+
+<p align="center">
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">安装</a>
+  •
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">常见问题</a>
+  •
+  <a href="https://discord.gg/xx6S3g3HzE">加入Discord</a>
+</p>
+
+# Atlas是什么?
+
+Atlas是一个魔改版本的Windows，删除了众多拖慢Windows系统的组件（游戏性能下降的罪魁祸首）。Atlas是一个透明且开源的项目，致力于为玩家争取平等的权利（无论是在运行一个土豆，还是一个游戏PC。）
+
+Atlas在主要优化性能的同时，也同时是减少系统，网络，输入延迟的一个极佳选择。
+
+## 目录
+
+- [常见问题](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
+  - [Atlas项目在哪?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
+  - [如何安装Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
+  - [Atlas移除了什么?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
+- <a href="#Windows对比Atlas">Windows对比Atlas</a>
+- [Post安装](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
+- [Atlas品牌工具包](./img/brand-kit.zip)
+
+## Windows对比Atlas
+
+### **Private**
+
+Atlas removes all types of tracking embedded within Windows and enforces hundreds of group policies to minimize data collection. Things outside the scope of Windows we cannot increase privacy for, such as websites you visit.
+
+### **Secure**
+
+Atlas aims to be secure as possible without losing performance. We do this by disabling features that can leak information or be exploited. There are exceptions to this such as [Spectre](https://spectreattack.com/spectre.pdf), and [Meltdown](https://meltdownattack.com/meltdown.pdf). These mitigations are disabled to improve performance.
+If a security mitigation measure decreases performance, it will be disabled.
+Below are some features/mitigations that have been altered, if they contain a (P) they are security risks that have been fixed:
+
+- [Spectre](https://spectreattack.com/spectre.pdf)
+- [Meltdown](https://meltdownattack.com/meltdown.pdf)
+- [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
+- [(P) ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
+- [(P) Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
+- [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Possible Information Retrieval*)
+
+### **Debloated**
+
+Atlas is heavily stripped, pre-installed applications and other components are removed. Although this can break some compatibility, it significantly reduces ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. This modification is focused on pure gaming, but most work and education applications work. [Check out what else we've removed in our FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+
+### **Performant**
+
+Atlas is pre-tweaked. Whilst maintaining compatibility, but also striving for performance, we've squeezed every last drop of performance into our Windows images. Some of the many changes that we've done to improve Windows have been listed below.
+
+- Custom Power Plan
+- Minimized Services
+- Minimized Drivers
+- Disabled Unneeded Devices
+- Disabled Power Saving
+- Disabled Performance-Hungry Security Mitigations
+- Automatically enabled MSI Mode
+- Boot Configuration Optimization
+- Optimized Process Scheduling
+
+## Atlas品牌工具包
+Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something amazing.](./img/brand-kit.zip)
+
+We also have a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share your designs with other creative geniuses and maybe even spark some inspiration!
+
+## 免责声明
+
+下载、修改以及使用这些镜像即代表您同意[微软公司的条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm)这些镜像都不是预激活的，您**必须**使用正版的密钥。
