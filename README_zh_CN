@@ -26,7 +26,7 @@ Atlas在主要优化性能的同时，也同时是减少系统，网络，输入
   - [Atlas移除了什么?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#Windows对比Atlas">Windows对比Atlas</a>
 - [Post安装](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Atlas品牌工具包](./img/brand-kit.zip)
+- [品牌工具包](./img/brand-kit.zip)
 
 ## Windows对比Atlas
 
@@ -50,7 +50,7 @@ Atlas的目标是在不损失性能的情况下保证系统尽可能的安全。
 
 ### **精简**
 
-Atlas删除了大量预先安装的应用程序和其他组件。尽管这可能会破坏一些兼容性，但它会显著减少镜像的大小 (例如删除Windows Defender之类的功能)。这种修改是主要针对游戏的。但大多数教育和工作程序（理论上）都可以工作。[前往常见问题，看看我们删除了什么](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Atlas删除了大量预先安装的应用程序和其他组件。尽管这可能会破坏一些兼容性，但它会显著减少镜像的大小 (例如删除Windows Defender之类的功能)。这种修改是主要针对游戏的。但大多数教育和工作程序（理论上）都可以工作。[前往常见问题，看看我们删除了什么](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)。
 
 ### **性能**
 
@@ -67,7 +67,7 @@ Atlas预先调整了一些东西。在保持兼容性的同时，也在努力提
 - 优化的线程调度
 
 ## 品牌工具包
-想制作自己的Atlas壁纸吗?也许你可以用我们的logo来做你自己的设计?该功能面向社区开放，以激发整个社区的创意。 [尝试制作一些让人眼前一亮的东西](./img/brand-kit.zip)
+想制作自己的Atlas壁纸吗?也许你可以用我们的logo来做你自己的设计?该功能面向社区开放，以激发整个社区的创意。 [尝试制作一些让人眼前一亮的东西](./img/brand-kit.zip)。
 
 我们在 [Discussion](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)页面有专门的分区用于分享社区制作的壁纸, 您可以前往这里发布您独一无二的创意作品！
 
@@ -76,3 +76,10 @@ This is an unofficial translation of the AtlasOS Disclamer into Simplified Chine
 这是免责声明的非正式简体中文翻译。它并未由AtlasOS团队发布，也不是一个正式的法律声明——只有AtlasOS的原始英文版免责声明才有法律意义。不过，我们希望该翻译能够帮助简体中文用户更好地理解该法律声明。 
 
 下载、修改以及使用这些镜像即代表您同意[微软公司的条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm)这些镜像都不是预激活的，您**必须**使用正版的密钥。
+
+## Translation Contributor 翻译贡献者
+
+(PencilNavigator)https://github.com/PencilNavigator
+
+(0bo)https://github.com/0bo
+
