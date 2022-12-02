@@ -1,2 +1,3 @@
+# fix line endings in batch and cmd files
 *.bat eol=crlf
 *.cmd eol=crlf

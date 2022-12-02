@@ -17,10 +17,10 @@ We want to keep this project a safe environment for anyone to contribute. We wou
 - Being respectful towards opposing viewpoints, have a discussion, not a fight.
 - Be constructive, give feedback that we can build on.
 
-That's it! If you follow these guidelines, you should have a very good time here.
+That is it! If you follow these guidelines, you should have a very good time here.
 
 # 3. Making your First Contribution
-We love feedback, if you have any ideas, we would love to hear them! Whether it's:
+We love feedback, if you have any ideas, we would love to hear them! Whether it is:
 - Providing feedback on the quality, functionality or performance
 - Submitting improvements
 - Fixing a bug
@@ -38,9 +38,9 @@ Think of these while contributing:
 - Has it been thoroughly tested/discussed?
 
 # 4. Testing and Review
-Doing all of these aren't required but appreciated. Please mention in the pull request what you have completed.
-Testing and reviewing should be very easy here's what to test:
-- Look over your changes, make sure there's nothing you missed.
+Doing all of these are not required but appreciated. Please mention in the pull request what you have completed.
+Testing and reviewing should be very easy here is what to test:
+- Look over your changes, make sure there is nothing you missed.
 - First, test it on a virtual machine, my recommedation is VMware Workstation. A good alternative is Oracle VirtualBox.
 - Test what your contribution affects, this is dependant on what you change.
 - Test basic programs and functionalities.
@@ -49,10 +49,10 @@ Testing and reviewing should be very easy here's what to test:
 I [(Zusier)](https://github.com/Zusier), will be the main tester and reviewer, if you would like to become a reviewer/tester, please make an [issue.](https://github.com/Atlas-OS/Atlas/issues/new/)
 
 # 5. Rewards and Benefits
-By contributing to the AtlasOS project, we may reward you as a thank you for the work you've done to help our community. You'll be able to redeem a "Contributor" role in our Discord as a thank you for your assistance.
-Whatever is enough to claim that role is up to us to decide; however, as long as you remain active within issues & discussions, ask for assistance, and report issues, you should be there in no time.
+By contributing to the AtlasOS project, we may reward you as a thank you for the work you have done to help our community. You will be able to redeem a "Contributor" role in our Discord as a thank you for your assistance.
+Whatever is enough to claim that role is up to us to decide; However, as long as you remain active within issues & discussions, ask for assistance, and report issues, you should be there in no time.
 
-Keep in mind. You'll only be able to claim the rewards and benefits if your responses are;
+Keep in mind. You will only be able to claim the rewards and benefits if your responses are;
 - Properly structured
 - Contains solid advice and/or information
 - Understandable by anyone

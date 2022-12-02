@@ -1,5 +1,5 @@
 @echo off
-SetLocal EnableDelayedExpansion
+SETLOCAL EnableDelayedExpansion
 echo Please wait. This may take a moment. DO NOT CLOSE THIS WINDOW
 :start
 set success=

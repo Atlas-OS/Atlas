@@ -10,8 +10,9 @@ assignees: Zusier
 **Describe the bug**
 A clear and concise description of what the bug is. Providing an error code is highly recommended.
 
-**To Reproduce**
+**To reproduce**
 Steps to reproduce the behavior:
+
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
@@ -24,9 +25,10 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Desktop Info (please complete the following information):**
- - CPU [Intel or AMD, include specifics]
- - System Drive Type
- - Version [e.g. 20H2 v0.5.1]
+
+- CPU [Intel or AMD, include specifics]
+- System Drive Type
+- Version [e.g. 20H2 v0.5.1]
 
 **Additional context**
 Add any other context about the problem here.
