@@ -11,6 +11,12 @@
   •
   <a href="https://discord.gg/xx6S3g3HzE">Discord</a>
 </p>
+</p>
+<p align="center">
+ Other Languages:
+  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README-zh-CN.md">简体中文</a>
+</p>
+
 
 # What is Atlas?
 
