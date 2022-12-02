@@ -78,6 +78,7 @@ We also have a [dedicated area in the discussions tab](https://github.com/Atlas-
 
 ## Translations
 Chinese translation by [0bo](https://github.com/0bo)
+
 French translation by [uncognic](https://github.com/uncognic)
 
 ## Disclaimer
