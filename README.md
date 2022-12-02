@@ -9,7 +9,7 @@
   •
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
   •
-  <a href="https://dsc.gg/atlasos">Discord</a>
+  <a href="https://discord.com/servers/atlas-795710270000332800">Discord</a>
 </p>
 
 # What is Atlas?
