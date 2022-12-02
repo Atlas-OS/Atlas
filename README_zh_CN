@@ -38,7 +38,6 @@ Atlas删除了Windows中嵌入的所有类型的跟踪，并在部署时强制�
 
 Atlas的目标是在不损失性能的情况下保证系统尽可能的安全。我们通过禁用可能泄露信息或被利用的功能来做到这一点。但也有一些例外，比如 [Spectre](https://spectreattack.com/spectre.pdf), 和[Meltdown](https://meltdownattack.com/meltdown.pdf). 您需要禁用这些缓解措施以提高性能。
 如果该安全缓解措施降低了性能，我们将会禁用该措施。
-Below are some features/mitigations that have been altered, if they contain a (P) they are security risks that have been fixed:
 以下是一些被修改的功能/缓解措施，如果它们包含(P)，则表示其安全风险已被修复:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
