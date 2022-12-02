@@ -30,15 +30,16 @@ Atlas在主要优化性能的同时，也同时是减少系统，网络，输入
 
 ## Windows对比Atlas
 
-### **Private**
+### **隐私**
 
-Atlas removes all types of tracking embedded within Windows and enforces hundreds of group policies to minimize data collection. Things outside the scope of Windows we cannot increase privacy for, such as websites you visit.
+Atlas删除了Windows中嵌入的所有类型的跟踪，并在部署时强制执行数百个组策略以最小化数据收集。我们无法保证除Windows系统之外的隐私问题，例如您访问的网站。
 
-### **Secure**
+### **安全**
 
-Atlas aims to be secure as possible without losing performance. We do this by disabling features that can leak information or be exploited. There are exceptions to this such as [Spectre](https://spectreattack.com/spectre.pdf), and [Meltdown](https://meltdownattack.com/meltdown.pdf). These mitigations are disabled to improve performance.
-If a security mitigation measure decreases performance, it will be disabled.
+Atlas的目标是在不损失性能的情况下保证系统尽可能的安全。我们通过禁用可能泄露信息或被利用的功能来做到这一点。但也有一些例外，比如 [Spectre](https://spectreattack.com/spectre.pdf), 和[Meltdown](https://meltdownattack.com/meltdown.pdf). 您需要禁用这些缓解措施以提高性能。
+如果该安全缓解措施降低了性能，我们将禁用该措施。
 Below are some features/mitigations that have been altered, if they contain a (P) they are security risks that have been fixed:
+以下是一些被修改的功能/缓解措施，如果它们包含(P)，则表示其安全风险已被修复:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
@@ -48,28 +49,28 @@ Below are some features/mitigations that have been altered, if they contain a (P
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Possible Information Retrieval*)
 
-### **Debloated**
+### **精简**
 
-Atlas is heavily stripped, pre-installed applications and other components are removed. Although this can break some compatibility, it significantly reduces ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. This modification is focused on pure gaming, but most work and education applications work. [Check out what else we've removed in our FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Atlas删除了大量预先安装的应用程序和其他组件。尽管这可能会破坏一些兼容性，但它会显著减少镜像的大小。(诸如Windows Defender之类的功能)这种修改是主要针对游戏的。但大多数教育和工作程序（理论上）都可以工作。[前往常见问题，看看我们删除了什么](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
-### **Performant**
+### **性能**
 
-Atlas is pre-tweaked. Whilst maintaining compatibility, but also striving for performance, we've squeezed every last drop of performance into our Windows images. Some of the many changes that we've done to improve Windows have been listed below.
+Atlas预先调整了一些东西。在保持兼容性的同时，也在努力提高其性能，我们把每一滴可能压榨性能的点点滴滴都压缩到了Windows映像中。下面列出了我们为改进Windows所做的许多改变中的一些。
 
-- Custom Power Plan
-- Minimized Services
-- Minimized Drivers
-- Disabled Unneeded Devices
-- Disabled Power Saving
-- Disabled Performance-Hungry Security Mitigations
-- Automatically enabled MSI Mode
-- Boot Configuration Optimization
-- Optimized Process Scheduling
+- 定制的电源计划
+- 最小化的服务程序
+- 最小化的驱动程序
+- 禁用无需的驱动程序
+- 删除节电功能
+- 禁用影响性能的安全缓解措施
+- 自动启用MSI（信息信号中断）模式
+- 引导配置优化
+- 优化的线程调度
 
-## Atlas品牌工具包
-Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something amazing.](./img/brand-kit.zip)
+## 品牌工具包
+想制作自己的Atlas壁纸吗?也许你可以用我们的logo来做你自己的设计?该功能面向社区开放，以激发整个社区的创意。 [尝试制作一些让人眼前一亮的东西](./img/brand-kit.zip)
 
-We also have a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share your designs with other creative geniuses and maybe even spark some inspiration!
+我们在 [Discussion](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)页面有专门的分区用于分享社区制作的壁纸, 您可以前往这里发布您独一无二的创意作品！
 
 ## 免责声明
 
