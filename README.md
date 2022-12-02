@@ -13,7 +13,7 @@
 </p>
 <p align="center">
  Other Languages:
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_zh_CN.md">简体中文</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_fr_FR.md">Français (Traduction Française par (uncognic)[https://github.com/uncognic]
+  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_zh_CN.md">简体中文</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_fr_FR.md">Français (Traduction Française par [uncognic](https://github.com/uncognic)
 </p>
 
 
