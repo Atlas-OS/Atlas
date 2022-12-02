@@ -8,8 +8,8 @@
   <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Installation</a>
   •
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
-  •
-  <a href="https://discord.gg/xx6S3g3HzE">Discord</a>
+  
+  <a href="https://discord.gg/atlasos">Discord</a>
 </p>
 </p>
 <p align="center">
