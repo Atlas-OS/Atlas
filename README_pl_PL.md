@@ -36,7 +36,7 @@ Atlas usuwa wszystkie rodzaje śledzenia wbudowane w system Windows i egzekwuje 
 
 ### **Bezpieczny**
 
-Atlas dąży do zapewnienia maksymalnego bezpieczeństwa bez utraty wydajności. Robimy to poprzez wyłączenie funkcji, które mogą wyciekać informacje lub być wykorzystywane. Istnieją wyjątki od tej zasady, takie jak [Spectre](https://spectreattack.com/spectre.pdf) i [Meltdown](https://meltdownattack.com/meltdown.pdf). Te środki łagodzące są wyłączone, aby poprawić wydajność. Jeśli środek zaradczy zmniejszy wydajność, zostanie wyłączony. Poniżej znajdują się niektóre funkcje/mitygacje, które zostały zmienione, jeśli zawierają (P) to są to zagrożenia bezpieczeństwa, które zostały naprawione:
+Atlas dąży do zapewnienia maksymalnego bezpieczeństwa bez utraty wydajności. Robimy to poprzez wyłączenie funkcji, które mogą wyciekać informacje lub być wykorzystywane. Istnieją wyjątki od tej zasady, takie jak [Spectre](https://spectreattack.com/spectre.pdf) i [Meltdown](https://meltdownattack.com/meltdown.pdf). Te środki łagodzące są wyłączone, aby poprawić wydajność. Jeśli środek zaradczy zmniejszy wydajność, zostanie wyłączony. Poniżej znajdują się niektóre funkcje, które zostały zmienione, jeśli zawierają (P) to są to zagrożenia bezpieczeństwa, które zostały naprawione:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
@@ -48,7 +48,7 @@ Atlas dąży do zapewnienia maksymalnego bezpieczeństwa bez utraty wydajności.
 
 ### **Okrojony**
 
-Atlas jest mocno okrojony, usuwane są preinstalowane aplikacje i inne komponenty. Chociaż może to zaburzyć kompatybilność, to znacznie zmniejsza rozmiar ISO i instalacji. Funkcje takie jak Windows Defender, i podobne są usunięte całkowicie. Ta modyfikacja skupia się na czystym graniu, ale większość aplikacji do pracy i edukacji działa. [Sprawdź co jeszcze usunęliśmy w naszym FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Atlas jest mocno okrojony, usuwane są preinstalowane przez Windows aplikacje i inne komponenty. Chociaż może to zaburzyć kompatybilność, to znacznie zmniejsza rozmiar ISO i instalacji. Funkcje takie jak Windows Defender i podobne są usunięte całkowicie. Ta modyfikacja skupia się na czystym graniu, ale większość aplikacji do pracy i edukacji działa. [Sprawdź co jeszcze usunęliśmy w naszym FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
 ### **Wydajny**
 
@@ -66,11 +66,11 @@ Atlas jest wstępnie zoptymalizowany. Zachowując kompatybilność, ale także d
 
 ## Zestaw marki
 
-Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stworzyć własne? Mamy to dostępne publicznie, aby pobudzić nowe kreatywne pomysły w całej społeczności. [Sprawdź nasz zestaw tapet i stwórz coś niesamowitego](./img/brand-kit.zip).
+Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stworzyć własne? Mamy to dostępne publicznie, aby pobudzić nowe kreatywne pomysły w całej społeczności. [Sprawdź nasz zestaw marki i stwórz coś niesamowitego](./img/brand-kit.zip).
 
 Mamy też [dedykowany obszar w zakładce dyskusje](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), więc możesz podzielić się swoimi projektami z innymi kreatywnymi twórcami, a może nawet zaiskrzyć jakąś inspiracją!
 
-## Disclaimer
+## Zastrzeżenie
 
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
