@@ -14,7 +14,7 @@
 
 # Co to jest AtlasOS?
 
-Atlas jest zmodyfikowaną wersją systemu Windows, która usuwa wszystkie negatywne wady systemu Windows, które powodują spadek wydajności w grach. Jesteśmy przejrzystym i otwartym projektem dążącym do równych praw dla graczy, niezależnie od tego, czy uruchamiasz ziemniaka, czy komputer do gier.
+Atlas jest zmodyfikowaną wersją systemu Windows, która usuwa wszystkie negatywne wady systemu Windows, które powodują spadek wydajności w grach. Jesteśmy przejrzystym i otwartym projektem, który dąży do równych praw dla graczy, niezależnie od tego, czy uruchamiasz ziemniaka, czy komputer do gier.
 
 Utrzymując nasz główny nacisk na wydajność, jesteśmy również świetną opcją do zmniejszenia opóźnienia systemu, opóźnienia sieci, input lag, i zachować swój system prywatny.
 
