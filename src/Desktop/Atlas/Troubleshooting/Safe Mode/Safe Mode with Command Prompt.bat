@@ -1,5 +1,6 @@
 @echo off
-:: Requests admin privleges for people with UAC enabled
+
+:: requests admin privleges for people with UAC enabled
 fltmc >nul 2>&1 || (
     echo Administrator privileges are required.
     PowerShell -NoProfile Start -Verb RunAs '%0' 2> nul || (

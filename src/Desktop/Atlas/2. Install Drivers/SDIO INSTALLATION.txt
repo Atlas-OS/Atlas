@@ -1,12 +1,12 @@
 If you are familiar with SDIO, you do not need to read this.
 
-1. Navigate to SDIO's site: https://www.glenn.delahoy.com/snappy-driver-installer-origin/
+1. Navigate to SDIO's site: https://www.glenn.delahoy.com/snappy-driver-installer-origin
 2. Click "Application Only" to download SDIO
 3. Extract the .zip file and open "SDIO_x64_RXXX.exe"
 4. Accept the Terms
 5. Click "Download Indexes Only"
 6. Wait for Indexes to download
-7. Tick the Devices you'd like to update drivers for. Remember, less is usually better so don't download them all unless you need to
+7. Tick the Devices you would like to update drivers for. Remember, less is usually better so do not download them all unless you need to
 8. Done!
 
 If you're not sure what to install, read below.
