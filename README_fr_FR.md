@@ -75,6 +75,6 @@ Nous avons aussi [une séctions dédiée dans l'onglet Communauté](https://gith
 
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
-## Translation Contributors (Contributeurs à la traduction)
+## Translation contributors (Contributeurs à la traduction)
 
 [uncognic](https://github.com/uncognic)
