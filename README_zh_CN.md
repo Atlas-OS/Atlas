@@ -79,6 +79,6 @@ This is an unofficial translation of the AtlasOS Disclamer into Simplified Chine
 
 下载、修改以及使用这些镜像即代表您同意[微软公司的条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm)这些镜像都不是预激活的，您**必须**使用正版的密钥。
 
-## Translation Contributors (翻译贡献者)
+## Translation contributors (翻译贡献者)
 
 [PencilNavigator](https://github.com/PencilNavigator) | [Colin](https://github.com/0bo)
