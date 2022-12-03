@@ -45,7 +45,7 @@ Si une mesure sécuritaire reduit la pérformance, ils vont être enlevées. Ci-
 - [(P) ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - [(P) Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Possible Information Retrieval*)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Éxtraction de données possible*)
 
 ### **Nettoyé**
 
@@ -73,6 +73,6 @@ Nous avons aussi [une séctions dédiée dans l'onglet Communauté](https://gith
 
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
-## Contributeurs à la traduction
+## Translation Contributor (Contributeurs à la traduction)
 
 [uncognic](https://github.com/uncognic)
