@@ -72,13 +72,13 @@ Atlas预先调整了一些东西。在保持兼容性的同时，也在努力提
 
 我们在 [Discussion](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)页面有专门的分区用于分享社区制作的壁纸, 您可以前往这里发布您独一无二的创意作品！
 
-## DISCLAIMER（免责声明）
+## Disclaimer（免责声明）
 
 This is an unofficial translation of the AtlasOS Disclamer into Simplified Chinese. It was not published by the AtlasOS Team, and does not legally state the Disclaimer. However, we hope that this translation will help Simplified Chinese speakers understand this Disclaimer better. 
 这是免责声明的非正式简体中文翻译。它并未由AtlasOS团队发布，也不是一个正式的法律声明——只有AtlasOS的原始英文版免责声明才有法律意义。不过，我们希望该翻译能够帮助简体中文用户更好地理解该法律声明。 
 
 下载、修改以及使用这些镜像即代表您同意[微软公司的条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm)这些镜像都不是预激活的，您**必须**使用正版的密钥。
 
-## Translation Contributor 翻译贡献者
+## Translation Contributors (翻译贡献者)
 
 [PencilNavigator](https://github.com/PencilNavigator) | [Colin](https://github.com/0bo)
