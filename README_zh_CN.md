@@ -79,7 +79,7 @@ This is an unofficial translation of the AtlasOS Disclamer into Simplified Chine
 
 ## Translation Contributor 翻译贡献者
 
-(PencilNavigator)https://github.com/PencilNavigator
+[PencilNavigator](https://github.com/PencilNavigator)
 
-(Colin)https://github.com/0bo
+[Colin](https://github.com/0bo)
 
