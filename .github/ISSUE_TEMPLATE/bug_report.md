@@ -28,7 +28,7 @@ If applicable, add screenshots to help explain your problem.
 
 - CPU [Intel or AMD, include specifics]
 - System Drive Type
-- Version [Atlas 1803/20H2/21H2]
+- Version [1803/20H2/21H2 FACEIT]
 
 **Additional context**
 Add any other context about the problem here.
