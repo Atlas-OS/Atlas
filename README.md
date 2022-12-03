@@ -13,7 +13,7 @@
 </p>
 <p align="center">
  Other Languages:
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_zh_CN.md">简体中文</a>
+  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_zh_CN.md">简体中文</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_fr_FR.md">Français</a>
 </p>
 
 
@@ -75,6 +75,11 @@ Atlas is pre-tweaked. While maintaining compatibility, but also striving for per
 Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something amazing.](./img/brand-kit.zip)
 
 We also have a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share your designs with other creative geniuses and maybe even spark some inspiration!
+
+## Translations
+Chinese translation by [0bo](https://github.com/0bo)
+
+French translation by [uncognic](https://github.com/uncognic)
 
 ## Disclaimer
 
