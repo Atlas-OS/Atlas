@@ -19,7 +19,7 @@
 
 # What is Atlas?
 
-Atlas is a modified version of Windows which removes all the negative drawbacks of Windows, which slumps gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a potato, or a gaming PC.
+Atlas is a modified version of Windows which removes all the negative drawbacks of Windows, which significantly reduce gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a potato, or a gaming PC.
 
 While keeping our main focus on performance, we are also a great option to reduce system latency, network latency, input lag, and keep your system private.
 
@@ -72,6 +72,7 @@ Atlas is pre-tweaked. While maintaining compatibility, but also striving for per
 - Optimized process scheduling
 
 ## Brand kit
+
 Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something amazing.](./img/brand-kit.zip)
 
 We also have a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share your designs with other creative geniuses and maybe even spark some inspiration!

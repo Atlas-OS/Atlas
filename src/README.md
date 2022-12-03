@@ -1,6 +1,7 @@
 # Atlas Source
+
 Here you can find sources files used to build Atlas:
-- NTLite Preset (Atlas_20H2.xml or Atlas_1803.xml)
+- NTLite Preset (Atlas_20H2.xml /  Atlas_1803.xml)
 - Registry Files
 - Scripts
 - Others, such as programs needed to interface with Windows easier.
@@ -17,7 +18,7 @@ There are plenty of reasons to build Atlas from source such as:
 - [NTLite](https://ntlite.com) with a "Home" or higher license.
 - An archive extractor (7-Zip, WinRar, etc.)
 - A local copy of the Atlas repository.
-- A default Windows build from Microsoft. ([1](https://tb.rg-adguard.net/) [2](https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-iso-download-tool) [3](https://uupdump.net))
+- A default Windows build from Microsoft. ([1](https://tb.rg-adguard.net) [2](https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-iso-download-tool) [3](https://uupdump.net))
 
 ### Getting Started
 
@@ -25,7 +26,7 @@ There are plenty of reasons to build Atlas from source such as:
 2. Open NTLite and add the extracted folder to NTLite's Source List.
 3. Import the Atlas XML from the repo and apply it.
 4. Integrate drivers and registry files if needed.
-5. Copy the following Folders/Files to the NTLite Mount Directory (%temp%\NLTmpMount01)
+5. Copy the following folders/files to the NTLite Mount Directory (%temp%\NLTmpMount01)
   ```txt
   - Web >> %temp%\NLTmpMount01\Windows\Web (delete the existing folder first!)
   - layout.xml >> %temp%\NLTmpMount01\Windows\layout.xml
@@ -49,6 +50,7 @@ There are plenty of reasons to build Atlas from source such as:
 ## Contributing
 
 ### Creating Scripts
+
 First, you will need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L44) to `atlas-config.bat`. This will allow it to be called from a seperate script on the desktop.
 
 For this we will use the [Bluetooth Disable Script](hhttps://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L1235) as an example. 
@@ -89,7 +91,7 @@ To keep code "unified" we have a few guidelines. This way it is easier to unders
 
 When creating [labels](http://elearning.algonquincollege.com/coursemat/viljoed/gis8746/concepts/dosbatch/advanced/labels.htm), we prefer the use of camelCase:
 
-```batch
+```bat
 :btD
 echo this stands for "Bluetooth Disable"
 ```
