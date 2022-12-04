@@ -1,0 +1,1 @@
+To install software, you can either run Install Choco or Install Scoop, you have to install one to install software from this part
