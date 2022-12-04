@@ -1,3 +1,4 @@
 @echo off
-:: Currently not used
+
+:: currently not used
 goto :EOF

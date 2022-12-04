@@ -1,5 +1,5 @@
 # Sources
-To verify the legitmacy of these binaries (executables), there's information provided here for each binary for hashes, sources and when each was last verified/checked with the SHA256 hash. Verified using `Get-FileHash` in PowerShell. 
+To verify the legitmacy of these binaries (executables), there is information provided here for each binary for hashes, sources and when each was last verified/checked with the SHA256 hash. Verified using `Get-FileHash` in PowerShell. 
 
 ### DevManView
 - SHA256 Hash: `FC81134CFB57CD64A76BEEAC74CFAB29768D3B542EC6B25429F5337780790A1E`
