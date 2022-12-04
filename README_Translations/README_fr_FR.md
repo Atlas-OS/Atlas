@@ -11,6 +11,10 @@
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
 </p>
+<p align="center">
+ Other Languages:
+  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a>
+</p>
 
 # Qu'est-ce Atlas?
 
@@ -45,7 +49,7 @@ Si une mesure sécuritaire reduit la pérformance, ils vont être enlevées. Ci-
 - [(P) ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - [(P) Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Possible Information Retrieval*)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Éxtraction de données possible_)
 
 ### **Nettoyé**
 
@@ -55,24 +59,26 @@ Atlas est éxtrêmement réduit à l'éssentiel, les applications préinstallée
 
 Atlas est optimisé pré-installation. En gardant la compatibilité, mais aussi s'aspire pour la performance. Nous avons epongé chaque goutté de performance dans nos ISO Windows. Quelques changements que nous avons appliqué sont ci-dessous.
 
-- Schéma d'alimentation personnalisé 
-- Services minimisés 
-- Pilotes réduits 
-- Appareils inutiles désactivés 
-- Économies d'énergie désactivées 
-- Désactivation des mesures d'atténuation de la sécurité gourmandes en performances 
-- Mode MSI activé automatiquement 
-- Optimisation de la configuration de démarrage 
+- Schéma d'alimentation personnalisé
+- Services minimisés
+- Pilotes réduits
+- Appareils inutiles désactivés
+- Économies d'énergie désactivées
+- Désactivation des mesures d'atténuation de la sécurité gourmandes en performances
+- Mode MSI activé automatiquement
+- Optimisation de la configuration de démarrage
 - Planification optimisée des processus
+
 ## Kit d'art
+
 Vous voulez créer votre propre fond d'écran Atlas? Peut-être jouer avec notre logo pour créers votre propre design? Nous avons ça accessible au public pour allumer de l'inspiration créative autour de la communauté[Regardez notre Kit d'art et créez quelque-chose d'époustouflant.](./img/brand-kit.zip)
 
 Nous avons aussi [une séctions dédiée dans l'onglet Communauté](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), pour que vous pourrez partager votre design avec d'autres artistes at créer de l'inspiration.
 
-## Disclaimer
+## Disclaimer (La réserve)
 
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
-## Translation Contributor (Contributeurs à la traduction)
+## Translation contributors (Contributeurs à la traduction)
 
 [uncognic](https://github.com/uncognic)
