@@ -104,11 +104,13 @@ if /i "%~1"=="/cbdhsvcE"    goto cbdhsvcE
 :: VPN
 if /i "%~1"=="/vpnD"    goto vpnD
 if /i "%~1"=="/vpnE"    goto vpnE
-:: Scoop
+:: Scoop and Choco
 if /i "%~1"=="/scoop" goto scoop
 if /i "%~1"=="/choco" goto choco
-if /i "%~1"=="/browser" goto browser
-if /i "%~1"=="/altsoftware" goto altSoftware
+if /i "%~1"=="/browserscoop" goto browserscoop
+if /i "%~1"=="/altsoftwarescoop" goto altSoftwarescoop
+if /i "%~1"=="/browserchoco" goto browserchoco
+if /i "%~1"=="/altsoftwarechoco" goto altSoftwarechoco
 :: Nvidia PState 0
 if /i "%~1"=="/nvpstateD" goto NVPstate
 if /i "%~1"=="/nvpstateE" goto revertNVPState
@@ -2076,7 +2078,6 @@ echo Refreshing environment for Choco...
 call %windir%\AtlasModules\refreshenv.bat
 echo]
 echo Installing git...
-:: Scoop isn't very nice with batch scripts, and will break the whole script if a warning or error shows..
 cmd /c choco install git
 call %windir%\AtlasModules\refreshenv.bat
 goto finish
@@ -2096,7 +2097,6 @@ for /f "tokens=1 delims=;" %%i in ('%windir%\AtlasModules\multichoice.exe "Brows
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
 )
-:: must launch in separate process, scoop seems to exit the whole script if not
 goto finish
 
 :altSoftwarescoop
