@@ -8,9 +8,9 @@ DevManView.exe /disable "WAN Miniport (PPPOE)"
 DevManView.exe /disable "WAN Miniport (PPTP)"
 DevManView.exe /disable "WAN Miniport (SSTP)"
 
-:: Enable Hardware Accelerated Scheduling
+:: enable Hardware Accelerated Scheduling
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d "2" /f
 
-:: Disable Memory Compression
+:: disable Memory Compression
 powershell -NoProfile -Command "Disable-MMAgent -mc"
 goto :EOF
