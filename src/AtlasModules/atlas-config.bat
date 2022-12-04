@@ -383,7 +383,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Powersaving...>> %windir%\Atla
 :: Make certain applications in the AtlasModules folder request UAC
 :: Although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\DevManView.exe.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\NSudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 
 cls
