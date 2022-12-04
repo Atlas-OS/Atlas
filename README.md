@@ -13,10 +13,8 @@
 </p>
 <p align="center">
  Other Languages:
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_zh_CN.md">简体中文</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_fr_FR.md">Français</a> 
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_pl_PL.md">Polski</a>
+  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a>
 </p>
-
 
 # What is Atlas?
 
@@ -52,7 +50,7 @@ Below are some features/mitigations that have been altered, if they contain a (P
 - [(P) ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - [(P) Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Possible Information Retrieval*)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Possible Information Retrieval_)
 
 ### **Debloated**
 
