@@ -12,7 +12,7 @@
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
 </p>
 <p align="center">
- Other Languages:
+ Autres langues :
   <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a>
 </p>
 
