@@ -2073,7 +2073,7 @@ echo Installing Chocolatey
 set /P c="Review Install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %windir%\AtlasModules\install.ps1 && notepad %windir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %windir%\AtlasModules\install.ps1
-powershell -NoProfile Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('%windir%\AtlasModules\install.ps1'))
+powershell -NoProfile -EP Unrestricted -Command "%windir%\AtlasModules\install.ps1"
 echo Refreshing environment for Choco...
 call %windir%\AtlasModules\refreshenv.bat
 echo]
