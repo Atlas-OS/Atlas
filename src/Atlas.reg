@@ -1,6 +1,6 @@
 Windows Registry Editor Version 5.00
 
-; disable UAC (needed for correct Post-install script perms)
+; disable UAC (needed for correct post-install script perms)
 [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System]
 "EnableLUA"=dword:00000000
 

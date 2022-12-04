@@ -9,9 +9,11 @@
 
 
 # 1. Intro
+
 Welcome! First of all, I would like to thank you for your interest in our project. We want to make this a simple process for you, so if you would like to contribute, please continue reading.
 
 # 2. Standards
+
 We want to keep this project a safe environment for anyone to contribute. We would like everyone to follow these guidelines to stay proffesional. 
 
 - Being respectful towards opposing viewpoints, have a discussion, not a fight.
@@ -20,6 +22,7 @@ We want to keep this project a safe environment for anyone to contribute. We wou
 That is it! If you follow these guidelines, you should have a very good time here.
 
 # 3. Making your First Contribution
+
 We love feedback, if you have any ideas, we would love to hear them! Whether it is:
 - Providing feedback on the quality, functionality or performance
 - Submitting improvements
@@ -31,6 +34,7 @@ All of these can be done by either:
 - Creating a [pull request](https://github.com/Atlas-OS/Atlas/pulls)
 
 ## 3.1. Adding to the code
+
 When contributing, please be mindful of what you are doing.
 Think of these while contributing:
 - Will this break anything? Can it be fixed while keeping the improvement?
@@ -38,6 +42,7 @@ Think of these while contributing:
 - Has it been thoroughly tested/discussed?
 
 # 4. Testing and Review
+
 Doing all of these are not required but appreciated. Please mention in the pull request what you have completed.
 Testing and reviewing should be very easy here is what to test:
 - Look over your changes, make sure there is nothing you missed.
@@ -49,6 +54,7 @@ Testing and reviewing should be very easy here is what to test:
 I [(Zusier)](https://github.com/Zusier), will be the main tester and reviewer, if you would like to become a reviewer/tester, please make an [issue.](https://github.com/Atlas-OS/Atlas/issues/new/)
 
 # 5. Rewards and Benefits
+
 By contributing to the AtlasOS project, we may reward you as a thank you for the work you have done to help our community. You will be able to redeem a "Contributor" role in our Discord as a thank you for your assistance.
 Whatever is enough to claim that role is up to us to decide; However, as long as you remain active within issues & discussions, ask for assistance, and report issues, you should be there in no time.
 
