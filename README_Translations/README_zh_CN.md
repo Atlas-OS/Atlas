@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <a href="http://atlasos.net/"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
+  <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
 </h1>
 <h4 align="center">一个开放的Windows操作系统，旨在优化性能和延迟。</h4>
 
@@ -9,7 +9,7 @@
   •
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">常见问题(FAQ)</a>
   •
-  <a href="https://discord.gg/atlasos">加入我们的Discord</a>
+  <a href="https://discord.com/servers/atlas-795710270000332800">加入我们的Discord</a>
 </p>
 <p align="center">
  其他语言。

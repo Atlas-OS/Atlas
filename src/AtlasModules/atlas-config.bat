@@ -7,7 +7,7 @@ set branch="20H2"
 set ver="v0.5.2"
 
 :: Other variables (do not touch)
-set currentuser=%windir%\AtlasModules\nsudo -U:C -P:E -Wait
+set currentuser=%windir%\AtlasModules\NSudoLG.exe -U:C -P:E -Wait
 set setSvc=call :setSvc
 set firewallBlockExe=call :firewallBlockExe
 
@@ -383,8 +383,8 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Powersaving...>> %windir%\Atla
 :: Make certain applications in the AtlasModules folder request UAC
 :: Although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\nsudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\DevManView.exe.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\NSudoLG.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 
 cls
 echo Please wait. This may take a moment.
@@ -546,30 +546,30 @@ start explorer.exe
 powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
 
 :: Disable Devices
-devmanview /disable "System Speaker"
-devmanview /disable "System Timer"
-devmanview /disable "UMBus Root Bus Enumerator"
-devmanview /disable "Microsoft System Management BIOS Driver"
-::devmanview /disable "Programmable Interrupt Controller" < https://media.discordapp.net/attachments/835904146413453333/931696968336551986/unknown.png
-devmanview /disable "High Precision Event Timer"
-devmanview /disable "PCI Encryption/Decryption Controller"
-devmanview /disable "AMD PSP"
-devmanview /disable "Intel SMBus"
-devmanview /disable "Intel Management Engine"
-devmanview /disable "PCI Memory Controller"
-devmanview /disable "PCI standard RAM Controller"
-devmanview /disable "Composite Bus Enumerator"
-devmanview /disable "Microsoft Kernel Debug Network Adapter"
-devmanview /disable "SM Bus Controller"
-devmanview /disable "NDIS Virtual Network Adapter Enumerator"
-::devmanview /disable "Microsoft Virtual Drive Enumerator" < Breaks ISO mounts
-devmanview /disable "Numeric Data Processor"
-devmanview /disable "Microsoft RRAS Root Enumerator"
+DevManView.exe /disable "System Speaker"
+DevManView.exe /disable "System Timer"
+DevManView.exe /disable "UMBus Root Bus Enumerator"
+DevManView.exe /disable "Microsoft System Management BIOS Driver"
+::DevManView.exe /disable "Programmable Interrupt Controller" < https://media.discordapp.net/attachments/835904146413453333/931696968336551986/unknown.png
+DevManView.exe /disable "High Precision Event Timer"
+DevManView.exe /disable "PCI Encryption/Decryption Controller"
+DevManView.exe /disable "AMD PSP"
+DevManView.exe /disable "Intel SMBus"
+DevManView.exe /disable "Intel Management Engine"
+DevManView.exe /disable "PCI Memory Controller"
+DevManView.exe /disable "PCI standard RAM Controller"
+DevManView.exe /disable "Composite Bus Enumerator"
+DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
+DevManView.exe /disable "SM Bus Controller"
+DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
+::DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < Breaks ISO mounts
+DevManView.exe /disable "Numeric Data Processor"
+DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %windir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Devices! >> %windir%\AtlasModules\logs\install.log)
 
-if %branch%=="20H2" nsudo -U:C -P:E %windir%\AtlasModules\20H2.bat
-if %branch%=="1803" nsudo -U:C -P:E %windir%\AtlasModules\1803.bat
+if %branch%=="20H2" NSudoLG.exe -U:C -P:E %windir%\AtlasModules\20H2.bat
+if %branch%=="1803" NSudoLG.exe -U:C -P:E %windir%\AtlasModules\1803.bat
 
 :: Backup Default Windows Services and Drivers
 :: Services
@@ -1127,7 +1127,7 @@ reg add "HKCR\CABFolder\Shell\RunAs\Command" /ve /t REG_SZ /d "cmd /k dism /onli
 :: "Merge as TrustedInstaller" for .regs
 reg add "HKCR\regfile\Shell\RunAs" /ve /t REG_SZ /d "Merge As TrustedInstaller" /f
 reg add "HKCR\regfile\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "1" /f
-reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "nsudo -U:T -P:E reg import "%%1"" /f
+reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "NSudoLG.exe -U:T -P:E reg import "%%1"" /f
 
 :: add run with priority context menu
 reg add "HKCR\exefile\shell\Priority" /v "MUIVerb" /t REG_SZ /d "Run with priority" /f
@@ -1415,7 +1415,7 @@ if exist "%windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 :: Search Icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-nsudo -U:C start explorer.exe
+NSudoLG.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Disabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :enableStart
@@ -1428,7 +1428,7 @@ ren SearchApp.old SearchApp.exe
 :: Search Icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f
 taskkill /f /im explorer.exe
-nsudo -U:C start explorer.exe
+NSudoLG.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Enabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :openshellInstall
@@ -1458,7 +1458,7 @@ if exist "%windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 :: Search Icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-nsudo -U:C start explorer.exe
+NSudoLG.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> %windir%\AtlasModules\logs\userScript.log
 :skipRM
 :: Install silently
@@ -1469,7 +1469,7 @@ curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5/Fluent-
 7z -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
 del /F /Q skin.zip >nul 2>nul
 taskkill /f /im explorer.exe
-nsudo -U:C start explorer.exe
+NSudoLG.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell Installed...>> %windir%\AtlasModules\logs\userScript.log
 goto finishNRB
 :uwp
@@ -1522,7 +1522,7 @@ taskkill /F /IM RuntimeBroker*  >nul 2>nul
 ren %windir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
-nsudo -U:C start explorer.exe
+NSudoLG.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP Disabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 pause
@@ -1554,7 +1554,7 @@ taskkill /F /IM RuntimeBroker*  >nul 2>nul
 ren %windir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
-nsudo -U:C start explorer.exe
+NSudoLG.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP Enabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :mitE
@@ -1730,7 +1730,7 @@ if /I "%c%" EQU "Y" goto :xboxConfirm
 exit
 :xboxConfirm
 echo Removing via powershell...
-nsudo -U:C -ShowWindowMode:Hide -Wait powershell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
+NSudoLG.exe -U:C -ShowWindowMode:Hide -Wait powershell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
 
 echo Disabling Services...
 sc config XblAuthManager start=disabled
@@ -1887,7 +1887,7 @@ netsh int ip reset
 netsh winsock reset
 :: Extremely awful way to do this
 for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connected^| findstr "Device Description:"') do (
-	devmanview /uninstall "%%i %%j"
+	DevManView.exe /uninstall "%%i %%j"
 )
 pnputil /scan-devices
 if %ERRORLEVEL%==0 echo %date% - %time% Network Setting Reset to Windows Default...>> %windir%\AtlasModules\logs\userScript.log
@@ -1974,16 +1974,16 @@ goto finish
 systeminfo > %windir%\AtlasModules\logs\systemInfo.log
 goto finish
 :vpnD
-devmanview /disable "WAN Miniport (IKEv2)"
-devmanview /disable "WAN Miniport (IP)"
-devmanview /disable "WAN Miniport (IPv6)"
-devmanview /disable "WAN Miniport (L2TP)"
-devmanview /disable "WAN Miniport (Network Monitor)"
-devmanview /disable "WAN Miniport (PPPOE)"
-devmanview /disable "WAN Miniport (PPTP)"
-devmanview /disable "WAN Miniport (SSTP)"
-devmanview /disable "NDIS Virtual Network Adapter Enumerator"
-devmanview /disable "Microsoft RRAS Root Enumerator"
+DevManView.exe /disable "WAN Miniport (IKEv2)"
+DevManView.exe /disable "WAN Miniport (IP)"
+DevManView.exe /disable "WAN Miniport (IPv6)"
+DevManView.exe /disable "WAN Miniport (L2TP)"
+DevManView.exe /disable "WAN Miniport (Network Monitor)"
+DevManView.exe /disable "WAN Miniport (PPPOE)"
+DevManView.exe /disable "WAN Miniport (PPTP)"
+DevManView.exe /disable "WAN Miniport (SSTP)"
+DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
+DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 %setSvc% IKEEXT 4
 %setSvc% WinHttpAutoProxySvc 4
 %setSvc% RasMan 4
@@ -1994,16 +1994,16 @@ devmanview /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 echo %date% - %time% VPN Disabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finish
 :vpnE
-devmanview /enable "WAN Miniport (IKEv2)"
-devmanview /enable "WAN Miniport (IP)"
-devmanview /enable "WAN Miniport (IPv6)"
-devmanview /enable "WAN Miniport (L2TP)"
-devmanview /enable "WAN Miniport (Network Monitor)"
-devmanview /enable "WAN Miniport (PPPOE)"
-devmanview /enable "WAN Miniport (PPTP)"
-devmanview /enable "WAN Miniport (SSTP)"
-devmanview /enable "NDIS Virtual Network Adapter Enumerator"
-devmanview /enable "Microsoft RRAS Root Enumerator"
+DevManView.exe /enable "WAN Miniport (IKEv2)"
+DevManView.exe /enable "WAN Miniport (IP)"
+DevManView.exe /enable "WAN Miniport (IPv6)"
+DevManView.exe /enable "WAN Miniport (L2TP)"
+DevManView.exe /enable "WAN Miniport (Network Monitor)"
+DevManView.exe /enable "WAN Miniport (PPPOE)"
+DevManView.exe /enable "WAN Miniport (PPTP)"
+DevManView.exe /enable "WAN Miniport (SSTP)"
+DevManView.exe /enable "NDIS Virtual Network Adapter Enumerator"
+DevManView.exe /enable "Microsoft RRAS Root Enumerator"
 %setSvc% IKEEXT 3
 %setSvc% BFE 2
 %setSvc% WinHttpAutoProxySvc 3
@@ -2213,7 +2213,7 @@ reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\c
 taskkill /f /im explorer.exe
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
-nsudo.exe -U:C explorer.exe
+NSudoLG.exe -U:C explorer.exe
 if %errorlevel%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Enabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -2239,7 +2239,7 @@ erase /F /Q "%windir%\System32\NvidiaIcon.exe"
 taskkill /f /im explorer.exe
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
-nsudo.exe -U:C explorer.exe
+NSudoLG.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Disabled...>> %windir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
