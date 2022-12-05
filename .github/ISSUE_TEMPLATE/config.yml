@@ -3,6 +3,9 @@ contact_links:
   - name: General Questions
     url: https://discord.com/servers/atlas-795710270000332800
     about: Please join our Discord for general inquiries.
+  - name: General Questions (if you don't have discord)
+    url: https://github.com/Atlas-OS/Atlas/discussions/new
+    about: In case if you don't have discord, use this.
   - name: Call of Duty Modern Warfare Fix
     url: https://github.com/Atlas-OS/Atlas/issues/353#issuecomment-1336430877
-    about: have "Windows 10 20H2 is not supported"? follow this guide.
+    about: Have problems running COD Modern Warfare? follow this guide.
