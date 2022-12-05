@@ -104,10 +104,13 @@ if /i "%~1"=="/cbdhsvcE"    goto cbdhsvcE
 :: VPN
 if /i "%~1"=="/vpnD"    goto vpnD
 if /i "%~1"=="/vpnE"    goto vpnE
-:: Scoop
+:: Scoop and Choco
 if /i "%~1"=="/scoop" goto scoop
-if /i "%~1"=="/browser" goto browser
-if /i "%~1"=="/altsoftware" goto altSoftware
+if /i "%~1"=="/choco" goto choco
+if /i "%~1"=="/browserscoop" goto browserscoop
+if /i "%~1"=="/altsoftwarescoop" goto altSoftwarescoop
+if /i "%~1"=="/browserchoco" goto browserchoco
+if /i "%~1"=="/altsoftwarechoco" goto altSoftwarechoco
 :: Nvidia PState 0
 if /i "%~1"=="/nvpstateD" goto NVPstate
 if /i "%~1"=="/nvpstateE" goto revertNVPState
@@ -2065,7 +2068,21 @@ echo Adding extras bucket...
 cmd /c scoop bucket add extras
 goto finish
 
-:browser
+:choco
+echo Installing Chocolatey
+set /P c="Review Install script before executing? [Y/N]: "
+if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %windir%\AtlasModules\install.ps1 && notepad %windir%\AtlasModules\install.ps1
+if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %windir%\AtlasModules\install.ps1
+powershell -NoProfile -EP Unrestricted -Command "%windir%\AtlasModules\install.ps1"
+echo Refreshing environment for Choco...
+call %windir%\AtlasModules\refreshenv.bat
+echo]
+echo Installing git...
+cmd /c choco install git
+call %windir%\AtlasModules\refreshenv.bat
+goto finish
+
+:browserscoop
 for /f "tokens=1 delims=;" %%i in ('%windir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
@@ -2074,11 +2091,27 @@ for /f "tokens=1 delims=;" %%i in ('%windir%\AtlasModules\multichoice.exe "Brows
 :: must launch in separate process, scoop seems to exit the whole script if not
 goto finish
 
-:altSoftware
+:browserchoco
+for /f "tokens=1 delims=;" %%i in ('%windir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+	set spacedelimited=%%i
+	set spacedelimited=!spacedelimited:;= !
+	cmd /c choco install !spacedelimited!
+)
+goto finish
+
+:altSoftwarescoop
 for /f "tokens=*" %%i in ('%windir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
+)
+goto finish
+
+:altSoftwarechoco
+for /f "tokens=*" %%i in ('%windir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
+	set spacedelimited=%%i
+	set spacedelimited=!spacedelimited:;= !
+	cmd /c choco install !spacedelimited!
 )
 goto finish
 
