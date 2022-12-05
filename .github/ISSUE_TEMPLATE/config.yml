@@ -1,5 +1,11 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: General Question
+  - name: General Questions
     url: https://discord.com/servers/atlas-795710270000332800
     about: Please join our Discord for general inquiries.
+  - name: General Questions (if you don't have discord)
+    url: https://github.com/Atlas-OS/Atlas/discussions/new
+    about: In case if you don't have discord, use this.
+  - name: Call of Duty Modern Warfare Fix
+    url: https://github.com/Atlas-OS/Atlas/discussions/362
+    about: Have problems running COD Modern Warfare? follow this guide.

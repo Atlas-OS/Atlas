@@ -1,0 +1,79 @@
+name: Bug Report
+description: create a bug report to help us inprove Atlas.
+assignees: Zusier
+labels: Bug
+title: Bug Report
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A clear and concise description of what the bug is.
+  - type: checkboxes
+    attributes:
+      label: Prerequisites
+      description: |
+        To rule out invalid issues, confirm and check each one of the checkboxes.
+      options:
+        - label: This is not a support issue or a question. For any support, questions or help, visit our [Discord](https://discord.gg/atlasos).
+          required: true
+        - label: I performed a [cursory search of the issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to avoid opening a duplicate issue.
+          required: true
+        - label: I checked the [documentation](https://github.com/Atlas-OS/Atlas/wiki) to understand that the issue I am reporting is not normal behavior.
+          required: true
+        - label: I understand that not filling out this template will lead to the issue being closed.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Description
+      description: A short description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce (if applicable add screenshots)
+      placeholder: |
+        1. [First Step]
+        2. [Second Step]
+        3. [and so on...]
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Actual behavior (if applicable add screenshots)
+      description: What happened.
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Atlas Version (1803/20H2/21H2)
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Desktop Info
+      description: Your desktop info is needed for us to define the problem.
+      placeholder: |
+       - CPU [Intel or AMD, include specifics]
+       - RAM (e.g. 8G, 16G, 32G...)
+       - System Drive Type (SSD, HDD, eMMC)
+       - Graphics card
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional Content
+      description: anything you want to add.
+    validations:

@@ -1,0 +1,52 @@
+name: Feature Request
+description: create a feature request to help us inprove Atlas.
+assignees: Zusier
+labels: enhancement
+title: Feature Request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A clear and concise description of your feature request.
+  - type: checkboxes
+    attributes:
+      label: Prerequisites
+      description: |
+        To rule out invalid issues, confirm and check each one of the checkboxes.
+      options:
+        - label: This is not a support issue or a question. For any support, questions or help, visit our [Discord](https://discord.gg/atlasos).
+          required: true
+        - label: I performed a [cursory search of the issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to avoid opening a duplicate issue.
+          required: true
+        - label: I understand that not filling out this template will lead to the issue being closed.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Is your feature request related to a problem? Please describe.
+      description: A short description of the bug.
+      placeholder: |
+        A clear and concise description of what the problem is. E.g. When I open [blank] it hangs/freezes
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Describe the solution you'd like
+      placeholder: |
+        A clear and concise description of what you want to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Describe alternatives you've considered
+      description: If you have found a temporary fix, list it here.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional contex
+      description: Add any other context or screenshots about the feature request here.
+    validations:
