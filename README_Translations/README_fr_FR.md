@@ -75,7 +75,7 @@ Vous voulez créer votre propre fond d'écran Atlas? Peut-être jouer avec notre
 
 Nous avons aussi [une séctions dédiée dans l'onglet Communauté](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), pour que vous pourrez partager votre design avec d'autres artistes at créer de l'inspiration.
 
-## Disclaimer (La réserve)
+## Disclaimer (Avertissement)
 
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
