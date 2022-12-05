@@ -18,7 +18,7 @@
 
 # What is Atlas?
 
-Atlas is a modified version of Windows which removes all the negative drawbacks of Windows, which significantly reduce gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a potato, or a gaming PC.
+Atlas is a modified version of Windows which removes all the negative drawbacks of Windows, which significantly increase gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a potato, or a gaming PC.
 
 While keeping our main focus on performance, we are also a great option to reduce system latency, network latency, input lag, and keep your system private.
 
