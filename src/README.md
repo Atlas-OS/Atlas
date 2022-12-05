@@ -1,12 +1,12 @@
-# Atlas Source
+# Atlas source
 
 Here you can find sources files used to build Atlas:
-- NTLite Preset (Atlas_20H2.xml /  Atlas_1803.xml)
+- NTLite Preset (Atlas_1803.xml/Atlas_20H2.xml)
 - Registry Files
 - Scripts
 - Others, such as programs needed to interface with Windows easier.
 
-## Building From Source
+## Building from source
 
 There are plenty of reasons to build Atlas from source such as:
 - To contribute to the project.
@@ -20,7 +20,7 @@ There are plenty of reasons to build Atlas from source such as:
 - A local copy of the Atlas repository.
 - A default Windows build from Microsoft. ([1](https://tb.rg-adguard.net) [2](https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-iso-download-tool) [3](https://uupdump.net))
 
-### Getting Started
+### Getting started
 
 1. Extract the Windows build using the previously mentioned archive extractor.
 2. Open NTLite and add the extracted folder to NTLite's Source List.
@@ -49,11 +49,11 @@ There are plenty of reasons to build Atlas from source such as:
 
 ## Contributing
 
-### Creating Scripts
+### Creating scripts
 
 First, you will need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L44) to `atlas-config.bat`. This will allow it to be called from a seperate script on the desktop.
 
-For this we will use the [Bluetooth Disable Script](hhttps://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L1235) as an example. 
+For this we will use the [Bluetooth disable script](hhttps://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L1235) as an example. 
 
 ```bat
 :: the :btD label is part of allowing the script to be called when a specific flag is used, as mentioned previously.
@@ -78,12 +78,12 @@ Now that we have the script available in `atlas-config`, let's make a desktop sc
 @echo off
 :: This launches the script with TrustedInstaller permissions
 :: Remove theses comments when contributing.
-C:\Windows\AtlasModules\nsudo -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /btd
+C:\Windows\AtlasModules\Nsudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /btd
 ```
 
 This file will go in the "Atlas" Folder
 
-### Code Formatting
+### Code formatting
 
 To keep code "unified" we have a few guidelines. This way it is easier to understand when contributing.
 

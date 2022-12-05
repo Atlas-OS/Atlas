@@ -1,8 +1,8 @@
-name: Bug Report
+name: Bug report
 description: create a bug report to help us inprove Atlas.
 assignees: Zusier
 labels: bug
-title: Bug Report
+title: Bug report
 body:
   - type: markdown
     attributes:
@@ -14,7 +14,7 @@ body:
       description: |
         To rule out invalid issues, confirm and check each one of the checkboxes.
       options:
-        - label: This is not a support issue or a question. For any support, questions or help, visit our [Discord](https://discord.gg/atlasos).
+        - label: This is not a support issue or a question. For any support, questions or help, visit our [Discord server](https://discord.com/servers/atlas-795710270000332800).
           required: true
         - label: I performed a [cursory search of the issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to avoid opening a duplicate issue.
           required: true
@@ -32,7 +32,7 @@ body:
 
   - type: textarea
     attributes:
-      label: Steps to Reproduce (if applicable add screenshots)
+      label: Steps to reproduce (if applicable add screenshots)
       placeholder: |
         1. [First Step]
         2. [Second Step]
@@ -66,14 +66,14 @@ body:
       description: Your desktop info is needed for us to define the problem.
       placeholder: |
        - CPU [Intel or AMD, include specifics]
-       - RAM (e.g. 8G, 16G, 32G...)
-       - System Drive Type (SSD, HDD, eMMC)
+       - RAM (e.g. 8GB, 16GB, 32GB...)
+       - System Drive Type (SSD or HDD)
        - Graphics card
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: Additional Content
+      label: Additional content
       description: anything you want to add.
     validations:

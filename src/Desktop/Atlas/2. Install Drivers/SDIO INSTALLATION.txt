@@ -9,15 +9,15 @@ If you are familiar with SDIO, you do not need to read this.
 7. Tick the Devices you would like to update drivers for. Remember, less is usually better so do not download them all unless you need to
 8. Done!
 
-If you're not sure what to install, read below.
+If you are not sure what to install, read below.
 
 Minimal:
-- Networking (Will lose networking tweaks, check the troubleshooting folder to redo them!)
+- Networking (will lose networking tweaks, check the troubleshooting folder to redo them!)
 - USB
 - Graphics (from your vendor's website, not SDIO)
 
 Recommended:
-- Networking (Will lose networking tweaks, check the troubleshooting folder to redo them!)
+- Networking (will lose networking tweaks, check the troubleshooting folder to redo them!)
 - USB
 - Graphics (from your vendor's website, not SDIO)
 - Audio 
