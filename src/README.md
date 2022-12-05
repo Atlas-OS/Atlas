@@ -53,7 +53,7 @@ There are plenty of reasons to build Atlas from source such as:
 
 First, you will need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L44) to `atlas-config.bat`. This will allow it to be called from a seperate script on the desktop.
 
-For this we will use the [Bluetooth Disable Script](hhttps://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L1235) as an example. 
+For this we will use the [Bluetooth disable script](hhttps://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L1235) as an example. 
 
 ```bat
 :: the :btD label is part of allowing the script to be called when a specific flag is used, as mentioned previously.
@@ -78,7 +78,7 @@ Now that we have the script available in `atlas-config`, let's make a desktop sc
 @echo off
 :: This launches the script with TrustedInstaller permissions
 :: Remove theses comments when contributing.
-C:\Windows\AtlasModules\nsudo -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /btd
+C:\Windows\AtlasModules\Nsudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /btd
 ```
 
 This file will go in the "Atlas" Folder
