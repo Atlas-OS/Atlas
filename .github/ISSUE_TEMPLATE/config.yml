@@ -1,5 +1,8 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: General Question
+  - name: General Questions
     url: https://discord.com/servers/atlas-795710270000332800
     about: Please join our Discord for general inquiries.
+  - name: Call of Duty Modern Warfare Fix
+    url: https://cdn.discordapp.com/attachments/763812095211995176/1022917939055308881/MW2-Fix.reg
+    about: have "Windows 10 20H2 is not supported"? apply this reg.
