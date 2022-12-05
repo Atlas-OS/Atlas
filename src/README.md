@@ -1,4 +1,4 @@
-# Atlas Source
+# Atlas source
 
 Here you can find sources files used to build Atlas:
 - NTLite Preset (Atlas_1803.xml/Atlas_20H2.xml)
@@ -6,7 +6,7 @@ Here you can find sources files used to build Atlas:
 - Scripts
 - Others, such as programs needed to interface with Windows easier.
 
-## Building From Source
+## Building from source
 
 There are plenty of reasons to build Atlas from source such as:
 - To contribute to the project.
@@ -20,7 +20,7 @@ There are plenty of reasons to build Atlas from source such as:
 - A local copy of the Atlas repository.
 - A default Windows build from Microsoft. ([1](https://tb.rg-adguard.net) [2](https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-iso-download-tool) [3](https://uupdump.net))
 
-### Getting Started
+### Getting started
 
 1. Extract the Windows build using the previously mentioned archive extractor.
 2. Open NTLite and add the extracted folder to NTLite's Source List.
@@ -49,7 +49,7 @@ There are plenty of reasons to build Atlas from source such as:
 
 ## Contributing
 
-### Creating Scripts
+### Creating scripts
 
 First, you will need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L44) to `atlas-config.bat`. This will allow it to be called from a seperate script on the desktop.
 
@@ -83,7 +83,7 @@ C:\Windows\AtlasModules\Nsudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\
 
 This file will go in the "Atlas" Folder
 
-### Code Formatting
+### Code formatting
 
 To keep code "unified" we have a few guidelines. This way it is easier to understand when contributing.
 
