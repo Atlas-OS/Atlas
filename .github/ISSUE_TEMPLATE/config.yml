@@ -4,5 +4,5 @@ contact_links:
     url: https://discord.com/servers/atlas-795710270000332800
     about: Please join our Discord for general inquiries.
   - name: Call of Duty Modern Warfare Fix
-    url: https://cdn.discordapp.com/attachments/763812095211995176/1022917939055308881/MW2-Fix.reg
-    about: have "Windows 10 20H2 is not supported"? apply this reg.
+    url: https://github.com/Atlas-OS/Atlas/issues/353#issuecomment-1336430877
+    about: have "Windows 10 20H2 is not supported"? follow this guide.
