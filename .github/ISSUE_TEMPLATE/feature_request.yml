@@ -14,7 +14,7 @@ body:
       description: |
         To rule out invalid issues, confirm and check each one of the checkboxes.
       options:
-        - label: This is not a support issue or a question. For any support, questions or help, visit our [Discord](https://discord.com/servers/atlas-795710270000332800).
+        - label: This is not a support issue or a question. For any support, questions or help, visit our [Discord server](https://discord.com/servers/atlas-795710270000332800).
           required: true
         - label: I performed a [cursory search of the issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to avoid opening a duplicate issue.
           required: true
