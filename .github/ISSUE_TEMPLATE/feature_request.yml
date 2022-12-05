@@ -1,8 +1,8 @@
-name: Feature Request
+name: Feature request
 description: create a feature request to help us inprove Atlas.
 assignees: Zusier
 labels: enhancement
-title: Feature Request
+title: Feature request
 body:
   - type: markdown
     attributes:
