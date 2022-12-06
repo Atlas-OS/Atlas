@@ -1,17 +1,8 @@
-@echo off
-:: Name: Atlas Configuration Script
+:: name: Atlas Configuration Script
+:: description: this is the master script used to congigure the Atlas operating system
+:: depending on your build, change theses vars to 1803 or 20H2 and update the version
 
-:: Description: This is the master script used to congigure the Atlas Operating System.
-:: Depending on your build, change theses vars to 1803 or 20H2, and update the version
-set branch="20H2"
-set ver="v0.5.2"
-
-:: Other variables (do not touch)
-set currentuser=%windir%\AtlasModules\NSudo.exe -U:C -P:E -Wait
-set setSvc=call :setSvc
-set firewallBlockExe=call :firewallBlockExe
-
-:: CREDITS, in no particular order
+:: CREDITS
 :: Amit
 :: Artanis
 :: CYNAR
@@ -24,6 +15,16 @@ set firewallBlockExe=call :firewallBlockExe
 :: nohopestage
 :: Timecard
 :: Phlegm
+:: xyzze
+
+@echo off
+set branch="20H2"
+set ver="v0.5.2"
+
+:: Other variables (do not touch)
+set currentuser=%windir%\AtlasModules\NSudo.exe -U:C -P:E -Wait
+set setSvc=call :setSvc
+set firewallBlockExe=call :firewallBlockExe
 
 >nul 2>nul "%WinDir%\System32\cacls.exe" "%WinDir%\System32\config\system"
 if '%errorlevel%' NEQ '0' (
