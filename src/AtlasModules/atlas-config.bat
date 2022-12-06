@@ -22,7 +22,7 @@ set branch="20H2"
 set ver="v0.5.2"
 
 :: other variables (do not touch)
-set "currentuser=%windir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
+set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
 set "setSvc=call :setSvc"
 set "firewallBlockExe=call :firewallBlockExe"
 
@@ -162,21 +162,21 @@ pause
 exit
 :startup
 :: Create log directory, for troubleshooting
-mkdir %windir%\AtlasModules\logs
+mkdir %WinDir%\AtlasModules\logs
 cls
 echo Please wait, this may take a moment.
-setx path "%path%;%windir%\AtlasModules;" -m  >nul 2>nul
-IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules Path Set...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set Atlas Modules Path! >> %windir%\AtlasModules\logs\install.log)
+setx path "%path%;%WinDir%\AtlasModules;" -m  >nul 2>nul
+IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules Path Set...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to set Atlas Modules Path! >> %WinDir%\AtlasModules\logs\install.log)
 :: Breaks setting keyboard language
 :: Rundll32.exe advapi32.dll,ProcessIdleTasks
 break>C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
 :auto
 SETLOCAL EnableDelayedExpansion
-%windir%\AtlasModules\vcredist.exe /ai
-if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributable Runtimes! >> %windir%\AtlasModules\logs\install.log)
+%WinDir%\AtlasModules\vcredist.exe /ai
+if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributable Runtimes! >> %WinDir%\AtlasModules\logs\install.log)
 :: change ntp server from windows server to pool.ntp.org
 sc config W32Time start=demand >nul 2>nul
 sc start W32Time >nul 2>nul
@@ -190,8 +190,8 @@ w32tm /config /update
 w32tm /resync
 sc stop W32Time
 sc config W32Time start=disabled
-if %ERRORLEVEL%==0 (echo %date% - %time% NTP Server Set...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set NTP Server! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% NTP Server Set...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to set NTP Server! >> %WinDir%\AtlasModules\logs\install.log)
 cls
 echo Please wait. This may take a moment.
 :: Optimize NTFS parameters
@@ -203,8 +203,8 @@ fsutil behavior set disable8dot3 1
 fsutil behavior set disablecompression 1
 :: Disable FS Mitigations
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
-if %ERRORLEVEL%==0 (echo %date% - %time% FS Optimized...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Optimize FS! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% FS Optimized...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Optimize FS! >> %WinDir%\AtlasModules\logs\install.log)
 :: https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/language-packs-known-issue
 schtasks /Change /Disable /TN "\Microsoft\Windows\LanguageComponentsInstaller\Uninstallation" >nul 2>nul
 reg add "HKLM\Software\Policies\Microsoft\Control Panel\International" /v "BlockCleanupOfUnusedPreinstalledLangPacks" /t REG_DWORD /d "1" /f
@@ -270,8 +270,8 @@ for %%a in (
 	schtasks /Change /Disable /TN %%a > nul
 )
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Scheduled Tasks...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Scheduled Tasks! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Scheduled Tasks...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Disable Scheduled Tasks! >> %WinDir%\AtlasModules\logs\install.log)
 cls
 echo Please wait. This may take a moment.
 
@@ -296,8 +296,8 @@ for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI
 :: Enable MSI Mode on Sata controllers
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
-if %ERRORLEVEL%==0 (echo %date% - %time% MSI Mode Set...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set MSI Mode! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% MSI Mode Set...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to set MSI Mode! >> %WinDir%\AtlasModules\logs\install.log)
 cls
 echo Please wait. This may take a moment.
 
@@ -342,7 +342,7 @@ reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RestrictAnonymous" /t RE
 reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v "NodeType" /t REG_DWORD /d "2" /f
 
 :: Mitigate against HiveNightmare/SeriousSAM
-icacls %windir%\system32\config\*.* /inheritance:e
+icacls %WinDir%\system32\config\*.* /inheritance:e
 
 :: Set strong cryptography on 64 bit and 32 bit .Net Framework (version 4 and above) to fix a Scoop installation issue
 :: https://github.com/ScoopInstaller/Scoop/issues/2040#issuecomment-369686748
@@ -353,25 +353,25 @@ reg add "HKLM\SOFTWARE\Microsoft\.NetFramework\v4.0.30319" /v "SchUseStrongCrypt
 reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder" /v "Attributes" /t REG_DWORD /d 2962489444 /f
 
 :: Import the powerplan
-powercfg -import "%windir%\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
+powercfg -import "%WinDir%\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
 :: Set current powerplan to Atlas
 powercfg /s 11111111-1111-1111-1111-111111111111
-if %ERRORLEVEL%==0 (echo %date% - %time% PowerPlan Imported...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to import PowerPlan! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% PowerPlan Imported...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to import PowerPlan! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: Set SvcSplitThreshold
 :: Credits: revision
 for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /format:value') do set mem=%%i
 set /a ram=%mem% + 1024000
 reg add "HKLM\System\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
-if %ERRORLEVEL%==0 (echo %date% - %time% Service Memory Split Set...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set Service Memory Split! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Service Memory Split Set...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to set Service Memory Split! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: tokens arg breaks path to just \Device instead of \Device Parameters
 :: Disable Power savings on drives
 for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "StorPort"^| findstr "StorPort"') do reg add "%%i" /v "EnableIdlePowerManagement" /t REG_DWORD /d "0" /f
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Storage Powersaving...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Storage Powersaving! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Storage Powersaving...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Disable Storage Powersaving! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: Disable Power Saving
 :: Now lists PnP devices, instead of the previously used 'reg query'
@@ -385,14 +385,14 @@ for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "US
  reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "D3ColdSupported" /t REG_DWORD /d "0" /f
 )
 powershell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Powersaving...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Powersaving! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Powersaving...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Disable Powersaving! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: Make certain applications in the AtlasModules folder request UAC
 :: Although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%windir%\AtlasModules\NSudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\NSudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 
 cls
 echo Please wait. This may take a moment.
@@ -431,8 +431,8 @@ for /f "tokens=1-9* delims=\ " %%A in ('reg query HKLM\SYSTEM\CurrentControlSet\
     )
   )
 )
-if %ERRORLEVEL%==0 (echo %date% - %time% Enabled Hidden PowerPlan Attributes...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Enable Hidden PowerPlan Attributes! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Enabled Hidden PowerPlan Attributes...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Enable Hidden PowerPlan Attributes! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: Residual File Cleanup
 :: Files are removed in official ISO
@@ -456,7 +456,7 @@ reg delete "HKLM\Software\WOW6432Node\Microsoft\Edge" /f >nul 2>nul
 reg delete "HKLM\Software\Clients\StartMenuInternet\Microsoft Edge" /f >nul 2>nul
 reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Device Metadata" /f >nul 2>nul
 :: Not checking for errorlevel, as these are often deleted in the first place. So if it were to error it would only cause confusion.
-echo %date% - %time% Residule Files Deleted...>> %windir%\AtlasModules\logs\install.log
+echo %date% - %time% Residule Files Deleted...>> %WinDir%\AtlasModules\logs\install.log
 
 :: Disable Nagle's Algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
@@ -533,8 +533,8 @@ netsh int tcp set global rsc=disabled
 for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 	netsh int ip set interface %%i routerdiscovery=disabled store=persistent
 )
-if %ERRORLEVEL%==0 (echo %date% - %time% Network Optimized...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Optimize Network! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Network Optimized...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Optimize Network! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: Windows Server Update Client ID
 sc stop wuauserv >nul 2>nul
@@ -573,11 +573,11 @@ DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
 ::DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < Breaks ISO mounts
 DevManView.exe /disable "Numeric Data Processor"
 DevManView.exe /disable "Microsoft RRAS Root Enumerator"
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Devices! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Disable Devices! >> %WinDir%\AtlasModules\logs\install.log)
 
-if %branch%=="20H2" NSudo.exe -U:C -P:E %windir%\AtlasModules\20H2.bat
-if %branch%=="1803" NSudo.exe -U:C -P:E %windir%\AtlasModules\1803.bat
+if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
+if %branch%=="1803" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\1803.bat
 
 :: Backup Default Windows Services and Drivers
 :: Services
@@ -734,8 +734,8 @@ reg add "HKLM\System\CurrentControlSet\Services\rdyboost" /v "DependOnService" /
 reg add "HKLM\System\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}" /v "LowerFilters" /t REG_MULTI_SZ  /d "" /f
 reg add "HKLM\System\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}" /v "UpperFilters" /t REG_MULTI_SZ  /d "" /f
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Services...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Services! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Services...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Disable Services! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: Backup Default Atlas Services and Drivers
 :: Services
@@ -778,10 +778,10 @@ reg add "HKLM\System\CurrentControlSet\Control\CrashControl" /v "CrashDumpEnable
 reg add "HKLM\System\CurrentControlSet\Control\CrashControl" /v "DisplayParameters" /t REG_DWORD /d "1" /f
 
 :: GPO for Startmenu (tiles)
-reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%windir%\layout.xml" /f
+reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%WinDir%\layout.xml" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
-%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%windir%\layout.xml" /f
+%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%WinDir%\layout.xml" /f
 
 :: Enable dark mode, disable transparency
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v "SystemUsesLightTheme" /t REG_DWORD /d "0" /f
@@ -1105,11 +1105,11 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /
 ::reg add "HKLM\Software\Microsoft\Windows\Dwm" /v "AnimationAttributionEnabled" /t REG_DWORD /d "0" /f
 
 :: add batch to new file menu
-reg add "HKLM\Software\Classes\.bat\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "@%windir%\System32\acppage.dll,-6002" /f
+reg add "HKLM\Software\Classes\.bat\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "@%WinDir%\System32\acppage.dll,-6002" /f
 reg add "HKLM\Software\Classes\.bat\ShellNew" /v "NullFile" /t REG_SZ /d "" /f
 
 :: add reg to new file menu
-reg add "HKLM\Software\Classes\.reg\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "@%windir%\regedit.exe,-309" /f
+reg add "HKLM\Software\Classes\.reg\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "@%WinDir%\regedit.exe,-309" /f
 reg add "HKLM\Software\Classes\.reg\ShellNew" /v "NullFile" /t REG_SZ /d "" /f
 
 :: Disable Storage Sense
@@ -1166,15 +1166,15 @@ reg add "HKLM\Software\Classes\powerplan\Shell\open\command" /ve /t REG_SZ /d "p
 reg add "HKLM\Software\Classes\.pow" /ve /t REG_SZ /d "powerplan" /f
 reg add "HKLM\Software\Classes\.pow" /v "FriendlyTypeName" /t REG_SZ /d "PowerPlan" /f
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Registry Tweaks Applied...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Apply Registry Tweaks! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Registry Tweaks Applied...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Apply Registry Tweaks! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: Disable DmaRemapping
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
 for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f DmaRemappingCompatible ^| find /i "Services\" ') do (
 	reg add "%%i" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f
 )
-echo %date% - %time% Disabled Dma Remapping...>> %windir%\AtlasModules\logs\install.log
+echo %date% - %time% Disabled Dma Remapping...>> %WinDir%\AtlasModules\logs\install.log
 
 :: set CSRSS to high
 :: csrss is responsible for mouse input, setting to high may yield an improvement in input latency.
@@ -1192,8 +1192,8 @@ for %%i in (OriginWebHelperService.exe ShareX.exe EpicWebHelper.exe SocialClubHe
 :: Set  DWM to normal
 ::wmic process where name="dwm.exe" CALL setpriority "normal"
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Process Priorities Set...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Set Priorities! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Process Priorities Set...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Set Priorities! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: lowering dual boot choice time
 :: No, this does NOT affect single OS boot time.
@@ -1215,40 +1215,40 @@ bcdedit /set hypervisorlaunchtype off
 bcdedit /set bootmenupolicy Legacy
 :: Make dual boot menu more descriptive
 bcdedit /set description Atlas %branch% %ver%
-echo %date% - %time% BCD Options Set...>> %windir%\AtlasModules\logs\install.log
+echo %date% - %time% BCD Options Set...>> %WinDir%\AtlasModules\logs\install.log
 
 :: Write to script log file
-echo This log keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > %windir%\AtlasModules\logs\userScript.log
-echo -------------------------------------------------------------------------------------------------------------------- >> %windir%\AtlasModules\logs\userScript.log
+echo This log keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > %WinDir%\AtlasModules\logs\userScript.log
+echo -------------------------------------------------------------------------------------------------------------------- >> %WinDir%\AtlasModules\logs\userScript.log
 
 :: clear false value
 break>C:\Users\Public\success.txt
 echo true > C:\Users\Public\success.txt
-echo %date% - %time% Post-Install Finished Redirecting to sub script...>> %windir%\AtlasModules\logs\install.log
+echo %date% - %time% Post-Install Finished Redirecting to sub script...>> %WinDir%\AtlasModules\logs\install.log
 exit
 :notiD
 sc config WpnService start=disabled
 sc stop WpnService >nul 2>nul
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Notifications Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Notifications Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :notiE
 sc config WpnUserService start=auto
 sc config WpnService start=auto
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "0" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Notifications Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Notifications Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :indexD
 sc config WSearch start=disabled
 sc stop WSearch >nul 2>nul
-if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :indexE
 sc config WSearch start=delayed-auto
 sc start WSearch >nul 2>nul
-if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :wifiD
 echo Applications like Store and Spotify may not function correctly when disabled. If this is a problem, enable the wifi and restart the computer.
@@ -1259,7 +1259,7 @@ if /I "%c%" EQU "N" goto wifiDskip
 sc config netprofm start=disabled
 sc config NlaSvc start=disabled
 :wifiDskip
-if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1"=="int" goto :EOF
 goto finish
 :wifiE
@@ -1271,9 +1271,9 @@ sc config vwififlt start=system
 ping -n 1 -4 1.1.1.1 |Find "Failure"|(
     sc config WlanSvc start=auto
 )
-if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 sc config eventlog start=auto
-echo %date% - %time% EventLog enabled as Wi-Fi dependency...>> %windir%\AtlasModules\logs\userscript.log
+echo %date% - %time% EventLog enabled as Wi-Fi dependency...>> %WinDir%\AtlasModules\logs\userscript.log
 goto finish
 :storeD
 echo This will break a majority of UWP apps and their deployment.
@@ -1301,7 +1301,7 @@ sc config AppXSVC start=disabled
 sc config ClipSVC start=disabled
 sc config FileInfo start=disabled
 sc config FileCrypt start=disabled
-if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
 :storeE
@@ -1323,7 +1323,7 @@ sc config AppXSVC start=demand
 sc config ClipSVC start=demand
 sc config FileInfo start=boot
 sc config FileCrypt start=system
-if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :btD
 sc config BthAvctpSvc start=disabled
@@ -1333,7 +1333,7 @@ for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f CDPU
   sc stop %%~nI
 )
 sc config CDPSvc start=disabled
-if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
 :btE
@@ -1342,7 +1342,7 @@ for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f CDPU
   reg add "%%I" /v "Start" /t REG_DWORD /d "2" /f
 )
 sc config CDPSvc start=auto
-if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :cbdhsvcD
 for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f cbdhsvc ^| find /i "cbdhsvc" ') do (
@@ -1352,7 +1352,7 @@ for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f cbdh
 sc config DsSvc start=disabled
 %currentuser% reg add "HKCU\Software\Microsoft\Clipboard" /v "EnableClipboardHistory" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /t REG_DWORD /d "0" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :cbdhsvcE
 for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f cbdhsvc ^| find /i "cbdhsvc" ') do (
@@ -1361,7 +1361,7 @@ for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f cbdh
 sc config DsSvc start=auto
 %currentuser% reg add "HKCU\Software\Microsoft\Clipboard" /v "EnableClipboardHistory" /t REG_DWORD /d "1" /f
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /f >nul 2>nul
-if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :hddD
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnablePrefetcher" /t REG_DWORD /d "0" /f
@@ -1369,7 +1369,7 @@ reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" /v "EnablePrefetcher" /t REG_DWORD /d "0" /f
 sc config SysMain start=disabled
 sc config FontCache start=disabled
-if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :hddE
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnablePrefetcher" /t REG_DWORD /d "1" /f
@@ -1377,7 +1377,7 @@ reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" /v "EnablePrefetcher" /t REG_DWORD /d "3" /f
 sc config SysMain start=auto
 sc config FontCache start=auto
-if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :depE
 powershell -NoProfile set-ProcessMitigation -System -Enable DEP
@@ -1387,14 +1387,14 @@ bcdedit /set nx OptIn
 for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
   powershell -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
 )
-if %ERRORLEVEL%==0 echo %date% - %time% DEP Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% DEP Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :depD
 echo If you get issues with some anti-cheats, please re-enable DEP.
 powershell -NoProfile set-ProcessMitigation -System -Disable DEP
 powershell -NoProfile set-ProcessMitigation -System -Disable EmulateAtlThunks
 bcdedit /set nx AlwaysOff
-if %ERRORLEVEL%==0 echo %date% - %time% DEP Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% DEP Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :SearchStart
 IF EXIST "C:\Program Files\Open-Shell" goto existS
@@ -1407,42 +1407,42 @@ if /I "%c%" EQU "Y" goto continSS
 if /I "%c%" EQU "N" exit
 :continSS
 :: Rename Start Menu
-chdir /d %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 :restartStart
 taskkill /F /IM StartMenuExperienceHost*
 ren StartMenuExperienceHost.exe StartMenuExperienceHost.old
 :: Loop if it fails to rename the first time
-if exist "%windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto restartStart
+if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto restartStart
 :: Rename Search
-chdir /d %windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 :restartSearch
 taskkill /F /IM SearchApp*  >nul 2>nul
 ren SearchApp.exe SearchApp.old
 :: Loop if it fails to rename the first time
-if exist "%windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto restartSearch
+if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto restartSearch
 :: Search Icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :enableStart
 :: Rename Start Menu
-chdir /d %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 ren StartMenuExperienceHost.old StartMenuExperienceHost.exe
 :: Rename Search
-chdir /d %windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 ren SearchApp.old SearchApp.exe
 :: Search Icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f
 taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :openshellInstall
-curl -L --output %windir%\AtlasModules\oshellI.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.8/OpenShellSetup_4_4_8.exe
-IF EXIST "%windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
-IF EXIST "%windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existOS
+curl -L --output %WinDir%\AtlasModules\oshellI.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.8/OpenShellSetup_4_4_8.exe
+IF EXIST "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
+IF EXIST "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existOS
 goto rmSSOS
 :existOS
 set /P c=It appears Search and Start are installed, would you like to disable them also?[Y/N]?
@@ -1450,24 +1450,24 @@ if /I "%c%" EQU "Y" goto rmSSOS
 if /I "%c%" EQU "N" goto skipRM
 :rmSSOS
 :: Rename Start Menu
-chdir /d %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 :OSrestartStart
 taskkill /F /IM StartMenuExperienceHost*
 ren StartMenuExperienceHost.exe StartMenuExperienceHost.old
 :: Loop if it fails to rename the first time
-if exist "%windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto OSrestartStart
+if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto OSrestartStart
 :: Rename Search
-chdir /d %windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 :OSrestartSearch
 taskkill /F /IM SearchApp*  >nul 2>nul
 ren SearchApp.exe SearchApp.old
 :: Loop if it fails to rename the first time
-if exist "%windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto OSrestartSearch
+if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto OSrestartSearch
 :: Search Icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> %WinDir%\AtlasModules\logs\userScript.log
 :skipRM
 :: Install silently
 echo]
@@ -1478,7 +1478,7 @@ curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5/Fluent-
 del /F /Q skin.zip >nul 2>nul
 taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell Installed...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell Installed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 :uwp
 IF EXIST "C:\Program Files\Open-Shell" goto uwpD
@@ -1520,18 +1520,18 @@ sc config LicenseManager start=disabled
 sc config ClipSVC start=disabled
 
 taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
-ren %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
+ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
 taskkill /F /IM SearchApp*  >nul 2>nul
-ren %windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
-ren %windir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old
-ren %windir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old
+ren %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
+ren %WinDir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old
+ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old
 
 taskkill /F /IM RuntimeBroker*  >nul 2>nul
-ren %windir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
+ren %WinDir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% UWP Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% UWP Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 pause
 :uwpE
@@ -1553,17 +1553,17 @@ sc config LicenseManager start=demand
 sc config ClipSVC start=demand
 
 taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
-ren %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 taskkill /F /IM SearchApp*  >nul 2>nul
-ren %windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy.old Microsoft.Windows.Search_cw5n1h2txyewy
-ren %windir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old Microsoft.XboxGameCallableUI_cw5n1h2txyewy
-ren %windir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe
+ren %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy.old Microsoft.Windows.Search_cw5n1h2txyewy
+ren %WinDir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old Microsoft.XboxGameCallableUI_cw5n1h2txyewy
+ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe
 taskkill /F /IM RuntimeBroker*  >nul 2>nul
-ren %windir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
+ren %WinDir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% UWP Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% UWP Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :mitE
 powershell -NoProfile set-ProcessMitigation -System -Enable DEP
@@ -1584,7 +1584,7 @@ goto finish
 reg delete "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
 reg delete "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /f >nul 2>nul
-if %ERRORLEVEL%==0 echo %date% - %time% StartLayout Policy Removed...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% StartLayout Policy Removed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :sleepD
 :: Disable Away Mode policy
@@ -1597,7 +1597,7 @@ powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 0
 powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 0
 powercfg -setactive scheme_current
-if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 :sleepE
 :: Enable Away Mode policy
@@ -1610,19 +1610,19 @@ powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 powercfg -setactive scheme_current
-if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :idleD
 echo THIS WILL CAUSE YOUR CPU USAGE TO *DISPLAY* AS 100% IN TASK MANAGER. ENABLE IDLE IF THIS IS AN ISSUE.
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1
 powercfg -setactive scheme_current
-if %ERRORLEVEL%==0 echo %date% - %time% Idle Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Idle Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 :idleE
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0
 powercfg -setactive scheme_current
-if %ERRORLEVEL%==0 echo %date% - %time% Idle Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Idle Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :harden
@@ -1746,17 +1746,17 @@ sc config XblGameSave start=disabled
 sc config XboxGipSvc start=disabled
 sc config XboxNetApiSvc start=disabled
 %setSvc% BcastDVRUserService 4
-if %ERRORLEVEL%==0 echo %date% - %time% Xbox Related Apps and Services Removed...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Xbox Related Apps and Services Removed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 :vcreR
 echo Uninstalling Visual C++ Runtimes...
-%windir%\AtlasModules\vcredist.exe /aiR
+%WinDir%\AtlasModules\vcredist.exe /aiR
 echo Finished uninstalling!
 echo]
 echo Opening Visual C++ Runtimes installer, simply click next.
-%windir%\AtlasModules\vcredist.exe
+%WinDir%\AtlasModules\vcredist.exe
 echo Installation Finished or Cancelled.
-if %ERRORLEVEL%==0 echo %date% - %time% Visual C++ Runtimes Reinstalled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Visual C++ Runtimes Reinstalled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 :uacD
 echo Disabling UAC breaks fullscreen on certain UWP applications, one of them being Minecraft Windows 10 Edition. It is also less secure to disable UAC.
@@ -1770,7 +1770,7 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "Pro
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "0" /f
 %setSvc% luafv 4
 %setSvc% Appinfo 4
-if %ERRORLEVEL%==0 echo %date% - %time% UAC Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% UAC Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
 :uacE
@@ -1779,19 +1779,19 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "Pro
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "5" /f
 %setSvc% luafv 2
 %setSvc% Appinfo 3
-if %ERRORLEVEL%==0 echo %date% - %time% UAC Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% UAC Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :firewallD
 %setSvc% mpssvc 4
 %setSvc% BFE 4
-if %ERRORLEVEL%==0 echo %date% - %time% Firewall Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Firewall Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
 :firewallE
 %setSvc% mpssvc 2
 %setSvc% BFE 2
-if %ERRORLEVEL%==0 echo %date% - %time% Firewall Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Firewall Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :aniE
 reg delete "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /f >nul 2>nul
@@ -1799,7 +1799,7 @@ reg delete "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarAnimations" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9e3e078012000000" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Animations Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Animations Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :aniD
 reg add "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /t REG_DWORD /d "1" /f
@@ -1807,7 +1807,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarAnimations" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d "3" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9012038010000000" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Animations Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Animations Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :workstationD
 %setSvc% rdbss 4
@@ -1817,7 +1817,7 @@ goto finish
 %setSvc% srv2 4
 %setSvc% LanmanWorkstation 4
 dism /Online /Disable-Feature /FeatureName:SmbDirect /norestart
-if %ERRORLEVEL%==0 echo %date% - %time% Workstation Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Workstation Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :workstationE
 %setSvc% rdbss 3
@@ -1827,7 +1827,7 @@ goto finish
 %setSvc% srv2 3
 %setSvc% LanmanWorkstation 2
 dism /Online /Enable-Feature /FeatureName:SmbDirect /norestart
-if %ERRORLEVEL%==0 echo %date% - %time% Workstation Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Workstation Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
 :printE
@@ -1846,11 +1846,11 @@ reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableWebPnP
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableHTTPPrinting" /t REG_DWORD /d "1" /f
 :printECont
 %setSvc% Spooler 2
-if %ERRORLEVEL%==0 echo %date% - %time% Printing Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Printing Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :printD
 %setSvc% Spooler 4
-if %ERRORLEVEL%==0 echo %date% - %time% Printing Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Printing Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :dataQueueM
 echo Mouse Data Queue Sizes
@@ -1869,7 +1869,7 @@ goto dataQueueM
 :: Checks for invalid values
 :dataQueueMSet
 reg add "HKLM\System\CurrentControlSet\Services\mouclass\Parameters" /v "MouseDataQueueSize" /t REG_DWORD /d "%c%" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Mouse Data Queue Size set to %c%...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Mouse Data Queue Size set to %c%...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :dataQueueK
 echo Keyboard Data Queue Sizes
@@ -1888,7 +1888,7 @@ goto dataQueueK
 :: Checks for invalid values
 :dataQueueKSet
 reg add "HKLM\System\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d "%c%" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Keyboard Data Queue Size set to %c%...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Keyboard Data Queue Size set to %c%...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :netWinDefault
 netsh int ip reset
@@ -1898,7 +1898,7 @@ for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connecte
 	DevManView.exe /uninstall "%%i %%j"
 )
 pnputil /scan-devices
-if %ERRORLEVEL%==0 echo %date% - %time% Network Setting Reset to Windows Default...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Network Setting Reset to Windows Default...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :netAtlasDefault
 :: Disable Nagle's Algorithm
@@ -1976,10 +1976,10 @@ netsh int tcp set global rsc=disabled
 for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 	netsh int ip set interface %%i routerdiscovery=disabled store=persistent
 )
-if %ERRORLEVEL%==0 echo %date% - %time% Network Setting Reset to Atlas Default...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Network Setting Reset to Atlas Default...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :debugProfile
-systeminfo > %windir%\AtlasModules\logs\systemInfo.log
+systeminfo > %WinDir%\AtlasModules\logs\systemInfo.log
 goto finish
 :vpnD
 DevManView.exe /disable "WAN Miniport (IKEv2)"
@@ -1999,7 +1999,7 @@ DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 %setSvc% iphlpsvc 4
 %setSvc% NdisVirtualBus 4
 %setSvc% Eaphost 4
-if %ERRORLEVEL%==0 echo %date% - %time% VPN Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% VPN Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :vpnE
 DevManView.exe /enable "WAN Miniport (IKEv2)"
@@ -2020,7 +2020,7 @@ DevManView.exe /enable "Microsoft RRAS Root Enumerator"
 %setSvc% iphlpsvc 3
 %setSvc% NdisVirtualBus 3
 %setSvc% Eaphost 3
-if %ERRORLEVEL%==0 echo %date% - %time% VPN Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% VPN Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :wmpD
@@ -2035,39 +2035,39 @@ echo - CapFrameX
 echo - Network Menu/Icon
 echo If you experience random issues, please enable EventLog again.
 sc config EventLog start=disabled
-if %ERRORLEVEL%==0 echo %date% - %time% Event Log Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Event Log Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :eventlogE
 sc config EventLog start=auto
-if %ERRORLEVEL%==0 echo %date% - %time% Event Log Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Event Log Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :scheduleD
 echo Disabling Task Scheduler will break some features:
 echo - MSI Afterburner startup/Updates
 echo - UWP Typing (e.g. Search Bar)
 sc config Schedule start=disabled
-if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 echo If you experience random issues, please enable Task Scheduler again.
 goto finish
 :scheduleE
 sc config Schedule start=auto
-if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :scoop
 echo Installing scoop...
 set /P c="Review Install script before executing? [Y/N]: "
-if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %windir%\AtlasModules\install.ps1 && notepad %windir%\AtlasModules\install.ps1
-if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %windir%\AtlasModules\install.ps1
+if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
+if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1
 powershell -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
-powershell -NoProfile %windir%\AtlasModules\install.ps1
+powershell -NoProfile %WinDir%\AtlasModules\install.ps1
 echo Refreshing environment for Scoop...
-call %windir%\AtlasModules\refreshenv.bat
+call %WinDir%\AtlasModules\refreshenv.bat
 echo]
 echo Installing git...
 :: Scoop isn't very nice with batch scripts, and will break the whole script if a warning or error shows..
 cmd /c scoop install git -g
-call %windir%\AtlasModules\refreshenv.bat
+call %WinDir%\AtlasModules\refreshenv.bat
 echo .
 echo Adding extras bucket...
 cmd /c scoop bucket add extras
@@ -2076,19 +2076,19 @@ goto finish
 :choco
 echo Installing Chocolatey
 set /P c="Review Install script before executing? [Y/N]: "
-if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %windir%\AtlasModules\install.ps1 && notepad %windir%\AtlasModules\install.ps1
-if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %windir%\AtlasModules\install.ps1
-powershell -NoProfile -EP Unrestricted -Command "%windir%\AtlasModules\install.ps1"
+if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
+if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1
+powershell -NoProfile -EP Unrestricted -Command "%WinDir%\AtlasModules\install.ps1"
 echo Refreshing environment for Choco...
-call %windir%\AtlasModules\refreshenv.bat
+call %WinDir%\AtlasModules\refreshenv.bat
 echo]
 echo Installing git...
 cmd /c choco install git
-call %windir%\AtlasModules\refreshenv.bat
+call %WinDir%\AtlasModules\refreshenv.bat
 goto finish
 
 :browserscoop
-for /f "tokens=1 delims=;" %%i in ('%windir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
@@ -2097,7 +2097,7 @@ for /f "tokens=1 delims=;" %%i in ('%windir%\AtlasModules\multichoice.exe "Brows
 goto finish
 
 :browserchoco
-for /f "tokens=1 delims=;" %%i in ('%windir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
@@ -2105,7 +2105,7 @@ for /f "tokens=1 delims=;" %%i in ('%windir%\AtlasModules\multichoice.exe "Brows
 goto finish
 
 :altSoftwarescoop
-for /f "tokens=*" %%i in ('%windir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
+for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
@@ -2113,7 +2113,7 @@ for /f "tokens=*" %%i in ('%windir%\AtlasModules\multichoice.exe "Common Softwar
 goto finish
 
 :altSoftwarechoco
-for /f "tokens=*" %%i in ('%windir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
+for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
@@ -2131,7 +2131,7 @@ for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| find
 for /f "tokens=2 delims=()" %%i in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /F "tokens=2" %%a in ("%%i") do set DHCPSubnetMask=%%a
 netsh int ipv4 set address name="%devicename%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway%
 powershell -NoProfile -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
-echo %date% - %time% Static IP set! (%LocalIP%)(%DHCPGateway%)(%DHCPSubnetMask%) >> %windir%\AtlasModules\logs\userScript.log
+echo %date% - %time% Static IP set! (%LocalIP%)(%DHCPGateway%)(%DHCPSubnetMask%) >> %WinDir%\AtlasModules\logs\userScript.log
 echo Private IP: %LocalIP%
 echo Gateway: %DHCPGateway%
 echo Subnet Mask: %DHCPSubnetMask%
@@ -2145,11 +2145,11 @@ goto finish
 for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f Scaling ^| find /i "Configuration\"') do (
 	reg add "%%i" /v "Scaling" /t REG_DWORD /d "1" /f
 )
-if %ERRORLEVEL%==0 echo %date% - %time% Display Scaling Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Display Scaling Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :DSCPauto
-for /f "tokens=* delims=\" %%i in ('%windir%\AtlasModules\filepicker.exe exe') do (
+for /f "tokens=* delims=\" %%i in ('%WinDir%\AtlasModules\filepicker.exe exe') do (
     if "%%i"=="cancelled by user" exit
     reg add "HKLM\Software\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Application Name" /t REG_SZ /d "%%~ni%%~xi" /f
     reg add "HKLM\Software\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Version" /t REG_SZ /d "1.0" /f
@@ -2180,14 +2180,14 @@ pause
 for /F "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA"^| findstr "HK"') do (
     reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
 )
-if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :revertNVPState
 for /F "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA"^| findstr "HK"') do (
     reg delete "%%i" /v "DisableDynamicPstate" /f
 )
-if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :nvcontainerD
@@ -2204,7 +2204,7 @@ echo Read README.txt for more info.
 pause
 %setSvc% NVDisplay.ContainerLocalSystem 4
 sc stop NVDisplay.ContainerLocalSystem > nul
-if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :nvcontainerE
@@ -2217,7 +2217,7 @@ if %errorlevel% 1 (
 )
 %setSvc% NVDisplay.ContainerLocalSystem 2
 sc start NVDisplay.ContainerLocalSystem > nul
-if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :nvcontainerCME
@@ -2233,26 +2233,26 @@ pause
 :: get icon exe
 :: different for older/newer drivers
 if not exist "C:\Program Files\NVIDIA Corporation\Display.NvContainer\" (
-	cd /d %windir%\System32\DriverStore\FileRepository\nv_dispig.inf_?????_*\Display.NvContainer\
+	cd /d %WinDir%\System32\DriverStore\FileRepository\nv_dispig.inf_?????_*\Display.NvContainer\
 ) else (
 	cd /d C:\Program Files\NVIDIA Corporation\Display.NvContainer\
 )
-copy "NVDisplay.Container.exe" "%windir%\System32\NvidiaIcon.exe" /B /Y
-reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%windir%\System32\NvidiaIcon.exe,0" /f
+copy "NVDisplay.Container.exe" "%WinDir%\System32\NvidiaIcon.exe" /B /Y
+reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%WinDir%\System32\NvidiaIcon.exe,0" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "MUIVerb" /t REG_SZ /d "NVIDIA Container" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Position" /t REG_SZ /d "Bottom" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "SubCommands" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "MUIVerb" /t REG_SZ /d "Enable NVIDIA Container" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%windir%\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait %windir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Container" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%windir%\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait %windir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
 taskkill /f /im explorer.exe
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 NSudo.exe -U:C explorer.exe
-if %errorlevel%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Enabled...>> %windir%\AtlasModules\logs\userScript.log
+if %errorlevel%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :nvcontainerCMD
@@ -2273,23 +2273,23 @@ echo Explorer will be restarted to ensure that the context menu is gone.
 pause
 reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f
 :: delete icon exe
-erase /F /Q "%windir%\System32\NvidiaIcon.exe"
+erase /F /Q "%WinDir%\System32\NvidiaIcon.exe"
 taskkill /f /im explorer.exe
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 NSudo.exe -U:C explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Disabled...>> %windir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :networksharingE
 echo Enabling Workstation as a dependency...
 call :workstationE "int"
 sc config eventlog start=auto
-echo %date% - %time% EventLog enabled as Network Sharing dependency...>> %windir%\AtlasModules\logs\userscript.log
+echo %date% - %time% EventLog enabled as Network Sharing dependency...>> %WinDir%\AtlasModules\logs\userscript.log
 %setSvc% NlaSvc 2
 %setSvc% lmhosts 3
 %setSvc% netman 3
-echo %date% - %time% Network Sharing enabled...>> %windir%\AtlasModules\logs\userscript.log
+echo %date% - %time% Network Sharing enabled...>> %WinDir%\AtlasModules\logs\userscript.log
 echo To complete, enable Network Sharing in control panel.
 goto :finish
 
@@ -2297,14 +2297,14 @@ goto :finish
 %setSvc% DPS 2
 %setSvc% WdiServiceHost 3
 %setSvc% WdiSystemHost 3
-echo %date% - %time% Diagnotics enabled...>> %windir%\AtlasModules\logs\userscript.log
+echo %date% - %time% Diagnotics enabled...>> %WinDir%\AtlasModules\logs\userscript.log
 goto :finish
 
 :diagD
 %setSvc% DPS 4
 %setSvc% WdiServiceHost 4
 %setSvc% WdiSystemHost 4
-echo %date% - %time% Diagnotics disabled...>> %windir%\AtlasModules\logs\userscript.log
+echo %date% - %time% Diagnotics disabled...>> %WinDir%\AtlasModules\logs\userscript.log
 goto :finish
 
 :: Begin Batch Functions
