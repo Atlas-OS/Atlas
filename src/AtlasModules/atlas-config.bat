@@ -427,31 +427,33 @@ powercfg /s 11111111-1111-1111-1111-111111111111
 if %ERRORLEVEL%==0 (echo %date% - %time% PowerPlan Imported...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to import PowerPlan! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: set SvcSplitThreshold
+:: set service split treshold
 reg add "HKLM\System\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "ffffffff" /f
 if %ERRORLEVEL%==0 (echo %date% - %time% Service Memory Split Set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Service Memory Split! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: tokens arg breaks path to just \Device instead of \Device Parameters
-:: Disable Power savings on drives
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "StorPort"^| findstr "StorPort"') do reg add "%%i" /v "EnableIdlePowerManagement" /t REG_DWORD /d "0" /f
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Storage Powersaving...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Storage Powersaving! >> %WinDir%\AtlasModules\logs\install.log)
-
-:: Disable Power Saving
-:: Now lists PnP devices, instead of the previously used 'reg query'
-for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (
- reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "EnhancedPowerManagementEnabled" /t REG_DWORD /d "0" /f
- reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "AllowIdleIrpInD3" /t REG_DWORD /d "0" /f
- reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "EnableSelectiveSuspend" /t REG_DWORD /d "0" /f
- reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "DeviceSelectiveSuspended" /t REG_DWORD /d "0" /f
- reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "SelectiveSuspendEnabled" /t REG_DWORD /d "0" /f
- reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "SelectiveSuspendOn" /t REG_DWORD /d "0" /f
- reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "D3ColdSupported" /t REG_DWORD /d "0" /f
+:: disable power savings
+:: now lists PnP devices, instead of the previously used "reg query"
+for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
+    for %%a in (
+        "EnhancedPowerManagementEnabled"
+        "AllowIdleIrpInD3"
+        "EnableSelectiveSuspend"
+        "DeviceSelectiveSuspended"
+        "SelectiveSuspendEnabled"
+        "SelectiveSuspendOn"
+        "WaitWakeEnabled"
+        "D3ColdSupported"
+        "WdfDirectedPowerTransitionEnable"
+        "EnableIdlePowerManagement"
+        "IdleInWorkingState"
+    ) do (
+        reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "%%a" /t REG_DWORD /d "0" /f
+    )
 )
-powershell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Powersaving...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Powersaving! >> %WinDir%\AtlasModules\logs\install.log)
+PowerShell.exe -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Power Savings...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Disable Power Savings! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: Make certain applications in the AtlasModules folder request UAC
 :: Although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
