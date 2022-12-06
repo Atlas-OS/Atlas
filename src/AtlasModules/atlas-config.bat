@@ -21,10 +21,10 @@
 set branch="20H2"
 set ver="v0.5.2"
 
-:: Other variables (do not touch)
-set currentuser=%windir%\AtlasModules\NSudo.exe -U:C -P:E -Wait
-set setSvc=call :setSvc
-set firewallBlockExe=call :firewallBlockExe
+:: other variables (do not touch)
+set "currentuser=%windir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
+set "setSvc=call :setSvc"
+set "firewallBlockExe=call :firewallBlockExe"
 
 >nul 2>nul "%WinDir%\System32\cacls.exe" "%WinDir%\System32\config\system"
 if '%errorlevel%' NEQ '0' (
