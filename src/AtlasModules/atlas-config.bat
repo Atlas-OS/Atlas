@@ -26,12 +26,16 @@ set "currentuser=%windir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
 set "setSvc=call :setSvc"
 set "firewallBlockExe=call :firewallBlockExe"
 
->nul 2>nul "%WinDir%\System32\cacls.exe" "%WinDir%\System32\config\system"
-if '%errorlevel%' NEQ '0' (
+:: check for administrator privileges
+fltmc >nul 2>&1 || (
     goto permFAIL
 )
+
+:: check for trusted installer priviliges
 whoami /user | find /i "S-1-5-18" >nul 2>&1
-if not %errorlevel%==0 (set system=false)
+if not "%errorlevel%" EQU "0" (
+    set system=false
+)
 
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
