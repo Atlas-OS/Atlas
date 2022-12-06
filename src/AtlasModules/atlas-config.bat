@@ -215,14 +215,16 @@ SETLOCAL EnableDelayedExpansion
 %WinDir%\AtlasModules\vcredist.exe /ai
 if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributable Runtimes! >> %WinDir%\AtlasModules\logs\install.log)
+
 :: change ntp server from windows server to pool.ntp.org
 sc config W32Time start=demand >nul 2>nul
 sc start W32Time >nul 2>nul
 w32tm /config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"
-sc queryex "w32time"|Find "STATE"|Find /v "RUNNING"||(
+sc queryex "w32time" | find "STATE" | find /v "RUNNING" || (
     net stop w32time
     net start w32time
 ) >nul 2>nul
+
 :: resync time to pool.ntp.org
 w32tm /config /update
 w32tm /resync
@@ -230,26 +232,31 @@ sc stop W32Time
 sc config W32Time start=disabled
 if %ERRORLEVEL%==0 (echo %date% - %time% NTP Server Set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set NTP Server! >> %WinDir%\AtlasModules\logs\install.log)
-cls
-echo Please wait. This may take a moment.
-:: Optimize NTFS parameters
-:: Disable Last Access information on directories, performance/privacy.
+cls & echo Please wait. This may take a moment.
+
+:: optimize NTFS parameters
+:: disable last access information on directories, performance/privacy.
 fsutil behavior set disableLastAccess 1
+
 :: https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security/
 fsutil behavior set disable8dot3 1
-:: Disable NTFS compression
+
+:: disable NTFS compression
 fsutil behavior set disablecompression 1
-:: Disable FS Mitigations
+
+:: disable file system mitigations
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
 if %ERRORLEVEL%==0 (echo %date% - %time% FS Optimized...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Optimize FS! >> %WinDir%\AtlasModules\logs\install.log)
+
+:: attempt to fix language packs issue
 :: https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/language-packs-known-issue
 schtasks /Change /Disable /TN "\Microsoft\Windows\LanguageComponentsInstaller\Uninstallation" >nul 2>nul
 reg add "HKLM\Software\Policies\Microsoft\Control Panel\International" /v "BlockCleanupOfUnusedPreinstalledLangPacks" /t REG_DWORD /d "1" /f
 
-:: Disable unneeded Tasks
+:: disable unneeded scheduled tasks
 
-:: Breaks setting Lock Screen
+:: breaks setting Lock Screen
 :: schtasks /Change /Disable /TN "\Microsoft\Windows\Shell\CreateObjectTask"
 
 for %%a in (
@@ -310,22 +317,35 @@ for %%a in (
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Scheduled Tasks...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Scheduled Tasks! >> %WinDir%\AtlasModules\logs\install.log)
-cls
-echo Please wait. This may take a moment.
+cls & echo Please wait. This may take a moment.
 
-:: Enable MSI Mode on USB Controllers
+:: enable MSI Mode on USB controllers
 :: second command for each device deletes device priorty, setting it to undefined
-for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
-:: Enable MSI Mode on GPU
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
-:: Enable MSI Mode on Network Adapters
+for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+    reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+)
+for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
+)
+
+:: enable MSI Mode on GPU
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+    reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+)
+for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+    reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
+)
+
+:: enable MSI Mode on network adapters
 :: undefined priority on some VMs may break connection
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-:: If e.g. vmware is used, skip setting to undefined.
-wmic computersystem get manufacturer /format:value| findstr /i /C:VMWare&&goto vmGO
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+    reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
+)
+:: if e.g. VMWare is used, skip setting to undefined.
+wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && goto vmGO
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+    reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
+)
 goto noVM
 :vmGO
 :: Set to Normal Priority
