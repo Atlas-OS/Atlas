@@ -368,24 +368,24 @@ cls & echo Please wait. This may take a moment.
 
 :: --- Hardening ---
 
-:: Delete Defaultuser0
-:: Used during OOBE
+:: delete defaultuser0 account
+:: used during OOBE
 net user defaultuser0 /delete >nul 2>nul
 
-:: Disable "Administrator"
-:: Used in OEM Situations to install OEM-specific programs when a user is not yet created.
+:: disable "Administrator" account
+:: used in OEM situations to install OEM-specific programs when a user is not yet created.
 net user administrator /active:no
 
-:: Delete Adobe Font Type Manager
+:: delete adobe font type manager
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Font Drivers" /v "Adobe Type Manager" /f
 
-:: Disable USB Autorun/play
+:: disable USB autorun/play
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoAutorun" /t REG_DWORD /d "1" /f
 
-:: Disable Camera Access when locked
+:: disable camera access when locked
 reg add "HKLM\Software\Policies\Microsoft\Windows\Personalization" /v "NoLockScreenCamera" /t REG_DWORD /d "1" /f
 
-:: Disable Remote Assistance
+:: disable remote assistance
 reg add "HKLM\System\CurrentControlSet\Control\Remote Assistance" /v "fAllowFullControl" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\Remote Assistance" /v "fAllowToGetHelp" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\Remote Assistance" /v "fEnableChatControl" /t REG_DWORD /d "0" /f
