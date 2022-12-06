@@ -590,7 +590,7 @@ start explorer.exe
 
 :: disable network adapters
 :: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
-powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
+PowerShell.exe -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
 
 :: disable devices
 DevManView.exe /disable "System Speaker"
@@ -1071,7 +1071,7 @@ reg add "HKLM\System\CurrentControlSet\Control\Session Manager\kernel" /v "Disab
 
 :: Find correct mitigation values for different windows versions - AMIT
 :: initialize bit mask in registry by disabling a random mitigation
-powershell -NoProfile -Command Set-ProcessMitigation -System -Disable CFG
+PowerShell.exe -NoProfile -Command Set-ProcessMitigation -System -Disable CFG
 :: get bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\System\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
     set mitigation_mask=%%a
@@ -1324,7 +1324,7 @@ echo Extra note: This breaks the "about" page in settings. If you require it, en
 :: If you notice something else breaks when firewall/store is disabled please open an issue.
 pause
 :: Detect if user is using a Microsoft Account
-powershell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+PowerShell.exe -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 :: Disable the option for Microsoft Store in the "Open With" dialog
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
@@ -1422,19 +1422,19 @@ sc config FontCache start=auto
 if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :depE
-powershell -NoProfile set-ProcessMitigation -System -Enable DEP
-powershell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable DEP
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
 bcdedit /set nx OptIn
 :: Enable CFG for Valorant related processes
 for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
-  powershell -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
+  PowerShell.exe -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
 )
 if %ERRORLEVEL%==0 echo %date% - %time% DEP Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :depD
 echo If you get issues with some anti-cheats, please re-enable DEP.
-powershell -NoProfile set-ProcessMitigation -System -Disable DEP
-powershell -NoProfile set-ProcessMitigation -System -Disable EmulateAtlThunks
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Disable DEP
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Disable EmulateAtlThunks
 bcdedit /set nx AlwaysOff
 if %ERRORLEVEL%==0 echo %date% - %time% DEP Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -1541,7 +1541,7 @@ echo - Microsoft Accounts
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 :: Detect if user is using a Microsoft Account
-powershell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+PowerShell.exe -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
@@ -1608,19 +1608,19 @@ NSudo.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :mitE
-powershell -NoProfile set-ProcessMitigation -System -Enable DEP
-powershell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
-powershell -NoProfile set-ProcessMitigation -System -Enable RequireInfo
-powershell -NoProfile set-ProcessMitigation -System -Enable BottomUp
-powershell -NoProfile set-ProcessMitigation -System -Enable HighEntropy
-powershell -NoProfile set-ProcessMitigation -System -Enable StrictHandle
-powershell -NoProfile set-ProcessMitigation -System -Enable CFG
-powershell -NoProfile set-ProcessMitigation -System -Enable StrictCFG
-powershell -NoProfile set-ProcessMitigation -System -Enable SuppressExports
-powershell -NoProfile set-ProcessMitigation -System -Enable SEHOP
-powershell -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
-powershell -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
-powershell -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable DEP
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable RequireInfo
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable BottomUp
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable HighEntropy
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable StrictHandle
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable CFG
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable StrictCFG
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SuppressExports
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOP
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
 goto finish
 :startlayout
 reg delete "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
@@ -1672,19 +1672,19 @@ goto finishNRB
 :: TODO:
 :: - Make it extremely clear that this is not aimed to maintain performance
 :: - Harden Process Mitigations (lower compatibilty for legacy apps)
-powershell -NoProfile set-ProcessMitigation -System -Enable DEP
-powershell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
-powershell -NoProfile set-ProcessMitigation -System -Enable RequireInfo
-powershell -NoProfile set-ProcessMitigation -System -Enable BottomUp
-powershell -NoProfile set-ProcessMitigation -System -Enable HighEntropy
-powershell -NoProfile set-ProcessMitigation -System -Enable StrictHandle
-powershell -NoProfile set-ProcessMitigation -System -Enable CFG
-powershell -NoProfile set-ProcessMitigation -System -Enable StrictCFG
-powershell -NoProfile set-ProcessMitigation -System -Enable SuppressExports
-powershell -NoProfile set-ProcessMitigation -System -Enable SEHOP
-powershell -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
-powershell -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
-powershell -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable DEP
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable RequireInfo
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable BottomUp
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable HighEntropy
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable StrictHandle
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable CFG
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable StrictCFG
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SuppressExports
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOP
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
+PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
 :: - Open scripts in notepad to preview instead of executing when clicking
 ftype batfile="%WinDir%\System32\notepad.exe" "%1"
 ftype chmfile="%WinDir%\System32\notepad.exe" "%1"
@@ -1779,8 +1779,8 @@ if /I "%c%" EQU "N" exit
 if /I "%c%" EQU "Y" goto :xboxConfirm
 exit
 :xboxConfirm
-echo Removing via powershell...
-NSudo.exe -U:C -ShowWindowMode:Hide -Wait powershell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
+echo Removing via PowerShell.exe...
+NSudo.exe -U:C -ShowWindowMode:Hide -Wait PowerShell.exe -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
 
 echo Disabling Services...
 sc config XblAuthManager start=disabled
@@ -2101,8 +2101,8 @@ echo Installing scoop...
 set /P c="Review Install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-powershell -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
-powershell -NoProfile %WinDir%\AtlasModules\install.ps1
+PowerShell.exe -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
+PowerShell.exe -NoProfile %WinDir%\AtlasModules\install.ps1
 echo Refreshing environment for Scoop...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
@@ -2120,7 +2120,7 @@ echo Installing Chocolatey
 set /P c="Review Install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-powershell -NoProfile -EP Unrestricted -Command "%WinDir%\AtlasModules\install.ps1"
+PowerShell.exe -NoProfile -EP Unrestricted -Command "%WinDir%\AtlasModules\install.ps1"
 echo Refreshing environment for Choco...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
@@ -2172,7 +2172,7 @@ for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| find
 for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%i
 for /f "tokens=2 delims=()" %%i in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /F "tokens=2" %%a in ("%%i") do set DHCPSubnetMask=%%a
 netsh int ipv4 set address name="%devicename%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway%
-powershell -NoProfile -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
+PowerShell.exe -NoProfile -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
 echo %date% - %time% Static IP set! (%LocalIP%)(%DHCPGateway%)(%DHCPSubnetMask%) >> %WinDir%\AtlasModules\logs\userScript.log
 echo Private IP: %LocalIP%
 echo Gateway: %DHCPGateway%
