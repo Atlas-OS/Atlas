@@ -1,4 +1,6 @@
 @echo off
+
+:: disable network devices
 DevManView.exe /disable "WAN Miniport (IKEv2)"
 DevManView.exe /disable "WAN Miniport (IP)"
 DevManView.exe /disable "WAN Miniport (IPv6)"
