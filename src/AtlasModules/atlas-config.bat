@@ -455,49 +455,16 @@ PowerShell.exe -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $p
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Power Savings...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Power Savings! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: Make certain applications in the AtlasModules folder request UAC
-:: Although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
+:: make certain applications in the AtlasModules folder request UAC
+:: although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\NSudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 
-cls
-echo Please wait. This may take a moment.
+cls & echo Please wait. This may take a moment.
 
-:: Unhide powerplan attributes
-:: Credits to: Eugene Muzychenko
-for /f "tokens=1-9* delims=\ " %%A in ('reg query HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings /s /f attributes /e') do (
-  if /i "%%A" == "HKLM" (
-    set Ident=
-    if not "%%G" == "" (
-      set Err=
-      set Group=%%G
-      set Setting=%%H
-      if "!Group:~35,1!" == "" set Err=group
-      if not "!Group:~36,1!" == "" set Err=group
-      if not "!Setting!" == "" (
-        if "!Setting:~35,1!" == "" set Err=setting
-        if not "!Setting:~36,1!" == "" set Err=setting
-        Set Ident=!Group!:!Setting!
-      ) else (
-        Set Ident=!Group!
-      )
-      if not "!Err!" == "" (
-        echo ***** Error in !Err! GUID: !Ident"
-      )
-    )
-  ) else if "%%A" == "Attributes" (
-    if "!Ident!" == "" (
-      echo ***** No group/setting GUIDs before Attributes value
-    )
-    set /a Attr = %%C
-    set /a Hidden = !Attr! ^& 1
-    if !Hidden! equ 1 (
-      echo Unhiding !Ident!
-      powercfg -attributes !Ident::= ! -attrib_hide
-    )
-  )
-)
+:: unhide powerplan attributes
+PowerShell.exe -NoProfile -Command "(gci 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings' -Recurse).Name -notmatch '\bDefaultPowerSchemeValues|(\\[0-9]|\b255)$' | % {sp $_.Replace('HKEY_LOCAL_MACHINE','HKLM:') -Name 'Attributes' -Value 2 -Force}"
 if %ERRORLEVEL%==0 (echo %date% - %time% Enabled Hidden PowerPlan Attributes...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Enable Hidden PowerPlan Attributes! >> %WinDir%\AtlasModules\logs\install.log)
 
