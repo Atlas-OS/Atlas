@@ -583,16 +583,16 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusCl
 :: disable hibernation
 powercfg -h off
 
-:: Fix explorer whitebar bug
+:: fix explorer whitebar bug
 start explorer.exe
 taskkill /f /im explorer.exe
 start explorer.exe
 
-:: Disable Network Adapters
+:: disable network adapters
 :: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
 powershell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
 
-:: Disable Devices
+:: disable devices
 DevManView.exe /disable "System Speaker"
 DevManView.exe /disable "System Timer"
 DevManView.exe /disable "UMBus Root Bus Enumerator"
@@ -609,7 +609,7 @@ DevManView.exe /disable "Composite Bus Enumerator"
 DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
 DevManView.exe /disable "SM Bus Controller"
 DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
-::DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < Breaks ISO mounts
+::DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mounts
 DevManView.exe /disable "Numeric Data Processor"
 DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %WinDir%\AtlasModules\logs\install.log
@@ -618,8 +618,8 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %WinDir%\AtlasMod
 if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
 if %branch%=="1803" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\1803.bat
 
-:: Backup Default Windows Services and Drivers
-:: Services
+:: backup default windows services and drivers
+:: services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
@@ -635,7 +635,7 @@ for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "T
 	)
 ) >nul 2>&1
 
-:: Drivers
+:: drivers
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
@@ -650,7 +650,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	)
 ) >nul 2>&1
 
-:: Services
+:: services
 %setSvc% AppIDSvc 4
 %setSvc% AppVClient 4
 %setSvc% AppXSvc 3
@@ -666,7 +666,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% DoSvc 3
 %setSvc% DPS 4
 %setSvc% DsmSvc 3
-:: %setSvc% DsSvc 4 < Can cause issues with Snip & Sketch
+:: %setSvc% DsSvc 4 < can cause issues with Snip & Sketch
 %setSvc% Eaphost 3
 %setSvc% edgeupdate 4
 %setSvc% edgeupdatem 4
@@ -680,7 +680,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% InstallService 3
 %setSvc% iphlpsvc 4
 %setSvc% IpxlatCfgSvc 4
-:: %setSvc% KeyIso 4 < Causes issues with NVCleanstall's driver telemetry tweak
+:: %setSvc% KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
 %setSvc% KtmRm 4
 %setSvc% LanmanServer 4
 %setSvc% LanmanWorkstation 4
@@ -713,7 +713,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% WSearch 4
 %setSvc% wuauserv 3
 
-:: Drivers
+:: drivers
 %setSvc% 3ware 4
 %setSvc% ADP80XX 4
 %setSvc% AmdK8 4
@@ -733,16 +733,16 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% fdc 4
 %setSvc% flpydisk 4
 %setSvc% fvevol 4
-:: %setSvc% FileInfo 4 < Breaks installing Store Apps to different disk. (Now disabled via store script)
-:: %setSvc% FileCrypt 4 < Breaks installing Store Apps to different disk. (Now disabled via store script)
+:: %setSvc% FileInfo 4 < breaks installing Microsoft Store apps to different disk (now disabled via store script)
+:: %setSvc% FileCrypt 4 < Breaks installing Microsoft Store apps to different disk (now disabled via store script)
 %setSvc% GpuEnergyDrv 4
 %setSvc% mrxsmb 4
 %setSvc% mrxsmb20 4
 %setSvc% NdisVirtualBus 4
 %setSvc% nvraid 4
-:: %setSvc% PEAUTH 4 < Breaks UWP streaming apps like Netflix, manual mode does not fix.
+:: %setSvc% PEAUTH 4 < breaks UWP streaming apps like Netflix, manual mode does not fix
 %setSvc% QWAVEdrv 4
-:: Set to Manual instead of disabling (fixes WSL) Thanks Phlegm!
+:: Sset to Manual instead of disabling (fixes WSL), thanks Phlegm
 %setSvc% rdbss 3
 %setSvc% rdyboost 4
 %setSvc% KSecPkg 4
@@ -758,14 +758,14 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% udfs 4
 %setSvc% umbus 4
 %setSvc% VerifierExt 4
-:: %setSvc% volmgrx 4 < Breaks Dynamic Disks
+:: %setSvc% volmgrx 4 < breaks Dynamic Disks
 %setSvc% vsmraid 4
 %setSvc% VSTXRAID 4
-:: %setSvc% wcifs 4 < Breaks various store games, erroring with "Filter not found"
+:: %setSvc% wcifs 4 < breaks various Microsoft Store games, erroring with "Filter not found"
 %setSvc% wcnfs 4
 %setSvc% WindowsTrustedRTProxy 4
 
-:: Remove dependencies
+:: remove dependencies
 reg add "HKLM\System\CurrentControlSet\Services\Dhcp" /v "DependOnService" /t REG_MULTI_SZ /d "NSI\0Afd" /f
 reg add "HKLM\System\CurrentControlSet\Services\Dnscache" /v "DependOnService" /t REG_MULTI_SZ /d "nsi" /f
 reg add "HKLM\System\CurrentControlSet\Services\rdyboost" /v "DependOnService" /t REG_MULTI_SZ /d "" /f
@@ -776,8 +776,8 @@ reg add "HKLM\System\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Services...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Services! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: Backup Default Atlas Services and Drivers
-:: Services
+:: backup default Atlas services and drivers
+:: services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
@@ -793,7 +793,7 @@ for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "T
 	)
 ) >nul 2>&1
 
-:: Drivers
+:: drivers
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
@@ -809,25 +809,25 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 ) >nul 2>&1
 
 :: Registry
-:: Done through script now, HKCU\.. keys often don't integrate correctly.
+:: done through script now, HKCU\.. keys often do not integrate correctly.
 
 :: BSOD QoL
 reg add "HKLM\System\CurrentControlSet\Control\CrashControl" /v "AutoReboot" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\CrashControl" /v "CrashDumpEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\CrashControl" /v "DisplayParameters" /t REG_DWORD /d "1" /f
 
-:: GPO for Startmenu (tiles)
+:: GPO for Start Menu (tiles)
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%WinDir%\layout.xml" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%WinDir%\layout.xml" /f
 
-:: Enable dark mode, disable transparency
+:: enable dark mode, disable transparency
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v "SystemUsesLightTheme" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v "AppsUseLightTheme" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v "EnableTransparency" /t REG_DWORD /d "0" /f
 
-:: Disable Windows Updates
+:: disable windows updates
 reg add "HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate" /v "ExcludeWUDriversInQualityUpdate" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate" /v "DisableWindowsUpdateAccess" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate" /v "AllowAutoWindowsUpdateDownloadOverMeteredNetwork" /t REG_DWORD /d "1" /f
@@ -854,10 +854,10 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\DriverSearching" /v "Sea
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Device Metadata" /v "PreventDeviceMetadataFromNetwork" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\CloudContent" /v "DisableWindowsConsumerFeatures" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "AutoDownload" /t REG_DWORD /d "2" /f
-:: May cause issues with Language Packs/Store (if planning to revert, remove reg add "HKLM\Software\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d "1" /f)
-reg add "HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate" /v "	DoNotConnectToWindowsUpdateInternetLocations" /t REG_DWORD /d "1" /f
+:: may cause issues with language packs/Microsoft Store (if planning to revert, remove reg add "HKLM\Software\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d "1" /f)
+reg add "HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate" /v "DoNotConnectToWindowsUpdateInternetLocations" /t REG_DWORD /d "1" /f
 
-:: Disable Speech Model Updates
+:: disable speech model updates
 reg add "HKLM\Software\Policies\Microsoft\Speech" /v "AllowSpeechModelUpdate" /t REG_DWORD /d "0" /f
 
 ::Disable Windows Insider and Build Previews
