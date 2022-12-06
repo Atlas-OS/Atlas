@@ -427,11 +427,8 @@ powercfg /s 11111111-1111-1111-1111-111111111111
 if %ERRORLEVEL%==0 (echo %date% - %time% PowerPlan Imported...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to import PowerPlan! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: Set SvcSplitThreshold
-:: Credits: revision
-for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /format:value') do set mem=%%i
-set /a ram=%mem% + 1024000
-reg add "HKLM\System\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
+:: set SvcSplitThreshold
+reg add "HKLM\System\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "ffffffff" /f
 if %ERRORLEVEL%==0 (echo %date% - %time% Service Memory Split Set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Service Memory Split! >> %WinDir%\AtlasModules\logs\install.log)
 
