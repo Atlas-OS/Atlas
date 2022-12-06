@@ -468,15 +468,17 @@ PowerShell.exe -NoProfile -Command "(gci 'HKLM:\SYSTEM\CurrentControlSet\Control
 if %ERRORLEVEL%==0 (echo %date% - %time% Enabled Hidden PowerPlan Attributes...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Enable Hidden PowerPlan Attributes! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: Residual File Cleanup
-:: Files are removed in official ISO
+:: residual file cleanup
+:: files are removed in the official ISO
 del /F /Q "%WinDir%\System32\GameBarPresenceWriter.exe" >nul 2>nul
 del /F /Q "%WinDir%\System32\mobsync.exe" >nul 2>nul
 del /F /Q "%WinDir%\System32\mcupdate_genuineintel.dll" >nul 2>nul
 del /F /Q "%WinDir%\System32\mcupdate_authenticamd.dll" >nul 2>nul
-:: Remove Edge
+
+:: remove edge
 rmdir /s /q "C:\Program Files (x86)\Microsoft" >nul 2>nul
-:: Remove residual registry keys
+
+:: remove residual registry keys
 reg delete "HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge" /f >nul 2>nul
 reg delete "HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update" /f >nul 2>nul
 reg delete "HKLM\Software\Classes\MSEdgeHTM" /f >nul 2>nul
@@ -489,77 +491,86 @@ reg delete "HKLM\Software\WOW6432Node\Microsoft\EdgeUpdate" /f >nul 2>nul
 reg delete "HKLM\Software\WOW6432Node\Microsoft\Edge" /f >nul 2>nul
 reg delete "HKLM\Software\Clients\StartMenuInternet\Microsoft Edge" /f >nul 2>nul
 reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Device Metadata" /f >nul 2>nul
-:: Not checking for errorlevel, as these are often deleted in the first place. So if it were to error it would only cause confusion.
+
+:: not checking for %errorlevel%, as these are often deleted in the first place. so if it were to error it would only cause confusion
 echo %date% - %time% Residule Files Deleted...>> %WinDir%\AtlasModules\logs\install.log
 
-:: Disable Nagle's Algorithm
+:: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
 for /f %%i in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do (
-  reg add "HKLM\System\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
-  reg add "HKLM\System\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
-  reg add "HKLM\System\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
+    reg add "HKLM\System\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
+    reg add "HKLM\System\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
+    reg add "HKLM\System\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
 )
+
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosNonBestEffortLimit
 reg add "HKLM\Software\Policies\Microsoft\Windows\Psched" /v "NonBestEffortLimit" /t REG_DWORD /d "0" /f
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosTimerResolution
 reg add "HKLM\Software\Policies\Microsoft\Windows\Psched" /v "TimerResolution" /t REG_DWORD /d "1" /f
 reg add "HKLM\System\CurrentControlSet\Services\Tcpip\QoS" /v "Do not use NLA" /t REG_DWORD /d "1" /f
-::reg add "HKLM\System\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f
+:: reg add "HKLM\System\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /t REG_DWORD /d "0" /f
 
-:: Configure NIC Setting
-:: Get nic driver settings path by querying for dword
-:: If you see a way to optimize this segment, feel free to open a pull request.
-for /f %%a in ('reg query "HKLM\System\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
-    :: Check if the value exists, to prevent errors and uneeded settings
-    for /f %%i in ('reg query "%%a" /v "GigaLite" ^| findstr "HKEY"') do (
-        :: add the value
-        :: if the value does not exist, it will silently error.
-        reg add "%%i" /v "GigaLite" /t REG_SZ /d "0" /f
+:: configure NIC settings
+:: get NIC driver settings path by querying for dword
+:: if you see a way to optimize this segment, feel free to open a pull request.
+
+:: check for network adapter key in registry
+for %%a in ("Win32_NetworkAdapter") do (
+	for /f "delims=" %%b in ('wmic path %%~a get PnPDeviceID ^| findstr /L "PCI\VEN_"') do (
+    	for /f "tokens=3" %%c in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%b" /v "Driver"') do (
+        	set "network-driver=HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Class\%%c"
+		)
     )
-    for /f %%i in ('reg query "%%a" /v "*EEE" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "*EEE" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "*FlowControl" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "*FlowControl" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "PowerSavingMode" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "PowerSavingMode" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnableSavePowerNow" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnableSavePowerNow" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnablePowerManagement" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnablePowerManagement" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnableGreenEthernet" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnableGreenEthernet" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnableDynamicPowerGating" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnableDynamicPowerGating" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnableConnectedPowerGating" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnableConnectedPowerGating" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "AutoPowerSaveModeEnabled" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "AutoPowerSaveModeEnabled" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "AutoDisableGigabit" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "AutoDisableGigabit" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "AdvancedEEE" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "AdvancedEEE" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "ULPMode" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "ULPMode" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "ReduceSpeedOnPowerDown" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "ReduceSpeedOnPowerDown" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnablePME" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnablePME" /t REG_SZ /d "0" /f
-    )
-) >nul 2>nul
+)
+
+:: check if the value exists to prevent errors and unneeded settings
+for /f %%i in ('reg query "%network-driver%" /v "GigaLite" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "GigaLite" /t REG_SZ /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "*EEE" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "*EEE" /t REG_DWORD /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "*FlowControl" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "*FlowControl" /t REG_DWORD /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "PowerSavingMode" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "PowerSavingMode" /t REG_DWORD /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "EnableSavePowerNow" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "EnableSavePowerNow" /t REG_SZ /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "EnablePowerManagement" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "EnablePowerManagement" /t REG_SZ /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "EnableGreenEthernet" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "EnableGreenEthernet" /t REG_SZ /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "EnableDynamicPowerGating" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "EnableDynamicPowerGating" /t REG_SZ /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "EnableConnectedPowerGating" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "EnableConnectedPowerGating" /t REG_SZ /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "AutoPowerSaveModeEnabled" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "AutoPowerSaveModeEnabled" /t REG_SZ /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "AutoDisableGigabit" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "AutoDisableGigabit" /t REG_DWORD /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "AdvancedEEE" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "AdvancedEEE" /t REG_DWORD /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "ULPMode" ^| findstr "HKEY"') do (
+    eg add "%%i" /v "ULPMode" /t REG_SZ /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "ReduceSpeedOnPowerDown" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "ReduceSpeedOnPowerDown" /t REG_SZ /d "0" /f >nul 2>nul
+)
+for /f %%i in ('reg query "%network-driver%" /v "EnablePME" ^| findstr "HKEY"') do (
+    reg add "%%i" /v "EnablePME" /t REG_SZ /d "0" /f >nul 2>nul
+)
+
 netsh int tcp set heuristics disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
 netsh int tcp set global timestamps=disabled
