@@ -2,20 +2,20 @@
 :: description: this is the master script used to congigure the Atlas operating system
 :: depending on your build, change theses vars to 1803 or 20H2 and update the version
 
-:: CREDITS
-:: Amit
-:: Artanis
-:: CYNAR
-:: Canonez
-:: CatGamerOP
-:: EverythingTech
-:: Melody
-:: Revision
-:: imribiy
-:: nohopestage
-:: Timecard
-:: Phlegm
-:: xyzze
+:: CREDITS:
+:: - Amit
+:: - Artanis
+:: - CYNAR
+:: - Canonez
+:: - CatGamerOP
+:: - EverythingTech
+:: - Melody
+:: - Revision
+:: - imribiy
+:: - nohopestage
+:: - Timecard
+:: - Phlegm
+:: - xyzze
 
 @echo off
 set branch="20H2"
