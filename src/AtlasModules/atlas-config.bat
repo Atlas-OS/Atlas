@@ -41,107 +41,142 @@ if not "%errorlevel%" EQU "0" (
 SETLOCAL EnableDelayedExpansion
 
 if /i "%~1"=="/start"		   goto startup
-:: will loop update check if debugging.
+:: will loop update check if debugging
 :: Notifications
 if /i "%~1"=="/dn"         goto notiD
 if /i "%~1"=="/en"         goto notiE
+
 :: Animations
 if /i "%~1"=="/ad"         goto aniD
 if /i "%~1"=="/ae"         goto aniE
+
 :: Search Indexing
 if /i "%~1"=="/di"         goto indexD
 if /i "%~1"=="/ei"         goto indexE
+
 :: Wi-Fi
 if /i "%~1"=="/dw"         goto wifiD
 if /i "%~1"=="/ew"         goto wifiE
+
 :: Microsoft Store
 if /i "%~1"=="/ds"         goto storeD
 if /i "%~1"=="/es"         goto storeE
+
 :: Bluetooth
 if /i "%~1"=="/btd"         goto btD
 if /i "%~1"=="/bte"         goto btE
-:: Hard Drive Prefetching
+
+:: HDD Prefetching
 if /i "%~1"=="/hddd"         goto hddD
 if /i "%~1"=="/hdde"         goto hddE
+
 :: DEP (nx)
 if /i "%~1"=="/depE"         goto depE
 if /i "%~1"=="/depD"         goto depD
+
+:: Start Menu
 if /i "%~1"=="/ssD"         goto SearchStart
 if /i "%~1"=="/ssE"         goto enableStart
 if /i "%~1"=="/openshell"         goto openshellInstall
+
 :: Remove UWP
 if /i "%~1"=="/uwp"			goto uwp
 if /i "%~1"=="/uwpE"			goto uwpE
 if /i "%~1"=="/mite"			goto mitE
-:: Remove Start Layout GPO (Allow Tiles on Start Menu)
+
+:: Remove Start Menu layout (allow tiles in Start Menu)
 if /i "%~1"=="/stico"          goto startlayout
+
 :: Sleep States
 if /i "%~1"=="/sleepD"         goto sleepD
 if /i "%~1"=="/sleepE"         goto sleepE
+
 :: Idle
 if /i "%~1"=="/idled"          goto idleD
 if /i "%~1"=="/idlee"          goto idleE
+
 :: Xbox
 if /i "%~1"=="/xboxU"         goto xboxU
-:: Reinstall VC++ redistributable
+
+:: Reinstall VC++ redistributables
 if /i "%~1"=="/vcreR"         goto vcreR
+
 :: User Account Control
 if /i "%~1"=="/uacD"		goto uacD
 if /i "%~1"=="/uacE"		goto uacE
+
 :: Workstation Service (SMB)
 if /i "%~1"=="/workD"		goto workstationD
 if /i "%~1"=="/workE"		goto workstationE
+
 :: Windows Firewall
 if /i "%~1"=="/firewallD"		goto firewallD
 if /i "%~1"=="/firewallE"		goto firewallE
+
 :: Printing
 if /i "%~1"=="/printD"		goto printD
 if /i "%~1"=="/printE"		goto printE
+
 :: Data Queue Sizes
 if /i "%~1"=="/dataQueueM"		goto dataQueueM
 if /i "%~1"=="/dataQueueK"		goto dataQueueK
+
 :: Network
 if /i "%~1"=="/netWinDefault"		goto netWinDefault
 if /i "%~1"=="/netAtlasDefault"		goto netAtlasDefault
-:: Clipboard History Service (Also required for Snip and Sketch to copy correctly)
+
+:: Clipboard History Service (also required for Snip and Sketch to copy correctly)
 if /i "%~1"=="/cbdhsvcD"    goto cbdhsvcD
 if /i "%~1"=="/cbdhsvcE"    goto cbdhsvcE
+
 :: VPN
 if /i "%~1"=="/vpnD"    goto vpnD
 if /i "%~1"=="/vpnE"    goto vpnE
-:: Scoop and Choco
+
+:: Scoop and Chocolatey
 if /i "%~1"=="/scoop" goto scoop
 if /i "%~1"=="/choco" goto choco
 if /i "%~1"=="/browserscoop" goto browserscoop
 if /i "%~1"=="/altsoftwarescoop" goto altSoftwarescoop
 if /i "%~1"=="/browserchoco" goto browserchoco
 if /i "%~1"=="/altsoftwarechoco" goto altSoftwarechoco
-:: Nvidia PState 0
+
+:: NVIDIA PState 0
 if /i "%~1"=="/nvpstateD" goto NVPstate
 if /i "%~1"=="/nvpstateE" goto revertNVPState
+
 :: DSCP
 if /i "%~1"=="/dscpauto" goto DSCPauto
-::Display Scaling
+
+:: Display Scaling
 if /i "%~1"=="/displayscalingd" goto displayScalingD
-::Static IP
+
+:: Static IP
 if /i "%~1"=="/staticip" goto staticIP
+
 :: Windows Media Player
 if /i "%~1"=="/wmpd" goto wmpD
+
 :: Internet Explorer
 if /i "%~1"=="/ied" goto ieD
+
 :: Task Scheduler
 if /i "%~1"=="/scheduled"  goto scheduleD
 if /i "%~1"=="/schedulee"  goto scheduleE
+
 :: Event Log
 if /i "%~1"=="/eventlogd" goto eventlogD
 if /i "%~1"=="/eventloge" goto eventlogE
+
 :: NVIDIA Display Container LS - he3als
 if /i "%~1"=="/nvcontainerD" goto nvcontainerD
 if /i "%~1"=="/nvcontainerE" goto nvcontainerE
 if /i "%~1"=="/nvcontainerCMD" goto nvcontainerCMD
 if /i "%~1"=="/nvcontainerCME" goto nvcontainerCME
+
 :: Network Sharing
 if /i "%~1"=="/networksharingE" goto networksharingE
+
 :: Diagnostics
 if /i "%~1"=="/diagd" goto diagD
 if /i "%~1"=="/diage" goto diagE
