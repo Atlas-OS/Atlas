@@ -192,23 +192,24 @@ pause & exit
 :TestPrompt
 set /p c="Test with echo on?"
 if %c% equ Y echo on
-set /p argPrompt="Which script would you like to test? e.g. (:testScript)"
+set /p argPrompt="Which script would you like to test? E.g. (:testScript)"
 goto %argPrompt%
 echo You should not reach this message!
-pause
-exit
+pause & exit
+
 :startup
-:: Create log directory, for troubleshooting
+:: create log directory, for troubleshooting
 mkdir %WinDir%\AtlasModules\logs
-cls
-echo Please wait, this may take a moment.
+cls & echo Please wait, this may take a moment.
 setx path "%path%;%WinDir%\AtlasModules;" -m  >nul 2>nul
 IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules Path Set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules Path! >> %WinDir%\AtlasModules\logs\install.log)
-:: Breaks setting keyboard language
+
+:: breaks setting keyboard language
 :: Rundll32.exe advapi32.dll,ProcessIdleTasks
-break>C:\Users\Public\success.txt
+break > C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
+
 :auto
 SETLOCAL EnableDelayedExpansion
 %WinDir%\AtlasModules\vcredist.exe /ai
