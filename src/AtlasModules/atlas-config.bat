@@ -258,7 +258,7 @@ reg add "HKLM\Software\Policies\Microsoft\Control Panel\International" /v "Block
 
 :: disable unneeded scheduled tasks
 
-:: breaks setting Lock Screen
+:: breaks setting lock screen
 :: schtasks /Change /Disable /TN "\Microsoft\Windows\Shell\CreateObjectTask"
 
 for %%a in (
@@ -321,7 +321,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Scheduled Tasks...>> %WinDir%\
 ) ELSE (echo %date% - %time% Failed to Disable Scheduled Tasks! >> %WinDir%\AtlasModules\logs\install.log)
 cls & echo Please wait. This may take a moment.
 
-:: enable MSI Mode on USB controllers
+:: enable MSI mode on USB controllers
 :: second command for each device deletes device priorty, setting it to undefined
 for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
@@ -330,7 +330,7 @@ for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI
     reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 )
 
-:: enable MSI Mode on GPU
+:: enable MSI mode on GPU
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
@@ -338,12 +338,12 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "P
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 )
 
-:: enable MSI Mode on network adapters
+:: enable MSI node on network adapters
 :: undefined priority on some virtual machines may break connection
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
-:: if e.g. VMWare is used, skip setting to undefined.
+:: if e.g. VMWare is used, skip setting to undefined
 wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && goto vmGO
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
@@ -357,7 +357,7 @@ for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI
 )
 
 :noVM
-:: enable MSI Mode on SATA controllers
+:: enable MSI mode on SATA controllers
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
@@ -406,8 +406,8 @@ reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RestrictAnonymousSAM" /t
 :: https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220930
 reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RestrictAnonymous" /t REG_DWORD /d "1" /f
 
-:: harden NetBios
-:: NetBios is disabled.  if it manages to become enabled, protect against NBT-NS poisoning attacks
+:: harden netbios
+:: netbios is disabled. if it manages to become enabled, protect against NBT-NS poisoning attacks
 reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v "NodeType" /t REG_DWORD /d "2" /f
 
 :: mitigate against HiveNightmare/SeriousSAM
@@ -478,7 +478,7 @@ del /F /Q "%WinDir%\System32\mobsync.exe" >nul 2>nul
 del /F /Q "%WinDir%\System32\mcupdate_genuineintel.dll" >nul 2>nul
 del /F /Q "%WinDir%\System32\mcupdate_authenticamd.dll" >nul 2>nul
 
-:: remove edge
+:: remove microsoft edge
 rmdir /s /q "C:\Program Files (x86)\Microsoft" >nul 2>nul
 
 :: remove residual registry keys
@@ -595,12 +595,12 @@ start explorer.exe
 :: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
 PowerShell.exe -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
 
-:: disable devices
+:: disable system devices
 DevManView.exe /disable "System Speaker"
 DevManView.exe /disable "System Timer"
 DevManView.exe /disable "UMBus Root Bus Enumerator"
 DevManView.exe /disable "Microsoft System Management BIOS Driver"
-::DevManView.exe /disable "Programmable Interrupt Controller" < https://media.discordapp.net/attachments/835904146413453333/931696968336551986/unknown.png
+:: DevManView.exe /disable "Programmable Interrupt Controller"
 DevManView.exe /disable "High Precision Event Timer"
 DevManView.exe /disable "PCI Encryption/Decryption Controller"
 DevManView.exe /disable "AMD PSP"
@@ -612,7 +612,7 @@ DevManView.exe /disable "Composite Bus Enumerator"
 DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
 DevManView.exe /disable "SM Bus Controller"
 DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
-::DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mounts
+:: DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mounts
 DevManView.exe /disable "Numeric Data Processor"
 DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %WinDir%\AtlasModules\logs\install.log
