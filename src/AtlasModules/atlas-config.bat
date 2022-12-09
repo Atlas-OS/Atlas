@@ -338,7 +338,7 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "P
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 )
 
-:: enable MSI node on network adapters
+:: enable MSI mode on network adapters
 :: undefined priority on some virtual machines may break connection
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
