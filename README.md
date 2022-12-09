@@ -64,9 +64,9 @@ Atlas is pre-tweaked. While maintaining compatibility, but also striving for per
 - Minimized services
 - Minimized drivers
 - Disabled unneeded devices
-- Disabled powersavings
+- Disabled power savings
 - Disabled performance-hungry security mitigations
-- Automatically enabled MSI Mode
+- Automatically enabled MSI mode
 - Boot configuration optimization
 - Optimized process scheduling
 
