@@ -1,10 +1,10 @@
 # Atlas source
 
 Here you can find sources files used to build Atlas:
-- NTLite Preset (Atlas_1803.xml/Atlas_20H2.xml)
-- Registry Files
+- NTLite preset (Atlas_1803.xml/Atlas_20H2.xml)
+- Registry files
 - Scripts
-- Others, such as programs needed to interface with Windows easier.
+- Others, such as programs needed to interface with Windows easier
 
 ## Building from source
 
@@ -23,10 +23,10 @@ There are plenty of reasons to build Atlas from source such as:
 ### Getting started
 
 1. Extract the Windows build using the previously mentioned archive extractor.
-2. Open NTLite and add the extracted folder to NTLite's Source List.
+2. Open NTLite and add the extracted folder to NTLite's source list.
 3. Import the Atlas XML from the repo and apply it.
 4. Integrate drivers and registry files if needed.
-5. Copy the following folders/files to the NTLite Mount Directory (%temp%\NLTmpMount01)
+5. Copy the following folders/files to the NTLite mount directory (%temp%\NLTmpMount01)
   ```txt
   - Web >> %temp%\NLTmpMount01\Windows\Web (delete the existing folder first!)
   - layout.xml >> %temp%\NLTmpMount01\Windows\layout.xml
@@ -43,7 +43,7 @@ There are plenty of reasons to build Atlas from source such as:
   - %temp%\NLTmpMount01\Windows\WinSxS\Temp\PendingDeletes\*
   - %temp%\NLTmpMount01\Windows\System32\Catroot2
   ```
-7. Make any changes you want to NTLite's Components, settings, services etc.
+7. Make any changes you want to NTLite's components, settings, services etc.
 8. Go to the "Apply" tab and click Process
 9. Done!
 
@@ -51,33 +51,32 @@ There are plenty of reasons to build Atlas from source such as:
 
 ### Creating scripts
 
-First, you will need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L44) to `atlas-config.bat`. This will allow it to be called from a seperate script on the desktop.
+First of all, you will need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L44) to `atlas-config.bat`. This will allow it to be called from a seperate script on the desktop.
 
 For this we will use the [Bluetooth disable script](hhttps://github.com/Atlas-OS/Atlas/blob/628f8305a116f2cc7d6eff258952961b83b9647f/src/20H2/AtlasModules/atlas-config.bat#L1235) as an example. 
 
 ```bat
-:: the :btD label is part of allowing the script to be called when a specific flag is used, as mentioned previously.
+:: the :btD label is part of allowing the script to be called when a specific flag is used, as mentioned previously
 :btD
-:: Now the script disables the services required for bluetooth.
+:: now the script disables the services required for bluetooth
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc >nul 2>&1
-:: This line simply parses the registry for CDPUserSvc_xxxxx which can't be configured through the "sc" command
+:: this line simply parses the registry for CDPUserSvc_xxxxx which cannot be configured through the "sc" command
 for /f %%I in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
   sc stop %%~nI
 )
 sc config CDPSvc start=disabled
-:: Once finished it is redirected to a generic message to reboot for changes, then exits at the end of the file.
-:: If the script does not need to reboot, use "goto finishNRB"
+:: once finished it is redirected to a generic message to reboot for changes, then exits at the end of the file
+:: if the script does not need to reboot, use "goto finishNRB"
 goto finish
 ```
-
-Now that we have the script available in `atlas-config`, let's make a desktop script to easily launch it.
+Now we have the script available in `atlas-config`, let us make a desktop script to easily launch it.
 
 ```bat
 @echo off
-:: This launches the script with TrustedInstaller permissions
-:: Remove theses comments when contributing.
+:: this launches the script with TrustedInstaller permissions
+:: remove theses comments when contributing
 C:\Windows\AtlasModules\Nsudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /btd
 ```
 
@@ -107,6 +106,7 @@ A simple sheet to track what components break what, if not listed on NTLite. Thi
 | Photo Codec 32-bit | Photos App                           | 20H2           | Test again                                                                |
 
 ## Resources
+
 - [VCRedist](https://github.com/abbodi1406/vcredist)
 - [DevManView](https://www.nirsoft.net/utils/device_manager_view.html)
 - [ServiWin](https://www.nirsoft.net/utils/serviwin.html)

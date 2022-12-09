@@ -1,6 +1,6 @@
 :: name: Atlas configuration script
 :: description: this is the master script used to congigure the Atlas operating system
-:: depending on your build, change theses vars to 1803 or 20H2 and update the version
+:: depending on your build, change theses vars to 1803, 20H2 or 21H2 and update the version
 
 :: CREDITS:
 :: - Amit
@@ -40,7 +40,9 @@ if not %ERRORLEVEL%==0 (
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 
+:: Startup
 if /i "%~1"=="/start"		   goto startup
+
 :: will loop update check if debugging
 :: Notifications
 if /i "%~1"=="/dn"         goto notiD
@@ -256,7 +258,7 @@ reg add "HKLM\Software\Policies\Microsoft\Control Panel\International" /v "Block
 
 :: disable unneeded scheduled tasks
 
-:: breaks setting Lock Screen
+:: breaks setting lock screen
 :: schtasks /Change /Disable /TN "\Microsoft\Windows\Shell\CreateObjectTask"
 
 for %%a in (
@@ -319,7 +321,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Scheduled Tasks...>> %WinDir%\
 ) ELSE (echo %date% - %time% Failed to Disable Scheduled Tasks! >> %WinDir%\AtlasModules\logs\install.log)
 cls & echo Please wait. This may take a moment.
 
-:: enable MSI Mode on USB controllers
+:: enable MSI mode on USB controllers
 :: second command for each device deletes device priorty, setting it to undefined
 for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
@@ -328,7 +330,7 @@ for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI
     reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 )
 
-:: enable MSI Mode on GPU
+:: enable MSI mode on GPU
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
@@ -336,12 +338,12 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "P
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 )
 
-:: enable MSI Mode on network adapters
+:: enable MSI mode on network adapters
 :: undefined priority on some virtual machines may break connection
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
-:: if e.g. VMWare is used, skip setting to undefined.
+:: if e.g. VMWare is used, skip setting to undefined
 wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && goto vmGO
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
@@ -355,7 +357,7 @@ for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI
 )
 
 :noVM
-:: enable MSI Mode on SATA controllers
+:: enable MSI mode on SATA controllers
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
@@ -404,8 +406,8 @@ reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RestrictAnonymousSAM" /t
 :: https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220930
 reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RestrictAnonymous" /t REG_DWORD /d "1" /f
 
-:: harden NetBios
-:: NetBios is disabled.  if it manages to become enabled, protect against NBT-NS poisoning attacks
+:: harden netbios
+:: netbios is disabled. if it manages to become enabled, protect against NBT-NS poisoning attacks
 reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v "NodeType" /t REG_DWORD /d "2" /f
 
 :: mitigate against HiveNightmare/SeriousSAM
@@ -476,7 +478,7 @@ del /F /Q "%WinDir%\System32\mobsync.exe" >nul 2>nul
 del /F /Q "%WinDir%\System32\mcupdate_genuineintel.dll" >nul 2>nul
 del /F /Q "%WinDir%\System32\mcupdate_authenticamd.dll" >nul 2>nul
 
-:: remove edge
+:: remove microsoft edge
 rmdir /s /q "C:\Program Files (x86)\Microsoft" >nul 2>nul
 
 :: remove residual registry keys
@@ -593,12 +595,12 @@ start explorer.exe
 :: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
 PowerShell.exe -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
 
-:: disable devices
+:: disable system devices
 DevManView.exe /disable "System Speaker"
 DevManView.exe /disable "System Timer"
 DevManView.exe /disable "UMBus Root Bus Enumerator"
 DevManView.exe /disable "Microsoft System Management BIOS Driver"
-::DevManView.exe /disable "Programmable Interrupt Controller" < https://media.discordapp.net/attachments/835904146413453333/931696968336551986/unknown.png
+:: DevManView.exe /disable "Programmable Interrupt Controller"
 DevManView.exe /disable "High Precision Event Timer"
 DevManView.exe /disable "PCI Encryption/Decryption Controller"
 DevManView.exe /disable "AMD PSP"
@@ -610,7 +612,7 @@ DevManView.exe /disable "Composite Bus Enumerator"
 DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
 DevManView.exe /disable "SM Bus Controller"
 DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
-::DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mounts
+:: DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mounts
 DevManView.exe /disable "Numeric Data Processor"
 DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %WinDir%\AtlasModules\logs\install.log
@@ -619,15 +621,14 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %WinDir%\AtlasMod
 if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
 if %branch%=="1803" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\1803.bat
 
-:: backup default windows services and drivers
-:: services
+:: backup default windows services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
 for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "TermService"') do (
 	set svc=%%i
 	set svc=!svc: =!
-	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
+	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
 		set /A start=%%i
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
@@ -636,13 +637,13 @@ for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "T
 	)
 ) >nul 2>&1
 
-:: drivers
+:: backup default windows drivers
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
 for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	set svc=%%~i
-	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
+	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
 		set /A start=%%i
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
@@ -743,7 +744,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% nvraid 4
 :: %setSvc% PEAUTH 4 < breaks UWP streaming apps like Netflix, manual mode does not fix
 %setSvc% QWAVEdrv 4
-:: Sset to Manual instead of disabling (fixes WSL), thanks Phlegm
+:: set to Manual instead of disabling (fixes WSL), thanks Phlegm
 %setSvc% rdbss 3
 %setSvc% rdyboost 4
 %setSvc% KSecPkg 4
@@ -759,10 +760,10 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% udfs 4
 %setSvc% umbus 4
 %setSvc% VerifierExt 4
-:: %setSvc% volmgrx 4 < breaks Dynamic Disks
+:: %setSvc% volmgrx 4 < breaks dynamic disks
 %setSvc% vsmraid 4
 %setSvc% VSTXRAID 4
-:: %setSvc% wcifs 4 < breaks various Microsoft Store games, erroring with "Filter not found"
+:: %setSvc% wcifs 4 < breaks various Microsoft Store games, erroring with "filter not found"
 %setSvc% wcnfs 4
 %setSvc% WindowsTrustedRTProxy 4
 
@@ -777,15 +778,14 @@ reg add "HKLM\System\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Services...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Services! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: backup default Atlas services and drivers
-:: services
+:: backup default Atlas services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
 for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "TermService"') do (
 	set svc=%%i
 	set svc=!svc: =!
-	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
+	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
 		set /A start=%%i
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
@@ -794,13 +794,13 @@ for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "T
 	)
 ) >nul 2>&1
 
-:: drivers
+:: backup default Atlas drivers
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
 for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	set svc=%%~i
-	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e^| findstr "[0-4]$"') do (
+	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
 		set /A start=%%i
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
@@ -810,14 +810,14 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 ) >nul 2>&1
 
 :: Registry
-:: done through script now, HKCU\.. keys often do not integrate correctly.
+:: done through script now, HKCU\... keys often do not integrate correctly
 
-:: BSOD QoL
+:: bsod quality of life
 reg add "HKLM\System\CurrentControlSet\Control\CrashControl" /v "AutoReboot" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\CrashControl" /v "CrashDumpEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\CrashControl" /v "DisplayParameters" /t REG_DWORD /d "1" /f
 
-:: GPO for Start Menu (tiles)
+:: gpo for start menu (tiles)
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%WinDir%\layout.xml" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
@@ -861,7 +861,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate" /v "DoNotConnec
 :: disable speech model updates
 reg add "HKLM\Software\Policies\Microsoft\Speech" /v "AllowSpeechModelUpdate" /t REG_DWORD /d "0" /f
 
-:: disable Windows insider and build previews
+:: disable windows insider and build previews
 reg add "HKLM\Software\Policies\Microsoft\Windows\PreviewBuilds" /v "EnableConfigFlighting" /t REG_DWORD /d "0" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\PreviewBuilds" /v "AllowBuildPreview" /t REG_DWORD /d "0" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\PreviewBuilds" /v "EnableExperimentation" /t REG_DWORD /d "0" /f
@@ -876,7 +876,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\Maps" /v "AllowUntriggeredNetw
 reg add "HKLM\Software\Policies\Microsoft\SQMClient\Windows" /v "CEIPEnable" /t REG_DWORD /d "0" /f
 reg add "HKLM\Software\Policies\Microsoft\AppV\CEIP" /v "CEIPEnable" /t REG_DWORD /d "0" /f
 
-:: disable Windows Media Player DRM online access
+:: disable windows media player drm online access
 reg add "HKLM\Software\Policies\Microsoft\WMDRM" /v "DisableOnline" /t REG_DWORD /d "1" /f
 
 :: disable web in search
@@ -884,7 +884,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\Windows Search" /v "ConnectedS
 reg add "HKLM\Software\Policies\Microsoft\Windows\Windows Search" /v "DisableWebSearch" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Search" /v "BingSearchEnabled" /t REG_DWORD /d "0" /f
 
-:: Data Queue Sizes
+:: data queue sizes
 :: set to half of default
 reg add "HKLM\System\CurrentControlSet\Services\mouclass\Parameters" /v "MouseDataQueueSize" /t REG_DWORD /d "50" /f
 reg add "HKLM\System\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d "50" /f
@@ -923,7 +923,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\AppCompat" /v "DisablePCA" /t 
 %currentuser% reg add "HKCU\Control Panel\Accessibility\Keyboard Response" /v "Flags" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Control Panel\Accessibility\ToggleKeys" /v "Flags" /t REG_DWORD /d "0" /f
 
-:: disable connection checking (pings Microsoft servers)
+:: disable connection checking (pings microsoft servers)
 :: may cause internet icon to show it is disconnected
 reg add "HKLM\System\CurrentControlSet\Services\NlaSvc\Parameters\Internet" /v "EnableActiveProbing" /t REG_DWORD /d "0" /f
 
@@ -980,7 +980,8 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\AdvertisingInfo" /v "DisabledB
 :: disable sleep study
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Power" /v "SleepStudyDisabled" /t REG_DWORD /d "1" /f
 
-:: opt-out of sending KMS client activation data to Microsoft automatically. enabling this setting prevents this computer from sending data to Microsoft regarding its activation state
+:: opt-out of sending kms client activation data to microsoft automatically. 
+:: enabling this setting prevents this computer from sending data to microsoft regarding its activation state
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" /v "NoGenTicket" /t REG_DWORD /d "1" /f
 
 :: disable feedback
@@ -1016,30 +1017,6 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "H
 :: disable shared experiences
 reg add "HKLM\Software\Policies\Microsoft\Windows\System" /v "EnableCdp" /t REG_DWORD /d "0" /f
 
-:: Internet Explorer QoL
-reg add "HKLM\Software\Microsoft\Internet Explorer\Main" /v "NoUpdateCheck" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Microsoft\Internet Explorer\Main" /v "Enable Browser Extensions" /t REG_SZ /d "no" /f
-reg add "HKLM\Software\Microsoft\Internet Explorer\Main" /v "Isolation" /t REG_SZ /d "PMEM" /f
-reg add "HKLM\Software\Microsoft\Internet Explorer\Main" /v "Isolation64Bit" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\BrowserEmulation" /v "IntranetCompatibilityMode" /t REG_DWORD /d "0" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer" /v "DisableFlashInIE" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\SQM" /v "DisableCustomerImprovementProgram" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\DomainSuggestion" /v "Enabled" /t REG_DWORD /d "0" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Security" /v "DisableSecuritySettingsCheck" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Security" /v "DisableFixSecuritySettings" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Privacy" /v "EnableInPrivateBrowsing" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Privacy" /v "ClearBrowsingHistoryOnExit" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Main" /v "EnableAutoUpgrade" /t REG_DWORD /d "0" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Main" /v "DisableFirstRunCustomize" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Main" /v "HideNewEdgeButton" /t REG_DWORD /d "1" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Feed Discovery" /v "Enabled" /t REG_DWORD /d "0" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Feeds" /v "BackgroundSyncStatus" /t REG_DWORD /d "0" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\FlipAhead" /v "Enabled" /t REG_DWORD /d "0" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Suggested Sites" /v "Enabled" /t REG_DWORD /d "0" /f
-reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\TabbedBrowsing" /v "NewTabPageShow" /t REG_DWORD /d "1" /f
-%currentuser% reg add "HKCU\Software\Policies\Microsoft\Internet Explorer\Control Panel" /v "HomePage" /t REG_DWORD /d "1" /f
-%currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Internet Explorer\Main" /v "Start Page" /t REG_SZ /d "https://atlasos.net" /f
-
 :: show all tasks on control panel, credits to tenforums
 reg add "HKLM\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /ve /t REG_SZ /d "All Tasks" /f
 reg add "HKLM\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /v "InfoTip" /t REG_SZ /d "View list of all Control Panel tasks" /f
@@ -1058,7 +1035,7 @@ reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management
 :: reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management" /v "MoveImages" /t REG_DWORD /d "0" /f
 :: reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management" /v "DisablePagingExecutive" /t REG_DWORD /d "1" /f
 
-:: disable Fault Tolerant Heap
+:: disable fault tolerant heap
 :: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
 :: doc listed as only affected in windows 7, is also in 7+
 reg add "HKLM\Software\Microsoft\FTH" /v "Enabled" /t REG_DWORD /d "0" /f
@@ -1087,10 +1064,11 @@ reg add "HKLM\System\CurrentControlSet\Control\Session Manager\kernel" /v "Mitig
 :: https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html
 :: reg add "HKLM\System\CurrentControlSet\Control\Session Manager\kernel" /v "DisableTsx" /t REG_DWORD /d "1" /f
 
+:: disable virtualization-based protection of code integrity
 :: https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
 reg add "HKLM\System\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /t REG_DWORD /d "0" /f
 
-:: MMCSS
+:: configure multimedia class scheduler
 reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "NetworkThrottlingIndex" /t REG_DWORD /d "10" /f
 reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "SystemResponsiveness" /t REG_DWORD /d "10" /f
 reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "NoLazyMode" /t REG_DWORD /d "1" /f
@@ -1098,7 +1076,7 @@ reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProf
 reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" /v "Latency Sensitive" /t REG_SZ /d "True" /f
 reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" /v "NoLazyMode" /t REG_DWORD /d "1" /f
 
-:: GameBar/FSE
+:: configure gamebar/fse
 %currentuser% reg add "HKCU\Software\Microsoft\GameBar" /v "ShowStartupPanel" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Software\Microsoft\GameBar" /v "GamePanelStartupTipIndex" /t REG_DWORD /d "3" /f
 %currentuser% reg add "HKCU\Software\Microsoft\GameBar" /v "AllowAutoGameMode" /t REG_DWORD /d "0" /f
@@ -1127,7 +1105,7 @@ reg add "HKLM\System\CurrentControlSet\Control\PriorityControl" /v "Win32Priorit
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" /v "NoTileApplicationNotification" /t REG_DWORD /d "1" /f
 
-:: hung apps, wait to kill, QoL
+:: hung apps, wait to kill, quality of life
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "AutoEndTasks" /t REG_SZ /d "1" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "HungAppTimeout" /t REG_SZ /d "1000" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "MenuShowDelay" /t REG_SZ /d "8" /f
@@ -1135,17 +1113,18 @@ reg add "HKLM\System\CurrentControlSet\Control" /v "WaitToKillServiceTimeout" /t
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9A12038010000000" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "JPEGImportQuality" /t REG_DWORD /d "100" /f
 
-:: visual
+:: configure Windows visuals
 %currentuser% reg add "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /t REG_SZ /d "0" /f
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d "3" /f
 
-:: DWM
+:: configure desktop window manager
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\DWM" /v "EnableAeroPeek" /t REG_DWORD /d "0" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\DWM" /v "Composition" /t REG_DWORD /d "0" /f
+
 :: Needs testing
 :: https://djdallmann.github.io/GamingPCSetup/CONTENT/RESEARCH/FINDINGS/registrykeys_dwm.txt
-::reg add "HKLM\Software\Microsoft\Windows\Dwm" /v "AnimationAttributionEnabled" /t REG_DWORD /d "0" /f
+:: reg add "HKLM\Software\Microsoft\Windows\Dwm" /v "AnimationAttributionEnabled" /t REG_DWORD /d "0" /f
 
 :: add batch to new file menu
 reg add "HKLM\Software\Classes\.bat\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "@%WinDir%\System32\acppage.dll,-6002" /f
@@ -1164,7 +1143,7 @@ reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance"
 :: do not reduce sounds while in a call
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio" /v "UserDuckingPreference" /t REG_DWORD /d "3" /f
 
-:: edge
+:: configure microsoft edge
 reg add "HKLM\Software\Policies\Microsoft\Windows\EdgeUI" /v "DisableMFUTracking" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\MicrosoftEdge\Main" /v "AllowPrelaunch" /t REG_DWORD /d "0" /f
 reg add "HKLM\Software\Microsoft\EdgeUpdate" /v "DoNotUpdateToEdgeWithChromium" /t REG_DWORD /d "0" /f
@@ -1200,7 +1179,7 @@ reg add "HKCR\exefile\Shell\Priority\shell\006flyout\command" /ve /t REG_SZ /d "
 reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f >nul 2>nul
 reg delete "HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location" /f >nul 2>nul
 
-:: remove Share in context menu
+:: remove share in context menu
 reg delete "HKCR\*\shellex\ContextMenuHandlers\ModernSharing" /f >nul 2>nul
 
 :: double click to import power plans
@@ -1212,17 +1191,12 @@ reg add "HKLM\Software\Classes\.pow" /v "FriendlyTypeName" /t REG_SZ /d "PowerPl
 if %ERRORLEVEL%==0 (echo %date% - %time% Registry Tweaks Applied...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Apply Registry Tweaks! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: disable DmaRemapping
+:: disable dma remapping
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
 for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f DmaRemappingCompatible ^| find /i "Services\" ') do (
 	reg add "%%i" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f
 )
 echo %date% - %time% Disabled Dma Remapping...>> %WinDir%\AtlasModules\logs\install.log
-
-:: set csrss to high
-:: csrss is responsible for mouse input, setting to high may yield an improvement in input latency
-reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\csrss.exe\PerfOptions" /v "CpuPriorityClass" /t REG_DWORD /d "3" /f
-reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\csrss.exe\PerfOptions" /v "IoPriority" /t REG_DWORD /d "3" /f
 
 :: set system processes priority below normal
 for %%i in (lsass.exe sppsvc.exe SearchIndexer.exe fontdrvhost.exe sihost.exe ctfmon.exe) do (
@@ -1232,18 +1206,18 @@ for %%i in (lsass.exe sppsvc.exe SearchIndexer.exe fontdrvhost.exe sihost.exe ct
 for %%i in (OriginWebHelperService.exe ShareX.exe EpicWebHelper.exe SocialClubHelper.exe steamwebhelper.exe) do (
   reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%%i\PerfOptions" /v "CpuPriorityClass" /t REG_DWORD /d "5" /f
 )
-:: set DWM priority to normal
+:: set desktop window manager priority to normal
 :: wmic process where name="dwm.exe" CALL setpriority "normal"
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Process Priorities Set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Set Priorities! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: lowering dual boot choice time
-:: no, this does NOT affect single OS boot time.
+:: no, this does not affect single OS boot time.
 :: this is directly shown in microsoft docs https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--timeout#parameters
 bcdedit /timeout 10
 
-:: setting to No provides worse results, delete the value instead.
+:: setting to "no" provides worse results, delete the value instead.
 :: this is here as a safeguard incase of user error
 bcdedit /deletevalue useplatformclock >nul 2>nul
 
@@ -1253,11 +1227,11 @@ bcdedit /set useplatformtick yes
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
 bcdedit /set disabledynamictick Yes
 
-:: disable DEP, may need to enable for FACEIT, Valorant, and other Anti-Cheats.
+:: disable dep, may need to enable for FACEIT, Valorant, and other anti-cheats
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 bcdedit /set nx AlwaysOff
 
-:: Hyper-V support is removed, other virtualization programs are supported
+:: hyper-v support is removed, other virtualization programs are supported
 bcdedit /set hypervisorlaunchtype off
 
 :: use legacy boot menu
@@ -1284,6 +1258,7 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v "T
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Notifications Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :notiE
 sc config WpnUserService start=auto
 sc config WpnService start=auto
@@ -1291,16 +1266,19 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v "T
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "0" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Notifications Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :indexD
 sc config WSearch start=disabled
 sc stop WSearch >nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :indexE
 sc config WSearch start=delayed-auto
 sc start WSearch >nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :wifiD
 echo Applications like Store and Spotify may not function correctly when disabled. If this is a problem, enable the wifi and restart the computer.
 sc config WlanSvc start=disabled
@@ -1309,9 +1287,11 @@ set /P c="Would you like to disable the Network Icon? (disables 2 extra services
 if /I "%c%" EQU "N" goto wifiDskip
 sc config netprofm start=disabled
 sc config NlaSvc start=disabled
+
 :wifiDskip
 if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1"=="int" goto :EOF
+
 goto finish
 :wifiE
 sc config netprofm start=demand
@@ -1326,16 +1306,17 @@ if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi Enabled...>> %WinDir%\AtlasModules
 sc config eventlog start=auto
 echo %date% - %time% EventLog enabled as Wi-Fi dependency...>> %WinDir%\AtlasModules\logs\userscript.log
 goto finish
+
 :storeD
 echo This will break a majority of UWP apps and their deployment.
 echo Extra note: This breaks the "about" page in settings. If you require it, enable the AppX service.
-:: this includes windows firewall, i only see the point in keeping it because of Microsoft Store.
-:: if you notice something else breaks when firewall/Microsoft Store is disabled please open an issue.
+:: this includes windows firewall, i only see the point in keeping it because of Microsoft Store
+:: if you notice something else breaks when firewall/Microsoft Store is disabled please open an issue
 pause
 :: Detect if user is using a Microsoft Account
 PowerShell.exe -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
-:: disable the option for Microsoft Store in the "Open With" dialog
+:: disable the option for Microsoft Store in the "open With" dialog
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
 :: block access to Microsoft Store
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
@@ -1355,8 +1336,9 @@ sc config FileCrypt start=disabled
 if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
+
 :storeE
-:: enable the option for Microsoft Store in the "Open With" dialog
+:: enable the option for Microsoft Store in the "open With" dialog
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
 :: allow access to Microsoft Store
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
@@ -1376,6 +1358,7 @@ sc config FileInfo start=boot
 sc config FileCrypt start=system
 if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :btD
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc >nul 2>nul
@@ -1387,6 +1370,7 @@ sc config CDPSvc start=disabled
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
+
 :btE
 sc config BthAvctpSvc start=auto
 for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
@@ -1395,6 +1379,7 @@ for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f CDPU
 sc config CDPSvc start=auto
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :cbdhsvcD
 for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f cbdhsvc ^| find /i "cbdhsvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
@@ -1405,6 +1390,7 @@ sc config DsSvc start=disabled
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /t REG_DWORD /d "0" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :cbdhsvcE
 for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f cbdhsvc ^| find /i "cbdhsvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "3" /f
@@ -1414,6 +1400,7 @@ sc config DsSvc start=auto
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /f >nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :hddD
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnablePrefetcher" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnableSuperfetch" /t REG_DWORD /d "0" /f
@@ -1422,6 +1409,7 @@ sc config SysMain start=disabled
 sc config FontCache start=disabled
 if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :hddE
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnablePrefetcher" /t REG_DWORD /d "1" /f
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnableSuperfetch" /t REG_DWORD /d "1" /f
@@ -1430,6 +1418,7 @@ sc config SysMain start=auto
 sc config FontCache start=auto
 if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :depE
 PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable DEP
 PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
@@ -1440,6 +1429,7 @@ for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
 )
 if %ERRORLEVEL%==0 echo %date% - %time% DEP Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :depD
 echo If you get issues with some anti-cheats, please re-enable DEP.
 PowerShell.exe -NoProfile set-ProcessMitigation -System -Disable DEP
@@ -1447,17 +1437,19 @@ PowerShell.exe -NoProfile set-ProcessMitigation -System -Disable EmulateAtlThunk
 bcdedit /set nx AlwaysOff
 if %ERRORLEVEL%==0 echo %date% - %time% DEP Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :SearchStart
 IF EXIST "C:\Program Files\Open-Shell" goto existS
 IF EXIST "C:\Program Files (x86)\StartIsBack" goto existS
 echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the startmenu being removed.
 pause
+
 :existS
 set /P c=This will disable SearchApp and StartMenuExperienceHost, are you sure you want to continue[Y/N]?
 if /I "%c%" EQU "Y" goto continSS
 if /I "%c%" EQU "N" exit
 :continSS
-:: rename Start Menu
+:: rename start menu
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 :restartStart
 taskkill /F /IM StartMenuExperienceHost*
@@ -1477,8 +1469,9 @@ taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :enableStart
-:: rename Start Menu
+:: rename start menu
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 ren StartMenuExperienceHost.old StartMenuExperienceHost.exe
 :: rename search
@@ -1495,12 +1488,14 @@ curl -L --output %WinDir%\AtlasModules\oshellI.exe https://github.com/Open-Shell
 IF EXIST "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
 IF EXIST "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existOS
 goto rmSSOS
+
 :existOS
 set /P c=It appears Search and Start are installed, would you like to disable them also?[Y/N]?
 if /I "%c%" EQU "Y" goto rmSSOS
 if /I "%c%" EQU "N" goto skipRM
+
 :rmSSOS
-:: rename Start Menu
+:: rename start menu
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 :OSrestartStart
 taskkill /F /IM StartMenuExperienceHost*
@@ -1519,6 +1514,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> %WinDir%\AtlasModules\logs\userScript.log
+
 :skipRM
 :: install silently
 echo]
@@ -1531,11 +1527,12 @@ taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell Installed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
+
 :uwp
 IF EXIST "C:\Program Files\Open-Shell" goto uwpD
 IF EXIST "C:\Program Files (x86)\StartIsBack" goto uwpD
 echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the startmenu being removed.
-pause&exit
+pause & exit
 :uwpD
 echo This will remove all UWP packages that are currently installed. This will break multiple features that WILL NOT be supported while disabled.
 echo A reminder of a few things this may break.
@@ -1549,14 +1546,14 @@ echo - Wi-Fi Menu
 echo - Microsoft Accounts
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
-:: detect if user is using a Microsoft Account
+:: detect if user is using a microsoft account
 PowerShell.exe -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
 sc config TabletInputService start=disabled
 
-:: disable the option for Microsoft Store in the "Open With" dialog
+:: disable the option for Microsoft Store in the "open With" dialog
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
 :: block Access to Microsoft Store
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
@@ -1588,7 +1585,7 @@ pause
 :uwpE
 sc config TabletInputService start=demand
 
-:: disable the option for Microsoft Store in the "Open With" dialog
+:: disable the option for Microsoft Store in the "open With" dialog
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
 :: block Access to Microsoft Store
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
@@ -1616,6 +1613,7 @@ taskkill /f /im explorer.exe
 NSudo.exe -U:C start explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :mitE
 PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable DEP
 PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
@@ -1631,12 +1629,14 @@ PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
 PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
 PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
 goto finish
+
 :startlayout
 reg delete "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
 reg delete "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /f >nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% StartLayout Policy Removed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :sleepD
 :: disable Away Mode policy
 powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 0
@@ -1650,6 +1650,7 @@ powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
+
 :sleepE
 :: enable Away Mode policy
 powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 1
@@ -1670,6 +1671,7 @@ powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2
 powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Idle Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
+
 :idleE
 powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0
 powercfg -setactive scheme_current
@@ -1783,11 +1785,13 @@ reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "DisableRestrictedAdmin" 
 reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RunAsPPL" /t REG_DWORD /d "1" /f
 reg add "HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Negotiate" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "UseLogonCredential" /t REG_DWORD /d "0" /f
+
 :xboxU
 set /P c=This is IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]
 if /I "%c%" EQU "N" exit
 if /I "%c%" EQU "Y" goto :xboxConfirm
 exit
+
 :xboxConfirm
 echo Removing via PowerShell.exe...
 NSudo.exe -U:C -ShowWindowMode:Hide -Wait PowerShell.exe -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
@@ -1800,6 +1804,7 @@ sc config XboxNetApiSvc start=disabled
 %setSvc% BcastDVRUserService 4
 if %ERRORLEVEL%==0 echo %date% - %time% Xbox Related Apps and Services Removed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
+
 :vcreR
 echo Uninstalling Visual C++ Runtimes...
 %WinDir%\AtlasModules\vcredist.exe /aiR
@@ -1810,12 +1815,14 @@ echo Opening Visual C++ Runtimes installer, simply click next.
 echo Installation Finished or Cancelled.
 if %ERRORLEVEL%==0 echo %date% - %time% Visual C++ Runtimes Reinstalled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
+
 :uacD
 echo Disabling UAC breaks fullscreen on certain UWP applications, one of them being Minecraft Windows 10 Edition. It is also less secure to disable UAC.
 set /P c="Do you want to continue? [Y/N]: "
 if /I "%c%" EQU "Y" goto uacDconfirm
 if /I "%c%" EQU "N" exit
 exit
+
 :uacDconfirm
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f
@@ -1825,6 +1832,7 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "Con
 if %ERRORLEVEL%==0 echo %date% - %time% UAC Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
+
 :uacE
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f
@@ -1840,11 +1848,13 @@ goto finish
 if %ERRORLEVEL%==0 echo %date% - %time% Firewall Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
+
 :firewallE
 %setSvc% mpssvc 2
 %setSvc% BFE 2
 if %ERRORLEVEL%==0 echo %date% - %time% Firewall Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :aniE
 reg delete "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /f >nul 2>nul
 %currentuser% reg delete "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /f >nul 2>nul
@@ -1853,6 +1863,7 @@ reg delete "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9e3e078012000000" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Animations Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :aniD
 reg add "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /t REG_DWORD /d "0" /f
@@ -1861,6 +1872,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9012038010000000" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Animations Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :workstationD
 %setSvc% rdbss 4
 %setSvc% KSecPkg 4
@@ -1871,6 +1883,7 @@ goto finish
 dism /Online /Disable-Feature /FeatureName:SmbDirect /norestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :workstationE
 %setSvc% rdbss 3
 %setSvc% KSecPkg 0
@@ -1882,11 +1895,13 @@ dism /Online /Enable-Feature /FeatureName:SmbDirect /norestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
+
 :printE
 set /P c=You may be vulnerable to Print Nightmare Exploits while printing is enabled. Would you like to add Group Policies to protect against them? [Y/N]
 if /I "%c%" EQU "Y" goto nightmareGPO
 if /I "%c%" EQU "N" goto printECont
 goto nightmareGPO
+
 :nightmareGPO
 echo The spooler will not accept client connections nor allow users to share printers.
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "RegisterSpoolerRemoteRpcEndPoint" /t REG_DWORD /d "2" /f
@@ -1896,6 +1911,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /v 
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableWebPnPDownload" /t REG_DWORD /d "1" /f
 :: disable Printing over HTTP
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableHTTPPrinting" /t REG_DWORD /d "1" /f
+
 :printECont
 %setSvc% Spooler 2
 if %ERRORLEVEL%==0 echo %date% - %time% Printing Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -1904,6 +1920,7 @@ goto finish
 %setSvc% Spooler 4
 if %ERRORLEVEL%==0 echo %date% - %time% Printing Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :dataQueueM
 echo Mouse Data Queue Sizes
 echo This may affect stability and input latency. And if low enough may cause mouse skipping/mouse stutters.
@@ -1923,6 +1940,7 @@ goto dataQueueM
 reg add "HKLM\System\CurrentControlSet\Services\mouclass\Parameters" /v "MouseDataQueueSize" /t REG_DWORD /d "%c%" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Mouse Data Queue Size set to %c%...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :dataQueueK
 echo Keyboard Data Queue Sizes
 echo This may affect stability and input latency. And if low enough may cause general keyboard issues like ghosting.
@@ -1942,6 +1960,7 @@ goto dataQueueK
 reg add "HKLM\System\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d "%c%" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Keyboard Data Queue Size set to %c%...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :netWinDefault
 netsh int ip reset
 netsh winsock reset
@@ -1952,6 +1971,7 @@ for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connecte
 pnputil /scan-devices
 if %ERRORLEVEL%==0 echo %date% - %time% Network Setting Reset to Windows Default...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :netAtlasDefault
 :: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
@@ -2412,10 +2432,10 @@ exit /b
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
-	pause&exit
+	pause & exit
 :finish
 	echo Finished, please reboot for changes to apply.
-	pause&exit
+	pause & exit
 :finishNRB
 	echo Finished, changes have been applied.
-	pause&exit
+	pause & exit
