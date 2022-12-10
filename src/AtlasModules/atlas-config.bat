@@ -15,7 +15,7 @@
 :: - nohopestage
 :: - Timecard
 :: - Phlegm
-:: - xyzze
+:: - Xyueta
 
 @echo off
 set branch="20H2"
@@ -204,8 +204,8 @@ pause & exit
 mkdir %WinDir%\AtlasModules\logs
 cls & echo Please wait, this may take a moment.
 setx path "%path%;%WinDir%\AtlasModules;" -m  >nul 2>nul
-IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules Path Set...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set Atlas Modules Path! >> %WinDir%\AtlasModules\logs\install.log)
+IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: breaks setting keyboard language
 :: Rundll32.exe advapi32.dll,ProcessIdleTasks
@@ -215,8 +215,8 @@ echo false > C:\Users\Public\success.txt
 :auto
 SETLOCAL EnableDelayedExpansion
 %WinDir%\AtlasModules\vcredist.exe /ai
-if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Redistributable Runtimes Installed...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributable Runtimes! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to install Visual C++ Runtimes! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: change ntp server from windows server to pool.ntp.org
 sc config W32Time start=demand >nul 2>nul
@@ -232,8 +232,8 @@ w32tm /config /update
 w32tm /resync
 sc stop W32Time
 sc config W32Time start=disabled
-if %ERRORLEVEL%==0 (echo %date% - %time% NTP Server Set...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set NTP Server! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% NTP server set...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to set NTP server! >> %WinDir%\AtlasModules\logs\install.log)
 cls & echo Please wait. This may take a moment.
 
 :: optimize NTFS parameters
