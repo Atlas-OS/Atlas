@@ -1,5 +1,5 @@
 :: name: Atlas configuration script
-:: description: this is the master script used to congigure the Atlas operating system
+:: description: this is the master script used to configure the Atlas operating system
 :: depending on your build, change theses vars to 1803, 20H2 or 21H2 and update the version
 
 :: CREDITS:
@@ -2273,14 +2273,14 @@ echo This will force P0 on your NVIDIA card AT ALL TIMES, it will always run at 
 echo It is not recommended if you leave your computer on while idle, have bad cooling or use a laptop.
 pause
 
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA"^| findstr "HK"') do (
+for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
     reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
 )
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :revertNVPState
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA"^| findstr "HK"') do (
+for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
     reg delete "%%i" /v "DisableDynamicPstate" /f
 )
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -2294,10 +2294,12 @@ if errorlevel 1 (
     pause
     exit /B
 )
+
 echo Disabling the NVIDIA Display Container LS service will stop the NVIDIA Control Panel from working.
 echo You can enable the NVIDIA Control Panel by running the other version of this script, which enables the service.
 echo Read README.txt for more info.
 pause
+
 %setSvc% NVDisplay.ContainerLocalSystem 4
 sc stop NVDisplay.ContainerLocalSystem > nul
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -2311,6 +2313,7 @@ if %errorlevel% 1 (
     pause
     exit /B
 )
+
 %setSvc% NVDisplay.ContainerLocalSystem 2
 sc start NVDisplay.ContainerLocalSystem > nul
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -2326,6 +2329,7 @@ if %errorlevel% 1 (
 )
 echo Explorer will be restarted to ensure that the context menu works.
 pause
+
 :: get icon exe
 :: different for older/newer drivers
 if not exist "C:\Program Files\NVIDIA Corporation\Display.NvContainer\" (
@@ -2344,7 +2348,7 @@ reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\c
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Container" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
-taskkill /f /im explorer.exe
+taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 NSudo.exe -U:C explorer.exe
@@ -2365,12 +2369,14 @@ if %errorlevel% 1 (
     pause
     exit /B
 )
+
 echo Explorer will be restarted to ensure that the context menu is gone.
 pause
 reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f
+
 :: delete icon exe
 erase /F /Q "%WinDir%\System32\NvidiaIcon.exe"
-taskkill /f /im explorer.exe
+taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 NSudo.exe -U:C explorer.exe
