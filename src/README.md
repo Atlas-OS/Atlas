@@ -28,20 +28,20 @@ There are plenty of reasons to build Atlas from source such as:
 4. Integrate drivers and registry files if needed.
 5. Copy the following folders/files to the NTLite mount directory (%temp%\NLTmpMnt01)
   ```txt
-  - Web >> %temp%\NLTmpMount01\Windows\Web (delete the existing folder first!)
-  - layout.xml >> %temp%\NLTmpMount01\Windows\layout.xml
-  - AtlasModules >> %temp%\NLTmpMount01\Windows\AtlasModules
-  - Desktop/Atlas >> %temp%\NLTmpMount01\Users\Default\Desktop\Atlas
-  - Atlas.bat >> %temp%\NLTmpMount01\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\Atlas.bat
+  - Web >> %temp%\NLTmpMnt01\Windows\Web (delete the existing folder first!)
+  - layout.xml >> %temp%\NLTmpMnt01\Windows\layout.xml
+  - AtlasModules >> %temp%\NLTmpMnt01\Windows\AtlasModules
+  - Desktop/Atlas >> %temp%\NLTmpMnt01\Users\Default\Desktop\Atlas
+  - Atlas.bat >> %temp%\NLTmpMnt01\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\Atlas.bat
   ```
 6. Delete the following files with a program like IOBit Unlocker or Unlocker
   ```txt
-  - %temp%\NLTmpMount01\Windows\System32\mcupdate_genuineintel.dll
-  - %temp%\NLTmpMount01\Windows\System32\mcupdate_authenticamd.dll
-  - %temp%\NLTmpMount01\Windows\System32\mobsync.exe
-  - %temp%\NLTmpMount01\Windows\System32\GameBarPresenceWriter.exe
-  - %temp%\NLTmpMount01\Windows\WinSxS\Temp\PendingDeletes\*
-  - %temp%\NLTmpMount01\Windows\System32\Catroot2
+  - %temp%\NLTmpMnt01\Windows\System32\mcupdate_genuineintel.dll
+  - %temp%\NLTmpMnt01\Windows\System32\mcupdate_authenticamd.dll
+  - %temp%\NLTmpMnt01\Windows\System32\mobsync.exe
+  - %temp%\NLTmpMnt01\Windows\System32\GameBarPresenceWriter.exe
+  - %temp%\NLTmpMnt01\Windows\WinSxS\Temp\PendingDeletes\*
+  - %temp%\NLTmpMnt01\Windows\System32\Catroot2
   ```
 7. Make any changes you want to NTLite's components, settings, services etc.
 8. Go to the "Apply" tab and click Process
