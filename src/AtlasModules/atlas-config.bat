@@ -1281,10 +1281,10 @@ if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing Enabled...>> %WinDir%\At
 goto finish
 
 :wifiD
-echo Applications like Store and Spotify may not function correctly when disabled. If this is a problem, enable the wifi and restart the computer.
+echo Applications like Microsoft Store and Spotify may not function correctly when disabled. If this is a problem, enable the Wi-Fi and restart the computer.
 sc config WlanSvc start=disabled
 sc config vwififlt start=disabled
-set /P c="Would you like to disable the Network Icon? (disables 2 extra services) [Y/N]: "
+set /P c="Would you like to disable the network icon? (disables two extra services) [Y/N]: "
 if /I "%c%" EQU "N" goto wifiDskip
 sc config netprofm start=disabled
 sc config NlaSvc start=disabled
@@ -1292,8 +1292,8 @@ sc config NlaSvc start=disabled
 :wifiDskip
 if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1"=="int" goto :EOF
-
 goto finish
+
 :wifiE
 sc config netprofm start=demand
 sc config NlaSvc start=auto
@@ -1314,14 +1314,18 @@ echo Extra note: This breaks the "about" page in settings. If you require it, en
 :: this includes windows firewall, i only see the point in keeping it because of Microsoft Store
 :: if you notice something else breaks when firewall/Microsoft Store is disabled please open an issue
 pause
-:: Detect if user is using a Microsoft Account
+
+:: detect if user is using a microsoft account
 PowerShell.exe -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
-:: disable the option for Microsoft Store in the "open With" dialog
+
+:: disable the option for Microsoft Store in the "open with" dialog
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
+
 :: block access to Microsoft Store
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
 sc config InstallService start=disabled
+
 :: insufficent permissions to disable
 %setSvc% WinHttpAutoProxySvc 4
 sc config mpssvc start=disabled
@@ -1339,11 +1343,13 @@ if "%~1" EQU "int" goto :EOF
 goto finish
 
 :storeE
-:: enable the option for Microsoft Store in the "open With" dialog
+:: enable the option for Microsoft Store in the "open with" dialog
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
+
 :: allow access to Microsoft Store
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
+
 :: insufficent permissions to enable through SC
 %setSvc% WinHttpAutoProxySvc 3
 sc config mpssvc start=auto
@@ -1442,28 +1448,35 @@ goto finish
 :SearchStart
 IF EXIST "C:\Program Files\Open-Shell" goto existS
 IF EXIST "C:\Program Files (x86)\StartIsBack" goto existS
-echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the startmenu being removed.
+echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the Start Menu being removed.
 pause
 
 :existS
 set /P c=This will disable SearchApp and StartMenuExperienceHost, are you sure you want to continue[Y/N]?
 if /I "%c%" EQU "Y" goto continSS
 if /I "%c%" EQU "N" exit
+
 :continSS
 :: rename start menu
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+
 :restartStart
 taskkill /F /IM StartMenuExperienceHost*
 ren StartMenuExperienceHost.exe StartMenuExperienceHost.old
+
 :: loop if it fails to rename the first time
 if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto restartStart
+
 :: rename search
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+
 :restartSearch
 taskkill /F /IM SearchApp*  >nul 2>nul
 ren SearchApp.exe SearchApp.old
+
 :: loop if it fails to rename the first time
 if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto restartSearch
+
 :: search icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
@@ -1475,17 +1488,20 @@ goto finish
 :: rename start menu
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 ren StartMenuExperienceHost.old StartMenuExperienceHost.exe
+
 :: rename search
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 ren SearchApp.old SearchApp.exe
+
 :: search icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
+
 :openshellInstall
-curl -L --output %WinDir%\AtlasModules\oshellI.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.8/OpenShellSetup_4_4_8.exe
+curl -L --output %WinDir%\AtlasModules\Open-Shell.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.8/OpenShellSetup_4_4_8.exe
 IF EXIST "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
 IF EXIST "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existOS
 goto rmSSOS
@@ -1498,18 +1514,24 @@ if /I "%c%" EQU "N" goto skipRM
 :rmSSOS
 :: rename start menu
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+
 :OSrestartStart
 taskkill /F /IM StartMenuExperienceHost*
 ren StartMenuExperienceHost.exe StartMenuExperienceHost.old
+
 :: loop if it fails to rename the first time
 if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto OSrestartStart
+
 :: rename search
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+
 :OSrestartSearch
 taskkill /F /IM SearchApp*  >nul 2>nul
 ren SearchApp.exe SearchApp.old
+
 :: loop if it fails to rename the first time
 if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto OSrestartSearch
+
 :: search icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
@@ -1520,7 +1542,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> %WinD
 :: install silently
 echo]
 echo Openshell is installing...
-"oshellI.exe" /qn ADDLOCAL=StartMenu
+"Open-Shell.exe" /qn ADDLOCAL=StartMenu
 curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5/Fluent-Metro_1.5.zip -o skin.zip
 7z -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
 del /F /Q skin.zip >nul 2>nul
