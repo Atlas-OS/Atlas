@@ -26,7 +26,7 @@ There are plenty of reasons to build Atlas from source such as:
 2. Open NTLite and add the extracted folder to NTLite's source list.
 3. Import the Atlas XML from the repo and apply it.
 4. Integrate drivers and registry files if needed.
-5. Copy the following folders/files to the NTLite mount directory (%temp%\NLTmpMount01)
+5. Copy the following folders/files to the NTLite mount directory (%temp%\NLTmpMnt01)
   ```txt
   - Web >> %temp%\NLTmpMount01\Windows\Web (delete the existing folder first!)
   - layout.xml >> %temp%\NLTmpMount01\Windows\layout.xml
