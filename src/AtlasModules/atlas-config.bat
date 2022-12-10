@@ -52,7 +52,7 @@ if /i "%~1"=="/en"         goto notiE
 if /i "%~1"=="/ad"         goto aniD
 if /i "%~1"=="/ae"         goto aniE
 
-:: Search indexing
+:: Search Indexing
 if /i "%~1"=="/di"         goto indexD
 if /i "%~1"=="/ei"         goto indexE
 
