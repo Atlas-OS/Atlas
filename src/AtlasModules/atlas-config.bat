@@ -618,6 +618,7 @@ DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Devices! >> %WinDir%\AtlasModules\logs\install.log)
 
+if %branch%=="22H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\22H2.bat
 if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
 if %branch%=="1803" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\1803.bat
 
