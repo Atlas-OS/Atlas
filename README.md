@@ -13,7 +13,7 @@
 </p>
 <p align="center">
  Other Languages:
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a>
+  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a>
 </p>
 
 # What is Atlas?
@@ -64,9 +64,9 @@ Atlas is pre-tweaked. While maintaining compatibility, but also striving for per
 - Minimized services
 - Minimized drivers
 - Disabled unneeded devices
-- Disabled powersavings
+- Disabled power savings
 - Disabled performance-hungry security mitigations
-- Automatically enabled MSI Mode
+- Automatically enabled MSI mode
 - Boot configuration optimization
 - Optimized process scheduling
 

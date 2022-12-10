@@ -1,6 +1,6 @@
 @echo off
-:: A batch script to refresh environment variables from the registry
-:: Source: Chocolatey
+:: a batch script to refresh environment variables from the registry
+:: source: Chocolatey
 :: https://raw.githubusercontent.com/chocolatey-archive/chocolatey/master/src/redirects/RefreshEnv.cmd
 echo | set /p dummy="Refreshing environment variables. Please wait..."
 goto main

@@ -1,16 +1,18 @@
 @echo off
-devmanview /disable "WAN Miniport (IKEv2)"
-devmanview /disable "WAN Miniport (IP)"
-devmanview /disable "WAN Miniport (IPv6)"
-devmanview /disable "WAN Miniport (L2TP)"
-devmanview /disable "WAN Miniport (Network Monitor)"
-devmanview /disable "WAN Miniport (PPPOE)"
-devmanview /disable "WAN Miniport (PPTP)"
-devmanview /disable "WAN Miniport (SSTP)"
 
-:: Enable Hardware Accelerated Scheduling
+:: disable network devices
+DevManView.exe /disable "WAN Miniport (IKEv2)"
+DevManView.exe /disable "WAN Miniport (IP)"
+DevManView.exe /disable "WAN Miniport (IPv6)"
+DevManView.exe /disable "WAN Miniport (L2TP)"
+DevManView.exe /disable "WAN Miniport (Network Monitor)"
+DevManView.exe /disable "WAN Miniport (PPPOE)"
+DevManView.exe /disable "WAN Miniport (PPTP)"
+DevManView.exe /disable "WAN Miniport (SSTP)"
+
+:: enable hardware-accelerated GPU scheduling
 reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d "2" /f
 
-:: Disable Memory Compression
-powershell -NoProfile -Command "Disable-MMAgent -mc"
+:: disable memory compression
+powershell -NoProfile -Command "Disable-MMAgent -MemoryCompression"
 goto :EOF
