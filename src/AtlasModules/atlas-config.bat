@@ -1467,7 +1467,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 :: search icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo.exe -U:C start explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1481,7 +1481,7 @@ ren SearchApp.old SearchApp.exe
 :: search icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f
 taskkill /f /im explorer.exe
-NSudo.exe -U:C start explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 :openshellInstall
@@ -1513,7 +1513,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 :: search icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo.exe -U:C start explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> %WinDir%\AtlasModules\logs\userScript.log
 
 :skipRM
@@ -1525,7 +1525,7 @@ curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5/Fluent-
 7z -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
 del /F /Q skin.zip >nul 2>nul
 taskkill /f /im explorer.exe
-NSudo.exe -U:C start explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell Installed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -1579,7 +1579,7 @@ taskkill /F /IM RuntimeBroker*  >nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
-NSudo.exe -U:C start explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 pause
@@ -1611,7 +1611,7 @@ taskkill /F /IM RuntimeBroker*  >nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
-NSudo.exe -U:C start explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
