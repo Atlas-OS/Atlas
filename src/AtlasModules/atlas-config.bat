@@ -486,7 +486,7 @@ for %%a in (
 )
 
 :: remove microsoft edge
-rmdir /s /q "C:\Program Files (x86)\Microsoft" >nul 2>nul
+rd /s /q "C:\Program Files (x86)\Microsoft" >nul 2>nul
 
 :: remove residual registry keys
 reg delete "HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge" /f >nul 2>nul
@@ -1065,7 +1065,7 @@ for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\System\CurrentControlSet\Contr
     set mitigation_mask=%%a
 )
 :: set all bits to 2 (disable)
-for /L %%a in (0,1,9) do (
+for /l %%a in (0,1,9) do (
     set mitigation_mask=!mitigation_mask:%%a=2!
 )
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "%mitigation_mask%" /f
@@ -1206,7 +1206,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Registry tweaks applied...>> %WinDir%\A
 for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f DmaRemappingCompatible ^| find /i "Services\" ') do (
 	reg add "%%i" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f
 )
-echo %date% - %time% Disabled Dma Remapping...>> %WinDir%\AtlasModules\logs\install.log
+echo %date% - %time% Disabled dma remapping...>> %WinDir%\AtlasModules\logs\install.log
 
 :: set system processes priority below normal
 for %%i in (lsass sppsvc SearchIndexer fontdrvhost sihost ctfmon) do (
@@ -1233,9 +1233,6 @@ bcdedit /timeout 10
 :: this is here as a safeguard incase of user error
 bcdedit /deletevalue useplatformclock >nul 2>nul
 
-:: disable synthetic timer
-bcdedit /set useplatformtick yes
-
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
 bcdedit /set disabledynamictick Yes
 
@@ -1243,9 +1240,6 @@ bcdedit /set disabledynamictick Yes
 :: may need to enable for faceit, valorant, and other anti-cheats
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 bcdedit /set nx AlwaysOff
-
-:: hyper-v support is removed, other virtualization programs are supported
-bcdedit /set hypervisorlaunchtype off
 
 :: use legacy boot menu
 bcdedit /set bootmenupolicy Legacy
@@ -1473,7 +1467,7 @@ if /I "%c%" EQU "N" exit
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 
 :restartStart
-taskkill /F /IM StartMenuExperienceHost*
+taskkill /f /im StartMenuExperienceHost*
 ren StartMenuExperienceHost.exe StartMenuExperienceHost.old
 
 :: loop if it fails to rename the first time
@@ -1483,7 +1477,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2t
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
 :restartSearch
-taskkill /F /IM SearchApp*  >nul 2>nul
+taskkill /f /im SearchApp*  >nul 2>nul
 ren SearchApp.exe SearchApp.old
 
 :: loop if it fails to rename the first time
@@ -1528,7 +1522,7 @@ if /I "%c%" EQU "N" goto skipRM
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 
 :OSrestartStart
-taskkill /F /IM StartMenuExperienceHost*
+taskkill /f /im StartMenuExperienceHost*
 ren StartMenuExperienceHost.exe StartMenuExperienceHost.old
 
 :: loop if it fails to rename the first time
@@ -1538,7 +1532,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2t
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
 :OSrestartSearch
-taskkill /F /IM SearchApp*  >nul 2>nul
+taskkill /f /im SearchApp*  >nul 2>nul
 ren SearchApp.exe SearchApp.old
 
 :: loop if it fails to rename the first time
@@ -1605,14 +1599,14 @@ sc config TokenBroker start=disabled
 sc config LicenseManager start=disabled
 sc config ClipSVC start=disabled
 
-taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
+taskkill /f /im StartMenuExperienceHost*  >nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
-taskkill /F /IM SearchApp*  >nul 2>nul
+taskkill /f /im SearchApp*  >nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
 ren %WinDir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old
 ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old
 
-taskkill /F /IM RuntimeBroker*  >nul 2>nul
+taskkill /f /im RuntimeBroker*  >nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
@@ -1640,13 +1634,13 @@ sc config TokenBroker start=demand
 sc config LicenseManager start=demand
 sc config ClipSVC start=demand
 
-taskkill /F /IM StartMenuExperienceHost*  >nul 2>nul
+taskkill /f /im StartMenuExperienceHost*  >nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
-taskkill /F /IM SearchApp*  >nul 2>nul
+taskkill /f /im SearchApp*  >nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy.old Microsoft.Windows.Search_cw5n1h2txyewy
 ren %WinDir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old Microsoft.XboxGameCallableUI_cw5n1h2txyewy
 ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe
-taskkill /F /IM RuntimeBroker*  >nul 2>nul
+taskkill /f /im RuntimeBroker*  >nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d 0 /f
 taskkill /f /im explorer.exe
