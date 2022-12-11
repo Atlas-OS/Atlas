@@ -1623,10 +1623,10 @@ pause
 
 :uwpE
 sc config TabletInputService start=demand
-:: disable the option for Microsoft Store in the "open With" dialog
+:: disable the option for microsoft store in the "open With" dialog
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
 
-:: block Access to Microsoft Store
+:: block Access to microsoft store
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
 
