@@ -2170,7 +2170,7 @@ goto finish
 
 :choco
 echo Installing Chocolatey
-set /P c="Review Install script before executing? [Y/N]: "
+set /P c="Review install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1
 PowerShell.exe -NoProfile -EP Unrestricted -Command "%WinDir%\AtlasModules\install.ps1"
@@ -2183,7 +2183,7 @@ call %WinDir%\AtlasModules\refreshenv.bat
 goto finish
 
 :browserscoop
-for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "UnGoogled-Chromium;Firefox;Brave;Google Chrome"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
@@ -2192,7 +2192,7 @@ for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Brows
 goto finish
 
 :browserchoco
-for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "UnGoogled-Chromium;Firefox;Brave;Google Chrome"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
