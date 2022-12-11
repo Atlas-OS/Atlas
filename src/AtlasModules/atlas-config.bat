@@ -237,10 +237,10 @@ if %ERRORLEVEL%==0 (echo %date% - %time% NTP server set...>> %WinDir%\AtlasModul
 cls & echo Please wait. This may take a moment.
 
 :: optimize NTFS parameters
-:: disable last access information on directories, performance/privacy.
+:: disable last access information on directories, performance/privacy
 fsutil behavior set disableLastAccess 1
 
-:: https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security/
+:: https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security
 fsutil behavior set disable8dot3 1
 
 :: disable NTFS compression
@@ -248,8 +248,8 @@ fsutil behavior set disablecompression 1
 
 :: disable file system mitigations
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
-if %ERRORLEVEL%==0 (echo %date% - %time% FS Optimized...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Optimize FS! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to optimize file system! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: attempt to fix language packs issue
 :: https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/language-packs-known-issue
@@ -317,8 +317,8 @@ for %%a in (
 	schtasks /Change /Disable /TN %%a > nul
 )
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Scheduled Tasks...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Scheduled Tasks! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled scheduledtasks...>> %WinDir%\AtslasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to disable scheduled tasks! >> %WinDir%\AtlasModules\logs\install.log)
 cls & echo Please wait. This may take a moment.
 
 :: enable MSI mode on USB controllers
@@ -352,20 +352,20 @@ goto noVM
 
 :vmGO
 :: set to normal priority
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f
 )
 
 :noVM
 :: enable MSI mode on SATA controllers
-for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
-for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
     reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
 )
-if %ERRORLEVEL%==0 (echo %date% - %time% MSI Mode Set...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set MSI Mode! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% MSI mode set...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to set MSI mode! >> %WinDir%\AtlasModules\logs\install.log)
 cls & echo Please wait. This may take a moment.
 
 :: --- Hardening ---
@@ -375,7 +375,7 @@ cls & echo Please wait. This may take a moment.
 net user defaultuser0 /delete >nul 2>nul
 
 :: disable "administrator" account
-:: used in OEM situations to install OEM-specific programs when a user is not yet created.
+:: used in OEM situations to install OEM-specific programs when a user is not yet created
 net user administrator /active:no
 
 :: delete adobe font type manager
@@ -392,14 +392,14 @@ reg add "HKLM\System\CurrentControlSet\Control\Remote Assistance" /v "fAllowFull
 reg add "HKLM\System\CurrentControlSet\Control\Remote Assistance" /v "fAllowToGetHelp" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\Remote Assistance" /v "fEnableChatControl" /t REG_DWORD /d "0" /f
 
-:: hardening of SMB
+:: hardening of smb
 :: https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220932
 reg add "HKLM\System\CurrentControlSet\Services\LanManServer\Parameters" /v "RestrictNullSessAccess" /t REG_DWORD /d "1" /f
 
-:: disable SMB compression (possible SMBGhost vulnerability workaround)
+:: disable smb compression (possible smbghost vulnerability workaround)
 reg add "HKLM\System\CurrentControlSet\Services\LanManServer\Parameters" /v "DisableCompression" /t REG_DWORD /d "1" /f
 
-:: restrict enumeration of anonymous SAM accounts
+:: restrict enumeration of anonymous sam accounts
 :: https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220929
 reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RestrictAnonymousSAM" /t REG_DWORD /d "1" /f
 
@@ -410,10 +410,10 @@ reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RestrictAnonymous" /t RE
 :: netbios is disabled. if it manages to become enabled, protect against NBT-NS poisoning attacks
 reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v "NodeType" /t REG_DWORD /d "2" /f
 
-:: mitigate against HiveNightmare/SeriousSAM
+:: mitigate against hivenightmare/serious sam
 icacls %WinDir%\system32\config\*.* /inheritance:e
 
-:: set strong cryptography on 64 bit and 32 bit .Net Framework (version 4 and above) to fix a Scoop installation issue
+:: set strong cryptography on 64 bit and 32 bit .net framework (version 4 and above) to fix a scoop installation issue
 :: https://github.com/ScoopInstaller/Scoop/issues/2040#issuecomment-369686748
 reg add "HKLM\SOFTWARE\Microsoft\.NetFramework\v4.0.30319" /v "SchUseStrongCrypto" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v "SchUseStrongCrypto" /t REG_DWORD /d "1" /f
@@ -421,21 +421,22 @@ reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v "SchUs
 :: disable network navigation pane in file explorer
 reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder" /v "Attributes" /t REG_DWORD /d "2962489444" /f
 
-:: import the powerplan
+:: import the power scheme
 powercfg -import "%WinDir%\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
 
-:: set current powerplan to Atlas
+:: set current power scheme to Atlas
 powercfg /s 11111111-1111-1111-1111-111111111111
-if %ERRORLEVEL%==0 (echo %date% - %time% PowerPlan Imported...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to import PowerPlan! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Power scheme imported...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to import power scheme! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: set service split treshold
-reg add "HKLM\System\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "ffffffff" /f
-if %ERRORLEVEL%==0 (echo %date% - %time% Service Memory Split Set...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set Service Memory Split! >> %WinDir%\AtlasModules\logs\install.log)
+for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /format:value') do set /a ram=%%i+102400
+reg add "HKLM\System\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
+if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to set service split treshold! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: disable power savings
-:: now lists PnP devices, instead of the previously used "reg query"
+:: now lists pnp devices, instead of the previously used "reg query"
 for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
     for %%a in (
         "EnhancedPowerManagementEnabled"
@@ -454,8 +455,8 @@ for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "US
     )
 )
 PowerShell.exe -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Power Savings...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Power Savings! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled power savings...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to disable power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: make certain applications in the AtlasModules folder request UAC
 :: although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
@@ -468,8 +469,8 @@ cls & echo Please wait. This may take a moment.
 :: unhide powerplan attributes
 :: credits: https://gist.github.com/Velocet/7ded4cd2f7e8c5fa475b8043b76561b5
 PowerShell.exe -NoProfile -Command "(gci 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings' -Recurse).Name -notmatch '\bDefaultPowerSchemeValues|(\\[0-9]|\b255)$' | % {sp $_.Replace('HKEY_LOCAL_MACHINE','HKLM:') -Name 'Attributes' -Value 2 -Force}"
-if %ERRORLEVEL%==0 (echo %date% - %time% Enabled Hidden PowerPlan Attributes...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Enable Hidden PowerPlan Attributes! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to Enable hidden power scheme attributes! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: residual file cleanup
 :: files are removed in the official ISO
@@ -496,7 +497,7 @@ reg delete "HKLM\Software\Clients\StartMenuInternet\Microsoft Edge" /f >nul 2>nu
 reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Device Metadata" /f >nul 2>nul
 
 :: not checking for %errorlevel%, as these are often deleted in the first place. so if it were to error it would only cause confusion
-echo %date% - %time% Residule Files Deleted...>> %WinDir%\AtlasModules\logs\install.log
+echo %date% - %time% Residule files deleted...>> %WinDir%\AtlasModules\logs\install.log
 
 :: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
@@ -514,14 +515,14 @@ reg add "HKLM\System\CurrentControlSet\Services\Tcpip\QoS" /v "Do not use NLA" /
 :: reg add "HKLM\System\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /t REG_DWORD /d "0" /f
 
-:: configure NIC settings
-:: get NIC driver settings path by querying for dword
+:: configure nic settings
+:: get nic driver settings path by querying for dword
 :: if you see a way to optimize this segment, feel free to open a pull request
 for /f %%a in ('reg query "HKLM\System\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
     :: check if the value exists, to prevent errors and uneeded settings
     for /f %%i in ('reg query "%%a" /v "GigaLite" ^| findstr "HKEY"') do (
         :: add the value
-        :: if the value does not exist, it will silently error.
+        :: if the value does not exist, it will silently error
         reg add "%%i" /v "GigaLite" /t REG_SZ /d "0" /f
     )
     for /f %%i in ('reg query "%%a" /v "*EEE" ^| findstr "HKEY"') do (
@@ -574,8 +575,8 @@ netsh int tcp set global rsc=disabled
 for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 	netsh int ip set interface %%i routerdiscovery=disabled store=persistent
 )
-if %ERRORLEVEL%==0 (echo %date% - %time% Network Optimized...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Optimize Network! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %windir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to optimize network! >> %windir%\AtlasModules\logs\install.log)
 
 :: windows server update client id
 sc stop wuauserv >nul 2>nul
@@ -618,15 +619,15 @@ DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Devices...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable Devices! >> %WinDir%\AtlasModules\logs\install.log)
 
-if %branch%=="22H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\22H2.bat
-if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
 if %branch%=="1803" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\1803.bat
+if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
+if %branch%=="22H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\22H2.bat
 
 :: backup default windows services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "TermService"') do (
+for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V "TermService"') do (
 	set svc=%%i
 	set svc=!svc: =!
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
@@ -669,7 +670,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% DoSvc 3
 %setSvc% DPS 4
 %setSvc% DsmSvc 3
-:: %setSvc% DsSvc 4 < can cause issues with Snip & Sketch
+:: %setSvc% DsSvc 4 < can cause issues with snip & sketch
 %setSvc% Eaphost 3
 %setSvc% edgeupdate 4
 %setSvc% edgeupdatem 4
@@ -683,7 +684,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% InstallService 3
 %setSvc% iphlpsvc 4
 %setSvc% IpxlatCfgSvc 4
-:: %setSvc% KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
+:: %setSvc% KeyIso 4 < causes issues with nvcleanstall's driver telemetry tweak
 %setSvc% KtmRm 4
 %setSvc% LanmanServer 4
 %setSvc% LanmanWorkstation 4
@@ -736,16 +737,16 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% fdc 4
 %setSvc% flpydisk 4
 %setSvc% fvevol 4
-:: %setSvc% FileInfo 4 < breaks installing Microsoft Store apps to different disk (now disabled via store script)
-:: %setSvc% FileCrypt 4 < Breaks installing Microsoft Store apps to different disk (now disabled via store script)
+:: %setSvc% FileInfo 4 < breaks installing microsoft store apps to different disk (now disabled via store script)
+:: %setSvc% FileCrypt 4 < Breaks installing microsoft store apps to different disk (now disabled via store script)
 %setSvc% GpuEnergyDrv 4
 %setSvc% mrxsmb 4
 %setSvc% mrxsmb20 4
 %setSvc% NdisVirtualBus 4
 %setSvc% nvraid 4
-:: %setSvc% PEAUTH 4 < breaks UWP streaming apps like Netflix, manual mode does not fix
+:: %setSvc% PEAUTH 4 < breaks uwp streaming apps like netflix, manual mode does not fix
 %setSvc% QWAVEdrv 4
-:: set to Manual instead of disabling (fixes WSL), thanks Phlegm
+:: set to manual instead of disabling (fixes wsl), thanks phlegm
 %setSvc% rdbss 3
 %setSvc% rdyboost 4
 %setSvc% KSecPkg 4
@@ -764,7 +765,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 :: %setSvc% volmgrx 4 < breaks dynamic disks
 %setSvc% vsmraid 4
 %setSvc% VSTXRAID 4
-:: %setSvc% wcifs 4 < breaks various Microsoft Store games, erroring with "filter not found"
+:: %setSvc% wcifs 4 < breaks various microsoft store games, erroring with "filter not found"
 %setSvc% wcnfs 4
 %setSvc% WindowsTrustedRTProxy 4
 
@@ -776,14 +777,14 @@ reg add "HKLM\System\CurrentControlSet\Services\rdyboost" /v "DependOnService" /
 reg add "HKLM\System\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}" /v "LowerFilters" /t REG_MULTI_SZ  /d "" /f
 reg add "HKLM\System\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}" /v "UpperFilters" /t REG_MULTI_SZ  /d "" /f
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled Services...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable Services! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled services...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to disable services! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: backup default Atlas services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "skip=1" %%i in ('wmic service get Name^| findstr "[a-z]"^| findstr /V "TermService"') do (
+for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V "TermService"') do (
 	set svc=%%i
 	set svc=!svc: =!
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
@@ -856,7 +857,9 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\DriverSearching" /v "Sea
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Device Metadata" /v "PreventDeviceMetadataFromNetwork" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\CloudContent" /v "DisableWindowsConsumerFeatures" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\WindowsStore" /v "AutoDownload" /t REG_DWORD /d "2" /f
-:: may cause issues with language packs/Microsoft Store (if planning to revert, remove reg add "HKLM\Software\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d "1" /f)
+
+:: may cause issues with language packs/microsoft store
+:: if planning to revert, remove reg add "HKLM\Software\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate" /v "DoNotConnectToWindowsUpdateInternetLocations" /t REG_DWORD /d "1" /f
 
 :: disable speech model updates
@@ -928,7 +931,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\AppCompat" /v "DisablePCA" /t 
 :: may cause internet icon to show it is disconnected
 reg add "HKLM\System\CurrentControlSet\Services\NlaSvc\Parameters\Internet" /v "EnableActiveProbing" /t REG_DWORD /d "0" /f
 
-:: restrict Windows' access to internet resources
+:: restrict windows' access to internet resources
 :: enables various other GPOs that limit access on specific windows services
 reg add "HKLM\Software\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d "1" /f
 
@@ -981,7 +984,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\AdvertisingInfo" /v "DisabledB
 :: disable sleep study
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Power" /v "SleepStudyDisabled" /t REG_DWORD /d "1" /f
 
-:: opt-out of sending kms client activation data to microsoft automatically. 
+:: opt-out of sending kms client activation data to microsoft automatically
 :: enabling this setting prevents this computer from sending data to microsoft regarding its activation state
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" /v "NoGenTicket" /t REG_DWORD /d "1" /f
 
@@ -1001,7 +1004,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\SettingSync" /v "DisableSyncOn
 
 :: power
 reg add "HKLM\System\CurrentControlSet\Control\Power" /v "EnergyEstimationEnabled" /t REG_DWORD /d "0" /f
-::reg add "HKLM\System\CurrentControlSet\Control\Power" /v "CsEnabled" /t REG_DWORD /d "0" /f
+:: reg add "HKLM\System\CurrentControlSet\Control\Power" /v "CsEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\Power" /v "EventProcessorEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f
 
@@ -1099,7 +1102,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsRunInBa
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" /v "GlobalUserDisabled" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "BackgroundAppGlobalToggle" /t REG_DWORD /d "0" /f
 
-:: set Win32PrioritySeparation 26 hex/38 dec
+:: set Win32PrioritySeparation short 26 hex/38 dec
 reg add "HKLM\System\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d "38" /f
 
 :: disable notification/action center
@@ -1114,7 +1117,7 @@ reg add "HKLM\System\CurrentControlSet\Control" /v "WaitToKillServiceTimeout" /t
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9A12038010000000" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "JPEGImportQuality" /t REG_DWORD /d "100" /f
 
-:: configure Windows visuals
+:: configure windows visuals
 %currentuser% reg add "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /t REG_SZ /d "0" /f
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d "3" /f
 
@@ -1123,7 +1126,7 @@ reg add "HKLM\System\CurrentControlSet\Control" /v "WaitToKillServiceTimeout" /t
 reg add "HKLM\Software\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\DWM" /v "Composition" /t REG_DWORD /d "0" /f
 
-:: Needs testing
+:: requires testing
 :: https://djdallmann.github.io/GamingPCSetup/CONTENT/RESEARCH/FINDINGS/registrykeys_dwm.txt
 :: reg add "HKLM\Software\Microsoft\Windows\Dwm" /v "AnimationAttributionEnabled" /t REG_DWORD /d "0" /f
 
