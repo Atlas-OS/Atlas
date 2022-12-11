@@ -16,6 +16,7 @@
 :: - Timecard
 :: - Phlegm
 :: - Xyueta
+:: - JayXTQ
 
 @echo off
 set branch="20H2"
