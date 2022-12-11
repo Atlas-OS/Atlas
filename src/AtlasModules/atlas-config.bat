@@ -2161,7 +2161,7 @@ call %WinDir%\AtlasModules\refreshenv.bat
 goto finish
 
 :browserscoop
-for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "ungoogled-chromium;firefox;brave;googlechrome;librewolf;tor-browser"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
@@ -2170,7 +2170,7 @@ for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Brows
 goto finish
 
 :browserchoco
-for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "ungoogled-chromium;firefox;brave;googlechrome"') do (
+for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "ungoogled-chromium;firefox;brave;googlechrome;librewolf;tor-browser"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
@@ -2178,7 +2178,7 @@ for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Brows
 goto finish
 
 :altSoftwarescoop
-for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;rtss;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
+for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
