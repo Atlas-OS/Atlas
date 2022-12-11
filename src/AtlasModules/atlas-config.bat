@@ -2201,6 +2201,7 @@ call %WinDir%\AtlasModules\refreshenv.bat
 echo .
 echo Adding extras bucket...
 cmd /c scoop bucket add extras
+cmd /c scoop bucket add games
 goto finish
 
 :choco
@@ -2235,7 +2236,7 @@ for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Brows
 goto finish
 
 :altSoftwarescoop
-for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto"') do (
+for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
