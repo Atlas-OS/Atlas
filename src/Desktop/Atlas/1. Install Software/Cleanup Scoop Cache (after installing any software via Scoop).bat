@@ -1,0 +1,3 @@
+@echo off
+echo Removing cache from scoop...
+scoop cache rm *
