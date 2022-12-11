@@ -15,7 +15,8 @@
 :: - nohopestage
 :: - Timecard
 :: - Phlegm
-:: - xyzze
+:: - Xyueta
+:: - JayXTQ
 
 @echo off
 set branch="20H2"
