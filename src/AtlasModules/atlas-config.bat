@@ -243,8 +243,9 @@ fsutil behavior set disableLastAccess 1
 :: https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security
 fsutil behavior set disable8dot3 1
 
-:: disable NTFS compression
-fsutil behavior set disablecompression 1
+:: enable delete notifications (aka trim or unmap)
+:: should be enabled by default but it is here to be sure
+fsutil behavior set disabledeletenotify 0
 
 :: disable file system mitigations
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
@@ -406,7 +407,7 @@ reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RestrictAnonymousSAM" /t
 :: https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220930
 reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RestrictAnonymous" /t REG_DWORD /d "1" /f
 
-:: harden netbios
+:: hardening of netbios
 :: netbios is disabled. if it manages to become enabled, protect against NBT-NS poisoning attacks
 reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v "NodeType" /t REG_DWORD /d "2" /f
 
@@ -435,8 +436,7 @@ reg add "HKLM\System\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /
 if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set service split treshold! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: disable power savings
-:: now lists pnp devices, instead of the previously used "reg query"
+:: disable drivers power savings
 for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
     for %%a in (
         "EnhancedPowerManagementEnabled"
@@ -454,6 +454,8 @@ for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "US
         reg add "HKLM\System\CurrentControlSet\Enum\%%i\Device Parameters" /v "%%a" /t REG_DWORD /d "0" /f
     )
 )
+
+:: disable pnp power savings
 PowerShell.exe -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled power savings...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable power savings! >> %WinDir%\AtlasModules\logs\install.log)
@@ -473,11 +475,15 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes.
 ) ELSE (echo %date% - %time% Failed to Enable hidden power scheme attributes! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: residual file cleanup
-:: files are removed in the official ISO
-del /F /Q "%WinDir%\System32\GameBarPresenceWriter.exe" >nul 2>nul
-del /F /Q "%WinDir%\System32\mobsync.exe" >nul 2>nul
-del /F /Q "%WinDir%\System32\mcupdate_genuineintel.dll" >nul 2>nul
-del /F /Q "%WinDir%\System32\mcupdate_authenticamd.dll" >nul 2>nul
+:: files are removed in the official iso
+for %%a in (
+    "GameBarPresenceWriter.exe"
+    "mobsync.exe"
+    "mcupdate_genuineintel.dll"
+    "mcupdate_authenticamd.dll"
+) do (
+    del /f /q "%WinDir%\System32\%%a" >nul 2>nul
+)
 
 :: remove microsoft edge
 rmdir /s /q "C:\Program Files (x86)\Microsoft" >nul 2>nul
@@ -1487,7 +1493,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :enableStart
@@ -1542,7 +1548,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu Removed...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu removed...>> %WinDir%\AtlasModules\logs\userScript.log
 
 :skipRM
 :: install silently
@@ -1554,7 +1560,7 @@ curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5.3/Fluen
 del /F /Q skin.zip >nul 2>nul
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell Installed...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell installed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :uwp
@@ -1611,7 +1617,7 @@ ren %WinDir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% UWP Disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% UWP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 pause
 
@@ -1700,7 +1706,7 @@ powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 powercfg -setactive scheme_current
-if %ERRORLEVEL%==0 echo %date% - %time% Sleep States Enabled...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Sleep States enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :idleD
