@@ -52,7 +52,7 @@ if /i "%~1"=="/en"         goto notiE
 if /i "%~1"=="/ad"         goto aniD
 if /i "%~1"=="/ae"         goto aniE
 
-:: Search Indexing
+:: Search indexing
 if /i "%~1"=="/di"         goto indexD
 if /i "%~1"=="/ei"         goto indexE
 
@@ -100,14 +100,14 @@ if /i "%~1"=="/idlee"          goto idleE
 :: Xbox
 if /i "%~1"=="/xboxU"         goto xboxU
 
-:: Reinstall VC++ redistributables
+:: Reinstall VC++ Redistributables
 if /i "%~1"=="/vcreR"         goto vcreR
 
 :: User Account Control
 if /i "%~1"=="/uacD"		goto uacD
 if /i "%~1"=="/uacE"		goto uacE
 
-:: Workstation service (SMB)
+:: Workstation Service (SMB)
 if /i "%~1"=="/workD"		goto workstationD
 if /i "%~1"=="/workE"		goto workstationE
 
@@ -127,7 +127,7 @@ if /i "%~1"=="/dataQueueK"		goto dataQueueK
 if /i "%~1"=="/netWinDefault"		goto netWinDefault
 if /i "%~1"=="/netAtlasDefault"		goto netAtlasDefault
 
-:: Clipboard History service (also required for Snip and Sketch to copy correctly)
+:: Clipboard History Service (also required for Snip and Sketch to copy correctly)
 if /i "%~1"=="/cbdhsvcD"    goto cbdhsvcD
 if /i "%~1"=="/cbdhsvcE"    goto cbdhsvcE
 
@@ -143,7 +143,7 @@ if /i "%~1"=="/altsoftwarescoop" goto altSoftwarescoop
 if /i "%~1"=="/browserchoco" goto browserchoco
 if /i "%~1"=="/altsoftwarechoco" goto altSoftwarechoco
 
-:: NVIDIA PState 0
+:: NVIDIA P-State 0
 if /i "%~1"=="/nvpstateD" goto NVPstate
 if /i "%~1"=="/nvpstateE" goto revertNVPState
 
