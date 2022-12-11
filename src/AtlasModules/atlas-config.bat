@@ -1,5 +1,5 @@
 :: name: Atlas configuration script
-:: description: this is the master script used to congigure the Atlas operating system
+:: description: this is the master script used to configure the Atlas operating system
 :: depending on your build, change theses vars to 1803, 20H2 or 21H2 and update the version
 
 :: CREDITS:
