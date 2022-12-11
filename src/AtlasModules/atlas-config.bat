@@ -2170,7 +2170,7 @@ for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Brows
 goto finish
 
 :browserchoco
-for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Ungoogled-Chromium;Firefox;Brave;GoogleChrome"') do (
+for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "ungoogled-chromium;firefox;brave;googlechrome"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
@@ -2186,7 +2186,7 @@ for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Softwar
 goto finish
 
 :altSoftwarechoco
-for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto"') do (
+for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
