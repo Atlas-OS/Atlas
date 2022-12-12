@@ -62,11 +62,11 @@ body:
 
   - type: textarea
     attributes:
-      label: Desktop Info
-      description: Your desktop info is needed for us to define the problem.
+      label: Desktop information
+      description: Your desktop information is needed for us to define the problem.
       placeholder: |
-       - CPU [Intel or AMD, include specifics]
-       - RAM (e.g. 8GB, 16GB, 32GB...)
+       - Processor [Intel or AMD, include specifics]
+       - RAM amount (e.g. 8GB, 16GB, 32GB...)
        - System Drive Type (SSD or HDD)
        - Graphics card
     validations:
@@ -75,5 +75,5 @@ body:
   - type: textarea
     attributes:
       label: Additional content
-      description: anything you want to add.
+      description: Anything you want to add.
     validations:
