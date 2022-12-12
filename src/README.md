@@ -115,4 +115,3 @@ A simple sheet to track what components break what, if not listed on NTLite. Thi
 - [7-Zip](https://www.7-zip.org)
 - [aria2](https://github.com/aria2/aria2)
 - [NSudo](https://github.com/m2team/NSudo)
-- [PsSuspend](https://docs.microsoft.com/en-us/sysinternals/downloads/pssuspend)
