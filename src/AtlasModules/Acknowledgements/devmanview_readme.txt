@@ -1,8 +1,8 @@
 
 
 
-DevManView v1.75
-Copyright (c) 2009 - 2021 Nir Sofer
+DevManView v1.77
+Copyright (c) 2009 - 2022 Nir Sofer
 Web site: https://www.nirsoft.net
 
 
@@ -27,7 +27,7 @@ System Requirements
 ===================
 
 DevManView works on any version of Windows, starting from Windows 2000
-and up to Windows 10. For x64 version of Windows, you should download the
+and up to Windows 11. For x64 version of Windows, you should download the
 x64 version of DevManView, because the 32-bit version of DevManView
 cannot disable/enable devices on x64 operating system.
 
@@ -36,6 +36,13 @@ cannot disable/enable devices on x64 operating system.
 Versions History
 ================
 
+
+* Version 1.77:
+  o Fixed bug: <br> tag was added to the XML file if the device name
+    contained new line character.
+
+* Version 1.76:
+  o Added new quick filter option: Find a string begins with...
 
 * Version 1.75:
   o Added option to change the sorting column from the menu (View ->

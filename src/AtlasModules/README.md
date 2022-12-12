@@ -33,7 +33,7 @@ To verify the legitmacy of these binaries (executables), there is information pr
 - Source: https://github.com/M2Team/NSudo/releases/tag/9.0-Preview1
 - Repository: https://github.com/M2Team/NSudo
 - Last Verified: 2022-03-05 by Zusier
-- `NSudoLG.exe` x64 was extracted from the `.zip` and renamed to `Nsudo.exe`
+- `NSudoLG.exe` x64 was extracted from the `.zip` and renamed to `NSudo.exe`
 
 ### ServiWin
 - SHA256 Hash: `FC2D32ED8A89AA4F73B34C0E9F00D195DCC4F9162E2D3D7BEB7718DA305ACCD3`

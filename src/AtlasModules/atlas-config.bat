@@ -3,7 +3,7 @@
 :: depending on your build, change theses vars to 1803, 20H2 or 21H2 and update the version
 
 :: CREDITS:
-:: - Amit
+:: - AMIT
 :: - Artanis
 :: - CYNAR
 :: - Canonez
@@ -202,7 +202,7 @@ echo You should not reach this message!
 pause & exit
 
 :startup
-:: create log directory, for troubleshooting
+:: create log directory for troubleshooting
 mkdir %WinDir%\AtlasModules\logs
 cls & echo Please wait, this may take a moment.
 setx path "%path%;%WinDir%\AtlasModules;" -m  >nul 2>nul
@@ -236,6 +236,7 @@ sc stop W32Time
 sc config W32Time start=disabled
 if %ERRORLEVEL%==0 (echo %date% - %time% NTP server set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set NTP server! >> %WinDir%\AtlasModules\logs\install.log)
+
 cls & echo Please wait. This may take a moment.
 
 :: optimize NTFS parameters
@@ -251,6 +252,7 @@ fsutil behavior set disabledeletenotify 0
 
 :: disable file system mitigations
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
+
 if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to optimize file system! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -369,6 +371,7 @@ for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID ^| findstr /L "PCI
 )
 if %ERRORLEVEL%==0 (echo %date% - %time% MSI mode set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set MSI mode! >> %WinDir%\AtlasModules\logs\install.log)
+
 cls & echo Please wait. This may take a moment.
 
 :: --- Hardening ---
@@ -378,7 +381,7 @@ cls & echo Please wait. This may take a moment.
 net user defaultuser0 /delete >nul 2>nul
 
 :: disable "administrator" account
-:: used in OEM situations to install OEM-specific programs when a user is not yet created
+:: used in oem situations to install oem-specific programs when a user is not yet created
 net user administrator /active:no
 
 :: delete adobe font type manager
@@ -632,23 +635,23 @@ if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
 if %branch%=="22H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\22H2.bat
 
 :: backup default windows services
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Services.reg"
+set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
 for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V "TermService"') do (
-	set svc=%%i
-	set svc=!svc: =!
-	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /A start=%%i
-		echo !start!
-		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
-		echo "Start"=dword:0000000!start! >> %filename%
-		echo] >> %filename%
-	)
+	    set svc=%%i
+	    set svc=!svc: =!
+	    for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
+            set /A start=%%i
+            echo !start!
+            echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+            echo "Start"=dword:0000000!start! >> %filename%
+            echo] >> %filename%
+	    )
 ) >nul 2>&1
 
 :: backup default windows drivers
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows Drivers.reg"
+set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
 for /f "delims=," %%i in ('driverquery /FO CSV') do (
@@ -678,7 +681,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% DoSvc 3
 %setSvc% DPS 4
 %setSvc% DsmSvc 3
-:: %setSvc% DsSvc 4 < can cause issues with snip & sketch
+:: %setSvc% DsSvc 4 < can cause issues with snip and sketch
 %setSvc% Eaphost 3
 %setSvc% edgeupdate 4
 %setSvc% edgeupdatem 4
@@ -789,7 +792,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled services...>> %WinDir%\AtlasMo
 ) ELSE (echo %date% - %time% Failed to disable services! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: backup default Atlas services
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Services.reg"
+set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
 for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V "TermService"') do (
@@ -805,10 +808,10 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V 
 ) >nul 2>&1
 
 :: backup default Atlas drivers
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas Drivers.reg"
+set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "delims=," %%i in ('driverquery /FO CSV') do (
+for /f "delims=," %%i in ('driverquery.exe /FO CSV') do (
 	set svc=%%~i
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
 		set /A start=%%i
@@ -1200,8 +1203,8 @@ reg add "HKLM\Software\Classes\powerplan\Shell\open\command" /ve /t REG_SZ /d "p
 reg add "HKLM\Software\Classes\.pow" /ve /t REG_SZ /d "powerplan" /f
 reg add "HKLM\Software\Classes\.pow" /v "FriendlyTypeName" /t REG_SZ /d "PowerPlan" /f
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Registry tweaks applied...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to apply registry tweaks! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Registry configuration applied...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to apply registry configuration! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: disable dma remapping
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
@@ -1440,7 +1443,7 @@ PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
 bcdedit /set nx OptIn
 :: enable cfg for valorant related processes
 for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
-  PowerShell.exe -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
+    PowerShell.exe -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
 )
 if %ERRORLEVEL%==0 echo %date% - %time% DEP enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -1460,7 +1463,7 @@ echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended
 pause
 
 :existS
-set /P c=This will disable SearchApp and StartMenuExperienceHost, are you sure you want to continue[Y/N]?
+set /P c=This will disable SearchApp and StartMenuExperienceHost, are you sure you want to continue [Y/N]?
 if /I "%c%" EQU "Y" goto continSS
 if /I "%c%" EQU "N" exit
 
@@ -1569,17 +1572,17 @@ echo This will remove all UWP packages that are currently installed. This will b
 echo A reminder of a few things this may break.
 echo - Searching in file explorer
 echo - Microsoft Store
-echo - Xbox
-echo - Immersive Control Panel (Settings)
+echo - Xbox app
+echo - Immersive control panel (Settings)
 echo - Adobe XD
-echo - Start menu context menu
-echo - Wi-Fi Menu
-echo - Microsoft Accounts
+echo - Start context menu
+echo - Wi-Fi menu
+echo - Microsoft accounts
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 
 :: detect if user is using a microsoft account
-PowerShell.exe -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource"|findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+PowerShell.exe -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
@@ -1610,7 +1613,7 @@ ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Micro
 
 taskkill /f /im RuntimeBroker*  >nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
-%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /V SearchboxTaskbarMode /T REG_DWORD /D 0 /F
+%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -1619,7 +1622,7 @@ pause
 
 :uwpE
 sc config TabletInputService start=demand
-:: disable the option for microsoft store in the "open With" dialog
+:: disable the option for microsoft store in the "open with" dialog
 reg add "HKLM\Software\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
 
 :: block Access to microsoft store
@@ -1644,7 +1647,7 @@ ren %WinDir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old Microsoft
 ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe
 taskkill /f /im RuntimeBroker*  >nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
-%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d 0 /f
+%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP enabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -1739,21 +1742,25 @@ PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
 PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
 
 :: - open scripts in notepad to preview instead of executing when clicking
-ftype batfile="%WinDir%\System32\notepad.exe" "%1"
-ftype chmfile="%WinDir%\System32\notepad.exe" "%1"
-ftype cmdfile="%WinDir%\System32\notepad.exe" "%1"
-ftype htafile="%WinDir%\System32\notepad.exe" "%1"
-ftype jsefile="%WinDir%\System32\notepad.exe" "%1"
-ftype jsfile="%WinDir%\System32\notepad.exe" "%1"
-ftype regfile="%WinDir%\System32\notepad.exe" "%1"
-ftype sctfile="%WinDir%\System32\notepad.exe" "%1"
-ftype urlfile="%WinDir%\System32\notepad.exe" "%1"
-ftype vbefile="%WinDir%\System32\notepad.exe" "%1"
-ftype vbsfile="%WinDir%\System32\notepad.exe" "%1"
-ftype wscfile="%WinDir%\System32\notepad.exe" "%1"
-ftype wsffile="%WinDir%\System32\notepad.exe" "%1"
-ftype wsfile="%WinDir%\System32\notepad.exe" "%1"
-ftype wshfile="%WinDir%\System32\notepad.exe" "%1"
+for %%a in (
+    "batfile"
+    "chmfile"
+    "cmdfile"
+    "htafile"
+    "jsefile"
+    "jsfile"
+    "regfile"
+    "sctfile"
+    "urlfile"
+    "vbefile"
+    "vbsfile"
+    "wscfile"
+    "wsffile"
+    "wsfile"
+    "wshfile"
+) do (
+    ftype %%a="%WinDir%\System32\notepad.exe" "%1"
+)
 
 :: - ElamDrivers?
 :: - block unsigned processes running from USBS
@@ -1817,10 +1824,10 @@ netsh Advfirewall set allprofiles state on
 %firewallBlockExe% "wmic.exe" "%WinDir%\SysWOW64\wbem\wmic.exe"
 %firewallBlockExe% "wscript.exe" "%WinDir%\SysWOW64\wscript.exe"
 
-:: disable TsX to mitigate ZombieLoad
+:: disable TsX to mitigate zombieload
 reg add "HKLM\System\CurrentControlSet\Control\Session Manager\kernel" /v "DisableTsx" /t REG_DWORD /d "1" /f
 
-:: - Static ARP Entry
+:: - static arp entry
 
 :: lsass hardening
 reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\lsass.exe" /v "AuditLevel" /t REG_DWORD /d "8" /f
@@ -1838,10 +1845,10 @@ if /I "%c%" EQU "Y" goto :xboxConfirm
 exit
 
 :xboxConfirm
-echo Removing via PowerShell.exe...
+echo Removing via PowerShell...
 NSudo.exe -U:C -ShowWindowMode:Hide -Wait PowerShell.exe -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
 
-echo Disabling Services...
+echo Disabling services...
 sc config XblAuthManager start=disabled
 sc config XblGameSave start=disabled
 sc config XboxGipSvc start=disabled
@@ -1953,10 +1960,10 @@ reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "RegisterSpool
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /v "RestrictDriverInstallationToAdministrators" /t REG_DWORD /d "1" /f
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /v "Restricted" /t REG_DWORD /d "1" /f
 
-:: prevent Print Drivers over HTTP
+:: prevent print drivers over HTTP
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableWebPnPDownload" /t REG_DWORD /d "1" /f
 
-:: disable Printing over HTTP
+:: disable printing over HTTP
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v "DisableHTTPPrinting" /t REG_DWORD /d "1" /f
 
 :printECont
@@ -2160,8 +2167,8 @@ goto finish
 :eventlogD
 echo This may break some features:
 echo - CapFrameX
-echo - Network Menu/Icon
-echo If you experience random issues, please enable EventLog again.
+echo - Network menu/icon
+echo If you experience random issues, please enable Event Log again.
 sc config EventLog start=disabled
 if %ERRORLEVEL%==0 echo %date% - %time% Event Log disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -2173,8 +2180,8 @@ goto finish
 
 :scheduleD
 echo Disabling Task Scheduler will break some features:
-echo - MSI Afterburner startup/Updates
-echo - UWP Typing (e.g. Search Bar)
+echo - MSI Afterburner startup/updates
+echo - UWP typing (e.g. Search bar)
 sc config Schedule start=disabled
 if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 echo If you experience random issues, please enable Task Scheduler again.
@@ -2196,7 +2203,7 @@ echo Refreshing environment for Scoop...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
 echo Installing git...
-:: scoop is not very nice with batch scripts and will break the whole script if a warning or error shows..
+:: scoop is not very nice with batch scripts and will break the whole script if a warning or error shows up
 cmd /c scoop install git -g
 call %WinDir%\AtlasModules\refreshenv.bat
 echo .
@@ -2377,7 +2384,7 @@ pause
 if not exist "C:\Program Files\NVIDIA Corporation\Display.NvContainer\" (
 	cd /d %WinDir%\System32\DriverStore\FileRepository\nv_dispig.inf_?????_*\Display.NvContainer\
 ) else (
-	cd /d C:\Program Files\NVIDIA Corporation\Display.NvContainer\
+	cd /d C:\Program Files\NVIDIA Corporation\Display.NvContainer
 )
 copy "NVDisplay.Container.exe" "%WinDir%\System32\NvidiaIcon.exe" /B /Y
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%WinDir%\System32\NvidiaIcon.exe,0" /f
@@ -2454,8 +2461,8 @@ goto :finish
 :: Begin Batch Functions
 
 :invalidInput <label>
-if "%c%"=="" echo Empty Input! Please enter Y or N. & goto %~1
-if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid Input! Please enter Y or N. & goto %~1
+if "%c%"=="" echo Empty input! Please enter Y or N. & goto %~1
+if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid input! Please enter Y or N. & goto %~1
 goto :EOF
 
 :netcheck

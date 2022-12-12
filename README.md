@@ -12,13 +12,13 @@
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
 </p>
 <p align="center">
- Other Languages:
+ Other languages:
   <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a>
 </p>
 
 # What is Atlas?
 
-Atlas is a modified version of Windows which removes all the negative drawbacks of Windows, which significantly reduce gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a potato, or a gaming PC.
+Atlas is a modified version of Windows which removes all the negative drawbacks of Windows, which adversely affect gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a potato, or a gaming PC.
 
 While keeping our main focus on performance, we are also a great option to reduce system latency, network latency, input lag, and keep your system private.
 
@@ -26,17 +26,17 @@ While keeping our main focus on performance, we are also a great option to reduc
 
 - [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
   - [What is the Atlas project?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [How do I install Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [What is removed in Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
+  - [How do I install Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
+  - [What is removed in Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Brand Kit](./img/brand-kit.zip)
+- [Branding kit](./img/brand-kit.zip)
 
 ## Windows vs. Atlas
 
 ### **Private**
 
-Atlas removes all types of tracking embedded within Windows and enforces hundreds of group policies to minimize data collection. Things outside the scope of Windows we can not increase privacy for, such as websites you visit.
+Atlas removes all types of tracking embedded within Windows and implements numerous group policies to minimize data collection. Things outside the scope of Windows we can not increase privacy for, such as websites you visit.
 
 ### **Secure**
 
@@ -54,15 +54,15 @@ Below are some features/mitigations that have been altered, if they contain a (P
 
 ### **Debloated**
 
-Atlas is heavily stripped, pre-installed applications and other components are removed. Although this can break some compatibility, it significantly reduces ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. This modification is focused on pure gaming, but most work and education applications work. [Check out what else we have removed in our FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Atlas is heavily stripped, pre-installed applications and other components are removed. Despite the possibility of compatibility issues, this significantly decreases ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. This modification is focused on pure gaming, but most work and education applications work. [Check out what else we have removed in our FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
 ### **Performant**
 
 Atlas is pre-tweaked. While maintaining compatibility, but also striving for performance, we have squeezed every last drop of performance into our Windows images. Some of the many changes that we have done to improve Windows have been listed below.
 
 - Custom power scheme
-- Minimized services
-- Minimized drivers
+- Reduced amount of services
+- Reduced amount of drivers
 - Disabled unneeded devices
 - Disabled power savings
 - Disabled performance-hungry security mitigations
@@ -70,11 +70,11 @@ Atlas is pre-tweaked. While maintaining compatibility, but also striving for per
 - Boot configuration optimization
 - Optimized process scheduling
 
-## Brand kit
+## Branding kit
 
-Want to make your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something amazing.](./img/brand-kit.zip)
+Would you like to create your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something spectacular.](./img/brand-kit.zip)
 
-We also have a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share your designs with other creative geniuses and maybe even spark some inspiration!
+We also have a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share your creations with other creative geniuses and maybe even spark some inspiration!
 
 ## Disclaimer
 
