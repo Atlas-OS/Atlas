@@ -2378,7 +2378,7 @@ pause
 if not exist "C:\Program Files\NVIDIA Corporation\Display.NvContainer\" (
 	cd /d %WinDir%\System32\DriverStore\FileRepository\nv_dispig.inf_?????_*\Display.NvContainer\
 ) else (
-	cd /d C:\Program Files\NVIDIA Corporation\Display.NvContainer\
+	cd /d C:\Program Files\NVIDIA Corporation\Display.NvContainer
 )
 copy "NVDisplay.Container.exe" "%WinDir%\System32\NvidiaIcon.exe" /B /Y
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%WinDir%\System32\NvidiaIcon.exe,0" /f
@@ -2455,8 +2455,8 @@ goto :finish
 :: Begin Batch Functions
 
 :invalidInput <label>
-if "%c%"=="" echo Empty Input! Please enter Y or N. & goto %~1
-if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid Input! Please enter Y or N. & goto %~1
+if "%c%"=="" echo Empty input! Please enter Y or N. & goto %~1
+if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid input! Please enter Y or N. & goto %~1
 goto :EOF
 
 :netcheck
