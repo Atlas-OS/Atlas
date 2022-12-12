@@ -1,3 +1,2 @@
 @echo off
-echo Removing cache from scoop...
-scoop cache rm *
+C:\Windows\AtlasModules\NSudo.exe -U:C -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /removescoopcache

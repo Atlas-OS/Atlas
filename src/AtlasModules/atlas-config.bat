@@ -143,6 +143,7 @@ if /i "%~1"=="/browserscoop" goto browserscoop
 if /i "%~1"=="/altsoftwarescoop" goto altSoftwarescoop
 if /i "%~1"=="/browserchoco" goto browserchoco
 if /i "%~1"=="/altsoftwarechoco" goto altSoftwarechoco
+if /i "%~1"=="/removescoopcache" goto scoopCache
 
 :: NVIDIA P-State 0
 if /i "%~1"=="/nvpstateD" goto NVPstate
@@ -2256,6 +2257,11 @@ for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Softwar
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
 )
+goto finish
+
+:scoopCache
+echo Removing cache from Scoop...
+scoop cache rm *
 goto finish
 
 :staticIP
