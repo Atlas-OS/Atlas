@@ -2,7 +2,7 @@
   <br>
   <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
 </h1>
-<h4 align="center">Otwarty i przejrzysty system operacyjny Windows, zaprojektowany w celu optymalizacji wydajności i opóźnień</h4>
+<h4 align="center">Otwarty i przejrzysty system operacyjny Windows, zaprojektowany w celu optymalizacji wydajności i opóźnień.</h4>
 
 <p align="center">
   <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Instalacja</a>
@@ -18,7 +18,7 @@
 
 # Co to jest AtlasOS?
 
-Atlas jest zmodyfikowaną wersją systemu Windows, która usuwa wszystkie negatywne wady systemu Windows, które powodują spadek wydajności w grach. Jesteśmy przejrzystym i otwartym projektem, który dąży do równych praw dla graczy, niezależnie od tego, czy uruchamiasz ziemniaka, czy komputer do gier.
+Atlas jest zmodyfikowaną wersją systemu Windows, która usuwa wszystkie negatywne wady systemu Windows, które powodują spadek wydajności w grach. Jesteśmy przejrzystym i otwartym projektem, który dąży do równych praw dla graczy, niezależnie od tego, czy uruchamiasz komputer z niskiej półki, czy komputer do gier.
 
 Koncentrując się głównie na wydajności, jesteśmy również świetną opcją, aby zmniejszyć opóźnienia systemu, opóźnienia sieci, input lag i zachować prywatność systemu.
 
@@ -36,7 +36,7 @@ Koncentrując się głównie na wydajności, jesteśmy również świetną opcj�
 
 ### **Prywatny**
 
-Atlas usuwa wszystkie rodzaje śledzenia wbudowane w system Windows i egzekwuje setki zasad grupowych, aby zminimalizować gromadzenie danych. W przypadku rzeczy spoza zakresu systemu Windows nie możemy zwiększyć prywatności, takich jak odwiedzane witryny internetowe.
+Atlas usuwa wszystkie rodzaje śledzenia wbudowane w system Windows i wprowadza setki zasad grupowych, aby zminimalizować gromadzenie danych. W przypadku rzeczy spoza zakresu systemu Windows nie możemy zwiększyć prywatności, takich jak odwiedzane witryny internetowe.
 
 ### **Bezpieczny**
 
@@ -56,14 +56,14 @@ Atlas jest mocno okrojony, usuwane są preinstalowane przez Windows aplikacje i 
 
 ### **Wydajny**
 
-Atlas jest wstępnie zoptymalizowany. Zachowując kompatybilność, ale także dążąc do wydajności, wycisnęliśmy każdą kroplę wydajności w naszych obrazach systemu Windows. Niektóre z wielu zmian, które wprowadziliśmy w celu ulepszenia systemu Windows, zostały wymienione poniżej.
+Atlas jest wstępnie zoptymalizowany. Zachowując kompatybilność, ale także dążąc do wydajności, wycisnęliśmy każdą kroplę wydajności w naszych obrazach systemu Windows. Niektóre z wielu zmian, które wprowadziliśmy w celu ulepszenia systemu Windows, zostały wymienione poniżej:
 
 - Niestandardowy plan zasilania
 - Zmniejszona ilość usług
 - Zmniejszona ilość sterowników
 - Wyłączono zbędne urządzenia
 - Wyłączono oszczędzanie energii
-- Wyłączono ograniczenia bezpieczeństwa zabierające wydajność
+- Wyłączono ograniczenia bezpieczeństwa redukujące wydajność
 - Automatycznie włączono tryb MSI
 - Zopytmalizowano konfiguracje startu systemu
 - Zoptymalizowano harmonogramowanie procesów
@@ -80,4 +80,4 @@ By downloading, modifying, or utilizing any of these images, you agree to [Micro
 
 ## Translation contributors (Twórcy tłumaczenia)
 
-[xyzze](https://github.com/xyzze)
+[Xyueta](https://github.com/Xyueta)
