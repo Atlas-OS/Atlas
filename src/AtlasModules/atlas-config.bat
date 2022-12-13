@@ -61,7 +61,7 @@ if /i "%~1"=="/ei"         goto indexE
 if /i "%~1"=="/dw"         goto wifiD
 if /i "%~1"=="/ew"         goto wifiE
 
-:: Hyper-V
+:: Hyper-V and VBS
 if /i "%~1"=="/dhyper"         goto hyperD
 if /i "%~1"=="/ehyper"         goto hyperE
 
