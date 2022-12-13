@@ -2207,9 +2207,10 @@ echo Installing git...
 cmd /c scoop install git -g
 call %WinDir%\AtlasModules\refreshenv.bat
 echo .
-echo Adding extras bucket...
+echo Adding extras and games bucket...
 cmd /c scoop bucket add extras
 cmd /c scoop bucket add games
+echo If this did not install Scoop, instead you can try installing via the install guide: https://scoop.sh/
 goto finish
 
 :choco
@@ -2224,6 +2225,7 @@ echo]
 echo Installing git...
 cmd /c choco install git
 call %WinDir%\AtlasModules\refreshenv.bat
+echo If this did not install Chocolatey, instead you can try installing via the install guide: https://chocolatey.org/install
 goto finish
 
 :browserscoop
