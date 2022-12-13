@@ -1332,7 +1332,9 @@ bcdedit /set vmslaunchtype Off > nul
 bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS > nul
 
 :: disable hyper-v with dism
-DISM /online /disable-feature:Microsoft-Hyper-V-All /quiet /norestart > nul
+DISM /Online /Disable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
+DISM /Online /Disable-Feature:HypervisorPlatform /Quiet /NoRestart
+if %branch% NEQ "1803" DISM /Online /Disable-Feature:VirtualMachinePlatform /Quiet /NoRestart
 
 :: apply registry changes
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Windows.DeviceGuard::VirtualizationBasedSecuritye
@@ -1405,7 +1407,10 @@ bcdedit /set vsmlaunchtype Auto > nul
 bcdedit /deletevalue loadoptions > nul
 
 :: enable hyper-v with dism
-DISM /online /enable-feature:Microsoft-Hyper-V-All /quiet /norestart
+DISM /Online /Enable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
+DISM /Online /Enable-Feature:HypervisorPlatform /Quiet /NoRestart
+if %branch% NEQ "1803" DISM /Online /Enable-Feature:VirtualMachinePlatform /Quiet /NoRestart
+
 
 :: apply registry changes
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Windows.DeviceGuard::VirtualizationBasedSecuritye
