@@ -624,7 +624,7 @@ DevManView.exe /disable "Composite Bus Enumerator"
 DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
 DevManView.exe /disable "SM Bus Controller"
 DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
-:: DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mounts
+:: DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mount
 DevManView.exe /disable "Numeric Data Processor"
 DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled devices...>> %WinDir%\AtlasModules\logs\install.log
