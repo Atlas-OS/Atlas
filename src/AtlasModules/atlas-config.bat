@@ -65,6 +65,10 @@ if /i "%~1"=="/ew"         goto wifiE
 if /i "%~1"=="/ds"         goto storeD
 if /i "%~1"=="/es"         goto storeE
 
+:: Background Apps
+if /i "%~1"=="/backd"         goto backD
+if /i "%~1"=="/backe"         goto backE
+
 :: Bluetooth
 if /i "%~1"=="/btd"         goto btD
 if /i "%~1"=="/bte"         goto btE
@@ -1421,6 +1425,20 @@ sc config ClipSVC start=demand
 sc config FileInfo start=boot
 sc config FileCrypt start=system
 if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store enabled...>> %WinDir%\AtlasModules\logs\userScript.log
+goto finish
+
+:backD
+reg add "HKLM\Software\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsRunInBackground" /t REG_DWORD /d "2" /f
+%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" /v "GlobalUserDisabled" /t REG_DWORD /d "1" /f
+%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "BackgroundAppGlobalToggle" /t REG_DWORD /d "0" /f
+if %ERRORLEVEL%==0 echo %date% - %time% Background Apps disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+goto finish
+
+:backE
+reg add "HKLM\Software\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsRunInBackground" /t REG_DWORD /d "1" /f
+%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" /v "GlobalUserDisabled" /t REG_DWORD /d "0" /f
+%currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "BackgroundAppGlobalToggle" /t REG_DWORD /d "1" /f
+if %ERRORLEVEL%==0 echo %date% - %time% Background Apps enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :btD
