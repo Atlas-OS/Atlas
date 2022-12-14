@@ -2258,7 +2258,7 @@ goto finish
 
 :scoop
 echo Installing Scoop...
-set /P c="Review Install script before executing? [Y/N]: "
+set /P c="Review install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1
 PowerShell.exe -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
@@ -2267,7 +2267,8 @@ echo Refreshing environment for Scoop...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
 echo Installing git...
-:: scoop is not very nice with batch scripts and will break the whole script if a warning or error shows up
+:: using scoop install in batch file requires script re-run
+:: otherwise it will break the whole script if a warning or error shows up
 cmd /c scoop install git -g
 call %WinDir%\AtlasModules\refreshenv.bat
 echo .
