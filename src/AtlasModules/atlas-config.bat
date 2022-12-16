@@ -1036,6 +1036,9 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "H
 :: disable shared experiences
 reg add "HKLM\Software\Policies\Microsoft\Windows\System" /v "EnableCdp" /t REG_DWORD /d "0" /f
 
+:: remove header from settings (immersive control panel)
+reg add "HKCU\Control Panel\International\Geo" /v "Nation" /t REG_SZ /d "45" /f
+
 :: show all tasks on control panel, credits to tenforums
 reg add "HKLM\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /ve /t REG_SZ /d "All Tasks" /f
 reg add "HKLM\Software\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /v "InfoTip" /t REG_SZ /d "View list of all Control Panel tasks" /f
@@ -2258,7 +2261,7 @@ goto finish
 
 :scoop
 echo Installing Scoop...
-set /P c="Review Install script before executing? [Y/N]: "
+set /P c="Review install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1
 PowerShell.exe -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
@@ -2267,7 +2270,8 @@ echo Refreshing environment for Scoop...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
 echo Installing git...
-:: scoop is not very nice with batch scripts and will break the whole script if a warning or error shows up
+:: using scoop install in batch file requires script re-run
+:: otherwise it will break the whole script if a warning or error shows up
 cmd /c scoop install git -g
 call %WinDir%\AtlasModules\refreshenv.bat
 echo .
