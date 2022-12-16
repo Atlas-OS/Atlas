@@ -2405,18 +2405,24 @@ goto finish
 :nvcontainerD
 :: check if the service exists
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
-if errorlevel 1 (
+if %errorlevel%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
+	echo You may not have NVIDIA drivers installed.
     pause
-    exit /B
+    exit /b 1
 )
 
-echo Disabling the NVIDIA Display Container LS service will stop the NVIDIA Control Panel from working.
-echo You can enable the NVIDIA Control Panel by running the other version of this script, which enables the service.
+echo Disabling the 'NVIDIA Display Container LS' service will stop the NVIDIA Control Panel from working.
+echo It will most likely break other NVIDIA driver features as well.
+echo These scripts are aimed at users that have a stripped driver, and people that barely touch the NVIDIA Control Panel.
+echo]
+echo You can enable the NVIDIA Control Panel and the service again by running the enable script.
+echo Additionally, you can add a context menu to the desktop with another script in the Atlas folder.
+echo]
 echo Read README.txt for more info.
 pause
 
-%setSvc% NVDisplay.ContainerLocalSystem 4
+sc config NVDisplay.ContainerLocalSystem start=disabled > nul
 sc stop NVDisplay.ContainerLocalSystem > nul
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
@@ -2424,13 +2430,14 @@ goto finishNRB
 :nvcontainerE
 :: check if the service exists
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
-if %errorlevel% 1 (
+if %errorlevel%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
+	echo You may not have NVIDIA drivers installed.
     pause
-    exit /B
+    exit /b 1
 )
 
-%setSvc% NVDisplay.ContainerLocalSystem 2
+sc config NVDisplay.ContainerLocalSystem start=auto > nul
 sc start NVDisplay.ContainerLocalSystem > nul
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
@@ -2440,35 +2447,28 @@ goto finishNRB
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
 if %errorlevel% 1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
+	echo You may not have NVIDIA drivers installed.
     pause
-    exit /B
+    exit /b 1
 )
 echo Explorer will be restarted to ensure that the context menu works.
 pause
 
-:: get icon exe
-:: different for older/newer drivers
-if not exist "C:\Program Files\NVIDIA Corporation\Display.NvContainer\" (
-	cd /d %WinDir%\System32\DriverStore\FileRepository\nv_dispig.inf_?????_*\Display.NvContainer\
-) else (
-	cd /d C:\Program Files\NVIDIA Corporation\Display.NvContainer
-)
-copy "NVDisplay.Container.exe" "%WinDir%\System32\NvidiaIcon.exe" /B /Y
-reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%WinDir%\System32\NvidiaIcon.exe,0" /f
+reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%WinDir%\AtlasModules\NVIDIA.ico,0" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "MUIVerb" /t REG_SZ /d "NVIDIA Container" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Position" /t REG_SZ /d "Bottom" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "SubCommands" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "HasLUAShield" /t REG_SZ /d "" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "MUIVerb" /t REG_SZ /d "Enable NVIDIA Container" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "MUIVerb" /t REG_SZ /d "Enable NVIDIA Display Container LS" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Container" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Display Container LS" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 NSudo.exe -U:C explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu enabled...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS context menu enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :nvcontainerCMD
@@ -2476,27 +2476,28 @@ goto finishNRB
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
 if %errorlevel% 1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
+	echo You may not have NVIDIA drivers installed.
     pause
-    exit /B
+    exit /b 1
 )
 reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" >nul 2>&1
 if %errorlevel% 1 (
     echo The context menu does not exist, you can not continue.
     pause
-    exit /B
+    exit /b 1
 )
 
-echo Explorer will be restarted to ensure that the context menu is gone.
+echo Explorer will be restarted to ensure that the context menu is removed.
 pause
-reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f
+
+reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul
 
 :: delete icon exe
-erase /F /Q "%WinDir%\System32\NvidiaIcon.exe"
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 NSudo.exe -U:C explorer.exe
-if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS Context Menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS context menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :networksharingE
