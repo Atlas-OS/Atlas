@@ -61,6 +61,10 @@ if /i "%~1"=="/ei"         goto indexE
 if /i "%~1"=="/dw"         goto wifiD
 if /i "%~1"=="/ew"         goto wifiE
 
+:: Hyper-V and VBS
+if /i "%~1"=="/dhyper"         goto hyperD
+if /i "%~1"=="/ehyper"         goto hyperE
+
 :: Microsoft Store
 if /i "%~1"=="/ds"         goto storeD
 if /i "%~1"=="/es"         goto storeE
@@ -1231,22 +1235,6 @@ reg add "HKCR\regfile\Shell\RunAs" /ve /t REG_SZ /d "Merge As TrustedInstaller" 
 reg add "HKCR\regfile\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "1" /f
 reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "NSudo.exe -U:T -P:E reg import "%%1"" /f
 
-:: add run with priority context menu
-reg add "HKCR\exefile\shell\Priority" /v "MUIVerb" /t REG_SZ /d "Run with priority" /f
-reg add "HKCR\exefile\shell\Priority" /v "SubCommands" /t REG_SZ /d "" /f
-reg add "HKCR\exefile\Shell\Priority\shell\001flyout" /ve /t REG_SZ /d "Realtime" /f
-reg add "HKCR\exefile\Shell\Priority\shell\001flyout\command" /ve /t REG_SZ /d "cmd.exe /c start \"\" /Realtime \"%%1\"" /f
-reg add "HKCR\exefile\Shell\Priority\shell\002flyout" /ve /t REG_SZ /d "High" /f
-reg add "HKCR\exefile\Shell\Priority\shell\002flyout\command" /ve /t REG_SZ /d "cmd.exe /c start \"\" /High \"%%1\"" /f
-reg add "HKCR\exefile\Shell\Priority\shell\003flyout" /ve /t REG_SZ /d "Above normal" /f
-reg add "HKCR\exefile\Shell\Priority\shell\003flyout\command" /ve /t REG_SZ /d "cmd.exe /c start \"\" /AboveNormal \"%%1\"" /f
-reg add "HKCR\exefile\Shell\Priority\shell\004flyout" /ve /t REG_SZ /d "Normal" /f
-reg add "HKCR\exefile\Shell\Priority\shell\004flyout\command" /ve /t REG_SZ /d "cmd.exe /c start \"\" /Normal \"%%1\"" /f
-reg add "HKCR\exefile\Shell\Priority\shell\005flyout" /ve /t REG_SZ /d "Below normal" /f
-reg add "HKCR\exefile\Shell\Priority\shell\005flyout\command" /ve /t REG_SZ /d "cmd.exe /c start \"\" /BelowNormal \"%%1\"" /f
-reg add "HKCR\exefile\Shell\Priority\shell\006flyout" /ve /t REG_SZ /d "Low" /f
-reg add "HKCR\exefile\Shell\Priority\shell\006flyout\command" /ve /t REG_SZ /d "cmd.exe /c start \"\" /Low \"%%1\"" /f
-
 :: remove include in library context menu
 reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f >nul 2>nul
 reg delete "HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location" /f >nul 2>nul
@@ -1374,6 +1362,150 @@ ping -n 1 -4 1.1.1.1 | find "Failure" | (
 if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 sc config eventlog start=auto
 echo %date% - %time% EventLog enabled as Wi-Fi dependency...>> %WinDir%\AtlasModules\logs\userscript.log
+goto finish
+
+:hyperD
+:: credit: he3als
+:: bcdedit commands
+bcdedit /set hypervisorlaunchtype off > nul
+bcdedit /set vm no > nul
+bcdedit /set vmslaunchtype Off > nul
+bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS > nul
+
+:: disable hyper-v with dism
+DISM /Online /Disable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
+DISM /Online /Disable-Feature:HypervisorPlatform /Quiet /NoRestart
+if %branch% NEQ "1803" DISM /Online /Disable-Feature:VirtualMachinePlatform /Quiet /NoRestart
+
+:: apply registry changes
+:: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Windows.DeviceGuard::VirtualizationBasedSecuritye
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "EnableVirtualizationBasedSecurity" /d "0" /f > nul
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "RequirePlatformSecurityFeatures" /d "1" /f > nul
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "HypervisorEnforcedCodeIntegrity" /d "0" /f > nul
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "HVCIMATRequired" /d "0" /f > nul
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "LsaCfgFlags" /d "0" /f > nul
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "ConfigureSystemGuardLaunch" /d "0" /f > nul
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v "RequireMicrosoftSignedBootChain" /t REG_DWORD /d "0" /f > nul
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "WasEnabledBy" /t REG_DWORD /d "0" /f > nul
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /t REG_DWORD /d "0" /f > nul
+
+:: disable drivers
+for %%a in (
+    "hvcrash"
+    "hvservice"
+    "vhdparser"
+    "vkrnlintvsc"
+    "vkrnlintvsp"
+    "vmbus"
+    "Vid"
+    "bttflt"
+    "gencounter"
+    "hvsocketcontrol"
+    "passthruparser"
+    "pvhdparser"
+    "spaceparser"
+    "storflt"
+    "vmgid"
+    "vmbusr"
+    "vpci"
+) do (
+    sc config %%a start=disabled > nul
+)
+
+:: disable services
+for %%a in (
+    "gcs"
+    "hvhost"
+    "vmcompute"
+    "vmicguestinterface"
+    "vmicheartbeat"
+    "vmickvpexchange"
+    "vmicrdv"
+    "vmicshutdown"
+    "vmictimesync"
+    "vmicvmsession"
+    "vmicvss"
+) do (
+    sc config %%a start=disabled > nul
+)
+
+:: disable devices
+DevManView.exe /disable "Microsoft Hyper-V NT Kernel Integration VSP"
+DevManView.exe /disable "Microsoft Hyper-V PCI Server"
+DevManView.exe /disable "Microsoft Hyper-V Virtual Disk Server"
+DevManView.exe /disable "Microsoft Hyper-V Virtual Machine Bus Provider"
+DevManView.exe /disable "Microsoft Hyper-V Virtualization Infrastructure Driver"
+
+if %ERRORLEVEL%==0 echo %date% - %time% Hyper-V and VBS disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+goto finish
+
+:hyperE
+:: credit: he3als
+:: bcdedit commands
+bcdedit /set hypervisorlaunchtype auto > nul
+bcdedit /deletevalue vm > nul
+bcdedit /set vsmlaunchtype Auto > nul
+bcdedit /deletevalue loadoptions > nul
+
+:: enable hyper-v with dism
+DISM /Online /Enable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
+DISM /Online /Enable-Feature:HypervisorPlatform /Quiet /NoRestart
+if %branch% NEQ "1803" DISM /Online /Enable-Feature:VirtualMachinePlatform /Quiet /NoRestart
+
+
+:: apply registry changes
+:: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Windows.DeviceGuard::VirtualizationBasedSecuritye
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /v "EnableVirtualizationBasedSecurity" /f > nul
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /v "RequirePlatformSecurityFeatures" /f > nul
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /v "HypervisorEnforcedCodeIntegrity" /f > nul
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /v "HVCIMATRequired" /f > nul
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /v "LsaCfgFlags" /f > nul
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /v "ConfigureSystemGuardLaunch" /f > nul
+
+:: found this to be the default
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v "RequireMicrosoftSignedBootChain" /t REG_DWORD /d "1" /f > nul
+reg delete "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "WasEnabledBy" /f > nul
+reg delete "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /f > nul
+
+:: enable drivers
+:: default for hvcrash is disabled
+sc config hvcrash start=disabled > nul
+sc config hvservice start=manual > nul
+sc config vhdparser start=manual > nul
+sc config vmbus start=boot > nul
+sc config Vid start=system > nul
+sc config bttflt start=boot > nul
+sc config gencounter start=manual > nul
+sc config hvsocketcontrol start=manual > nul
+sc config passthruparser start=manual > nul
+sc config pvhdparser start=manual > nul
+sc config spaceparser start=manual > nul
+sc config storflt start=boot > nul
+sc config vmgid start=manual > nul
+sc config vmbusr start=manual > nul
+sc config vpci start=boot > nul
+
+:: enable services
+sc config gcs start=manual > nul
+sc config hvhost start=manual > nul
+sc config vmcompute start=manual > nul
+sc config vmicguestinterface start=manual > nul
+sc config vmicheartbeat start=manual > nul
+sc config vmickvpexchange start=manual > nul
+sc config vmicrdv start=manual > nul
+sc config vmicshutdown start=manual > nul
+sc config vmictimesync start=manual > nul
+sc config vmicvmsession start=manual > nul
+sc config vmicvss start=manual > nul
+
+:: enable devices
+DevManView.exe /enable "Microsoft Hyper-V NT Kernel Integration VSP"
+DevManView.exe /enable "Microsoft Hyper-V PCI Server"
+DevManView.exe /enable "Microsoft Hyper-V Virtual Disk Server"
+DevManView.exe /enable "Microsoft Hyper-V Virtual Machine Bus Provider"
+DevManView.exe /enable "Microsoft Hyper-V Virtualization Infrastructure Driver"
+
+if %ERRORLEVEL%==0 echo %date% - %time% Hyper-V and VBS enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :storeD
