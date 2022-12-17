@@ -2074,8 +2074,9 @@ goto finish
 :procexpE
 curl -L --output %temp%\procexp.zip https://download.sysinternals.com/files/ProcessExplorer.zip
 7z -aoa -r e "%temp%\procexp.zip" -o"%temp%"
-move /y "%temp%\procexp.exe" "%WinDir%"
+move /y "%temp%\procexp64.exe" "%WinDir%\procexp.exe"
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\procexp.exe" /f
+del /f /q %temp%\*
 goto finish
 
 :xboxU
