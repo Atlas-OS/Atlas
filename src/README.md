@@ -35,18 +35,9 @@ There are plenty of reasons to build Atlas from source such as:
   - Desktop/Atlas >> %temp%\NLTmpMnt01\Users\Default\Desktop\Atlas
   - Atlas.bat >> %temp%\NLTmpMnt01\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\Atlas.bat
   ```
-6. Delete the following files with a program like IOBit Unlocker or Unlocker
-  ```txt
-  - %temp%\NLTmpMnt01\Windows\System32\mcupdate_genuineintel.dll
-  - %temp%\NLTmpMnt01\Windows\System32\mcupdate_authenticamd.dll
-  - %temp%\NLTmpMnt01\Windows\System32\mobsync.exe
-  - %temp%\NLTmpMnt01\Windows\System32\GameBarPresenceWriter.exe
-  - %temp%\NLTmpMnt01\Windows\WinSxS\Temp\PendingDeletes\*
-  - %temp%\NLTmpMnt01\Windows\System32\catroot2
-  ```
-7. Make any changes you want to NTLite's components, settings, services etc.
-8. Go to the "Apply" tab and click Process
-9. Done!
+6. Make any changes you want to NTLite's components, settings, services etc.
+7. Go to the "Apply" tab and click Process
+8. Done!
 
 ## Contributing
 
