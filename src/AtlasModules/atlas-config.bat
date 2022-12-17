@@ -518,37 +518,6 @@ for /f "tokens=1-9* delims=\ " %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet
 if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes...>> %windir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to enable hidden power scheme attributes! >> %windir%\AtlasModules\logs\install.log)
 
-:: residual file cleanup
-:: files are removed in the official iso
-for %%a in (
-    "GameBarPresenceWriter.exe"
-    "mobsync.exe"
-    "mcupdate_genuineintel.dll"
-    "mcupdate_authenticamd.dll"
-) do (
-    del /f /q "%WinDir%\System32\%%a" >nul 2>nul
-)
-
-:: remove microsoft edge
-rd /s /q "C:\Program Files (x86)\Microsoft" >nul 2>nul
-
-:: remove residual registry keys
-reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\Classes\MSEdgeHTM" /f >nul 2>nul
-reg delete "HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Application\edgeupdate" /f >nul 2>nul
-reg delete "HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Application\edgeupdatem" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\WOW6432Node\Clients\StartMenuInternet\Microsoft Edge" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Edge" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\Clients\StartMenuInternet\Microsoft Edge" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata" /f >nul 2>nul
-
-:: not checking for %errorlevel%, as these are often deleted in the first place. so if it were to error it would only cause confusion
-echo %date% - %time% Residule files deleted...>> %WinDir%\AtlasModules\logs\install.log
-
 :: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
 for /f %%i in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do (
@@ -1246,6 +1215,7 @@ reg add "HKCU\SOFTWARE\Classes\.dib" /ve /t REG_SZ /d "PhotoViewer.Fer.FileAssoc
 reg add "HKCU\SOFTWARE\Classes\.jxr" /ve /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
 
 :: disable gamebar presence writer
+:: instead of removing a file
 reg add "HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter" /v "ActivationType" /t REG_DWORD /d "0" /f
 
 :: disable storage sense
@@ -1257,28 +1227,11 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance"
 :: do not reduce sounds while in a call
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio" /v "UserDuckingPreference" /t REG_DWORD /d "3" /f
 
-:: configure microsoft edge
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\EdgeUI" /v "DisableMFUTracking" /t REG_DWORD /d "1" /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" /v "AllowPrelaunch" /t REG_DWORD /d "0" /f
-reg add "HKLM\SOFTWARE\Microsoft\EdgeUpdate" /v "DoNotUpdateToEdgeWithChromium" /t REG_DWORD /d "0" /f
-
 :: install cab context menu
 reg delete "HKCR\CABFolder\Shell\RunAs" /f >nul 2>nul
 reg add "HKCR\CABFolder\Shell\RunAs" /ve /t REG_SZ /d "Install" /f
 reg add "HKCR\CABFolder\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\CABFolder\Shell\RunAs\Command" /ve /t REG_SZ /d "cmd /k DISM /online /add-package /packagepath:\"%%1\"" /f
-
-:: power scheme idle toggle
-reg add "HKCR\DesktopBackground\Shell\Idle" /v "Icon" /t REG_SZ /d "powercpl.dll" /f
-reg add "HKCR\DesktopBackground\Shell\Idle" /v "MUIVerb" /t REG_SZ /d "Idle Toggle" /f
-reg add "HKCR\DesktopBackground\Shell\Idle" /v "Position" /t REG_SZ /d "Bottom" /f
-reg add "HKCR\DesktopBackground\Shell\Idle" /v "SubCommands" /t REG_SZ /d "" /f
-reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Disable Idle" /v "MUIVerb" /t REG_SZ /d "Disable Idle" /f
-reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Disable Idle" /v "Icon" /t REG_SZ /d "powercpl.dll" /f
-reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Disable Idle\Command" /ve /t REG_SZ /d "powercfg /setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1" /f
-reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Enable Idle" /v "MUIVerb" /t REG_SZ /d "Enable Idle" /f
-reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Enable Idle" /v "Icon" /t REG_SZ /d "powercpl.dll" /f
-reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Enable Idle\Command" /ve /t REG_SZ /d "powercfg /setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0" /f
 
 :: merge as trustedinstaller for .regs
 reg add "HKCR\regfile\Shell\RunAs" /ve /t REG_SZ /d "Merge As TrustedInstaller" /f
