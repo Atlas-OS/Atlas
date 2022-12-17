@@ -1,3 +1,0 @@
-To install software, you can either run Install Chocolatey or Install Scoop, you have to install one to install software from this part
-
-FYI. Chocolatey is recommended for web browsers and non-portable applications
