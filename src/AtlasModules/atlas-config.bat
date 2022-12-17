@@ -23,7 +23,7 @@ set branch="20H2"
 set ver="v0.5.2"
 
 :: other variables (do not touch)
-set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
+set "currentuser=%WinDir%\AtlasModules\NSudo -U:C -P:E -Wait"
 set "setSvc=call :setSvc"
 set "firewallBlockExe=call :firewallBlockExe"
 
@@ -469,7 +469,7 @@ for /f "tokens=*" %%i in ('wmic PATH Win32_PnPEntity GET DeviceID ^| findstr "US
 )
 
 :: disable pnp power savings
-PowerShell.exe -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
+PowerShell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled power savings...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -644,34 +644,34 @@ start explorer.exe
 
 :: disable network adapters
 :: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
-PowerShell.exe -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
+PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
 
 :: disable system devices
-DevManView.exe /disable "System Speaker"
-DevManView.exe /disable "System Timer"
-DevManView.exe /disable "UMBus Root Bus Enumerator"
-DevManView.exe /disable "Microsoft System Management BIOS Driver"
-:: DevManView.exe /disable "Programmable Interrupt Controller"
-DevManView.exe /disable "High Precision Event Timer"
-DevManView.exe /disable "PCI Encryption/Decryption Controller"
-DevManView.exe /disable "AMD PSP"
-DevManView.exe /disable "Intel SMBus"
-DevManView.exe /disable "Intel Management Engine"
-DevManView.exe /disable "PCI Memory Controller"
-DevManView.exe /disable "PCI standard RAM Controller"
-DevManView.exe /disable "Composite Bus Enumerator"
-DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
-DevManView.exe /disable "SM Bus Controller"
-DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
-:: DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mount
-DevManView.exe /disable "Numeric Data Processor"
-DevManView.exe /disable "Microsoft RRAS Root Enumerator"
+DevManView /disable "System Speaker"
+DevManView /disable "System Timer"
+DevManView /disable "UMBus Root Bus Enumerator"
+DevManView /disable "Microsoft System Management BIOS Driver"
+:: DevManView /disable "Programmable Interrupt Controller"
+DevManView /disable "High Precision Event Timer"
+DevManView /disable "PCI Encryption/Decryption Controller"
+DevManView /disable "AMD PSP"
+DevManView /disable "Intel SMBus"
+DevManView /disable "Intel Management Engine"
+DevManView /disable "PCI Memory Controller"
+DevManView /disable "PCI standard RAM Controller"
+DevManView /disable "Composite Bus Enumerator"
+DevManView /disable "Microsoft Kernel Debug Network Adapter"
+DevManView /disable "SM Bus Controller"
+DevManView /disable "NDIS Virtual Network Adapter Enumerator"
+:: DevManView /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mount
+DevManView /disable "Numeric Data Processor"
+DevManView /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled devices...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable devices! >> %WinDir%\AtlasModules\logs\install.log)
 
-if %branch%=="1803" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\1803.bat
-if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
-if %branch%=="22H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\22H2.bat
+if %branch%=="1803" NSudo -U:C -P:E %WinDir%\AtlasModules\1803.bat
+if %branch%=="20H2" NSudo -U:C -P:E %WinDir%\AtlasModules\20H2.bat
+if %branch%=="22H2" NSudo -U:C -P:E %WinDir%\AtlasModules\22H2.bat
 
 :: backup default windows services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows services.reg"
@@ -850,7 +850,7 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V 
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "delims=," %%i in ('driverquery.exe /FO CSV') do (
+for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	set svc=%%~i
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
 		set /A start=%%i
@@ -1106,7 +1106,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Disab
 
 :: find correct mitigation values for different Windows versions - AMIT
 :: initialize bit mask in registry by disabling a random mitigation
-PowerShell.exe -NoProfile -Command Set-ProcessMitigation -System -Disable CFG
+PowerShell -NoProfile -Command Set-ProcessMitigation -System -Disable CFG
 :: get bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
     set mitigation_mask=%%a
@@ -1261,7 +1261,7 @@ reg add "HKLM\SOFTWARE\Microsoft\EdgeUpdate" /v "DoNotUpdateToEdgeWithChromium" 
 reg delete "HKCR\CABFolder\Shell\RunAs" /f >nul 2>nul
 reg add "HKCR\CABFolder\Shell\RunAs" /ve /t REG_SZ /d "Install" /f
 reg add "HKCR\CABFolder\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "" /f
-reg add "HKCR\CABFolder\Shell\RunAs\Command" /ve /t REG_SZ /d "cmd /k dism /online /add-package /packagepath:\"%%1\"" /f
+reg add "HKCR\CABFolder\Shell\RunAs\Command" /ve /t REG_SZ /d "cmd /k DISM /online /add-package /packagepath:\"%%1\"" /f
 
 :: power scheme idle toggle
 reg add "HKCR\DesktopBackground\Shell\Idle" /v "Icon" /t REG_SZ /d "powercpl.dll" /f
@@ -1278,7 +1278,7 @@ reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Enable Idle\Command" /ve /t REG
 :: merge as trustedinstaller for .regs
 reg add "HKCR\regfile\Shell\RunAs" /ve /t REG_SZ /d "Merge As TrustedInstaller" /f
 reg add "HKCR\regfile\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "1" /f
-reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "NSudo.exe -U:T -P:E reg import "%%1"" /f
+reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "NSudo -U:T -P:E reg import "%%1"" /f
 
 :: remove include in library context menu
 reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f >nul 2>nul
@@ -1417,7 +1417,7 @@ bcdedit /set vm no > nul
 bcdedit /set vmslaunchtype Off > nul
 bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS > nul
 
-:: disable hyper-v with dism
+:: disable hyper-v with DISM
 DISM /Online /Disable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
 DISM /Online /Disable-Feature:HypervisorPlatform /Quiet /NoRestart
 if %branch% NEQ "1803" DISM /Online /Disable-Feature:VirtualMachinePlatform /Quiet /NoRestart
@@ -1475,11 +1475,11 @@ for %%a in (
 )
 
 :: disable devices
-DevManView.exe /disable "Microsoft Hyper-V NT Kernel Integration VSP"
-DevManView.exe /disable "Microsoft Hyper-V PCI Server"
-DevManView.exe /disable "Microsoft Hyper-V Virtual Disk Server"
-DevManView.exe /disable "Microsoft Hyper-V Virtual Machine Bus Provider"
-DevManView.exe /disable "Microsoft Hyper-V Virtualization Infrastructure Driver"
+DevManView /disable "Microsoft Hyper-V NT Kernel Integration VSP"
+DevManView /disable "Microsoft Hyper-V PCI Server"
+DevManView /disable "Microsoft Hyper-V Virtual Disk Server"
+DevManView /disable "Microsoft Hyper-V Virtual Machine Bus Provider"
+DevManView /disable "Microsoft Hyper-V Virtualization Infrastructure Driver"
 
 if %ERRORLEVEL%==0 echo %date% - %time% Hyper-V and VBS disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -1492,7 +1492,7 @@ bcdedit /deletevalue vm > nul
 bcdedit /set vsmlaunchtype Auto > nul
 bcdedit /deletevalue loadoptions > nul
 
-:: enable hyper-v with dism
+:: enable hyper-v with DISM
 DISM /Online /Enable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
 DISM /Online /Enable-Feature:HypervisorPlatform /Quiet /NoRestart
 if %branch% NEQ "1803" DISM /Online /Enable-Feature:VirtualMachinePlatform /Quiet /NoRestart
@@ -1544,11 +1544,11 @@ sc config vmicvmsession start=manual > nul
 sc config vmicvss start=manual > nul
 
 :: enable devices
-DevManView.exe /enable "Microsoft Hyper-V NT Kernel Integration VSP"
-DevManView.exe /enable "Microsoft Hyper-V PCI Server"
-DevManView.exe /enable "Microsoft Hyper-V Virtual Disk Server"
-DevManView.exe /enable "Microsoft Hyper-V Virtual Machine Bus Provider"
-DevManView.exe /enable "Microsoft Hyper-V Virtualization Infrastructure Driver"
+DevManView /enable "Microsoft Hyper-V NT Kernel Integration VSP"
+DevManView /enable "Microsoft Hyper-V PCI Server"
+DevManView /enable "Microsoft Hyper-V Virtual Disk Server"
+DevManView /enable "Microsoft Hyper-V Virtual Machine Bus Provider"
+DevManView /enable "Microsoft Hyper-V Virtualization Infrastructure Driver"
 
 if %ERRORLEVEL%==0 echo %date% - %time% Hyper-V and VBS enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -1561,7 +1561,7 @@ echo Extra note: This breaks the "about" page in settings. If you require it, en
 pause
 
 :: detect if user is using a microsoft account
-PowerShell.exe -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+PowerShell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 
 :: disable the option for microsoft store in the "open with" dialog
@@ -1686,20 +1686,20 @@ if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch enabled...>> %WinDir
 goto finish
 
 :depE
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable DEP
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
+PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP
+PowerShell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
 bcdedit /set nx OptIn
 :: enable cfg for valorant related processes
 for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
-    PowerShell.exe -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
+    PowerShell -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
 )
 if %ERRORLEVEL%==0 echo %date% - %time% DEP enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :depD
 echo If you get issues with some anti-cheats, please re-enable DEP.
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Disable DEP
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Disable EmulateAtlThunks
+PowerShell -NoProfile set-ProcessMitigation -System -Disable DEP
+PowerShell -NoProfile set-ProcessMitigation -System -Disable EmulateAtlThunks
 bcdedit /set nx AlwaysOff
 if %ERRORLEVEL%==0 echo %date% - %time% DEP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -1739,7 +1739,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 :: search icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo.exe -U:C explorer.exe
+NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1755,7 +1755,7 @@ ren SearchApp.old SearchApp.exe
 :: search icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f
 taskkill /f /im explorer.exe
-NSudo.exe -U:C explorer.exe
+NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1794,7 +1794,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 :: search icon
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo.exe -U:C explorer.exe
+NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu removed...>> %WinDir%\AtlasModules\logs\userScript.log
 
 :skipRM
@@ -1806,7 +1806,7 @@ curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5.3/Fluen
 7z -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
 del /F /Q skin.zip >nul 2>nul
 taskkill /f /im explorer.exe
-NSudo.exe -U:C explorer.exe
+NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell installed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -1830,7 +1830,7 @@ echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 
 :: detect if user is using a microsoft account
-PowerShell.exe -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+PowerShell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
@@ -1863,7 +1863,7 @@ taskkill /f /im RuntimeBroker*  >nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo.exe -U:C explorer.exe
+NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 pause
@@ -1897,24 +1897,24 @@ taskkill /f /im RuntimeBroker*  >nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo.exe -U:C explorer.exe
+NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :mitE
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable DEP
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable RequireInfo
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable BottomUp
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable HighEntropy
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable StrictHandle
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable CFG
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable StrictCFG
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SuppressExports
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOP
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
+PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP
+PowerShell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
+PowerShell -NoProfile set-ProcessMitigation -System -Enable RequireInfo
+PowerShell -NoProfile set-ProcessMitigation -System -Enable BottomUp
+PowerShell -NoProfile set-ProcessMitigation -System -Enable HighEntropy
+PowerShell -NoProfile set-ProcessMitigation -System -Enable StrictHandle
+PowerShell -NoProfile set-ProcessMitigation -System -Enable CFG
+PowerShell -NoProfile set-ProcessMitigation -System -Enable StrictCFG
+PowerShell -NoProfile set-ProcessMitigation -System -Enable SuppressExports
+PowerShell -NoProfile set-ProcessMitigation -System -Enable SEHOP
+PowerShell -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
+PowerShell -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
+PowerShell -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
 goto finish
 
 :startlayout
@@ -1962,19 +1962,19 @@ goto finishNRB
 :: - make it extremely clear that this is not aimed to maintain performance
 
 :: - harden process mitigations (lower compatibilty for legacy apps)
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable DEP
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable RequireInfo
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable BottomUp
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable HighEntropy
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable StrictHandle
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable CFG
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable StrictCFG
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SuppressExports
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOP
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
-PowerShell.exe -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
+PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP
+PowerShell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
+PowerShell -NoProfile set-ProcessMitigation -System -Enable RequireInfo
+PowerShell -NoProfile set-ProcessMitigation -System -Enable BottomUp
+PowerShell -NoProfile set-ProcessMitigation -System -Enable HighEntropy
+PowerShell -NoProfile set-ProcessMitigation -System -Enable StrictHandle
+PowerShell -NoProfile set-ProcessMitigation -System -Enable CFG
+PowerShell -NoProfile set-ProcessMitigation -System -Enable StrictCFG
+PowerShell -NoProfile set-ProcessMitigation -System -Enable SuppressExports
+PowerShell -NoProfile set-ProcessMitigation -System -Enable SEHOP
+PowerShell -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
+PowerShell -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
+PowerShell -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
 
 :: - open scripts in notepad to preview instead of executing when clicking
 for %%a in (
@@ -2093,7 +2093,7 @@ exit
 
 :xboxConfirm
 echo Removing via PowerShell...
-NSudo.exe -U:C -ShowWindowMode:Hide -Wait PowerShell.exe -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
+NSudo -U:C -ShowWindowMode:Hide -Wait PowerShell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
 
 echo Disabling services...
 sc config XblAuthManager start=disabled
@@ -2179,7 +2179,7 @@ goto finish
 %setSvc% mrxsmb 4
 %setSvc% srv2 4
 %setSvc% LanmanWorkstation 4
-dism /Online /Disable-Feature /FeatureName:SmbDirect /norestart
+DISM /Online /Disable-Feature /FeatureName:SmbDirect /norestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -2190,7 +2190,7 @@ goto finish
 %setSvc% mrxsmb 3
 %setSvc% srv2 3
 %setSvc% LanmanWorkstation 2
-dism /Online /Enable-Feature /FeatureName:SmbDirect /norestart
+DISM /Online /Enable-Feature /FeatureName:SmbDirect /norestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
@@ -2270,7 +2270,7 @@ netsh int ip reset
 netsh winsock reset
 :: extremely awful way to do this
 for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connected ^| findstr "Device Description:"') do (
-	DevManView.exe /uninstall "%%i %%j"
+	DevManView /uninstall "%%i %%j"
 )
 pnputil /scan-devices
 if %ERRORLEVEL%==0 echo %date% - %time% Network setting reset to Windows' default...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -2361,16 +2361,16 @@ systeminfo > %WinDir%\AtlasModules\logs\systemInfo.log
 goto finish
 
 :vpnD
-DevManView.exe /disable "WAN Miniport (IKEv2)"
-DevManView.exe /disable "WAN Miniport (IP)"
-DevManView.exe /disable "WAN Miniport (IPv6)"
-DevManView.exe /disable "WAN Miniport (L2TP)"
-DevManView.exe /disable "WAN Miniport (Network Monitor)"
-DevManView.exe /disable "WAN Miniport (PPPOE)"
-DevManView.exe /disable "WAN Miniport (PPTP)"
-DevManView.exe /disable "WAN Miniport (SSTP)"
-DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
-DevManView.exe /disable "Microsoft RRAS Root Enumerator"
+DevManView /disable "WAN Miniport (IKEv2)"
+DevManView /disable "WAN Miniport (IP)"
+DevManView /disable "WAN Miniport (IPv6)"
+DevManView /disable "WAN Miniport (L2TP)"
+DevManView /disable "WAN Miniport (Network Monitor)"
+DevManView /disable "WAN Miniport (PPPOE)"
+DevManView /disable "WAN Miniport (PPTP)"
+DevManView /disable "WAN Miniport (SSTP)"
+DevManView /disable "NDIS Virtual Network Adapter Enumerator"
+DevManView /disable "Microsoft RRAS Root Enumerator"
 %setSvc% IKEEXT 4
 %setSvc% WinHttpAutoProxySvc 4
 %setSvc% RasMan 4
@@ -2382,16 +2382,16 @@ if %ERRORLEVEL%==0 echo %date% - %time% VPN disabled...>> %WinDir%\AtlasModules\
 goto finish
 
 :vpnE
-DevManView.exe /enable "WAN Miniport (IKEv2)"
-DevManView.exe /enable "WAN Miniport (IP)"
-DevManView.exe /enable "WAN Miniport (IPv6)"
-DevManView.exe /enable "WAN Miniport (L2TP)"
-DevManView.exe /enable "WAN Miniport (Network Monitor)"
-DevManView.exe /enable "WAN Miniport (PPPOE)"
-DevManView.exe /enable "WAN Miniport (PPTP)"
-DevManView.exe /enable "WAN Miniport (SSTP)"
-DevManView.exe /enable "NDIS Virtual Network Adapter Enumerator"
-DevManView.exe /enable "Microsoft RRAS Root Enumerator"
+DevManView /enable "WAN Miniport (IKEv2)"
+DevManView /enable "WAN Miniport (IP)"
+DevManView /enable "WAN Miniport (IPv6)"
+DevManView /enable "WAN Miniport (L2TP)"
+DevManView /enable "WAN Miniport (Network Monitor)"
+DevManView /enable "WAN Miniport (PPPOE)"
+DevManView /enable "WAN Miniport (PPTP)"
+DevManView /enable "WAN Miniport (SSTP)"
+DevManView /enable "NDIS Virtual Network Adapter Enumerator"
+DevManView /enable "Microsoft RRAS Root Enumerator"
 %setSvc% IKEEXT 3
 %setSvc% BFE 2
 %setSvc% WinHttpAutoProxySvc 3
@@ -2404,11 +2404,11 @@ if %ERRORLEVEL%==0 echo %date% - %time% VPN enabled...>> %WinDir%\AtlasModules\l
 goto finish
 
 :wmpD
-dism /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /norestart
+DISM /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /norestart
 goto finish
 
 :ieD
-dism /Online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart
+DISM /Online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart
 goto finish
 
 :eventlogD
@@ -2444,8 +2444,8 @@ echo Installing Scoop...
 set /P c="Review install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-PowerShell.exe -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
-PowerShell.exe -NoProfile %WinDir%\AtlasModules\install.ps1
+PowerShell -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
+PowerShell -NoProfile %WinDir%\AtlasModules\install.ps1
 echo Refreshing environment for Scoop...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
@@ -2466,7 +2466,7 @@ echo Installing Chocolatey
 set /P c="Review install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-PowerShell.exe -NoProfile -EP Unrestricted -Command "%WinDir%\AtlasModules\install.ps1"
+PowerShell -NoProfile -EP Unrestricted -Command "%WinDir%\AtlasModules\install.ps1"
 echo Refreshing environment for Chocolatey...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
@@ -2523,7 +2523,7 @@ for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| find
 for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%i
 for /f "tokens=2 delims=()" %%i in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /f "tokens=2" %%a in ("%%i") do set DHCPSubnetMask=%%a
 netsh int ipv4 set address name="%devicename%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway%
-PowerShell.exe -NoProfile -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
+PowerShell -NoProfile -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
 echo %date% - %time% Static IP set! (%LocalIP%)(%DHCPGateway%)(%DHCPSubnetMask%) >> %WinDir%\AtlasModules\logs\userScript.log
 
 echo Private IP: %LocalIP%
@@ -2643,14 +2643,14 @@ reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Position" /t REG_SZ /
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "SubCommands" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "MUIVerb" /t REG_SZ /d "Enable NVIDIA Display Container LS" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Display Container LS" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\nsudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
-NSudo.exe -U:C explorer.exe
+NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS context menu enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -2679,7 +2679,7 @@ reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
-NSudo.exe -U:C explorer.exe
+NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS context menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
