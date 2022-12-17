@@ -102,10 +102,6 @@ if /i "%~1"=="/stico"          goto startlayout
 if /i "%~1"=="/sleepD"         goto sleepD
 if /i "%~1"=="/sleepE"         goto sleepE
 
-:: Idle
-if /i "%~1"=="/idled"          goto idleD
-if /i "%~1"=="/idlee"          goto idleE
-
 :: Process Explorer
 if /i "%~1"=="/procexpd"          goto procexpD
 if /i "%~1"=="/procexpe"          goto procexpE
@@ -1261,6 +1257,18 @@ reg add "HKCR\CABFolder\Shell\RunAs" /ve /t REG_SZ /d "Install" /f
 reg add "HKCR\CABFolder\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\CABFolder\Shell\RunAs\Command" /ve /t REG_SZ /d "cmd /k dism /online /add-package /packagepath:\"%%1\"" /f
 
+:: power scheme idle toggle
+reg add "HKCR\DesktopBackground\Shell\Idle" /v "Icon" /t REG_SZ /d "powercpl.dll" /f
+reg add "HKCR\DesktopBackground\Shell\Idle" /v "MUIVerb" /t REG_SZ /d "Idle Toggle" /f
+reg add "HKCR\DesktopBackground\Shell\Idle" /v "Position" /t REG_SZ /d "Bottom" /f
+reg add "HKCR\DesktopBackground\Shell\Idle" /v "SubCommands" /t REG_SZ /d "" /f
+reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Disable Idle" /v "MUIVerb" /t REG_SZ /d "Disable Idle" /f
+reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Disable Idle" /v "Icon" /t REG_SZ /d "powercpl.dll" /f
+reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Disable Idle\Command" /ve /t REG_SZ /d "powercfg /setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1" /f
+reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Enable Idle" /v "MUIVerb" /t REG_SZ /d "Enable Idle" /f
+reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Enable Idle" /v "Icon" /t REG_SZ /d "powercpl.dll" /f
+reg add "HKCR\DesktopBackground\Shell\Idle\Shell\Enable Idle\Command" /ve /t REG_SZ /d "powercfg /setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0" /f
+
 :: merge as trustedinstaller for .regs
 reg add "HKCR\regfile\Shell\RunAs" /ve /t REG_SZ /d "Merge As TrustedInstaller" /f
 reg add "HKCR\regfile\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "1" /f
@@ -1940,19 +1948,6 @@ powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41e
 powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Sleep States enabled...>> %WinDir%\AtlasModules\logs\userScript.log
-goto finishNRB
-
-:idleD
-echo THIS WILL CAUSE YOUR CPU USAGE TO *DISPLAY* AS 100% IN TASK MANAGER. ENABLE IDLE IF THIS IS AN ISSUE.
-powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1
-powercfg -setactive scheme_current
-if %ERRORLEVEL%==0 echo %date% - %time% Idle disabled...>> %WinDir%\AtlasModules\logs\userScript.log
-goto finishNRB
-
-:idleE
-powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0
-powercfg -setactive scheme_current
-if %ERRORLEVEL%==0 echo %date% - %time% Idle enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :harden
