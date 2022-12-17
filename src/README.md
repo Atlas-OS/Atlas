@@ -28,9 +28,10 @@ There are plenty of reasons to build Atlas from source such as:
 4. Integrate drivers and registry files if needed.
 5. Copy the following folders/files to the NTLite mount directory (%temp%\NLTmpMnt01)
   ```txt
-  - Web >> %temp%\NLTmpMnt01\Windows\Web (delete the existing folder first!)
+  - Web >> %temp%\NLTmpMnt01\Windows\Web (delete the existing folder first)
   - layout.xml >> %temp%\NLTmpMnt01\Windows\layout.xml
   - AtlasModules >> %temp%\NLTmpMnt01\Windows\AtlasModules
+  - User Account Pictures >> %temp%\NLTmpMnt01\ProgramData\Microsoft\User Account Pictures (delete the existing folder first!=)
   - Desktop/Atlas >> %temp%\NLTmpMnt01\Users\Default\Desktop\Atlas
   - Atlas.bat >> %temp%\NLTmpMnt01\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\Atlas.bat
   ```
