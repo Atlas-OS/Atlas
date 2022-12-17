@@ -102,6 +102,10 @@ if /i "%~1"=="/sleepE"         goto sleepE
 if /i "%~1"=="/idled"          goto idleD
 if /i "%~1"=="/idlee"          goto idleE
 
+:: Process Explorer
+if /i "%~1"=="/procexpd"          goto procexpD
+if /i "%~1"=="/procexpe"          goto procexpE
+
 :: Xbox
 if /i "%~1"=="/xboxU"         goto xboxU
 
@@ -1904,6 +1908,17 @@ reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "DisableRestrictedAdmin" 
 reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v "RunAsPPL" /t REG_DWORD /d "1" /f
 reg add "HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Negotiate" /t REG_DWORD /d "0" /f
 reg add "HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest" /v "UseLogonCredential" /t REG_DWORD /d "0" /f
+
+:procexpD
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v Debugger
+goto finish
+
+:procexpE
+curl -L --output %temp%\procexp.zip https://download.sysinternals.com/files/ProcessExplorer.zip
+7z -aoa -r e "%temp\procexp.zip" -o"%temp"
+move /y "%temp%\procexp.exe" "%WinDir%"
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\procexp.exe" /f
+goto finish
 
 :xboxU
 set /P c=This is IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]
