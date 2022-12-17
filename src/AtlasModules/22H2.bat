@@ -11,5 +11,5 @@ DevManView.exe /disable "WAN Miniport (PPTP)"
 DevManView.exe /disable "WAN Miniport (SSTP)"
 
 :: disable memory compression
-powershell -NoProfile -Command "Disable-MMAgent -MemoryCompression"
+PowerShell -NoProfile -Command "Disable-MMAgent -MemoryCompression"
 goto :EOF

@@ -28,24 +28,16 @@ There are plenty of reasons to build Atlas from source such as:
 4. Integrate drivers and registry files if needed.
 5. Copy the following folders/files to the NTLite mount directory (%temp%\NLTmpMnt01)
   ```txt
-  - Web >> %temp%\NLTmpMnt01\Windows\Web (delete the existing folder first!)
+  - Web >> %temp%\NLTmpMnt01\Windows\Web (delete the existing folder first)
   - layout.xml >> %temp%\NLTmpMnt01\Windows\layout.xml
   - AtlasModules >> %temp%\NLTmpMnt01\Windows\AtlasModules
+  - User Account Pictures >> %temp%\NLTmpMnt01\ProgramData\Microsoft\User Account Pictures (delete the existing folder first!=)
   - Desktop/Atlas >> %temp%\NLTmpMnt01\Users\Default\Desktop\Atlas
   - Atlas.bat >> %temp%\NLTmpMnt01\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\Atlas.bat
   ```
-6. Delete the following files with a program like IOBit Unlocker or Unlocker
-  ```txt
-  - %temp%\NLTmpMnt01\Windows\System32\mcupdate_genuineintel.dll
-  - %temp%\NLTmpMnt01\Windows\System32\mcupdate_authenticamd.dll
-  - %temp%\NLTmpMnt01\Windows\System32\mobsync.exe
-  - %temp%\NLTmpMnt01\Windows\System32\GameBarPresenceWriter.exe
-  - %temp%\NLTmpMnt01\Windows\WinSxS\Temp\PendingDeletes\*
-  - %temp%\NLTmpMnt01\Windows\System32\catroot2
-  ```
-7. Make any changes you want to NTLite's components, settings, services etc.
-8. Go to the "Apply" tab and click Process
-9. Done!
+6. Make any changes you want to NTLite's components, settings, services etc.
+7. Go to the "Apply" tab and click Process
+8. Done!
 
 ## Contributing
 
