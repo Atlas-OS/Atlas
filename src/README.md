@@ -34,7 +34,6 @@ There are plenty of reasons to build Atlas from source such as:
   - User Account Pictures >> %temp%\NLTmpMnt01\ProgramData\Microsoft\User Account Pictures (delete the existing folder first!=)
   - Desktop/Atlas >> %temp%\NLTmpMnt01\Users\Default\Desktop\Atlas
   - Atlas.bat >> %temp%\NLTmpMnt01\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\Atlas.bat
-  - User Profile Picture >> %temp%\NLTmpMnt01\ProgramData\Microsoft\User Account Pictures
   ```
 6. Make any changes you want to NTLite's components, settings, services etc.
 7. Go to the "Apply" tab and click Process
