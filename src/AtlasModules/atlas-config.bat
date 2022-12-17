@@ -485,11 +485,42 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers
 
 cls & echo Please wait. This may take a moment.
 
-:: unhide powerplan attributes
-:: credits: https://gist.github.com/Velocet/7ded4cd2f7e8c5fa475b8043b76561b5
-PowerShell.exe -NoProfile -Command "(gci 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings' -Recurse).Name -notmatch '\bDefaultPowerSchemeValues|(\\[0-9]|\b255)$' | % {sp $_.Replace('HKEY_LOCAL_MACHINE','HKLM:') -Name 'Attributes' -Value 2 -Force}"
-if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Enable hidden power scheme attributes! >> %WinDir%\AtlasModules\logs\install.log)
+:: unhide power scheme attributes
+:: credits: eugene muzychenko; modified by Xyueta
+for /f "tokens=1-9* delims=\ " %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings" /s /f Attributes /e') do (
+    if /i "%%A" == "HKLM" (
+        set Ident=
+        if not "%%G" == "" (
+            set Err=
+            set Group=%%G
+            set Setting=%%H
+            if "!Group:~35,1!" == "" set Err=group
+            if not "!Group:~36,1!" == "" set Err=group
+            if not "!Setting!" == "" (
+                if "!Setting:~35,1!" == "" set Err=setting
+                if not "!Setting:~36,1!" == "" set Err=setting
+                set Ident=!Group!:!Setting!
+            ) else (
+                set Ident=!Group!
+            )
+            if not "!Err!" == "" (
+                echo ***** Error in !Err! GUID: !Ident"
+            )
+        )
+    ) else if "%%A" == "Attributes" (
+        if "!Ident!" == "" (
+            echo ***** No group/setting GUIDs before Attributes value
+        )
+        set /a Attr = %%C
+        set /a Hidden = !Attr! ^& 1
+        if !Hidden! equ 1 (
+            echo Unhiding !Ident!
+            powercfg -attributes !Ident::= ! -attrib_hide
+        )
+    )
+)
+if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes...>> %windir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to enable hidden power scheme attributes! >> %windir%\AtlasModules\logs\install.log)
 
 :: residual file cleanup
 :: files are removed in the official iso
