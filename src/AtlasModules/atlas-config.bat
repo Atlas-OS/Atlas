@@ -19,8 +19,8 @@
 :: - JayXTQ
 
 @echo off
-set branch="20H2"
-set ver="v0.5.2"
+set branch="XXX"
+set ver="XXX"
 
 :: other variables (do not touch)
 set "currentuser=%WinDir%\AtlasModules\NSudo -U:C -P:E -Wait"
