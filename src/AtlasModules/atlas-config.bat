@@ -2419,10 +2419,10 @@ goto finish
 :scoop
 echo Installing Scoop...
 set /P c="Review install script before executing? [Y/N]: "
-if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
-if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/lukesampson/scoop/master/bin/install.ps1" -o %WinDir%\AtlasModules\install.ps1
+if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/ScoopInstaller/install/master/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
+if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/ScoopInstaller/install/master/install.ps1" -o %WinDir%\AtlasModules\install.ps1
 PowerShell -NoProfile Set-ExecutionPolicy RemoteSigned -scope CurrentUser
-PowerShell -NoProfile %WinDir%\AtlasModules\install.ps1
+PowerShell -NoProfile %WinDir%\AtlasModules\install.ps1 -RunAsAdmin
 echo Refreshing environment for Scoop...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
