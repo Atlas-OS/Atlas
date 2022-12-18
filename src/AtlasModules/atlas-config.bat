@@ -2304,7 +2304,7 @@ echo .
 echo Adding extras and games bucket...
 cmd /c scoop bucket add extras
 cmd /c scoop bucket add games
-echo If this did not install Scoop, instead you can try installing via the install guide: https://scoop.sh/
+echo If this did not install Scoop, instead you can try installing via the install guide: https://scoop.sh
 goto finish
 
 :choco
@@ -2323,7 +2323,7 @@ echo If this did not install Chocolatey, instead you can try installing via the 
 goto finish
 
 :browserscoop
-for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "ungoogled-chromium;firefox;brave;googlechrome;librewolf;tor-browser"') do (
+for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Firefox;Brave;Google Chrome;LibreWolf;ungoogled-chromium;Tor Browser"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
@@ -2332,7 +2332,7 @@ for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Brows
 goto finish
 
 :browserchoco
-for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "ungoogled-chromium;firefox;brave;googlechrome;librewolf;tor-browser"') do (
+for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Firefox;Brave;Google Chrome;LibreWolf;ungoogled-chromium;Tor Browser"') do (
 	set spacedelimited=%%i
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
