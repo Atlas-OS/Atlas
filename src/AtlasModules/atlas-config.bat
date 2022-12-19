@@ -1248,6 +1248,20 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance"
 :: do not reduce sounds while in a call
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio" /v "UserDuckingPreference" /t REG_DWORD /d "3" /f
 
+:: set sound scheme to no sounds
+PowerShell -command "New-ItemProperty -Path HKCU:\AppEvents\Schemes -Name '(Default)' -Value '.None' -Force | Out-Null"
+PowerShell -command "Get-ChildItem -Path 'HKCU:\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
+
+:: disable audio excludive mode on all devices
+for /f "delims=" %a in ('reg query HKLM\Software\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture') do (
+    reg add "%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},3" /t REG_DWORD /d "0" /f
+    reg add "%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},4" /t REG_DWORD /d "0" /f
+)
+for /f "delims=" %%a in ('reg query HKLM\Software\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render') do (
+    reg add "%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},3" /t REG_DWORD /d "0" /f
+    reg add "%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},4" /t REG_DWORD /d "0" /f
+)
+
 :: install cab context menu
 reg delete "HKCR\CABFolder\Shell\RunAs" /f >nul 2>nul
 reg add "HKCR\CABFolder\Shell\RunAs" /ve /t REG_SZ /d "Install" /f
