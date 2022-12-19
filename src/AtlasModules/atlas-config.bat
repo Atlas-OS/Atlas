@@ -1776,8 +1776,8 @@ goto finish
 
 :startlayout
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
-reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /f >nul 2>nul
+%currentuser% reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
+%currentuser% reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /f >nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Start Menu layout policy removed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
