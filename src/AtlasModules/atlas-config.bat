@@ -28,6 +28,7 @@ set "setSvc=call :setSvc"
 set "firewallBlockExe=call :firewallBlockExe"
 
 :: check for administrator privileges
+if "%~2"=="/skipAdminCheck" goto permSUCCESS
 fltmc >nul 2>&1 || (
     goto permFAIL
 )
@@ -119,6 +120,7 @@ if /i "%~1"=="/vcreR"         goto vcreR
 :: User Account Control
 if /i "%~1"=="/uacD"		goto uacD
 if /i "%~1"=="/uacE"		goto uacE
+if /i "%~1"=="/uacSettings" goto uacSettings
 
 :: Workstation Service (SMB)
 if /i "%~1"=="/workD"		goto workstationD
@@ -997,6 +999,9 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting" /v "DontSendAd
 reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting" /v "LoggingDisabled" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Consent" /v "DefaultOverrideBehavior" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Consent" /v "DefaultConsent" /t REG_DWORD /d "0" /f
+
+:: lock UserAccountControlSettings.exe - users can enable UAC from there without luafv and AppInfo enabled, which breaks UAC completely and causes issues
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /t REG_SZ /d "C:\Windows\AtlasModules\atlas-config.bat /uacSettings /skipAdminCheck" /f > nul
 
 :: disable data collection
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v "AllowTelemetry" /t REG_DWORD /d "0" /f
@@ -1988,16 +1993,22 @@ if %ERRORLEVEL%==0 echo %date% - %time% Visual C++ Runtimes reinstalled...>> %Wi
 goto finishNRB
 
 :uacD
-echo Disabling UAC breaks fullscreen on certain UWP applications, one of them being Minecraft Windows 10 Edition. It is also less secure to disable UAC.
-set /P c="Do you want to continue? [Y/N]: "
-if /I "%c%" EQU "Y" goto uacDconfirm
-if /I "%c%" EQU "N" exit
-exit
+echo Disabling UAC breaks fullscreen on certain UWP applications, one of them being Minecraft Windows 10 Edition.
+echo It may also break drag and dropping between certain applications.
+echo It is also less secure to disable UAC, as every application you run has complete access to your computer.
+echo]
+echo With UAC disabled, everything runs as admin, and you can not change that without enabling UAC.
+echo]
+choice /c:yn /n /m "Do you want to continue? [Y/N] "
+if %errorlevel%==1 goto uacDconfirm
+if %errorlevel%==2 exit 1
 
 :uacDconfirm
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "0" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f > nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f > nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "0" /f > nul
+:: Lock UserAccountControlSettings.exe - users can enable UAC from there without luafv and AppInfo enabled, which breaks UAC completely and causes issues
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /t REG_SZ /d "C:\Windows\AtlasModules\atlas-config.bat /uacSettings /skipAdminCheck" /f > nul
 %setSvc% luafv 4
 %setSvc% Appinfo 4
 if %ERRORLEVEL%==0 echo %date% - %time% UAC disabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -2005,13 +2016,37 @@ if "%~1" EQU "int" goto :EOF
 goto finish
 
 :uacE
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "5" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f > nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f > nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "5" /f > nul
+:: Unlock UserAccountControlSettings.exe
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /f >nul 2>&1
 %setSvc% luafv 2
 %setSvc% Appinfo 3
 if %ERRORLEVEL%==0 echo %date% - %time% UAC enabled...>> %WinDir%\AtlasModules\logs\userScript.log
+echo Note: The regular Windows UAC settings have now been unlocked, as this script enabled the required services for UAC.
+echo]
 goto finish
+
+:uacSettings
+mode con:cols=46 lines=14
+chcp 65001 >nul
+echo]
+echo [32m                 Enabling UAC
+echo   ──────────────────────────────────────────[0m
+echo   Atlas disables some services that are
+echo   needed for UAC to work, and enabling UAC
+echo   through the typical UAC settings will
+echo   cause issues.
+echo]
+echo   You [1mneed to enable UAC using the Atlas
+echo   script[0m to unlock the typical UAC
+echo   configuration panel.
+echo]
+echo         [1m[33mPress any key to enable UAC...      [?25l
+pause > nul
+NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /uacE
+exit
 
 :firewallD
 %setSvc% mpssvc 4
