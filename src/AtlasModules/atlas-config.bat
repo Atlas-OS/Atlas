@@ -2484,7 +2484,7 @@ goto finishNRB
 :nvcontainerE
 :: check if the service exists
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
-if %errorlevel%==1 (
+if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
@@ -2528,14 +2528,14 @@ goto finishNRB
 :nvcontainerCMD
 :: cm = context menu
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
-if %errorlevel%==1 (
+if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
     exit /b 1
 )
 reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" >nul 2>&1
-if %errorlevel%==1 (
+if %ERRORLEVEL%==1 (
     echo The context menu does not exist, you can not continue.
     pause
     exit /b 1
