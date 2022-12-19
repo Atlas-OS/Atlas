@@ -898,6 +898,11 @@ reg add "HKLM\SOFTWARE\Microsoft\WindowsSelfHost\UI\Visibility" /v "HideInsiderP
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Maps" /v "AutoDownloadAndUpdateMapData" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Maps" /v "AllowUntriggeredNetworkTrafficOnSettingsPage" /t REG_DWORD /d "0" /f
 
+:: configure snap settings
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "SnapAssist" /t REG_DWORD /d "0" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "JointResize" /t REG_DWORD /d "0" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "SnapFill" /t REG_DWORD /d "0" /f
+
 :: disable ceip
 %currentuser% reg add "HKCU\Software\Policies\Microsoft\Messenger\Client" /v "CEIP" /t REG_DWORD /d "2" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\SQMClient\Windows" /v "CEIPEnable" /t REG_DWORD /d "0" /f
@@ -913,6 +918,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\WMDRM" /v "DisableOnline" /t REG_DWORD
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "ConnectedSearchUseWeb" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "DisableWebSearch" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "BingSearchEnabled" /t REG_DWORD /d "0" /f
+
+:: disable safe search
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings" /v "SafeSearchMode" /t REG_DWORD /d "0" /f
 
 :: data queue sizes
 :: set to half of default
@@ -2491,7 +2499,7 @@ goto finishNRB
 :nvcontainerCME
 :: cm = context menu
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
-if %errorlevel% 1 (
+if %errorlevel%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
@@ -2520,14 +2528,14 @@ goto finishNRB
 :nvcontainerCMD
 :: cm = context menu
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
-if %errorlevel% 1 (
+if %errorlevel%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
     exit /b 1
 )
 reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" >nul 2>&1
-if %errorlevel% 1 (
+if %errorlevel%==1 (
     echo The context menu does not exist, you can not continue.
     pause
     exit /b 1
