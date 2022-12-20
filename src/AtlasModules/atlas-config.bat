@@ -1548,8 +1548,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch enabled...>> %WinDir
 goto finish
 
 :depE
-PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP
-PowerShell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
+PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks
 bcdedit /set nx OptIn
 :: enable cfg for valorant related processes
 for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
@@ -1560,8 +1559,7 @@ goto finish
 
 :depD
 echo If you get issues with some anti-cheats, please re-enable DEP.
-PowerShell -NoProfile set-ProcessMitigation -System -Disable DEP
-PowerShell -NoProfile set-ProcessMitigation -System -Disable EmulateAtlThunks
+PowerShell -NoProfile set-ProcessMitigation -System -Disable DEP, EmulateAtlThunks
 bcdedit /set nx AlwaysOff
 if %ERRORLEVEL%==0 echo %date% - %time% DEP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -1764,19 +1762,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% UWP enabled...>> %WinDir%\AtlasModules\l
 goto finish
 
 :mitE
-PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP
-PowerShell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
-PowerShell -NoProfile set-ProcessMitigation -System -Enable RequireInfo
-PowerShell -NoProfile set-ProcessMitigation -System -Enable BottomUp
-PowerShell -NoProfile set-ProcessMitigation -System -Enable HighEntropy
-PowerShell -NoProfile set-ProcessMitigation -System -Enable StrictHandle
-PowerShell -NoProfile set-ProcessMitigation -System -Enable CFG
-PowerShell -NoProfile set-ProcessMitigation -System -Enable StrictCFG
-PowerShell -NoProfile set-ProcessMitigation -System -Enable SuppressExports
-PowerShell -NoProfile set-ProcessMitigation -System -Enable SEHOP
-PowerShell -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
-PowerShell -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
-PowerShell -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
+PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages
 goto finish
 
 :startlayout
@@ -1837,20 +1823,7 @@ goto finishNRB
 :: - make it extremely clear that this is not aimed to maintain performance
 
 :: - harden process mitigations (lower compatibilty for legacy apps)
-PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP
-PowerShell -NoProfile set-ProcessMitigation -System -Enable EmulateAtlThunks
-PowerShell -NoProfile set-ProcessMitigation -System -Enable RequireInfo
-PowerShell -NoProfile set-ProcessMitigation -System -Enable BottomUp
-PowerShell -NoProfile set-ProcessMitigation -System -Enable HighEntropy
-PowerShell -NoProfile set-ProcessMitigation -System -Enable StrictHandle
-PowerShell -NoProfile set-ProcessMitigation -System -Enable CFG
-PowerShell -NoProfile set-ProcessMitigation -System -Enable StrictCFG
-PowerShell -NoProfile set-ProcessMitigation -System -Enable SuppressExports
-PowerShell -NoProfile set-ProcessMitigation -System -Enable SEHOP
-PowerShell -NoProfile set-ProcessMitigation -System -Enable AuditSEHOP
-PowerShell -NoProfile set-ProcessMitigation -System -Enable SEHOPTelemetry
-PowerShell -NoProfile set-ProcessMitigation -System -Enable ForceRelocateImages
-
+PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages
 :: - open scripts in notepad to preview instead of executing when clicking
 for %%a in (
     "batfile"
