@@ -479,6 +479,14 @@ PowerShell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $power
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled power savings...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
+:: disable netbios over tcp/ip
+:: works only when services are enabled
+for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" /s /f "NetbiosOptions" ^| findstr "HKEY"') do (
+    reg add "%%b" /v "NetbiosOptions" /t REG_DWORD /d "2" /f
+)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled netbios over tcp/ip...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to disable netbios over tcp/ip! >> %WinDir%\AtlasModules\logs\install.log)
+
 :: make certain applications in the AtlasModules folder request UAC
 :: although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
