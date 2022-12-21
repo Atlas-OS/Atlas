@@ -2399,7 +2399,7 @@ for /f "tokens=* delims=\" %%i in ('%WinDir%\AtlasModules\filepicker.exe exe') d
 goto finish
 
 :NVPstate
-:: credits to Timecard
+:: credits to timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
 if errorlevel 1 (
@@ -2548,7 +2548,7 @@ goto finish
 echo %date% - %time% Diagnotics enabled...>> %WinDir%\AtlasModules\logs\userscript.log
 goto finish
 
-:: Begin Batch Functions
+:: Batch Functions
 
 :invalidInput <label>
 if "%c%"=="" echo Empty input! Please enter Y or N. & goto %~1
@@ -2564,7 +2564,7 @@ ping -n 1 -4 1.1.1.1 | find "time=" >nul 2>nul || (
 goto :EOF
 
 :FDel <location>
-:: with NSudo, should not need things like icacls/takeown
+:: with nsudo, should not need things like icacls/takeown
 if exist "%~1" del /F /Q "%~1"
 goto :EOF
 
