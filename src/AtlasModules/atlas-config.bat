@@ -134,10 +134,6 @@ if /i "%~1"=="/firewallE"		goto firewallE
 if /i "%~1"=="/printD"		goto printD
 if /i "%~1"=="/printE"		goto printE
 
-:: Data Queue Sizes
-if /i "%~1"=="/dataQueueM"		goto dataQueueM
-if /i "%~1"=="/dataQueueK"		goto dataQueueK
-
 :: Network
 if /i "%~1"=="/netWinDefault"		goto netWinDefault
 if /i "%~1"=="/netAtlasDefault"		goto netAtlasDefault
@@ -477,6 +473,14 @@ PowerShell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $power
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled power savings...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
+:: disable netbios over tcp/ip
+:: works only when services are enabled
+for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" /s /f "NetbiosOptions" ^| findstr "HKEY"') do (
+    reg add "%%b" /v "NetbiosOptions" /t REG_DWORD /d "2" /f
+)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled netbios over tcp/ip...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to disable netbios over tcp/ip! >> %WinDir%\AtlasModules\logs\install.log)
+
 :: make certain applications in the AtlasModules folder request UAC
 :: although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
@@ -617,7 +621,7 @@ start explorer.exe
 
 :: disable network adapters
 :: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
-PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
+PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server" >nul 2>&1
 
 :: disable system devices
 DevManView /disable "System Speaker"
@@ -922,11 +926,6 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "BingSearchEn
 :: disable safe search
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings" /v "SafeSearchMode" /t REG_DWORD /d "0" /f
 
-:: data queue sizes
-:: set to half of default
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters" /v "MouseDataQueueSize" /t REG_DWORD /d "50" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d "50" /f
-
 :: explorer
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoLowDiskSpaceChecks" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "LinkResolveIgnoreLinkInfo" /t REG_DWORD /d "1" /f
@@ -943,6 +942,9 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "S
 
 :: old alt tab
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "AltTabSettings" /t REG_DWORD /d "1" /f
+
+:: add atlas' webstite as start page in internet explorer
+%currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Internet Explorer\Main" /v "Start Page" /t REG_SZ /d "https://atlasos.net" /f
 
 :: application compatability
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "AITEnable" /t REG_DWORD /d "0" /f
@@ -2101,49 +2103,6 @@ goto finish
 if %ERRORLEVEL%==0 echo %date% - %time% Printing disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
-:dataQueueM
-echo Mouse data queue sizes
-echo This may affect stability and input latency. And if low enough may cause mouse skipping/mouse stutters.
-echo There has been no well proven evidence of this having a beneficial effect on latency, only "feel". Use with that in mind.
-echo]
-echo Default: 100
-echo Valid Value Range: 1-100
-set /P c="Enter the size you want to set Mouse Data Queue Size to: "
-
-:: filter to numbers only
-echo %c%|findstr /r "[^0-9]" > nul
-if %ERRORLEVEL%==1 goto dataQueueMSet
-cls & echo Only values from 1-100 are allowed!
-goto dataQueueM
-
-:: checks for invalid values
-:dataQueueMSet
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters" /v "MouseDataQueueSize" /t REG_DWORD /d "%c%" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Mouse Data Queue Size set to %c%...>> %WinDir%\AtlasModules\logs\userScript.log
-goto finish
-
-:dataQueueK
-echo Keyboard data queue sizes
-echo This may affect stability and input latency. And if low enough may cause general keyboard issues like ghosting.
-echo There has been no well proven evidence of this having a beneficial effect on latency, only "feel". Use with that in mind.
-echo]
-echo Default: 100
-echo Valid Value Range: 1-100
-set /P c="Enter the size you want to set Keyboard data queue size to: "
-
-:: filter to numbers only
-echo %c%|findstr /r "[^0-9]" > nul
-if %ERRORLEVEL%==1 goto dataQueueKSet
-cls
-echo Only values from 1-100 are allowed!
-goto dataQueueK
-
-:: checks for invalid values
-:dataQueueKSet
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d "%c%" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Keyboard Data Queue Size set to %c%...>> %WinDir%\AtlasModules\logs\userScript.log
-goto finish
-
 :netWinDefault
 netsh int ip reset
 netsh winsock reset
@@ -2172,7 +2131,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\QoS" /v "Do not use NLA" /
 ::reg add "HKLM\SYSTEM\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /t REG_DWORD /d "0" /f
 
-:: configure nic Setting
+:: configure nic settings
 :: get nic driver settings path by querying for dword
 :: if you see a way to optimize this segment, feel free to open a pull request
 for /f %%a in ('reg query HKLM /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
@@ -2421,7 +2380,7 @@ for /f "tokens=* delims=\" %%i in ('%WinDir%\AtlasModules\filepicker.exe exe') d
 goto finish
 
 :NVPstate
-:: credits to Timecard
+:: credits to timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
 sc query NVDisplay.ContainerLocalSystem >nul 2>&1
 if errorlevel 1 (
@@ -2554,23 +2513,23 @@ echo %date% - %time% EventLog enabled as Network Sharing dependency...>> %WinDir
 %setSvc% netman 3
 echo %date% - %time% Network Sharing enabled...>> %WinDir%\AtlasModules\logs\userscript.log
 echo To complete, enable Network Sharing in control panel.
-goto :finish
-
-:diagE
-%setSvc% DPS 2
-%setSvc% WdiServiceHost 3
-%setSvc% WdiSystemHost 3
-echo %date% - %time% Diagnotics enabled...>> %WinDir%\AtlasModules\logs\userscript.log
-goto :finish
+goto finish
 
 :diagD
 %setSvc% DPS 4
 %setSvc% WdiServiceHost 4
 %setSvc% WdiSystemHost 4
 echo %date% - %time% Diagnotics disabled...>> %WinDir%\AtlasModules\logs\userscript.log
-goto :finish
+goto finish
 
-:: Begin Batch Functions
+:diagE
+%setSvc% DPS 2
+%setSvc% WdiServiceHost 3
+%setSvc% WdiSystemHost 3
+echo %date% - %time% Diagnotics enabled...>> %WinDir%\AtlasModules\logs\userscript.log
+goto finish
+
+:: Batch Functions
 
 :invalidInput <label>
 if "%c%"=="" echo Empty input! Please enter Y or N. & goto %~1
@@ -2586,7 +2545,7 @@ ping -n 1 -4 1.1.1.1 | find "time=" >nul 2>nul || (
 goto :EOF
 
 :FDel <location>
-:: with NSudo, should not need things like icacls/takeown
+:: with nsudo, should not need things like icacls/takeown
 if exist "%~1" del /F /Q "%~1"
 goto :EOF
 
