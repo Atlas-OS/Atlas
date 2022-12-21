@@ -2584,21 +2584,21 @@ echo %date% - %time% EventLog enabled as Network Sharing dependency...>> %WinDir
 %setSvc% netman 3
 echo %date% - %time% Network Sharing enabled...>> %WinDir%\AtlasModules\logs\userscript.log
 echo To complete, enable Network Sharing in control panel.
-goto :finish
-
-:diagE
-%setSvc% DPS 2
-%setSvc% WdiServiceHost 3
-%setSvc% WdiSystemHost 3
-echo %date% - %time% Diagnotics enabled...>> %WinDir%\AtlasModules\logs\userscript.log
-goto :finish
+goto finish
 
 :diagD
 %setSvc% DPS 4
 %setSvc% WdiServiceHost 4
 %setSvc% WdiSystemHost 4
 echo %date% - %time% Diagnotics disabled...>> %WinDir%\AtlasModules\logs\userscript.log
-goto :finish
+goto finish
+
+:diagE
+%setSvc% DPS 2
+%setSvc% WdiServiceHost 3
+%setSvc% WdiSystemHost 3
+echo %date% - %time% Diagnotics enabled...>> %WinDir%\AtlasModules\logs\userscript.log
+goto finish
 
 :: Begin Batch Functions
 
