@@ -627,7 +627,7 @@ start explorer.exe
 
 :: disable network adapters
 :: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
-PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_pacer, ms_server" >nul 2>&1
+PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server" >nul 2>&1
 
 :: disable system devices
 DevManView /disable "System Speaker"
