@@ -153,9 +153,7 @@ if /i "%~1"=="/vpnE"    goto vpnE
 :: Scoop and Chocolatey
 if /i "%~1"=="/scoop" goto scoop
 if /i "%~1"=="/choco" goto choco
-if /i "%~1"=="/browserscoop" goto browserscoop
 if /i "%~1"=="/altsoftwarescoop" goto altSoftwarescoop
-if /i "%~1"=="/browserchoco" goto browserchoco
 if /i "%~1"=="/altsoftwarechoco" goto altSoftwarechoco
 if /i "%~1"=="/removescoopcache" goto scoopCache
 
@@ -2354,23 +2352,6 @@ echo Installing git...
 cmd /c choco install git
 call %WinDir%\AtlasModules\refreshenv.bat
 echo If this did not install Chocolatey, instead you can try installing via the install guide: https://chocolatey.org/install
-goto finish
-
-:browserscoop
-for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Firefox;Brave;Google Chrome;LibreWolf;ungoogled-chromium;Tor Browser"') do (
-	set spacedelimited=%%i
-	set spacedelimited=!spacedelimited:;= !
-	cmd /c scoop install !spacedelimited! -g
-)
-:: has to launch in separate process, scoop seems to exit the whole script if not
-goto finish
-
-:browserchoco
-for /f "tokens=1 delims=;" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Browser" "Pick a browser" "Firefox;Brave;Google Chrome;LibreWolf;ungoogled-chromium;Tor Browser"') do (
-	set spacedelimited=%%i
-	set spacedelimited=!spacedelimited:;= !
-	cmd /c choco install !spacedelimited!
-)
 goto finish
 
 :altSoftwarescoop
