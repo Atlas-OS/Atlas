@@ -134,10 +134,6 @@ if /i "%~1"=="/firewallE"		goto firewallE
 if /i "%~1"=="/printD"		goto printD
 if /i "%~1"=="/printE"		goto printE
 
-:: Data Queue Sizes
-if /i "%~1"=="/dataQueueM"		goto dataQueueM
-if /i "%~1"=="/dataQueueK"		goto dataQueueK
-
 :: Network
 if /i "%~1"=="/netWinDefault"		goto netWinDefault
 if /i "%~1"=="/netAtlasDefault"		goto netAtlasDefault
@@ -931,11 +927,6 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "BingSearchEn
 
 :: disable safe search
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings" /v "SafeSearchMode" /t REG_DWORD /d "0" /f
-
-:: data queue sizes
-:: set to half of default
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters" /v "MouseDataQueueSize" /t REG_DWORD /d "50" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d "50" /f
 
 :: explorer
 %currentuser% reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoLowDiskSpaceChecks" /t REG_DWORD /d "1" /f
@@ -2114,49 +2105,6 @@ goto finish
 if %ERRORLEVEL%==0 echo %date% - %time% Printing disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
-:dataQueueM
-echo Mouse data queue sizes
-echo This may affect stability and input latency. And if low enough may cause mouse skipping/mouse stutters.
-echo There has been no well proven evidence of this having a beneficial effect on latency, only "feel". Use with that in mind.
-echo]
-echo Default: 100
-echo Valid Value Range: 1-100
-set /P c="Enter the size you want to set Mouse Data Queue Size to: "
-
-:: filter to numbers only
-echo %c%|findstr /r "[^0-9]" > nul
-if %ERRORLEVEL%==1 goto dataQueueMSet
-cls & echo Only values from 1-100 are allowed!
-goto dataQueueM
-
-:: checks for invalid values
-:dataQueueMSet
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters" /v "MouseDataQueueSize" /t REG_DWORD /d "%c%" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Mouse Data Queue Size set to %c%...>> %WinDir%\AtlasModules\logs\userScript.log
-goto finish
-
-:dataQueueK
-echo Keyboard data queue sizes
-echo This may affect stability and input latency. And if low enough may cause general keyboard issues like ghosting.
-echo There has been no well proven evidence of this having a beneficial effect on latency, only "feel". Use with that in mind.
-echo]
-echo Default: 100
-echo Valid Value Range: 1-100
-set /P c="Enter the size you want to set Keyboard data queue size to: "
-
-:: filter to numbers only
-echo %c%|findstr /r "[^0-9]" > nul
-if %ERRORLEVEL%==1 goto dataQueueKSet
-cls
-echo Only values from 1-100 are allowed!
-goto dataQueueK
-
-:: checks for invalid values
-:dataQueueKSet
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d "%c%" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Keyboard Data Queue Size set to %c%...>> %WinDir%\AtlasModules\logs\userScript.log
-goto finish
-
 :netWinDefault
 netsh int ip reset
 netsh winsock reset
@@ -2185,7 +2133,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\QoS" /v "Do not use NLA" /
 ::reg add "HKLM\SYSTEM\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /t REG_DWORD /d "0" /f
 
-:: configure nic Setting
+:: configure nic settings
 :: get nic driver settings path by querying for dword
 :: if you see a way to optimize this segment, feel free to open a pull request
 for /f %%a in ('reg query HKLM /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
