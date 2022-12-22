@@ -438,7 +438,7 @@ reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v "SchUs
 reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder" /v "Attributes" /t REG_DWORD /d "2962489444" /f
 
 :: import the power scheme
-powercfg -import "%WinDir%\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
+powercfg /import "%WinDir%\AtlasModules\Atlas.pow" 11111111-1111-1111-1111-111111111111
 
 :: set current power scheme to Atlas
 powercfg /s 11111111-1111-1111-1111-111111111111
