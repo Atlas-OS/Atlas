@@ -27,7 +27,7 @@ Windows Registry Editor Version 5.00
 "NoAUAsDefaultShutdownOption"=dword:00000001
 "NoAUShutdownOption"=dword:00000001
 "NoAutoRebootWithLoggedOnUsers"=dword:00000001
-"EnableFeaturedSOFTWARE"=dword:00000000
+"EnableFeaturedSoftware"=dword:00000000
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching]
 "SearchOrderConfig"=dword:00000000
