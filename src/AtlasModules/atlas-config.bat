@@ -982,10 +982,6 @@ reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\
 %currentuser% reg add "HKCU\Control Panel\Accessibility\Keyboard Response" /v "Flags" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Control Panel\Accessibility\ToggleKeys" /v "Flags" /t REG_DWORD /d "0" /f
 
-:: disable connection checking (pings microsoft servers)
-:: may cause internet icon to show it is disconnected
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet" /v "EnableActiveProbing" /t REG_DWORD /d "0" /f
-
 :: restrict windows' access to internet resources
 :: enables various other GPOs that limit access on specific windows services
 reg add "HKLM\SOFTWARE\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d "1" /f
