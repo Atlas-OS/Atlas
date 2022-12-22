@@ -446,8 +446,8 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Power scheme imported...>> %WinDir%\Atl
 ) ELSE (echo %date% - %time% Failed to import power scheme! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: set service split treshold
-for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /format:value') do set /a ram=%%i+102400
-reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%ram%" /f
+for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /format:value') do set /a RAM=%%i+102400
+reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%RAM%" /f
 if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set service split treshold! >> %WinDir%\AtlasModules\logs\install.log)
 
