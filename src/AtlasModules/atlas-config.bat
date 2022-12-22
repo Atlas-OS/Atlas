@@ -193,6 +193,12 @@ if /i "%~1"=="/networksharingE" goto networksharingE
 if /i "%~1"=="/diagd" goto diagD
 if /i "%~1"=="/diage" goto diagE
 
+:: Safe Mode
+if /i "%~1"=="/safee" goto safeE
+if /i "%~1"=="/safec" goto safeC
+if /i "%~1"=="/safen" goto safeN
+if /i "%~1"=="/safe" goto safe
+
 :: debugging purposes only
 if /i "%~1"=="/test"         goto TestPrompt
 
@@ -2527,6 +2533,28 @@ goto finish
 %setSvc% WdiServiceHost 3
 %setSvc% WdiSystemHost 3
 echo %date% - %time% Diagnotics enabled...>> %WinDir%\AtlasModules\logs\userscript.log
+goto finish
+
+:safeE
+bcdedit /deletevalue {current} safeboot
+bcdedit /deletevalue {current} safebootalternateshell
+echo %date% - %time% Exit safe mode...>> %WinDir%\AtlasModules\logs\userscript.log
+goto finish
+
+:safeC
+bcdedit /set {current} safeboot minimal
+bcdedit /set {current} safebootalternateshell yes
+echo %date% - %time% Safe mode with command prompt enabled...>> %WinDir%\AtlasModules\logs\userscript.log
+goto finish
+
+:safeN
+bcdedit /set {current} safeboot network
+echo %date% - %time% Safe mode with networking enabled...>> %WinDir%\AtlasModules\logs\userscript.log
+goto finish
+
+:safe
+bcdedit /set {current} safeboot minimal
+echo %date% - %time% Safe mode enabled...>> %WinDir%\AtlasModules\logs\userscript.log
 goto finish
 
 :: Batch Functions
