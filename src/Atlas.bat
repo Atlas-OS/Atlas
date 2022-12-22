@@ -19,6 +19,6 @@ goto start
 
 :success
 del /f /q "C:\Users\Public\success.txt"
-shutdown /r /f /t 10 /c "Reboot is required"
+shutdown /r /f /t 10 /c "POST-INSTALL: Reboot is required..."
 DEL "%~f0"
 exit
