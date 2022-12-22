@@ -23,7 +23,6 @@ Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU]
 "AUOptions"=dword:00000002
-"AutoInstallMinorUpdates"=dword:00000000
 "NoAutoUpdate"=dword:00000001
 "NoAUAsDefaultShutdownOption"=dword:00000001
 "NoAUShutdownOption"=dword:00000001
