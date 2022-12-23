@@ -651,21 +651,6 @@
 				<Tweak name="WdiContextLog\Start">0</Tweak>
 				<Tweak name="WiFiSession\Start">0</Tweak>
 			</TweakGroup>
-			<TweakGroup name="CrashControl">
-				<Tweak name="CrashControl\AutoReboot">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="DesktopTweaks">
-				<Tweak name="Explorer\NoPinningStoreToTaskbar">1</Tweak>
-				<Tweak name="Explorer\AltTabSettings">1</Tweak>
-				<Tweak name="Personalize\AppsUseLightTheme">0</Tweak>
-				<Tweak name="Personalize\SystemUsesLightTheme">0</Tweak>
-				<Tweak name="Explorer\HideSCAMeetNow">1</Tweak>
-				<Tweak name="Feeds\ShellFeedsTaskbarViewMode">2</Tweak>
-				<Tweak name="Mouse\MouseSpeed">0</Tweak>
-				<Tweak name="Start\HideRecentJumplists">1</Tweak>
-				<Tweak name="Search\SearchboxTaskbarMode">1</Tweak>
-				<Tweak name="People\PeopleBand">0</Tweak>
-			</TweakGroup>
 			<TweakGroup name="Explorer">
 				<Tweak name="AutoplayHandlers\DisableAutoplay">1</Tweak>
 				<Tweak name="Explorer\ClearRecentDocsOnExit">1</Tweak>
