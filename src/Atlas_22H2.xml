@@ -652,7 +652,6 @@
 				<Tweak name="WiFiSession\Start">0</Tweak>
 			</TweakGroup>
 			<TweakGroup name="Privacy">
-				<Tweak name="Client\OptInOrOutPreference">0</Tweak>
 				<Tweak name="System\AllowExperimentation">0</Tweak>
 				<Tweak name="System\AllowLocation">0</Tweak>
 				<Tweak name="DataCollection\AllowTelemetry">0</Tweak>
