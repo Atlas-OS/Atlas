@@ -731,8 +731,6 @@
 				<Tweak name="System\EnableFirstLogonAnimation">0</Tweak>
 				<Tweak name="System\NoConnectedUser">1</Tweak>
 				<Tweak name="OneDrive\DisableFileSyncNGSC">1</Tweak>
-				<Tweak name="Memory Management\PagingFiles1">C:\pagefile.sys 0 0</Tweak>
-				<Tweak name="Device\DevicePasswordLessBuildVersion">0</Tweak>
 			</TweakGroup>
 		</Settings>
 		<Services></Services>
