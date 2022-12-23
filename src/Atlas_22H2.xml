@@ -718,16 +718,6 @@
 				<Tweak name="Explorer\SmartScreenEnabled">Off</Tweak>
 				<Tweak name="CloudContent\DisableWindowsSpotlightFeatures">1</Tweak>
 			</TweakGroup>
-			<TweakGroup name="StartTweaks">
-				<Tweak name="Start\HideFrequentlyUsedApps">1</Tweak>
-				<Tweak name="Start\HideRecentlyAddedApps">1</Tweak>
-				<Tweak name="Start\AllowPinnedFolderHomeGroup">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="System">
-				<Tweak name="Windows\DisableATMFD">1</Tweak>
-				<Tweak name="Winlogon\RestartApps">0</Tweak>
-				<Tweak name="DiskQuota\Enable">0</Tweak>
-			</TweakGroup>
 		</Settings>
 		<Services></Services>
 		<ExtraServices></ExtraServices>
