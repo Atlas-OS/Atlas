@@ -5,7 +5,7 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System]
 "EnableLUA"=dword:00000000
 
-; disable updates (shows up in OOBE)
+; disable updates (shows up in oobe)
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate]
 "ExcludeWUDriversInQualityUpdate"=dword:00000001
@@ -47,3 +47,8 @@ Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
 "EnableFirstLogonAnimation"=dword:00000000
+
+; disable cortana (removes unnecssary page in oobe)
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\MPolicies\Microsoft\Windows\Windows Search]
+"AllowCortana"=dword:00000000
