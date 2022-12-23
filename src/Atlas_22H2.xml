@@ -652,17 +652,6 @@
 				<Tweak name="WiFiSession\Start">0</Tweak>
 			</TweakGroup>
 			<TweakGroup name="Privacy">
-				<Tweak name="appointments\Value">Deny</Tweak>
-				<Tweak name="phoneCallHistory\Value">Deny</Tweak>
-				<Tweak name="contacts\Value">Deny</Tweak>
-				<Tweak name="appDiagnostics\Value">Deny</Tweak>
-				<Tweak name="email\Value">Deny</Tweak>
-				<Tweak name="chat\Value">Deny</Tweak>
-				<Tweak name="phoneCall\Value">Deny</Tweak>
-				<Tweak name="radios\Value">Deny</Tweak>
-				<Tweak name="LooselyCoupled\Value">Deny</Tweak>
-				<Tweak name="userDataTasks\Value">Deny</Tweak>
-				<Tweak name="userAccountInformation\Value">Deny</Tweak>
 				<Tweak name="Client\OptInOrOutPreference">0</Tweak>
 				<Tweak name="System\AllowExperimentation">0</Tweak>
 				<Tweak name="System\AllowLocation">0</Tweak>
