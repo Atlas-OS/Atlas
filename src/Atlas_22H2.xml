@@ -655,7 +655,6 @@
 			<TweakGroup name="Privacy">
 				<Tweak name="features\PaidWifi">0</Tweak>
 				<Tweak name="features\WiFiSenseOpen">0</Tweak>
-				<Tweak name="ContentDeliveryManager\SilentInstalledAppsEnabled">0</Tweak>
 				<Tweak name="CloudContent\DisableCloudOptimizedContent">1</Tweak>
 				<Tweak name="AppCompat\DisableInventory">1</Tweak>
 				<Tweak name="TrainedDataStore\HarvestContacts">0</Tweak>
