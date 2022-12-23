@@ -382,6 +382,7 @@
 		<c>Microsoft.Windows.Apprep.ChxApp 'SmartScreen'</c>
 		<c>Microsoft.Windows.AssignedAccessLockApp 'Assigned Access Lock app'</c>
 		<c>Microsoft.Windows.CallingShellApp 'Call'</c>
+		<c>Microsoft.Windows.ContentDeliveryManager 'Content Delivery Manager'</c>
 		<c>Microsoft.Windows.NarratorQuickStart 'Narrator'</c>
 		<c>Microsoft.Windows.ParentalControls 'Microsoft family features'</c>
 		<c>Microsoft.Windows.PeopleExperienceHost 'Windows Shell Experience'</c>
@@ -652,10 +653,6 @@
 				<Tweak name="WiFiSession\Start">0</Tweak>
 			</TweakGroup>
 			<TweakGroup name="Privacy">
-				<Tweak name="System\AllowExperimentation">0</Tweak>
-				<Tweak name="System\AllowLocation">0</Tweak>
-				<Tweak name="DataCollection\AllowTelemetry">0</Tweak>
-				<Tweak name="CloudContent\DisableWindowsConsumerFeatures">1</Tweak>
 				<Tweak name="features\PaidWifi">0</Tweak>
 				<Tweak name="features\WiFiSenseOpen">0</Tweak>
 				<Tweak name="ContentDeliveryManager\SilentInstalledAppsEnabled">0</Tweak>
