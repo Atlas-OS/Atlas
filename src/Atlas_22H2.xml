@@ -734,10 +734,6 @@
 				<Tweak name="Memory Management\PagingFiles1">C:\pagefile.sys 0 0</Tweak>
 				<Tweak name="Device\DevicePasswordLessBuildVersion">0</Tweak>
 				<Tweak name="ReserveManager\ShippedWithReserves">0</Tweak>
-				<Tweak name="StoragePolicy\01">0</Tweak>
-				<Tweak name="StoragePolicy\512">0</Tweak>
-				<Tweak name="StoragePolicy\256">0</Tweak>
-				<Tweak name="StoragePolicy\04">0</Tweak>
 			</TweakGroup>
 		</Settings>
 		<Services></Services>
