@@ -651,33 +651,6 @@
 				<Tweak name="WdiContextLog\Start">0</Tweak>
 				<Tweak name="WiFiSession\Start">0</Tweak>
 			</TweakGroup>
-			<TweakGroup name="Explorer">
-				<Tweak name="AutoplayHandlers\DisableAutoplay">1</Tweak>
-				<Tweak name="Explorer\ClearRecentDocsOnExit">1</Tweak>
-				<Tweak name="Explorer\NoRecentDocsHistory">1</Tweak>
-				<Tweak name="Advanced\LaunchTo">1</Tweak>
-				<Tweak name="Explorer\HubMode">1</Tweak>
-				<Tweak name=".jpg\PhotoViewer.FileAssoc.Tiff">PhotoViewer.FileAssoc.Tiff</Tweak>
-				<Tweak name="Explorer\DisableSearchBoxSuggestions">1</Tweak>
-				<Tweak name="Explorer\NoNetConnectDisconnect">0</Tweak>
-				<Tweak name="Advanced\ShowSyncProviderNotifications">0</Tweak>
-				<Tweak name="Advanced\ShowTaskViewButton">0</Tweak>
-				<Tweak name="Advanced\AutoCheckSelect">0</Tweak>
-				<Tweak name="Advanced\SharingWizardOn">0</Tweak>
-				<Tweak name="Advanced\HideDrivesWithNoMedia">0</Tweak>
-				<Tweak name="Advanced\HideFileExt">0</Tweak>
-				<Tweak name="Advanced\Hidden">1</Tweak>
-				<Tweak name="Advanced\ShowSuperHidden">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Network">
-				<Tweak name="DNSClient\DisableSmartNameResolution">1</Tweak>
-				<Tweak name="Parameters\DisableParallelAandAAAA">1</Tweak>
-				<Tweak name="Main\Isolation64Bit">1</Tweak>
-				<Tweak name="Main\Isolation">PMEM</Tweak>
-				<Tweak name="NewNetworkWindowOff\NewNetworkWindowOff">1</Tweak>
-				<Tweak name="Parameters\DisableBandwidthThrottling">1</Tweak>
-				<Tweak name="Parameters\DisableCompression">1</Tweak>
-			</TweakGroup>
 			<TweakGroup name="PowerAndShutdown">
 				<Tweak name="Power\HiberbootEnabled">0</Tweak>
 			</TweakGroup>
@@ -767,28 +740,6 @@
 				<Tweak name="StoragePolicy\04">0</Tweak>
 				<Tweak name="UserGpuPreferences\DirectXUserGlobalSettings">VRROptimizeEnable=0</Tweak>
 				<Tweak name="DeviceGuard\EnableVirtualizationBasedSecurity">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="TCPIPSettings">
-				<Tweak name="parameters\EnableICMPRedirect">0</Tweak>
-				<Tweak name="parameters\IGMPLevel">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="UAC">
-				<Tweak name="System\EnableLUA">0</Tweak>
-				<Tweak name="System\PromptOnSecureDesktop">0</Tweak>
-				<Tweak name="System\ConsentPromptBehaviorAdmin">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="WindowsDefender">
-				<Tweak name="State\AccountProtection_MicrosoftAccount_Disconnected">0</Tweak>
-				<Tweak name="Notifications\DisableNotifications">1</Tweak>
-				<Tweak name="Notifications\DisableEnhancedNotifications">1</Tweak>
-				<Tweak name="Windows Defender\DisableAntiSpyware">1</Tweak>
-			</TweakGroup>
-			<TweakGroup name="WindowsUpdate">
-				<Tweak name="EdgeUpdate\DoNotUpdateToEdgeWithChromium">1</Tweak>
-				<Tweak name="DeliveryOptimization\DODownloadMode">99</Tweak>
-				<Tweak name="WindowsUpdate\TargetReleaseVersionInfo">2009</Tweak>
-				<Tweak name="AU\NoAutoUpdate">1</Tweak>
-				<Tweak name="AU\AUOptions">2</Tweak>
 			</TweakGroup>
 		</Settings>
 		<Services></Services>
