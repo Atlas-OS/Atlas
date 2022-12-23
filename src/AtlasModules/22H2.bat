@@ -1,14 +1,17 @@
 @echo off
 
 :: disable network devices
-DevManView.exe /disable "WAN Miniport (IKEv2)"
-DevManView.exe /disable "WAN Miniport (IP)"
-DevManView.exe /disable "WAN Miniport (IPv6)"
-DevManView.exe /disable "WAN Miniport (L2TP)"
-DevManView.exe /disable "WAN Miniport (Network Monitor)"
-DevManView.exe /disable "WAN Miniport (PPPOE)"
-DevManView.exe /disable "WAN Miniport (PPTP)"
-DevManView.exe /disable "WAN Miniport (SSTP)"
+DevManView /disable "WAN Miniport (IKEv2)"
+DevManView /disable "WAN Miniport (IP)"
+DevManView /disable "WAN Miniport (IPv6)"
+DevManView /disable "WAN Miniport (L2TP)"
+DevManView /disable "WAN Miniport (Network Monitor)"
+DevManView /disable "WAN Miniport (PPPOE)"
+DevManView /disable "WAN Miniport (PPTP)"
+DevManView /disable "WAN Miniport (SSTP)"
+
+:: disable reserved storage
+DISM /Online /Set-ReservedStorageState /State:Disabled
 
 :: disable memory compression
 PowerShell -NoProfile -Command "Disable-MMAgent -MemoryCompression"
