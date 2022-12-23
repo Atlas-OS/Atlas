@@ -728,7 +728,6 @@
 				<Tweak name="Winlogon\RestartApps">0</Tweak>
 				<Tweak name="DiskQuota\Enable">0</Tweak>
 				<Tweak name="System\HideFastUserSwitching">1</Tweak>
-				<Tweak name="System\EnableFirstLogonAnimation">0</Tweak>
 			</TweakGroup>
 		</Settings>
 		<Services></Services>
