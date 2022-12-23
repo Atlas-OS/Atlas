@@ -651,9 +651,6 @@
 				<Tweak name="WdiContextLog\Start">0</Tweak>
 				<Tweak name="WiFiSession\Start">0</Tweak>
 			</TweakGroup>
-			<TweakGroup name="PowerAndShutdown">
-				<Tweak name="Power\HiberbootEnabled">0</Tweak>
-			</TweakGroup>
 			<TweakGroup name="Privacy">
 				<Tweak name="appointments\Value">Deny</Tweak>
 				<Tweak name="phoneCallHistory\Value">Deny</Tweak>
