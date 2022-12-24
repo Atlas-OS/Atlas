@@ -460,18 +460,18 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %WinDir
 :: disable drivers power savings
 for /f "tokens=*" %%i in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
     for %%a in (
-    "AllowIdleIrpInD3"
-    "D3ColdSupported"
-    "DeviceSelectiveSuspended"
-    "EnableIdlePowerManagement"
-    "EnableSelectiveSuspend"
-    "EnhancedPowerManagementEnabled"
-    "IdleInWorkingState"
-    "SelectiveSuspendEnabled"
-    "SelectiveSuspendOn"
-    "WaitWakeEnabled"
-    "WakeEnabled"
-    "WdfDirectedPowerTransitionEnable"
+        "AllowIdleIrpInD3"
+        "D3ColdSupported"
+        "DeviceSelectiveSuspended"
+        "EnableIdlePowerManagement"
+        "EnableSelectiveSuspend"
+        "EnhancedPowerManagementEnabled"
+        "IdleInWorkingState"
+        "SelectiveSuspendEnabled"
+        "SelectiveSuspendOn"
+        "WaitWakeEnabled"
+        "WakeEnabled"
+        "WdfDirectedPowerTransitionEnable"
     ) do (
         reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters" /v "%%a" /t REG_DWORD /d "0" /f
     )
