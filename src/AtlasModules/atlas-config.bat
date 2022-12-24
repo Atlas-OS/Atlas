@@ -22,7 +22,7 @@
 set branch="22H2"
 set ver="v0.0.1"
 
-:: other variables (do not touch)
+:: set other variables (do not touch)
 set "currentuser=%WinDir%\AtlasModules\NSudo -U:C -P:E -Wait"
 set "setSvc=call :setSvc"
 set "firewallBlockExe=call :firewallBlockExe"
@@ -220,7 +220,7 @@ IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %WinDir%\At
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: breaks setting keyboard language
-:: Rundll32.exe advapi32.dll,ProcessIdleTasks
+:: rundll32.exe advapi32.dll,ProcessIdleTasks
 break > C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
 
@@ -494,7 +494,7 @@ cls & echo Please wait. This may take a moment.
 
 :: unhide power scheme attributes
 :: credits: eugene muzychenko; modified by Xyueta
-for /f "tokens=1-9* delims=\ " %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings" /s /f Attributes /e') do (
+for /f "tokens=1-9* delims=\ " %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings" /s /f "Attributes" /e') do (
     if /i "%%A" == "HKLM" (
         set Ident=
         if not "%%G" == "" (
@@ -522,7 +522,7 @@ for /f "tokens=1-9* delims=\ " %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet
         set /a Hidden = !Attr! ^& 1
         if !Hidden! equ 1 (
             echo Unhiding !Ident!
-            powercfg -attributes !Ident::= ! -attrib_hide
+            powercfg /attributes !Ident::= ! -attrib_hide
         )
     )
 )
