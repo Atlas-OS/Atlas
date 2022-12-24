@@ -457,17 +457,18 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %WinDir
 :: disable drivers power savings
 for /f "tokens=*" %%i in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
     for %%a in (
-        "EnhancedPowerManagementEnabled"
-        "AllowIdleIrpInD3"
-        "EnableSelectiveSuspend"
-        "DeviceSelectiveSuspended"
-        "SelectiveSuspendEnabled"
-        "SelectiveSuspendOn"
-        "WaitWakeEnabled"
-        "D3ColdSupported"
-        "WdfDirectedPowerTransitionEnable"
-        "EnableIdlePowerManagement"
-        "IdleInWorkingState"
+    "AllowIdleIrpInD3"
+    "D3ColdSupported"
+    "DeviceSelectiveSuspended"
+    "EnableIdlePowerManagement"
+    "EnableSelectiveSuspend"
+    "EnhancedPowerManagementEnabled"
+    "IdleInWorkingState"
+    "SelectiveSuspendEnabled"
+    "SelectiveSuspendOn"
+    "WaitWakeEnabled"
+    "WakeEnabled"
+    "WdfDirectedPowerTransitionEnable"
     ) do (
         reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters" /v "%%a" /t REG_DWORD /d "0" /f
     )
@@ -600,13 +601,15 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
         reg add "%%i" /v "EnablePME" /t REG_SZ /d "0" /f
     )
 ) > nul 2>nul
-netsh int tcp set heuristics disabled
+
+:: configure netsh settings
+netsh int tcp set heuristics=disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
-netsh int tcp set global timestamps=disabled
 netsh int tcp set global rsc=disabled
 for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 	netsh int ip set interface %%i routerdiscovery=disabled store=persistent
 )
+
 if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %windir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to optimize network! >> %windir%\AtlasModules\logs\install.log)
 
