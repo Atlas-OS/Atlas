@@ -609,28 +609,28 @@ start explorer.exe
 
 :: disable network adapters
 :: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
-PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server" > nul 2>&1
+PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server"
 
 :: disable system devices
+DevManView /disable "AMD PSP"
+DevManView /disable "Composite Bus Enumerator"
+DevManView /disable "High Precision Event Timer"
+DevManView /disable "Intel Management Engine"
+DevManView /disable "Intel SMBus"
+DevManView /disable "Microsoft Kernel Debug Network Adapter"
+DevManView /disable "Microsoft RRAS Root Enumerator"
+DevManView /disable "Microsoft System Management BIOS Driver"
+:: DevManView /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mount
+DevManView /disable "NDIS Virtual Network Adapter Enumerator"
+DevManView /disable "Numeric Data Processor"
+DevManView /disable "PCI Encryption/Decryption Controller"
+DevManView /disable "PCI Memory Controller"
+DevManView /disable "PCI standard RAM Controller"
+:: DevManView /disable "Programmable Interrupt Controller"
+DevManView /disable "SM Bus Controller"
 DevManView /disable "System Speaker"
 DevManView /disable "System Timer"
 DevManView /disable "UMBus Root Bus Enumerator"
-DevManView /disable "Microsoft System Management BIOS Driver"
-:: DevManView /disable "Programmable Interrupt Controller"
-DevManView /disable "High Precision Event Timer"
-DevManView /disable "PCI Encryption/Decryption Controller"
-DevManView /disable "AMD PSP"
-DevManView /disable "Intel SMBus"
-DevManView /disable "Intel Management Engine"
-DevManView /disable "PCI Memory Controller"
-DevManView /disable "PCI standard RAM Controller"
-DevManView /disable "Composite Bus Enumerator"
-DevManView /disable "Microsoft Kernel Debug Network Adapter"
-DevManView /disable "SM Bus Controller"
-DevManView /disable "NDIS Virtual Network Adapter Enumerator"
-:: DevManView /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mount
-DevManView /disable "Numeric Data Processor"
-DevManView /disable "Microsoft RRAS Root Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled devices...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to Disable devices! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -761,7 +761,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% nvraid 4
 :: %setSvc% PEAUTH 4 < breaks uwp streaming apps like netflix, manual mode does not fix
 %setSvc% QWAVEdrv 4
-:: set to manual instead of disabling (fixes wsl), thanks phlegm
+:: set rdbss to manual instead of disabling (fixes wsl), thanks phlegm
 %setSvc% rdbss 3
 %setSvc% rdyboost 4
 %setSvc% KSecPkg 4
