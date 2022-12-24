@@ -1435,15 +1435,10 @@ reg delete "HKCR\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\ContextMen
 reg delete "HKCR\Directory\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
 reg delete "HKCR\Drive\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
 %currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "NoPreviousVersionsPage" /f > nul 2>nul
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /f
 reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "NoPreviousVersionsPage" /f > nul 2>nul
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /f
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\PreviousVersions" /v "DisableLocalPage" /f > nul 2>nul
-reg add "HKLM\SOFTWARE\Policies\Microsoft\PreviousVersions" /f
 %currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "NoPreviousVersionsPage" /f > nul 2>nul
-%currenttuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /f
 %currentuser% reg delete "HKCU\SOFTWARE\Policies\Microsoft\PreviousVersions" /v "DisableLocalPage" /f > nul 2>nul
-%currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\PreviousVersions" /f
 
 :: remove include in library context menu
 reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
