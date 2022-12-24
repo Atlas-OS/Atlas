@@ -231,7 +231,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %Win
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Runtimes! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: change ntp server from windows server to pool.ntp.org
-sc config W32Time start=demand > nul 2>nul
+%setSvc% W32Time 3
 sc start W32Time > nul 2>nul
 w32tm /config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"
 sc queryex "w32time" | find "STATE" | find /v "RUNNING" || (
@@ -243,13 +243,13 @@ sc queryex "w32time" | find "STATE" | find /v "RUNNING" || (
 w32tm /config /update
 w32tm /resync
 sc stop W32Time
-sc config W32Time start=disabled
+%setSvc% W32Time 4
 if %ERRORLEVEL%==0 (echo %date% - %time% NTP server set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set NTP server! >> %WinDir%\AtlasModules\logs\install.log)
 
 cls & echo Please wait. This may take a moment.
 
-:: optimize NTFS parameters
+:: optimize ntfs parameters
 :: disable last access information on directories, performance/privacy
 fsutil behavior set disableLastAccess 1
 
@@ -390,10 +390,6 @@ cls & echo Please wait. This may take a moment.
 :: used during OOBE
 net user defaultuser0 /delete > nul 2>nul
 
-:: disable "administrator" account
-:: used in oem situations to install oem-specific programs when a user is not yet created
-net user administrator /active:no
-
 :: set PowerShell execution policy to unrestricted
 PowerShell -NoProfile -Command "Set-ExecutionPolicy Unrestricted"
 
@@ -478,7 +474,7 @@ for /f "tokens=*" %%i in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "US
 )
 
 :: disable pnp power savings
-PowerShell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" > nul 2>nul
+PowerShell -NoProfile -Command "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled power savings...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
