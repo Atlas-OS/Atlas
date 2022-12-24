@@ -702,26 +702,6 @@
 				<Tweak name="features\WiFiSenseOpen">0</Tweak>
 			</TweakGroup>
 		</Settings>
-		<Services></Services>
-		<ExtraServices></ExtraServices>
-		<ScheduledTasks>
-			<TweakGroup name="Tree\Microsoft\Windows\Autochk">
-				<Tweak name="Proxy\Proxy">remove</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Tree\Microsoft\Windows\InstallService">
-				<Tweak name="ScanForUpdates\ScanForUpdates">remove</Tweak>
-				<Tweak name="ScanForUpdatesAsUser\ScanForUpdatesAsUser">remove</Tweak>
-				<Tweak name="SmartRetry\SmartRetry">remove</Tweak>
-				<Tweak name="WakeUpAndContinueUpdates\WakeUpAndContinueUpdates">remove</Tweak>
-				<Tweak name="WakeUpAndScanForUpdates\WakeUpAndScanForUpdates">remove</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Tree\Microsoft\Windows\Registry">
-				<Tweak name="RegIdleBackup\RegIdleBackup">remove</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Tree\Microsoft\Windows\WindowsUpdate">
-				<Tweak name="Automatic App Update\Automatic App Update">remove</Tweak>
-			</TweakGroup>
-		</ScheduledTasks>
 	</Tweaks>
 	<ApplyOptions>
 		<ImageTasks>
