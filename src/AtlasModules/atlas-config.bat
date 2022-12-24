@@ -1708,7 +1708,7 @@ goto finish
 
 :depE
 PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks"
-bcdedit /set nx OptIn
+bcdedit /set nx Optin
 :: enable cfg for valorant related processes
 for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
     PowerShell -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
