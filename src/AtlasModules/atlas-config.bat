@@ -2081,17 +2081,14 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Ne
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v "UseLogonCredential" /t REG_DWORD /d "0" /f
 
 :procexpD
-reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" > nul 2>nul
-sc config pcw start=boot
+if exist "%WinDir%\procexp.exe" del /f /q "%WinDir%\procexp.exe" > nul
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /f > nul 2>nul
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\pcw" /v "Start" /t REG_DWORD /d "0" /f
 goto finish
 
 :procexpE
-curl -L --output %temp%\procexp.zip https://download.sysinternals.com/files/ProcessExplorer.zip
-7z -aoa -r e "%temp%\procexp.zip" -o"%temp%"
-move /y "%temp%\procexp64.exe" "%WinDir%\procexp64.exe"
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\procexp64.exe" /f
-%setsvc% pcw 4
-del /f /q %temp%\*
+if not exist "%WinDir%\procexp.exe" copy "%WinDir%\AtlasModules\procexp.exe" "%WinDir%"
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\procexp.exe" /f
 goto finish
 
 :xboxU
