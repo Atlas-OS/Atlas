@@ -575,7 +575,7 @@
 		<settings pass="oobeSystem">
 			<component name="Microsoft-Windows-Shell-Setup">
 				<OEMInformation>
-					<Model>v0.5.1</Model>
+					<Model>v0.5.2</Model>
 					<SupportURL>https://atlasos.net</SupportURL>
 				</OEMInformation>
 				<OOBE>
