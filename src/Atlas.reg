@@ -50,5 +50,5 @@ Windows Registry Editor Version 5.00
 
 ; disable cortana (removes unnecssary page in oobe)
 
-[HKEY_LOCAL_MACHINE\SOFTWARE\MPolicies\Microsoft\Windows\Windows Search]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search]
 "AllowCortana"=dword:00000000
