@@ -394,6 +394,9 @@ net user defaultuser0 /delete > nul 2>nul
 :: used in oem situations to install oem-specific programs when a user is not yet created
 net user administrator /active:no
 
+:: set PowerShell execution policy to unrestricted
+PowerShell -NoProfile -Command "Set-ExecutionPolicy UnRestricted"
+
 :: disable and delete adobe font type manager
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Font Drivers" /v "Adobe Type Manager" /f > nul 2>nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /v "DisableATMFD" /t REG_DWORD /d "1" /f
@@ -1242,7 +1245,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Disab
 
 :: find correct mitigation values for different Windows versions - AMIT
 :: initialize bit mask in registry by disabling a random mitigation
-PowerShell -NoProfile -Command Set-ProcessMitigation -System -Disable CFG
+PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Disable CFG"
 :: get bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
     set "mitigation_mask=%%a"
@@ -1395,8 +1398,8 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance"
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio" /v "UserDuckingPreference" /t REG_DWORD /d "3" /f
 
 :: set sound scheme to no sounds
-PowerShell -command "New-ItemProperty -Path HKCU:\AppEvents\Schemes -Name '(Default)' -Value '.None' -Force | Out-Null"
-PowerShell -command "Get-ChildItem -Path 'HKCU:\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
+PowerShell -NoProfile -Command "New-ItemProperty -Path HKCU:\AppEvents\Schemes -Name '(Default)' -Value '.None' -Force | Out-Null"
+PowerShell -NoProfile -Command "Get-ChildItem -Path 'HKCU:\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
 
 :: disable audio excludive mode on all devices
 for /f "delims=" %%a in ('reg query HKLM\Software\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture') do (
@@ -1701,7 +1704,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch enabled...>> %WinDir
 goto finish
 
 :depE
-PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks
+PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks"
 bcdedit /set nx OptIn
 :: enable cfg for valorant related processes
 for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
@@ -1712,7 +1715,7 @@ goto finish
 
 :depD
 echo If you get issues with some anti-cheats, please re-enable DEP.
-PowerShell -NoProfile set-ProcessMitigation -System -Disable DEP, EmulateAtlThunks
+PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Disable DEP, EmulateAtlThunks"
 bcdedit /set nx AlwaysOff
 if %ERRORLEVEL%==0 echo %date% - %time% DEP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -1915,7 +1918,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% UWP enabled...>> %WinDir%\AtlasModules\l
 goto finish
 
 :mitE
-PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages
+PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages"
 goto finish
 
 :startlayout
@@ -1976,7 +1979,7 @@ goto finishNRB
 :: - make it extremely clear that this is not aimed to maintain performance
 
 :: - harden process mitigations (lower compatibilty for legacy apps)
-PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages
+PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages"
 :: - open scripts in notepad to preview instead of executing when clicking
 for %%a in (
     "batfile"
@@ -2434,7 +2437,7 @@ echo Installing Scoop...
 set /P c="Review install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/ScoopInstaller/install/master/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/ScoopInstaller/install/master/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-PowerShell -NoProfile %WinDir%\AtlasModules\install.ps1 -RunAsAdmin
+PowerShell -NoProfile -Command "%WinDir%\AtlasModules\install.ps1 -RunAsAdmin"
 echo Refreshing environment for Scoop...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
@@ -2455,7 +2458,7 @@ echo Installing Chocolatey
 set /P c="Review install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-PowerShell -NoProfile -EP Unrestricted -Command "%WinDir%\AtlasModules\install.ps1"
+PowerShell -NoProfile -Command "%WinDir%\AtlasModules\install.ps1"
 echo Refreshing environment for Chocolatey...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
