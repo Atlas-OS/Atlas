@@ -2235,7 +2235,8 @@ if "%~1" EQU "int" goto :EOF
 goto finish
 
 :printE
-set /P c=You may be vulnerable to Print Nightmare Exploits while printing is enabled. Would you like to add Group Policies to protect against them? [Y/N]
+echo You may be vulnerable to Print Nightmare Exploits while printing is enabled. 
+set /P c=Would you like to add Group Policies to protect against them? [Y/N]
 if /I "%c%" EQU "Y" goto nightmareGPO
 if /I "%c%" EQU "N" goto printECont
 goto nightmareGPO
