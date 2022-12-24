@@ -632,7 +632,7 @@ DevManView /disable "System Speaker"
 DevManView /disable "System Timer"
 DevManView /disable "UMBus Root Bus Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled devices...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to Disable devices! >> %WinDir%\AtlasModules\logs\install.log)
+) ELSE (echo %date% - %time% Failed to disable devices! >> %WinDir%\AtlasModules\logs\install.log)
 
 if %branch%=="1803" NSudo -U:C -P:E %WinDir%\AtlasModules\1803.bat
 if %branch%=="20H2" NSudo -U:C -P:E %WinDir%\AtlasModules\20H2.bat
@@ -832,7 +832,9 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 :: bsod quality of life
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\CrashControl" /v "AutoReboot" /t REG_DWORD /d "0" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\CrashControl" /v "CrashDumpEnabled" /t REG_DWORD /d "0" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\CrashControl" /v "LogEvent" /t REG_DWORD /d "0" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\CrashControl" /v "DisplayParameters" /t REG_DWORD /d "1" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\CrashControl\StorageTelemetry" /v "DeviceDumpEnabled" /t REG_DWORD /d "0" /f
 
 :: gpo for start menu (tiles)
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%WinDir%\layout.xml" /f
