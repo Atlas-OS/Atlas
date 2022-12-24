@@ -982,7 +982,6 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "S
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "AltTabSettings" /t REG_DWORD /d "1" /f
 
 :: configure content delievery manager
-:: even if it is stripped in ntlite changes are present
 for %%i in (
 
     :: disable suggested content in settings app (immersive control panel)
@@ -992,19 +991,9 @@ for %%i in (
     
     :: disable fun facts, tips, tricks on windows spotlight
     "SubscribedContent-338387Enabled"
-    "RotatingLockScreenOverlayEnabled"
-    "RotatingLockScreenEnabled"
-
-    :: disable get tips, tricks and suggestions as you use windows
-    "SubscribedContent-338389Enabled"
-    "SoftLandingEnabled"
 
     :: disable start menu suggestions
     "SubscribedContent-338388Enabled"
-    "SystemPaneSuggestionsEnabled"
-
-    :: disable windows welcome experience
-    "SubscribedContent-310093Enabled"
 ) do (
     %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "%%i" /t REG_DWORD /d "0" /f
 )
