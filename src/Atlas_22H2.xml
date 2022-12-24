@@ -382,6 +382,7 @@
 		<c>Microsoft.Windows.Apprep.ChxApp 'SmartScreen'</c>
 		<c>Microsoft.Windows.AssignedAccessLockApp 'Assigned Access Lock app'</c>
 		<c>Microsoft.Windows.CallingShellApp 'Call'</c>
+		<c>Microsoft.Windows.ContentDeliveryManager 'Content Delivery Manager'</c>
 		<c>Microsoft.Windows.NarratorQuickStart 'Narrator'</c>
 		<c>Microsoft.Windows.ParentalControls 'Microsoft family features'</c>
 		<c>Microsoft.Windows.PeopleExperienceHost 'Windows Shell Experience'</c>
@@ -574,7 +575,7 @@
 		<settings pass="oobeSystem">
 			<component name="Microsoft-Windows-Shell-Setup">
 				<OEMInformation>
-					<Model>v0.5.1</Model>
+					<Model>v0.5.2</Model>
 					<SupportURL>https://atlasos.net</SupportURL>
 				</OEMInformation>
 				<OOBE>
@@ -651,181 +652,11 @@
 				<Tweak name="WdiContextLog\Start">0</Tweak>
 				<Tweak name="WiFiSession\Start">0</Tweak>
 			</TweakGroup>
-			<TweakGroup name="CrashControl">
-				<Tweak name="CrashControl\AutoReboot">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="DesktopTweaks">
-				<Tweak name="Explorer\NoPinningStoreToTaskbar">1</Tweak>
-				<Tweak name="Explorer\AltTabSettings">1</Tweak>
-				<Tweak name="Personalize\AppsUseLightTheme">0</Tweak>
-				<Tweak name="Personalize\SystemUsesLightTheme">0</Tweak>
-				<Tweak name="Explorer\HideSCAMeetNow">1</Tweak>
-				<Tweak name="Feeds\ShellFeedsTaskbarViewMode">2</Tweak>
-				<Tweak name="Mouse\MouseSpeed">0</Tweak>
-				<Tweak name="Start\HideRecentJumplists">1</Tweak>
-				<Tweak name="Search\SearchboxTaskbarMode">1</Tweak>
-				<Tweak name="People\PeopleBand">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Explorer">
-				<Tweak name="AutoplayHandlers\DisableAutoplay">1</Tweak>
-				<Tweak name="Explorer\ClearRecentDocsOnExit">1</Tweak>
-				<Tweak name="Explorer\NoRecentDocsHistory">1</Tweak>
-				<Tweak name="Advanced\LaunchTo">1</Tweak>
-				<Tweak name="Explorer\HubMode">1</Tweak>
-				<Tweak name=".jpg\PhotoViewer.FileAssoc.Tiff">PhotoViewer.FileAssoc.Tiff</Tweak>
-				<Tweak name="Explorer\DisableSearchBoxSuggestions">1</Tweak>
-				<Tweak name="Explorer\NoNetConnectDisconnect">0</Tweak>
-				<Tweak name="Advanced\ShowSyncProviderNotifications">0</Tweak>
-				<Tweak name="Advanced\ShowTaskViewButton">0</Tweak>
-				<Tweak name="Advanced\AutoCheckSelect">0</Tweak>
-				<Tweak name="Advanced\SharingWizardOn">0</Tweak>
-				<Tweak name="Advanced\HideDrivesWithNoMedia">0</Tweak>
-				<Tweak name="Advanced\HideFileExt">0</Tweak>
-				<Tweak name="Advanced\Hidden">1</Tweak>
-				<Tweak name="Advanced\ShowSuperHidden">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Network">
-				<Tweak name="DNSClient\DisableSmartNameResolution">1</Tweak>
-				<Tweak name="Parameters\DisableParallelAandAAAA">1</Tweak>
-				<Tweak name="Main\Isolation64Bit">1</Tweak>
-				<Tweak name="Main\Isolation">PMEM</Tweak>
-				<Tweak name="NewNetworkWindowOff\NewNetworkWindowOff">1</Tweak>
-				<Tweak name="Parameters\DisableBandwidthThrottling">1</Tweak>
-				<Tweak name="Parameters\DisableCompression">1</Tweak>
-			</TweakGroup>
-			<TweakGroup name="PowerAndShutdown">
-				<Tweak name="Power\HiberbootEnabled">0</Tweak>
-			</TweakGroup>
 			<TweakGroup name="Privacy">
-				<Tweak name="appointments\Value">Deny</Tweak>
-				<Tweak name="phoneCallHistory\Value">Deny</Tweak>
-				<Tweak name="contacts\Value">Deny</Tweak>
-				<Tweak name="appDiagnostics\Value">Deny</Tweak>
-				<Tweak name="email\Value">Deny</Tweak>
-				<Tweak name="chat\Value">Deny</Tweak>
-				<Tweak name="phoneCall\Value">Deny</Tweak>
-				<Tweak name="radios\Value">Deny</Tweak>
-				<Tweak name="LooselyCoupled\Value">Deny</Tweak>
-				<Tweak name="userDataTasks\Value">Deny</Tweak>
-				<Tweak name="userAccountInformation\Value">Deny</Tweak>
-				<Tweak name="Client\OptInOrOutPreference">0</Tweak>
-				<Tweak name="System\AllowExperimentation">0</Tweak>
-				<Tweak name="System\AllowLocation">0</Tweak>
-				<Tweak name="DataCollection\AllowTelemetry">0</Tweak>
-				<Tweak name="CloudContent\DisableWindowsConsumerFeatures">1</Tweak>
 				<Tweak name="features\PaidWifi">0</Tweak>
 				<Tweak name="features\WiFiSenseOpen">0</Tweak>
-				<Tweak name="ContentDeliveryManager\SilentInstalledAppsEnabled">0</Tweak>
-				<Tweak name="CloudContent\DisableCloudOptimizedContent">1</Tweak>
-				<Tweak name="AppCompat\DisableInventory">1</Tweak>
-				<Tweak name="TrainedDataStore\HarvestContacts">0</Tweak>
-				<Tweak name="InputPersonalization\RestrictImplicitTextCollection">1</Tweak>
-				<Tweak name="InputPersonalization\RestrictImplicitInkCollection">1</Tweak>
-				<Tweak name="Windows Search\AllowCortana">0</Tweak>
-				<Tweak name="Search\HistoryViewEnabled">0</Tweak>
-				<Tweak name="Search\DeviceHistoryEnabled">0</Tweak>
-				<Tweak name="Advanced\ShowCortanaButton">0</Tweak>
-				<Tweak name="Rules\NumberOfSIUFInPeriod">0</Tweak>
-				<Tweak name="SmartGlass\UserAuthPolicy">0</Tweak>
-				<Tweak name="SmartGlass\BluetoothPolicy">0</Tweak>
-				<Tweak name="BackgroundAccessApplications\GlobalUserDisabled">1</Tweak>
-				<Tweak name="AdvertisingInfo\Enabled">0</Tweak>
-				<Tweak name="Privacy\TailoredExperiencesWithDiagnosticDataEnabled">0</Tweak>
-				<Tweak name="AppSettings\Skype-UserConsentAccepted">0</Tweak>
-				<Tweak name="User Profile\HttpAcceptLanguageOptOut">1</Tweak>
-				<Tweak name="System\EnableActivityFeed">0</Tweak>
-				<Tweak name="Advanced\Start_TrackProgs">0</Tweak>
-				<Tweak name="Advanced\Start_TrackDocs">0</Tweak>
-				<Tweak name="ContentDeliveryManager\SystemPaneSuggestionsEnabled">0</Tweak>
-				<Tweak name="InputPersonalization\AllowInputPersonalization">0</Tweak>
-				<Tweak name="Settings\AcceptedPrivacyPolicy">0</Tweak>
-				<Tweak name="ContentDeliveryManager\PreInstalledAppsEnabled">0</Tweak>
-				<Tweak name="ContentDeliveryManager\OemPreInstalledAppsEnabled">0</Tweak>
-				<Tweak name="AppCompat\DisablePCA">1</Tweak>
-				<Tweak name="Windows Search\AllowCloudSearch">0</Tweak>
-				<Tweak name="Search\BingSearchEnabled">0</Tweak>
-				<Tweak name="TIPC\Enabled">0</Tweak>
-				<Tweak name="System\EnableCdp">0</Tweak>
-				<Tweak name="Explorer\ShowFrequent">0</Tweak>
-				<Tweak name="ContentDeliveryManager\SubscribedContent-338393Enabled">0</Tweak>
-				<Tweak name="ContentDeliveryManager\SubscribedContent-310093Enabled">0</Tweak>
-				<Tweak name="Explorer\ShowRecent">0</Tweak>
-				<Tweak name="UserProfileEngagement\ScoobeSystemSettingEnabled">0</Tweak>
-				<Tweak name="AppHost\EnableWebContentEvaluation">0</Tweak>
-				<Tweak name="Settings\InsightsEnabled">0</Tweak>
-				<Tweak name="AnqpCache\OsuRegistrationStatus">0</Tweak>
-				<Tweak name="FlipAhead\FPEnabled">0</Tweak>
-				<Tweak name="MicrosoftEdge\PhishingFilter\Enabledv9">0</Tweak>
-				<Tweak name="Internet Explorer\PhishingFilter\Enabledv9">0</Tweak>
-				<Tweak name="Explorer\SmartScreenEnabled">Off</Tweak>
-				<Tweak name="CloudContent\DisableWindowsSpotlightFeatures">1</Tweak>
-			</TweakGroup>
-			<TweakGroup name="StartTweaks">
-				<Tweak name="Start\HideFrequentlyUsedApps">1</Tweak>
-				<Tweak name="Start\HideRecentlyAddedApps">1</Tweak>
-				<Tweak name="Start\AllowPinnedFolderHomeGroup">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="System">
-				<Tweak name="Windows\DisableATMFD">1</Tweak>
-				<Tweak name="Winlogon\RestartApps">0</Tweak>
-				<Tweak name="DiskQuota\Enable">0</Tweak>
-				<Tweak name="System\HideFastUserSwitching">1</Tweak>
-				<Tweak name="System\EnableFirstLogonAnimation">0</Tweak>
-				<Tweak name="System\NoConnectedUser">1</Tweak>
-				<Tweak name="OneDrive\DisableFileSyncNGSC">1</Tweak>
-				<Tweak name="Memory Management\PagingFiles1">C:\pagefile.sys 0 0</Tweak>
-				<Tweak name="Device\DevicePasswordLessBuildVersion">0</Tweak>
-				<Tweak name="ReserveManager\ShippedWithReserves">0</Tweak>
-				<Tweak name="StoragePolicy\01">0</Tweak>
-				<Tweak name="StoragePolicy\512">0</Tweak>
-				<Tweak name="StoragePolicy\256">0</Tweak>
-				<Tweak name="StoragePolicy\04">0</Tweak>
-				<Tweak name="UserGpuPreferences\DirectXUserGlobalSettings">VRROptimizeEnable=0</Tweak>
-				<Tweak name="DeviceGuard\EnableVirtualizationBasedSecurity">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="TCPIPSettings">
-				<Tweak name="parameters\EnableICMPRedirect">0</Tweak>
-				<Tweak name="parameters\IGMPLevel">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="UAC">
-				<Tweak name="System\EnableLUA">0</Tweak>
-				<Tweak name="System\PromptOnSecureDesktop">0</Tweak>
-				<Tweak name="System\ConsentPromptBehaviorAdmin">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="WindowsDefender">
-				<Tweak name="State\AccountProtection_MicrosoftAccount_Disconnected">0</Tweak>
-				<Tweak name="Notifications\DisableNotifications">1</Tweak>
-				<Tweak name="Notifications\DisableEnhancedNotifications">1</Tweak>
-				<Tweak name="Windows Defender\DisableAntiSpyware">1</Tweak>
-			</TweakGroup>
-			<TweakGroup name="WindowsUpdate">
-				<Tweak name="EdgeUpdate\DoNotUpdateToEdgeWithChromium">1</Tweak>
-				<Tweak name="DeliveryOptimization\DODownloadMode">99</Tweak>
-				<Tweak name="WindowsUpdate\TargetReleaseVersionInfo">2009</Tweak>
-				<Tweak name="AU\NoAutoUpdate">1</Tweak>
-				<Tweak name="AU\AUOptions">2</Tweak>
 			</TweakGroup>
 		</Settings>
-		<Services></Services>
-		<ExtraServices></ExtraServices>
-		<ScheduledTasks>
-			<TweakGroup name="Tree\Microsoft\Windows\Autochk">
-				<Tweak name="Proxy\Proxy">remove</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Tree\Microsoft\Windows\InstallService">
-				<Tweak name="ScanForUpdates\ScanForUpdates">remove</Tweak>
-				<Tweak name="ScanForUpdatesAsUser\ScanForUpdatesAsUser">remove</Tweak>
-				<Tweak name="SmartRetry\SmartRetry">remove</Tweak>
-				<Tweak name="WakeUpAndContinueUpdates\WakeUpAndContinueUpdates">remove</Tweak>
-				<Tweak name="WakeUpAndScanForUpdates\WakeUpAndScanForUpdates">remove</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Tree\Microsoft\Windows\Registry">
-				<Tweak name="RegIdleBackup\RegIdleBackup">remove</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Tree\Microsoft\Windows\WindowsUpdate">
-				<Tweak name="Automatic App Update\Automatic App Update">remove</Tweak>
-			</TweakGroup>
-		</ScheduledTasks>
 	</Tweaks>
 	<ApplyOptions>
 		<ImageTasks>

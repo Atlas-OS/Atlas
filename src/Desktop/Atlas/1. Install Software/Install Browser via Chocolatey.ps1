@@ -86,6 +86,6 @@ if ($global:install) {
     }
 
     if ($installPackages.count -ne 0) {
-        Start-Process -FilePath scoop -ArgumentList "install $($installPackages -join ' ') -g" -Wait
+        PowerShell -NoProfile -Command "choco install $installPackages"
     }
 }
