@@ -29,12 +29,12 @@ set "firewallBlockExe=call :firewallBlockExe"
 
 :: check for administrator privileges
 if "%~2"=="/skipAdminCheck" goto permSUCCESS
-fltmc >nul 2>&1 || (
+fltmc > nul 2>&1 || (
     goto permFAIL
 )
 
 :: check for trusted installer priviliges
-whoami /user | find /i "S-1-5-18" >nul 2>&1
+whoami /user | find /i "S-1-5-18" > nul 2>&1
 if not %ERRORLEVEL%==0 (
     set system=false
 )
@@ -215,7 +215,7 @@ pause & exit
 :: create log directory for troubleshooting
 mkdir %WinDir%\AtlasModules\logs
 cls & echo Please wait, this may take a moment.
-setx path "%path%;%WinDir%\AtlasModules;" -m  >nul 2>nul
+setx path "%path%;%WinDir%\AtlasModules;" -m  > nul 2>nul
 IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -231,13 +231,13 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %Win
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Runtimes! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: change ntp server from windows server to pool.ntp.org
-sc config W32Time start=demand >nul 2>nul
-sc start W32Time >nul 2>nul
+sc config W32Time start=demand > nul 2>nul
+sc start W32Time > nul 2>nul
 w32tm /config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"
 sc queryex "w32time" | find "STATE" | find /v "RUNNING" || (
     net stop w32time
     net start w32time
-) >nul 2>nul
+) > nul 2>nul
 
 :: resync time to pool.ntp.org
 w32tm /config /update
@@ -268,7 +268,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %WinDir%\Atl
 
 :: attempt to fix language packs issue
 :: https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/language-packs-known-issue
-schtasks /Change /Disable /TN "\Microsoft\Windows\LanguageComponentsInstaller\Uninstallation" >nul 2>nul
+schtasks /Change /Disable /TN "\Microsoft\Windows\LanguageComponentsInstaller\Uninstallation" > nul 2>nul
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Control Panel\International" /v "BlockCleanupOfUnusedPreinstalledLangPacks" /t REG_DWORD /d "1" /f
 
 :: disable unneeded scheduled tasks
@@ -342,7 +342,7 @@ for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI
     reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
 for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
 )
 
 :: enable MSI mode on GPU
@@ -350,7 +350,7 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "P
     reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
+    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
 )
 
 :: enable MSI mode on network adapters
@@ -361,7 +361,7 @@ for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PC
 :: if e.g. VMWare is used, skip setting to undefined
 wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && goto vmGO
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
+    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
 )
 goto noVM
 
@@ -377,7 +377,7 @@ for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID ^| findstr /L "PCI
     reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f >nul 2>nul
+    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
 )
 if %ERRORLEVEL%==0 (echo %date% - %time% MSI mode set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set MSI mode! >> %WinDir%\AtlasModules\logs\install.log)
@@ -388,14 +388,14 @@ cls & echo Please wait. This may take a moment.
 
 :: delete defaultuser0 account
 :: used during OOBE
-net user defaultuser0 /delete >nul 2>nul
+net user defaultuser0 /delete > nul 2>nul
 
 :: disable "administrator" account
 :: used in oem situations to install oem-specific programs when a user is not yet created
 net user administrator /active:no
 
 :: disable and delete adobe font type manager
-reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Font Drivers" /v "Adobe Type Manager" /f
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Font Drivers" /v "Adobe Type Manager" /f > nul 2>nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /v "DisableATMFD" /t REG_DWORD /d "1" /f
 
 :: disable USB autorun/play
@@ -472,7 +472,7 @@ for /f "tokens=*" %%i in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "US
 )
 
 :: disable pnp power savings
-PowerShell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" >nul 2>nul
+PowerShell -NoProfile -Command "$devices = Get-WmiObject Win32_PnPEntity; $powerMgmt = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($p in $powerMgmt){$IN = $p.InstanceName.ToUpper(); foreach ($h in $devices){$PNPDI = $h.PNPDeviceID; if ($IN -like \"*$PNPDI*\"){$p.enable = $False; $p.psbase.put()}}}" > nul 2>nul
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled power savings...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -597,7 +597,7 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
     for /f %%i in ('reg query "%%a" /v "EnablePME" ^| findstr "HKEY"') do (
         reg add "%%i" /v "EnablePME" /t REG_SZ /d "0" /f
     )
-) >nul 2>nul
+) > nul 2>nul
 netsh int tcp set heuristics disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
 netsh int tcp set global timestamps=disabled
@@ -609,9 +609,9 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %windir%\AtlasMo
 ) ELSE (echo %date% - %time% Failed to optimize network! >> %windir%\AtlasModules\logs\install.log)
 
 :: windows server update client id
-sc stop wuauserv >nul 2>nul
+sc stop wuauserv > nul 2>nul
 
-:: reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f
+:: reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f > nul 2>nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
 
 :: fix explorer whitebar bug
@@ -621,7 +621,7 @@ start explorer.exe
 
 :: disable network adapters
 :: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
-PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server" >nul 2>&1
+PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server" > nul 2>&1
 
 :: disable system devices
 DevManView /disable "System Speaker"
@@ -664,7 +664,7 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V 
             echo "Start"=dword:0000000!start! >> %filename%
             echo] >> %filename%
 	    )
-) >nul 2>&1
+) > nul 2>&1
 
 :: backup default windows drivers
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows drivers.reg"
@@ -679,7 +679,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 		echo "Start"=dword:0000000!start! >> %filename%
 		echo] >> %filename%
 	)
-) >nul 2>&1
+) > nul 2>&1
 
 :: services
 %setSvc% AppIDSvc 4
@@ -821,7 +821,7 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V 
 		echo "Start"=dword:0000000!start! >> %filename%
 		echo] >> %filename%
 	)
-) >nul 2>&1
+) > nul 2>&1
 
 :: backup default Atlas drivers
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas drivers.reg"
@@ -836,7 +836,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 		echo "Start"=dword:0000000!start! >> %filename%
 		echo] >> %filename%
 	)
-) >nul 2>&1
+) > nul 2>&1
 
 :: Registry
 :: done through script now, HKCU\... keys often do not integrate correctly
@@ -1128,6 +1128,10 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsAccessN
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsAccessRadios" /t REG_DWORD /d "2" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsGetDiagnosticInfo" /t REG_DWORD /d "2" /f
 
+:: disable smartscreen
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "EnableSmartScreen" /t REG_DWORD /d "0" /f
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "ShellSmartScreenLevel" /f > nul 2>nul
+
 :: disable experimentation
 reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\System\AllowExperimentation" /v "Value" /t REG_DWORD /d "0" /f
 
@@ -1185,7 +1189,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice" /v "AllowFindMyDevice" /
 reg add "HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice" /v "LocationSyncEnabled" /t REG_DWORD /d "0" /f
 
 :: remove readyboost tab
-reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}" /f >nul 2>nul
+reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}" /f > nul 2>nul
 
 :: hide meet now button on taskbar
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "HideSCAMeetNow" /t REG_DWORD /d "1" /f
@@ -1194,7 +1198,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "H
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "HidePeopleBar" /t REG_DWORD /d "1" /f
 
 :: hide task view button on taskbar
-%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultiTaskingView\AllUpView" /v "Enabled" /f
+%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultiTaskingView\AllUpView" /v "Enabled" /f > nul 2>nul
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowTaskViewButton" /t REG_DWORD /D "0" /f
 
 :: disable news and interests
@@ -1407,7 +1411,7 @@ for /f "delims=" %%a in ('reg query HKLM\Software\Microsoft\Windows\CurrentVersi
 )
 
 :: install cab context menu
-reg delete "HKCR\CABFolder\Shell\RunAs" /f >nul 2>nul
+reg delete "HKCR\CABFolder\Shell\RunAs" /f > nul 2>nul
 reg add "HKCR\CABFolder\Shell\RunAs" /ve /t REG_SZ /d "Install" /f
 reg add "HKCR\CABFolder\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\CABFolder\Shell\RunAs\Command" /ve /t REG_SZ /d "cmd /k DISM /online /add-package /packagepath:\"%%1\"" /f
@@ -1419,31 +1423,31 @@ reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "NSudo -U:T -P:E reg
 
 :: remove restore previous versions
 :: from context menu and file' properties
-reg delete "HKCR\AllFilesystemObjects\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f >nul 2>nul
-reg delete "HKCR\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f >nul 2>nul
-reg delete "HKCR\Directory\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f >nul 2>nul
-reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f >nul 2>nul
-reg delete "HKCR\AllFilesystemObjects\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f >nul 2>nul
-reg delete "HKCR\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f >nul 2>nul
-reg delete "HKCR\Directory\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f >nul 2>nul
-reg delete "HKCR\Drive\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f >nul 2>nul
-%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "NoPreviousVersionsPage" /f >nul 2>nul
+reg delete "HKCR\AllFilesystemObjects\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
+reg delete "HKCR\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
+reg delete "HKCR\Directory\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
+reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
+reg delete "HKCR\AllFilesystemObjects\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
+reg delete "HKCR\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
+reg delete "HKCR\Directory\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
+reg delete "HKCR\Drive\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
+%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "NoPreviousVersionsPage" /f > nul 2>nul
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /f
-reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "NoPreviousVersionsPage" /f >nul 2>nul
+reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "NoPreviousVersionsPage" /f > nul 2>nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /f
-reg delete "HKLM\SOFTWARE\Policies\Microsoft\PreviousVersions" /v "DisableLocalPage" /f >nul 2>nul
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\PreviousVersions" /v "DisableLocalPage" /f > nul 2>nul
 reg add "HKLM\SOFTWARE\Policies\Microsoft\PreviousVersions" /f
-%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "NoPreviousVersionsPage" /f >nul 2>nul
+%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "NoPreviousVersionsPage" /f > nul 2>nul
 %currenttuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /f
-%currentuser% reg delete "HKCU\SOFTWARE\Policies\Microsoft\PreviousVersions" /v "DisableLocalPage" /f >nul 2>nul
+%currentuser% reg delete "HKCU\SOFTWARE\Policies\Microsoft\PreviousVersions" /v "DisableLocalPage" /f > nul 2>nul
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\PreviousVersions" /f
 
 :: remove include in library context menu
-reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f >nul 2>nul
-reg delete "HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location" /f >nul 2>nul
+reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
+reg delete "HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
 
 :: remove share in context menu
-reg delete "HKCR\*\shellex\ContextMenuHandlers\ModernSharing" /f >nul 2>nul
+reg delete "HKCR\*\shellex\ContextMenuHandlers\ModernSharing" /f > nul 2>nul
 
 :: remove troubleshooting compatibility in context menu
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{1d27f844-3a1f-4410-85ac-14651078412d}" /t REG_SZ /d "" /f
@@ -1487,7 +1491,7 @@ bcdedit /timeout 10
 
 :: setting to "no" provides worse results, delete the value instead.
 :: this is here as a safeguard incase of user error
-bcdedit /deletevalue useplatformclock >nul 2>nul
+bcdedit /deletevalue useplatformclock > nul 2>nul
 
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
 bcdedit /set disabledynamictick Yes
@@ -1516,7 +1520,7 @@ exit
 
 :notiD
 sc config WpnService start=disabled
-sc stop WpnService >nul 2>nul
+sc stop WpnService > nul 2>nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Notifications disabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -1532,13 +1536,13 @@ goto finish
 
 :indexD
 sc config WSearch start=disabled
-sc stop WSearch >nul 2>nul
+sc stop WSearch > nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :indexE
 sc config WSearch start=delayed-auto
-sc start WSearch >nul 2>nul
+sc start WSearch > nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1578,7 +1582,7 @@ echo Extra note: This breaks the "about" page in settings. If you require it, en
 pause
 
 :: detect if user is using a microsoft account
-PowerShell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+PowerShell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 
 :: disable the option for microsoft store in the "open with" dialog
@@ -1644,7 +1648,7 @@ goto finish
 
 :btD
 sc config BthAvctpSvc start=disabled
-sc stop BthAvctpSvc >nul 2>nul
+sc stop BthAvctpSvc > nul 2>nul
 for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f CDPUserSvc ^| find /i "CDPUserSvc" ') do (
   reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
   sc stop %%~nI
@@ -1680,7 +1684,7 @@ for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f cbdh
 )
 sc config DsSvc start=auto
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Clipboard" /v "EnableClipboardHistory" /t REG_DWORD /d "1" /f
-reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /f >nul 2>nul
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /f > nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1745,7 +1749,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2t
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
 :restartSearch
-taskkill /f /im SearchApp*  >nul 2>nul
+taskkill /f /im SearchApp*  > nul 2>nul
 ren SearchApp.exe SearchApp.old
 
 :: loop if it fails to rename the first time
@@ -1800,7 +1804,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2t
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
 :OSrestartSearch
-taskkill /f /im SearchApp*  >nul 2>nul
+taskkill /f /im SearchApp*  > nul 2>nul
 ren SearchApp.exe SearchApp.old
 
 :: loop if it fails to rename the first time
@@ -1819,7 +1823,7 @@ echo Open-Shell is installing...
 "Open-Shell.exe" /qn ADDLOCAL=StartMenu
 curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5.3/Fluent-Metro_1.5.3.zip -o skin.zip
 7z -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
-del /F /Q skin.zip >nul 2>nul
+del /F /Q skin.zip > nul 2>nul
 taskkill /f /im explorer.exe
 NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell installed...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -1845,7 +1849,7 @@ echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 
 :: detect if user is using a microsoft account
-PowerShell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" >nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+PowerShell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
@@ -1867,14 +1871,14 @@ sc config TokenBroker start=disabled
 sc config LicenseManager start=disabled
 sc config ClipSVC start=disabled
 
-taskkill /f /im StartMenuExperienceHost*  >nul 2>nul
+taskkill /f /im StartMenuExperienceHost*  > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
-taskkill /f /im SearchApp*  >nul 2>nul
+taskkill /f /im SearchApp*  > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
 ren %WinDir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old
 ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old
 
-taskkill /f /im RuntimeBroker*  >nul 2>nul
+taskkill /f /im RuntimeBroker*  > nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
@@ -1902,13 +1906,13 @@ sc config TokenBroker start=demand
 sc config LicenseManager start=demand
 sc config ClipSVC start=demand
 
-taskkill /f /im StartMenuExperienceHost*  >nul 2>nul
+taskkill /f /im StartMenuExperienceHost*  > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
-taskkill /f /im SearchApp*  >nul 2>nul
+taskkill /f /im SearchApp*  > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy.old Microsoft.Windows.Search_cw5n1h2txyewy
 ren %WinDir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old Microsoft.XboxGameCallableUI_cw5n1h2txyewy
 ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe
-taskkill /f /im RuntimeBroker*  >nul 2>nul
+taskkill /f /im RuntimeBroker*  > nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
@@ -1921,9 +1925,9 @@ PowerShell -NoProfile set-ProcessMitigation -System -Enable DEP, EmulateAtlThunk
 goto finish
 
 :startlayout
-reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
-%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f >nul 2>nul
-%currentuser% reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /f >nul 2>nul
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f > nul 2>nul
+%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /f > nul 2>nul
+%currentuser% reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /f > nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Start Menu layout policy removed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -2077,7 +2081,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Ne
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v "UseLogonCredential" /t REG_DWORD /d "0" /f
 
 :procexpD
-reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v Debugger
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" > nul 2>nul
 sc config pcw start=boot
 goto finish
 
@@ -2098,7 +2102,7 @@ exit
 
 :xboxConfirm
 echo Removing via PowerShell...
-NSudo -U:C -ShowWindowMode:Hide -Wait PowerShell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" >nul 2>nul
+NSudo -U:C -ShowWindowMode:Hide -Wait PowerShell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" > nul 2>nul
 
 echo Disabling services...
 sc config XblAuthManager start=disabled
@@ -2147,8 +2151,8 @@ goto finish
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f > nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f > nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "5" /f > nul
-:: Unlock UserAccountControlSettings.exe
-reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /f >nul 2>&1
+:: unlock UserAccountControlSettings.exe
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /f > nul 2>nul
 %setSvc% luafv 2
 %setSvc% Appinfo 3
 if %ERRORLEVEL%==0 echo %date% - %time% UAC enabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -2190,8 +2194,8 @@ if %ERRORLEVEL%==0 echo %date% - %time% Firewall enabled...>> %WinDir%\AtlasModu
 goto finish
 
 :aniE
-reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /f >nul 2>nul
-%currentuser% reg delete "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /f >nul 2>nul
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /f > nul 2>nul
+%currentuser% reg delete "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /f > nul 2>nul
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarAnimations" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9e3e078012000000" /f
@@ -2337,7 +2341,7 @@ for /f %%a in ('reg query HKLM /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') d
     for /f %%i in ('reg query "%%a" /v "EnablePME" ^| findstr "HKEY"') do (
         reg add "%%i" /v "EnablePME" /t REG_SZ /d "0" /f
     )
-) >nul 2>nul
+) > nul 2>nul
 netsh int tcp set heuristics disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
 netsh int tcp set global timestamps=disabled
@@ -2536,7 +2540,7 @@ goto finish
 :NVPstate
 :: credits to timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
-sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if errorlevel 1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
@@ -2554,14 +2558,14 @@ goto finish
 
 :revertNVPState
 for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
-    reg delete "%%i" /v "DisableDynamicPstate" /f
+    reg delete "%%i" /v "DisableDynamicPstate" /f > nul 2>nul
 )
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :nvcontainerD
 :: check if the service exists
-sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if %errorlevel%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
@@ -2586,7 +2590,7 @@ goto finishNRB
 
 :nvcontainerE
 :: check if the service exists
-sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
@@ -2601,7 +2605,7 @@ goto finishNRB
 
 :nvcontainerCME
 :: cm = context menu
-sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if %errorlevel%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
@@ -2621,23 +2625,23 @@ reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\c
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Display Container LS" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
-taskkill /f /im explorer.exe >nul 2>&1
-taskkill /f /im explorer.exe >nul 2>&1
-taskkill /f /im explorer.exe >nul 2>&1
+taskkill /f /im explorer.exe > nul 2>&1
+taskkill /f /im explorer.exe > nul 2>&1
+taskkill /f /im explorer.exe > nul 2>&1
 NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS context menu enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :nvcontainerCMD
 :: cm = context menu
-sc query NVDisplay.ContainerLocalSystem >nul 2>&1
+sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
     exit /b 1
 )
-reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" >nul 2>&1
+reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1
 if %ERRORLEVEL%==1 (
     echo The context menu does not exist, you can not continue.
     pause
@@ -2647,12 +2651,12 @@ if %ERRORLEVEL%==1 (
 echo Explorer will be restarted to ensure that the context menu is removed.
 pause
 
-reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul
+reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul 2>nul
 
 :: delete icon exe
-taskkill /f /im explorer.exe >nul 2>&1
-taskkill /f /im explorer.exe >nul 2>&1
-taskkill /f /im explorer.exe >nul 2>&1
+taskkill /f /im explorer.exe > nul 2>&1
+taskkill /f /im explorer.exe > nul 2>&1
+taskkill /f /im explorer.exe > nul 2>&1
 NSudo -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS context menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
@@ -2713,11 +2717,11 @@ if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid input! Please enter Y or N. & got
 goto :EOF
 
 :netcheck
-ping -n 1 -4 1.1.1.1 | find "time=" >nul 2>nul || (
+ping -n 1 -4 1.1.1.1 | find "time=" > nul 2>nul || (
     echo Network is not connected! Please connect to a network before continuing.
 	pause
 	goto netcheck
-) >nul 2>nul
+) > nul 2>nul
 goto :EOF
 
 :FDel <location>
@@ -2732,7 +2736,7 @@ if [%~1]==[] (echo You need to run this with a service/driver to disable. & exit
 if [%~2]==[] (echo You need to run this with an argument ^(1-5^) to configure the service's startup. & exit /b 1)
 if %~2 LSS 0 (echo Invalid start value ^(%~2^) for %~1. & exit /b 1)
 if %~2 GTR 5 (echo Invalid start value ^(%~2^) for %~1. & exit /b 1)
-reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" >nul 2>&1 || (echo The specified service/driver ^(%~1^) is not found. & exit /b 1)
+reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" > nul 2>&1 || (echo The specified service/driver ^(%~1^) is not found. & exit /b 1)
 if "%system%"=="false" (
 	if not "%setSvcWarning%"=="false" (
 		echo WARNING: Not running as System, could fail modifying some services/drivers with an access denied error.
@@ -2750,8 +2754,8 @@ exit /b 0
 :: have both in quotes
 
 :: get rid of any old rules (prevents duplicates)
-netsh advfirewall firewall delete rule name="Block %~1" protocol=any dir=in >nul 2>&1
-netsh advfirewall firewall delete rule name="Block %~1" protocol=any dir=out >nul 2>&1
+netsh advfirewall firewall delete rule name="Block %~1" protocol=any dir=in > nul 2>&1
+netsh advfirewall firewall delete rule name="Block %~1" protocol=any dir=out > nul 2>&1
 netsh advfirewall firewall add rule name="Block %~1" program=%2 protocol=any dir=in enable=yes action=block profile=any > nul
 netsh advfirewall firewall add rule name="Block %~1" program=%2 protocol=any dir=out enable=yes action=block profile=any > nul
 exit /b
