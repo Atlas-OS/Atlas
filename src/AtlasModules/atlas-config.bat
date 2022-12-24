@@ -981,18 +981,14 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "S
 :: old alt tab
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "AltTabSettings" /t REG_DWORD /d "1" /f
 
-:: configure content delievery manager
+:: disable suggested content in settings app (immersive control panel)
+:: disable fun facts, tips, tricks on windows spotlight
+:: disable start menu suggestions
 for %%i in (
-
-    :: disable suggested content in settings app (immersive control panel)
     "SubscribedContent-338393Enabled"
     "SubscribedContent-353694Enabled"
     "SubscribedContent-353696Enabled"
-    
-    :: disable fun facts, tips, tricks on windows spotlight
     "SubscribedContent-338387Enabled"
-
-    :: disable start menu suggestions
     "SubscribedContent-338388Enabled"
 ) do (
     %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "%%i" /t REG_DWORD /d "0" /f
