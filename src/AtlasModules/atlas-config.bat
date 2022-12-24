@@ -555,6 +555,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMultic
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" /v "DefaultPnPCapabilities" /t REG_DWORD /d "24" /f
 
 :: configure nic settings
+:: modified by Xyueta
 for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
     for %%b in (
         "*EEE"
@@ -2232,9 +2233,9 @@ goto finish
 :: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
 for /f %%i in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do (
-  reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
-  reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
-  reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
 )
 
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosNonBestEffortLimit
@@ -2242,65 +2243,50 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched" /v "NonBestEffortLimit
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosTimerResolution
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched" /v "TimerResolution" /t REG_DWORD /d "1" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\QoS" /v "Do not use NLA" /t REG_DWORD /d "1" /f
-::reg add "HKLM\SYSTEM\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f
+:: reg add "HKLM\SYSTEM\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /t REG_DWORD /d "0" /f
 
+:: set default power saving mode for all network cards to disabled
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" /v "DefaultPnPCapabilities" /t REG_DWORD /d "24" /f
+
 :: configure nic settings
-:: get nic driver settings path by querying for dword
-:: if you see a way to optimize this segment, feel free to open a pull request
-for /f %%a in ('reg query HKLM /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
-    :: check if the value exists, to prevent errors and uneeded settings
-    for /f %%i in ('reg query "%%a" /v "GigaLite" ^| findstr "HKEY"') do (
-        :: add the value
-        :: if the value does not exist, it will silently error
-        reg add "%%i" /v "GigaLite" /t REG_SZ /d "0" /f
+:: modified by Xyueta
+for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
+    for %%b in (
+        "*EEE"
+        "*FlowControl"
+        "*LsoV2IPv4"
+        "*LsoV2IPv6"
+        "*SelectiveSuspend"
+        "*WakeOnMagicPacket"
+        "*WakeOnPattern"
+        "AdvancedEEE"
+        "AutoDisableGigabit"
+        "AutoPowerSaveModeEnabled"
+        "EnableConnectedPowerGating"
+        "EnableDynamicPowerGating"
+        "EnableGreenEthernet"
+        "EnableModernStandby"
+        "EnablePME"
+        "EnablePowerManagement"
+        "EnableSavePowerNow"
+        "GigaLite"
+        "PowerSavingMode"
+        "ReduceSpeedOnPowerDown"
+        "ULPMode"
+        "WakeOnLink"
+        "WakeOnSlot"
+        "WakeUpModeCap"
+    ) do (
+        for /f %%c in ('reg query "%%a" /v "%%b" ^| findstr "HKEY"') do (
+            reg add "%%c" /v "%%b" /t REG_SZ /d "0" /f
+        )
     )
-    for /f %%i in ('reg query "%%a" /v "*EEE" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "*EEE" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "*FlowControl" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "*FlowControl" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "PowerSavingMode" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "PowerSavingMode" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnableSavePowerNow" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnableSavePowerNow" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnablePowerManagement" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnablePowerManagement" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnableGreenEthernet" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnableGreenEthernet" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnableDynamicPowerGating" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnableDynamicPowerGating" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnableConnectedPowerGating" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnableConnectedPowerGating" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "AutoPowerSaveModeEnabled" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "AutoPowerSaveModeEnabled" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "AutoDisableGigabit" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "AutoDisableGigabit" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "AdvancedEEE" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "AdvancedEEE" /t REG_DWORD /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "ULPMode" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "ULPMode" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "ReduceSpeedOnPowerDown" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "ReduceSpeedOnPowerDown" /t REG_SZ /d "0" /f
-    )
-    for /f %%i in ('reg query "%%a" /v "EnablePME" ^| findstr "HKEY"') do (
-        reg add "%%i" /v "EnablePME" /t REG_SZ /d "0" /f
-    )
-) > nul 2>nul
-netsh int tcp set heuristics disabled
+)
+
+:: configure netsh settings
+netsh int tcp set heuristics=disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
-netsh int tcp set global timestamps=disabled
 netsh int tcp set global rsc=disabled
 for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 	netsh int ip set interface %%i routerdiscovery=disabled store=persistent
