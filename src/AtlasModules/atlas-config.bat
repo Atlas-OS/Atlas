@@ -1392,6 +1392,10 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance"
 :: do not reduce sounds while in a call
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio" /v "UserDuckingPreference" /t REG_DWORD /d "3" /f
 
+:: do not show hidden/disconnected devices in sound settings
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl" /v "ShowDisconnectedDevices" /t REG_DWORD /d "0" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl" /v "ShowHiddenDevices" /t REG_DWORD /d "0" /f
+
 :: set sound scheme to no sounds
 PowerShell -NoProfile -Command "New-ItemProperty -Path HKCU:\AppEvents\Schemes -Name '(Default)' -Value '.None' -Force | Out-Null"
 PowerShell -NoProfile -Command "Get-ChildItem -Path 'HKCU:\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
