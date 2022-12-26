@@ -1681,7 +1681,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetching disabled...>> %Wi
 goto finish
 
 :hddE
-:: disable memory compression and page combining when sysmain is disabled
+:: disable memory compression and page combining when sysmain is enabled
 PowerShell -NoProfile -Command "Disable-MMAgent -MemoryCompression -PageCombining"
 sc config SysMain start=auto
 sc config FontCache start=auto
