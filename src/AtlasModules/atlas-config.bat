@@ -1450,10 +1450,10 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked
 reg delete "HKCR\*\shellex\ContextMenuHandlers\ModernSharing" /f > nul 2>nul
 
 :: remove bitmap image from the 'New' context menu
-reg delete "HKCR\.bmp\ShellNew" /f > nul
+reg delete "HKCR\.bmp\ShellNew" /f > nul 2>nul
 
 :: remove rich text document from 'New' context menu
-reg delete "HKCR\.rtf\ShellNew" /f > nul
+reg delete "HKCR\.rtf\ShellNew" /f > nul 2>nul
 
 :: remove include in library context menu
 reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
