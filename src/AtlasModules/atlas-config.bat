@@ -653,7 +653,7 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V 
 	    set svc=%%i
 	    set svc=!svc: =!
 	    for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-            set /A start=%%i
+            set /a start=%%i
             echo !start!
             echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
             echo "Start"=dword:0000000!start! >> %filename%
@@ -668,7 +668,7 @@ echo] >> %filename%
 for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	set svc=%%~i
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /A start=%%i
+		set /a start=%%i
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
@@ -810,7 +810,7 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V 
 	set svc=%%i
 	set svc=!svc: =!
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /A start=%%i
+		set /a start=%%i
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
@@ -825,7 +825,7 @@ echo] >> %filename%
 for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	set svc=%%~i
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /A start=%%i
+		set /a start=%%i
 		echo !start!
 		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
@@ -903,6 +903,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "EnableActivityFeed
 
 :: disable windows media DRM internet access
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WMDRM" /v "DisableOnline" /t REG_DWORD /d "1" /f
+
+:: disable windows media player wizard on first run
+%currentuser% reg add "HKCU\Software\Microsoft\MediaPlayer\Preferences" /v "AcceptedPrivacyStatement" /t REG_DWORD /d "1" /f
 
 :: enable always show all icons and notifications on the taskbar
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "EnableAutoTray" /t REG_DWORD /d "0" /f
@@ -994,6 +997,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DiskQuota" /v "Enable" /t R
 :: disable devicecensus.exe telemetry process
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\'DeviceCensus.exe'" /v "Debugger" /t REG_SZ /d "%WinDir%\System32\taskkill.exe" /f
 
+:: disable microsoft compatibility appraiser telemetry process
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\'CompatTelRunner.exe'" /v "Debugger" /t REG_SZ /d "%windir%\System32\taskkill.exe" /f > nul
+
 :: disable program compatibility assistant
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "AITEnable" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "AllowTelemetry" /t REG_DWORD /d "0" /f
@@ -1027,6 +1033,11 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\
 %currentuser% reg add "HKCU\Control Panel\Accessibility\StickyKeys" /v "Flags" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Control Panel\Accessibility\Keyboard Response" /v "Flags" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Control Panel\Accessibility\ToggleKeys" /v "Flags" /t REG_DWORD /d "0" /f
+
+:: configure language bar
+%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Layout Hotkey" /t REG_SZ /d "3" /f > nul
+%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Language Hotkey" /t REG_DWORD /d "3" /f > nul
+%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Hotkey" /t REG_DWORD /d "3" /f > nul
 
 :: restrict windows' access to internet resources
 :: enables various other GPOs that limit access on specific windows services
