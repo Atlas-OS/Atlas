@@ -25,7 +25,7 @@ function generate_checkbox {
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
 
-# Set the size of your form
+# set the size of your form
 $Form = New-Object System.Windows.Forms.Form
 $Form.Text = "Install Browser via Chocolatey" # Titlebar
 $Form.ShowIcon = $false
@@ -73,7 +73,7 @@ $InstallButton.Add_Click({
 })
 $Form.Controls.Add($InstallButton)
 
-# Activate the form
+# activate the form
 $Form.Add_Shown({ $Form.Activate() })
 [void] $Form.ShowDialog()
 

@@ -1,6 +1,10 @@
 - Animations
   Default: Disabled
-  Virtually all Windows animations are disabled
+  Virtually, all Windows animations are disabled.
+
+- Background Apps
+  Default: Disabled
+  Enable if you need to toggle background apps.
 
 - Bluetooth
   Default: Disabled
@@ -13,9 +17,6 @@
 - DEP
   Default: Disabled
   In layman's terms, a mitigation to prevent unauthorized programs from writing to protected memory. Game anti-cheats like Valorant/FACEIT use this. So if you play any of those, enable it.
-
-- DWM
-  QoL script to kill DWM then launch your game. (will be improved soon)
 
 - Firewall
   Default: Enabled
@@ -30,6 +31,10 @@
   Default: Disabled
   Enables features that improve hard disk performance, like prefetching and font caching.
 
+- Microsoft Store
+  Default: Enabled
+  Disables Microsoft Store, can break a lot of things in the process. Please READ THE DISCLAIMER in the script before continuing.
+
 - Network Discovery
   Default: Disabled
   Also known as network sharing, used to, as the name implies share files over the netork. There is no disable script as it is only other dependencies.
@@ -43,11 +48,15 @@
   - Sleep States:
     https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install#sleep-states
     Allows you to use sleep/hibernate.
-  - Idle:
-    Disables system idle, will DISPLAY your CPU being used at 100%. It is not actually under 100% load.
+  - CPU Idle:
+    Disables CPU idle, will DISPLAY your CPU being used at 100%. It is not actually under 100% load.
 
 - Printing
   Default: Disabled
+
+- Process Explorer
+  Default: Disabled
+  Enable if you want to install and use Process Explorer instead of Task Manager.
 
 - Search Indexing
   Default: Disabled
@@ -56,9 +65,9 @@
 - Start Menu
   Various scripts, including removing the start menu and replacing it with Open-Shell
 
-- Store
-  Default: Enabled
-  Disables Microsoft Store, can break a lot of things in the process. Please READ THE DISCLAIMER in the script before continuing.
+- Troubleshooting
+  Default: Disabled
+  Enable if you want to use Windows Troubleshooting.
 
 - UAC
   Default: Enabled (Minimum)
@@ -71,7 +80,7 @@
 - VPN
   Default: Disabled
 
-- Wifi
+- Wi-Fi
   Default: Enabled
 
 - Workstation (SMB)
