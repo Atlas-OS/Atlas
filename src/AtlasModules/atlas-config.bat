@@ -990,11 +990,15 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCloud
 :: disable fun facts, tips, tricks on windows spotlight
 :: disable start menu suggestions
 for %%i in (
+    "SilentInstalledAppsEnabled"
+    "SystemPaneSuggestionsEnabled"
     "SubscribedContent-338393Enabled"
     "SubscribedContent-353694Enabled"
     "SubscribedContent-353696Enabled"
     "SubscribedContent-338387Enabled"
     "SubscribedContent-338388Enabled"
+    "SubscribedContent-338389Enabled"
+    "SubscribedContent-353698Enabled"
 ) do (
     %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "%%i" /t REG_DWORD /d "0" /f
 )
