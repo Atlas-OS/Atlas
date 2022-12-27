@@ -14,7 +14,7 @@
 <p align="center">
  其他语言：
   <a href="https://github.com/Atlas-OS/Atlas/blob/main/README.md">English</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a>
-</p>
+</p> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_ru_RU.md">Pусский</a>
 
 # Atlas 是什么?
 
