@@ -411,7 +411,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance" /v "fAllowToGe
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance" /v "fEnableChatControl" /t REG_DWORD /d "0" /f
 
 :: set .ps1 file types to open with PowerShell by default
-reg add "HKCR\Microsoft.PowerShellScript.1\Shell\Open\Command" /ve /t REG_SZ /d "\"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe\" \"%%1\"" /f
+reg add "HKCR\Microsoft.PowerShellScript.1\Shell\Open\Command" /ve /t REG_SZ /d "\"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe\" -NoLogo -File \"%1\"" /f
 
 :: restrict anonymous access to named pipes and shares
 :: https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220932
