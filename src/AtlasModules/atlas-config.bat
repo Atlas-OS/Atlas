@@ -23,7 +23,7 @@ set branch="22H2"
 set ver="v0.0.1"
 
 :: set other variables (do not touch)
-set "currentuser=%WinDir%\AtlasModules\NSudo -U:C -P:E -Wait"
+set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
 set "setSvc=call :setSvc"
 set "firewallBlockExe=call :firewallBlockExe"
 
@@ -251,6 +251,7 @@ cls & echo Please wait. This may take a moment.
 :: disable last access information on directories, performance/privacy
 fsutil behavior set disablelastaccess 1
 
+:: disable the creation of 8.3 character-length file names on FAT- and NTFS-formatted volumes
 :: https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security
 fsutil behavior set disable8dot3 1
 
@@ -619,31 +620,31 @@ start explorer.exe
 PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server"
 
 :: disable system devices
-DevManView /disable "AMD PSP"
-DevManView /disable "Composite Bus Enumerator"
-DevManView /disable "High Precision Event Timer"
-DevManView /disable "Intel Management Engine"
-DevManView /disable "Intel SMBus"
-DevManView /disable "Microsoft Kernel Debug Network Adapter"
-DevManView /disable "Microsoft RRAS Root Enumerator"
-DevManView /disable "Microsoft System Management BIOS Driver"
-:: DevManView /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mount
-DevManView /disable "NDIS Virtual Network Adapter Enumerator"
-DevManView /disable "Numeric Data Processor"
-DevManView /disable "PCI Encryption/Decryption Controller"
-DevManView /disable "PCI Memory Controller"
-DevManView /disable "PCI standard RAM Controller"
-:: DevManView /disable "Programmable Interrupt Controller"
-DevManView /disable "SM Bus Controller"
-DevManView /disable "System Speaker"
-DevManView /disable "System Timer"
-DevManView /disable "UMBus Root Bus Enumerator"
+DevManView.exe /disable "AMD PSP"
+DevManView.exe /disable "Composite Bus Enumerator"
+DevManView.exe /disable "High Precision Event Timer"
+DevManView.exe /disable "Intel Management Engine"
+DevManView.exe /disable "Intel SMBus"
+DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
+DevManView.exe /disable "Microsoft RRAS Root Enumerator"
+DevManView.exe /disable "Microsoft System Management BIOS Driver"
+:: DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mount
+DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
+DevManView.exe /disable "Numeric Data Processor"
+DevManView.exe /disable "PCI Encryption/Decryption Controller"
+DevManView.exe /disable "PCI Memory Controller"
+DevManView.exe /disable "PCI standard RAM Controller"
+:: DevManView.exe /disable "Programmable Interrupt Controller"
+DevManView.exe /disable "SM Bus Controller"
+DevManView.exe /disable "System Speaker"
+DevManView.exe /disable "System Timer"
+DevManView.exe /disable "UMBus Root Bus Enumerator"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled devices...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable devices! >> %WinDir%\AtlasModules\logs\install.log)
 
-if %branch%=="1803" NSudo -U:C -P:E %WinDir%\AtlasModules\1803.bat
-if %branch%=="20H2" NSudo -U:C -P:E %WinDir%\AtlasModules\20H2.bat
-if %branch%=="22H2" NSudo -U:C -P:E %WinDir%\AtlasModules\22H2.bat
+if %branch%=="1803" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\1803.bat
+if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
+if %branch%=="22H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\22H2.bat
 
 :: backup default windows services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows services.reg"
@@ -956,15 +957,12 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCloud
 :: set search as icon on taskbar
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f
 
-:: run explorer as this pc
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "LaunchTo" /t REG_DWORD /d "1" /f
-
 :: configure snap settings
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "SnapAssist" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "JointResize" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "SnapFill" /t REG_DWORD /d "0" /f
 
-:: explorer
+:: configure file explorer settings
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoLowDiskSpaceChecks" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "LinkResolveIgnoreLinkInfo" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoRecentDocsHistory" /t REG_DWORD /d "1" /f
@@ -985,6 +983,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCloud
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarAnimations" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ListviewShadow" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoRemoteDestinations" /t REG_DWORD /d "1" /f
+
+:: run explorer as this pc
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "LaunchTo" /t REG_DWORD /d "1" /f
 
 :: old alt tab
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "AltTabSettings" /t REG_DWORD /d "1" /f
@@ -1038,7 +1039,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "DisableUAR" /t 
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "DisableEngine" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "DisablePCA" /t REG_DWORD /d "1" /f
 
-:: disable "open file - security warning" message
+:: disable open file - security warning message
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v "SaveZoneInformation" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v "SaveZoneInformation" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Internet Explorer\Security" /v "DisableSecuritySettingsCheck" /t REG_DWORD /d "1" /f
@@ -1167,9 +1168,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WDI\{9c5a40da-b965-4fc3-8781-8
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableCloudOptimizedContent" /t REG_DWORD /d "1" /f
 
 :: disable sleep study
-wevtutil sl Microsoft-Windows-SleepStudy/Diagnostic /e:false
-wevtutil sl Microsoft-Windows-Kernel-Processor-Power/Diagnostic /e:false
-wevtutil sl Microsoft-Windows-UserModePowerService/Diagnostic /e:false
+wevtutil set-log "Microsoft-Windows-SleepStudy/Diagnostic" /e:false
+wevtutil set-log "Microsoft-Windows-Kernel-Processor-Power/Diagnostic" /e:false
+wevtutil set-log "Microsoft-Windows-UserModePowerService/Diagnostic" /e:false
 
 :: disable license telemetry
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" /v "NoGenTicket" /t REG_DWORD /d "1" /f
@@ -1260,14 +1261,18 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Disab
 :: find correct mitigation values for different Windows versions - AMIT
 :: initialize bit mask in registry by disabling a random mitigation
 PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Disable CFG"
-:: get bit mask
+
+:: get current bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
     set "mitigation_mask=%%a"
 )
-:: set all bits to 2 (disable)
+
+:: set all bits to 2 (disable all mitigations)
 for /l %%a in (0,1,9) do (
-    set mitigation_mask=!mitigation_mask:%%a=2!
+    set "mitigation_mask=!mitigation_mask:%%a=2!"
 )
+
+:: apply mask to kernel
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "%mitigation_mask%" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /t REG_BINARY /d "%mitigation_mask%" /f
 
@@ -1402,10 +1407,10 @@ reg add "HKCR\CABFolder\Shell\RunAs" /ve /t REG_SZ /d "Install" /f
 reg add "HKCR\CABFolder\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\CABFolder\Shell\RunAs\Command" /ve /t REG_SZ /d "cmd /k DISM /online /add-package /packagepath:\"%%1\"" /f
 
-:: merge as trustedinstaller for registry files
+:: merge as trusted installer for registry files
 reg add "HKCR\regfile\Shell\RunAs" /ve /t REG_SZ /d "Merge As TrustedInstaller" /f
 reg add "HKCR\regfile\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "1" /f
-reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "NSudo -U:T -P:E reg import "%%1"" /f
+reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "NSudo.exe -U:T -P:E reg import "%%1"" /f
 
 :: remove restore previous versions
 :: from context menu and file' properties
@@ -1461,11 +1466,11 @@ reg add "HKLM\Software\Classes\.ps1\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d 
 reg add "HKLM\Software\Classes\.reg\ShellNew" /v "NullFile" /t REG_SZ /d "" /f
 reg add "HKLM\Software\Classes\.reg\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "@C:\Windows\regedit.exe,-309" /f
 
-:: double click to import power plans
+:: double click to import power schemes
 reg add "HKLM\SOFTWARE\Classes\powerplan\DefaultIcon" /ve /t REG_SZ /d "%%WinDir%%\System32\powercpl.dll,1" /f
 reg add "HKLM\SOFTWARE\Classes\powerplan\Shell\open\command" /ve /t REG_SZ /d "powercfg /import \"%%1\"" /f
 reg add "HKLM\SOFTWARE\Classes\.pow" /ve /t REG_SZ /d "powerplan" /f
-reg add "HKLM\SOFTWARE\Classes\.pow" /v "FriendlyTypeName" /t REG_SZ /d "PowerPlan" /f
+reg add "HKLM\SOFTWARE\Classes\.pow" /v "FriendlyTypeName" /t REG_SZ /d "Power Plan" /f
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Registry configuration applied...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to apply registry configuration! >> %WinDir%\AtlasModules\logs\install.log)
@@ -1763,7 +1768,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 :: search icon
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo -U:C explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1779,7 +1784,7 @@ ren SearchApp.old SearchApp.exe
 :: search icon
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f
 taskkill /f /im explorer.exe
-NSudo -U:C explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1818,7 +1823,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 :: search icon
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo -U:C explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu removed...>> %WinDir%\AtlasModules\logs\userScript.log
 
 :skipRM
@@ -1830,7 +1835,7 @@ curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5.3/Fluen
 7z -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
 del /F /Q skin.zip > nul 2>nul
 taskkill /f /im explorer.exe
-NSudo -U:C explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell installed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -1845,7 +1850,7 @@ echo A reminder of a few things this may break.
 echo - Searching in file explorer
 echo - Microsoft Store
 echo - Xbox app
-echo - Immersive control panel (Settings)
+echo - Immersive control panel (Settings app)
 echo - Adobe XD
 echo - Start context menu
 echo - Wi-Fi menu
@@ -1860,7 +1865,7 @@ choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
 sc config TabletInputService start=disabled
 
-:: disable the option for microsoft store in the "open With" dialog
+:: disable the option for microsoft store in the "open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
 
 :: block access to microsoft store
@@ -1887,7 +1892,7 @@ taskkill /f /im RuntimeBroker*  > nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo -U:C explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 pause
@@ -1897,7 +1902,7 @@ sc config TabletInputService start=demand
 :: disable the option for microsoft store in the "open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
 
-:: block Access to microsoft store
+:: block access to microsoft store
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
 
@@ -1921,7 +1926,7 @@ taskkill /f /im RuntimeBroker*  > nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
-NSudo -U:C explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% UWP enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -2104,7 +2109,7 @@ exit
 
 :xboxConfirm
 echo Removing via PowerShell...
-NSudo -U:C -ShowWindowMode:Hide -Wait PowerShell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" > nul 2>nul
+NSudo.exe -U:C -ShowWindowMode:Hide -Wait PowerShell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" > nul 2>nul
 
 echo Disabling services...
 sc config XblAuthManager start=disabled
@@ -2141,7 +2146,7 @@ if %errorlevel%==2 exit 1
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f > nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f > nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "0" /f > nul
-:: Lock UserAccountControlSettings.exe - users can enable UAC from there without luafv and AppInfo enabled, which breaks UAC completely and causes issues
+:: lock UserAccountControlSettings.exe - users can enable UAC from there without luafv and appinfo enabled, which breaks UAC completely and causes issues
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /t REG_SZ /d "C:\Windows\AtlasModules\atlas-config.bat /uacSettings /skipAdminCheck" /f > nul
 %setSvc% luafv 4
 %setSvc% Appinfo 4
@@ -2269,7 +2274,7 @@ netsh int ip reset
 netsh winsock reset
 :: extremely awful way to do this
 for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connected ^| findstr "Device Description:"') do (
-	DevManView /uninstall "%%i %%j"
+	DevManView.exe /uninstall "%%i %%j"
 )
 pnputil /scan-devices
 if %ERRORLEVEL%==0 echo %date% - %time% Network setting reset to Windows' default...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -2345,16 +2350,16 @@ systeminfo > %WinDir%\AtlasModules\logs\systemInfo.log
 goto finish
 
 :vpnD
-DevManView /disable "WAN Miniport (IKEv2)"
-DevManView /disable "WAN Miniport (IP)"
-DevManView /disable "WAN Miniport (IPv6)"
-DevManView /disable "WAN Miniport (L2TP)"
-DevManView /disable "WAN Miniport (Network Monitor)"
-DevManView /disable "WAN Miniport (PPPOE)"
-DevManView /disable "WAN Miniport (PPTP)"
-DevManView /disable "WAN Miniport (SSTP)"
-DevManView /disable "NDIS Virtual Network Adapter Enumerator"
-DevManView /disable "Microsoft RRAS Root Enumerator"
+DevManView.exe /disable "WAN Miniport (IKEv2)"
+DevManView.exe /disable "WAN Miniport (IP)"
+DevManView.exe /disable "WAN Miniport (IPv6)"
+DevManView.exe /disable "WAN Miniport (L2TP)"
+DevManView.exe /disable "WAN Miniport (Network Monitor)"
+DevManView.exe /disable "WAN Miniport (PPPOE)"
+DevManView.exe /disable "WAN Miniport (PPTP)"
+DevManView.exe /disable "WAN Miniport (SSTP)"
+DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
+DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 %setSvc% IKEEXT 4
 %setSvc% WinHttpAutoProxySvc 4
 %setSvc% RasMan 4
@@ -2366,16 +2371,16 @@ if %ERRORLEVEL%==0 echo %date% - %time% VPN disabled...>> %WinDir%\AtlasModules\
 goto finish
 
 :vpnE
-DevManView /enable "WAN Miniport (IKEv2)"
-DevManView /enable "WAN Miniport (IP)"
-DevManView /enable "WAN Miniport (IPv6)"
-DevManView /enable "WAN Miniport (L2TP)"
-DevManView /enable "WAN Miniport (Network Monitor)"
-DevManView /enable "WAN Miniport (PPPOE)"
-DevManView /enable "WAN Miniport (PPTP)"
-DevManView /enable "WAN Miniport (SSTP)"
-DevManView /enable "NDIS Virtual Network Adapter Enumerator"
-DevManView /enable "Microsoft RRAS Root Enumerator"
+DevManView.exe /enable "WAN Miniport (IKEv2)"
+DevManView.exe /enable "WAN Miniport (IP)"
+DevManView.exe /enable "WAN Miniport (IPv6)"
+DevManView.exe /enable "WAN Miniport (L2TP)"
+DevManView.exe /enable "WAN Miniport (Network Monitor)"
+DevManView.exe /enable "WAN Miniport (PPPOE)"
+DevManView.exe /enable "WAN Miniport (PPTP)"
+DevManView.exe /enable "WAN Miniport (SSTP)"
+DevManView.exe /enable "NDIS Virtual Network Adapter Enumerator"
+DevManView.exe /enable "Microsoft RRAS Root Enumerator"
 %setSvc% IKEEXT 3
 %setSvc% BFE 2
 %setSvc% WinHttpAutoProxySvc 3
@@ -2609,14 +2614,14 @@ reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Position" /t REG_SZ /
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "SubCommands" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "MUIVerb" /t REG_SZ /d "Enable NVIDIA Display Container LS" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Display Container LS" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im explorer.exe > nul 2>&1
-NSudo -U:C explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS context menu enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -2645,7 +2650,7 @@ reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul 2>nul
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im explorer.exe > nul 2>&1
-NSudo -U:C explorer.exe
+NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS context menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
@@ -2713,7 +2718,7 @@ ping -n 1 -4 1.1.1.1 | find "time=" > nul 2>nul || (
 goto :EOF
 
 :FDel <location>
-:: with nsudo, should not need things like icacls/takeown
+:: with NSudo, should not need things like icacls/takeown
 if exist "%~1" del /F /Q "%~1"
 goto :EOF
 
