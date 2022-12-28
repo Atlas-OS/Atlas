@@ -1832,7 +1832,7 @@ echo]
 echo Open-Shell is installing...
 "Open-Shell.exe" /qn ADDLOCAL=StartMenu
 curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5.3/Fluent-Metro_1.5.3.zip -o skin.zip
-7z -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
+7z.exe -aoa -r e "skin.zip" -o"C:\Program Files\Open-Shell\Skins"
 del /F /Q skin.zip > nul 2>nul
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
