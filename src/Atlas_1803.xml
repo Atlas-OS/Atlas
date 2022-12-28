@@ -36,7 +36,6 @@
 		<c>cloudnotifications 'Cloud Notifications'</c>
 		<c>commmc32 'COM+ (Component Services) (management console) - 32 bit'</c>
 		<c>compmgmt32 'Computer Management - 32 bit'</c>
-		<c>containers</c>
 		<c>datacenterbridging 'Data Center Bridging (DCB)'</c>
 		<c>desktopactivitymoderator 'Desktop Activity Moderator (DAM)'</c>
 		<c>desktopimgdownldr 'Desktop image downloader'</c>
@@ -514,7 +513,6 @@
 		<c>sstackwow64 'Servicing Stack - 32 bit'</c>
 		<c>staticfontcache 'Static Font Cache'</c>
 		<c>stepsrecorder 'Steps Recorder'</c>
-		<c>storageqos 'Storage Quality of Service (Storage QoS)'</c>
 		<c>storagespaces 'Storage Spaces'</c>
 		<c>supportdir 'Support directory'</c>
 		<c>symboliclinks 'Legacy symbolic links'</c>

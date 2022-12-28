@@ -31,6 +31,10 @@
   Default: Disabled
   Enables features that improve hard disk performance, like prefetching and font caching.
 
+- Hyper-V and VBS
+  Default: Disabled
+  Enables Hyper-V and Virtualization-based security.
+  
 - Microsoft Store
   Default: Enabled
   Disables Microsoft Store, can break a lot of things in the process. Please READ THE DISCLAIMER in the script before continuing.
