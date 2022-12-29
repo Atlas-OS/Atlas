@@ -320,8 +320,6 @@
 		<c>hwsupport_scanner 'Scanner'</c>
 		<c>hwsupport_smartcard 'Smartcard'</c>
 		<c>hwsupport_tv 'TV Tuner codecs and support'</c>
-		<c>hyperv 'Hyper-V'</c>
-		<c>hypervguest 'Hyper-V Guest'</c>
 		<c>ias 'Internet Authentication Service (IAS)'</c>
 		<c>iis 'Internet Information Server (IIS)'</c>
 		<c>indeo 'Intel Indeo Codecs'</c>
@@ -508,7 +506,7 @@
 			<Feature enabled="yes">CapFrameX</Feature>
 			<Feature enabled="yes">Discord</Feature>
 			<Feature enabled="yes">FileSharing</Feature>
-			<Feature enabled="no">Hyper-V</Feature>
+			<Feature enabled="yes">Hyper-V</Feature>
 			<Feature enabled="yes">iCloud</Feature>
 			<Feature enabled="no">ManualSetup</Feature>
 			<Feature enabled="yes">OfficeSupport</Feature>
@@ -544,7 +542,7 @@
 		</ComponentFeatures>
 		<MachineDrivers>
 			<Machine enabled="yes">HostMachine</Machine>
-			<Machine enabled="no">Hyper-V VM</Machine>
+			<Machine enabled="yes">Hyper-V VM</Machine>
 			<Machine enabled="no">Parallels VM</Machine>
 			<Machine enabled="yes">Virtual Box VM</Machine>
 			<Machine enabled="yes">VMware VM</Machine>
