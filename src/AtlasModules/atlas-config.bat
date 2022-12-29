@@ -629,6 +629,11 @@ DevManView.exe /disable "Composite Bus Enumerator"
 DevManView.exe /disable "High Precision Event Timer"
 DevManView.exe /disable "Intel Management Engine"
 DevManView.exe /disable "Intel SMBus"
+DevManView.exe /disable "Microsoft Hyper-V NT Kernel Integration VSP"
+DevManView.exe /disable "Microsoft Hyper-V PCI Server"
+DevManView.exe /disable "Microsoft Hyper-V Virtual Disk Server"
+DevManView.exe /disable "Microsoft Hyper-V Virtual Machine Bus Provider"
+DevManView.exe /disable "Microsoft Hyper-V Virtualization Infrastructure Driver"
 DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
 DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 DevManView.exe /disable "Microsoft System Management BIOS Driver"
@@ -1265,6 +1270,18 @@ reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\Defa
 reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\Shell\Open\Command" /ve /t REG_SZ /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /ve /t REG_SZ /d "All Tasks" /f
 
+:: disable hyper-v and vbs as default
+:: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Windows.DeviceGuard::VirtualizationBasedSecuritye
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "EnableVirtualizationBasedSecurity" /d "0" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "RequirePlatformSecurityFeatures" /d "1" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "HypervisorEnforcedCodeIntegrity" /d "0" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "HVCIMATRequired" /d "0" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "LsaCfgFlags" /d "0" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "ConfigureSystemGuardLaunch" /d "0" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v "RequireMicrosoftSignedBootChain" /t REG_DWORD /d "0" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "WasEnabledBy" /t REG_DWORD /d "0" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /t REG_DWORD /d "0" /f
+
 :: memory management
 :: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnableCfg" /t REG_DWORD /d "0" /f
 :: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "MoveImages" /t REG_DWORD /d "0" /f
@@ -1552,6 +1569,13 @@ bcdedit /set bootmenupolicy Legacy
 
 :: make dual boot menu more descriptive
 bcdedit /set description Atlas %branch% %ver%
+
+:: disable hyper-v and vbs
+bcdedit /set hypervisorlaunchtype off
+bcdedit /set vm no
+bcdedit /set vmslaunchtype Off
+bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS
+
 echo %date% - %time% BCD Options Set...>> %WinDir%\AtlasModules\logs\install.log
 
 :: write to script log file
