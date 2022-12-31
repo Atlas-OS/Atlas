@@ -1643,10 +1643,10 @@ goto finish
 :hyperD
 :: credit: he3als
 :: bcdedit commands
-bcdedit /set hypervisorlaunchtype off
-bcdedit /set vm no
-bcdedit /set vmslaunchtype Off
-bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS
+bcdedit /set hypervisorlaunchtype off > nul
+bcdedit /set vm no > nul
+bcdedit /set vmslaunchtype Off > nul
+bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS > nul
 
 :: disable hyper-v with dism
 DISM /Online /Disable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
@@ -1716,10 +1716,10 @@ goto finish
 :hyperE
 :: credit: he3als
 :: bcdedit commands
-bcdedit /set hypervisorlaunchtype auto
-bcdedit /deletevalue vm
-bcdedit /set vsmlaunchtype Auto
-bcdedit /deletevalue loadoptions
+bcdedit /set hypervisorlaunchtype auto > nul
+bcdedit /deletevalue vm > nul
+bcdedit /set vsmlaunchtype Auto > nul
+bcdedit /deletevalue loadoptions > nul
 
 :: enable hyper-v with dism
 DISM /Online /Enable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
