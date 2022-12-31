@@ -546,9 +546,9 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes.
 :: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
 for /f %%i in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\%%i" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\%%i" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\%%i" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
 )
 
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosNonBestEffortLimit
@@ -704,8 +704,6 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% DsmSvc 3
 :: %setSvc% DsSvc 4 < can cause issues with snip and sketch
 %setSvc% Eaphost 3
-%setSvc% edgeupdate 4
-%setSvc% edgeupdatem 4
 %setSvc% EFS 3
 %setSvc% fdPHost 4
 %setSvc% FDResPub 4
@@ -790,8 +788,6 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% hvsocketcontrol 4
 %setSvc% KSecPkg 4
 %setSvc% mrxsmb 4
-%setSvc% mrxsmb 4
-%setSvc% mrxsmb20 4
 %setSvc% mrxsmb20 4
 %setSvc% NdisVirtualBus 4
 %setSvc% nvraid 4
