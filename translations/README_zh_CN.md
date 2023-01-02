@@ -11,14 +11,11 @@
   •
   <a href="https://discord.com/servers/atlas-795710270000332800">加入我们的 Discord</a>
 </p>
-<p align="center">
- 其他语言：
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README.md">English</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_ru_RU.md">Pусский</a>
-</p>
+
 
 # Atlas 是什么?
 
-Atlas 是一个魔改版本的 Windows，删除了众多拖慢 Windows 系统的组件（游戏性能下降的罪魁祸首）。Atlas 是一个透明且开源的项目，致力于让玩家无论是在渣机，还是高性能 PC 上运行，都能享受到同等的速度。
+Atlas 是一个魔改版本的 Windows，删除了众多拖慢 Windows 系统的组件（游戏性能下降的罪魁祸首）。Atlas 是一个透明且开源的项目，致力于让玩家享受到同等的待遇（无论是在一台土豆服务器，还是高性能 PC 上运行）。
 
 Atlas 在主要优化性能的同时，也是减少系统、网络、输入延迟的一个极佳选择。
 
@@ -28,11 +25,11 @@ Atlas 在主要优化性能的同时，也是减少系统、网络、输入延�
   - [Atlas 项目在哪?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
   - [如何安装 Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
   - [Atlas 移除了什么?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
-- [Windows 与 Atlas 的对比](#windows-与-atlas-的对比)
-- [安装完成之后……](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [品牌工具包](../img/brand-kit.zip)
+- <a href="Windows 对比 Atlas">Windows 对比 Atlas</a>
+- [完成安装后](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
+- [品牌工具包](./img/brand-kit.zip)
 
-## Windows 与 Atlas 的对比
+## Windows 对比 Atlas
 
 ### **隐私**
 
@@ -54,7 +51,7 @@ Atlas 的目标是在不损失性能的情况下保证系统尽可能的安全�
 
 ### **精简**
 
-Atlas 删除了大量预先安装的应用程序和其他组件。尽管这可能会破坏一些兼容性，但它会显著减少镜像的大小（例如删除 Windows Defender 之类的功能）。这种修改是主要针对游戏的，但大多数教育和工作程序（理论上）也可以不受影响正常工作。[前往常见问题，看看我们删除了什么](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)。
+Atlas 删除了大量预先安装的应用程序和其他组件。尽管这可能会破坏一些兼容性，但它会显著减少镜像的大小（例如删除 Windows Defender 之类的功能）。这种修改是主要针对游戏的，但大多数教育和工作程序（理论上）也可以不受影响正常工作。前往[常见问题](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)，看看我们删除了什么。
 
 ### **性能**
 
@@ -72,16 +69,13 @@ Atlas 预先调整了一些东西，在保持兼容性的同时努力提高其�
 
 ## 品牌工具包
 
-想制作自己的 Atlas 壁纸吗？也许你可以用我们的 logo 来做你自己的设计？该功能面向社区开放，以激发整个社区的创意。[尝试制作一些让人眼前一亮的东西！](../img/brand-kit.zip)
+想制作自己的 Atlas 壁纸吗？也许你可以用我们的 logo 来做你自己的设计？该功能面向社区开放，以激发整个社区的创意。[尝试制作一些让人眼前一亮的东西！](./img/brand-kit.zip)
 
-我们在 Discussion 页面有[专门的分区](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)用于分享社区制作的壁纸，您可以前往[这里](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)发布您独一无二的创意作品！
+我们在 Discussion 页面有专门的分区用于分享社区制作的壁纸，您可以前往[这里](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)发布您独一无二的创意作品！
 
 ## Disclaimer（免责声明）
 
-This is an unofficial translation of the AtlasOS Disclamer into Simplified Chinese. It was not published by the AtlasOS Team, and does not legally state the Disclaimer. However, we hope that this translation will help Simplified Chinese speakers understand this Disclaimer better.
-这是免责声明的非正式简体中文翻译。它并未由 AtlasOS 团队发布，也不是一个正式的法律声明——只有 AtlasOS 的[原始英文版免责声明](https://github.com/Atlas-OS/Atlas/blob/main/README.md#disclaimer)才有法律意义。不过，我们希望该翻译能够帮助简体中文用户更好地理解该法律声明。
-
-下载、修改以及使用这些镜像即代表您同意[微软公司的条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_SimplifiedChinese.htm)，这些镜像都不是预激活的，您**必须**使用正版的密钥。
+By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
 ## Translation contributors (翻译贡献者)
 

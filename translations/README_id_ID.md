@@ -11,10 +11,7 @@
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
 </p>
-<p align="center">
- Bahasa Lainnya:
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README.md">English</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_ru_RU.md">Pусский</a>
-</p>
+
 
 # Apa itu Atlas?
 
@@ -76,9 +73,9 @@ Apakah anda ingin membuat wallpaper Atlas anda sendiri? Mungkin mencoba hal baru
 
 Kami juga memiliki [area khusus di tab diskusi](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), sehingga anda dapat membagikan kreasi anda dengan jenius kreatif lainnya dan bahkan mungkin memicu beberapa inspirasi!
 
-## Disclaimer
+## Disclaimer(Disclaimer)
 
-Dengan mengunduh, memodifikasi, atau menggunakan salah satu ISO ini, Anda menyetujui [Persyaratan Microsoft.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) Tidak satu pun dari ini ISO telah diaktifkan sebelumnya, Anda **harus** menggunakan kunci asli.
+By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
 ## Translation contributors (Kontributor terjemahan)
 

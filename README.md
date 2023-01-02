@@ -11,10 +11,18 @@
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
 </p>
-<p align="center">
- Other languages:
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_ru_RU.md">Pусский</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_id_ID.md">Bahasa Indonesia</a>
-</p>
+
+
+# Translations
+
+<kbd>[<img title="中文（简体）" alt="中文（简体）" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/cn.svg" width="22">](translations/README_zh_CN.md)</kbd>
+<kbd>[<img title="Française" alt="Française" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/fr.svg" width="22">](translations/README_fr_FR.md)</kbd>
+<kbd>[<img title="Bahasa Indonesia" alt="Bahasa Indonesia" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/id.svg" width="22">](translations/README_id_ID.md)</kbd>
+<kbd>[<img title="Polski" alt="Polski" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/pl.svg" width="22">](translations/README_pl_PL.md)</kbd>
+<kbd>[<img title="Русский язык" alt="Русский язык" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ru.svg" width="22">](translations/README_ru_RU.md)</kbd>
+
+#### _Want to help us by translate documents? please follow this [README](translations/README.md)._
+
 
 # What is Atlas?
 
