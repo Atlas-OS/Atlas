@@ -11,10 +11,7 @@
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
 </p>
-<p align="center">
- Другие языки:
-   <a href="https://github.com/Atlas-OS/Atlas/blob/main/README.md">English</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_pl_PL.md">Polski</a>
-</p>
+
 
 # Что такое Atlas?
 
@@ -76,9 +73,9 @@ Atlas предварительно настроен. Сохраняя совме
 
 У нас также есть [специальная область во вкладке обсуждений](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), где вы можете поделиться своими творениями с другими творческими гениями и, возможно, даже вдохновиться!
 
-## Заявление об отказе от претензий
+## Disclaimer (Заявление об отказе от претензий)
 
-Загружая, изменяя или используя любое из этих изображений, вы соглашаетесь с [Условиями Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). Ни один из этих образов не является предварительно активированным, вы **должны** использовать подлинный ключ.
+By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
 ## Translation contributors (Автор перевода)
 

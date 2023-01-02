@@ -11,10 +11,7 @@
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
 </p>
-<p align="center">
- Inne języki:
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/README.md">English</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_zh_CN.md">简体中文</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_fr_FR.md">Français</a> • <a href="https://github.com/Atlas-OS/Atlas/blob/main/README_Translations/README_ru_RU.md">Pусский</a>
-</p>
+
 
 # Co to jest AtlasOS?
 
