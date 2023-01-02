@@ -11,7 +11,7 @@
 
 First of all, thank you for considering helping us by translating documents! Here are some small thing you should remind before commiting a translation.
 
-• Please keep the Disclaimer in english. For legal reasons.
+• Please keep the Disclaimer in English. For legal reasons.
 
 • Please keep your translation close to the original text.
 
