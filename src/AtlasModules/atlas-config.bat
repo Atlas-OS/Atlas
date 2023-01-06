@@ -388,7 +388,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% MSI mode set...>> %WinDir%\AtlasModules
 
 cls & echo Please wait. This may take a moment.
 
-:: --- Hardening ---
+:: --- Hardening and Miscellaneous ---
 
 :: delete defaultuser0 account used during OOBE
 net user defaultuser0 /delete > nul 2>nul
@@ -399,6 +399,14 @@ PowerShell -NoProfile -Command "Set-ExecutionPolicy Unrestricted -force"
 :: disable automatic repair
 bcdedit /set recoveryenabled no > nul 2>nul
 fsutil repair set C: 0 > nul 2>nul
+
+:: disable hibernation and fast startup
+powercfg -h off
+
+:: disable sleep study
+wevtutil set-log "Microsoft-Windows-SleepStudy/Diagnostic" /e:false
+wevtutil set-log "Microsoft-Windows-Kernel-Processor-Power/Diagnostic" /e:false
+wevtutil set-log "Microsoft-Windows-UserModePowerService/Diagnostic" /e:false
 
 :: disable and delete adobe font type manager
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Font Drivers" /v "Adobe Type Manager" /f > nul 2>nul
@@ -1103,9 +1111,9 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\
 %currentuser% reg add "HKCU\Control Panel\Accessibility\ToggleKeys" /v "Flags" /t REG_DWORD /d "0" /f
 
 :: configure language bar
-%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Layout Hotkey" /t REG_SZ /d "3" /f > nul
-%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Language Hotkey" /t REG_DWORD /d "3" /f > nul
-%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Hotkey" /t REG_DWORD /d "3" /f > nul
+%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Layout Hotkey" /t REG_SZ /d "3" /f
+%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Language Hotkey" /t REG_DWORD /d "3" /f
+%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Hotkey" /t REG_DWORD /d "3" /f
 
 :: restrict windows' access to internet resources
 :: enables various other GPOs that limit access on specific windows services
@@ -1138,7 +1146,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Consent" /v "De
 reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Consent" /v "DefaultOverrideBehavior" /t REG_DWORD /d "1" /f
 
 :: lock UserAccountControlSettings.exe - users can enable UAC from there without luafv and appinfo enabled, which breaks uac completely and causes issues
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /t REG_SZ /d "C:\Windows\AtlasModules\atlas-config.bat /uacSettings /skipAdminCheck" /f > nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /t REG_SZ /d "C:\Windows\AtlasModules\atlas-config.bat /uacSettings /skipAdminCheck" /f
 
 :: disable data collection
 reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v "AllowTelemetry" /t REG_DWORD /d "0" /f
@@ -1197,11 +1205,6 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WDI\{9c5a40da-b965-4fc3-8781-8
 :: disable cloud optimized taskbars
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableCloudOptimizedContent" /t REG_DWORD /d "1" /f
 
-:: disable sleep study
-wevtutil set-log "Microsoft-Windows-SleepStudy/Diagnostic" /e:false
-wevtutil set-log "Microsoft-Windows-Kernel-Processor-Power/Diagnostic" /e:false
-wevtutil set-log "Microsoft-Windows-UserModePowerService/Diagnostic" /e:false
-
 :: disable license telemetry
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" /v "NoGenTicket" /t REG_DWORD /d "1" /f
 
@@ -1227,9 +1230,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power" /v "EnergyEstimationEnable
 :: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power" /v "CsEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power" /v "EventProcessorEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f
-
-:: disable hibernation and fast startup
-powercfg -h off
 
 :: location tracking
 reg add "HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice" /v "AllowFindMyDevice" /t REG_DWORD /d "0" /f
@@ -1318,6 +1318,7 @@ for /l %%a in (0,1,9) do (
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "%mitigation_mask%" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /t REG_BINARY /d "%mitigation_mask%" /f
 
+:: disable TsX
 :: https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html
 :: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableTsx" /t REG_DWORD /d "1" /f
 
@@ -1338,7 +1339,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProf
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "NoLazyMode" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "LazyModeTimeout" /t REG_DWORD /d "10000" /f
 
-:: configure gamebar/fse
+:: configure gamebar/fullscreen exclusive
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\GameBar" /v "ShowStartupPanel" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\GameBar" /v "GamePanelStartupTipIndex" /t REG_DWORD /d "3" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\GameBar" /v "UseNexusForGameBarEnabled" /t REG_DWORD /d "0" /f
@@ -1387,8 +1388,8 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "U
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "ShowRecent" /t REG_DWORD /d "0" /f
 
 :: disable notify about usb issues
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Shell\USB" /v "NotifyOnUsbErrors" /t REG_DWORD /d "0" /f >nul 2>&1
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Shell\USB" /v "NotifyOnWeakCharger" /t REG_DWORD /d "0" /f >nul 2>&1
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Shell\USB" /v "NotifyOnUsbErrors" /t REG_DWORD /d "0" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Shell\USB" /v "NotifyOnWeakCharger" /t REG_DWORD /d "0" /f
 
 :: disable folders in this pc
 :: credit: https://www.tenforums.com/tutorials/6015-add-remove-folders-pc-windows-10-a.html
@@ -1415,11 +1416,9 @@ for %%i in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
 :: set legacy photo viewer as default
 for %%i in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
     %currentuser% reg add "HKCU\SOFTWARE\Classes\.%%~i" /ve /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
-    %currentuser% reg add "HKCU\SOFTWARE\Classes\.wdp" /ve /t REG_SZ /d "PhotoViewer.FileAssoc.Wdp" /f
 )
 
 :: disable gamebar presence writer
-:: instead of removing a file
 reg add "HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter" /v "ActivationType" /t REG_DWORD /d "0" /f
 
 :: disable maintenance
