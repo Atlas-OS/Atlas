@@ -17,7 +17,7 @@ First of all, thank you for considering helping us by translating documents! Her
 
 • Please do not change any things other then the text you need to translate (if changed, mention it in the pull request).
 
-• Please double check before submitting a pull request.
+• Please double check your translation before submitting a pull request.
 
 • Atlas, Spectre and Meltdown should all be kept in English. Due to Atlas being the company name and the rest being document names.
 
