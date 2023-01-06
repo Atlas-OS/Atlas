@@ -9,14 +9,16 @@
 
 # Translation guide
 
-First of all, thank you for considering helping us by translating documents! Here are some small thing you should remind before commiting a translation.
+First of all, thank you for considering helping us by translating documents! Here are some small things you should remember before creating a translated README.md.
 
-• Please keep the Disclaimer in English. For legal reasons.
+• Please keep the disclaimer in English, for legal reasons.
 
 • Please keep your translation close to the original text.
 
-• Please do not change any things other then the text you need to translate (if changed, mention it in the PR).
+• Please do not change any things other then the text you need to translate (if changed, mention it in the pull request).
 
-• Please double check before submitting a PR.
+• Please double check before submitting a pull request.
+
+• Atlas, Spectre and Meltdown should all be kept in English. Due to Atlas being the company name and the rest being document names.
 
 • If you need any help, please join our [Discord](https://discord.com/servers/atlas-795710270000332800).
