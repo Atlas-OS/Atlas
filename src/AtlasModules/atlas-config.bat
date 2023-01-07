@@ -1532,19 +1532,6 @@ for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRem
 )
 echo %date% - %time% Disabled dma remapping...>> %WinDir%\AtlasModules\logs\install.log
 
-:: set system processes priority below normal
-for %%i in (lsass sppsvc SearchIndexer fontdrvhost sihost ctfmon) do (
-  reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%%i.exe\PerfOptions" /v "CpuPriorityClass" /t REG_DWORD /d "5" /f
-)
-
-:: set background apps priority below normal
-for %%i in (OriginWebHelperService ShareX EpicWebHelper SocialClubHelper steamwebhelper) do (
-  reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%%i.exe\PerfOptions" /v "CpuPriorityClass" /t REG_DWORD /d "5" /f
-)
-
-:: set desktop window manager priority to normal
-:: wmic process where name="dwm.exe" CALL setpriority "normal"
-
 if %ERRORLEVEL%==0 (echo %date% - %time% Process priorities set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set priorities! >> %WinDir%\AtlasModules\logs\install.log)
 
