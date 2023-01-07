@@ -19,9 +19,9 @@
 :: - JayXTQ
 
 @echo off
-title AtlasOS Configuration Script
 set branch="22H2"
-set ver="v0.0.1"
+set ver="v0.1"
+title AtlasOS Configuration Script %branch% %ver%
 
 :: set other variables (do not touch)
 set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
