@@ -630,6 +630,8 @@ PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID
 
 :: disable system devices
 DevManView.exe /disable "AMD PSP"
+DevManView.exe /disable "AMD SMBus"
+DevManView.exe /disable "Base System Device"
 DevManView.exe /disable "Composite Bus Enumerator"
 DevManView.exe /disable "High Precision Event Timer"
 DevManView.exe /disable "Intel Management Engine"
@@ -641,18 +643,19 @@ DevManView.exe /disable "Microsoft Hyper-V Virtual Machine Bus Provider"
 DevManView.exe /disable "Microsoft Hyper-V Virtualization Infrastructure Driver"
 DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
 DevManView.exe /disable "Microsoft RRAS Root Enumerator"
-DevManView.exe /disable "Microsoft System Management BIOS Driver"
 :: DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mount
 DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
 DevManView.exe /disable "Numeric Data Processor"
+DevManView.exe /disable "PCI Data Acquisition and Signal Processing Controller"
 DevManView.exe /disable "PCI Encryption/Decryption Controller"
 DevManView.exe /disable "PCI Memory Controller"
-DevManView.exe /disable "PCI standard RAM Controller"
+DevManView.exe /disable "PCI Simple Communications Controller"
 :: DevManView.exe /disable "Programmable Interrupt Controller"
 DevManView.exe /disable "SM Bus Controller"
 DevManView.exe /disable "System Speaker"
 DevManView.exe /disable "System Timer"
 DevManView.exe /disable "UMBus Root Bus Enumerator"
+
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled devices...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable devices! >> %WinDir%\AtlasModules\logs\install.log)
 
