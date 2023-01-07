@@ -31,6 +31,10 @@ Windows Registry Editor Version 5.00
 "NoAutoRebootWithLoggedOnUsers"=dword:00000001
 "EnableFeaturedSoftware"=dword:00000000
 
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings]
+"RestartNotificationsAllowed2"=dword:00000000
+"HideMCTLink"=dword:00000001
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching]
 "SearchOrderConfig"=dword:00000000
 
@@ -48,11 +52,12 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
 "EnableFirstLogonAnimation"=dword:00000000
 
-; disable cortana (removes unnecssary page in oobe)
+; disable cortana (removes a unnecssary page in oobe)
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search]
 "AllowCortana"=dword:00000000
 
 ; set .ps1 file types to open with PowerShell by default
+
 [HKEY_CLASSES_ROOT\Microsoft.PowerShellScript.1\Shell\Open\Command]
 @="\"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -File \"%1\""
