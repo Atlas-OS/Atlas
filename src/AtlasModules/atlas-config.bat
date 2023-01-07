@@ -19,6 +19,7 @@
 :: - JayXTQ
 
 @echo off
+title AtlasOS Configuration Script
 set branch="22H2"
 set ver="v0.0.1"
 
