@@ -21,4 +21,4 @@ First of all, thank you for considering helping us by translating documents! Her
 
 • Atlas, Spectre and Meltdown should all be kept in English. Due to Atlas being the company name and the rest being document names.
 
-• If you need any help, please join our [Discord](https://discord.com/servers/atlas-795710270000332800).
+• If you need any help, please join our [Discord server](https://discord.com/servers/atlas-795710270000332800).
