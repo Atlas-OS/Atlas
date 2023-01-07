@@ -397,7 +397,8 @@ PowerShell -NoProfile -Command "Set-ExecutionPolicy Unrestricted -force"
 bcdedit /set recoveryenabled no > nul 2>nul
 fsutil repair set C: 0 > nul 2>nul
 
-:: disable powershell telemetry 
+:: disable powershell telemetry
+:: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.3
 setx POWERSHELL_TELEMETRY_OPTOUT 1
 
 :: disable hibernation and fast startup
