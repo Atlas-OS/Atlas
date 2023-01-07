@@ -157,6 +157,10 @@ if /i "%~1"=="/removescoopcache" goto scoopCache
 if /i "%~1"=="/nvpstateD" goto NVPstate
 if /i "%~1"=="/nvpstateE" goto revertNVPState
 
+:: HDCP
+if /i "%~1"=="/hdcpD" goto hdcpD
+if /i "%~1"=="/hdcpE" goto hdcpE
+
 :: DSCP
 if /i "%~1"=="/dscpauto" goto DSCPauto
 
@@ -2732,6 +2736,40 @@ for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Clas
     reg delete "%%i" /v "DisableDynamicPstate" /f > nul 2>nul
 )
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States enabled...>> %WinDir%\AtlasModules\logs\userScript.log
+goto finish
+
+:hdcpD
+:: credits to timecard
+:: https://github.com/djdallmann/GamingPCSetup/blob/master/CONTENT/RESEARCH/WINDRIVERS/README.md#q-are-there-any-configuration-options-that-allow-you-to-disable-hdcp-when-using-nvidia-based-graphics-cards
+sc query NVDisplay.ContainerLocalSystem > nul 2>&1
+if errorlevel 1 (
+    echo You do not have NVIDIA GPU drivers installed.
+    pause
+    exit /B
+)
+
+for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
+    reg add "%%i" /v "RMHdcpKeyglobZero" /t REG_DWORD /d "1" /f
+)
+
+if %ERRORLEVEL%==0 echo %date% - %time% HDCP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+goto finish
+
+:hdcpE
+:: credits to timecard
+:: https://github.com/djdallmann/GamingPCSetup/blob/master/CONTENT/RESEARCH/WINDRIVERS/README.md#q-are-there-any-configuration-options-that-allow-you-to-disable-hdcp-when-using-nvidia-based-graphics-cards
+sc query NVDisplay.ContainerLocalSystem > nul 2>&1
+if errorlevel 1 (
+    echo You do not have NVIDIA GPU drivers installed.
+    pause
+    exit /B
+)
+
+for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
+    reg add "%%i" /v "RMHdcpKeyglobZero" /t REG_DWORD /d "0" /f
+)
+
+if %ERRORLEVEL%==0 echo %date% - %time% HDCP enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :nvcontainerD
