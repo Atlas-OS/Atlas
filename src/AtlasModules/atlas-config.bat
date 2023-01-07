@@ -351,7 +351,7 @@ for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "P
     reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
 for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
 )
 
 :: enable MSI mode on network adapters
@@ -362,7 +362,7 @@ for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PC
 :: if e.g. VMWare is used, skip setting to undefined
 wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && goto vmGO
 for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
 )
 goto noVM
 
@@ -378,7 +378,7 @@ for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID ^| findstr /L "PCI
     reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
 )
 for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
 )
 if %ERRORLEVEL%==0 (echo %date% - %time% MSI mode set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set MSI mode! >> %WinDir%\AtlasModules\logs\install.log)
@@ -387,7 +387,7 @@ cls & echo Please wait. This may take a moment.
 
 :: --- Hardening and Miscellaneous ---
 
-:: delete defaultuser0 account used during OOBE
+:: delete defaultuser0 account used during oobe
 net user defaultuser0 /delete > nul 2>nul
 
 :: set PowerShell execution policy to unrestricted
@@ -417,11 +417,6 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "N
 
 :: disable lock screen camera
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v "NoLockScreenCamera" /t REG_DWORD /d "1" /f
-
-:: disable remote assistance
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance" /v "fAllowFullControl" /t REG_DWORD /d "0" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance" /v "fAllowToGetHelp" /t REG_DWORD /d "0" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance" /v "fEnableChatControl" /t REG_DWORD /d "0" /f
 
 :: restrict anonymous access to named pipes and shares
 :: https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220932
@@ -609,8 +604,8 @@ for /f "tokens=1-9* delims=\ " %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet
         )
     )
 )
-if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to enable hidden power scheme attributes! >> %windir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to enable hidden power scheme attributes! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
@@ -674,14 +669,8 @@ for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 	netsh int ip set interface %%i routerdiscovery=disabled store=persistent
 )
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %windir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to optimize network! >> %windir%\AtlasModules\logs\install.log)
-
-:: windows server update client id
-sc stop wuauserv > nul 2>nul
-
-:: reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientIdValidation" /f > nul 2>nul
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" /v "SusClientId" /t REG_SZ /d "00000000-0000-0000-0000-000000000000" /f
+if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to optimize network! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: fix explorer whitebar bug
 start explorer.exe
@@ -689,8 +678,8 @@ taskkill /f /im explorer.exe
 start explorer.exe
 
 :: disable network adapters
-:: IPv6, Client for Microsoft Networks, QoS Packet Scheduler, File and Printer Sharing
-PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server"
+:: IPv6, Client for Microsoft Networks, File and Printer Sharing, LLDP Protocol, Link-Layer Topology Discovery Mapper, Link-Layer Topology Discovery Responder
+PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr"
 
 :: disable system devices
 DevManView.exe /disable "AMD PSP"
@@ -1136,7 +1125,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DiskQuota" /v "Enable" /t R
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\'DeviceCensus.exe'" /v "Debugger" /t REG_SZ /d "%WinDir%\System32\taskkill.exe" /f
 
 :: disable microsoft compatibility appraiser telemetry process
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\'CompatTelRunner.exe'" /v "Debugger" /t REG_SZ /d "%windir%\System32\taskkill.exe" /f > nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\'CompatTelRunner.exe'" /v "Debugger" /t REG_SZ /d "%WinDir%\System32\taskkill.exe" /f
 
 :: disable program compatibility assistant
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "AITEnable" /t REG_DWORD /d "0" /f
@@ -1264,7 +1253,6 @@ reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\System\AllowExperimentati
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Input\TIPC" /v "Enabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "UploadUserActivities" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "PublishUserActivities" /t REG_DWORD /d "0" /f
-==
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Diagnostics\Performance" /v "DisableDiagnosticTracing" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WDI\{9c5a40da-b965-4fc3-8781-88dd50a6299d}" /v "ScenarioExecutionEnabled" /t REG_DWORD /d "0" /f
 
@@ -1279,7 +1267,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\Software Pro
 
 :: disable windows feedback
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Siuf\Rules" /v "NumberOfSIUFInPeriod" /t REG_DWORD /d "0" /f 
-%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Siuf\Rules" /v "PeriodInNanoSeconds" /f
+%currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Siuf\Rules" /v "PeriodInNanoSeconds" /f > nul 2>nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v "DoNotShowFeedbackNotifications" /t REG_DWORD /d "1" /f 
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v "DoNotShowFeedbackNotifications" /t REG_DWORD /d "1" /f
 
@@ -1347,7 +1335,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorE
 :: memory management
 :: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "EnableCfg" /t REG_DWORD /d "0" /f
 :: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "MoveImages" /t REG_DWORD /d "0" /f
-:: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "DisablePagingExecutive" /t REG_DWORD /d "1" /f
 
 :: configure paging settings
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "DisablePagingExecutive" /t REG_DWORD /d "1" /f

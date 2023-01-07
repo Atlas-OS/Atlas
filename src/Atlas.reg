@@ -41,6 +41,9 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata]
 "PreventDeviceMetadataFromNetwork"=dword:00000001
 
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate]
+"SusClientId"="00000000-0000-0000-0000-000000000000"
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent]
 "DisableWindowsConsumerFeatures"=dword:00000001
 
