@@ -10,6 +10,8 @@
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">Những câu hỏi thường gặp (FAQ)</a>
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  •
+  <a href="https://forum.atlasos.net/">Diễn đàn</a>
 </p>
 
 
