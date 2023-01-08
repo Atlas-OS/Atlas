@@ -10,6 +10,8 @@
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">常见问题(FAQ)</a>
   •
   <a href="https://discord.com/servers/atlas-795710270000332800">加入我们的 Discord</a>
+  •
+  <a href="https://forum.atlasos.net/">论坛</a>
 </p>
 
 
