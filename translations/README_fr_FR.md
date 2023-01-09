@@ -10,6 +10,8 @@
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  •
+  <a href="https://forum.atlasos.net/">Forum</a>
 </p>
 
 
@@ -68,7 +70,7 @@ Atlas est optimisé pré-installation. En gardant la compatibilité, mais aussi 
 
 ## Kit d'art
 
-Vous voulez créer votre propre fond d'écran Atlas? Peut-être jouer avec notre logo pour créers votre propre design? Nous avons ça accessible au public pour allumer de l'inspiration créative autour de la communauté [Regardez notre Kit d'art et créez quelque-chose d'époustouflant.](./img/brand-kit.zip)
+Vous voulez créer votre propre fond d'écran Atlas? Peut-être jouer avec notre logo pour créers votre propre design? Nous avons ça accessible au public pour allumer de l'inspiration créative autour de la communauté [Regardez notre Kit d'art et créez quelque-chose d'époustouflant.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
 
 Nous avons aussi [une séctions dédiée dans l'onglet Communauté](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), pour que vous pourrez partager votre design avec d'autres artistes at créer de l'inspiration.
 

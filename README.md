@@ -10,6 +10,8 @@
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  •
+  <a href="https://forum.atlasos.net/">Forum</a>
 </p>
 
 
@@ -20,6 +22,7 @@
 <kbd>[<img title="Bahasa Indonesia" alt="Bahasa Indonesia" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/id.svg" width="22">](translations/README_id_ID.md)</kbd>
 <kbd>[<img title="Polski" alt="Polski" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/pl.svg" width="22">](translations/README_pl_PL.md)</kbd>
 <kbd>[<img title="Русский язык" alt="Русский язык" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ru.svg" width="22">](translations/README_ru_RU.md)</kbd>
+<kbd>[<img title="Tiếng Việt" alt="Tiếng Việt" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/vn.svg" width="22">](translations/README_vi_VN.md)</kbd>
 
 #### _Want to help us by translate documents? please follow this [README](translations/README.md)._
 
@@ -80,7 +83,7 @@ Atlas is pre-tweaked. While maintaining compatibility, but also striving for per
 
 ## Branding kit
 
-Would you like to create your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something spectacular.](./img/brand-kit.zip)
+Would you like to create your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something spectacular.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
 
 We also have a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share your creations with other creative geniuses and maybe even spark some inspiration!
 

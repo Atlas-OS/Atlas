@@ -10,6 +10,8 @@
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  •
+  <a href="https://forum.atlasos.net/">Forum</a>
 </p>
 
 
@@ -69,7 +71,7 @@ Atlas sudah di-tweak sebelumnya. Sambil mempertahankan kompatibilitas, tetapi ju
 
 ## Branding kit
 
-Apakah anda ingin membuat wallpaper Atlas anda sendiri? Mungkin mencoba hal baru dengan logo kami untuk membuat desain anda sendiri? Kami punya ini yang bisa diakses oleh publik untuk memicu ide-ide kreatif baru di seluruh komunitas. [Lihat kit merek kami dan buat sesuatu yang spektakuler.](./img/brand-kit.zip)
+Apakah anda ingin membuat wallpaper Atlas anda sendiri? Mungkin mencoba hal baru dengan logo kami untuk membuat desain anda sendiri? Kami punya ini yang bisa diakses oleh publik untuk memicu ide-ide kreatif baru di seluruh komunitas. [Lihat kit merek kami dan buat sesuatu yang spektakuler.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
 
 Kami juga memiliki [area khusus di tab diskusi](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), sehingga anda dapat membagikan kreasi anda dengan jenius kreatif lainnya dan bahkan mungkin memicu beberapa inspirasi!
 
