@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Bug report
+    url: https://forum.atlasos.net/t/atlas-bug-report
+    about: Create a bug report to help us improve.
+  - name: Feature request
+    url: https://forum.atlasos.net/
+    about: Create a feature request to help us improve.
+  - name: Forums (General discussions)
+    url: https://forum.atlasos.net/
+    about: Official Atlas forums.
+  - name: Discord (General discussions)
+    url: https://discord.com/servers/atlas-795710270000332800
+    about: Join our Discord server for general inquiries.
+  - name: Github Discussions (General discussions)
+    url: https://discord.com/servers/atlas-795710270000332800
+    about: Use this if you do not have Discord or Forums account.
