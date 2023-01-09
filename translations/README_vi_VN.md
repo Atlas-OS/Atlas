@@ -29,7 +29,7 @@ Trong khi tập trung chính vào hiệu năng, chúng tôi cũng là một lự
   - [Những gì đã được loại bỏ trong Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Sau khi cài đặt](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Bộ thương hiệu](../main/img/brand-kit.zip)
+- [Bộ thương hiệu](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
 
 ## Windows vs. Atlas
 
@@ -71,7 +71,7 @@ Atlas đã được tinh chỉnh sẵn. Trong khi duy trì sự tương thích, 
 
 ## Bộ thương hiệu
 
-Bạn muốn tạo một hình nền Atlas của riêng bạn? Nghịch ngợm với logo của chúng tôi và làm ra thiết kế của riêng bạn? Chúng tôi có những mục công khai để giúp khơi dậy các ý tưởng sáng tạo mới trên toàn cộng đồng. [Xem thử bộ thương hiệu của chúng tôi và làm thứ gì đó thật ngoạn mục.](../main/img/brand-kit.zip)
+Bạn muốn tạo một hình nền Atlas của riêng bạn? Nghịch ngợm với logo của chúng tôi và làm ra thiết kế của riêng bạn? Chúng tôi có những mục công khai để giúp khơi dậy các ý tưởng sáng tạo mới trên toàn cộng đồng. [Xem thử bộ thương hiệu của chúng tôi và làm thứ gì đó thật ngoạn mục.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
 
 Chúng tôi cũng có [một mục riêng trong khu vục thảo luận](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), nên bạn có thể chia sẻ sự sáng tạo của bạn với các thiên tài sáng tạo khác và cũng có thể khơi gợi một số cảm hứng!
 
