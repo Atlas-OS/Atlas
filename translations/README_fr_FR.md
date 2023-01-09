@@ -29,7 +29,7 @@ Même si notre concentration est sur la performance, nous sommes aussi un très 
   - [Qu'est-ce enlevé dans Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Après installation](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Kit d'art](../main/img/brand-kit.zip)
+- [Kit d'art](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
 ## Windows vs. Atlas
 
@@ -70,7 +70,7 @@ Atlas est optimisé pré-installation. En gardant la compatibilité, mais aussi 
 
 ## Kit d'art
 
-Vous voulez créer votre propre fond d'écran Atlas? Peut-être jouer avec notre logo pour créers votre propre design? Nous avons ça accessible au public pour allumer de l'inspiration créative autour de la communauté [Regardez notre Kit d'art et créez quelque-chose d'époustouflant.](../main/img/brand-kit.zip)
+Vous voulez créer votre propre fond d'écran Atlas? Peut-être jouer avec notre logo pour créers votre propre design? Nous avons ça accessible au public pour allumer de l'inspiration créative autour de la communauté [Regardez notre Kit d'art et créez quelque-chose d'époustouflant.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
 Nous avons aussi [une séctions dédiée dans l'onglet Communauté](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), pour que vous pourrez partager votre design avec d'autres artistes at créer de l'inspiration.
 
