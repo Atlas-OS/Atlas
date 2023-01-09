@@ -29,7 +29,7 @@ Atlas 在主要优化性能的同时，也是减少系统、网络、输入延�
   - [Atlas 移除了什么?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="Windows 对比 Atlas">Windows 对比 Atlas</a>
 - [完成安装后](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [品牌工具包](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
+- [品牌工具包](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
 ## Windows 对比 Atlas
 
@@ -71,7 +71,7 @@ Atlas 预先调整了一些东西，在保持兼容性的同时也努力提高�
 
 ## 品牌工具包
 
-想制作自己的 Atlas 壁纸吗？也许你可以用我们的 logo 来制作你自己的设计？功能面向社区开放，以激发整个社区的创意。[尝试制作一些让人眼前一亮的东西！](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
+想制作自己的 Atlas 壁纸吗？也许你可以用我们的 logo 来制作你自己的设计？功能面向社区开放，以激发整个社区的创意。[尝试制作一些让人眼前一亮的东西！](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
 我们在 Discussion 页面有专门的分区用于分享社区制作的壁纸，您可以前往[这里](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)发布您独一无二的创意作品！
 

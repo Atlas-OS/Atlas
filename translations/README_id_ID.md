@@ -29,7 +29,7 @@ Sambil menjaga fokus utama kami pada kinerja, kami juga merupakan opsi yang bagu
   - [Apa yang dihapus di Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Branding kit](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
+- [Branding kit](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
 ## Windows vs. Atlas
 
@@ -71,7 +71,7 @@ Atlas sudah di-tweak sebelumnya. Sambil mempertahankan kompatibilitas, tetapi ju
 
 ## Branding kit
 
-Apakah anda ingin membuat wallpaper Atlas anda sendiri? Mungkin mencoba hal baru dengan logo kami untuk membuat desain anda sendiri? Kami punya ini yang bisa diakses oleh publik untuk memicu ide-ide kreatif baru di seluruh komunitas. [Lihat kit merek kami dan buat sesuatu yang spektakuler.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
+Apakah anda ingin membuat wallpaper Atlas anda sendiri? Mungkin mencoba hal baru dengan logo kami untuk membuat desain anda sendiri? Kami punya ini yang bisa diakses oleh publik untuk memicu ide-ide kreatif baru di seluruh komunitas. [Lihat kit merek kami dan buat sesuatu yang spektakuler.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
 Kami juga memiliki [area khusus di tab diskusi](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), sehingga anda dapat membagikan kreasi anda dengan jenius kreatif lainnya dan bahkan mungkin memicu beberapa inspirasi!
 

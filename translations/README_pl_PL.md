@@ -29,7 +29,7 @@ Koncentrując się głównie na wydajności, jesteśmy również świetną opcj�
   - [Co jest usunięte w systemie Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Po instalacji](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Zestaw marki](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip)
+- [Zestaw marki](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
 ## Windows vs. Atlas
 
@@ -69,7 +69,7 @@ Atlas jest wstępnie zoptymalizowany. Zachowując kompatybilność, ale także d
 
 ## Zestaw marki
 
-Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stworzyć własne? Mamy to dostępne publicznie, aby pobudzić nowe kreatywne pomysły w całej społeczności. [Sprawdź nasz zestaw marki i stwórz coś niesamowitego](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip).
+Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stworzyć własne? Mamy to dostępne publicznie, aby pobudzić nowe kreatywne pomysły w całej społeczności. [Sprawdź nasz zestaw marki i stwórz coś niesamowitego](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true).
 
 Mamy też [dedykowany obszar w zakładce dyskusje](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), więc możesz podzielić się swoimi projektami z innymi kreatywnymi twórcami, a może nawet zaskoczyć jakąś inspiracją!
 
