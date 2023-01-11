@@ -25,7 +25,6 @@
 		<c>autoplay</c>
 		<c>axinstall 'ActiveX Installer Service'</c>
 		<c>azman32 'Authorization Manager - 32 bit'</c>
-		<c>backgroundactivitymoderator 'Background Activity Moderator (BAM)'</c>
 		<c>backup 'Windows Backup'</c>
 		<c>biometric 'Biometric - Support'</c>
 		<c>biometricservice 'Biometric - Service'</c>
