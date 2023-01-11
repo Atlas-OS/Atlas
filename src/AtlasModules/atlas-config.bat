@@ -19,8 +19,8 @@
 :: - JayXTQ
 
 @echo off
-set branch="22H2"
-set ver="v0.1"
+set branch=22H2
+set ver=v0.1
 title AtlasOS Configuration Script %branch% %ver%
 
 :: set other variables (do not touch)
