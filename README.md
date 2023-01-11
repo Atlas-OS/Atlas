@@ -67,7 +67,7 @@ Below are some features/mitigations that have been altered, if they contain a (P
 
 Atlas is heavily stripped, pre-installed applications and other components are removed. Despite the possibility of compatibility issues, this significantly decreases ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. This modification is focused on pure gaming, but most work and education applications work. [Check out what else we have removed in our FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
-### **Performant**
+### **Performance**
 
 Atlas is pre-tweaked. While maintaining compatibility, but also striving for performance, we have squeezed every last drop of performance into our Windows images. Some of the many changes that we have done to improve Windows have been listed below.
 
