@@ -21,7 +21,7 @@ Atlas ist eine modifizierte Version von Windows, die alle negativen Nachteile vo
 
 Während unser Hauptaugenmerk auf der Leistung liegt, sind wir auch eine großartige Option, um Systemlatenz, Netzwerklatenz und Eingabeverzögerung zu reduzieren und Ihr System privat zu halten.
 
-## Table of contents
+## Inhaltsübersicht
 
 - [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
   - [Was ist das Atlas-Projekt?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
