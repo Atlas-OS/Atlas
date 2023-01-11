@@ -82,5 +82,5 @@ By downloading, modifying, or utilizing any of these images, you agree to [Micro
 Durch das Herunterladen, Ändern oder Verwenden eines dieser Installationsmedien erklären Sie sich mit [Microsofts Bedingungen](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) einverstanden. Keines dieser Installationsmedien ist voraktiviert, Sie **müssen** einen echten Lizenzschlüssel verwenden.
 
 ## Translator (Übersetzer)
-[DedBash](https://github.com/DedBash/)
+[DedBash](https://github.com/DedBash/) | 
 [GhostZero](https://github.com/ghostzero/)
