@@ -552,11 +552,13 @@ for /f "tokens=*" %%i in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "US
         reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters" /v "%%a" /t REG_DWORD /d "0" /f
     )
 )
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled drivers power savings...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to disable drivers power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: disable pnp power savings
+:: disable PnP power savings
 PowerShell -NoProfile -Command "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}"
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled power savings...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to disable power savings! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled PnP power savings...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to disable PnP power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: disable netbios over tcp/ip
 :: works only when services are enabled
@@ -726,7 +728,7 @@ if %branch%=="22H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\22H2.bat
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V "TermService"') do (
+for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
 	    set svc=%%i
 	    set svc=!svc: =!
 	    for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
@@ -907,7 +909,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled services...>> %WinDir%\AtlasMo
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /V "TermService"') do (
+for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
 	set svc=%%i
 	set svc=!svc: =!
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
@@ -1006,10 +1008,6 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSyncN
 
 :: disable require hello sign-in for microsoft accounts
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device" /v "DevicePasswordLessBuildVersion" /t REG_DWORD /d "0" /f
-
-:: may cause issues with language packs/microsoft store
-:: if you are planning to revert, remove reg add "HKLM\SOFTWARE\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d "1" /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "DoNotConnectToWindowsUpdateInternetLocations" /t REG_DWORD /d "1" /f
 
 :: disable speech model updates
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Speech" /v "AllowSpeechModelUpdate" /t REG_DWORD /d "0" /f
@@ -1177,10 +1175,6 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\
 %currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Language Hotkey" /t REG_DWORD /d "3" /f
 %currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Hotkey" /t REG_DWORD /d "3" /f
 
-:: restrict windows' access to internet resources
-:: enables various other GPOs that limit access on specific windows services
-reg add "HKLM\SOFTWARE\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d "1" /f
-
 :: disable text/ink/handwriting telemetry
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\InputPersonalization" /v "RestrictImplicitInkCollection" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\InputPersonalization" /v "RestrictImplicitTextCollection" /t REG_DWORD /d "1" /f
@@ -1320,7 +1314,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "EnableCdp" /t REG_
 reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /ve /t REG_SZ /d "All Tasks" /f
 reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /v "InfoTip" /t REG_SZ /d "View list of all Control Panel tasks" /f
 reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /v "System.ControlPanel.Category" /t REG_SZ /d "5" /f
-reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\DefaultIcon" /ve /t REG_SZ /d "%%WinDir%%\System32\imageres.dll,-27" /f
+reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\DefaultIcon" /ve /t REG_SZ /d "%WinDir%\System32\imageres.dll,-27" /f
 reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\Shell\Open\Command" /ve /t REG_SZ /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /ve /t REG_SZ /d "All Tasks" /f
 
