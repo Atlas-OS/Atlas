@@ -77,10 +77,6 @@ Wir haben auch einen [eigenen Bereich im Discussions-Tab](https://github.com/Atl
 
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
-### Übersetzung Haftungsausschluss
-
-Durch das Herunterladen, Ändern oder Verwenden eines dieser Installationsmedien erklären Sie sich mit [Microsofts Bedingungen](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) einverstanden. Keines dieser Installationsmedien ist voraktiviert, Sie **müssen** einen echten Lizenzschlüssel verwenden.
-
 ## Translator (Übersetzer)
 [DedBash](https://github.com/DedBash/) | 
 [GhostZero](https://github.com/ghostzero/)
