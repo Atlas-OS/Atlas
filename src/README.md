@@ -105,6 +105,5 @@ A simple sheet to track what components break what, if not listed on NTLite. Thi
 - [VCRedist](https://github.com/abbodi1406/vcredist)
 - [DevManView](https://www.nirsoft.net/utils/device_manager_view.html)
 - [ServiWin](https://www.nirsoft.net/utils/serviwin.html)
-- [7-Zip](https://www.7-zip.org)
 - [aria2](https://github.com/aria2/aria2)
 - [NSudo](https://github.com/m2team/NSudo)

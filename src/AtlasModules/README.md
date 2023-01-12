@@ -8,13 +8,6 @@ To verify the legitmacy of these binaries (executables), there is information pr
 - Last Verified: 2022-12-01 by JayXTQ
 - The executable was extracted from the 64-bit version.
 
-### 7-Zip
-- SHA256 Hash (`7z.exe`): `254CF6411D38903B2440819F7E0A847F0CFEE7F8096CFAD9E90FEA62F42B0C23`
-- SHA256 Hash (`7z.dll`): `73578F14D50F747EFA82527A503F1AD542F9DB170E2901EDDB54D6BCE93FC00E`
-- Source: https://sourceforge.net/projects/sevenzip/files/7-Zip/22.01/7z2201-x64.exe/download
-- Last Verified: 2022-12-01 by JayXTQ
-- `7z.exe` and `7z.dll` were extracted from that executable using 7-Zip.
-
 ### Process Explorer
 - SHA256 Hash: `2cd8fa82ffccf17a8a20178bc7145ea40b837c37f7383e5b15a2243cc601dd58`
 - Source: https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer
