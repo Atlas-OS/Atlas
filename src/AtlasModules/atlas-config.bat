@@ -337,9 +337,14 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled scheduled tasks...>> %WinDir%\
 ) ELSE (echo %date% - %time% Failed to disable scheduled tasks! >> %WinDir%\AtlasModules\logs\install.log)
 cls & echo Please wait. This may take a moment.
 
-:: enable MSI mode on USB, SATA controllers, GPU, network adapters
+:: enable MSI mode on USB, GPU, SATA controllers, network adapters
 :: deleting DevicePriority sets the priority to undefined
-for %%i in (Win32_USBController, Win32_VideoController, Win32_NetworkAdapter, Win32_IDEController) do (
+for %%i in (
+    Win32_USBController, 
+    Win32_VideoController, 
+    Win32_NetworkAdapter, 
+    Win32_IDEController
+) do (
     for /f %%j in ('wmic path %%i get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
         reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%j\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f > nul 2>nul
         reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%j\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
