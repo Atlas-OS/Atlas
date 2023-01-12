@@ -337,49 +337,22 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled scheduled tasks...>> %WinDir%\
 ) ELSE (echo %date% - %time% Failed to disable scheduled tasks! >> %WinDir%\AtlasModules\logs\install.log)
 cls & echo Please wait. This may take a moment.
 
-:: enable MSI mode on USB controllers
-:: second command for each device deletes device priorty, setting it to undefined
-for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-)
-for /f %%i in ('wmic path Win32_USBController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
-)
-
-:: enable MSI mode on GPU
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-)
-for /f %%i in ('wmic path Win32_VideoController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
+:: enable MSI mode on USB, SATA controllers, GPU, network adapters
+:: deleting DevicePriority sets the priority to undefined
+for %%i in (Win32_USBController, Win32_VideoController, Win32_NetworkAdapter, Win32_IDEController) do (
+    for /f %%j in ('wmic path %%i get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%j\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f > nul 2>nul
+        reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%j\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
+    )
 )
 
-:: enable MSI mode on network adapters
-:: undefined priority on some virtual machines may break connection
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-)
-:: if e.g. VMWare is used, skip setting to undefined
-wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && goto vmGO
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
-)
-goto noVM
-
-:vmGO
-:: set to normal priority
-for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f
+:: if e.g. VMWare is used, set network adapter to normal priority as undefined on some virtual machines may break internet connection
+wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && (
+    for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f > nul 2>nul
+    )
 )
 
-:noVM
-:: enable MSI mode on SATA controllers
-for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f
-)
-for /f %%i in ('wmic path Win32_IDEController get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-    reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
-)
 if %ERRORLEVEL%==0 (echo %date% - %time% MSI mode set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set MSI mode! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -527,9 +500,9 @@ powercfg /setactive scheme_current
 if %ERRORLEVEL%==0 (echo %date% - %time% Power scheme configured...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to configure power scheme! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: set service split treshold
-for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /format:value') do set /a RAM=%%i+102400
-reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "%RAM%" /f
+:: set service split threshold
+reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "4294967295" /f
+
 if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set service split treshold! >> %WinDir%\AtlasModules\logs\install.log)
 
