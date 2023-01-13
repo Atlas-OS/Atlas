@@ -17,9 +17,9 @@
 
 # Apa itu Atlas?
 
-Atlas adalah versi modifkasi dari Windows yang menghilangkan semua kekurangan negatifnya, yang berdampak buruk pada performa game. Kami adalah proyek transparan dan sumber terbuka yang berjuang untuk hak yang sama bagi para pemain apakah kamu menjalankan kentang, atau komputer gaming.
+Atlas adalah versi modifkasi dari Windows yang menghilangkan semua kekurangan, yang berdampak buruk pada performa game. Kami adalah proyek transparan dan sumber terbuka yang berjuang untuk hak yang sama bagi para pemain apakah kamu menjalankan kentang, atau komputer gaming.
 
-Sambil menjaga fokus utama kami pada performa, kami juga merupakan pilihan yang bagus untuk mengurangi latensi sistem, latensi jaringan, keterlambatan input, dan menjaga sistem anda privat.
+Sambil menjaga fokus utama kami pada performa, kami juga merupakan pilihan yang bagus untuk mengurangi latensi sistem, latensi jaringan, keterlambatan input, dan menjaga sistem anda tetap privat.
 
 ## Daftar Isi
 
@@ -69,15 +69,15 @@ Atlas sudah diutak-atik sebelumnya. Sambil mempertahankan kompatibilitas, tetapi
 - Optimalisasi konfigurasi boot
 - Penjadwalan proses yang dioptimalkan
 
-## Branding kit
+## Branding Kit
 
-Apakah kamu ingin membuat wallpaper Atlas-mu sendiri? Mungkin mencoba hal baru dengan logo kami untuk membuat desainmu sendiri? Kami punya ini yang bisa diakses oleh publik untuk memicu ide-ide kreatif baru di seluruh komunitas. [Lihat kit merek kami dan buat sesuatu yang spektakuler.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+Apakah kamu ingin membuat wallpaper Atlas-mu sendiri? Mungkin mencoba hal baru dengan logo kami untuk membuat desainmu sendiri? Kami punya ini yang bisa diakses oleh publik untuk memicu ide-ide kreatif baru di seluruh komunitas. [Lihat Branding Kit kami dan buat sesuatu yang spektakuler.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
 Kami juga memiliki [area khusus di tab diskusi](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), jadi kamu bisa membagikan kreasimu dengan jenius kreatif lainnya dan bahkan mungkin memicu beberapa inspirasi!
 
-## Disclaimer
+## Disclaimer (Disclaimer)
 
-Dengan mengunduh, memodifikasi, atau menggunakan salah satu dari gambar-gambar ini, kamu menyetujui [Ketentuan Microsoft.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) Tidak ada satupun dari gambar-gambar ini yang diambil saat pra-aktivasi, kamu **harus** menggunakan kunci produk yang asli.
+By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
 ## Translation contributors (Kontributor terjemahan)
 
