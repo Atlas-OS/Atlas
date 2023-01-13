@@ -63,7 +63,7 @@ Atlas sudah diutak-atik sebelumnya. Sambil mempertahankan kompatibilitas, tetapi
 - Pengurangan jumlah layanan
 - Pengurangan jumlah driver
 - Penonaktifkan perangkat yang tidak dibutuhkan
-- Penonaktifan penghematah daya
+- Penonaktifan penghematan daya
 - Penonaktifkan mitigasi keamanan yang haus akan performa
 - Otomatis mengaktifkan Mode MSI
 - Optimalisasi konfigurasi boot
