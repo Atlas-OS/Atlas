@@ -81,5 +81,4 @@ By downloading, modifying, or utilizing any of these images, you agree to [Micro
 
 ## Translation contributors (Kontributor terjemahan)
 
-- [Memet Zx](https://github.com/zxce3)
-- [Kawaii Ghost](https://github.com/kawaii-ghost)
+[Memet Zx](https://github.com/zxce3) | [Kawaii Ghost](https://github.com/kawaii-ghost)
