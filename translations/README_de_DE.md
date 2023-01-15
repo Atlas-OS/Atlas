@@ -17,9 +17,9 @@
 
 # Was ist Atlas?
 
-Atlas ist eine modifizierte Version von Windows, welche alle negativen Nachteile von Windows beseitigt, die sich negativ auf die Spieleleistung auswirken. Wir sind ein transparentes und quelloffenes Projekt, dass die Gleichberechtigung der Spieler anstrebt, unabhängig davon, ob Sie einen Kartoffel- oder einen Gaming-PC verwenden.
+Atlas ist eine modifizierte Version von Windows, welche alle negativen Nachteile von Windows beseitigt, die sich negativ auf die Spieleleistung auswirken. Wir sind ein transparentes und quelloffenes Projekt, dass die Gleichberechtigung der Spieler anstrebt, unabhängig davon, ob Sie einen Schlechten- oder einen Gaming-PC verwenden.
 
-Obwohl unser Hauptaugenmerk auf der Leistung liegt, sind wir auch eine hervorragende Option zur Reduzierung von System- und Netzwerklatenz, Eingabeverzögerung und zum Schutz Ihrer Privatsphäre.
+Obwohl unser Hauptthema auf der Leistung liegt, sind wir auch eine hervorragende Option zur Reduzierung von System- und Netzwerklatenz, Eingabeverzögerung und zum Schutz Ihrer Privatsphäre.
 
 ## Inhaltsübersicht
 
@@ -51,7 +51,7 @@ Atlas strebt danach, so sicher wie möglich zu sein, ohne Leistungseinbußen zu 
 
 ### **Debloated**
 
-Atlas ist stark entschlackt, vorinstallierte Anwendungen und andere Komponenten wurden entfernt. Trotz möglicher Kompatibilitätsprobleme wird dadurch die ISO- und Installationsgröße erheblich verringert. Funktionen wie Windows Defender usw. wurden vollständig entfernt. Diese Änderungen sind auf Gaming ausgerichtet, aber die meisten Arbeits- und Bildungsanwendungen funktionieren. [Was wir sonst noch entfernt haben, finden Sie in unserer FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Atlas ist sehr stark zerlegt. Vorinstallierte Anwendungen und andere Komponenten wurden entfernt. Trotz möglicher Kompatibilitätsprobleme wird dadurch die ISO- und Installationsgröße erheblich verringert. Funktionen wie Windows Defender usw. wurden vollständig entfernt. Diese Änderungen sind auf Gaming ausgerichtet, aber die meisten Arbeits- und Bildungsanwendungen funktionieren. [Was wir sonst noch entfernt haben, finden Sie in unserer FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
 ### **Leistungsstark**
 
@@ -79,4 +79,4 @@ By downloading, modifying, or utilizing any of these images, you agree to [Micro
 
 ## Translation contributors (Beitragende zur Übersetzung)
 
-[DedBash](https://github.com/DedBash/) | [GhostZero](https://github.com/ghostzero/)
+[DedBash](https://github.com/DedBash/) | [GhostZero](https://github.com/ghostzero/) | [Alino001](https://github.com/Alino001)
