@@ -78,3 +78,7 @@ Chúng tôi cũng có [một mục riêng trong khu vục thảo luận](https:/
 ## Disclaimer
 
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
+
+## Translation contributors (Những người đóng góp dịch thuật)
+
+[Cuong Tien Dinh](https://github.com/dtcu0ng) | [Nguyễn Cao Hoài Nam](https://github.com/sant1ago-da-hanoi)

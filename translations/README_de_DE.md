@@ -77,6 +77,6 @@ Wir haben auch einen [eigenen Bereich im Discussions-Tab](https://github.com/Atl
 
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
 
-## Translator (Übersetzer)
-[DedBash](https://github.com/DedBash/) | 
-[GhostZero](https://github.com/ghostzero/)
+## Translation contributors (Beitragende zur Übersetzung)
+
+[DedBash](https://github.com/DedBash/) | [GhostZero](https://github.com/ghostzero/)

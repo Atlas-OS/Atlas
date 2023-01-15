@@ -51,7 +51,7 @@ Testing and reviewing should be very easy here is what to test:
 - Test basic programs and functionalities.
 - Test on an actual machine now, repeat the steps.
 
-We [(Zusier)](https://github.com/Zusier) and [(Syrm)](https://github.com/SyrmGIT) will be the main testers and reviewers, if you would like to become a reviewer/tester, please make an [issue.](https://github.com/Atlas-OS/Atlas/issues/new)
+We [(Zusier)](https://github.com/Zusier) and [(Syrm)](https://github.com/SyrmGIT) will be the main testers and reviewers, if you would like to become a reviewer/tester, please contact us in Atlas [Discord](https://discord.com/servers/atlas-795710270000332800).
 
 # 5. Rewards and benefits
 
