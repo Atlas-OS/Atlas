@@ -39,7 +39,7 @@ if ($provider -eq "Chocolatey") {
         $ChocoInstalled = $true
     } else {
         Write-Host "Chocolatey not found, installing..."
-        C:\Windows\AtlasModules\NSudo.exe -U:C -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /choco
+        & "$PSScriptRoot\Manual\Install $provider.bat"
     }
 } else {
     $ScoopInstalled = $false
@@ -47,7 +47,7 @@ if ($provider -eq "Chocolatey") {
         $ScoopInstalled = $true
     } else {
         Write-Host "Scoop not found, installing..."
-        C:\Windows\AtlasModules\NSudo.exe -U:C -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /scoop
+        & "$PSScriptRoot\Manual\Install $provider.bat"
     }
 }
 InstallSoftware

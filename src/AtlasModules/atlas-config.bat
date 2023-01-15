@@ -2653,7 +2653,7 @@ echo Installing git...
 :: otherwise it will break the whole script if a warning or error shows up
 cmd /c scoop install git -g
 call %WinDir%\AtlasModules\refreshenv.bat
-echo .
+echo]
 echo Adding extras and games bucket...
 cmd /c scoop bucket add extras
 cmd /c scoop bucket add games
@@ -2669,9 +2669,6 @@ PowerShell -NoProfile -Command "%WinDir%\AtlasModules\install.ps1"
 echo Refreshing environment for Chocolatey...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
-echo Installing git...
-cmd /c choco install git
-call %WinDir%\AtlasModules\refreshenv.bat
 echo If this did not install Chocolatey, instead you can try installing via the install guide: https://chocolatey.org/install
 goto finish
 
