@@ -2,7 +2,7 @@
   <br>
   <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
 </h1>
-<h4 align="center">Un système operationnel Windows ouvert et privé, crée pour optimiser la performance et la latence.</h4>
+<h4 align="center">Un système d'exploitation Windows ouvert et respecteux de la vie privé, créé pour optimiser la performance et la latence.</h4>
 
 <p align="center">
   <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Installation</a>
@@ -17,30 +17,30 @@
 
 # Qu'est-ce Atlas?
 
-Atlas est une version modifiée de Windows qui enlève tous les points negatifs de Windows, qui diminuent la performance de jeu. Nous sommes un projet source ouvert et privé qui vise pour l'égalité pour les joueurs, que tu aies une pomme de terre, ou un ordinateur de jeu.
+Atlas est une version modifiée de Windows qui enlève tous les défauts de Windows, qui diminuent les performances de jeu. Nous sommes un projet en source ouverte et respecteux de la vie privée qui vise pour l'égalité pour les joueurs, que tu ais une pomme de terre, ou un ordinateur de jeu.
 
-Même si notre concentration est sur la performance, nous sommes aussi un très bon choix pour réduire la latence système, la latence de reseau, la latence d'entrée, et pour garder votre système privé.
+Même si nous nous focalisons est sur la performance, nous sommes aussi un très bon choix pour réduire la latence système, la latence de reseau, la latence d'entrée, et pour garder votre système privé.
 
-## Table des contenus (Liens wiki, alors c'est en Anglais.)
+## Table des matières (Liens wiki en Anglais.)
 
 - [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
   - [Qu'est-ce le projet Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [Comment j'installe Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [Qu'est-ce enlevé dans Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
+  - [Comment installer Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
+  - [Qu'est-ce qui est enlevé dans Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [Après installation](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
+- [Après l'installation](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
 - [Kit d'art](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
 ## Windows vs. Atlas
 
-### **Privé**
+### **Respect de la vie privée**
 
-Atlas enlève toutes les types d'éspionnage dans Windows et enforce des centaines de <em>group policies</em> pour minimizer la collecte de données. Les choses en-dehors Windows nous pouvons pas rendre plus privé, comme les sites Web que vous visitez.
+Atlas enlève toutes les types d'éspionnage dans Windows et renforce des centaines de <em>group policies</em> pour minimizer la collecte de données. Pour les choses en-dehors de Windows nous pouvons pas les rendre plus privé, comme les sites Web que vous visitez.
 
-### **Sécuritaire**
+### **Sécurisé**
 
-Atlas vise être le plus sécuritaire qui est possible sans perdre de la performance. Nous faisons ça en eteignant les caractéristiques que peuvent causer une fuite de données ou qui peuvent être éxploités. Il y a des éxceptions pour ça comme [Spectre](https://spectreattack.com/spectre.pdf) et [Meltdown](https://meltdownattack.com/meltdown.pdf). Ces mesures sécuritaires sont enlevées pour monter la performance.
-Si une mesure sécuritaire reduit la pérformance, ils vont être enlevées. Ci-dessous sont des mesures sécuritaires qui ont étés alterés ou enlevées, si ils ont un (P), ce sont des risques de sécurité qui ont été réparés. (Les articles ci-dessous sont en Anglais.)
+Atlas vise être le plus sécurisé possible sans perte de performance. Nous faisons cela en désactivant les fonctionnalités qui peuvent causer une fuite de données ou qui peuvent être éxploités. Il y a des éxceptions pour ça comme [Spectre](https://spectreattack.com/spectre.pdf) et [Meltdown](https://meltdownattack.com/meltdown.pdf). Ces mesures sécuritaires sont enlevées pour améliorer les performances.
+Si une mesure sécuritaire reduit la pérformance, elle va être enlevée. Ci-dessous des mesures sécuritaires qui ont étés alterés ou enlevées, si elles ont un (P), ce sont des risques de sécurité qui ont été corrigé. (Les articles ci-dessous sont en Anglais.)
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
@@ -52,27 +52,27 @@ Si une mesure sécuritaire reduit la pérformance, ils vont être enlevées. Ci-
 
 ### **Nettoyé**
 
-Atlas est éxtrêmement réduit à l'éssentiel, les applications préinstallées sont enlevées, et d'autres composantes du système sont enlevées. Même si cela peut briser certaines applications, ça réduit éxtrêmement le ISO et la grandeur d'installation. Les fonctionnalités comme Windows Defender, et ceux-ci sont enlevées complètement. Cette modification est concentrée sur purement le jeu, mais la majorité des applications de travail et d'éducation marchent. [Regardez quoi d'autre nous avons enlevées dans notre FAQ (En Anglais)](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Atlas est éxtrêmement nettoyé, les applications préinstallées sont enlevées, et d'autres composants du système sont enlevés. Même si cela peut casser certaines applications, cela réduit fortement la taille de l'ISO et de l'installation. Les fonctionnalités comme Windows Defender et similaires sont complètement retirés. Cette modification est purement centrée sur le jeu, mais la majorité des applications de travail et d'éducation fonctionnent. [Regardez ce que nous avons enlevées d'autres dans notre FAQ (En Anglais)](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
 ### **Performant**
 
-Atlas est optimisé pré-installation. En gardant la compatibilité, mais aussi s'aspire pour la performance. Nous avons epongé chaque goutté de performance dans nos ISO Windows. Quelques changements que nous avons appliqué sont ci-dessous.
+Atlas est pré-optimisé. En gardant la compatibilité, mais aussi la recherche de performances. Nous avons epongé chaque goutte de performance de nos ISO Windows. Quelques changements que nous avons appliqué sont ci-dessous.
 
 - Schéma d'alimentation personnalisé
-- Services minimisés
-- Pilotes réduits
+- Nombre de services reduits
+- Nombre de pilotes réduits
 - Appareils inutiles désactivés
 - Économies d'énergie désactivées
-- Désactivation des mesures d'atténuation de la sécurité gourmandes en performances
+- Désactivation des mesures d'atténuation de sécurité gourmandes en performances
 - Mode MSI activé automatiquement
 - Optimisation de la configuration de démarrage
-- Planification optimisée des processus
+- Planification des processus optimisée
 
 ## Kit d'art
 
-Vous voulez créer votre propre fond d'écran Atlas? Peut-être jouer avec notre logo pour créers votre propre design? Nous avons ça accessible au public pour allumer de l'inspiration créative autour de la communauté [Regardez notre Kit d'art et créez quelque-chose d'époustouflant.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+Vous voulez créer votre propre fond d'écran Atlas? Peut-être jouer avec notre logo pour créer votre propre conception? Nous avons cela accessible au public pour susciter de nouvelles idées créatives à travers la communauté. [Regardez notre Kit d'art et créez quelque-chose d'époustouflant.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
-Nous avons aussi [une séctions dédiée dans l'onglet Communauté](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), pour que vous pourrez partager votre design avec d'autres artistes at créer de l'inspiration.
+Nous avons aussi [une séctions dédiée dans l'onglet Communauté](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), pour que vous puissiez partager votre création avec d'autres artistes et susciter de l'inspiration.
 
 ## Disclaimer (Avertissement)
 
