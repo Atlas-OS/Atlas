@@ -75,7 +75,7 @@
 
 - UAC
   Default: Enabled (Minimum)
-  If you disable it and later re-enable it and then you have issues starting apps: go into safe mode and enable the Appinfo service with ServiWin.
+  If you disable it and later re-enable it and then you have issues starting apps: go into safe mode and enable the Appinfo service with `sc config Appinfo start=demand`.
 
 - UWP
   Default: Enabled

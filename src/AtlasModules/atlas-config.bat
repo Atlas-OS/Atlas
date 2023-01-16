@@ -548,7 +548,6 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled netbios over tcp/ip...>> %WinD
 
 :: make certain applications in the AtlasModules folder request UAC
 :: although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\serviwin.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\NSudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 
