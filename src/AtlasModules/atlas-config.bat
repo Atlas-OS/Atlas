@@ -826,7 +826,6 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 %setSvc% ErrDev 4
 %setSvc% fdc 4
 %setSvc% flpydisk 4
-%setSvc% fvevol 4
 :: %setSvc% FileInfo 4 < breaks installing microsoft store apps to different disk (now disabled via store script)
 :: %setSvc% FileCrypt 4 < Breaks installing microsoft store apps to different disk (now disabled via store script)
 %setSvc% gencounter 4
@@ -877,9 +876,6 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dhcp" /v "DependOnService" /t REG_MULTI_SZ /d "NSI\0Afd" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache" /v "DependOnService" /t REG_MULTI_SZ /d "nsi" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "DependOnService" /t REG_MULTI_SZ /d "" /f
-
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}" /v "LowerFilters" /t REG_MULTI_SZ  /d "" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}" /v "UpperFilters" /t REG_MULTI_SZ  /d "" /f
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled services...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable services! >> %WinDir%\AtlasModules\logs\install.log)
