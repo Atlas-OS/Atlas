@@ -87,8 +87,8 @@ Atlas önceden optimize edilmiştir. Uyumluluk sorunlarını minimize ederken pe
 
 Kendi Atlas duvar kağıdınızı tasarlamak ister misiniz? Belki kendi tasarımınızı yapmak için logomuzla uğraşabilirsiniz? Topluluk genelinde yeni yaratıcı fikirleri harekete geçirmek için bunu topluluğun erişimine açtık. [Marka kitimize göz atın ve muhteşem bir şey yapın.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
 
-Ayrıca tartışmalar sekmesinde [özel bir alanımız var] (https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), böylece yarattıklarınızı diğer yaratıcı dahilerle paylaşabilir ve belki biraz ilham bile uyandırabilirsiniz!
+Ayrıca tartışmalar sekmesinde [özel bir alanımız var](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), böylece yarattıklarınızı diğer yaratıcı dahilerle paylaşabilir ve belki biraz ilham bile uyandırabilirsiniz!
 
 ## Yasal Uyarı
 
-Bu görüntülerden herhangi birini indirerek, değiştirerek veya kullanarak [Microsoft'un Şartlarını] kabul etmiş olursunuz. (https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) Bu imajların hiçbiri önceden etkinleştirilmemiştir, **mutlaka** orijinal bir anahtar kullanmalısınız.
+Bu görüntülerden herhangi birini indirerek, değiştirerek veya kullanarak [Microsoft'un Şartlarını](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) kabul etmiş olursunuz. Bu imajların hiçbiri önceden etkinleştirilmemiştir, **mutlaka** orijinal bir anahtar kullanmalısınız.
