@@ -5,9 +5,9 @@
 <h4 align="center">Performansı ve gecikmeyi optimize etmek için tasarlanmış, açık kaynaklı ve şeffaf bir Windows işletim sistemi.</h4>
 
 <p align="center">
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Installation</a>
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Kurulum</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">SSS</a>
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
   •
