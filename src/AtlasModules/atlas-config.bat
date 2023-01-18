@@ -277,7 +277,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %WinDir%\Atl
 :: attempt to fix language packs issue
 :: https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/language-packs-known-issue
 :: schtasks /Change /Disable /TN "\Microsoft\Windows\LanguageComponentsInstaller\Uninstallation" > nul 2>nul
-:: reg add "HKLM\SOFTWARE\Policies\Microsoft\Control Panel\International" /v "BlockCleanupOfUnusedPreinstalledLangPacks" /t REG_DWORD /d "1" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Control Panel\International" /v "BlockCleanupOfUnusedPreinstalledLangPacks" /t REG_DWORD /d "1" /f
 
 :: disable unneeded scheduled tasks
 
@@ -732,7 +732,7 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v 
 	    for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
             set /a start=%%i
             echo !start!
-            echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+            echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
             echo "Start"=dword:0000000!start! >> %filename%
             echo] >> %filename%
 	    )
@@ -747,7 +747,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
 		set /a start=%%i
 		echo !start!
-		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+		echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
 		echo] >> %filename%
 	)
@@ -913,7 +913,7 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v 
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
 		set /a start=%%i
 		echo !start!
-		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+		echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
 		echo] >> %filename%
 	)
@@ -928,7 +928,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
 		set /a start=%%i
 		echo !start!
-		echo [HKLM\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+		echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
 		echo] >> %filename%
 	)
