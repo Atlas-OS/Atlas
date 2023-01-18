@@ -641,11 +641,6 @@ for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to optimize network! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: fix explorer whitebar bug
-start explorer.exe
-taskkill /f /im explorer.exe
-start explorer.exe
-
 :: disable network adapters
 :: IPv6, Client for Microsoft Networks, File and Printer Sharing, LLDP Protocol, Link-Layer Topology Discovery Mapper, Link-Layer Topology Discovery Responder
 %PowerShell% "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr"
