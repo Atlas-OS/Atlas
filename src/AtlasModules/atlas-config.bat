@@ -753,7 +753,7 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	)
 ) > nul 2>&1
 
-:: services 
+:: services
 %setSvc% AppIDSvc 4
 %setSvc% AppVClient 4
 %setSvc% AppXSvc 3
