@@ -753,14 +753,13 @@ for /f "delims=," %%i in ('driverquery /FO CSV') do (
 	)
 ) > nul 2>&1
 
-:: services
+:: services 
 %setSvc% AppIDSvc 4
 %setSvc% AppVClient 4
 %setSvc% AppXSvc 3
 %setSvc% bam 4
 %setSvc% BthAvctpSvc 4
 %setSvc% cbdhsvc 4
-%setSvc% CDPSvc 4
 %setSvc% CryptSvc 3
 %setSvc% defragsvc 3
 %setSvc% diagnosticshub.standardcollector.service 4
@@ -1876,21 +1875,12 @@ goto finish
 :btD
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc > nul 2>nul
-for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f "CDPUserSvc" ^| find /i "CDPUserSvc" ') do (
-  reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
-  sc stop %%~nI
-)
-sc config CDPSvc start=disabled
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
 
 :btE
 sc config BthAvctpSvc start=auto
-for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f "CDPUserSvc" ^| find /i "CDPUserSvc" ') do (
-  reg add "%%I" /v "Start" /t REG_DWORD /d "2" /f
-)
-sc config CDPSvc start=auto
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
