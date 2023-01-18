@@ -691,8 +691,8 @@ DevManView.exe /disable "System Speaker"
 DevManView.exe /disable "System Timer"
 DevManView.exe /disable "UMBus Root Bus Enumerator"
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled devices...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to disable devices! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled system devices...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to disable system devices! >> %WinDir%\AtlasModules\logs\install.log)
 
 if %branch%=="1803" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\1803.bat
 if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
@@ -1643,7 +1643,7 @@ bcdedit /set vm no > nul
 bcdedit /set vmslaunchtype Off > nul
 bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS > nul
 
-:: disable hyper-v with dism
+:: disable hyper-v with DISM
 DISM /Online /Disable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
 
 :: apply registry changes
@@ -1698,7 +1698,7 @@ for %%a in (
     sc config %%a start=disabled > nul
 )
 
-:: disable devices
+:: disable system devices
 DevManView.exe /disable "Microsoft Hyper-V NT Kernel Integration VSP"
 DevManView.exe /disable "Microsoft Hyper-V PCI Server"
 DevManView.exe /disable "Microsoft Hyper-V Virtual Disk Server"
@@ -1716,7 +1716,7 @@ bcdedit /deletevalue vm > nul
 bcdedit /set vsmlaunchtype Auto > nul
 bcdedit /deletevalue loadoptions > nul
 
-:: enable hyper-v with dism
+:: enable hyper-v with DISM
 DISM /Online /Enable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
 
 :: apply registry changes
@@ -1764,7 +1764,7 @@ sc config vmictimesync start=manual > nul
 sc config vmicvmsession start=manual > nul
 sc config vmicvss start=manual > nul
 
-:: enable devices
+:: enable system devices
 DevManView.exe /enable "Microsoft Hyper-V NT Kernel Integration VSP"
 DevManView.exe /enable "Microsoft Hyper-V PCI Server"
 DevManView.exe /enable "Microsoft Hyper-V Virtual Disk Server"
@@ -1776,7 +1776,7 @@ goto finish
 
 :storeD
 echo This will break a majority of UWP apps and their deployment.
-echo Extra note: This breaks the "about" page in settings. If you require it, enable the AppX service.
+echo Extra note: This breaks the "about" page in immersive control panel. If you require it, enable the AppX service.
 :: this includes windows firewall, i only see the point in keeping it because of microsoft store
 :: if you notice something else breaks when firewall/microsoft store is disabled please open an issue
 pause
