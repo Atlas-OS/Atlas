@@ -25,8 +25,8 @@ title AtlasOS Configuration Script %branch% %ver%
 
 :: set other variables (do not touch)
 set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
+set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
 set "setSvc=call :setSvc"
-set "PowerShell=call :PowerShell"
 set "firewallBlockExe=call :firewallBlockExe"
 
 :: check for administrator privileges
@@ -2939,10 +2939,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d 
 	echo Failed to set service %~1 with start value %~2! Unknown error.)
 )
 exit /b 0
-
-:PowerShell
-powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command %*
-goto:eof
 
 :firewallBlockExe
 :: usage: %fireBlockExe% "[NAME]" "[EXE]"
