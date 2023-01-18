@@ -535,6 +535,30 @@ PowerShell -NoProfile -Command "$usb_devices = @('Win32_USBController', 'Win32_U
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled PnP power savings...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable PnP power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
+:: disable unnecessary autologgers
+for %%i in (
+    "Circular Kernel Context Logger"
+    "CloudExperienceHostOobe"
+    "DefenderApiLogger"
+    "DefenderAuditLogger"
+    "Diagtrack-Listener"
+    "LwtNetLog"
+    "Microsoft-Windows-Rdp-Graphics-RdpIdd-Trace"
+    "NetCore"
+    "NtfsLog"
+    "RadioMgr"
+    "RdrLog"
+    "ReadyBoot"
+    "SpoolerLogger"
+    "UBPM"
+    "WdiContextLog"
+    "WiFiSession"
+) do (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\%%a" /v "Start" /t REG_DWORD /d "0" /f
+)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled unnecessary autologgers...>> %WinDir%\AtlasModules\logs\install.log
+) ELSE (echo %date% - %time% Failed to disable unnecessary autologgers! >> %WinDir%\AtlasModules\logs\install.log)
+
 :: disable netbios over tcp/ip
 :: works only when services are enabled
 for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" /s /f "NetbiosOptions" ^| findstr "HKEY"') do (

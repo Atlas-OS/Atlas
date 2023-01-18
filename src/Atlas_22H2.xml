@@ -628,31 +628,6 @@
 			</component>
 		</settings>
 	</Unattended>
-	<Tweaks>
-		<Settings>
-			<TweakGroup name="AutoLogger">
-				<Tweak name="Circular Kernel Context Logger\Start">0</Tweak>
-				<Tweak name="CloudExperienceHostOobe\Start">0</Tweak>
-				<Tweak name="DefenderApiLogger\Start">0</Tweak>
-				<Tweak name="DefenderAuditLogger\Start">0</Tweak>
-				<Tweak name="LwtNetLog\Start">0</Tweak>
-				<Tweak name="Microsoft-Windows-Rdp-Graphics-RdpIdd-Trace\Start">0</Tweak>
-				<Tweak name="Microsoft-Windows-Setup\Start">0</Tweak>
-				<Tweak name="NetCore\Start">0</Tweak>
-				<Tweak name="NtfsLog\Start">0</Tweak>
-				<Tweak name="RadioMgr\Start">0</Tweak>
-				<Tweak name="ReadyBoot\Start">0</Tweak>
-				<Tweak name="SpoolerLogger\Start">0</Tweak>
-				<Tweak name="UBPM\Start">0</Tweak>
-				<Tweak name="WdiContextLog\Start">0</Tweak>
-				<Tweak name="WiFiSession\Start">0</Tweak>
-			</TweakGroup>
-			<TweakGroup name="Privacy">
-				<Tweak name="features\PaidWifi">0</Tweak>
-				<Tweak name="features\WiFiSenseOpen">0</Tweak>
-			</TweakGroup>
-		</Settings>
-	</Tweaks>
 	<ApplyOptions>
 		<ImageTasks>
 			<Task>imageSaveRebuild</Task>
