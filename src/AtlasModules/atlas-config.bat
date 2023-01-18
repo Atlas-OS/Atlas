@@ -26,6 +26,7 @@ title AtlasOS Configuration Script %branch% %ver%
 :: set other variables (do not touch)
 set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
 set "setSvc=call :setSvc"
+set "PowerShell=call :PowerShell"
 set "firewallBlockExe=call :firewallBlockExe"
 
 :: check for administrator privileges
@@ -274,11 +275,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMo
 if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to optimize file system! >> %WinDir%\AtlasModules\logs\install.log)
 
-:: attempt to fix language packs issue
-:: https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/language-packs-known-issue
-:: schtasks /Change /Disable /TN "\Microsoft\Windows\LanguageComponentsInstaller\Uninstallation" > nul 2>nul
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Control Panel\International" /v "BlockCleanupOfUnusedPreinstalledLangPacks" /t REG_DWORD /d "1" /f
-
 :: disable unneeded scheduled tasks
 
 :: breaks setting lock screen
@@ -337,24 +333,24 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled scheduled tasks...>> %WinDir%\
 ) ELSE (echo %date% - %time% Failed to disable scheduled tasks! >> %WinDir%\AtlasModules\logs\install.log)
 cls & echo Please wait. This may take a moment.
 
-:: enable MSI mode on USB, GPU, SATA controllers, network adapters
+:: enable MSI mode on USB, GPU, SATA controllers and network adapters
 :: deleting DevicePriority sets the priority to undefined
-for %%i in (
+for %%a in (
     Win32_USBController, 
     Win32_VideoController, 
     Win32_NetworkAdapter, 
     Win32_IDEController
 ) do (
-    for /f %%j in ('wmic path %%i get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%j\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f > nul 2>nul
-        reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%j\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
+    for /f %%i in ('wmic path %%a get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f > nul 2>nul
+        reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
     )
 )
 
 :: if e.g. VMWare is used, set network adapter to normal priority as undefined on some virtual machines may break internet connection
 wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && (
-    for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f > nul 2>nul
+    for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f > nul 2>nul
     )
 )
 
@@ -369,7 +365,7 @@ cls & echo Please wait. This may take a moment.
 net user defaultuser0 /delete > nul 2>nul
 
 :: set PowerShell execution policy to unrestricted
-PowerShell -NoProfile -Command "Set-ExecutionPolicy Unrestricted -force"
+%PowerShell% "Set-ExecutionPolicy Unrestricted -Force"
 
 :: disable automatic repair
 bcdedit /set recoveryenabled no > nul 2>nul
@@ -531,7 +527,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled drivers power savings...>> %Wi
 ) ELSE (echo %date% - %time% Failed to disable drivers power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: disable PnP power savings
-PowerShell -NoProfile -Command "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}"
+%PowerShell% "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}"
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled PnP power savings...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable PnP power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -575,39 +571,8 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers
 cls & echo Please wait. This may take a moment.
 
 :: unhide power scheme attributes
-:: credits: eugene muzychenko; modified by Xyueta
-for /f "tokens=1-9* delims=\ " %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings" /s /f "Attributes" /e') do (
-    if /i "%%A" == "HKLM" (
-        set Ident=
-        if not "%%G" == "" (
-            set Err=
-            set Group=%%G
-            set Setting=%%H
-            if "!Group:~35,1!" == "" set Err=group
-            if not "!Group:~36,1!" == "" set Err=group
-            if not "!Setting!" == "" (
-                if "!Setting:~35,1!" == "" set Err=setting
-                if not "!Setting:~36,1!" == "" set Err=setting
-                set Ident=!Group!:!Setting!
-            ) else (
-                set Ident=!Group!
-            )
-            if not "!Err!" == "" (
-                echo ***** Error in !Err! GUID: !Ident"
-            )
-        )
-    ) else if "%%A" == "Attributes" (
-        if "!Ident!" == "" (
-            echo ***** No group/setting GUIDs before Attributes value
-        )
-        set /a Attr = %%C
-        set /a Hidden = !Attr! ^& 1
-        if !Hidden! equ 1 (
-            echo Unhiding !Ident!
-            powercfg /attributes !Ident::= ! -attrib_hide
-        )
-    )
-)
+:: source: https://gist.github.com/Velocet/7ded4cd2f7e8c5fa475b8043b76561b5#file-unlock-powercfgoneliner-ps1
+%PowerShell% "(gci 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings' -Recurse).Name -notmatch '\bDefaultPowerSchemeValues|(\\[0-9]|\b255)$' | % {sp $_.Replace('HKEY_LOCAL_MACHINE','HKLM:') -Name 'Attributes' -Value 2 -Force}"
 if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to enable hidden power scheme attributes! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -683,7 +648,7 @@ start explorer.exe
 
 :: disable network adapters
 :: IPv6, Client for Microsoft Networks, File and Printer Sharing, LLDP Protocol, Link-Layer Topology Discovery Mapper, Link-Layer Topology Discovery Responder
-PowerShell -NoProfile -Command "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr"
+%PowerShell% "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr"
 
 :: disable system devices
 DevManView.exe /disable "AMD PSP"
@@ -1344,7 +1309,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Disab
 
 :: find correct mitigation values for different Windows versions - AMIT
 :: initialize bit mask in registry by disabling a random mitigation
-PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Disable CFG"
+%PowerShell% "Set-ProcessMitigation -System -Disable CFG"
 
 :: get current bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
@@ -1466,8 +1431,8 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance"
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl" /v "ShowHiddenDevices" /t REG_DWORD /d "0" /f
 
 :: set sound scheme to no sounds
-PowerShell -NoProfile -Command "New-ItemProperty -Path HKCU:\AppEvents\Schemes -Name '(Default)' -Value '.None' -Force | Out-Null"
-PowerShell -NoProfile -Command "Get-ChildItem -Path 'HKCU:\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
+%PowerShell% "New-ItemProperty -Path 'HKCU:\AppEvents\Schemes' -Name '(Default)' -Value '.None' -Force | Out-Null"
+%PowerShell% "Get-ChildItem -Path 'HKCU:\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
 
 :: disable audio excludive mode on all devices
 for /f "delims=" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture"') do (
@@ -1808,7 +1773,7 @@ echo Extra note: This breaks the "about" page in immersive control panel. If you
 pause
 
 :: detect if user is using a microsoft account
-PowerShell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+%PowerShell% "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 
 :: disable the option for microsoft store in the "open with" dialog
@@ -1913,14 +1878,14 @@ goto finish
 
 :hddE
 :: disable memory compression and page combining when sysmain is enabled
-PowerShell -NoProfile -Command "Disable-MMAgent -MemoryCompression -PageCombining"
+%PowerShell% "Disable-MMAgent -MemoryCompression -PageCombining"
 sc config SysMain start=auto
 sc config FontCache start=auto
 if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :depE
-PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks"
+%PowerShell% "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks"
 bcdedit /set nx Optin
 :: enable cfg for valorant related processes
 for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
@@ -1931,7 +1896,7 @@ goto finish
 
 :depD
 echo If you get issues with some anti-cheats, please re-enable DEP.
-PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Disable DEP, EmulateAtlThunks"
+%PowerShell% "Set-ProcessMitigation -System -Disable DEP, EmulateAtlThunks"
 bcdedit /set nx AlwaysOff
 if %ERRORLEVEL%==0 echo %date% - %time% DEP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -2035,7 +2000,7 @@ echo]
 echo Open-Shell is installing...
 "Open-Shell.exe" /qn ADDLOCAL=StartMenu
 curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5.3/Fluent-Metro_1.5.3.zip -o skin.zip
-PowerShell -NoProfile -Command "Expand-Archive -Force 'skin.zip' 'C:\Program Files\Open-Shell\Skins'"
+%PowerShell% "Expand-Archive -Force 'skin.zip' 'C:\Program Files\Open-Shell\Skins'"
 del /F /Q skin.zip > nul 2>nul
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
@@ -2062,7 +2027,7 @@ echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
 pause
 
 :: detect if user is using a microsoft account
-PowerShell -NoProfile -Command "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
+%PowerShell% "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
@@ -2134,7 +2099,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% UWP enabled...>> %WinDir%\AtlasModules\l
 goto finish
 
 :mitE
-PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages"
+%PowerShell% "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages"
 goto finish
 
 :startlayout
@@ -2195,7 +2160,7 @@ goto finishNRB
 :: - make it extremely clear that this is not aimed to maintain performance
 
 :: - harden process mitigations (lower compatibilty for legacy apps)
-PowerShell -NoProfile -Command "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages"
+%PowerShell% "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks, RequireInfo, BottomUp, HighEntropy, StrictHandle, CFG, StrictCFG, SuppressExports, SEHOP, AuditSEHOP, SEHOPTelemetry, ForceRelocateImages"
 :: - open scripts in notepad to preview instead of executing when clicking
 for %%a in (
     "batfile"
@@ -2312,7 +2277,7 @@ exit
 
 :xboxConfirm
 echo Removing via PowerShell...
-NSudo.exe -U:C -ShowWindowMode:Hide -Wait PowerShell -NoProfile -Command "Get-AppxPackage *Xbox* | Remove-AppxPackage" > nul 2>nul
+NSudo.exe -U:C -ShowWindowMode:Hide -Wait %PowerShell% "Get-AppxPackage *Xbox* | Remove-AppxPackage" > nul 2>nul
 
 echo Disabling services...
 sc config XblAuthManager start=disabled
@@ -2636,7 +2601,7 @@ echo Installing Scoop...
 set /P c="Review install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/ScoopInstaller/install/master/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/ScoopInstaller/install/master/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-PowerShell -NoProfile -Command "%WinDir%\AtlasModules\install.ps1 -RunAsAdmin"
+%PowerShell% "%WinDir%\AtlasModules\install.ps1 -RunAsAdmin"
 echo Refreshing environment for Scoop...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
@@ -2657,7 +2622,7 @@ echo Installing Chocolatey
 set /P c="Review install script before executing? [Y/N]: "
 if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
 if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-PowerShell -NoProfile -Command "%WinDir%\AtlasModules\install.ps1"
+%PowerShell% "%WinDir%\AtlasModules\install.ps1"
 echo Refreshing environment for Chocolatey...
 call %WinDir%\AtlasModules\refreshenv.bat
 echo]
@@ -2694,7 +2659,7 @@ for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| find
 for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%i
 for /f "tokens=2 delims=()" %%i in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /f "tokens=2" %%a in ("%%i") do set DHCPSubnetMask=%%a
 netsh int ipv4 set address name="%devicename%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway%
-PowerShell -NoProfile -Command "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
+%PowerShell% "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
 echo %date% - %time% Static IP set! (%LocalIP%)(%DHCPGateway%)(%DHCPSubnetMask%) >> %WinDir%\AtlasModules\logs\userScript.log
 
 echo Private IP: %LocalIP%
@@ -2974,6 +2939,10 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d 
 	echo Failed to set service %~1 with start value %~2! Unknown error.)
 )
 exit /b 0
+
+:PowerShell
+powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command %*
+goto:eof
 
 :firewallBlockExe
 :: usage: %fireBlockExe% "[NAME]" "[EXE]"

@@ -12,7 +12,4 @@ DevManView /disable "WAN Miniport (SSTP)"
 
 :: disable reserved storage
 DISM /Online /Set-ReservedStorageState /State:Disabled
-
-:: disable memory compression
-PowerShell -NoProfile -Command "Disable-MMAgent -MemoryCompression"
 goto :EOF
