@@ -5,18 +5,19 @@
 :: CREDITS:
 :: - AMIT
 :: - Artanis
-:: - CYNAR
 :: - Canonez
 :: - CatGamerOP
+:: - CYNAR
 :: - EverythingTech
-:: - Melody
-:: - Revision
+:: - he3als
 :: - imribiy
-:: - nohopestage
-:: - Timecard
-:: - Phlegm
-:: - Xyueta
 :: - JayXTQ
+:: - Melody
+:: - nohopestage
+:: - Phlegm
+:: - Revision
+:: - Timecard
+:: - Xyueta
 
 @echo off
 set "branch=22H2"
