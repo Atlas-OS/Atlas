@@ -1553,7 +1553,7 @@ bcdedit /set vm no
 bcdedit /set vmslaunchtype Off
 bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS
 
-echo %date% - %time% BCD Options Set...>> %WinDir%\AtlasModules\logs\install.log
+echo %date% - %time% BCD options set...>> %WinDir%\AtlasModules\logs\install.log
 
 :: write to script log file
 echo This log keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > %WinDir%\AtlasModules\logs\userScript.log
@@ -1562,8 +1562,13 @@ echo ---------------------------------------------------------------------------
 :: clear false value
 break > C:\Users\Public\success.txt
 echo true > C:\Users\Public\success.txt
-echo %date% - %time% Post-Install Finished Redirecting to sub script...>> %WinDir%\AtlasModules\logs\install.log
+echo %date% - %time% Post-Install finished redirecting to sub script...>> %WinDir%\AtlasModules\logs\install.log
 exit
+
+
+:::::::::::::::::::
+:: Configuration ::
+:::::::::::::::::::
 
 :notiD
 sc config WpnService start=disabled
