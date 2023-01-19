@@ -28,7 +28,7 @@ title AtlasOS Configuration Script %branch% %ver%
 set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
 set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
 set "setSvc=call :setSvc"
-set "UNZip=call :UNZIP"
+set "unZIP=call :unZIP"
 set "firewallBlockExe=call :firewallBlockExe"
 
 :: check for administrator privileges
@@ -2011,7 +2011,7 @@ echo]
 echo Open-Shell is installing...
 "Open-Shell.exe" /qn ADDLOCAL=StartMenu
 curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5.3/Fluent-Metro_1.5.3.zip -o skin.zip
-%UNZip% "skin.zip" "C:\Program Files\Open-Shell\Skins"
+%unZIP% "skin.zip" "C:\Program Files\Open-Shell\Skins"
 del /F /Q skin.zip > nul 2>nul
 taskkill /f /im explorer.exe
 NSudo.exe -U:C explorer.exe
@@ -2935,7 +2935,7 @@ goto :EOF
 if exist "%~1" del /F /Q "%~1"
 goto :EOF
 
-:UNZip <FilePath> <DestinationPath>
+:unZIP <FilePath> <DestinationPath>
 %PowerShell% "Expand-Archive -Path '%~1' -DestinationPath '%~2'"
 goto:eof
 
