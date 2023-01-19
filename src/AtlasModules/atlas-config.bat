@@ -2901,7 +2901,10 @@ bcdedit /set {current} safeboot minimal
 echo %date% - %time% Safe mode enabled...>> %WinDir%\AtlasModules\logs\userscript.log
 goto finish
 
-:: Batch Functions
+
+:::::::::::::::::::::
+:: Batch Functions ::
+:::::::::::::::::::::
 
 :invalidInput <label>
 if "%c%"=="" echo Empty input! Please enter Y or N. & goto %~1
