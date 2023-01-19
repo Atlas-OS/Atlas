@@ -21,7 +21,7 @@
 
 @echo off
 set "branch=22H2"
-set "ver=v0.1"
+set "ver=v0.1.0"
 title AtlasOS Configuration Script %branch% %ver%
 
 :: set other variables (do not touch)
@@ -368,6 +368,9 @@ net user defaultuser0 /delete > nul 2>nul
 :: set PowerShell execution policy to unrestricted
 %PowerShell% "Set-ExecutionPolicy Unrestricted -Force"
 
+:: disable reserved storage
+DISM /Online /Set-ReservedStorageState /State:Disabled
+
 :: disable automatic repair
 bcdedit /set recoveryenabled no > nul 2>nul
 fsutil repair set C: 0 > nul 2>nul
@@ -676,12 +679,18 @@ DevManView.exe /disable "System Speaker"
 DevManView.exe /disable "System Timer"
 DevManView.exe /disable "UMBus Root Bus Enumerator"
 
+:: disable network devices
+DevManView.exe /disable "WAN Miniport (IKEv2)"
+DevManView.exe /disable "WAN Miniport (IP)"
+DevManView.exe /disable "WAN Miniport (IPv6)"
+DevManView.exe /disable "WAN Miniport (L2TP)"
+DevManView.exe /disable "WAN Miniport (Network Monitor)"
+DevManView.exe /disable "WAN Miniport (PPPOE)"
+DevManView.exe /disable "WAN Miniport (PPTP)"
+DevManView.exe /disable "WAN Miniport (SSTP)"
+
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled system devices...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable system devices! >> %WinDir%\AtlasModules\logs\install.log)
-
-if %branch%=="1803" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\1803.bat
-if %branch%=="20H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\20H2.bat
-if %branch%=="22H2" NSudo.exe -U:C -P:E %WinDir%\AtlasModules\22H2.bat
 
 :: backup default windows services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows services.reg"
