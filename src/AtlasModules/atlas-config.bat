@@ -509,8 +509,8 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %WinDir
 ) ELSE (echo %date% - %time% Failed to set service split treshold! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: disable drivers power savings
-for /f "tokens=*" %%i in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
-    for %%a in (
+for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
+    for %%i in (
     	"AllowIdleIrpInD3"
         "D3ColdSupported"
         "DeviceSelectiveSuspended"
@@ -524,7 +524,7 @@ for /f "tokens=*" %%i in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "US
         "WakeEnabled"
         "WdfDirectedPowerTransitionEnable"
     ) do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters" /v "%%a" /t REG_DWORD /d "0" /f
+        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%i" /t REG_DWORD /d "0" /f
     )
 )
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled drivers power savings...>> %WinDir%\AtlasModules\logs\install.log
@@ -536,7 +536,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled PnP power savings...>> %WinDir
 ) ELSE (echo %date% - %time% Failed to disable PnP power savings! >> %WinDir%\AtlasModules\logs\install.log)
 
 :: disable unnecessary autologgers
-for %%i in (
+for %%a in (
     "Circular Kernel Context Logger"
     "CloudExperienceHostOobe"
     "DefenderApiLogger"
@@ -561,8 +561,8 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled unnecessary autologgers...>> %
 
 :: disable netbios over tcp/ip
 :: works only when services are enabled
-for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" /s /f "NetbiosOptions" ^| findstr "HKEY"') do (
-    reg add "%%b" /v "NetbiosOptions" /t REG_DWORD /d "2" /f
+for /f "delims=" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" /s /f "NetbiosOptions" ^| findstr "HKEY"') do (
+    reg add "%%a" /v "NetbiosOptions" /t REG_DWORD /d "2" /f
 )
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled netbios over tcp/ip...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to disable netbios over tcp/ip! >> %WinDir%\AtlasModules\logs\install.log)
@@ -582,10 +582,10 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes.
 
 :: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
-for /f %%i in ('wmic path Win32_NetworkAdapter get GUID ^| findstr "{"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\%%i" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\%%i" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\%%i" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
+for /f %%a in ('wmic path Win32_NetworkAdapter get GUID ^| findstr "{"') do (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\%%a" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\%%a" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\%%a" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
 )
 
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosNonBestEffortLimit
@@ -602,7 +602,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" /v "DefaultPnPC
 :: configure nic settings
 :: modified by Xyueta
 for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
-    for %%b in (
+    for %%i in (
         "*EEE"
         "*FlowControl"
         "*LsoV2IPv4"
@@ -628,8 +628,8 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
         "WakeOnSlot"
         "WakeUpModeCap"
     ) do (
-        for /f %%c in ('reg query "%%a" /v "%%b" ^| findstr "HKEY"') do (
-            reg add "%%c" /v "%%b" /t REG_SZ /d "0" /f
+        for /f %%j in ('reg query "%%a" /v "%%i" ^| findstr "HKEY"') do (
+            reg add "%%j" /v "%%i" /t REG_SZ /d "0" /f
         )
     )
 )
@@ -638,8 +638,8 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
 netsh int tcp set heuristics disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
 netsh int tcp set global rsc=disabled
-for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
-	netsh int ip set interface %%i routerdiscovery=disabled store=persistent
+for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
+	netsh int ip set interface %%a routerdiscovery=disabled store=persistent
 )
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %WinDir%\AtlasModules\logs\install.log
@@ -696,11 +696,11 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled system devices...>> %WinDir%\A
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
-	    set svc=%%i
+for /f "skip=1" %%a in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
+	    set svc=%%a
 	    set svc=!svc: =!
-	    for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-            set /a start=%%i
+	    for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
+            set /a start=%%a
             echo !start!
             echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
             echo "Start"=dword:0000000!start! >> %filename%
@@ -712,10 +712,10 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v 
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "delims=," %%i in ('driverquery /FO CSV') do (
-	set svc=%%~i
-	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /a start=%%i
+for /f "delims=," %%a in ('driverquery /FO CSV') do (
+	set svc=%%a
+	for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
+		set /a start=%%a
 		echo !start!
 		echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
@@ -876,11 +876,11 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled services...>> %WinDir%\AtlasMo
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas services.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
-	set svc=%%i
+for /f "skip=1" %%a in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
+	set svc=%%a
 	set svc=!svc: =!
-	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /a start=%%i
+	for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
+		set /a start=%%a
 		echo !start!
 		echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
@@ -892,10 +892,10 @@ for /f "skip=1" %%i in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v 
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas drivers.reg"
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
-for /f "delims=," %%i in ('driverquery /FO CSV') do (
-	set svc=%%~i
-	for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /a start=%%i
+for /f "delims=," %%a in ('driverquery /FO CSV') do (
+	set svc=%%a
+	for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
+		set /a start=%%a
 		echo !start!
 		echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
 		echo "Start"=dword:0000000!start! >> %filename%
@@ -1058,14 +1058,14 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCloud
 :: disable suggested content in immersive control panel
 :: disable fun facts, tips, tricks on windows spotlight
 :: disable start menu suggestions
-for %%i in (
+for %%a in (
     "SubscribedContent-338393Enabled"
     "SubscribedContent-353694Enabled"
     "SubscribedContent-353696Enabled"
     "SubscribedContent-338387Enabled"
     "SubscribedContent-338388Enabled"
 ) do (
-    %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "%%i" /t REG_DWORD /d "0" /f
+    %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "%%a" /t REG_DWORD /d "0" /f
 )
 
 :: disable windows spotlight features
@@ -1413,13 +1413,13 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescripti
 reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}\PropertyBag" /v "ThisPCPolicy" /t REG_SZ /d "Hide" /f
 
 :: enable legacy photo viewer
-for %%i in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
-    reg add "HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations" /v ".%%~i" /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
+for %%a in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
+    reg add "HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations" /v ".%%~a" /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
 )
 
 :: set legacy photo viewer as default
-for %%i in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
-    %currentuser% reg add "HKCU\SOFTWARE\Classes\.%%~i" /ve /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
+for %%a in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
+    %currentuser% reg add "HKCU\SOFTWARE\Classes\.%%~a" /ve /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
 )
 
 :: disable gamebar presence writer
@@ -1449,17 +1449,6 @@ for /f "delims=" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVers
     reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},3" /t REG_DWORD /d "0" /f
     reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},4" /t REG_DWORD /d "0" /f
 )
-
-:: install cab context menu
-reg delete "HKCR\CABFolder\Shell\RunAs" /f > nul 2>nul
-reg add "HKCR\CABFolder\Shell\RunAs" /ve /t REG_SZ /d "Install" /f
-reg add "HKCR\CABFolder\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "" /f
-reg add "HKCR\CABFolder\Shell\RunAs\Command" /ve /t REG_SZ /d "cmd /k DISM /online /add-package /packagepath:\"%%1\"" /f
-
-:: merge as trusted installer for registry files
-reg add "HKCR\regfile\Shell\RunAs" /ve /t REG_SZ /d "Merge As TrustedInstaller" /f
-reg add "HKCR\regfile\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "1" /f
-reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "NSudo.exe -U:T -P:E reg import "%%1"" /f
 
 :: remove restore previous versions
 :: from context menu and file' properties
@@ -1515,9 +1504,20 @@ reg add "HKLM\SOFTWARE\Classes\.ps1\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d 
 reg add "HKLM\SOFTWARE\Classes\.reg\ShellNew" /v "NullFile" /t REG_SZ /d "" /f
 reg add "HKLM\SOFTWARE\Classes\.reg\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "@C:\Windows\regedit.exe,-309" /f
 
+:: install cab context menu
+reg delete "HKCR\CABFolder\Shell\RunAs" /f > nul 2>nul
+reg add "HKCR\CABFolder\Shell\RunAs" /ve /t REG_SZ /d "Install" /f
+reg add "HKCR\CABFolder\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "" /f
+reg add "HKCR\CABFolder\Shell\RunAs\Command" /ve /t REG_SZ /d "cmd /k DISM /online /add-package /packagepath:\"%1\"" /f
+
+:: merge as trusted installer for registry files
+reg add "HKCR\regfile\Shell\RunAs" /ve /t REG_SZ /d "Merge As TrustedInstaller" /f
+reg add "HKCR\regfile\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "1" /f
+reg add "HKCR\regfile\Shell\RunAs\Command" /ve /t REG_SZ /d "NSudoL.exe -U:T -P:E reg import "%1"" /f
+
 :: double click to import power schemes
 reg add "HKLM\SOFTWARE\Classes\powerplan\DefaultIcon" /ve /t REG_SZ /d "C:\Windows\System32\powercpl.dll,1" /f
-reg add "HKLM\SOFTWARE\Classes\powerplan\Shell\open\command" /ve /t REG_SZ /d "powercfg /import \"%%1\"" /f
+reg add "HKLM\SOFTWARE\Classes\powerplan\Shell\open\command" /ve /t REG_SZ /d "powercfg /import \"%1\"" /f
 reg add "HKLM\SOFTWARE\Classes\.pow" /ve /t REG_SZ /d "powerplan" /f
 reg add "HKLM\SOFTWARE\Classes\.pow" /v "FriendlyTypeName" /t REG_SZ /d "Power Plan" /f
 
@@ -1526,8 +1526,8 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Registry configuration applied...>> %Wi
 
 :: disable dma remapping
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
-for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRemappingCompatible" ^| find /i "Services\" ') do (
-	reg add "%%i" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f
+for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRemappingCompatible" ^| find /i "Services\" ') do (
+	reg add "%%a" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f
 )
 echo %date% - %time% Disabled dma remapping...>> %WinDir%\AtlasModules\logs\install.log
 
@@ -1860,8 +1860,8 @@ if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth enabled...>> %WinDir%\AtlasMod
 goto finish
 
 :cbdhsvcD
-for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f "cbdhsvc" ^| find /i "cbdhsvc" ') do (
-  reg add "%%I" /v "Start" /t REG_DWORD /d "4" /f
+for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f "cbdhsvc" ^| find /i "cbdhsvc" ') do (
+  reg add "%%a" /v "Start" /t REG_DWORD /d "4" /f
 )
 :: to do: check if service can be set to demand
 sc config DsSvc start=disabled
@@ -1871,8 +1871,8 @@ if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History disabled...>> %WinDir%
 goto finish
 
 :cbdhsvcE
-for /f %%I in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f "cbdhsvc" ^| find /i "cbdhsvc" ') do (
-  reg add "%%I" /v "Start" /t REG_DWORD /d "3" /f
+for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f "cbdhsvc" ^| find /i "cbdhsvc" ') do (
+  reg add "%%a" /v "Start" /t REG_DWORD /d "3" /f
 )
 sc config DsSvc start=auto
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Clipboard" /v "EnableClipboardHistory" /t REG_DWORD /d "1" /f
@@ -1898,8 +1898,8 @@ goto finish
 %PowerShell% "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks"
 bcdedit /set nx Optin
 :: enable cfg for valorant related processes
-for %%i in (valorant valorant-win64-shipping vgtray vgc) do (
-    PowerShell -NoProfile -Command "Set-ProcessMitigation -Name %%i.exe -Enable CFG"
+for %%a in (valorant valorant-win64-shipping vgtray vgc) do (
+    PowerShell -NoProfile -Command "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
 )
 if %ERRORLEVEL%==0 echo %date% - %time% DEP enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -2451,8 +2451,8 @@ goto finish
 netsh int ip reset
 netsh winsock reset
 :: extremely awful way to do this
-for /f "tokens=3* delims=: " %%i in ('pnputil /enum-devices /class Net /connected ^| findstr "Device Description:"') do (
-	DevManView.exe /uninstall "%%i %%j"
+for /f "tokens=3* delims=: " %%a in ('pnputil /enum-devices /class Net /connected ^| findstr "Device Description:"') do (
+	DevManView.exe /uninstall "%%a %%i"
 )
 pnputil /scan-devices
 if %ERRORLEVEL%==0 echo %date% - %time% Network setting reset to Windows' default...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -2461,10 +2461,10 @@ goto finish
 :netAtlasDefault
 :: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
-for /f %%i in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
+for /f %%a in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do (
+    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%a" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%a" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%a" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
 )
 
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosNonBestEffortLimit
@@ -2481,7 +2481,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" /v "DefaultPnPC
 :: configure nic settings
 :: modified by Xyueta
 for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
-    for %%b in (
+    for %%i in (
         "*EEE"
         "*FlowControl"
         "*LsoV2IPv4"
@@ -2507,8 +2507,8 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
         "WakeOnSlot"
         "WakeUpModeCap"
     ) do (
-        for /f %%c in ('reg query "%%a" /v "%%b" ^| findstr "HKEY"') do (
-            reg add "%%c" /v "%%b" /t REG_SZ /d "0" /f
+        for /f %%j in ('reg query "%%a" /v "%%i" ^| findstr "HKEY"') do (
+            reg add "%%j" /v "%%i" /t REG_SZ /d "0" /f
         )
     )
 )
@@ -2517,8 +2517,8 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
 netsh int tcp set heuristics=disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
 netsh int tcp set global rsc=disabled
-for /f "tokens=1" %%i in ('netsh int ip show interfaces ^| findstr [0-9]') do (
-	netsh int ip set interface %%i routerdiscovery=disabled store=persistent
+for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
+	netsh int ip set interface %%a routerdiscovery=disabled store=persistent
 )
 if %ERRORLEVEL%==0 echo %date% - %time% Network settings reset to Atlas default...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -2640,16 +2640,16 @@ echo If this did not install Chocolatey, instead you can try installing via the 
 goto finish
 
 :altSoftwarescoop
-for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
-	set spacedelimited=%%i
+for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
+	set spacedelimited=%%a
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
 )
 goto finish
 
 :altSoftwarechoco
-for /f "tokens=*" %%i in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
-	set spacedelimited=%%i
+for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
+	set spacedelimited=%%a
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
 )
@@ -2663,11 +2663,11 @@ goto finish
 :staticIP
 call :netcheck
 set /P dns1="Set DNS Server (e.g. 1.1.1.1): "
-for /f "tokens=4" %%i in ('netsh int show interface ^| find "Connected"') do set devicename=%%i
-:: for /f "tokens=2 delims=[]" %%i in ('ping -4 -n 1 %ComputerName% ^| findstr [') do set LocalIP=%%i
-for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| findstr "IP Address:"') do set LocalIP=%%i
-for /f "tokens=3" %%i in ('netsh int ip show config name^="%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%i
-for /f "tokens=2 delims=()" %%i in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /f "tokens=2" %%a in ("%%i") do set DHCPSubnetMask=%%a
+for /f "tokens=4" %%a in ('netsh int show interface ^| find "Connected"') do set devicename=%%a
+:: for /f "tokens=2 delims=[]" %%a in ('ping -4 -n 1 %ComputerName% ^| findstr [') do set LocalIP=%%a
+for /f "tokens=3" %%a in ('netsh int ip show config name^="%devicename%" ^| findstr "IP Address:"') do set LocalIP=%%a
+for /f "tokens=3" %%a in ('netsh int ip show config name^="%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%a
+for /f "tokens=2 delims=()" %%a in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /f "tokens=2" %%i in ("%%a") do set DHCPSubnetMask=%%a
 netsh int ipv4 set address name="%devicename%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway%
 %PowerShell% "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
 echo %date% - %time% Static IP set! (%LocalIP%)(%DHCPGateway%)(%DHCPSubnetMask%) >> %WinDir%\AtlasModules\logs\userScript.log
@@ -2682,8 +2682,8 @@ goto finish
 :: %setSvc% netprofm 4
 
 :displayScalingD
-for /f %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f "Scaling" ^| find /i "Configuration\"') do (
-	reg add "%%i" /v "Scaling" /t REG_DWORD /d "1" /f
+for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f "Scaling" ^| find /i "Configuration\"') do (
+	reg add "%%a" /v "Scaling" /t REG_DWORD /d "1" /f
 )
 if %ERRORLEVEL%==0 echo %date% - %time% Display Scaling disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -2718,15 +2718,15 @@ echo This will force P0 on your NVIDIA card AT ALL TIMES, it will always run at 
 echo It is not recommended if you leave your computer on while idle, have bad cooling or use a laptop.
 pause
 
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
-    reg add "%%i" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
+for /f "tokens=*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
+    reg add "%%a" /v "DisableDynamicPstate" /t REG_DWORD /d "1" /f
 )
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :revertNVPState
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
-    reg delete "%%i" /v "DisableDynamicPstate" /f > nul 2>nul
+for /f "tokens=*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
+    reg delete "%%a" /v "DisableDynamicPstate" /f > nul 2>nul
 )
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Dynamic P-States enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
@@ -2741,8 +2741,8 @@ if errorlevel 1 (
     exit /B
 )
 
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
-    reg add "%%i" /v "RMHdcpKeyglobZero" /t REG_DWORD /d "1" /f
+for /f "tokens=*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
+    reg add "%%a" /v "RMHdcpKeyglobZero" /t REG_DWORD /d "1" /f
 )
 
 if %ERRORLEVEL%==0 echo %date% - %time% HDCP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
@@ -2758,8 +2758,8 @@ if errorlevel 1 (
     exit /B
 )
 
-for /f "tokens=*" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
-    reg add "%%i" /v "RMHdcpKeyglobZero" /t REG_DWORD /d "0" /f
+for /f "tokens=*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
+    reg add "%%a" /v "RMHdcpKeyglobZero" /t REG_DWORD /d "0" /f
 )
 
 if %ERRORLEVEL%==0 echo %date% - %time% HDCP enabled...>> %WinDir%\AtlasModules\logs\userScript.log
