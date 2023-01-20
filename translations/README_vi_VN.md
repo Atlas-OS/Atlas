@@ -11,7 +11,7 @@
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
   •
-  <a href="https://forum.atlasos.net/">Diễn đàn</a>
+  <a href="https://forum.atlasos.net">Diễn đàn</a>
 </p>
 
 

@@ -11,7 +11,7 @@
   •
   <a href="https://discord.com/servers/atlas-795710270000332800">加入我们的 Discord</a>
   •
-  <a href="https://forum.atlasos.net/">前往我们的论坛</a>
+  <a href="https://forum.atlasos.net">前往我们的论坛</a>
 </p>
 
 
