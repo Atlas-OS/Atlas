@@ -72,7 +72,7 @@ Now we have the script available in `atlas-config`, let us make a desktop script
 @echo off
 :: this launches the script with TrustedInstaller permissions
 :: remove these comments when contributing
-C:\Windows\AtlasModules\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait C:\Windows\AtlasModules\atlas-config.bat /btd
+NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %windir%\atlas-config.bat /btd
 ```
 
 This file will go in the "Atlas" Folder
