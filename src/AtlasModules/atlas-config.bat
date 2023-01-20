@@ -26,7 +26,7 @@ title AtlasOS Configuration Script %branch% %ver%
 
 :: set other variables (do not touch)
 set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
-set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
+set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
 set "setSvc=call :setSvc"
 set "unZIP=call :unZIP"
 set "firewallBlockExe=call :firewallBlockExe"
