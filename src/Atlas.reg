@@ -3,7 +3,9 @@ Windows Registry Editor Version 5.00
 ; disable UAC (needed for correct post-install script perms)
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System]
+"ConsentPromptBehaviorAdmin"=dword:00000000
 "EnableLUA"=dword:00000000
+"PromptOnSecureDesktop"=dword:00000000
 
 ; disable updates (shows up in oobe)
 
