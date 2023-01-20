@@ -1,2 +1,2 @@
 @echo off
-NSudo.exe -U:C -P:E -UseCurrentConsole -Wait %windir%\AtlasModules\atlas-config.bat /altsoftwarescoop
+NSudo.exe -U:C -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /altsoftwarescoop
