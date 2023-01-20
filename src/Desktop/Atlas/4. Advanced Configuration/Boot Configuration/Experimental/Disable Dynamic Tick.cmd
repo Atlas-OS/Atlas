@@ -49,7 +49,7 @@ if not %errorlevel%==0 (
 	echo Something went wrong doing the BCDEDIT command!
 	echo Look at the error above, if there is one.
 	echo]
-	echo However, the value most likely just doesn't exist, if there's no output.
+	echo However, the value most likely just does not exist, if there is no output.
 	pause
 	exit /b 1
 ) else (

@@ -15,7 +15,7 @@ fltmc >nul 2>&1 || (
 
 echo Disable some of the kernel memory mitigations. 
 echo Causes boot crash/loops if Intel SGX is enforced and not set to "Application Controlled" or "Off" in your firmware. 
-echo Gamers don't use SGX under any possible circumstance.
+echo Gamers do not use SGX under any possible circumstance.
 echo]
 echo NOTE: I could not find any documentation on this, except from Melody's website.
 echo]
