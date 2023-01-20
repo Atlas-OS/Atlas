@@ -25,7 +25,7 @@ set "ver=v0.1.0"
 title AtlasOS Configuration Script %branch% %ver%
 
 :: set other variables (do not touch)
-set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
+set "currentuser=%WinDir%\AtlasModules\Apps\NSudo.exe -U:C -P:E -Wait"
 set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
 set "setSvc=call :setSvc"
 set "unZIP=call :unZIP"
@@ -227,7 +227,7 @@ pause & exit
 :: create log directory for troubleshooting
 mkdir %WinDir%\AtlasModules\logs
 cls & echo Please wait, this may take a moment.
-setx path "%path%;%WinDir%\AtlasModules;" -m  > nul 2>nul
+setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\AtlasModules\Tools;" -m  > nul 2>nul
 IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -238,7 +238,7 @@ echo false > C:\Users\Public\success.txt
 
 :auto
 SETLOCAL EnableDelayedExpansion
-%WinDir%\AtlasModules\vcredist.exe /ai
+%WinDir%\AtlasModules\Apps\vcredist.exe /ai
 if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Runtimes! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -570,8 +570,8 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled netbios over tcp/ip...>> %WinD
 
 :: make certain applications in the AtlasModules folder request UAC
 :: although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\NSudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\Apps\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\Apps\NSudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 
 cls & echo Please wait. This may take a moment.
 
@@ -2276,7 +2276,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\pcw" /v "Start" /t REG_DWORD /d 
 goto finish
 
 :procexpE
-if not exist "%WinDir%\procexp.exe" copy "%WinDir%\AtlasModules\procexp.exe" "%WinDir%"
+if not exist "%WinDir%\procexp.exe" copy "%WinDir%\AtlasModules\Apps\procexp.exe" "%WinDir%"
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\procexp.exe" /f
 goto finish
 
@@ -2301,11 +2301,11 @@ goto finishNRB
 
 :vcreR
 echo Uninstalling Visual C++ Runtimes...
-%WinDir%\AtlasModules\vcredist.exe /aiR
+%WinDir%\AtlasModules\Apps\vcredist.exe /aiR
 echo Finished uninstalling!
 echo]
 echo Opening Visual C++ Runtimes installer, simply click next.
-%WinDir%\AtlasModules\vcredist.exe
+%WinDir%\AtlasModules\Apps\vcredist.exe
 echo Installation Finished or Cancelled.
 if %ERRORLEVEL%==0 echo %date% - %time% Visual C++ Runtimes reinstalled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
@@ -2641,7 +2641,7 @@ echo If this did not install Chocolatey, instead you can try installing via the 
 goto finish
 
 :altSoftwarescoop
-for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
+for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\Apps\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
 	set spacedelimited=%%a
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
@@ -2649,7 +2649,7 @@ for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\multichoice.exe "Common Softwar
 goto finish
 
 :altSoftwarechoco
-for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
+for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\Apps\multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
 	set spacedelimited=%%a
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
@@ -2690,7 +2690,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Display Scaling disabled...>> %WinDir%\A
 goto finish
 
 :DSCPauto
-for /f "tokens=* delims=\" %%i in ('%WinDir%\AtlasModules\filepicker.exe exe') do (
+for /f "tokens=* delims=\" %%i in ('%WinDir%\AtlasModules\Tools\filepicker.exe exe') do (
     if "%%i"=="cancelled by user" exit
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Application Name" /t REG_SZ /d "%%~ni%%~xi" /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Version" /t REG_SZ /d "1.0" /f
@@ -2818,16 +2818,16 @@ if %errorlevel%==1 (
 echo Explorer will be restarted to ensure that the context menu works.
 pause
 
-reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%WinDir%\AtlasModules\NVIDIA.ico,0" /f
+reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%WinDir%\AtlasModules\Other\NVIDIA.ico,0" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "MUIVerb" /t REG_SZ /d "NVIDIA Container" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Position" /t REG_SZ /d "Bottom" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "SubCommands" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "MUIVerb" /t REG_SZ /d "Enable NVIDIA Display Container LS" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\Apps\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Display Container LS" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\Apps\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im explorer.exe > nul 2>&1
