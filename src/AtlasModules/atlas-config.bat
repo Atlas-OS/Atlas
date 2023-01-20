@@ -25,7 +25,7 @@ set "ver=v0.1.0"
 title AtlasOS Configuration Script %branch% %ver%
 
 :: set other variables (do not touch)
-set "currentuser=%WinDir%\AtlasModules\NSudo.exe -U:C -P:E -Wait"
+set "currentuser=%WinDir%\AtlasModules\Apps\NSudo.exe -U:C -P:E -Wait"
 set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
 set "setSvc=call :setSvc"
 set "unZIP=call :unZIP"
@@ -47,168 +47,168 @@ if not %ERRORLEVEL%==0 (
 SETLOCAL EnableDelayedExpansion
 
 :: Startup
-if /i "%~1"=="/start"		   goto startup
+if /i "%~1"=="/start"                                        goto startup
 
 :: will loop update check if debugging
 :: Notifications
-if /i "%~1"=="/dn"         goto notiD
-if /i "%~1"=="/en"         goto notiE
+if /i "%~1"=="/dn"                                           goto notiD
+if /i "%~1"=="/en"                                           goto notiE
 
 :: Animations
-if /i "%~1"=="/ad"         goto aniD
-if /i "%~1"=="/ae"         goto aniE
+if /i "%~1"=="/ad"                                           goto aniD
+if /i "%~1"=="/ae"                                           goto aniE
 
 :: Search Indexing
-if /i "%~1"=="/di"         goto indexD
-if /i "%~1"=="/ei"         goto indexE
+if /i "%~1"=="/di"                                           goto indexD
+if /i "%~1"=="/ei"                                           goto indexE
 
 :: Wi-Fi
-if /i "%~1"=="/dw"         goto wifiD
-if /i "%~1"=="/ew"         goto wifiE
+if /i "%~1"=="/dw"                                           goto wifiD
+if /i "%~1"=="/ew"                                           goto wifiE
 
 :: Hyper-V
-if /i "%~1"=="/dhyper"         goto hyperD
-if /i "%~1"=="/ehyper"         goto hyperE
+if /i "%~1"=="/dhyper"                                       goto hyperD
+if /i "%~1"=="/ehyper"                                       goto hyperE
 
 :: Microsoft Store
-if /i "%~1"=="/ds"         goto storeD
-if /i "%~1"=="/es"         goto storeE
+if /i "%~1"=="/ds"                                           goto storeD
+if /i "%~1"=="/es"                                           goto storeE
 
 :: Background Apps
-if /i "%~1"=="/backd"         goto backD
-if /i "%~1"=="/backe"         goto backE
+if /i "%~1"=="/backd"                                        goto backD
+if /i "%~1"=="/backe"                                        goto backE
 
 :: Bluetooth
-if /i "%~1"=="/btd"         goto btD
-if /i "%~1"=="/bte"         goto btE
+if /i "%~1"=="/btd"                                          goto btD
+if /i "%~1"=="/bte"                                          goto btE
 
 :: HDD Prefetching
-if /i "%~1"=="/hddd"         goto hddD
-if /i "%~1"=="/hdde"         goto hddE
+if /i "%~1"=="/hddd"                                         goto hddD
+if /i "%~1"=="/hdde"                                         goto hddE
 
 :: DEP (nx)
-if /i "%~1"=="/depE"         goto depE
-if /i "%~1"=="/depD"         goto depD
+if /i "%~1"=="/depE"                                         goto depE
+if /i "%~1"=="/depD"                                         goto depD
 
 :: Start Menu
-if /i "%~1"=="/ssD"         goto SearchStart
-if /i "%~1"=="/ssE"         goto enableStart
-if /i "%~1"=="/openshell"         goto openshellInstall
+if /i "%~1"=="/ssD"                                          goto SearchStart
+if /i "%~1"=="/ssE"                                          goto enableStart
+if /i "%~1"=="/openshell"                                    goto openshellInstall
 
 :: Remove UWP
-if /i "%~1"=="/uwp"			goto uwp
-if /i "%~1"=="/uwpE"			goto uwpE
-if /i "%~1"=="/mite"			goto mitE
+if /i "%~1"=="/uwp"                                          goto uwp
+if /i "%~1"=="/uwpE"                                         goto uwpE
+if /i "%~1"=="/mite"                                         goto mitE
 
 :: Remove Start Menu layout (allow tiles in Start Menu)
-if /i "%~1"=="/stico"          goto startlayout
+if /i "%~1"=="/stico"                                        goto startlayout
 
 :: Sleep States
-if /i "%~1"=="/sleepD"         goto sleepD
-if /i "%~1"=="/sleepE"         goto sleepE
+if /i "%~1"=="/sleepD"                                       goto sleepD
+if /i "%~1"=="/sleepE"                                       goto sleepE
 
 :: CPU Idle
-if /i "%~1"=="/idled"          goto idleD
-if /i "%~1"=="/idlee"          goto idleE
+if /i "%~1"=="/idled"                                        goto idleD
+if /i "%~1"=="/idlee"                                        goto idleE
 
 :: Process Explorer
-if /i "%~1"=="/procexpd"          goto procexpD
-if /i "%~1"=="/procexpe"          goto procexpE
+if /i "%~1"=="/procexpd"                                     goto procexpD
+if /i "%~1"=="/procexpe"                                     goto procexpE
 
 :: Xbox
-if /i "%~1"=="/xboxU"         goto xboxU
+if /i "%~1"=="/xboxU"                                        goto xboxU
 
 :: Reinstall VC++ Redistributables
-if /i "%~1"=="/vcreR"         goto vcreR
+if /i "%~1"=="/vcreR"                                        goto vcreR
 
 :: User Account Control
-if /i "%~1"=="/uacD"		goto uacD
-if /i "%~1"=="/uacE"		goto uacE
-if /i "%~1"=="/uacSettings" goto uacSettings
+if /i "%~1"=="/uacD"                                         goto uacD
+if /i "%~1"=="/uacE"                                         goto uacE
+if /i "%~1"=="/uacSettings"                                  goto uacSettings
 
 :: Workstation Service (SMB)
-if /i "%~1"=="/workD"		goto workstationD
-if /i "%~1"=="/workE"		goto workstationE
+if /i "%~1"=="/workD"                                        goto workstationD
+if /i "%~1"=="/workE"                                        goto workstationE
 
 :: Windows Firewall
-if /i "%~1"=="/firewallD"		goto firewallD
-if /i "%~1"=="/firewallE"		goto firewallE
+if /i "%~1"=="/firewallD"                                    goto firewallD
+if /i "%~1"=="/firewallE"                                    goto firewallE
 
 :: Printing
-if /i "%~1"=="/printD"		goto printD
-if /i "%~1"=="/printE"		goto printE
+if /i "%~1"=="/printD"                                       goto printD
+if /i "%~1"=="/printE"                                       goto printE
 
 :: Network
-if /i "%~1"=="/netWinDefault"		goto netWinDefault
-if /i "%~1"=="/netAtlasDefault"		goto netAtlasDefault
+if /i "%~1"=="/netWinDefault"                                goto netWinDefault
+if /i "%~1"=="/netAtlasDefault"                              goto netAtlasDefault
 
 :: Clipboard History Service (also required for Snip and Sketch to copy correctly)
-if /i "%~1"=="/cbdhsvcD"    goto cbdhsvcD
-if /i "%~1"=="/cbdhsvcE"    goto cbdhsvcE
+if /i "%~1"=="/cbdhsvcD"                                     goto cbdhsvcD
+if /i "%~1"=="/cbdhsvcE"                                     goto cbdhsvcE
 
 :: VPN
-if /i "%~1"=="/vpnD"    goto vpnD
-if /i "%~1"=="/vpnE"    goto vpnE
+if /i "%~1"=="/vpnD"                                         goto vpnD
+if /i "%~1"=="/vpnE"                                         goto vpnE
 
 :: Scoop and Chocolatey
-if /i "%~1"=="/scoop" goto scoop
-if /i "%~1"=="/choco" goto choco
-if /i "%~1"=="/altsoftwarescoop" goto altSoftwarescoop
-if /i "%~1"=="/altsoftwarechoco" goto altSoftwarechoco
-if /i "%~1"=="/removescoopcache" goto scoopCache
+if /i "%~1"=="/scoop"                                        goto scoop
+if /i "%~1"=="/choco"                                        goto choco
+if /i "%~1"=="/altsoftwarescoop"                             goto altSoftwarescoop
+if /i "%~1"=="/altsoftwarechoco"                             goto altSoftwarechoco
+if /i "%~1"=="/removescoopcache"                             goto scoopCache
 
 :: NVIDIA P-State 0
-if /i "%~1"=="/nvpstateD" goto NVPstate
-if /i "%~1"=="/nvpstateE" goto revertNVPState
+if /i "%~1"=="/nvpstateD"                                    goto NVPstate
+if /i "%~1"=="/nvpstateE"                                    goto revertNVPState
 
 :: HDCP
-if /i "%~1"=="/hdcpD" goto hdcpD
-if /i "%~1"=="/hdcpE" goto hdcpE
+if /i "%~1"=="/hdcpD"                                        goto hdcpD
+if /i "%~1"=="/hdcpE"                                        goto hdcpE
 
 :: DSCP
-if /i "%~1"=="/dscpauto" goto DSCPauto
+if /i "%~1"=="/dscpauto"                                     goto DSCPauto
 
 :: Display Scaling
-if /i "%~1"=="/displayscalingd" goto displayScalingD
+if /i "%~1"=="/displayscalingd"                              goto displayScalingD
 
 :: Static IP
-if /i "%~1"=="/staticip" goto staticIP
+if /i "%~1"=="/staticip"                                     goto staticIP
 
 :: Windows Media Player
-if /i "%~1"=="/wmpd" goto wmpD
+if /i "%~1"=="/wmpd"                                         goto wmpD
 
 :: Internet Explorer
-if /i "%~1"=="/ied" goto ieD
+if /i "%~1"=="/ied"                                          goto ieD
 
 :: Task Scheduler
-if /i "%~1"=="/scheduled"  goto scheduleD
-if /i "%~1"=="/schedulee"  goto scheduleE
+if /i "%~1"=="/scheduled"                                    goto scheduleD
+if /i "%~1"=="/schedulee"                                    goto scheduleE
 
 :: Event Log
-if /i "%~1"=="/eventlogd" goto eventlogD
-if /i "%~1"=="/eventloge" goto eventlogE
+if /i "%~1"=="/eventlogd"                                    goto eventlogD
+if /i "%~1"=="/eventloge"                                    goto eventlogE
 
 :: NVIDIA Display Container LS - he3als
-if /i "%~1"=="/nvcontainerD" goto nvcontainerD
-if /i "%~1"=="/nvcontainerE" goto nvcontainerE
-if /i "%~1"=="/nvcontainerCMD" goto nvcontainerCMD
-if /i "%~1"=="/nvcontainerCME" goto nvcontainerCME
+if /i "%~1"=="/nvcontainerD"                                 goto nvcontainerD
+if /i "%~1"=="/nvcontainerE"                                 goto nvcontainerE
+if /i "%~1"=="/nvcontainerCMD"                               goto nvcontainerCMD
+if /i "%~1"=="/nvcontainerCME"                               goto nvcontainerCME
 
 :: Network Sharing
-if /i "%~1"=="/networksharingE" goto networksharingE
+if /i "%~1"=="/networksharingE"                              goto networksharingE
 
 :: Diagnostics
-if /i "%~1"=="/diagd" goto diagD
-if /i "%~1"=="/diage" goto diagE
+if /i "%~1"=="/diagd"                                        goto diagD
+if /i "%~1"=="/diage"                                        goto diagE
 
 :: Safe Mode
-if /i "%~1"=="/safee" goto safeE
-if /i "%~1"=="/safec" goto safeC
-if /i "%~1"=="/safen" goto safeN
-if /i "%~1"=="/safe" goto safe
+if /i "%~1"=="/safee"                                        goto safeE
+if /i "%~1"=="/safec"                                        goto safeC
+if /i "%~1"=="/safen"                                        goto safeN
+if /i "%~1"=="/safe"                                         goto safe
 
 :: debugging purposes only
-if /i "%~1"=="/test"         goto TestPrompt
+if /i "%~1"=="/test"                                         goto TestPrompt
 
 :argumentFAIL
 echo atlas-config had no arguements passed to it, either you are launching atlas-config directly or the "%~nx0" script is broken.
@@ -227,7 +227,7 @@ pause & exit
 :: create log directory for troubleshooting
 mkdir %WinDir%\AtlasModules\logs
 cls & echo Please wait, this may take a moment.
-setx path "%path%;%WinDir%\AtlasModules;" -m  > nul 2>nul
+setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\AtlasModules\Tools;" -m  > nul 2>nul
 IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -238,7 +238,7 @@ echo false > C:\Users\Public\success.txt
 
 :auto
 SETLOCAL EnableDelayedExpansion
-%WinDir%\AtlasModules\vcredist.exe /ai
+%WinDir%\AtlasModules\Apps\vcredist.exe /ai
 if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %WinDir%\AtlasModules\logs\install.log
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Runtimes! >> %WinDir%\AtlasModules\logs\install.log)
 
@@ -570,8 +570,8 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled netbios over tcp/ip...>> %WinD
 
 :: make certain applications in the AtlasModules folder request UAC
 :: although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\NSudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\Apps\DevManView.exe" /t REG_SZ /d "~ RUNASADMIN" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" /v "%WinDir%\AtlasModules\Apps\NSudo.exe" /t REG_SZ /d "~ RUNASADMIN" /f
 
 cls & echo Please wait. This may take a moment.
 
@@ -2276,7 +2276,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\pcw" /v "Start" /t REG_DWORD /d 
 goto finish
 
 :procexpE
-if not exist "%WinDir%\procexp.exe" copy "%WinDir%\AtlasModules\procexp.exe" "%WinDir%"
+if not exist "%WinDir%\procexp.exe" copy "%WinDir%\AtlasModules\Apps\procexp.exe" "%WinDir%"
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\procexp.exe" /f
 goto finish
 
@@ -2301,11 +2301,11 @@ goto finishNRB
 
 :vcreR
 echo Uninstalling Visual C++ Runtimes...
-%WinDir%\AtlasModules\vcredist.exe /aiR
+%WinDir%\AtlasModules\Apps\vcredist.exe /aiR
 echo Finished uninstalling!
 echo]
 echo Opening Visual C++ Runtimes installer, simply click next.
-%WinDir%\AtlasModules\vcredist.exe
+%WinDir%\AtlasModules\Apps\vcredist.exe
 echo Installation Finished or Cancelled.
 if %ERRORLEVEL%==0 echo %date% - %time% Visual C++ Runtimes reinstalled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
@@ -2641,7 +2641,7 @@ echo If this did not install Chocolatey, instead you can try installing via the 
 goto finish
 
 :altSoftwarescoop
-for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
+for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\Apps\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
 	set spacedelimited=%%a
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
@@ -2649,7 +2649,7 @@ for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\multichoice.exe "Common Softwar
 goto finish
 
 :altSoftwarechoco
-for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
+for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\Apps\multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
 	set spacedelimited=%%a
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
@@ -2690,7 +2690,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Display Scaling disabled...>> %WinDir%\A
 goto finish
 
 :DSCPauto
-for /f "tokens=* delims=\" %%i in ('%WinDir%\AtlasModules\filepicker.exe exe') do (
+for /f "tokens=* delims=\" %%i in ('%WinDir%\AtlasModules\Tools\filepicker.exe exe') do (
     if "%%i"=="cancelled by user" exit
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Application Name" /t REG_SZ /d "%%~ni%%~xi" /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Version" /t REG_SZ /d "1.0" /f
@@ -2818,16 +2818,16 @@ if %errorlevel%==1 (
 echo Explorer will be restarted to ensure that the context menu works.
 pause
 
-reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%WinDir%\AtlasModules\NVIDIA.ico,0" /f
+reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "%WinDir%\AtlasModules\Other\NVIDIA.ico,0" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "MUIVerb" /t REG_SZ /d "NVIDIA Container" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Position" /t REG_SZ /d "Bottom" /f
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "SubCommands" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001" /v "MUIVerb" /t REG_SZ /d "Enable NVIDIA Display Container LS" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer001\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\Apps\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerE" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "HasLUAShield" /t REG_SZ /d "" /f
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Display Container LS" /f
-reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
+reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "%WinDir%\AtlasModules\Apps\NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /nvcontainerD" /f
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im explorer.exe > nul 2>&1
