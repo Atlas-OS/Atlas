@@ -1,6 +1,5 @@
 :: name: Atlas configuration script
 :: description: this is the master script used to configure the Atlas operating system
-:: depending on your build, change theses vars to 1803, 20H2 or 21H2 and update the version
 
 :: CREDITS:
 :: - AMIT
@@ -20,7 +19,14 @@
 :: - Xyueta
 
 @echo off
-set "branch=22H2"
+
+:: set variables for identifying the OS
+:: - %releaseid% - release ID (21H2, 22H2, etc...)
+:: - %build% - current build of Windows (like 10.0.19044.1889)
+for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "DisplayVersion"') do (set releaseid=%%a)
+for /f "tokens=4-7 delims=[.] " %%a in ('ver') do (set "build=%%a.%%b.%%c.%%d")
+
+set "branch=%releaseid%"
 set "ver=v0.1.0"
 title AtlasOS Configuration Script %branch% %ver%
 
