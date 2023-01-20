@@ -546,6 +546,9 @@
 			<Machine enabled="yes">Virtual Box VM</Machine>
 			<Machine enabled="yes">VMware VM</Machine>
 		</MachineDrivers>
+		<ProtectedFiles>
+			<File>*Media\Windows Background.wav</File>
+		</ProtectedFiles>
 	</Compatibility>
 	<Features>
 		<Feature name="Language.TextToSpeech~~~en-us~0.0.1.0">false</Feature>

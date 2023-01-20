@@ -64,3 +64,16 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CLASSES_ROOT\Microsoft.PowerShellScript.1\Shell\Open\Command]
 @="\"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -File \"%1\""
+
+; set Windows default beep
+
+[HKEY_CURRENT_USER\AppEvents\Schemes\Apps\.Default\.Default]
+
+[HKEY_CURRENT_USER\AppEvents\Schemes\Apps\.Default\.Default\.Current]
+@="C:\\Windows\\media\\Windows Background.wav"
+
+[HKEY_CURRENT_USER\AppEvents\Schemes\Apps\.Default\.Default\.Default]
+@=hex(2):25,00,53,00,79,00,73,00,74,00,65,00,6d,00,52,00,6f,00,6f,00,74,00,25,\
+  00,5c,00,6d,00,65,00,64,00,69,00,61,00,5c,00,57,00,69,00,6e,00,64,00,6f,00,\
+  77,00,73,00,20,00,42,00,61,00,63,00,6b,00,67,00,72,00,6f,00,75,00,6e,00,64,\
+  00,2e,00,77,00,61,00,76,00,00,00

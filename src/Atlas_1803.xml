@@ -598,6 +598,9 @@
 			<Machine enabled="yes">Virtual Box VM</Machine>
 			<Machine enabled="no">VMware VM</Machine>
 		</MachineDrivers>
+		<ProtectedFiles>
+			<File>*Media\Windows Background.wav</File>
+		</ProtectedFiles>
 	</Compatibility>
 	<Features></Features>
 	<Packages></Packages>
