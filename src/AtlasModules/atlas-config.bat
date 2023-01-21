@@ -52,99 +52,188 @@ if not %ERRORLEVEL%==0 (
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 
-:: Append any new labels/scripts here
+:: Append any new labels/scripts here (with a comment)
+:: Anything in "" is a comment
+
 for %%a in (
-	startup
-	test
-	scoopCache
-	choco
-	altsoftwarechoco
-	altsoftwarescoop
-	scoop
-	aniD
-	aniE
-	depD
-	depE
-	backd
-	backe
-	btd
-	bte
-	cbdhsvcD
-	cbdhsvcE
-	eventlogd
-	scheduled
-	eventloge
-	schedulee
-	firewallD
-	firewallE
-	hddd
-	hdde
-	hyperD
-	hyperE
-	ied
-	wmpd
-	storeD
-	storeE
-	networksharingE
-	notiD
-	notiE
-	sleepD
-	sleepE
-	idled
-	idlee
-	printD
-	printE
-	procexpd
-	procexpe
-	indexD
-	indexE
-	SearchStartDisable
-	enableStartSearch
-	openshellInstall
-	startlayout
-	diagd
-	diage
-	uacD
-	uacE
-	uwp
-	uwpE
-	openshellInstall
-	xboxU
-	vpnD
-	vpnE
-	wifiD
-	wifiE
-	workstationD
-	workstationE
-	displayscalingd
-	dscpauto
-	nvcontainerD
-	nvcontainerE
-	nvcontainerCMD
-	nvcontainerCME
-	NVPstate
-	revertNVPState
-	hdcpD
-	hdcpE
-	staticip
-	netAtlasDefault
-	netWinDefault
-	safee
-	safec
-	safen
-	safe
-	vcreR
+
+"Post install script"
+startup
+
+"Test prompt"
+test
+
+"Chocolatey scripts"
+choco
+altsoftwarechoco
+
+"Scoop scripts"
+scoop
+altsoftwarescoop
+scoopCache
+
+"Toggle DWM animations"
+aniD
+aniE
+
+"Toggle Data Execution Prevention (anti-cheat compatibility)"
+depD
+depE
+
+"Toggle background apps"
+backd
+backe
+
+"Toggle Bluetooth services"
+btd
+bte
+
+"Toggle clipboard service (also required for Snip & Sketch)"
+cbdhsvcD
+cbdhsvcE
+
+"Toggle Event Log related components"
+eventloge
+eventlogd
+
+"Toggle Task Scheduler related components"
+schedulee
+scheduled
+
+"Toggle Windows Firewall"
+firewallD
+firewallE
+
+"Toggle HDD performance related features/services"
+hddd
+hdde
+
+"Hyper-V toggle"
+hyperD
+hyperE
+
+"Disable Internet Explorer"
+ied
+
+"Disable Windows Media Player"
+wmpd
+
+"Toggle Microsoft Store"
+storeD
+storeE
+
+"Enable network sharing"
+networksharingE
+
+"Toggle notifications"
+notiD
+notiE
+
+"Toggle sleep states in power plan"
+sleepD
+sleepE
+
+"Toggle CPU idle states in power plan"
+idled
+idlee
+
+"Printing services toggle"
+printD
+printE
+
+"Replace Task Manager with Process Explorer"
+procexpd
+procexpe
+
+"Indexing toggles"
+indexD
+indexE
+
+"Toggle search and start menu services"
+SearchStartDisable
+enableStartSearch
+
+"Unlock start menu layout"
+startlayout
+
+"Diagnostics services toggle"
+diagd
+diage
+
+"Disable/enable UAC"
+uacD
+uacE
+
+"Toggle UWP services"
+uwp
+uwpE
+
+"Install Open Shell (required for disabling search/start menu)"
+openshellInstall
+
+"Uninstall XBOX apps"
+xboxU
+
+"VPN-related services toggle"
+vpnD
+vpnE
+
+"Wi-Fi services toggle"
+wifiD
+wifiE
+
+"Workstation service toggle"
+workstationD
+workstationE
+
+"Disable display scaling (lower latency?)"
+displayscalingd
+
+"Select exe to set DSCP values to"
+dscpauto
+
+"NVIDIA Display Container LS service toggle"
+nvcontainerD
+nvcontainerE
+
+"Context menu for NVIDIA Display Container LS service"
+nvcontainerCMD
+nvcontainerCME
+
+"Force P-State 0 on NVIDIA cards"
+NVPstate
+revertNVPState
+
+"Disable HDCP (High-bandwidth Digital Content Protection)"
+hdcpD
+hdcpE
+
+"Automatic static IP"
+staticip
+
+"Network settings"
+netAtlasDefault
+netWinDefault
+
+"Safe mode scripts"
+safee
+safec
+safen
+safe
+
+"Visual C++ Redistributables AIO Pack"
+vcreR
+
 ) do (if "%~1"=="/%%a" (goto %%a))
 
 :: If the first argument does not match any known scripts, fail
 goto argumentFAIL
 
-:: will loop update check if debugging
 :argumentFAIL
 echo atlas-config had no arguements or invalid arguments passed to it.
 echo Either you are launching atlas-config directly or the "%~nx0" script is broken.
 echo Please report this to the Atlas Discord server or Github.
-pause & exit
+pause & exit /b 1
 
 :Test
 set /p c="Test with echo on?"
@@ -2903,10 +2992,10 @@ exit /b
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
-	pause & exit
+	pause & exit /b 1
 :finish
 	echo Finished, please reboot for changes to apply.
-	pause & exit
+	pause & exit /b 0
 :finishNRB
 	echo Finished, changes have been applied.
-	pause & exit
+	pause & exit /b 0
