@@ -52,176 +52,192 @@ if not %ERRORLEVEL%==0 (
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 
-:: Startup
-if /i "%~1"=="/start"                                        goto startup
+:: Append any new labels/scripts here (with a comment)
+:: Anything in "" is a comment
 
-:: will loop update check if debugging
-:: Notifications
-if /i "%~1"=="/dn"                                           goto notiD
-if /i "%~1"=="/en"                                           goto notiE
+:: It has to be the same as the batch labels here!
 
-:: Animations
-if /i "%~1"=="/ad"                                           goto aniD
-if /i "%~1"=="/ae"                                           goto aniE
+for %%a in (
 
-:: Search Indexing
-if /i "%~1"=="/di"                                           goto indexD
-if /i "%~1"=="/ei"                                           goto indexE
+"Post install script"
+startup
 
-:: Wi-Fi
-if /i "%~1"=="/dw"                                           goto wifiD
-if /i "%~1"=="/ew"                                           goto wifiE
+"Test prompt"
+test
 
-:: Hyper-V
-if /i "%~1"=="/dhyper"                                       goto hyperD
-if /i "%~1"=="/ehyper"                                       goto hyperE
+"Chocolatey scripts"
+choco
+altsoftwarechoco
 
-:: Microsoft Store
-if /i "%~1"=="/ds"                                           goto storeD
-if /i "%~1"=="/es"                                           goto storeE
+"Scoop scripts"
+scoop
+altsoftwarescoop
+scoopCache
 
-:: Background Apps
-if /i "%~1"=="/backd"                                        goto backD
-if /i "%~1"=="/backe"                                        goto backE
+"Toggle DWM animations"
+aniD
+aniE
 
-:: Bluetooth
-if /i "%~1"=="/btd"                                          goto btD
-if /i "%~1"=="/bte"                                          goto btE
+"Toggle Data Execution Prevention (anti-cheat compatibility)"
+depD
+depE
 
-:: HDD Prefetching
-if /i "%~1"=="/hddd"                                         goto hddD
-if /i "%~1"=="/hdde"                                         goto hddE
+"Toggle background apps"
+backd
+backe
 
-:: DEP (nx)
-if /i "%~1"=="/depE"                                         goto depE
-if /i "%~1"=="/depD"                                         goto depD
+"Toggle Bluetooth services"
+btd
+bte
 
-:: Start Menu
-if /i "%~1"=="/ssD"                                          goto SearchStart
-if /i "%~1"=="/ssE"                                          goto enableStart
-if /i "%~1"=="/openshell"                                    goto openshellInstall
+"Toggle clipboard service (also required for Snip & Sketch)"
+cbdhsvcD
+cbdhsvcE
 
-:: Remove UWP
-if /i "%~1"=="/uwp"                                          goto uwp
-if /i "%~1"=="/uwpE"                                         goto uwpE
-if /i "%~1"=="/mite"                                         goto mitE
+"Toggle Event Log related components"
+eventloge
+eventlogd
 
-:: Remove Start Menu layout (allow tiles in Start Menu)
-if /i "%~1"=="/stico"                                        goto startlayout
+"Toggle Task Scheduler related components"
+schedulee
+scheduled
 
-:: Sleep States
-if /i "%~1"=="/sleepD"                                       goto sleepD
-if /i "%~1"=="/sleepE"                                       goto sleepE
+"Toggle Windows Firewall"
+firewallD
+firewallE
 
-:: CPU Idle
-if /i "%~1"=="/idled"                                        goto idleD
-if /i "%~1"=="/idlee"                                        goto idleE
+"Toggle HDD performance related features/services"
+hddd
+hdde
 
-:: Process Explorer
-if /i "%~1"=="/procexpd"                                     goto procexpD
-if /i "%~1"=="/procexpe"                                     goto procexpE
+"Hyper-V toggle"
+hyperD
+hyperE
 
-:: Xbox
-if /i "%~1"=="/xboxU"                                        goto xboxU
+"Disable Internet Explorer"
+ied
 
-:: Reinstall VC++ Redistributables
-if /i "%~1"=="/vcreR"                                        goto vcreR
+"Disable Windows Media Player"
+wmpd
 
-:: User Account Control
-if /i "%~1"=="/uacD"                                         goto uacD
-if /i "%~1"=="/uacE"                                         goto uacE
-if /i "%~1"=="/uacSettings"                                  goto uacSettings
+"Toggle Microsoft Store"
+storeD
+storeE
 
-:: Workstation Service (SMB)
-if /i "%~1"=="/workD"                                        goto workstationD
-if /i "%~1"=="/workE"                                        goto workstationE
+"Enable network sharing"
+networksharingE
 
-:: Windows Firewall
-if /i "%~1"=="/firewallD"                                    goto firewallD
-if /i "%~1"=="/firewallE"                                    goto firewallE
+"Toggle notifications"
+notiD
+notiE
 
-:: Printing
-if /i "%~1"=="/printD"                                       goto printD
-if /i "%~1"=="/printE"                                       goto printE
+"Toggle sleep states in power plan"
+sleepD
+sleepE
 
-:: Network
-if /i "%~1"=="/netWinDefault"                                goto netWinDefault
-if /i "%~1"=="/netAtlasDefault"                              goto netAtlasDefault
+"Toggle CPU idle states in power plan"
+idled
+idlee
 
-:: Clipboard History Service (also required for Snip and Sketch to copy correctly)
-if /i "%~1"=="/cbdhsvcD"                                     goto cbdhsvcD
-if /i "%~1"=="/cbdhsvcE"                                     goto cbdhsvcE
+"Printing services toggle"
+printD
+printE
 
-:: VPN
-if /i "%~1"=="/vpnD"                                         goto vpnD
-if /i "%~1"=="/vpnE"                                         goto vpnE
+"Replace Task Manager with Process Explorer"
+procexpd
+procexpe
 
-:: Scoop and Chocolatey
-if /i "%~1"=="/scoop"                                        goto scoop
-if /i "%~1"=="/choco"                                        goto choco
-if /i "%~1"=="/altsoftwarescoop"                             goto altSoftwarescoop
-if /i "%~1"=="/altsoftwarechoco"                             goto altSoftwarechoco
-if /i "%~1"=="/removescoopcache"                             goto scoopCache
+"Indexing toggles"
+indexD
+indexE
 
-:: NVIDIA P-State 0
-if /i "%~1"=="/nvpstateD"                                    goto NVPstate
-if /i "%~1"=="/nvpstateE"                                    goto revertNVPState
+"Toggle search and start menu services"
+SearchStartDisable
+enableStartSearch
 
-:: HDCP
-if /i "%~1"=="/hdcpD"                                        goto hdcpD
-if /i "%~1"=="/hdcpE"                                        goto hdcpE
+"Unlock start menu layout"
+startlayout
 
-:: DSCP
-if /i "%~1"=="/dscpauto"                                     goto DSCPauto
+"Diagnostics services toggle"
+diagd
+diage
 
-:: Display Scaling
-if /i "%~1"=="/displayscalingd"                              goto displayScalingD
+"Disable/enable UAC"
+uacD
+uacE
 
-:: Static IP
-if /i "%~1"=="/staticip"                                     goto staticIP
+"Toggle UWP services"
+uwp
+uwpE
 
-:: Windows Media Player
-if /i "%~1"=="/wmpd"                                         goto wmpD
+"Install Open Shell (required for disabling search/start menu)"
+openshellInstall
 
-:: Internet Explorer
-if /i "%~1"=="/ied"                                          goto ieD
+"Uninstall XBOX apps"
+xboxU
 
-:: Task Scheduler
-if /i "%~1"=="/scheduled"                                    goto scheduleD
-if /i "%~1"=="/schedulee"                                    goto scheduleE
+"VPN-related services toggle"
+vpnD
+vpnE
 
-:: Event Log
-if /i "%~1"=="/eventlogd"                                    goto eventlogD
-if /i "%~1"=="/eventloge"                                    goto eventlogE
+"Wi-Fi services toggle"
+wifiD
+wifiE
 
-:: NVIDIA Display Container LS - he3als
-if /i "%~1"=="/nvcontainerD"                                 goto nvcontainerD
-if /i "%~1"=="/nvcontainerE"                                 goto nvcontainerE
-if /i "%~1"=="/nvcontainerCMD"                               goto nvcontainerCMD
-if /i "%~1"=="/nvcontainerCME"                               goto nvcontainerCME
+"Workstation service toggle"
+workstationD
+workstationE
 
-:: Network Sharing
-if /i "%~1"=="/networksharingE"                              goto networksharingE
+"Disable display scaling (lower latency?)"
+displayscalingd
 
-:: Diagnostics
-if /i "%~1"=="/diagd"                                        goto diagD
-if /i "%~1"=="/diage"                                        goto diagE
+"Select exe to set DSCP values to"
+dscpauto
 
-:: Safe Mode
-if /i "%~1"=="/safee"                                        goto safeE
-if /i "%~1"=="/safec"                                        goto safeC
-if /i "%~1"=="/safen"                                        goto safeN
-if /i "%~1"=="/safe"                                         goto safe
+"NVIDIA Display Container LS service toggle"
+nvcontainerD
+nvcontainerE
 
-:: debugging purposes only
-if /i "%~1"=="/test"                                         goto TestPrompt
+"Context menu for NVIDIA Display Container LS service"
+nvcontainerCMD
+nvcontainerCME
+
+"Force P-State 0 on NVIDIA cards"
+NVPstate
+revertNVPState
+
+"Disable HDCP (High-bandwidth Digital Content Protection)"
+hdcpD
+hdcpE
+
+"Automatic static IP"
+staticip
+
+"Network settings"
+netAtlasDefault
+netWinDefault
+
+"Safe mode scripts"
+safee
+safec
+safen
+safe
+
+"Visual C++ Redistributables AIO Pack"
+vcreR
+
+) do (if "%~1"=="/%%a" (goto %%a))
+
+:: If the first argument does not match any known scripts, fail
+goto argumentFAIL
 
 :argumentFAIL
-echo atlas-config had no arguements passed to it, either you are launching atlas-config directly or the "%~nx0" script is broken.
+echo atlas-config had no arguements or invalid arguments passed to it.
+echo Either you are launching atlas-config directly or the "%~nx0" script is broken.
 echo Please report this to the Atlas Discord server or Github.
-pause & exit
+pause & exit /b 1
 
-:TestPrompt
+:Test
 set /p c="Test with echo on?"
 if %c% equ Y echo on
 set /p argPrompt="Which script would you like to test? E.g. (:testScript)"
@@ -1918,7 +1934,7 @@ bcdedit /set nx AlwaysOff
 if %ERRORLEVEL%==0 echo %date% - %time% DEP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
-:SearchStart
+:SearchStartDisable
 IF EXIST "C:\Program Files\Open-Shell" goto existS
 IF EXIST "C:\Program Files (x86)\StartIsBack" goto existS
 echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the Start Menu being removed.
@@ -1957,7 +1973,7 @@ NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
-:enableStart
+:enableStartSearch
 :: rename start menu
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 ren StartMenuExperienceHost.old StartMenuExperienceHost.exe
@@ -2978,10 +2994,10 @@ exit /b
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
-	pause & exit
+	pause & exit /b 1
 :finish
 	echo Finished, please reboot for changes to apply.
-	pause & exit
+	pause & exit /b 0
 :finishNRB
 	echo Finished, changes have been applied.
-	pause & exit
+	pause & exit /b 0
