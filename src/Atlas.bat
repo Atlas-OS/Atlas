@@ -4,7 +4,7 @@ echo Please wait. This may take a moment. DO NOT CLOSE THIS WINDOW!
 
 :start
 set success=
-NSudo.exe -U:T -P:E -Wait %WinDir%\AtlasModules\atlas-config.bat /start
+NSudo.exe -U:T -P:E -Wait %WinDir%\AtlasModules\atlas-config.bat /startup
 
 :: read from success file
 set /p success= < C:\Users\Public\success.txt
