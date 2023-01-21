@@ -55,6 +55,8 @@ SETLOCAL EnableDelayedExpansion
 :: Append any new labels/scripts here (with a comment)
 :: Anything in "" is a comment
 
+:: It has to be the same as the batch labels here!
+
 for %%a in (
 
 "Post install script"
