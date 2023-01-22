@@ -26,6 +26,9 @@
 for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "DisplayVersion"') do (set releaseid=%%a)
 for /f "tokens=4-7 delims=[.] " %%a in ('ver') do (set "build=%%a.%%b.%%c.%%d")
 
+:: set correct username variable of the currently logged in user
+for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
+
 set "branch=%releaseid%"
 set "ver=v0.1.0"
 title AtlasOS Configuration Script %branch% %ver%
@@ -36,6 +39,7 @@ set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoProfi
 set "setSvc=call :setSvc"
 set "unZIP=call :unZIP"
 set "firewallBlockExe=call :firewallBlockExe"
+set system=true
 
 :: check for administrator privileges
 if "%~2"=="/skipAdminCheck" goto permSUCCESS
@@ -225,6 +229,9 @@ safe
 
 "Visual C++ Redistributables AIO Pack"
 vcreR
+
+"Send To debloat"
+sendToDebloat
 
 ) do (if "%~1"=="/%%a" (goto %%a))
 
@@ -456,68 +463,48 @@ reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v "SchUs
 :: disable network navigation pane in file explorer
 reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder" /v "Attributes" /t REG_DWORD /d "2962489444" /f
 
-:: set active power scheme to high performance
-powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
-
-:: remove power saver power scheme
-powercfg /delete a1841308-3541-4fab-bc81-f71556f20b4a
+:: duplicate 'High Performance' power plan, customise it and make it the Atlas power plan
+powercfg /duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 11111111-1111-1111-1111-111111111111
+powercfg /setactive 11111111-1111-1111-1111-111111111111
 
 :: set current power scheme to Atlas
-powercfg /changename 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c "Atlas Power Scheme" "Power scheme optimized for optimal latency and performance (v0.1)"
-
-rem Turn off hard disk after 0 seconds
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 0012ee47-9041-4b5d-9b77-535fba8b1442 6738e2c4-e8a5-4a42-b16a-e040e769756e 0
-
-rem Turn off Secondary NVMe Idle Timeout
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 0012ee47-9041-4b5d-9b77-535fba8b1442 d3d55efd-c1ff-424e-9dc3-441be7833010 0
-
-rem Turn off Primary NVMe Idle Timeout
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 0012ee47-9041-4b5d-9b77-535fba8b1442 d639518a-e56d-4345-8af2-b9f32fb26109 0
-
-rem Turn off NVMe NOPPME
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 0012ee47-9041-4b5d-9b77-535fba8b1442 fc7372b6-ab2d-43ee-8797-15e9841f2cca 0
-
-rem Set slide show to paused
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 0d7dbae2-4294-402a-ba8e-26777e8488cd 309dce9b-bef4-4119-9921-a851fb12f0f4 1
-
-rem Turn off system unattended sleep timeout
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 238c9fa8-0aad-41ed-83f4-97be242c8f20 7bc4a2f9-d8fc-4469-b07b-33eb785aaca0 0
-
-rem Disable allow wake timers
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 238c9fa8-0aad-41ed-83f4-97be242c8f20 bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d 0
-
-rem Disable Hub Selective Suspend Timeout
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2a737441-1930-4402-8d77-b2bebba308a3 0853a681-27c8-4100-a2fd-82013e970683 0
-
-rem Disable USB selective suspend setting
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
-
-rem Set USB 3 Link Power Mangement to Maximum Performance
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2a737441-1930-4402-8d77-b2bebba308a3 d4e98f31-5ffe-4ce1-be31-1b38b384c009 0
-
-rem Disable deep sleep
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2e601130-5351-4d9d-8e04-252966bad054 d502f7ee-1dc7-4efd-a55d-f04b6f5c0545 0
-
-rem Turn off display after 0 seconds
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e 0
-
-rem Disable critical battery notification
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c e73a048d-bf27-4f12-9731-8b2076e8891f 5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f 0
-
-rem Disable critical battery action
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c e73a048d-bf27-4f12-9731-8b2076e8891f 637ea02f-bbcb-4015-8e2c-a1c7b9c0b546 0
-
-rem Set low battery level to 0
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c e73a048d-bf27-4f12-9731-8b2076e8891f 8183ba9a-e910-48da-8769-14ae6dc1170a 0
-
-rem Set critical battery level to 0
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c e73a048d-bf27-4f12-9731-8b2076e8891f 9a66d8d7-4ff7-4ef9-b5a2-5a326ca2a469 0
-
-rem Disable low battery notification
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c e73a048d-bf27-4f12-9731-8b2076e8891f bcded951-187b-4d05-bccc-f7e51960c258 0
-
-rem Set reserve battery level to 0
-powercfg /setacvalueindex 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c e73a048d-bf27-4f12-9731-8b2076e8891f f3c5027d-cd16-4930-aa6b-90db844a8f00 0
+powercfg /changename 11111111-1111-1111-1111-111111111111 "Atlas Power Scheme" "Power scheme optimized for optimal latency and performance (v0.1)"
+:: turn off hard disk after 0 seconds
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 6738e2c4-e8a5-4a42-b16a-e040e769756e 0
+:: turn off secondary nvme idle timeout
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 d3d55efd-c1ff-424e-9dc3-441be7833010 0
+:: turn off primary nvme idle timeout
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 d639518a-e56d-4345-8af2-b9f32fb26109 0
+:: turn off nvme noppme
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 fc7372b6-ab2d-43ee-8797-15e9841f2cca 0
+:: set slide show to paused
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0d7dbae2-4294-402a-ba8e-26777e8488cd 309dce9b-bef4-4119-9921-a851fb12f0f4 1
+:: turn off system unattended sleep timeout
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 7bc4a2f9-d8fc-4469-b07b-33eb785aaca0 0
+:: disable allow wake timers
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d 0
+:: disable hub selective suspend timeout
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 2a737441-1930-4402-8d77-b2bebba308a3 0853a681-27c8-4100-a2fd-82013e970683 0
+:: disable usb selective suspend setting
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
+:: set usb 3 link power mangement to maximum performance
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 2a737441-1930-4402-8d77-b2bebba308a3 d4e98f31-5ffe-4ce1-be31-1b38b384c009 0
+:: disable deep sleep
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 2e601130-5351-4d9d-8e04-252966bad054 d502f7ee-1dc7-4efd-a55d-f04b6f5c0545 0
+:: turn off display after 0 seconds
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e 0
+:: disable critical battery notification
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f 0
+:: disable critical battery action
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 637ea02f-bbcb-4015-8e2c-a1c7b9c0b546 0
+:: set low battery level to 0
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 8183ba9a-e910-48da-8769-14ae6dc1170a 0
+:: set critical battery level to 0
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 9a66d8d7-4ff7-4ef9-b5a2-5a326ca2a469 0
+:: disable low battery notification
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f bcded951-187b-4d05-bccc-f7e51960c258 0
+:: set reserve battery level to 0
+powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f f3c5027d-cd16-4930-aa6b-90db844a8f00 0
 
 :: set the active scheme as the current scheme
 powercfg /setactive scheme_current
@@ -939,7 +926,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\CrashControl\StorageTelemetry" /v
 :: gpo for start menu (tiles)
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%WinDir%\layout.xml" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /t REG_DWORD /d "1" /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer" /v "StartLayoutFile" /t REG_EXPAND_SZ /d "%WinDir%\layout.xml" /f
 
 :: configure start menu settings
@@ -992,6 +978,11 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "Hid
 
 :: disable website access to language list
 %currentuser% reg add "HKCU\Control Panel\International\User Profile" /v "HttpAcceptLanguageOptOut" /t REG_DWORD /d "1" /f
+
+:: debloat send to context menu, hidden files do not show up in the 'Send To' context menu
+attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
+attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
 
 :: re-enable onedrive if user manually reinstall it
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSyncNGSC" /t REG_DWORD /d "0" /f
@@ -1397,6 +1388,25 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32Priorit
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" /v "NoTileApplicationNotification" /t REG_DWORD /d "1" /f
 
+:: unpin all quick access shortcuts by default (QoL, looks cleaner)
+:: you can easily add them back
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.WiFi" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.AllSettings" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.BlueLightReduction" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.AvailableNetworks" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Location" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Connect" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.QuietHours" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Vpn" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Project" /t REG_NONE /d "" /f
+
+:: disable all lockscreen notifications
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings" /v "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK" /t REG_DWORD /d "0" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings" /v "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK" /t REG_DWORD /d "0" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "LockScreenToastEnabled" /t REG_DWORD /d "0" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
+
 :: disable autoplay and autorun
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" /v "DisableAutoplay" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDriveTypeAutoRun" /t REG_DWORD /d "255" /f 
@@ -1472,6 +1482,10 @@ for /f "delims=" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVers
     reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},3" /t REG_DWORD /d "0" /f
     reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},4" /t REG_DWORD /d "0" /f
 )
+
+:: show removable drivers only in 'This PC' on the windows explorer sidebar
+reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}" /f
+reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}" /f
 
 :: remove restore previous versions
 :: from context menu and file' properties
@@ -1608,6 +1622,7 @@ sc config WpnService start=disabled
 sc stop WpnService > nul 2>nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener" /v "Value" /t REG_SZ /d "Deny" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Notifications disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1616,6 +1631,8 @@ sc config WpnUserService start=auto
 sc config WpnService start=auto
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "0" /f
+:: Allow apps access to notifications
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener" /v "Value" /t REG_SZ /d "Allow" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Notifications enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1760,33 +1777,37 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\Hypervis
 :: enable drivers
 :: default for hvcrash is disabled
 sc config hvcrash start=disabled > nul
-sc config hvservice start=manual > nul
-sc config vhdparser start=manual > nul
+sc config hvservice start=demand > nul
+sc config vhdparser start=demand > nul
 sc config vmbus start=boot > nul
 sc config Vid start=system > nul
 sc config bttflt start=boot > nul
-sc config gencounter start=manual > nul
-sc config hvsocketcontrol start=manual > nul
-sc config passthruparser start=manual > nul
-sc config pvhdparser start=manual > nul
-sc config spaceparser start=manual > nul
+sc config gencounter start=demand > nul
+sc config hvsocketcontrol start=demand > nul
+sc config passthruparser start=demand > nul
+sc config pvhdparser start=demand > nul
+sc config spaceparser start=demand > nul
 sc config storflt start=boot > nul
-sc config vmgid start=manual > nul
-sc config vmbusr start=manual > nul
+sc config vmgid start=demand > nul
+sc config vmbusr start=demand > nul
 sc config vpci start=boot > nul
 
 :: enable services
-sc config gcs start=manual > nul
-sc config hvhost start=manual > nul
-sc config vmcompute start=manual > nul
-sc config vmicguestinterface start=manual > nul
-sc config vmicheartbeat start=manual > nul
-sc config vmickvpexchange start=manual > nul
-sc config vmicrdv start=manual > nul
-sc config vmicshutdown start=manual > nul
-sc config vmictimesync start=manual > nul
-sc config vmicvmsession start=manual > nul
-sc config vmicvss start=manual > nul
+for %%a in (
+	"gcs"
+	"hvhost"
+	"vmcompute"
+	"vmicguestinterface"
+	"vmicheartbeat"
+	"vmickvpexchange"
+	"vmicrdv"
+	"vmicshutdown"
+	"vmictimesync"
+	"vmicvmsession"
+	"vmicvss"
+) do (
+    sc config %%a start=demand > nul
+)
 
 :: enable system devices
 DevManView.exe /enable "Microsoft Hyper-V NT Kernel Integration VSP"
@@ -1871,14 +1892,30 @@ if %ERRORLEVEL%==0 echo %date% - %time% Background Apps enabled...>> %WinDir%\At
 goto finish
 
 :btD
+:: Ran as admin, not TrustedInstaller
+if "%system%"=="true" (
+	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
+	pause
+	exit /b 1
+)
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc > nul 2>nul
+attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
 
 :btE
+:: Ran as admin, not TrustedInstaller
+if "%system%"=="true" (
+	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
+	pause
+	exit /b 1
+)
 sc config BthAvctpSvc start=auto
+choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
+if %errorlevel%==1 attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+if %errorlevel%==2 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -2934,6 +2971,53 @@ bcdedit /set {current} safeboot minimal
 echo %date% - %time% Safe mode enabled...>> %WinDir%\AtlasModules\logs\userscript.log
 goto finish
 
+:sendToDebloat
+:: Ran as admin, not TrustedInstaller
+if "%system%"=="true" (
+	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
+	pause
+	exit /b 1
+)
+
+for %%a in (
+	"bluetooth"
+	"zipfolder"
+	"mail"
+	"documents"
+	"removableDrives"
+) do (
+	set "%%a=false"
+)
+
+for /f "usebackq tokens=*" %%a in (
+	`multichoice "Send To Debloat" "Tick the default 'Send To' context menu items that you want to disable here (un-checked items are enabled)" "Bluetooth device;Compressed (zipped) folder;Desktop (create shortcut);Mail recipient;Documents;Removable Drives"`
+) do (set "items=%%a")
+for %%a in ("%items:;=" "%") do (
+	if "%%~a"=="Bluetooth device" (set bluetooth=true)
+	if "%%~a"=="Compressed (zipped) folder" (set zipfolder=true)
+	if "%%~a"=="Desktop (create shortcut)" (set desktop=true)
+	if "%%~a"=="Mail recipient" (set mail=true)
+	if "%%~a"=="Documents" (set documents=true)
+	if "%%~a"=="Removable Drives" (set removableDrives=true)
+)
+if "%bluetooth%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK")
+if "%zipfolder%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget")
+if "%desktop%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Desktop (create shortcut).DeskLink") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Desktop (create shortcut).DeskLink")
+if "%mail%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail")
+if "%documents%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Documents.mydocs") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Documents.mydocs")
+if "%removableDrives%"=="true" (
+	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /t REG_DWORD /d "1" /f > nul
+) else (
+	reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /f > nul
+)
+for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to restart Windows Explorer to fully apply the changes." "Restart now"`) do (
+	if "%%a"=="Restart now" (
+		taskkill /f /im explorer.exe > nul
+		start "" "explorer.exe"
+	)
+)
+
+goto finishNRB
 
 :::::::::::::::::::::
 :: Batch Functions ::
