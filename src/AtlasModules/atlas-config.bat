@@ -1396,6 +1396,22 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32Priorit
 :: disable notifications/action center
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" /v "NoTileApplicationNotification" /t REG_DWORD /d "1" /f
+:: unpin all quick access shortcuts by default (qol, looks cleaner)
+:: you can easily add them back
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.WiFi" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.AllSettings" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.BlueLightReduction" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.AvailableNetworks" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Location" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Connect" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.QuietHours" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Vpn" /t REG_NONE /d "" /f
+%currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Project" /t REG_NONE /d "" /f
+:: disable all lockscreen notifications
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings" /v "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK" /t REG_DWORD /d "0" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings" /v "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK" /t REG_DWORD /d "0" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "LockScreenToastEnabled" /t REG_DWORD /d "0" /f
 
 :: disable autoplay and autorun
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" /v "DisableAutoplay" /t REG_DWORD /d "1" /f
@@ -1608,6 +1624,7 @@ sc config WpnService start=disabled
 sc stop WpnService > nul 2>nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener" /v "Value" /t REG_SZ /d "Deny" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Notifications disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -1616,6 +1633,8 @@ sc config WpnUserService start=auto
 sc config WpnService start=auto
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "0" /f
+:: Allow apps access to notifications
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener" /v "Value" /t REG_SZ /d "Allow" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Notifications enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
