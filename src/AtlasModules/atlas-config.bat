@@ -26,6 +26,9 @@
 for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "DisplayVersion"') do (set releaseid=%%a)
 for /f "tokens=4-7 delims=[.] " %%a in ('ver') do (set "build=%%a.%%b.%%c.%%d")
 
+:: set correct username variable of the currently logged in user
+for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
+
 set "branch=%releaseid%"
 set "ver=v0.1.0"
 title AtlasOS Configuration Script %branch% %ver%
@@ -976,8 +979,6 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "Hid
 :: disable website access to language list
 %currentuser% reg add "HKCU\Control Panel\International\User Profile" /v "HttpAcceptLanguageOptOut" /t REG_DWORD /d "1" /f
 
-:: set correct username variable of the currently logged in user
-for /F "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
 :: debloat send to context menu, hidden files do not show up in the 'Send To' context menu
 attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
@@ -1386,7 +1387,8 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32Priorit
 :: disable notifications/action center
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" /v "NoTileApplicationNotification" /t REG_DWORD /d "1" /f
-:: unpin all quick access shortcuts by default (qol, looks cleaner)
+
+:: unpin all quick access shortcuts by default (QoL, looks cleaner)
 :: you can easily add them back
 %currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.WiFi" /t REG_NONE /d "" /f
 %currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.AllSettings" /t REG_NONE /d "" /f
@@ -1398,6 +1400,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32Priorit
 %currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f
 %currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Vpn" /t REG_NONE /d "" /f
 %currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Project" /t REG_NONE /d "" /f
+
 :: disable all lockscreen notifications
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings" /v "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings" /v "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK" /t REG_DWORD /d "0" /f
@@ -1481,8 +1484,8 @@ for /f "delims=" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVers
 )
 
 :: show removable drivers only in 'This PC' on the windows explorer sidebar
-reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}" /f
-reg delete "HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}" /f
+reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}" /f
+reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}" /f
 
 :: remove restore previous versions
 :: from context menu and file' properties
@@ -2982,7 +2985,9 @@ for %%a in (
 	"mail"
 	"documents"
 	"removableDrives"
-) do (set "%%a=false")
+) do (
+	set "%%a=false"
+)
 
 for /f "usebackq tokens=*" %%a in (
 	`multichoice "Send To Debloat" "Tick the default 'Send To' context menu items that you want to disable here (un-checked items are enabled)" "Bluetooth device;Compressed (zipped) folder;Desktop (create shortcut);Mail recipient;Documents;Removable Drives"`
@@ -3001,9 +3006,9 @@ if "%desktop%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Desktop (c
 if "%mail%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail")
 if "%documents%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Documents.mydocs") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Documents.mydocs")
 if "%removableDrives%"=="true" (
-	reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /t REG_DWORD /d "1" /f > nul
+	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /t REG_DWORD /d "1" /f > nul
 ) else (
-	reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /f > nul
+	reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /f > nul
 )
 for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to restart Windows Explorer to fully apply the changes." "Restart now"`) do (
 	if "%%a"=="Restart now" (
