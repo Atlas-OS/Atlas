@@ -1783,33 +1783,37 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\Hypervis
 :: enable drivers
 :: default for hvcrash is disabled
 sc config hvcrash start=disabled > nul
-sc config hvservice start=manual > nul
-sc config vhdparser start=manual > nul
+sc config hvservice start=demand > nul
+sc config vhdparser start=demand > nul
 sc config vmbus start=boot > nul
 sc config Vid start=system > nul
 sc config bttflt start=boot > nul
-sc config gencounter start=manual > nul
-sc config hvsocketcontrol start=manual > nul
-sc config passthruparser start=manual > nul
-sc config pvhdparser start=manual > nul
-sc config spaceparser start=manual > nul
+sc config gencounter start=demand > nul
+sc config hvsocketcontrol start=demand > nul
+sc config passthruparser start=demand > nul
+sc config pvhdparser start=demand > nul
+sc config spaceparser start=demand > nul
 sc config storflt start=boot > nul
-sc config vmgid start=manual > nul
-sc config vmbusr start=manual > nul
+sc config vmgid start=demand > nul
+sc config vmbusr start=demand > nul
 sc config vpci start=boot > nul
 
 :: enable services
-sc config gcs start=manual > nul
-sc config hvhost start=manual > nul
-sc config vmcompute start=manual > nul
-sc config vmicguestinterface start=manual > nul
-sc config vmicheartbeat start=manual > nul
-sc config vmickvpexchange start=manual > nul
-sc config vmicrdv start=manual > nul
-sc config vmicshutdown start=manual > nul
-sc config vmictimesync start=manual > nul
-sc config vmicvmsession start=manual > nul
-sc config vmicvss start=manual > nul
+for %%a in (
+	"gcs"
+	"hvhost"
+	"vmcompute"
+	"vmicguestinterface"
+	"vmicheartbeat"
+	"vmickvpexchange"
+	"vmicrdv"
+	"vmicshutdown"
+	"vmictimesync"
+	"vmicvmsession"
+	"vmicvss"
+) do (
+    sc config %%a start=demand > nul
+)
 
 :: enable system devices
 DevManView.exe /enable "Microsoft Hyper-V NT Kernel Integration VSP"
