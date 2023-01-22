@@ -36,6 +36,7 @@ set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoProfi
 set "setSvc=call :setSvc"
 set "unZIP=call :unZIP"
 set "firewallBlockExe=call :firewallBlockExe"
+set system=true
 
 :: check for administrator privileges
 if "%~2"=="/skipAdminCheck" goto permSUCCESS
@@ -225,6 +226,9 @@ safe
 
 "Visual C++ Redistributables AIO Pack"
 vcreR
+
+"Send To debloat"
+sendToDebloat
 
 ) do (if "%~1"=="/%%a" (goto %%a))
 
@@ -971,6 +975,13 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "Hid
 
 :: disable website access to language list
 %currentuser% reg add "HKCU\Control Panel\International\User Profile" /v "HttpAcceptLanguageOptOut" /t REG_DWORD /d "1" /f
+
+:: set correct username variable of the currently logged in user
+for /F "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
+:: debloat send to context menu, hidden files do not show up in the 'Send To' context menu
+attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
+attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
 
 :: re-enable onedrive if user manually reinstall it
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSyncNGSC" /t REG_DWORD /d "0" /f
@@ -1878,14 +1889,30 @@ if %ERRORLEVEL%==0 echo %date% - %time% Background Apps enabled...>> %WinDir%\At
 goto finish
 
 :btD
+:: Ran as admin, not TrustedInstaller
+if "%system%"=="true" (
+	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
+	pause
+	exit /b 1
+)
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc > nul 2>nul
+attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 if "%~1" EQU "int" goto :EOF
 goto finish
 
 :btE
+:: Ran as admin, not TrustedInstaller
+if "%system%"=="true" (
+	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
+	pause
+	exit /b 1
+)
 sc config BthAvctpSvc start=auto
+choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
+if %errorlevel%==1 attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+if %errorlevel%==2 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -2941,6 +2968,44 @@ bcdedit /set {current} safeboot minimal
 echo %date% - %time% Safe mode enabled...>> %WinDir%\AtlasModules\logs\userscript.log
 goto finish
 
+:sendToDebloat
+for %%a in (
+	"bluetooth"
+	"zipfolder"
+	"mail"
+	"documents"
+	"removableDrives"
+) do (set "%%a=false")
+
+for /f "usebackq tokens=*" %%a in (
+	`multichoice "Send To Debloat" "Tick the default 'Send To' context menu items that you want to disable here (un-checked items are enabled)" "Bluetooth device;Compressed (zipped) folder;Desktop (create shortcut);Mail recipient;Documents;Removable Drives"`
+) do (set "items=%%a")
+for %%a in ("%items:;=" "%") do (
+	if "%%~a"=="Bluetooth device" (set bluetooth=true)
+	if "%%~a"=="Compressed (zipped) folder" (set zipfolder=true)
+	if "%%~a"=="Desktop (create shortcut)" (set desktop=true)
+	if "%%~a"=="Mail recipient" (set mail=true)
+	if "%%~a"=="Documents" (set documents=true)
+	if "%%~a"=="Removable Drives" (set removableDrives=true)
+)
+if "%bluetooth%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK")
+if "%zipfolder%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget")
+if "%desktop%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Desktop (create shortcut).DeskLink") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Desktop (create shortcut).DeskLink")
+if "%mail%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail")
+if "%documents%"=="true" (attrib +h "%appdata%\Microsoft\Windows\SendTo\Documents.mydocs") else (attrib -h "%appdata%\Microsoft\Windows\SendTo\Documents.mydocs")
+if "%removableDrives%"=="true" (
+	reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /t REG_DWORD /d "1" /f > nul
+) else (
+	reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /f > nul
+)
+for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to restart Windows Explorer to fully apply the changes." "Restart now"`) do (
+	if "%%a"=="Restart now" (
+		taskkill /f /im explorer.exe > nul
+		start "" "explorer.exe"
+	)
+)
+
+goto finishNRB
 
 :::::::::::::::::::::
 :: Batch Functions ::
