@@ -2969,6 +2969,13 @@ echo %date% - %time% Safe mode enabled...>> %WinDir%\AtlasModules\logs\userscrip
 goto finish
 
 :sendToDebloat
+:: Ran as admin, not TrustedInstaller
+if "%system%"=="true" (
+	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
+	pause
+	exit /b 1
+)
+
 for %%a in (
 	"bluetooth"
 	"zipfolder"
