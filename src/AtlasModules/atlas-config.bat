@@ -39,6 +39,7 @@ set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoProfi
 set "setSvc=call :setSvc"
 set "unZIP=call :unZIP"
 set "firewallBlockExe=call :firewallBlockExe"
+set "log=%WinDir%\AtlasModules\logs\install.log"
 set system=true
 
 :: check for administrator privileges
@@ -56,10 +57,10 @@ if not %ERRORLEVEL%==0 (
 :permSUCCESS
 SETLOCAL EnableDelayedExpansion
 
-:: Append any new labels/scripts here (with a comment)
-:: Anything in "" is a comment
+:: append any new labels/scripts here (with a comment)
+:: anything in "" is a comment
 
-:: It has to be the same as the batch labels here!
+:: it has to be the same as the batch labels here!
 
 for %%a in (
 
@@ -233,15 +234,19 @@ vcreR
 "Send To debloat"
 sendToDebloat
 
-) do (if "%~1"=="/%%a" (goto %%a))
+) do (
+    if "%~1"=="/%%a" (
+        goto %%a
+    )
+)
 
-:: If the first argument does not match any known scripts, fail
+:: if the first argument does not match any known scripts, fail
 goto argumentFAIL
 
 :argumentFAIL
 echo atlas-config had no arguements or invalid arguments passed to it.
 echo Either you are launching atlas-config directly or the "%~nx0" script is broken.
-echo Please report this to the Atlas Discord server or Github.
+echo Please report this to the Atlas Discord server or GitHub.
 pause & exit /b 1
 
 :Test
@@ -257,8 +262,8 @@ pause & exit
 mkdir %WinDir%\AtlasModules\logs
 cls & echo Please wait, this may take a moment.
 setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\AtlasModules\Tools;" -m  > nul 2>nul
-IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %WinDir%\AtlasModules\logs\install.log)
+IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %log%
+) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %log%)
 
 :: breaks setting keyboard language
 :: rundll32.exe advapi32.dll,ProcessIdleTasks
@@ -268,8 +273,8 @@ echo false > C:\Users\Public\success.txt
 :auto
 SETLOCAL EnableDelayedExpansion
 %WinDir%\AtlasModules\Apps\vcredist.exe /ai
-if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to install Visual C++ Runtimes! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %log%
+) ELSE (echo %date% - %time% Failed to install Visual C++ Runtimes! >> %log%)
 
 :: change ntp server from windows server to pool.ntp.org
 w32tm /config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"
@@ -283,8 +288,8 @@ w32tm /config /update
 w32tm /resync
 sc stop W32Time
 %setSvc% W32Time 4
-if %ERRORLEVEL%==0 (echo %date% - %time% NTP server set...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set NTP server! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% NTP server set...>> %log%
+) ELSE (echo %date% - %time% Failed to set NTP server! >> %log%)
 
 cls & echo Please wait. This may take a moment.
 
@@ -303,8 +308,8 @@ fsutil behavior set disabledeletenotify 0
 :: disable file system mitigations
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
 
-if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to optimize file system! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %log%
+) ELSE (echo %date% - %time% Failed to optimize file system! >> %log%)
 
 :: disable unneeded scheduled tasks
 
@@ -360,8 +365,8 @@ for %%a in (
 	schtasks /change /disable /TN %%a > nul
 )
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled scheduled tasks...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to disable scheduled tasks! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled scheduled tasks...>> %log%
+) ELSE (echo %date% - %time% Failed to disable scheduled tasks! >> %log%)
 cls & echo Please wait. This may take a moment.
 
 :: enable MSI mode on USB, GPU, SATA controllers and network adapters
@@ -385,8 +390,8 @@ wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && (
     )
 )
 
-if %ERRORLEVEL%==0 (echo %date% - %time% MSI mode set...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set MSI mode! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% MSI mode set...>> %log%
+) ELSE (echo %date% - %time% Failed to set MSI mode! >> %log%)
 
 cls & echo Please wait. This may take a moment.
 
@@ -509,14 +514,14 @@ powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f1
 :: set the active scheme as the current scheme
 powercfg /setactive scheme_current
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Power scheme configured...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to configure power scheme! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Power scheme configured...>> %log%
+) ELSE (echo %date% - %time% Failed to configure power scheme! >> %log%)
 
 :: set service split threshold
 reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "4294967295" /f
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set service split treshold! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %log%
+) ELSE (echo %date% - %time% Failed to set service split treshold! >> %log%)
 
 :: disable drivers power savings
 for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
@@ -537,13 +542,13 @@ for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "US
         reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%i" /t REG_DWORD /d "0" /f
     )
 )
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled drivers power savings...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to disable drivers power savings! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled drivers power savings...>> %log%
+) ELSE (echo %date% - %time% Failed to disable drivers power savings! >> %log%)
 
 :: disable PnP power savings
 %PowerShell% "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}"
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled PnP power savings...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to disable PnP power savings! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled PnP power savings...>> %log%
+) ELSE (echo %date% - %time% Failed to disable PnP power savings! >> %log%)
 
 :: disable unnecessary autologgers
 for %%a in (
@@ -566,16 +571,16 @@ for %%a in (
 ) do (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\%%a" /v "Start" /t REG_DWORD /d "0" /f
 )
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled unnecessary autologgers...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to disable unnecessary autologgers! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled unnecessary autologgers...>> %log%
+) ELSE (echo %date% - %time% Failed to disable unnecessary autologgers! >> %log%)
 
 :: disable netbios over tcp/ip
 :: works only when services are enabled
 for /f "delims=" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" /s /f "NetbiosOptions" ^| findstr "HKEY"') do (
     reg add "%%a" /v "NetbiosOptions" /t REG_DWORD /d "2" /f
 )
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled netbios over tcp/ip...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to disable netbios over tcp/ip! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled netbios over tcp/ip...>> %log%
+) ELSE (echo %date% - %time% Failed to disable netbios over tcp/ip! >> %log%)
 
 :: make certain applications in the AtlasModules folder request UAC
 :: although these applications may already request UAC, setting this compatibility flag ensures they are ran as administrator
@@ -587,8 +592,8 @@ cls & echo Please wait. This may take a moment.
 :: unhide power scheme attributes
 :: source: https://gist.github.com/Velocet/7ded4cd2f7e8c5fa475b8043b76561b5#file-unlock-powercfg-ps1
 %PowerShell% "$PowerCfg = (Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings' -Recurse).Name -notmatch '\bDefaultPowerSchemeValues|(\\[0-9]|\b255)$';foreach ($item in $PowerCfg) { Set-ItemProperty -Path $item.Replace('HKEY_LOCAL_MACHINE','HKLM:') -Name 'Attributes' -Value 0 -Force}"
-if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to enable hidden power scheme attributes! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Enabled hidden power scheme attributes...>> %log%
+) ELSE (echo %date% - %time% Failed to enable hidden power scheme attributes! >> %log%)
 
 :: disable nagle's algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
@@ -652,8 +657,8 @@ for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 	netsh int ip set interface %%a routerdiscovery=disabled store=persistent
 )
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to optimize network! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %log%
+) ELSE (echo %date% - %time% Failed to optimize network! >> %log%)
 
 :: disable network adapters
 :: IPv6, Client for Microsoft Networks, File and Printer Sharing, LLDP Protocol, Link-Layer Topology Discovery Mapper, Link-Layer Topology Discovery Responder
@@ -699,8 +704,8 @@ DevManView.exe /disable "WAN Miniport (PPPOE)"
 DevManView.exe /disable "WAN Miniport (PPTP)"
 DevManView.exe /disable "WAN Miniport (SSTP)"
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled system devices...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to disable system devices! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled system devices...>> %log%
+) ELSE (echo %date% - %time% Failed to disable system devices! >> %log%)
 
 :: backup default windows services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows services.reg"
@@ -879,8 +884,8 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "DependOnService" /
 :: remove lower filters for rdyboost
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}" /v "LowerFilters" /t REG_MULTI_SZ  /d "" /f
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled services...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to disable services! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Disabled services...>> %log%
+) ELSE (echo %date% - %time% Failed to disable services! >> %log%)
 
 :: backup default Atlas services
 set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas services.reg"
@@ -1173,9 +1178,6 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection"
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v "AllowTelemetry" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v "LimitEnhancedDiagnosticDataWindowsAnalytics" /t REG_DWORD /d "0" /f
 
-:: disable nvidia telemetry
-reg add "HKLM\SOFTWARE\NVIDIA Corporation\NvControlPanel2\Client" /v "OptInOrOutPreference" /t REG_DWORD /d "0" /f
-
 :: configure app permissions/privacy in immersive control panel
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\appDiagnostics" /v "Value" /t REG_SZ /d "Deny" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\appointments" /v "Value" /t REG_SZ /d "Deny" /f
@@ -1435,12 +1437,36 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescripti
 reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}\PropertyBag" /v "ThisPCPolicy" /t REG_SZ /d "Hide" /f
 
 :: enable legacy photo viewer
-for %%a in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
+for %%a in (
+    tif
+    tiff
+    bmp
+    dib
+    gif
+    jfif
+    jpe
+    jpeg
+    jpg
+    jxr
+    png
+) do (
     reg add "HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations" /v ".%%~a" /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
 )
 
 :: set legacy photo viewer as default
-for %%a in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
+for %%a in (
+    tif
+    tiff
+    bmp
+    dib
+    gif
+    jfif
+    jpe
+    jpeg
+    jpg
+    jxr
+    png
+) do (
     %currentuser% reg add "HKCU\SOFTWARE\Classes\.%%~a" /ve /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
 )
 
@@ -1552,18 +1578,18 @@ reg add "HKLM\SOFTWARE\Classes\powerplan\Shell\open\command" /ve /t REG_SZ /d "p
 reg add "HKLM\SOFTWARE\Classes\.pow" /ve /t REG_SZ /d "powerplan" /f
 reg add "HKLM\SOFTWARE\Classes\.pow" /v "FriendlyTypeName" /t REG_SZ /d "Power Plan" /f
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Registry configuration applied...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to apply registry configuration! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Registry configuration applied...>> %log%
+) ELSE (echo %date% - %time% Failed to apply registry configuration! >> %log%)
 
 :: disable dma remapping
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
 for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRemappingCompatible" ^| find /i "Services\" ') do (
 	reg add "%%a" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f
 )
-echo %date% - %time% Disabled dma remapping...>> %WinDir%\AtlasModules\logs\install.log
+echo %date% - %time% Disabled dma remapping...>> %log%
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Process priorities set...>> %WinDir%\AtlasModules\logs\install.log
-) ELSE (echo %date% - %time% Failed to set priorities! >> %WinDir%\AtlasModules\logs\install.log)
+if %ERRORLEVEL%==0 (echo %date% - %time% Process priorities set...>> %log%
+) ELSE (echo %date% - %time% Failed to set priorities! >> %log%)
 
 :: lowering dual boot choice time
 :: no, this does not affect single OS boot time.
@@ -1594,7 +1620,7 @@ bcdedit /set vm no
 bcdedit /set vmslaunchtype Off
 bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS
 
-echo %date% - %time% BCD options set...>> %WinDir%\AtlasModules\logs\install.log
+echo %date% - %time% BCD options set...>> %log%
 
 :: write to script log file
 echo This log keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > %WinDir%\AtlasModules\logs\userScript.log
@@ -1603,7 +1629,7 @@ echo ---------------------------------------------------------------------------
 :: clear false value
 break > C:\Users\Public\success.txt
 echo true > C:\Users\Public\success.txt
-echo %date% - %time% Post-Install finished redirecting to sub script...>> %WinDir%\AtlasModules\logs\install.log
+echo %date% - %time% Post-Install finished redirecting to sub script...>> %log%
 exit
 
 
