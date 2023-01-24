@@ -876,11 +876,6 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% wcnfs 4
 %setSvc% WindowsTrustedRTProxy 4
 
-:: remove dependencies
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dhcp" /v "DependOnService" /t REG_MULTI_SZ /d "NSI\0Afd" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache" /v "DependOnService" /t REG_MULTI_SZ /d "nsi" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "DependOnService" /t REG_MULTI_SZ /d "" /f
-
 :: remove lower filters for rdyboost
 set key="HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
 for /f "skip=1tokens=3*" %%A in ('reg query %key% /v "LowerFilters"') do (set val=%%A)
