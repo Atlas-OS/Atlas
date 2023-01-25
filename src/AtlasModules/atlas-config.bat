@@ -149,8 +149,9 @@ printD
 printE
 
 "Replace Task Manager with Process Explorer"
-procexpd
-procexpe
+processExplorerDisable
+processExplorerEnable
+processExplorerInstall
 
 "Indexing toggles"
 indexD
@@ -2352,16 +2353,51 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "RunAsPPL" /t REG_DWORD /
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Negotiate" /t REG_DWORD /d "0" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v "UseLogonCredential" /t REG_DWORD /d "0" /f
 
-:procexpD
-if exist "%WinDir%\procexp.exe" del /f /q "%WinDir%\procexp.exe" > nul
+:processExplorerInstall
+ping -n 1 "example.com" > nul 2>nul
+if not %errorlevel%==0 (
+	echo You must have an internet connection to use this script.
+	pause
+	exit /b 1
+)
+
+curl.exe -L# "https://live.sysinternals.com/procexp.exe" -o "%WinDir%\AtlasModules\Apps\procexp.exe"
+if not %errorlevel%==0 (
+	echo Failed to download Process Explorer!
+	pause
+	exit /b 1
+)
+
+:: Create the shortcut
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\procexp.exe"""; $Shortcut.Save()"
+if not %errorlevel%==0 (
+	echo Process Explorer shortcut could not be created in the start menu!
+)
+
+echo]
+if "%procexpEnableInstall%"=="true" (
+	goto procexpE
+) else (
+	goto finishNRB
+)
+
+:processExplorerDisable
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /f > nul 2>nul
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\pcw" /v "Start" /t REG_DWORD /d "0" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\pcw" /v "Start" /t REG_DWORD /d "0" /f > nul
 goto finish
 
-:procexpE
-if not exist "%WinDir%\procexp.exe" copy "%WinDir%\AtlasModules\Apps\procexp.exe" "%WinDir%"
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\procexp.exe" /f
-goto finish
+:processExplorerEnable
+if not exist "%WinDir%\AtlasModules\Apps\procexp.exe" (
+	echo You need to have Process Explorer installed first to use this script.
+	echo]
+	echo Press any key to install it right now...
+	pause > nul
+	set procexpEnableInstall=true
+	echo]
+	goto procexpI
+)
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\AtlasModules\Apps\procexp.exe" /f > nul
+goto finishNRB
 
 :xboxU
 set /P c=This is IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]
