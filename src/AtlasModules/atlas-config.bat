@@ -1938,8 +1938,8 @@ if "%system%"=="true" (
 )
 sc config BthAvctpSvc start=auto
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
-if %errorlevel%==1 attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
-if %errorlevel%==2 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+if %ERRORLEVEL%==1 attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+if %ERRORLEVEL%==2 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
@@ -2354,22 +2354,22 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Us
 
 :processExplorerInstall
 ping -n 1 "example.com" > nul 2>nul
-if not %errorlevel%==0 (
+if not %ERRORLEVEL%==0 (
 	echo You must have an internet connection to use this script.
 	pause
 	exit /b 1
 )
 
 curl.exe -L# "https://live.sysinternals.com/procexp.exe" -o "%WinDir%\AtlasModules\Apps\procexp.exe"
-if not %errorlevel%==0 (
+if not %ERRORLEVEL%==0 (
 	echo Failed to download Process Explorer!
 	pause
 	exit /b 1
 )
 
 :: Create the shortcut
-powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\procexp.exe"""; $Shortcut.Save()"
-if not %errorlevel%==0 (
+%PowerShell% "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\procexp.exe"""; $Shortcut.Save()"
+if not %ERRORLEVEL%==0 (
 	echo Process Explorer shortcut could not be created in the start menu!
 )
 
@@ -2436,8 +2436,8 @@ echo]
 echo With UAC disabled, everything runs as admin, and you can not change that without enabling UAC.
 echo]
 choice /c:yn /n /m "Do you want to continue? [Y/N] "
-if %errorlevel%==1 goto uacDconfirm
-if %errorlevel%==2 exit 1
+if %ERRORLEVEL%==1 goto uacDconfirm
+if %ERRORLEVEL%==2 exit 1
 
 :uacDconfirm
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f > nul
@@ -2887,7 +2887,7 @@ goto finish
 :nvcontainerD
 :: check if the service exists
 sc query NVDisplay.ContainerLocalSystem > nul 2>&1
-if %errorlevel%==1 (
+if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
@@ -2927,7 +2927,7 @@ goto finishNRB
 :nvcontainerCME
 :: cm = context menu
 sc query NVDisplay.ContainerLocalSystem > nul 2>&1
-if %errorlevel%==1 (
+if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
