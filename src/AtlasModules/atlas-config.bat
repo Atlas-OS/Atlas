@@ -876,13 +876,14 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% wcnfs 4
 %setSvc% WindowsTrustedRTProxy 4
 
-:: remove dependencies
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dhcp" /v "DependOnService" /t REG_MULTI_SZ /d "NSI\0Afd" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache" /v "DependOnService" /t REG_MULTI_SZ /d "nsi" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "DependOnService" /t REG_MULTI_SZ /d "" /f
-
 :: remove lower filters for rdyboost
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}" /v "LowerFilters" /t REG_MULTI_SZ  /d "" /f
+set key="HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
+for /f "skip=1tokens=3*" %%A in ('reg query %key% /v "LowerFilters"') do (set val=%%A)
+:: `val` would be like `rdyboost\0fvevol\0iorate`
+set val=%val:rdyboost\0=%
+set val=%val:\0rdyboost=%
+set val=%val:rdyboost=%
+reg add %key% /v "LowerFilters" /t REG_MULTI_SZ /d %val% /f
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled services...>> %log%
 ) ELSE (echo %date% - %time% Failed to disable services! >> %log%)
