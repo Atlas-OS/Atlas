@@ -141,6 +141,7 @@ sleepD
 sleepE
 
 "Toggle CPU idle states in power scheme"
+idled
 idlee
 
 "Printing services toggle"
