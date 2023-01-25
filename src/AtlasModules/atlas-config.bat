@@ -23,8 +23,8 @@
 :: set variables for identifying the OS
 :: - %releaseid% - release ID (21H2, 22H2, etc...)
 :: - %build% - current build of Windows (like 10.0.19044.1889)
-for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "DisplayVersion"') do (set releaseid=%%a)
-for /f "tokens=4-7 delims=[.] " %%a in ('ver') do (set "build=%%a.%%b.%%c.%%d")
+for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "DisplayVersion"') do set "releaseid=%%a"
+for /f "tokens=4-7 delims=[.] " %%a in ('ver') do set "build=%%a.%%b.%%c.%%d"
 
 :: set correct username variable of the currently logged in user
 for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
