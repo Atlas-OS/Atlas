@@ -136,12 +136,11 @@ networksharingE
 notiD
 notiE
 
-"Toggle sleep states in power plan"
+"Toggle sleep states in power scheme"
 sleepD
 sleepE
 
-"Toggle CPU idle states in power plan"
-idled
+"Toggle CPU idle states in power scheme"
 idlee
 
 "Printing services toggle"
@@ -176,7 +175,7 @@ uacE
 uwp
 uwpE
 
-"Install Open Shell (required for disabling search/start menu)"
+"Install Open-Shell (required for disabling search/start menu)"
 openshellInstall
 
 "Uninstall XBOX apps"
@@ -232,7 +231,7 @@ safe
 "Visual C++ Redistributables AIO Pack"
 vcreR
 
-"Send To debloat"
+"Send To context menu debloat"
 sendToDebloat
 
 ) do (
