@@ -279,15 +279,10 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %log
 
 :: change ntp server from windows server to pool.ntp.org
 w32tm /config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"
-sc queryex "w32time" | find "STATE" | find /v "RUNNING" || (
-    net stop w32time
-    net start w32time
-) > nul 2>nul
 
 :: resync time to pool.ntp.org
 w32tm /config /update
 w32tm /resync
-sc stop W32Time
 %setSvc% W32Time 4
 if %ERRORLEVEL%==0 (echo %date% - %time% NTP server set...>> %log%
 ) ELSE (echo %date% - %time% Failed to set NTP server! >> %log%)
