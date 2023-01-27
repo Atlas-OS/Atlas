@@ -2630,7 +2630,7 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
 )
 
 :: configure netsh settings
-netsh int tcp set heuristics=disabled
+netsh int tcp set heuristics disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
 netsh int tcp set global rsc=disabled
 for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
