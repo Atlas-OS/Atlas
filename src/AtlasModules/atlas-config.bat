@@ -281,6 +281,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %log
 w32tm /config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"
 
 :: resync time to pool.ntp.org
+net start w32time
 w32tm /config /update
 w32tm /resync
 %setSvc% W32Time 4
