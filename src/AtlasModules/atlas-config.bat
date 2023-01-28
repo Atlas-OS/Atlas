@@ -129,7 +129,8 @@ wmpd
 storeD
 storeE
 
-"Enable network sharing"
+"Toggle network sharing"
+networksharingD
 networksharingE
 
 "Toggle notifications"
@@ -2979,9 +2980,18 @@ NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS context menu disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
+:networksharingD
+call :workstationD "int"
+echo %date% - %time% Workstation disbled as Network Sharing dependency...>> %WinDir%\AtlasModules\logs\userscript.log
+%setSvc% NlaSvc 4
+%setSvc% lmhosts 4
+%setSvc% netman 4
+echo %date% - %time% Network Sharing disabled...>> %WinDir%\AtlasModules\logs\userscript.log
+goto finish
+
 :networksharingE
-echo Enabling Workstation as a dependency...
 call :workstationE "int"
+echo %date% - %time% Workstation enabled as Network Sharing dependency...>> %WinDir%\AtlasModules\logs\userscript.log
 sc config eventlog start=auto
 echo %date% - %time% EventLog enabled as Network Sharing dependency...>> %WinDir%\AtlasModules\logs\userscript.log
 %setSvc% NlaSvc 2
