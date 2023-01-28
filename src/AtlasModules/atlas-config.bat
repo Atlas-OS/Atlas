@@ -301,10 +301,6 @@ fsutil behavior set disablelastaccess 1
 :: https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security
 fsutil behavior set disable8dot3 1
 
-:: enable delete notifications (aka trim or unmap)
-:: should be enabled by default but it is here to be sure
-fsutil behavior set disabledeletenotify 0
-
 :: disable file system mitigations
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
 
@@ -399,9 +395,6 @@ cls & echo Please wait. This may take a moment.
 
 :: delete defaultuser0 account used during oobe
 net user defaultuser0 /delete > nul 2>nul
-
-:: set PowerShell execution policy to unrestricted
-%PowerShell% "Set-ExecutionPolicy Unrestricted -Force"
 
 :: disable reserved storage
 DISM /Online /Set-ReservedStorageState /State:Disabled
