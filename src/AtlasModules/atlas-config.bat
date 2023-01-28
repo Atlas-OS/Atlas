@@ -180,8 +180,10 @@ uwpE
 "Install Open-Shell (required for disabling search/start menu)"
 openshellInstall
 
-"Uninstall XBOX apps"
+"Configure Xbox apps and services"
 xboxU
+xboxD
+xboxE
 
 "VPN-related services toggle"
 vpnD
@@ -2405,14 +2407,27 @@ exit
 :xboxConfirm
 echo Removing via PowerShell...
 NSudo.exe -U:C -ShowWindowMode:Hide -Wait %PowerShell% "Get-AppxPackage *Xbox* | Remove-AppxPackage" > nul 2>nul
+if %ERRORLEVEL%==0 echo %date% - %time% Xbox related apps removed..>> %WinDir%\AtlasModules\logs\userScript.log
+goto finishNRB
 
+:xboxD
 echo Disabling services...
 sc config XblAuthManager start=disabled
 sc config XblGameSave start=disabled
 sc config XboxGipSvc start=disabled
 sc config XboxNetApiSvc start=disabled
 %setSvc% BcastDVRUserService 4
-if %ERRORLEVEL%==0 echo %date% - %time% Xbox related apps and services removed...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Xbox related services disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+goto finishNRB
+
+:xboxE
+echo Enabling services...
+sc config XblAuthManager start=demand
+sc config XblGameSave start=demand
+sc config XboxGipSvc start=demand
+sc config XboxNetApiSvc start=demand
+%setSvc% BcastDVRUserService 3
+if %ERRORLEVEL%==0 echo %date% - %time% Xbox related services enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :vcreR
