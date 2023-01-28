@@ -1614,7 +1614,7 @@ bcdedit /set description Atlas %branch% %ver%
 :: disable hyper-v and vbs
 bcdedit /set hypervisorlaunchtype off
 bcdedit /set vm no
-bcdedit /set vmslaunchtype Off
+bcdedit /set vsmlaunchtype Off
 bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS
 
 echo %date% - %time% BCD options set...>> %log%
@@ -1698,7 +1698,7 @@ goto finish
 :: bcdedit commands
 bcdedit /set hypervisorlaunchtype off > nul
 bcdedit /set vm no > nul
-bcdedit /set vmslaunchtype Off > nul
+bcdedit /set vsmlaunchtype Off > nul
 bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS > nul
 
 :: disable hyper-v with DISM
