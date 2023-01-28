@@ -3060,22 +3060,22 @@ setlocal EnableDelayedExpansion
 
 :: fully enable spectre variant 2 and meltdown mitigations
 :: credit to privacy.sexy
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d 3 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f
 wmic cpu get name | findstr "Intel" >nul && (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d 0 /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "0" /f
 )
 wmic cpu get name | findstr "AMD" >nul && (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d 64 /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "64" /f
 )
 :: enable for hyper-v
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization" /v MinVmVersionForCpuBasedMitigations /t REG_SZ /d "1.0" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization" /v "MinVmVersionForCpuBasedMitigations" /t REG_SZ /d "1.0" /f
 
 :: enable Structured Exception Handling Overwrite Protection (SEHOP)
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d 0 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "0" /f
 
 :: force data execution prevention
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoDataExecutionPrevention" /t REG_DWORD /d 0 /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "DisableHHDEP" /t REG_DWORD /d 0 /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoDataExecutionPrevention" /t REG_DWORD /d "0" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "DisableHHDEP" /t REG_DWORD /d "0" /f
 bcdedit /set nx AlwaysOn
 
 :: enable all other kernel mitigations
@@ -3100,7 +3100,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMo
 :: callable label, can be used in a post install or whatever else
 :: call :mitigationsEnable /function
 endlocal
-if "%~1"=="/function" exit /b 0
+if "%~1"=="/function" exit /b
 
 echo]
 goto finish
@@ -3151,7 +3151,7 @@ bcdedit /set nx AlwaysOff
 :: callable label, can be used in a post install or whatever else
 :: call :mitigationsDisable /function
 endlocal
-if "%~1"=="/function" exit /b 0
+if "%~1"=="/function" exit /b
 
 echo]
 goto finish
@@ -3191,7 +3191,7 @@ bcdedit /set nx OptIn
 :: callable label, can be used in a post install or whatever else
 :: call :mitigationsDefault /function
 endlocal
-if "%~1"=="/function" exit /b 0
+if "%~1"=="/function" exit /b
 
 echo]
 goto finish
@@ -3239,7 +3239,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d 
 	if "%system%"=="false" (echo Failed to set service %~1 with start value %~2! Not running as System, access denied?) else (
 	echo Failed to set service %~1 with start value %~2! Unknown error.)
 )
-exit /b 0
+exit /b
 
 :firewallBlockExe
 :: usage: %fireBlockExe% "[NAME]" "[EXE]"
@@ -3255,10 +3255,10 @@ exit /b
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
-	pause & exit /b 1
+	pause & exit /b
 :finish
 	echo Finished, please reboot for changes to apply.
-	pause & exit /b 0
+	pause & exit /b
 :finishNRB
 	echo Finished, changes have been applied.
-	pause & exit /b 0
+	pause & exit /b
