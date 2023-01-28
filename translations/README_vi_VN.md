@@ -17,7 +17,7 @@
 
 # Atlas là gì?
 
-Atlas là một phiên bản Windows đã được chỉnh sửa, loại bỏ tất cả những nhược điểm của Windows làm ảnh hưởng tới hiệu năng chơi game. Chúng tôi là một dự án mở và minh bạch, hướng tới sự công bằng cho người chơi cho dù bạn sử dụng một chiếc PC cùi bắp hay là gaming PC.
+Atlas là một phiên bản Windows 10 đã được chỉnh sửa, loại bỏ tất cả những nhược điểm của Windows làm ảnh hưởng tới hiệu năng chơi game. Chúng tôi là một dự án mở và minh bạch, hướng tới sự công bằng cho người chơi cho dù bạn sử dụng một chiếc PC cùi bắp hay là gaming PC.
 
 Ngoài việc tập trung vào hiệu năng, chúng tôi còn là một lựa chọn tốt để giảm độ trễ hệ thống, mạng, nhập liệu và giữ cho hệ thống của bạn bảo mật.
 

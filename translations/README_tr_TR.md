@@ -20,7 +20,7 @@
 
 # Atlas Nedir?
 
-Atlas, Windows'un oyun performansını olumsuz etkileyen bileşenlerin ortadan kaldırıldığı modifiye edilmiş bir Windows sürümüdür. İster hesap makinesinden hallice bir bilgisayar ister son model bir oyun bilgisayarı kullanıyor olun, oyuncular için eşit haklar için çabalayan şeffaf ve açık kaynaklı bir projeyiz.
+Atlas, Windows 10'un oyun performansını olumsuz etkileyen bileşenlerin ortadan kaldırıldığı modifiye edilmiş bir Windows sürümüdür. İster hesap makinesinden hallice bir bilgisayar ister son model bir oyun bilgisayarı kullanıyor olun, oyuncular için eşit haklar için çabalayan şeffaf ve açık kaynaklı bir projeyiz.
 
 Ana odağımızı sistem gecikmesi, ağ gecikmesi ve giriş gecikmesini azaltmak ve genel sistem performansını arttırmak üzerinde tutarken, ayrıca işletim sisteminizi gizli ve güvenli tutmak için de harika bir seçeneğiz.
 

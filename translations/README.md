@@ -12,7 +12,7 @@
 
 # Translation guide
 
-First of all, thank you for considering helping us by translating documents! Here are some small things you should remember before creating a translated README.md.
+First of all, thank you for considering helping us by translating documents! Here are some small things you should remember before creating a translated README.MD.
 
 • Please keep the disclaimer in English, for legal reasons.
 

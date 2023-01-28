@@ -17,7 +17,7 @@
 
 # Qu'est-ce Atlas?
 
-Atlas est une version modifiée de Windows qui enlève tous les défauts de Windows, qui diminuent les performances de jeu. Nous sommes un projet en source ouverte et respecteux de la vie privée qui vise pour l'égalité pour les joueurs, que tu ais une pomme de terre, ou un ordinateur de jeu.
+Atlas est une version modifiée de Windows 10 qui enlève tous les défauts de Windows, qui diminuent les performances de jeu. Nous sommes un projet en source ouverte et respecteux de la vie privée qui vise pour l'égalité pour les joueurs, que tu ais une pomme de terre, ou un ordinateur de jeu.
 
 Même si nous nous focalisons est sur la performance, nous sommes aussi un très bon choix pour réduire la latence système, la latence de reseau, la latence d'entrée, et pour garder votre système privé.
 

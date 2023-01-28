@@ -2422,11 +2422,11 @@ goto finishNRB
 
 :vcreR
 echo Uninstalling Visual C++ Runtimes...
-%WinDir%\AtlasModules\Apps\vcredist.exe /aiR
+vcredist.exe /aiR
 echo Finished uninstalling!
 echo]
 echo Opening Visual C++ Runtimes installer, simply click next.
-%WinDir%\AtlasModules\Apps\vcredist.exe
+vcredist.exe
 echo Installation Finished or Cancelled.
 if %ERRORLEVEL%==0 echo %date% - %time% Visual C++ Runtimes reinstalled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
@@ -2762,7 +2762,7 @@ echo If this did not install Chocolatey, instead you can try installing via the 
 goto finish
 
 :altSoftwarescoop
-for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\Apps\multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
+for /f "tokens=*" %%a in ('multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
 	set spacedelimited=%%a
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c scoop install !spacedelimited! -g
@@ -2770,7 +2770,7 @@ for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\Apps\multichoice.exe "Common So
 goto finish
 
 :altSoftwarechoco
-for /f "tokens=*" %%a in ('%WinDir%\AtlasModules\Apps\multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
+for /f "tokens=*" %%a in ('multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
 	set spacedelimited=%%a
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
@@ -2811,7 +2811,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Display Scaling disabled...>> %WinDir%\A
 goto finish
 
 :DSCPauto
-for /f "tokens=* delims=\" %%i in ('%WinDir%\AtlasModules\Tools\filepicker.exe exe') do (
+for /f "tokens=* delims=\" %%i in ('filepicker.exe exe') do (
     if "%%i"=="cancelled by user" exit
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Application Name" /t REG_SZ /d "%%~ni%%~xi" /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Version" /t REG_SZ /d "1.0" /f
@@ -3061,7 +3061,7 @@ for %%a in (
 )
 
 for /f "usebackq tokens=*" %%a in (
-	`multichoice "Send To Debloat" "Tick the default 'Send To' context menu items that you want to disable here (un-checked items are enabled)" "Bluetooth device;Compressed (zipped) folder;Desktop (create shortcut);Mail recipient;Documents;Removable Drives"`
+	`multichoice.exe "Send To Debloat" "Tick the default 'Send To' context menu items that you want to disable here (un-checked items are enabled)" "Bluetooth device;Compressed (zipped) folder;Desktop (create shortcut);Mail recipient;Documents;Removable Drives"`
 ) do (set "items=%%a")
 for %%a in ("%items:;=" "%") do (
 	if "%%~a"=="Bluetooth device" (set bluetooth=true)

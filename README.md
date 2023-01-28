@@ -14,7 +14,6 @@
   <a href="https://forum.atlasos.net">Forum</a>
 </p>
 
-
 # Translations
 
 <kbd>[<img title="中文（简体）" alt="中文（简体）" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/cn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_zh_CN.md)</kbd>
@@ -26,12 +25,11 @@
 <kbd>[<img title="Deutsch" alt="Deutsch" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/de.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_de_DE.md)</kbd>
 <kbd>[<img title="Türkçe" alt="Türkçe" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/tr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_tr_TR.md)</kbd>
 
-#### _Want to help us by translate documents? please follow this [README](translations/README.md)._
-
+#### _Want to help us by translating documents? Please follow this [README](translations/README.md)._
 
 # What is Atlas?
 
-Atlas is a modified version of Windows which removes all the negative drawbacks of Windows, which adversely affect gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a potato, or a gaming PC.
+Atlas is a modified version of Windows 10 which removes all the negative drawbacks of Windows, which adversely affect gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a low-end, or a gaming PC.
 
 While keeping our main focus on performance, we are also a great option to reduce system latency, network latency, input lag, and keep your system private.
 
@@ -73,13 +71,13 @@ Atlas is heavily stripped, pre-installed applications and other components are r
 
 Atlas is pre-tweaked. While maintaining compatibility, but also striving for performance, we have squeezed every last drop of performance into our Windows images. Some of the many changes that we have done to improve Windows have been listed below.
 
-- Custom power scheme
-- Reduced amount of services
-- Reduced amount of drivers
+- Customized power scheme
+- Reduced amount of services and drivers
+- Disabled audio exclusive
 - Disabled unneeded devices
 - Disabled power savings
 - Disabled performance-hungry security mitigations
-- Automatically enabled MSI mode
+- Automatically enabled MSI mode on all devices
 - Boot configuration optimization
 - Optimized process scheduling
 

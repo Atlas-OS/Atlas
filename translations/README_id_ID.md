@@ -17,7 +17,7 @@
 
 # Apa itu Atlas?
 
-Atlas adalah versi modifkasi dari Windows yang menghilangkan semua kekurangan, yang berdampak buruk pada performa game. Kami adalah proyek transparan dan sumber terbuka yang berjuang untuk hak yang sama bagi para pemain apakah kamu menjalankan kentang, atau komputer gaming.
+Atlas adalah versi modifkasi dari Windows 10 yang menghilangkan semua kekurangan, yang berdampak buruk pada performa game. Kami adalah proyek transparan dan sumber terbuka yang berjuang untuk hak yang sama bagi para pemain apakah kamu menjalankan kentang, atau komputer gaming.
 
 Sambil menjaga fokus utama kami pada performa, kami juga merupakan pilihan yang bagus untuk mengurangi latensi sistem, latensi jaringan, keterlambatan input, dan menjaga sistem anda tetap privat.
 

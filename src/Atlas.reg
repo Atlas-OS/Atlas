@@ -1,6 +1,6 @@
 Windows Registry Editor Version 5.00
 
-; disable user account control (needed for correct post-install script perms)
+; disable user account control (needed for correct post-install script permissions)
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System]
 "ConsentPromptBehaviorAdmin"=dword:00000000
