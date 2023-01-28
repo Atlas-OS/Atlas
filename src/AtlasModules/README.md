@@ -9,13 +9,6 @@ To verify the legitmacy of these binaries (executables), there is information pr
 - Last Verified: 2022-12-01 by JayXTQ
 - The executable was extracted from the 64-bit version.
 
-### Process Explorer
-- Directory: `\AtlasModules\Apps\procexp.exe`
-- SHA256 Hash: `2cd8fa82ffccf17a8a20178bc7145ea40b837c37f7383e5b15a2243cc601dd58`
-- Source: https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer
-- Last Verified: 2022-12-24 by Xyueta
-- `procexp64.exe` was extracted from `ProcessExplorer.zip` using 7-Zip and renamed to `procexp.exe`
-
 ### File Picker
 - Directory: `\AtlasModules\Tools\filepicker.exe`
 - SHA256 Hash: `10A9AB81DE68A6ACEBD6E0D393ECC8869A4DAE852F78CF9093740AD8752DA0DE`
