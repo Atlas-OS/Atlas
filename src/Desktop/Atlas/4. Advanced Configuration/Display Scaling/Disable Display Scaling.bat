@@ -1,2 +1,2 @@
 @echo off
-NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %windir%\AtlasModules\atlas-config.bat /displayscalingd
+NSudo.exe -U:T -P:E -UseCurrentConsole -Wait atlas-config.bat /displayscalingD

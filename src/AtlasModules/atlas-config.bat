@@ -88,42 +88,42 @@ depD
 depE
 
 "Toggle background apps"
-backd
-backe
+backD
+backE
 
 "Toggle Bluetooth services"
-btd
-bte
+btD
+btE
 
 "Toggle clipboard service (also required for Snip & Sketch)"
 cbdhsvcD
 cbdhsvcE
 
 "Toggle Event Log related components"
-eventloge
-eventlogd
+eventlogD
+eventlogE
 
 "Toggle Task Scheduler related components"
-schedulee
-scheduled
+scheduleD
+scheduleE
 
 "Toggle Windows Firewall"
 firewallD
 firewallE
 
 "Toggle HDD performance related features/services"
-hddd
-hdde
+hddD
+hddE
 
 "Hyper-V toggle"
 hyperD
 hyperE
 
 "Disable Internet Explorer"
-ied
+ieD
 
 "Disable Windows Media Player"
-wmpd
+wmpD
 
 "Toggle Microsoft Store"
 storeD
@@ -142,17 +142,17 @@ sleepD
 sleepE
 
 "Toggle CPU idle states in power scheme"
-idled
-idlee
+idleD
+idleE
 
 "Printing services toggle"
 printD
 printE
 
 "Replace Task Manager with Process Explorer"
+processExplorerInstalls
 processExplorerDisable
 processExplorerEnable
-processExplorerInstall
 
 "Indexing toggles"
 indexD
@@ -166,15 +166,15 @@ enableStartSearch
 startlayout
 
 "Diagnostics services toggle"
-diagd
-diage
+diagD
+diagE
 
 "Disable/enable UAC"
 uacD
 uacE
 
 "Toggle UWP services"
-uwp
+uwpD
 uwpE
 
 "Install Open-Shell (required for disabling search/start menu)"
@@ -198,7 +198,7 @@ workstationD
 workstationE
 
 "Disable display scaling (lower latency?)"
-displayscalingd
+displayscalingD
 
 "Select exe to set DSCP values to"
 dscpauto
@@ -227,9 +227,9 @@ netAtlasDefault
 netWinDefault
 
 "Safe mode scripts"
-safee
-safec
-safen
+safeE
+safeC
+safeN
 safe
 
 "Visual C++ Redistributables AIO Pack"
@@ -2016,12 +2016,13 @@ NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell installed...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
-:uwp
-IF EXIST "C:\Program Files\Open-Shell" goto uwpD
-IF EXIST "C:\Program Files (x86)\StartIsBack" goto uwpD
+:uwpD
+IF EXIST "C:\Program Files\Open-Shell" goto uwpDisableContinue
+IF EXIST "C:\Program Files (x86)\StartIsBack" goto uwpDisableContinue
 echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the startmenu being removed.
 pause & exit /b 1
-:uwpD
+
+:uwpDisableContinue
 echo This will remove all UWP packages that are currently installed. This will break multiple features that WILL NOT be supported while disabled.
 echo A reminder of a few things this may break.
 echo - Searching in file explorer
@@ -2421,15 +2422,6 @@ goto finish
 if %ERRORLEVEL%==0 echo %date% - %time% Firewall enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
-:aniE
-reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /f > nul 2>nul
-%currentuser% reg delete "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /f > nul 2>nul
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarAnimations" /t REG_DWORD /d "1" /f
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d "1" /f
-%currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9e3e078012000000" /f
-if %ERRORLEVEL%==0 echo %date% - %time% Animations enabled...>> %WinDir%\AtlasModules\logs\userScript.log
-goto finish
-
 :aniD
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /t REG_DWORD /d "0" /f
@@ -2437,6 +2429,15 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d "3" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9012038010000000" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Animations disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+goto finish
+
+:aniE
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /f > nul 2>nul
+%currentuser% reg delete "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /f > nul 2>nul
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarAnimations" /t REG_DWORD /d "1" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d "1" /f
+%currentuser% reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9e3e078012000000" /f
+if %ERRORLEVEL%==0 echo %date% - %time% Animations enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :workstationD
@@ -2462,6 +2463,11 @@ if %ERRORLEVEL%==0 echo %date% - %time% Workstation enabled...>> %WinDir%\AtlasM
 if "%~1" EQU "int" goto :EOF
 goto finish
 
+:printD
+%setSvc% Spooler 4
+if %ERRORLEVEL%==0 echo %date% - %time% Printing disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+goto finish
+
 :printE
 echo You may be vulnerable to Print Nightmare Exploits while printing is enabled. 
 set /P c=Would you like to add Group Policies to protect against them? [Y/N]
@@ -2484,10 +2490,6 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers" /v "DisableHTTPPr
 :printECont
 %setSvc% Spooler 2
 if %ERRORLEVEL%==0 echo %date% - %time% Printing enabled...>> %WinDir%\AtlasModules\logs\userScript.log
-goto finish
-:printD
-%setSvc% Spooler 4
-if %ERRORLEVEL%==0 echo %date% - %time% Printing disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :netWinDefault

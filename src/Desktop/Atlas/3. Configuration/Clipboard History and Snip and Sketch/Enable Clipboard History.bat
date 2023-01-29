@@ -1,2 +1,2 @@
 @echo off
-NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /cbdhsvcE
+NSudo.exe -U:T -P:E -UseCurrentConsole -Wait atlas-config.bat /cbdhsvcE

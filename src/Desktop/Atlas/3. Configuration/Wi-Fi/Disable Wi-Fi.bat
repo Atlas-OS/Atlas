@@ -1,2 +1,2 @@
 @echo off
-NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /wifiD
+NSudo.exe -U:T -P:E -UseCurrentConsole -Wait atlas-config.bat /wifiD
