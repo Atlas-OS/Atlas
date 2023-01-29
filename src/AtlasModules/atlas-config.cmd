@@ -3,7 +3,6 @@
 :: - AMIT
 :: - Artanis
 :: - Canonez
-:: - CatGamerOP
 :: - CYNAR
 :: - EverythingTech
 :: - he3als
@@ -196,9 +195,6 @@ wifiE
 workstationD
 workstationE
 
-"Disable display scaling (lower latency?)"
-displayscalingD
-
 "Select exe to set DSCP values to"
 dscpauto
 
@@ -273,8 +269,6 @@ setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\Atla
 if %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %install_log%)
 
-:: breaks setting keyboard language
-:: rundll32.exe advapi32.dll,ProcessIdleTasks
 break > C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
 
@@ -309,9 +303,6 @@ if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %install_log
 ) ELSE (echo %date% - %time% Failed to optimize file system! >> %install_log%)
 
 :: disable unneeded scheduled tasks
-
-:: breaks setting lock screen
-:: schtasks /Change /Disable /TN "\Microsoft\Windows\Shell\CreateObjectTask"
 
 for %%a in (
     "\Microsoft\Windows\ApplicationData\appuriverifierdaily"
@@ -2724,13 +2715,6 @@ goto finish
 :: %setSvc% Dhcp 4
 :: %setSvc% NlaSvc 4
 :: %setSvc% netprofm 4
-
-:displayScalingD
-for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /s /f "Scaling" ^| find /i "Configuration\"') do (
-	reg add "%%a" /v "Scaling" /t REG_DWORD /d "1" /f
-)
-if %ERRORLEVEL%==0 echo %date% - %time% Display Scaling disabled...>> %user_log%
-goto finish
 
 :DSCPauto
 for /f "tokens=* delims=\" %%i in ('filepicker.exe exe') do (
