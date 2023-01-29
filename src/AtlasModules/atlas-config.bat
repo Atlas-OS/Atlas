@@ -256,7 +256,7 @@ goto argumentFAIL
 echo atlas-config had no arguements or invalid arguments passed to it.
 echo Either you are launching atlas-config directly or the "%~nx0" script is broken.
 echo Please report this to the Atlas Discord server or GitHub.
-pause & exit /b
+pause & exit /b 1
 
 :test
 set /p c="Test with echo on?"
@@ -264,7 +264,7 @@ if %c% equ Y echo on
 set /p argPrompt="Which script would you like to test? E.g. (:testScript)"
 goto %argPrompt%
 echo You should not reach this message!
-pause & exit /b
+pause & exit /b 1
 
 :startup
 :: create log directory for troubleshooting
@@ -1864,7 +1864,7 @@ goto finish
 if "%system%"=="true" (
 	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
 	pause
-	exit /b
+	exit /b 1
 )
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc > nul 2>nul
@@ -1878,7 +1878,7 @@ goto finish
 if "%system%"=="true" (
 	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
 	pause
-	exit /b
+	exit /b 1
 )
 sc config BthAvctpSvc start=auto
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
@@ -1948,7 +1948,7 @@ pause
 :existS
 set /P c=This will disable SearchApp and StartMenuExperienceHost, are you sure you want to continue [Y/N]?
 if /I "%c%" EQU "Y" goto continSS
-if /I "%c%" EQU "N" exit
+if /I "%c%" EQU "N" exit /b
 
 :continSS
 :: rename start menu
@@ -2049,7 +2049,7 @@ goto finishNRB
 IF EXIST "C:\Program Files\Open-Shell" goto uwpD
 IF EXIST "C:\Program Files (x86)\StartIsBack" goto uwpD
 echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the startmenu being removed.
-pause & exit
+pause & exit /b 1
 :uwpD
 echo This will remove all UWP packages that are currently installed. This will break multiple features that WILL NOT be supported while disabled.
 echo A reminder of a few things this may break.
@@ -2297,14 +2297,14 @@ ping -n 1 "example.com" > nul 2>nul
 if not %ERRORLEVEL%==0 (
 	echo You must have an internet connection to use this script.
 	pause
-	exit /b
+	exit /b 1
 )
 
 curl.exe -L# "https://live.sysinternals.com/procexp.exe" -o "%WinDir%\AtlasModules\Apps\procexp.exe"
 if not %ERRORLEVEL%==0 (
 	echo Failed to download Process Explorer!
 	pause
-	exit /b
+	exit /b 1
 )
 
 :: Create the shortcut
@@ -2340,7 +2340,7 @@ goto finishNRB
 
 :xboxU
 set /P c=This is IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]
-if /I "%c%" EQU "N" exit
+if /I "%c%" EQU "N" exit /b
 if /I "%c%" EQU "Y" goto :xboxConfirm
 exit
 
@@ -2390,7 +2390,7 @@ echo With UAC disabled, everything runs as admin, and you can not change that wi
 echo]
 choice /c:yn /n /m "Do you want to continue? [Y/N] "
 if %ERRORLEVEL%==1 goto uacDconfirm
-if %ERRORLEVEL%==2 exit 1
+if %ERRORLEVEL%==2 exit /b
 
 :uacDconfirm
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "0" /f > nul
@@ -2762,7 +2762,7 @@ goto finish
 
 :DSCPauto
 for /f "tokens=* delims=\" %%i in ('filepicker.exe exe') do (
-    if "%%i"=="cancelled by user" exit
+    if "%%i"=="cancelled by user" exit /b 1
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Application Name" /t REG_SZ /d "%%~ni%%~xi" /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Version" /t REG_SZ /d "1.0" /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Protocol" /t REG_SZ /d "*" /f
@@ -2784,7 +2784,7 @@ sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if errorlevel 1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
-    exit /b
+    exit /b 1
 )
 echo This will force P0 on your NVIDIA card AT ALL TIMES, it will always run at full power.
 echo It is not recommended if you leave your computer on while idle, have bad cooling or use a laptop.
@@ -2810,7 +2810,7 @@ sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if errorlevel 1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
-    exit /b
+    exit /b 1
 )
 
 for /f "tokens=*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
@@ -2827,7 +2827,7 @@ sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if errorlevel 1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
-    exit /b
+    exit /b 1
 )
 
 for /f "tokens=*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
@@ -2844,7 +2844,7 @@ if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
-    exit /b
+    exit /b 1
 )
 
 echo Disabling the 'NVIDIA Display Container LS' service will stop the NVIDIA Control Panel from working.
@@ -2869,7 +2869,7 @@ if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
-    exit /b
+    exit /b 1
 )
 
 sc config NVDisplay.ContainerLocalSystem start=auto > nul
@@ -2884,7 +2884,7 @@ if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
-    exit /b
+    exit /b 1
 )
 echo Explorer will be restarted to ensure that the context menu works.
 pause
@@ -2913,13 +2913,13 @@ if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
-    exit /b
+    exit /b 1
 )
 reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1
 if %ERRORLEVEL%==1 (
     echo The context menu does not exist, you can not continue.
     pause
-    exit /b
+    exit /b 1
 )
 
 echo Explorer will be restarted to ensure that the context menu is removed.
@@ -2997,7 +2997,7 @@ goto finish
 if "%system%"=="true" (
 	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
 	pause
-	exit /b
+	exit /b 1
 )
 
 for %%a in (
@@ -3212,19 +3212,24 @@ goto:eof
 :setSvc
 :: example: %setSvc% AppInfo 4
 :: last argument is the startup type: 0, 1, 2, 3, 4
-if [%~1]==[] (echo You need to run this with a service/driver to disable. & exit /b)
-if [%~2]==[] (echo You need to run this with an argument ^(1-5^) to configure the service's startup. & exit /b)
-if %~2 LSS 0 (echo Invalid start value ^(%~2^) for %~1. & exit /b)
-if %~2 GTR 4 (echo Invalid start value ^(%~2^) for %~1. & exit /b)
-reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" > nul 2>&1 || (echo The specified service/driver ^(%~1^) is not found. & exit /b)
+if [%~1]==[] (echo You need to run this with a service/driver to disable. & exit /b 1)
+if [%~2]==[] (echo You need to run this with an argument ^(1-5^) to configure the service's startup. & exit /b 1)
+if %~2 LSS 0 (echo Invalid start value ^(%~2^) for %~1. & exit /b 1)
+if %~2 GTR 5 (echo Invalid start value ^(%~2^) for %~1. & exit /b 1)
+reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" > nul 2>&1 || (echo The specified service/driver ^(%~1^) is not found. & exit /b 1)
 if "%system%"=="false" (
 	if not "%setSvcWarning%"=="false" (
 		echo WARNING: Not running as System, could fail modifying some services/drivers with an access denied error.
 	)
 )
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f > nul || (
-	if "%system%"=="false" (echo Failed to set service %~1 with start value %~2! Not running as System, access denied?) else (
-	echo Failed to set service %~1 with start value %~2! Unknown error.)
+	if "%system%"=="false" (
+		echo Failed to set service %~1 with start value %~2! Not running as System, access denied?
+		exit /b 1
+	) else (
+		echo Failed to set service %~1 with start value %~2! Unknown error.
+		exit /b 1
+	)
 )
 exit /b
 
@@ -3242,7 +3247,7 @@ exit /b
 
 :permFAIL
 	echo Permission grants failed. Please try again by launching the script through the respected scripts, which will give it the correct permissions.
-	pause & exit /b
+	pause & exit /b 1
 :finish
 	echo Finished, please reboot for changes to apply.
 	pause & exit /b
