@@ -3,10 +3,10 @@ To verify the legitmacy of these binaries (executables), there is information pr
 
 ### DevManView
 - Directory: `\AtlasModules\Apps\DevManView.exe`
-- SHA256 Hash: `FC81134CFB57CD64A76BEEAC74CFAB29768D3B542EC6B25429F5337780790A1E`
+- SHA256 Hash: `9ABDC7CDC19548ADA451AEE6CAABE296957C050062991892E7D9787FF6E0BDEF`
 - Matching Hashes on Website: https://www.nirsoft.net/hash_check/?software=devmanview
 - Source: https://www.nirsoft.net/utils/device_manager_view.html
-- Last Verified: 2022-12-01 by JayXTQ
+- Last Verified: 2023-01-29 by Xyueta
 - The executable was extracted from the 64-bit version.
 
 ### File Picker
