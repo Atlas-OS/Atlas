@@ -2752,7 +2752,7 @@ goto finish
 :: credits to timecard
 :: https://github.com/djdallmann/GamingPCSetup/tree/master/CONTENT/RESEARCH/WINDRIVERS#q-is-there-a-registry-setting-that-can-force-your-display-adapter-to-remain-at-its-highest-performance-state-pstate-p0
 sc query NVDisplay.ContainerLocalSystem > nul 2>&1
-if errorlevel 1 (
+if %ERRORLEVEL%==1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
     exit /b 1
@@ -2778,7 +2778,7 @@ goto finish
 :: credits to timecard
 :: https://github.com/djdallmann/GamingPCSetup/blob/master/CONTENT/RESEARCH/WINDRIVERS/README.md#q-are-there-any-configuration-options-that-allow-you-to-disable-hdcp-when-using-nvidia-based-graphics-cards
 sc query NVDisplay.ContainerLocalSystem > nul 2>&1
-if errorlevel 1 (
+if %ERRORLEVEL%==1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
     exit /b 1
@@ -2795,7 +2795,7 @@ goto finish
 :: credits to timecard
 :: https://github.com/djdallmann/GamingPCSetup/blob/master/CONTENT/RESEARCH/WINDRIVERS/README.md#q-are-there-any-configuration-options-that-allow-you-to-disable-hdcp-when-using-nvidia-based-graphics-cards
 sc query NVDisplay.ContainerLocalSystem > nul 2>&1
-if errorlevel 1 (
+if %ERRORLEVEL%==1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
     exit /b 1
