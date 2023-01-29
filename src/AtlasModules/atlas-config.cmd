@@ -1,5 +1,3 @@
-:: name: Atlas configuration script
-:: description: this is the master script used to configure the Atlas operating system
 
 :: CREDITS:
 :: - AMIT
@@ -2655,9 +2653,9 @@ goto finish
 :scoop
 echo Installing Scoop...
 set /P c="Review install script before executing? [Y/N]: "
-if /I "%c%" EQU "Y" curl "https://raw.githubusercontent.com/ScoopInstaller/install/master/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
-if /I "%c%" EQU "N" curl "https://raw.githubusercontent.com/ScoopInstaller/install/master/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-%PowerShell% "install.ps1 -RunAsAdmin"
+if /I "%c%" EQU "Y" curl "https://cdn.jsdelivr.net/gh/ScoopInstaller/Install@master/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad %WinDir%\AtlasModules\install.ps1
+if /I "%c%" EQU "N" curl "https://cdn.jsdelivr.net/gh/ScoopInstaller/Install@master/install.ps1" -o %WinDir%\AtlasModules\install.ps1
+%PowerShell% "%WinDir%\AtlasModules\install.ps1 -RunAsAdmin"
 echo Refreshing environment for Scoop...
 call refreshenv.cmd
 echo]
