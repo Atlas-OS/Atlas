@@ -20,9 +20,9 @@
 
 @echo off
 
-:: set variables for identifying the OS
-:: - %releaseid% - release ID (21H2, 22H2, etc...)
-:: - %build% - current build of Windows (like 10.0.19044.1889)
+:: set variables for identifying the operating system
+:: - %releaseid% - release ID (e.g. 21H2, 22H2)
+:: - %build% - current build of Windows (e.g. 10.0.19045.2006)
 for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "DisplayVersion"') do set "releaseid=%%a"
 for /f "tokens=4-7 delims=[.] " %%a in ('ver') do set "build=%%a.%%b.%%c.%%d"
 
@@ -31,7 +31,7 @@ for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| 
 
 set "branch=%releaseid%"
 set "ver=v0.1.0"
-title AtlasOS Configuration Script %branch% %ver%
+title Atlas Configuration Script %branch% %ver%
 
 :: set other variables (do not touch)
 set "currentuser=%WinDir%\AtlasModules\Apps\NSudo.exe -U:C -P:E -Wait"
@@ -219,7 +219,7 @@ revertNVPState
 hdcpD
 hdcpE
 
-"Automatic static IP"
+"Automatic Static IP address"
 staticip
 
 "Network settings"
@@ -256,15 +256,15 @@ goto argumentFAIL
 echo atlas-config had no arguements or invalid arguments passed to it.
 echo Either you are launching atlas-config directly or the "%~nx0" script is broken.
 echo Please report this to the Atlas Discord server or GitHub.
-pause & exit /b 1
+pause & exit /b
 
-:Test
+:test
 set /p c="Test with echo on?"
 if %c% equ Y echo on
 set /p argPrompt="Which script would you like to test? E.g. (:testScript)"
 goto %argPrompt%
 echo You should not reach this message!
-pause & exit
+pause & exit /b
 
 :startup
 :: create log directory for troubleshooting
@@ -405,7 +405,7 @@ DISM /Online /Set-ReservedStorageState /State:Disabled
 bcdedit /set recoveryenabled no > nul 2>nul
 fsutil repair set C: 0 > nul 2>nul
 
-:: disable powershell telemetry
+:: disable PowerShell telemetry
 :: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.3
 setx POWERSHELL_TELEMETRY_OPTOUT 1
 
@@ -455,7 +455,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters" /v "NodeType" 
 :: mitigate against hivenightmare/serious sam
 icacls %WinDir%\system32\config\*.* /inheritance:e > nul
 
-:: set strong cryptography on 64 bit and 32 bit .net framework (version 4 and above) to fix a scoop installation issue
+:: set strong cryptography on 64 bit and 32 bit .net framework (version 4 and above) to fix the scoop installation issue
 :: https://github.com/ScoopInstaller/Scoop/issues/2040#issuecomment-369686748
 reg add "HKLM\SOFTWARE\Microsoft\.NetFramework\v4.0.30319" /v "SchUseStrongCrypto" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v "SchUseStrongCrypto" /t REG_DWORD /d "1" /f
@@ -463,51 +463,51 @@ reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v "SchUs
 :: disable network navigation pane in file explorer
 reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder" /v "Attributes" /t REG_DWORD /d "2962489444" /f
 
-:: duplicate 'High Performance' power plan, customise it and make it the Atlas power plan
-powercfg /duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 11111111-1111-1111-1111-111111111111
+:: duplicate 'High Performance' power plan, customize it and make it the Atlas power plan
+powercfg -duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 11111111-1111-1111-1111-111111111111
 powercfg /setactive 11111111-1111-1111-1111-111111111111
 
 :: set current power scheme to Atlas
-powercfg /changename 11111111-1111-1111-1111-111111111111 "Atlas Power Scheme" "Power scheme optimized for optimal latency and performance (v0.1)"
+powercfg -changename 11111111-1111-1111-1111-111111111111 "Atlas Power Scheme" "Power scheme optimized for optimal latency and performance (v0.1)"
 :: turn off hard disk after 0 seconds
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 6738e2c4-e8a5-4a42-b16a-e040e769756e 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 6738e2c4-e8a5-4a42-b16a-e040e769756e 0
 :: turn off secondary nvme idle timeout
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 d3d55efd-c1ff-424e-9dc3-441be7833010 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 d3d55efd-c1ff-424e-9dc3-441be7833010 0
 :: turn off primary nvme idle timeout
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 d639518a-e56d-4345-8af2-b9f32fb26109 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 d639518a-e56d-4345-8af2-b9f32fb26109 0
 :: turn off nvme noppme
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 fc7372b6-ab2d-43ee-8797-15e9841f2cca 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 fc7372b6-ab2d-43ee-8797-15e9841f2cca 0
 :: set slide show to paused
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 0d7dbae2-4294-402a-ba8e-26777e8488cd 309dce9b-bef4-4119-9921-a851fb12f0f4 1
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 0d7dbae2-4294-402a-ba8e-26777e8488cd 309dce9b-bef4-4119-9921-a851fb12f0f4 1
 :: turn off system unattended sleep timeout
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 7bc4a2f9-d8fc-4469-b07b-33eb785aaca0 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 7bc4a2f9-d8fc-4469-b07b-33eb785aaca0 0
 :: disable allow wake timers
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d 0
 :: disable hub selective suspend timeout
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 2a737441-1930-4402-8d77-b2bebba308a3 0853a681-27c8-4100-a2fd-82013e970683 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 2a737441-1930-4402-8d77-b2bebba308a3 0853a681-27c8-4100-a2fd-82013e970683 0
 :: disable usb selective suspend setting
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
 :: set usb 3 link power mangement to maximum performance
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 2a737441-1930-4402-8d77-b2bebba308a3 d4e98f31-5ffe-4ce1-be31-1b38b384c009 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 2a737441-1930-4402-8d77-b2bebba308a3 d4e98f31-5ffe-4ce1-be31-1b38b384c009 0
 :: disable deep sleep
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 2e601130-5351-4d9d-8e04-252966bad054 d502f7ee-1dc7-4efd-a55d-f04b6f5c0545 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 2e601130-5351-4d9d-8e04-252966bad054 d502f7ee-1dc7-4efd-a55d-f04b6f5c0545 0
 :: turn off display after 0 seconds
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e 0
 :: disable critical battery notification
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 5dbb7c9f-38e9-40d2-9749-4f8a0e9f640f 0
 :: disable critical battery action
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 637ea02f-bbcb-4015-8e2c-a1c7b9c0b546 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 637ea02f-bbcb-4015-8e2c-a1c7b9c0b546 0
 :: set low battery level to 0
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 8183ba9a-e910-48da-8769-14ae6dc1170a 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 8183ba9a-e910-48da-8769-14ae6dc1170a 0
 :: set critical battery level to 0
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 9a66d8d7-4ff7-4ef9-b5a2-5a326ca2a469 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f 9a66d8d7-4ff7-4ef9-b5a2-5a326ca2a469 0
 :: disable low battery notification
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f bcded951-187b-4d05-bccc-f7e51960c258 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f bcded951-187b-4d05-bccc-f7e51960c258 0
 :: set reserve battery level to 0
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f f3c5027d-cd16-4930-aa6b-90db844a8f00 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f12-9731-8b2076e8891f f3c5027d-cd16-4930-aa6b-90db844a8f00 0
 
 :: set the active scheme as the current scheme
-powercfg /setactive scheme_current
+powercfg -setactive scheme_current
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Power scheme configured...>> %log%
 ) ELSE (echo %date% - %time% Failed to configure power scheme! >> %log%)
@@ -682,7 +682,6 @@ DevManView.exe /disable "PCI Data Acquisition and Signal Processing Controller"
 DevManView.exe /disable "PCI Encryption/Decryption Controller"
 DevManView.exe /disable "PCI Memory Controller"
 DevManView.exe /disable "PCI Simple Communications Controller"
-:: DevManView.exe /disable "Programmable Interrupt Controller"
 DevManView.exe /disable "SM Bus Controller"
 DevManView.exe /disable "System CMOS/real time clock"
 DevManView.exe /disable "System Speaker"
@@ -749,7 +748,7 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% DoSvc 3
 %setSvc% DPS 4
 %setSvc% DsmSvc 3
-:: %setSvc% DsSvc 4 < can cause issues with snip and sketch
+:: %setSvc% DsSvc 4 < can cause issues with snip & sketch
 %setSvc% Eaphost 3
 %setSvc% EFS 3
 %setSvc% fdPHost 4
@@ -915,7 +914,6 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 ) > nul 2>&1
 
 :: Registry
-:: done through script now, HKCU\... keys often do not integrate correctly
 
 :: bsod quality of life
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\CrashControl" /v "AutoReboot" /t REG_DWORD /d "0" /f
@@ -933,7 +931,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayou
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoStartMenuMFUprogramsList" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "HideRecentlyAddedApps" /t REG_DWORD /d "1" /f
 
-:: disable startup delay of running startup apps
+:: disable 10ms startup delay of running apps
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize" /v "StartupDelayInMSec" /t REG_DWORD /d "0" /f
 
 :: reduce menu show delay time 
@@ -1108,7 +1106,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "DisableUAR" /t 
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "DisableEngine" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "DisablePCA" /t REG_DWORD /d "1" /f
 
-:: disable open file - security warning message
+:: disable 'Open file' - security warning message
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /v "1806" /t REG_DWORD /d "0" /f
 
 :: do not preserve zone information in file attachments
@@ -1132,11 +1130,6 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "DisablePCA" /t 
 %currentuser% reg add "HKCU\Control Panel\Accessibility\MouseKeys" /v "Flags" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Control Panel\Accessibility\ToggleKeys" /v "Flags" /t REG_DWORD /d "0" /f
 
-:: configure language bar
-%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Layout Hotkey" /t REG_SZ /d "3" /f
-%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Language Hotkey" /t REG_DWORD /d "3" /f
-%currentuser% reg add "HKCU\Keyboard Layout\Toggle" /v "Hotkey" /t REG_DWORD /d "3" /f
-
 :: disable text/ink/handwriting telemetry
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\InputPersonalization" /v "RestrictImplicitInkCollection" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\InputPersonalization" /v "RestrictImplicitTextCollection" /t REG_DWORD /d "1" /f
@@ -1155,9 +1148,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\HandwritingErrorReports" /v "P
 :: disable typing insights
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Input\Settings" /v "InsightsEnabled" /t REG_DWORD /d "0" /f
 
-:: disable windows error reporting
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\Windows Error Reporting" /v "Disabled" /t REG_DWORD /d "1" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting" /v "Disabled" /t REG_DWORD /d "1" /f
+:: configure windows error reporting
 reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting" /v "DontSendAdditionalData" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting" /v "LoggingDisabled" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Consent" /v "DefaultConsent" /t REG_DWORD /d "0" /f
@@ -1204,7 +1195,7 @@ reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "ShellSmartScree
 :: disable experimentation
 reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\System\AllowExperimentation" /v "Value" /t REG_DWORD /d "0" /f
 
-:: miscellaneous
+:: configure miscellaneous settings
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy" /v "TailoredExperiencesWithDiagnosticDataEnabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack" /v "ShowedToastAtLevel" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Input\TIPC" /v "Enabled" /t REG_DWORD /d "0" /f
@@ -1239,7 +1230,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync" /v "DisableSyncOn
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows" /v "Enabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync" /v "SyncPolicy" /t REG_DWORD /d "5" /f
 
-:: power
+:: configure power settings
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power" /v "EnergyEstimationEnabled" /t REG_DWORD /d "0" /f
 :: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power" /v "CsEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power" /v "EventProcessorEnabled" /t REG_DWORD /d "0" /f
@@ -1340,8 +1331,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32Priorit
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" /v "NoTileApplicationNotification" /t REG_DWORD /d "1" /f
 
-:: unpin all quick access shortcuts by default (QoL, looks cleaner)
-:: you can easily add them back
+:: unpin all quick access shortcuts by default
 %currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.WiFi" /t REG_NONE /d "" /f
 %currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.AllSettings" /t REG_NONE /d "" /f
 %currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.BlueLightReduction" /t REG_NONE /d "" /f
@@ -1500,14 +1490,14 @@ reg delete "HKCR\.rtf\ShellNew" /f > nul 2>nul
 reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
 reg delete "HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
 
-:: remove troubleshooting compatibility in context menu
+:: remove troubleshooting compatibility from context menu
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{1d27f844-3a1f-4410-85ac-14651078412d}" /t REG_SZ /d "" /f
 reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{1d27f844-3a1f-4410-85ac-14651078412d}" /t REG_SZ /d "" /f
 
 :: remove '- Shortcut' text added onto shortcuts
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "link" /t REG_BINARY /d "00000000" /f
 
-:: debloat send to context menu, hidden files do not show up in the 'Send To' context menu
+:: debloat 'Send To' context menu, hidden files do not show up in the 'Send To' context menu
 attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
 attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
@@ -1548,9 +1538,6 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRem
 	reg add "%%a" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f
 )
 echo %date% - %time% Disabled dma remapping...>> %log%
-
-if %ERRORLEVEL%==0 (echo %date% - %time% Process priorities set...>> %log%
-) ELSE (echo %date% - %time% Failed to set priorities! >> %log%)
 
 :: lowering dual boot choice time
 :: no, this does not affect single OS boot time.
@@ -1811,7 +1798,7 @@ pause
 %PowerShell% "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
 if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 
-:: disable the option for microsoft store in the "open with" dialog
+:: disable the option for microsoft store in the "Open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
 
 :: block access to microsoft store
@@ -1835,7 +1822,7 @@ if "%~1" EQU "int" goto :EOF
 goto finish
 
 :storeE
-:: enable the option for microsoft store in the "open with" dialog
+:: enable the option for microsoft store in the "Open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
 
 :: allow access to microsoft store
@@ -1877,7 +1864,7 @@ goto finish
 if "%system%"=="true" (
 	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
 	pause
-	exit /b 1
+	exit /b
 )
 sc config BthAvctpSvc start=disabled
 sc stop BthAvctpSvc > nul 2>nul
@@ -1891,7 +1878,7 @@ goto finish
 if "%system%"=="true" (
 	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
 	pause
-	exit /b 1
+	exit /b
 )
 sc config BthAvctpSvc start=auto
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
@@ -1940,16 +1927,16 @@ goto finish
 bcdedit /set nx Optin
 :: enable cfg for valorant related processes
 for %%a in (valorant valorant-win64-shipping vgtray vgc) do (
-    PowerShell -NoProfile -Command "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
+    %PowerShell% -NoProfile -Command "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
 )
-if %ERRORLEVEL%==0 echo %date% - %time% DEP enabled...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Data Execution Policy enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :depD
 echo If you get issues with some anti-cheats, please re-enable DEP.
 %PowerShell% "Set-ProcessMitigation -System -Disable DEP, EmulateAtlThunks"
 bcdedit /set nx AlwaysOff
-if %ERRORLEVEL%==0 echo %date% - %time% DEP disabled...>> %WinDir%\AtlasModules\logs\userScript.log
+if %ERRORLEVEL%==0 echo %date% - %time% Data Execution Policy disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finish
 
 :SearchStartDisable
@@ -2084,7 +2071,7 @@ choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
 sc config TabletInputService start=disabled
 
-:: disable the option for microsoft store in the "open with" dialog
+:: disable the option for microsoft store in the "Open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
 
 :: block access to microsoft store
@@ -2158,32 +2145,32 @@ goto finish
 
 :sleepD
 :: disable away mode policy
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 0
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 0
+powercfg -setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 0
 
 :: disable idle states
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 0
-powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 0
+powercfg -setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 0
 
 :: disable hybrid sleep
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 0
-powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 0
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 0
+powercfg -setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 0
 powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Sleep States disabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
 
 :sleepE
 :: enable away mode policy
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 1
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 1
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 1
+powercfg -setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 1
 
 :: enable idle states
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 1
-powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 1
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 1
+powercfg -setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 abfc2519-3608-4c2a-94ea-171b0ed546ab 1
 
 :: enable hybrid sleep
-powercfg /setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
-powercfg /setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
+powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
+powercfg -setdcvalueindex 11111111-1111-1111-1111-111111111111 238c9fa8-0aad-41ed-83f4-97be242c8f20 94ac6d29-73ce-41a6-809f-6363ba21b47e 1
 powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Sleep States enabled...>> %WinDir%\AtlasModules\logs\userScript.log
 goto finishNRB
@@ -2310,14 +2297,14 @@ ping -n 1 "example.com" > nul 2>nul
 if not %ERRORLEVEL%==0 (
 	echo You must have an internet connection to use this script.
 	pause
-	exit /b 1
+	exit /b
 )
 
 curl.exe -L# "https://live.sysinternals.com/procexp.exe" -o "%WinDir%\AtlasModules\Apps\procexp.exe"
 if not %ERRORLEVEL%==0 (
 	echo Failed to download Process Explorer!
 	pause
-	exit /b 1
+	exit /b
 )
 
 :: Create the shortcut
@@ -2797,7 +2784,7 @@ sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if errorlevel 1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
-    exit /B
+    exit /b
 )
 echo This will force P0 on your NVIDIA card AT ALL TIMES, it will always run at full power.
 echo It is not recommended if you leave your computer on while idle, have bad cooling or use a laptop.
@@ -2823,7 +2810,7 @@ sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if errorlevel 1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
-    exit /B
+    exit /b
 )
 
 for /f "tokens=*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
@@ -2840,7 +2827,7 @@ sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if errorlevel 1 (
     echo You do not have NVIDIA GPU drivers installed.
     pause
-    exit /B
+    exit /b
 )
 
 for /f "tokens=*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" /t REG_SZ /s /e /f "NVIDIA" ^| findstr "HK"') do (
@@ -2857,7 +2844,7 @@ if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
-    exit /b 1
+    exit /b
 )
 
 echo Disabling the 'NVIDIA Display Container LS' service will stop the NVIDIA Control Panel from working.
@@ -2882,7 +2869,7 @@ if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
-    exit /b 1
+    exit /b
 )
 
 sc config NVDisplay.ContainerLocalSystem start=auto > nul
@@ -2897,7 +2884,7 @@ if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
-    exit /b 1
+    exit /b
 )
 echo Explorer will be restarted to ensure that the context menu works.
 pause
@@ -2926,13 +2913,13 @@ if %ERRORLEVEL%==1 (
     echo The NVIDIA Display Container LS service does not exist, you can not continue.
 	echo You may not have NVIDIA drivers installed.
     pause
-    exit /b 1
+    exit /b
 )
 reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1
 if %ERRORLEVEL%==1 (
     echo The context menu does not exist, you can not continue.
     pause
-    exit /b 1
+    exit /b
 )
 
 echo Explorer will be restarted to ensure that the context menu is removed.
@@ -3010,7 +2997,7 @@ goto finish
 if "%system%"=="true" (
 	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
 	pause
-	exit /b 1
+	exit /b
 )
 
 for %%a in (
@@ -3224,12 +3211,12 @@ goto:eof
 
 :setSvc
 :: example: %setSvc% AppInfo 4
-:: last argument is the startup type: 0, 1, 2, 3, 4, 5
-if [%~1]==[] (echo You need to run this with a service/driver to disable. & exit /b 1)
-if [%~2]==[] (echo You need to run this with an argument ^(1-5^) to configure the service's startup. & exit /b 1)
-if %~2 LSS 0 (echo Invalid start value ^(%~2^) for %~1. & exit /b 1)
-if %~2 GTR 5 (echo Invalid start value ^(%~2^) for %~1. & exit /b 1)
-reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" > nul 2>&1 || (echo The specified service/driver ^(%~1^) is not found. & exit /b 1)
+:: last argument is the startup type: 0, 1, 2, 3, 4
+if [%~1]==[] (echo You need to run this with a service/driver to disable. & exit /b)
+if [%~2]==[] (echo You need to run this with an argument ^(1-5^) to configure the service's startup. & exit /b)
+if %~2 LSS 0 (echo Invalid start value ^(%~2^) for %~1. & exit /b)
+if %~2 GTR 5 (echo Invalid start value ^(%~2^) for %~1. & exit /b)
+reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" > nul 2>&1 || (echo The specified service/driver ^(%~1^) is not found. & exit /b)
 if "%system%"=="false" (
 	if not "%setSvcWarning%"=="false" (
 		echo WARNING: Not running as System, could fail modifying some services/drivers with an access denied error.
