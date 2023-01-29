@@ -80,6 +80,6 @@ Atlas 预先调整了一些东西，在保持兼容性的同时也努力提高�
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
 
 ## Translation contributors (翻译贡献者)
-<kbd>[<img title="PencilNavigator" src="https://avatars.githubusercontent.com/u/85282140?v=4" width="22">](https://github.com/PencilNavigator)</kbd>
-<kbd>[<img title="Colin" src="https://avatars.githubusercontent.com/u/6336585?v=4" width="22">](https://github.com/0bo)</kbd>
-<kbd>[<img title="Pea Soft" src="https://avatars.githubusercontent.com/u/55051861?v=4" width="22">](https://github.com/peasoft)</kbd>
+[<img title="PencilNavigator" src="https://avatars.githubusercontent.com/u/85282140?v=4" width="30">](https://github.com/PencilNavigator)
+[<img title="Colin" src="https://avatars.githubusercontent.com/u/6336585?v=4" width="30">](https://github.com/0bo)</kbd>
+[<img title="Pea Soft" src="https://avatars.githubusercontent.com/u/55051861?v=4" width="30">](https://github.com/peasoft)
