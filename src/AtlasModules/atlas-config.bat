@@ -35,7 +35,7 @@ title Atlas Configuration Script %branch% %ver%
 
 :: set other variables (do not touch)
 set "currentuser=%WinDir%\AtlasModules\Apps\NSudo.exe -U:C -P:E -Wait"
-set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
+set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
 set "setSvc=call :setSvc"
 set "unZIP=call :unZIP"
 set "firewallBlockExe=call :firewallBlockExe"
@@ -271,7 +271,7 @@ pause & exit /b 1
 mkdir %WinDir%\AtlasModules\logs
 cls & echo Please wait, this may take a moment.
 setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\AtlasModules\Tools;" -m  > nul 2>nul
-IF %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %log%
+if %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %log%
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %log%)
 
 :: breaks setting keyboard language
@@ -468,7 +468,7 @@ powercfg -duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 11111111-1111-111
 powercfg /setactive 11111111-1111-1111-1111-111111111111
 
 :: set current power scheme to Atlas
-powercfg -changename 11111111-1111-1111-1111-111111111111 "Atlas Power Scheme" "Power scheme optimized for optimal latency and performance (v0.1)"
+powercfg -changename 11111111-1111-1111-1111-111111111111 "Atlas Power Scheme" "Power scheme optimized for optimal latency and performance (v0.1.0)"
 :: turn off hard disk after 0 seconds
 powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 0012ee47-9041-4b5d-9b77-535fba8b1442 6738e2c4-e8a5-4a42-b16a-e040e769756e 0
 :: turn off secondary nvme idle timeout
