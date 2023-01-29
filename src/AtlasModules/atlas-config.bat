@@ -660,43 +660,42 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %log%
 %PowerShell% "Disable-NetAdapterBinding -Name "*" -ComponentID ms_tcpip6, ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr"
 
 :: disable system devices
-DevManView.exe /disable "AMD PSP"
-DevManView.exe /disable "AMD SMBus"
-DevManView.exe /disable "Base System Device"
-DevManView.exe /disable "Composite Bus Enumerator"
-DevManView.exe /disable "High precision event timer"
-DevManView.exe /disable "Intel Management Engine"
-DevManView.exe /disable "Intel SMBus"
-DevManView.exe /disable "Microsoft Hyper-V NT Kernel Integration VSP"
-DevManView.exe /disable "Microsoft Hyper-V PCI Server"
-DevManView.exe /disable "Microsoft Hyper-V Virtual Disk Server"
-DevManView.exe /disable "Microsoft Hyper-V Virtual Machine Bus Provider"
-DevManView.exe /disable "Microsoft Hyper-V Virtualization Infrastructure Driver"
-DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
-DevManView.exe /disable "Microsoft RRAS Root Enumerator"
-:: DevManView.exe /disable "Microsoft Virtual Drive Enumerator" < breaks ISO mount
-DevManView.exe /disable "Motherboard resources"
-DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
-DevManView.exe /disable "Numeric Data Processor"
-DevManView.exe /disable "PCI Data Acquisition and Signal Processing Controller"
-DevManView.exe /disable "PCI Encryption/Decryption Controller"
-DevManView.exe /disable "PCI Memory Controller"
-DevManView.exe /disable "PCI Simple Communications Controller"
-DevManView.exe /disable "SM Bus Controller"
-DevManView.exe /disable "System CMOS/real time clock"
-DevManView.exe /disable "System Speaker"
-DevManView.exe /disable "System Timer"
-DevManView.exe /disable "UMBus Root Bus Enumerator"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "AMD PSP"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "AMD SMBus"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Base System Device"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Composite Bus Enumerator"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "High precision event timer"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Intel Management Engine"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Intel SMBus"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Microsoft Hyper-V NT Kernel Integration VSP"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Microsoft Hyper-V PCI Server"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Microsoft Hyper-V Virtual Disk Server"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Microsoft Hyper-V Virtual Machine Bus Provider"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Microsoft Hyper-V Virtualization Infrastructure Driver"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Microsoft Kernel Debug Network Adapter"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Microsoft RRAS Root Enumerator"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Motherboard resources"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "Numeric Data Processor"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "PCI Data Acquisition and Signal Processing Controller"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "PCI Encryption/Decryption Controller"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "PCI Memory Controller"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "PCI Simple Communications Controller"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "SM Bus Controller"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "System CMOS/real time clock"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "System Speaker"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "System Timer"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "UMBus Root Bus Enumerator"
 
 :: disable network devices
-DevManView.exe /disable "WAN Miniport (IKEv2)"
-DevManView.exe /disable "WAN Miniport (IP)"
-DevManView.exe /disable "WAN Miniport (IPv6)"
-DevManView.exe /disable "WAN Miniport (L2TP)"
-DevManView.exe /disable "WAN Miniport (Network Monitor)"
-DevManView.exe /disable "WAN Miniport (PPPOE)"
-DevManView.exe /disable "WAN Miniport (PPTP)"
-DevManView.exe /disable "WAN Miniport (SSTP)"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "WAN Miniport (IKEv2)"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "WAN Miniport (IP)"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "WAN Miniport (IPv6)"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "WAN Miniport (L2TP)"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "WAN Miniport (Network Monitor)"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "WAN Miniport (PPPOE)"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "WAN Miniport (PPTP)"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "WAN Miniport (SSTP)"
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled system devices...>> %log%
 ) ELSE (echo %date% - %time% Failed to disable system devices! >> %log%)
@@ -870,7 +869,7 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% wcnfs 4
 %setSvc% WindowsTrustedRTProxy 4
 
-:: remove lower filters for rdyboost
+:: remove lower filters for rdyboost driver
 set key="HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
 for /f "skip=1tokens=3*" %%A in ('reg query %key% /v "LowerFilters"') do (set val=%%A)
 :: `val` would be like `rdyboost\0fvevol\0iorate`
@@ -1311,8 +1310,8 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProf
 %currentuser% reg add "HKCU\System\GameConfigStore" /v "GameDVR_DXGIHonorFSEWindowsCompatible" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\System\GameConfigStore" /v "GameDVR_EFSEFeatureFlags" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\System\GameConfigStore" /v "GameDVR_DSEBehavior" /t REG_DWORD /d "2" /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR" /v "AllowGameDVR" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" /v "AppCaptureEnabled" /t REG_DWORD /d "0" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR" /v "AllowGameDVR" /t REG_DWORD /d "0" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__COMPAT_LAYER" /t REG_SZ /d "~ DISABLEDXMAXIMIZEDWINDOWEDMODE" /f
 
 :: disable game mode
@@ -1355,10 +1354,6 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "N
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoAutorun" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoAutoplayfornonVolume" /t REG_DWORD /d "1" /f
 
-:: requires testing
-:: https://djdallmann.github.io/GamingPCSetup/CONTENT/RESEARCH/FINDINGS/registrykeys_dwm.txt
-:: reg add "HKLM\SOFTWARE\Microsoft\Windows\Dwm" /v "AnimationAttributionEnabled" /t REG_DWORD /d "0" /f
-
 :: hide frequently and recently used files/folders in quick access
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "ShowFrequent" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "ShowRecent" /t REG_DWORD /d "0" /f
@@ -1388,36 +1383,12 @@ reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\Fol
 start /b %PowerShell% "$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb("""pintohome"""); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb("""pintohome""")" > nul 2>&1
 
 :: enable legacy photo viewer
-for %%a in (
-    tif
-    tiff
-    bmp
-    dib
-    gif
-    jfif
-    jpe
-    jpeg
-    jpg
-    jxr
-    png
-) do (
+for %%a in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
     reg add "HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations" /v ".%%~a" /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
 )
 
 :: set legacy photo viewer as default
-for %%a in (
-    tif
-    tiff
-    bmp
-    dib
-    gif
-    jfif
-    jpe
-    jpeg
-    jpg
-    jxr
-    png
-) do (
+for %%a in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
     %currentuser% reg add "HKCU\SOFTWARE\Classes\.%%~a" /ve /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
 )
 
