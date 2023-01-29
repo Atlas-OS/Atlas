@@ -3201,7 +3201,7 @@ ping -n 1 -4 1.1.1.1 | find "time=" > nul 2>nul || (
 goto :EOF
 
 :FDel <location>
-:: with NSudo, should not need things like icacls/takeown
+:: with NSudo, you should not need things like icacls/takeown
 if exist "%~1" del /F /Q "%~1"
 goto :EOF
 
@@ -3215,7 +3215,7 @@ goto:eof
 if [%~1]==[] (echo You need to run this with a service/driver to disable. & exit /b)
 if [%~2]==[] (echo You need to run this with an argument ^(1-5^) to configure the service's startup. & exit /b)
 if %~2 LSS 0 (echo Invalid start value ^(%~2^) for %~1. & exit /b)
-if %~2 GTR 5 (echo Invalid start value ^(%~2^) for %~1. & exit /b)
+if %~2 GTR 4 (echo Invalid start value ^(%~2^) for %~1. & exit /b)
 reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" > nul 2>&1 || (echo The specified service/driver ^(%~1^) is not found. & exit /b)
 if "%system%"=="false" (
 	if not "%setSvcWarning%"=="false" (
