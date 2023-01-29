@@ -33,7 +33,7 @@ Ana odağımızı sistem gecikmesi, ağ gecikmesi ve giriş gecikmesini azaltmak
   - [Atlas'tan neler silindi?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Kurulum Sonrası](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Marka Kiti](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+- [Marka Kiti](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
 
 ## Windows vs. Atlas
 

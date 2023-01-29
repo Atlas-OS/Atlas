@@ -29,7 +29,7 @@ Koncentrując się głównie na wydajności, jesteśmy również świetną opcj�
   - [Co jest usunięte w systemie Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Po instalacji](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Zestaw marki](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+- [Zestaw marki](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
 
 ## Windows vs. Atlas
 

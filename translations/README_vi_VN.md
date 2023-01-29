@@ -29,7 +29,7 @@ Ngoài việc tập trung vào hiệu năng, chúng tôi còn là một lựa ch
   - [Những gì đã được loại bỏ trong Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">So sánh Windows và Atlas</a>
 - [Hậu cài đặt](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Bộ thương hiệu](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+- [Bộ thương hiệu](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
 
 ## Windows vs. Atlas
 

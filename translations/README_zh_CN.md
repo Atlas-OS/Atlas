@@ -29,7 +29,7 @@ Atlas 在主要优化性能的同时，也是减少系统、网络、输入延�
   - [Atlas 移除了什么?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="Windows 对比 Atlas">Windows 对比 Atlas</a>
 - [完成安装后](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [品牌工具包](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+- [品牌工具包](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
 
 ## Windows 对比 Atlas
 

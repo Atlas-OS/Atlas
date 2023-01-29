@@ -29,7 +29,7 @@ Même si nous nous focalisons est sur la performance, nous sommes aussi un très
   - [Qu'est-ce qui est enlevé dans Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Après l'installation](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Kit d'art](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+- [Kit d'art](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
 
 ## Windows vs. Atlas
 

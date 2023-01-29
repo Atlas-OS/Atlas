@@ -29,7 +29,7 @@ Atlas - это модифицированная версия Windows 10, в ко
   - [Что удаленно в Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [После установки](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Брендовый комплект](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+- [Брендовый комплект](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
 
 ## Windows vs. Atlas
 

@@ -41,7 +41,7 @@ We are also a great option to reduce system latency, network latency, input lag,
   - [What is removed in Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Branding kit](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+- [Branding kit](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
 
 ## Windows vs. Atlas
 
