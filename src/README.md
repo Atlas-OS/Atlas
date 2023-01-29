@@ -16,7 +16,7 @@ There are plenty of reasons to build Atlas from source such as:
 ### Prerequisites
 
 - [NTLite](https://ntlite.com) with a "Home" or higher license.
-- An archive extractor (7-Zip, WinRar, etc.)
+- An archive extractor (7-Zip, WinRar etc.)
 - A local copy of the Atlas repository.
 - A default Windows build from Microsoft. ([1](https://tb.rg-adguard.net) [2](https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-iso-download-tool) [3](https://uupdump.net))
 
@@ -24,7 +24,7 @@ There are plenty of reasons to build Atlas from source such as:
 
 1. Extract the Windows build using the previously mentioned archive extractor.
 2. Open NTLite and add the extracted folder to NTLite's source list.
-3. Import the Atlas XML from the repo and apply it.
+3. Import the Atlas preset from the repo and apply it.
 4. Integrate drivers and registry files if needed.
 5. Copy the following folders/files to the NTLite mount directory (%temp%\NLTmpMnt01)
   ```txt
@@ -33,7 +33,7 @@ There are plenty of reasons to build Atlas from source such as:
   - AtlasModules >> %temp%\NLTmpMnt01\Windows\AtlasModules
   - User Account Pictures >> %temp%\NLTmpMnt01\ProgramData\Microsoft\User Account Pictures (delete the existing folder first!=)
   - Desktop/Atlas >> %temp%\NLTmpMnt01\Users\Default\Desktop\Atlas
-  - Atlas.bat >> %temp%\NLTmpMnt01\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\Atlas.bat
+  - Atlas.cmd >> %temp%\NLTmpMnt01\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\Atlas.cmd
   ```
 
 6. Make any changes you want to NTLite's components, settings, services etc.
@@ -44,9 +44,9 @@ There are plenty of reasons to build Atlas from source such as:
 
 ### Creating scripts
 
-First of all, you will need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/main/src/AtlasModules/atlas-config.bat#L69) to `atlas-config.bat`. This will allow it to be called from a seperate script on the desktop.
+First of all, you will need to [add a flag/argument](https://github.com/Atlas-OS/Atlas/blob/main/src/AtlasModules/atlas-config.cmd#L69) to `atlas-config.cmd`. This will allow it to be called from a seperate script on the desktop.
 
-For this we will use the [Bluetooth disable script](https://github.com/Atlas-OS/Atlas/blob/main/src/AtlasModules/atlas-config.bat#L1376) as an example. 
+For this we will use the [Bluetooth disable script](https://github.com/Atlas-OS/Atlas/blob/main/src/AtlasModules/atlas-config.cmd#L1376) as an example. 
 
 ```bat
 :: the :btD label is part of allowing the script to be called when a specific flag is used, as mentioned previously
@@ -65,7 +65,7 @@ Now we have the script available in `atlas-config`, let us make a desktop script
 @echo off
 :: this launches the script with TrustedInstaller permissions
 :: remove these comments when contributing
-NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /btd
+NSudo.exe -U:T -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.cmd /btd
 ```
 
 This file will go in the "Atlas" Folder

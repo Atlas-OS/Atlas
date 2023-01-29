@@ -1,2 +1,2 @@
 @echo off
-NSudo.exe -U:E -P:E -UseCurrentConsole -Wait %WinDir%\AtlasModules\atlas-config.bat /sendToDebloat
+NSudo.exe -U:E -P:E -UseCurrentConsole -Wait atlas-config.cmd /sendToDebloat
