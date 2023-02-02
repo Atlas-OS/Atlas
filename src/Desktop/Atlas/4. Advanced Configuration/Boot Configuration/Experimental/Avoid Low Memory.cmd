@@ -36,12 +36,15 @@ echo]
 :: Not documented
 bcdedit /set firstmegabytepolicy UseAll > nul
 if not %errorlevel%==0 (echo Setting value 'firstmegabytepolicy' failed!)
+
 :: Not documented
 bcdedit /set avoidlowmemory 0x8000000 > nul
 if not %errorlevel%==0 (echo Setting value 'avoidlowmemory' failed!)
+
 :: Does nothing on Windows 8 and over?
 :: https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set
 bcdedit /set nolowmem Yes > nul
+
 if not %errorlevel%==0 (echo Setting value 'nolowmem' failed!)
 goto success
 
@@ -49,8 +52,10 @@ goto success
 echo]
 bcdedit /deletevalue firstmegabytepolicy > nul
 if not %errorlevel%==0 (echo Deleting value 'firstmegabytepolicy' failed!)
+
 bcdedit /deletevalue avoidlowmemory > nul
 if not %errorlevel%==0 (echo Deleting value 'avoidlowmemory' failed!)
+
 bcdedit /deletevalue nolowmem > nul
 if not %errorlevel%==0 (echo Deleting value 'nolowmem' failed!)
 goto success

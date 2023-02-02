@@ -10,7 +10,7 @@
   Default: Disabled
   - Enable if you use Bluetooth-connected devices, make sure you have proper drivers for them as well.
 
-# Clipboard History
+# Clipboard History and Snip & Sketch
   Default: Disabled
   - Clipboard History, seems to break any UWP copying to clipboard as well. Minimal impact, do not resist to re-enable it.
 
@@ -23,7 +23,7 @@
   Default: Enabled
   Configures windows firewall, frequently needed for Microsoft Store.
 
-# FSO
+# FSO and Game Bar
   Default: Disabled
   - FSO (Fullscreen Optimizations) runs Fullscreen Exclusive games in a "highly optimized" borderless window, which allows for faster alt-tabbing.
     Disabling it is technically better for latency in theory, but FSO has developed quite significantly, and you probably won't notice a difference.
@@ -39,6 +39,16 @@
 # Microsoft Store
   Default: Enabled
   - Disables Microsoft Store, can break a lot of things in the process. Please READ THE DISCLAIMER in the script before continuing.
+
+# Mitigations
+  Default: Disabled
+  - Disabled: 
+      - Maximum potential performance, although, this comes at a further risk of security
+      - Could see issues with anti-cheats, check 'Anti-cheat compatibility' folder
+  - Fully enabled: 
+      - Good for security, but you may see worse compatibility and worse performance
+  - Windows Default:
+      - Balanced for security, performance and compatibility. Should not impact performance too too much (especially on newer CPUs).
 
 # Network Discovery
   Default: Disabled
@@ -94,13 +104,3 @@
 # Workstation (SMB)
   Default: Disabled
   - If you use SMB shares or AMD Ryzen Master, enable this.
-
-# Mitigations
-  Default: Disabled
-  - Disabled: 
-      - Maximum potential performance, although, this comes at a further risk of security
-      - Could see issues with anti-cheats, check 'Anti-cheat compatibility' folder
-  - Fully enabled: 
-      - Good for security, but you may see worse compatibility and worse performance
-  - Windows Default:
-      - Balanced for security, performance and compatibility. Should not impact performance too too much (especially on newer CPUs).

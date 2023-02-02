@@ -34,6 +34,7 @@ if %errorlevel%==1 (
 echo]
 bcdedit /set allowedinmemorysettings 0x0 > nul
 if not %errorlevel%==0 (goto fail)
+
 bcdedit /set isolatedcontext No > nul
 if not %errorlevel%==0 (goto fail) else (goto success)
 
@@ -41,6 +42,7 @@ if not %errorlevel%==0 (goto fail) else (goto success)
 echo]
 bcdedit /deletevalue allowedinmemorysettings > nul
 if not %errorlevel%==0 (echo Something went wrong deleting the value 'allowedinmemorysettings', maybe it never existed.)
+
 bcdedit /deletevalue isolatedcontext > nul
 if not %errorlevel%==0 (goto fail) else (goto success)
 
