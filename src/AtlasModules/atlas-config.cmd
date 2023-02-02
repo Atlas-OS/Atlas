@@ -450,9 +450,6 @@ icacls %WinDir%\system32\config\*.* /inheritance:e > nul
 reg add "HKLM\SOFTWARE\Microsoft\.NetFramework\v4.0.30319" /v "SchUseStrongCrypto" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v "SchUseStrongCrypto" /t REG_DWORD /d "1" /f
 
-:: disable network navigation pane in file explorer
-reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder" /v "Attributes" /t REG_DWORD /d "2962489444" /f
-
 :: duplicate 'High Performance' power plan, customize it and make it the Atlas power plan
 powercfg -duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 11111111-1111-1111-1111-111111111111
 powercfg /setactive 11111111-1111-1111-1111-111111111111
@@ -1410,9 +1407,12 @@ for /f "delims=" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVers
     reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},4" /t REG_DWORD /d "0" /f
 )
 
-:: show removable drivers only in 'This PC' on the windows explorer sidebar
+:: show removable drivers only in 'This PC' on the file explorer sidebar
 reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}" /f
 reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}" /f
+
+:: disable network navigation pane in file explorer
+reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder" /v "Attributes" /t REG_DWORD /d "2962489444" /f
 
 :: remove restore previous versions
 :: from context menu and file' properties
@@ -2987,7 +2987,7 @@ if "%removableDrives%"=="true" (
 ) else (
 	reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /f > nul 2>nul
 )
-for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to restart Windows Explorer to fully apply the changes." "Restart now"`) do (
+for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to restart File Explorer to fully apply the changes." "Restart now"`) do (
 	if "%%a"=="Restart now" (
 		taskkill /f /im explorer.exe > nul
 		start "" "explorer.exe"
