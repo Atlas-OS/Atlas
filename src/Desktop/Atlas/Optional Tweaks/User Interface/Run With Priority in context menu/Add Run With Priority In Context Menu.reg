@@ -10,7 +10,6 @@ Windows Registry Editor Version 5.00
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\001flyout\command]
 @="cmd.exe /c start \"\" /Realtime \"%1\""
 
-
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\002flyout]
 @="High"
 
@@ -23,20 +22,17 @@ Windows Registry Editor Version 5.00
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\003flyout\command]
 @="cmd.exe /c start \"\" /AboveNormal \"%1\""
 
-
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\004flyout]
 @="Normal"
 
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\004flyout\command]
 @="cmd.exe /c start \"\" /Normal \"%1\""
 
-
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\005flyout]
 @="Below normal"
 
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\005flyout\command]
 @="cmd.exe /c start \"\" /BelowNormal \"%1\""
-
 
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\006flyout]
 @="Low"
