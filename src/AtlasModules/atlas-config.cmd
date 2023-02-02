@@ -539,6 +539,7 @@ for %%a in (
     "DefenderApiLogger"
     "DefenderAuditLogger"
     "Diagtrack-Listener"
+    "Diaglog"
     "LwtNetLog"
     "Microsoft-Windows-Rdp-Graphics-RdpIdd-Trace"
     "NetCore"
@@ -2913,6 +2914,7 @@ echo To complete, enable Network Sharing in control panel.
 goto finish
 
 :diagD
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "0" /f >nul 2>&1
 %setSvc% DPS 4
 %setSvc% WdiServiceHost 4
 %setSvc% WdiSystemHost 4
@@ -2920,6 +2922,7 @@ echo %date% - %time% Diagnotics disabled...>> %user_log%
 goto finish
 
 :diagE
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "1" /f >nul 2>&1
 %setSvc% DPS 2
 %setSvc% WdiServiceHost 3
 %setSvc% WdiSystemHost 3
