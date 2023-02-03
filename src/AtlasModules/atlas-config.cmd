@@ -48,7 +48,7 @@ fltmc > nul 2>&1 || (
 
 :: check for trusted installer priviliges
 whoami /user | find /i "S-1-5-18" > nul 2>&1
-if not %ERRORLEVEL%==0 (
+if %ERRORLEVEL%==1 (
     set system=false
 )
 
@@ -148,7 +148,7 @@ printD
 printE
 
 "Replace Task Manager with Process Explorer"
-processExplorerInstalls
+processExplorerInstall
 processExplorerDisable
 processExplorerEnable
 
@@ -275,8 +275,8 @@ echo false > C:\Users\Public\success.txt
 :auto
 SETLOCAL EnableDelayedExpansion
 %WinDir%\AtlasModules\Apps\vcredist.exe /ai
-if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Runtimes installed...>> %install_log%
-) ELSE (echo %date% - %time% Failed to install Visual C++ Runtimes! >> %install_log%)
+if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Redistributables installed...>> %install_log%
+) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributables! >> %install_log%)
 
 :: change ntp server from windows server to pool.ntp.org
 w32tm /config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"
@@ -1561,7 +1561,6 @@ sc config WpnUserService start=auto
 sc config WpnService start=auto
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "0" /f
-:: Allow apps access to notifications
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener" /v "Value" /t REG_SZ /d "Allow" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Notifications enabled...>> %user_log%
 goto finish
@@ -1579,7 +1578,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing enabled...>> %user_log%
 goto finish
 
 :wifiD
-echo Applications like Microsoft Store and Spotify may not function correctly when disabled. If this is a problem, enable the Wi-Fi and restart the computer.
+echo Applications like Microsoft Store and Spotify may not function correctly when Wi-Fi is disabled. If this is a problem, enable Wi-Fi and restart the computer.
 sc config WlanSvc start=disabled
 sc config vwififlt start=disabled
 set /P c="Would you like to disable the network icon? (disables two extra services) [Y/N]: "
@@ -1595,24 +1594,19 @@ goto finish
 :wifiE
 sc config netprofm start=demand
 sc config NlaSvc start=auto
-sc config WlanSvc start=demand
+sc config WlanSvc start=auto
 sc config vwififlt start=system
-:: if Wi-Fi is still not working, set wlansvc to auto
-ping -n 1 -4 1.1.1.1 | find "Failure" | (
-    sc config WlanSvc start=auto
-)
 if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi enabled...>> %user_log%
 sc config eventlog start=auto
 echo %date% - %time% EventLog enabled as Wi-Fi dependency...>> %user_log%
 goto finish
 
 :hyperD
-:: credit: he3als
 :: bcdedit commands
-bcdedit /set hypervisorlaunchtype off > nul
-bcdedit /set vm no > nul
-bcdedit /set vsmlaunchtype Off > nul
-bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS > nul
+bcdedit /set hypervisorlaunchtype off
+bcdedit /set vm no
+bcdedit /set vsmlaunchtype Off
+bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS
 
 :: disable hyper-v with DISM
 DISM /Online /Disable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
@@ -1680,7 +1674,6 @@ if %ERRORLEVEL%==0 echo %date% - %time% Hyper-V and VBS disabled...>> %user_log%
 goto finish
 
 :hyperE
-:: credit: he3als
 :: bcdedit commands
 bcdedit /set hypervisorlaunchtype auto > nul
 bcdedit /deletevalue vm > nul
@@ -1752,8 +1745,6 @@ goto finish
 :storeD
 echo This will break a majority of UWP apps and their deployment.
 echo Extra note: This breaks the "about" page in immersive control panel. If you require it, enable the AppX service.
-:: this includes windows firewall, i only see the point in keeping it because of microsoft store
-:: if you notice something else breaks when firewall/microsoft store is disabled please open an issue
 pause
 
 :: detect if user is using a microsoft account
@@ -1767,12 +1758,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
 sc config InstallService start=disabled
 
-:: insufficent permissions to disable
 %setSvc% WinHttpAutoProxySvc 4
-sc config mpssvc start=disabled
 sc config wlidsvc start=disabled
 sc config AppXSvc start=disabled
-sc config BFE start=disabled
 sc config TokenBroker start=disabled
 sc config LicenseManager start=disabled
 sc config AppXSVC start=disabled
@@ -1791,12 +1779,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
 
-:: insufficent permissions to enable through SC
 %setSvc% WinHttpAutoProxySvc 3
-sc config mpssvc start=auto
 sc config wlidsvc start=demand
 sc config AppXSvc start=demand
-sc config BFE start=auto
 sc config TokenBroker start=demand
 sc config LicenseManager start=demand
 sc config wuauserv start=demand
@@ -1822,7 +1807,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Background Apps enabled...>> %user_log%
 goto finish
 
 :btD
-:: Ran as admin, not TrustedInstaller
+:: Ran as admin, not as TrustedInstaller
 if "%system%"=="true" (
 	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
 	pause
@@ -1836,7 +1821,7 @@ if "%~1" EQU "int" goto :EOF
 goto finish
 
 :btE
-:: Ran as admin, not TrustedInstaller
+:: Ran as admin, not as TrustedInstaller
 if "%system%"=="true" (
 	echo You must run this script as regular admin, not SYSTEM or TrustedInstaller.
 	pause
@@ -1927,7 +1912,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2t
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
 :restartSearch
-taskkill /f /im SearchApp*  > nul 2>nul
+taskkill /f /im SearchApp* > nul 2>nul
 ren SearchApp.exe SearchApp.old
 
 :: loop if it fails to rename the first time
@@ -1957,7 +1942,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu enabled...>> %user
 goto finish
 
 :openshellInstall
-curl -L --output %WinDir%\AtlasModules\Open-Shell.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.182/OpenShellSetup_4_4_182.exe
+curl -L --output %WinDir%\AtlasModules\Open-Shell.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.189/OpenShellSetup_4_4_189.exe
 IF EXIST "%WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
 IF EXIST "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existOS
 goto rmSSOS
@@ -1982,7 +1967,7 @@ if exist "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2t
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
 :OSrestartSearch
-taskkill /f /im SearchApp*  > nul 2>nul
+taskkill /f /im SearchApp* > nul 2>nul
 ren SearchApp.exe SearchApp.old
 
 :: loop if it fails to rename the first time
@@ -2008,9 +1993,9 @@ if %ERRORLEVEL%==0 echo %date% - %time% Open-Shell installed...>> %user_log%
 goto finishNRB
 
 :uwpD
-IF EXIST "C:\Program Files\Open-Shell" goto uwpDisableContinue
-IF EXIST "C:\Program Files (x86)\StartIsBack" goto uwpDisableContinue
-echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the startmenu being removed.
+if exist "C:\Program Files\Open-Shell" goto uwpDisableContinue
+if exist "C:\Program Files (x86)\StartIsBack" goto uwpDisableContinue
+echo It seems neither Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the start menu being removed.
 pause & exit /b 1
 
 :uwpDisableContinue
@@ -2041,7 +2026,6 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
 sc config InstallService start=disabled
 
-:: insufficent permissions to disable
 %setSvc% WinHttpAutoProxySvc 4
 sc config mpssvc start=disabled
 sc config AppXSvc start=disabled
@@ -2050,14 +2034,14 @@ sc config TokenBroker start=disabled
 sc config LicenseManager start=disabled
 sc config ClipSVC start=disabled
 
-taskkill /f /im StartMenuExperienceHost*  > nul 2>nul
+taskkill /f /im StartMenuExperienceHost* > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
-taskkill /f /im SearchApp*  > nul 2>nul
+taskkill /f /im SearchApp* > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
 ren %WinDir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old
 ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old
 
-taskkill /f /im RuntimeBroker*  > nul 2>nul
+taskkill /f /im RuntimeBroker* > nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe RuntimeBroker.exe.old
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
@@ -2067,7 +2051,7 @@ goto finish
 pause
 
 :uwpE
-sc config TabletInputService start=demand
+
 :: disable the option for microsoft store in the "open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f
 
@@ -2075,7 +2059,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
 sc config InstallService start=demand
 
-:: insufficent permissions to disable
+:: enable taletinput service
+sc config TabletInputService start=demand
+
 %setSvc% WinHttpAutoProxySvc 3
 sc config mpssvc start=auto
 sc config wlidsvc start=demand
@@ -2085,13 +2071,13 @@ sc config TokenBroker start=demand
 sc config LicenseManager start=demand
 sc config ClipSVC start=demand
 
-taskkill /f /im StartMenuExperienceHost*  > nul 2>nul
+taskkill /f /im StartMenuExperienceHost* > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
-taskkill /f /im SearchApp*  > nul 2>nul
+taskkill /f /im SearchApp* > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy.old Microsoft.Windows.Search_cw5n1h2txyewy
 ren %WinDir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old Microsoft.XboxGameCallableUI_cw5n1h2txyewy
 ren %WinDir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe
-taskkill /f /im RuntimeBroker*  > nul 2>nul
+taskkill /f /im RuntimeBroker* > nul 2>nul
 ren %WinDir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
 taskkill /f /im explorer.exe
@@ -2256,15 +2242,10 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v "Ne
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v "UseLogonCredential" /t REG_DWORD /d "0" /f
 
 :processExplorerInstall
-ping -n 1 "example.com" > nul 2>nul
-if not %ERRORLEVEL%==0 (
-	echo You must have an internet connection to use this script.
-	pause
-	exit /b 1
-)
+call :netcheck
 
 curl.exe -L# "https://live.sysinternals.com/procexp.exe" -o "%WinDir%\AtlasModules\Apps\procexp.exe"
-if not %ERRORLEVEL%==0 (
+if %ERRORLEVEL%==1 (
 	echo Failed to download Process Explorer!
 	pause
 	exit /b 1
@@ -2272,7 +2253,7 @@ if not %ERRORLEVEL%==0 (
 
 :: Create the shortcut
 %PowerShell% "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\procexp.exe"""; $Shortcut.Save()"
-if not %ERRORLEVEL%==0 (
+if %ERRORLEVEL%==1 (
 	echo Process Explorer shortcut could not be created in the start menu!
 )
 
@@ -2334,14 +2315,14 @@ if %ERRORLEVEL%==0 echo %date% - %time% Xbox related services enabled...>> %user
 goto finishNRB
 
 :vcreR
-echo Uninstalling Visual C++ Runtimes...
+echo Uninstalling Visual C++ Redistributables...
 vcredist.exe /aiR
 echo Finished uninstalling!
 echo]
-echo Opening Visual C++ Runtimes installer, simply click next.
+echo Opening Visual C++ Redistributables installer, simply click next.
 vcredist.exe
-echo Installation Finished or Cancelled.
-if %ERRORLEVEL%==0 echo %date% - %time% Visual C++ Runtimes reinstalled...>> %user_log%
+echo Installation finished or cancelled.
+if %ERRORLEVEL%==0 echo %date% - %time% Visual C++ Redistributables reinstalled...>> %user_log%
 goto finishNRB
 
 :uacD
@@ -2486,7 +2467,6 @@ goto finish
 :netWinDefault
 netsh int ip reset
 netsh winsock reset
-:: extremely awful way to do this
 for /f "tokens=3* delims=: " %%a in ('pnputil /enum-devices /class Net /connected ^| findstr "Device Description:"') do (
 	DevManView.exe /uninstall "%%a %%i"
 )
@@ -2559,10 +2539,6 @@ for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 if %ERRORLEVEL%==0 echo %date% - %time% Network settings reset to Atlas default...>> %user_log%
 goto finish
 
-:debugProfile
-systeminfo > %WinDir%\AtlasModules\logs\systemInfo.log
-goto finish
-
 :vpnD
 DevManView.exe /disable "WAN Miniport (IKEv2)"
 DevManView.exe /disable "WAN Miniport (IP)"
@@ -2581,7 +2557,7 @@ DevManView.exe /disable "Microsoft RRAS Root Enumerator"
 %setSvc% iphlpsvc 4
 %setSvc% NdisVirtualBus 4
 %setSvc% Eaphost 4
-if %ERRORLEVEL%==0 echo %date% - %time% VPN disabled...>> %user_log%
+if %ERRORLEVEL%==0 echo %date% - %time% VPN support disabled...>> %user_log%
 goto finish
 
 :vpnE
@@ -2603,7 +2579,7 @@ DevManView.exe /enable "Microsoft RRAS Root Enumerator"
 %setSvc% iphlpsvc 3
 %setSvc% NdisVirtualBus 3
 %setSvc% Eaphost 3
-if %ERRORLEVEL%==0 echo %date% - %time% VPN enabled...>> %user_log%
+if %ERRORLEVEL%==0 echo %date% - %time% VPN support enabled...>> %user_log%
 goto finish
 
 :wmpD
@@ -3000,24 +2976,19 @@ for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to 
 goto finishNRB
 
 :mitigationsEnable
-:: ensure that it is enabled
-:: required for this script
-setlocal EnableDelayedExpansion
-
 :: fully enable spectre variant 2 and meltdown mitigations
-:: credit to privacy.sexy
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f
-wmic cpu get name | findstr "Intel" >nul && (
+wmic cpu get name | findstr "Intel" > nul && (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "0" /f
 )
-wmic cpu get name | findstr "AMD" >nul && (
+wmic cpu get name | findstr "AMD" > nul && (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "64" /f
 )
 
 :: enable for hyper-v
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization" /v "MinVmVersionForCpuBasedMitigations" /t REG_SZ /d "1.0" /f
 
-:: enable Structured Exception Handling Overwrite Protection (SEHOP)
+:: enable structured exception handling overwrite protection (SEHOP)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "0" /f
 
 :: force data execution prevention
@@ -3029,14 +3000,17 @@ bcdedit /set nx AlwaysOn
 :: find correct mitigation values for different Windows versions - AMIT
 :: initialize bit mask in registry by enabling a random mitigation
 %PowerShell% "Set-ProcessMitigation -System -Enable CFG"
+
 :: get current bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
     set "mitigation_mask=%%a"
 )
+
 :: set all bits to 1 (enable all mitigations)
 for /l %%a in (0,1,9) do (
     set "mitigation_mask=!mitigation_mask:%%a=1!"
 )
+
 :: apply mask to kernel
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "%mitigation_mask%" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /t REG_BINARY /d "%mitigation_mask%" /f
@@ -3046,20 +3020,12 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMo
 
 :: callable label, can be used in a post install or whatever else
 :: call :mitigationsEnable /function
-endlocal
 if "%~1"=="/function" exit /b
 
 echo]
 goto finish
 
 :mitigationsDisable
-:: ensure that it is enabled
-:: required for this script
-setlocal EnableDelayedExpansion
-
-:: disable file system mitigations
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
-
 :: disable spectre and meltdown
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "3" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f
@@ -3075,10 +3041,12 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Disab
 :: find correct mitigation values for different Windows versions - AMIT
 :: initialize bit mask in registry by disabling a random mitigation
 %PowerShell% "Set-ProcessMitigation -System -Disable CFG"
+
 :: get current bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
     set "mitigation_mask=%%a"
 )
+
 :: set all bits to 2 (disable all mitigations)
 for /l %%a in (0,1,9) do (
     set "mitigation_mask=!mitigation_mask:%%a=2!"
@@ -3095,22 +3063,17 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorE
 :: set DEP to AlwaysOff
 bcdedit /set nx AlwaysOff
 
+:: disable file system mitigations
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
+
 :: callable label, can be used in a post install or whatever else
 :: call :mitigationsDisable /function
-endlocal
 if "%~1"=="/function" exit /b
 
 echo]
 goto finish
 
 :mitigationsDefault
-:: ensure that it is enabled
-:: required for this script
-setlocal EnableDelayedExpansion
-
-:: enable file system mitigations (default)
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "1" /f
-
 :: set default spectre and meltdown mitigation options
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /f > nul 2>nul
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /f > nul 2>nul
@@ -3120,7 +3083,7 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Managem
 :: doc listed as only affected in windows 7, is also in 7+
 reg add "HKLM\SOFTWARE\Microsoft\FTH" /v "Enabled" /t REG_DWORD /d "1" /f
 
-:: delete (default)
+:: delete DisableExceptionChainValidation (default)
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /f > nul 2>nul
 
 :: set default mitigations
@@ -3135,9 +3098,11 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\Hypervis
 :: opt in to DEP (default)
 bcdedit /set nx OptIn
 
+:: enable file system mitigations (default)
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "1" /f
+
 :: callable label, can be used in a post install or whatever else
 :: call :mitigationsDefault /function
-endlocal
 if "%~1"=="/function" exit /b
 
 echo]
@@ -3147,17 +3112,23 @@ goto finish
 :: CMD Functions ::
 :::::::::::::::::::
 
+:debugProfile
+systeminfo > %WinDir%\AtlasModules\logs\systemInfo.log
+goto finish
+
 :invalidInput <label>
 if "%c%"=="" echo Empty input! Please enter Y or N. & goto %~1
 if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid input! Please enter Y or N. & goto %~1
 goto :EOF
 
 :netcheck
-ping -n 1 -4 1.1.1.1 | find "time=" > nul 2>nul || (
-    echo Network is not connected! Please connect to a network before continuing.
+ping -n 1 -4 1.1.1.1 | find "time=" > nul 2>nul
+if %ERRORLEVEL%==1 (
+	echo You must have an internet connection to use this script.
 	pause
-	goto netcheck
-) > nul 2>nul
+	exit /b 1
+)
+
 goto :EOF
 
 :FDel <location>
@@ -3167,7 +3138,7 @@ goto :EOF
 
 :unZIP <FilePath> <DestinationPath>
 %PowerShell% "Expand-Archive -Path '%~1' -DestinationPath '%~2'"
-goto:eof
+goto :EOF
 
 :setSvc
 :: example: %setSvc% AppInfo 4
