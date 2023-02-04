@@ -1,4 +1,3 @@
-
 :: CREDITS:
 :: - AMIT
 :: - Artanis
@@ -302,7 +301,7 @@ fsutil behavior set disable8dot3 1
 if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to optimize file system! >> %install_log%)
 
-:: disable unneeded scheduled tasks
+:: disable useless scheduled tasks
 
 for %%a in (
     "\Microsoft\Windows\ApplicationData\appuriverifierdaily"
@@ -350,7 +349,7 @@ for %%a in (
     "\Microsoft\Windows\Wininet\CacheTask"
     "\Microsoft\XblGameSave\XblGameSaveTask"
 ) do (
-	schtasks /change /disable /TN %%a > nul
+	schtasks /change /disable /TN %%a > nul 2>nul
 )
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled scheduled tasks...>> %install_log%
@@ -1384,7 +1383,7 @@ reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\Fol
 start /b %PowerShell% "$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb("""pintohome"""); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb("""pintohome""")" > nul 2>&1
 
 :: fix no downloads folder bug
-reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f} > nul
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}" > nul 2>nul
 if %ERRORLEVEL%==1 (
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}" /f
 )
