@@ -395,6 +395,12 @@ DISM /Online /Set-ReservedStorageState /State:Disabled
 bcdedit /set recoveryenabled no > nul 2>nul
 fsutil repair set C: 0 > nul 2>nul
 
+:: rebuild performance counters
+:: https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/manually-rebuild-performance-counters
+lodctr /r > nul 2>nul
+lodctr /r > nul 2>nul
+winmgmt.exe /resyncperf
+
 :: disable PowerShell telemetry
 :: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.3
 setx POWERSHELL_TELEMETRY_OPTOUT 1
@@ -556,6 +562,13 @@ for %%a in (
 )
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled unnecessary autologgers...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to disable unnecessary autologgers! >> %install_log%)
+
+:: disable dma remapping
+:: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
+for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRemappingCompatible" ^| find /i "Services\" ') do (
+	reg add "%%a" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f
+)
+echo %date% - %time% Disabled dma remapping...>> %install_log%
 
 :: disable netbios over tcp/ip
 :: works only when services are enabled
@@ -1370,6 +1383,12 @@ reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\Fol
 :: add music and videos folders to quick access
 start /b %PowerShell% "$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb("""pintohome"""); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb("""pintohome""")" > nul 2>&1
 
+:: fix no downloads folder bug
+reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f} > nul
+if %ERRORLEVEL%==1 (
+    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}" /f
+)
+
 :: enable legacy photo viewer
 for %%a in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
     reg add "HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations" /v ".%%~a" /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
@@ -1491,15 +1510,16 @@ reg add "HKLM\SOFTWARE\Classes\powerplan\Shell\open\command" /ve /t REG_SZ /d "p
 reg add "HKLM\SOFTWARE\Classes\.pow" /ve /t REG_SZ /d "powerplan" /f
 reg add "HKLM\SOFTWARE\Classes\.pow" /v "FriendlyTypeName" /t REG_SZ /d "Power Plan" /f
 
+:: clean up firewall rules
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules" /f
+
+:: clear image file execution options
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /f
+
 if %ERRORLEVEL%==0 (echo %date% - %time% Registry configuration applied...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to apply registry configuration! >> %install_log%)
-
-:: disable dma remapping
-:: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
-for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRemappingCompatible" ^| find /i "Services\" ') do (
-	reg add "%%a" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f
-)
-echo %date% - %time% Disabled dma remapping...>> %install_log%
 
 :: lowering dual boot choice time
 :: no, this does not affect single OS boot time.
