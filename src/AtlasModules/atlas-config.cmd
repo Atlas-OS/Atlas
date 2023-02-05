@@ -1573,7 +1573,7 @@ exit
 :::::::::::::::::::
 
 :notiD
-sc config WpnService start=disabled
+ %setSvc% WpnService 4
 sc stop WpnService > nul 2>nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
@@ -1582,8 +1582,8 @@ if %ERRORLEVEL%==0 echo %date% - %time% Notifications disabled...>> %user_log%
 goto finish
 
 :notiE
-sc config WpnUserService start=auto
-sc config WpnService start=auto
+%setSvc% WpnUserService 2
+%setSvc% WpnService 2
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener" /v "Value" /t REG_SZ /d "Allow" /f
@@ -1591,25 +1591,25 @@ if %ERRORLEVEL%==0 echo %date% - %time% Notifications enabled...>> %user_log%
 goto finish
 
 :indexD
-sc config WSearch start=disabled
+%setSvc% WSearch 4
 sc stop WSearch > nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing disabled...>> %user_log%
 goto finish
 
 :indexE
-sc config WSearch start=delayed-auto
+%setSvc% WSearch 2
 sc start WSearch > nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Search Indexing enabled...>> %user_log%
 goto finish
 
 :wifiD
 echo Applications like Microsoft Store and Spotify may not function correctly when Wi-Fi is disabled. If this is a problem, enable Wi-Fi and restart the computer.
-sc config WlanSvc start=disabled
-sc config vwififlt start=disabled
+%setSvc% WlanSvc 4
+%setSvc% vwififlt 4
 set /P c="Would you like to disable the network icon? (disables two extra services) [Y/N]: "
 if /I "%c%" EQU "N" goto wifiDskip
-sc config netprofm start=disabled
-sc config NlaSvc start=disabled
+%setSvc% netprofm 4
+%setSvc% NlaSvc 4
 
 :wifiDskip
 if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi disabled...>> %user_log%
@@ -1617,12 +1617,12 @@ if "%~1"=="int" goto :EOF
 goto finish
 
 :wifiE
-sc config netprofm start=demand
-sc config NlaSvc start=auto
-sc config WlanSvc start=auto
-sc config vwififlt start=system
+%setSvc% netprofm 3
+%setSvc% NlaSvc 2
+%setSvc% WlanSvc 2
+%setSvc% vwififlt 1
 if %ERRORLEVEL%==0 echo %date% - %time% Wi-Fi enabled...>> %user_log%
-sc config eventlog start=auto
+%setSvc% eventlog 2
 echo %date% - %time% EventLog enabled as Wi-Fi dependency...>> %user_log%
 goto finish
 
@@ -1668,7 +1668,7 @@ for %%a in (
     "vmbusr"
     "vpci"
 ) do (
-    sc config %%a start=disabled > nul
+    %setSvc% %%a 4 > nul 2>nul
 )
 
 :: disable services
@@ -1685,7 +1685,7 @@ for %%a in (
     "vmicvmsession"
     "vmicvss"
 ) do (
-    sc config %%a start=disabled > nul
+    %setSvc% %%a 4 > nul 2>nul
 )
 
 :: disable system devices
@@ -1724,21 +1724,21 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\Hypervis
 
 :: enable drivers
 :: default for hvcrash is disabled
-sc config hvcrash start=disabled > nul
-sc config hvservice start=demand > nul
-sc config vhdparser start=demand > nul
-sc config vmbus start=boot > nul
-sc config Vid start=system > nul
-sc config bttflt start=boot > nul
-sc config gencounter start=demand > nul
-sc config hvsocketcontrol start=demand > nul
-sc config passthruparser start=demand > nul
-sc config pvhdparser start=demand > nul
-sc config spaceparser start=demand > nul
-sc config storflt start=boot > nul
-sc config vmgid start=demand > nul
-sc config vmbusr start=demand > nul
-sc config vpci start=boot > nul
+%setSvc% hvcrash 4 > nul 2>nul
+%setSvc% hvservice 3 > nul 2>nul
+%setSvc% vhdparser 3 > nul 2>nul
+%setSvc% vmbus 0 > nul 2>nul
+%setSvc% Vid 1 > nul 2>nul
+%setSvc% bttflt 0 > nul 2>nul
+%setSvc% gencounter 3 > nul 2>nul
+%setSvc% hvsocketcontrol 3 > nul 2>nul
+%setSvc% passthruparser 3 > nul 2>nul
+%setSvc% pvhdparser 3 > nul 2>nul
+%setSvc% spaceparser 3 > nul 2>nul
+%setSvc% storflt 0 > nul 2>nul
+%setSvc% vmgid 3 > nul 2>nul
+%setSvc% vmbusr 3 > nul 2>nul
+%setSvc% vpci 0 > nul 2>nul
 
 :: enable services
 for %%a in (
@@ -1754,7 +1754,7 @@ for %%a in (
 	"vmicvmsession"
 	"vmicvss"
 ) do (
-    sc config %%a start=demand > nul
+    %setSvc% %%a 3 > nul 2>nul
 )
 
 :: enable system devices
@@ -1774,24 +1774,24 @@ pause
 
 :: detect if user is using a microsoft account
 %PowerShell% "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
-if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
+if "%MSACCOUNT%"=="NO" ( %setSvc% wlidsvc 4 ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 
 :: disable the option for microsoft store in the "Open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
 
 :: block access to microsoft store
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
-sc config InstallService start=disabled
+%setSvc% InstallService 4
 
 %setSvc% WinHttpAutoProxySvc 4
-sc config wlidsvc start=disabled
-sc config AppXSvc start=disabled
-sc config TokenBroker start=disabled
-sc config LicenseManager start=disabled
-sc config AppXSVC start=disabled
-sc config ClipSVC start=disabled
-sc config FileInfo start=disabled
-sc config FileCrypt start=disabled
+%setSvc% wlidsvc 4
+%setSvc% AppXSvc 4
+%setSvc% TokenBroker 4
+%setSvc% LicenseManager 4
+%setSvc% AppXSVC 4
+%setSvc% ClipSVC 4
+%setSvc% FileInfo 4
+%setSvc% FileCrypt 4
 if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store disabled...>> %user_log%
 if "%~1" EQU "int" goto :EOF
 goto finish
@@ -1802,18 +1802,18 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 
 :: allow access to microsoft store
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
-sc config InstallService start=demand
+%setSvc% InstallService 3
 
 %setSvc% WinHttpAutoProxySvc 3
-sc config wlidsvc start=demand
-sc config AppXSvc start=demand
-sc config TokenBroker start=demand
-sc config LicenseManager start=demand
-sc config wuauserv start=demand
-sc config AppXSVC start=demand
-sc config ClipSVC start=demand
-sc config FileInfo start=boot
-sc config FileCrypt start=system
+%setSvc% wlidsvc 3
+%setSvc% AppXSvc 3
+%setSvc% TokenBroker 3
+%setSvc% LicenseManager 3
+%setSvc% wuauserv 3
+%setSvc% AppXSVC 3
+%setSvc% ClipSVC 3
+%setSvc% FileInfo 0
+%setSvc% FileCrypt 1
 if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store enabled...>> %user_log%
 goto finish
 
@@ -1838,7 +1838,7 @@ if "%system%"=="true" (
 	pause
 	exit /b 1
 )
-sc config BthAvctpSvc start=disabled
+%setSvc% BthAvctpSvc 4
 sc stop BthAvctpSvc > nul 2>nul
 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth disabled...>> %user_log%
@@ -1852,7 +1852,7 @@ if "%system%"=="true" (
 	pause
 	exit /b 1
 )
-sc config BthAvctpSvc start=auto
+%setSvc% BthAvctpSvc 2
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
 if %ERRORLEVEL%==1 attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==2 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
@@ -1864,7 +1864,7 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f "cbd
   reg add "%%a" /v "Start" /t REG_DWORD /d "4" /f
 )
 :: to do: check if service can be set to demand
-sc config DsSvc start=disabled
+%setSvc% DsSvc 4
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Clipboard" /v "EnableClipboardHistory" /t REG_DWORD /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /t REG_DWORD /d "0" /f
 if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History disabled...>> %user_log%
@@ -1874,23 +1874,23 @@ goto finish
 for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /k /f "cbdhsvc" ^| find /i "cbdhsvc" ') do (
   reg add "%%a" /v "Start" /t REG_DWORD /d "3" /f
 )
-sc config DsSvc start=auto
+%setSvc% DsSvc 2
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Clipboard" /v "EnableClipboardHistory" /t REG_DWORD /d "1" /f
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "AllowClipboardHistory" /f > nul 2>nul
 if %ERRORLEVEL%==0 echo %date% - %time% Clipboard History enabled...>> %user_log%
 goto finish
 
 :hddD
-sc config SysMain start=disabled
-sc config FontCache start=disabled
+%setSvc% SysMain 4
+%setSvc% FontCache 4
 if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetching disabled...>> %user_log%
 goto finish
 
 :hddE
 :: disable memory compression and page combining when sysmain is enabled
 %PowerShell% "Disable-MMAgent -MemoryCompression -PageCombining"
-sc config SysMain start=auto
-sc config FontCache start=auto
+%setSvc% SysMain 2
+%setSvc% FontCache 2
 if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch enabled...>> %user_log%
 goto finish
 
@@ -2039,25 +2039,25 @@ pause
 
 :: detect if user is using a microsoft account
 %PowerShell% "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
-if "%MSACCOUNT%"=="NO" ( sc config wlidsvc start=disabled ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
+if "%MSACCOUNT%"=="NO" ( %setSvc% wlidsvc 4 ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 sc stop TabletInputService
-sc config TabletInputService start=disabled
+%setSvc% TabletInputService 4
 
 :: disable the option for microsoft store in the "Open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
 
 :: block access to microsoft store
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f
-sc config InstallService start=disabled
+%setSvc% InstallService 4
 
 %setSvc% WinHttpAutoProxySvc 4
-sc config mpssvc start=disabled
-sc config AppXSvc start=disabled
-sc config BFE start=disabled
-sc config TokenBroker start=disabled
-sc config LicenseManager start=disabled
-sc config ClipSVC start=disabled
+%setSvc% mpssvc 4
+%setSvc% AppXSvc 4
+%setSvc% BFE 4
+%setSvc% TokenBroker 4
+%setSvc% LicenseManager 4
+%setSvc% ClipSVC 4
 
 taskkill /f /im StartMenuExperienceHost* > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
@@ -2082,19 +2082,19 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 
 :: block access to microsoft store
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f
-sc config InstallService start=demand
+%setSvc% InstallService 3
 
 :: enable taletinput service
-sc config TabletInputService start=demand
+%setSvc% TabletInputService 3
 
 %setSvc% WinHttpAutoProxySvc 3
-sc config mpssvc start=auto
-sc config wlidsvc start=demand
-sc config AppXSvc start=demand
-sc config BFE start=auto
-sc config TokenBroker start=demand
-sc config LicenseManager start=demand
-sc config ClipSVC start=demand
+%setSvc% mpssvc 2
+%setSvc% wlidsvc 3
+%setSvc% AppXSvc 3
+%setSvc% BFE 2
+%setSvc% TokenBroker 3
+%setSvc% LicenseManager 3
+%setSvc% ClipSVC 3
 
 taskkill /f /im StartMenuExperienceHost* > nul 2>nul
 ren %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
@@ -2284,14 +2284,14 @@ if %ERRORLEVEL%==1 (
 
 echo]
 if "%procexpEnableInstall%"=="true" (
-	goto procexpE
+	goto processExplorerEnable
 ) else (
 	goto finishNRB
 )
 
 :processExplorerDisable
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /f > nul 2>nul
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\pcw" /v "Start" /t REG_DWORD /d "0" /f > nul
+%setSvc% pcw 0
 goto finish
 
 :processExplorerEnable
@@ -2305,6 +2305,7 @@ if not exist "procexp.exe" (
 	goto procexpI
 )
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\AtlasModules\Apps\procexp.exe" /f > nul
+%setSvc% pcw 4
 goto finishNRB
 
 :xboxU
@@ -2321,20 +2322,20 @@ goto finishNRB
 
 :xboxD
 echo Disabling services...
-sc config XblAuthManager start=disabled
-sc config XblGameSave start=disabled
-sc config XboxGipSvc start=disabled
-sc config XboxNetApiSvc start=disabled
+%setSvc% XblAuthManager 4
+%setSvc% XblGameSave 4
+%setSvc% XboxGipSvc 4
+%setSvc% XboxNetApiSvc 4
 %setSvc% BcastDVRUserService 4
 if %ERRORLEVEL%==0 echo %date% - %time% Xbox related services disabled...>> %user_log%
 goto finishNRB
 
 :xboxE
 echo Enabling services...
-sc config XblAuthManager start=demand
-sc config XblGameSave start=demand
-sc config XboxGipSvc start=demand
-sc config XboxNetApiSvc start=demand
+%setSvc% XblAuthManager 3
+%setSvc% XblGameSave 3
+%setSvc% XboxGipSvc 3
+%setSvc% XboxNetApiSvc 3
 %setSvc% BcastDVRUserService 3
 if %ERRORLEVEL%==0 echo %date% - %time% Xbox related services enabled...>> %user_log%
 goto finishNRB
@@ -2620,12 +2621,12 @@ echo This may break some features:
 echo - CapFrameX
 echo - Network menu/icon
 echo If you experience random issues, please enable Event Log again.
-sc config EventLog start=disabled
+%setSvc% EventLog 4
 if %ERRORLEVEL%==0 echo %date% - %time% Event Log disabled...>> %user_log%
 goto finish
 
 :eventlogE
-sc config EventLog start=auto
+%setSvc% EventLog 2
 if %ERRORLEVEL%==0 echo %date% - %time% Event Log enabled...>> %user_log%
 goto finish
 
@@ -2633,13 +2634,13 @@ goto finish
 echo Disabling Task Scheduler will break some features:
 echo - MSI Afterburner startup/updates
 echo - UWP typing (e.g. Search bar)
-sc config Schedule start=disabled
+%setSvc% Schedule 4
 if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler disabled...>> %user_log%
 echo If you experience random issues, please enable Task Scheduler again.
 goto finish
 
 :scheduleE
-sc config Schedule start=auto
+%setSvc% Schedule 2
 if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler enabled...>> %user_log%
 goto finish
 
@@ -2815,7 +2816,7 @@ echo]
 echo Read README.txt for more info.
 pause
 
-sc config NVDisplay.ContainerLocalSystem start=disabled > nul
+%setSvc% NVDisplay.ContainerLocalSystem 4 > nul
 sc stop NVDisplay.ContainerLocalSystem > nul
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS disabled...>> %user_log%
 goto finishNRB
@@ -2830,7 +2831,7 @@ if %ERRORLEVEL%==1 (
     exit /b 1
 )
 
-sc config NVDisplay.ContainerLocalSystem start=auto > nul
+%setSvc% NVDisplay.ContainerLocalSystem 2 > nul
 sc start NVDisplay.ContainerLocalSystem > nul
 if %ERRORLEVEL%==0 echo %date% - %time% NVIDIA Display Container LS enabled...>> %user_log%
 goto finishNRB
@@ -2905,7 +2906,7 @@ goto finish
 :networksharingE
 call :workstationE "int"
 echo %date% - %time% Workstation enabled as Network Sharing dependency...>> %user_log%
-sc config eventlog start=auto
+%setSvc% eventlog 2
 echo %date% - %time% EventLog enabled as Network Sharing dependency...>> %user_log%
 %setSvc% NlaSvc 2
 %setSvc% lmhosts 3
