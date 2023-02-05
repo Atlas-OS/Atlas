@@ -81,4 +81,4 @@ By downloading, modifying, or utilizing any of these images, you agree to [Micro
 
 ## Translation contributors (Дописувачі перекладу)
 
-[kent](https://github.com/kentffg) | [Xyueta](https://github.com/Xyueta)
+[kentffg](https://github.com/kentffg) | [Xyueta](https://github.com/Xyueta)
