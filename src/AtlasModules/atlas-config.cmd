@@ -273,7 +273,6 @@ break > C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
 
 :auto
-SETLOCAL EnableDelayedExpansion
 %WinDir%\AtlasModules\Apps\vcredist.exe /ai
 if %ERRORLEVEL%==0 (echo %date% - %time% Visual C++ Redistributables installed...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to install Visual C++ Redistributables! >> %install_log%)
