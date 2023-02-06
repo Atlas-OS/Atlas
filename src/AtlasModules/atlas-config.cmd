@@ -303,7 +303,6 @@ if %ERRORLEVEL%==0 (echo %date% - %time% File system optimized...>> %install_log
 ) ELSE (echo %date% - %time% Failed to optimize file system! >> %install_log%)
 
 :: disable useless scheduled tasks
-
 for %%a in (
     "\Microsoft\Windows\ApplicationData\appuriverifierdaily"
     "\Microsoft\Windows\ApplicationData\appuriverifierinstall"
@@ -365,15 +364,15 @@ for %%a in (
     Win32_NetworkAdapter, 
     Win32_IDEController
 ) do (
-    for /f %%i in ('wmic path %%a get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+    for /f %%i in ('wmic path %%a get PNPDeviceID ^| findstr /l "PCI\VEN_"') do (
         reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f > nul 2>nul
         reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%i\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>nul
     )
 )
 
 :: if e.g. VMWare is used, set network adapter to normal priority as undefined on some virtual machines may break internet connection
-wmic computersystem get manufacturer /format:value | findstr /I /C:VMWare && (
-    for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
+wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && (
+    for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /l "PCI\VEN_"') do (
         reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f > nul 2>nul
     )
 )
@@ -392,8 +391,8 @@ net user defaultuser0 /delete > nul 2>nul
 DISM /Online /Set-ReservedStorageState /State:Disabled
 
 :: disable automatic repair
-bcdedit /set recoveryenabled no > nul 2>nul
-fsutil repair set C: 0 > nul 2>nul
+bcdedit /set recoveryenabled no
+fsutil repair set C: 0
 
 :: rebuild performance counters
 :: https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/manually-rebuild-performance-counters
@@ -473,7 +472,7 @@ reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v "SchUs
 
 :: duplicate 'High Performance' power plan, customize it and make it the Atlas power plan
 powercfg -duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 11111111-1111-1111-1111-111111111111
-powercfg /setactive 11111111-1111-1111-1111-111111111111
+powercfg -setactive 11111111-1111-1111-1111-111111111111
 
 :: set current power scheme to Atlas
 powercfg -changename 11111111-1111-1111-1111-111111111111 "Atlas Power Scheme" "Power scheme optimized for optimal latency and performance (v0.1.0)"
@@ -627,7 +626,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" /v "DefaultPnPC
 
 :: configure nic settings
 :: modified by Xyueta
-for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
+for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr "HKEY"') do (
     for %%i in (
         "*EEE"
         "*FlowControl"
@@ -887,7 +886,7 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 
 :: remove lower filters for rdyboost driver
 set key="HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
-for /f "skip=1tokens=3*" %%A in ('reg query %key% /v "LowerFilters"') do (set val=%%A)
+for /f "skip=1 tokens=3*" %%a in ('reg query %key% /v "LowerFilters"') do (set val=%%a)
 :: `val` would be like `rdyboost\0fvevol\0iorate`
 set val=%val:rdyboost\0=%
 set val=%val:\0rdyboost=%
@@ -946,7 +945,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayou
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoStartMenuMFUprogramsList" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "HideRecentlyAddedApps" /t REG_DWORD /d "1" /f
 
-:: disable 10ms startup delay of running apps
+:: disable startup delay of running apps
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize" /v "StartupDelayInMSec" /t REG_DWORD /d "0" /f
 
 :: reduce menu show delay time 
@@ -1112,7 +1111,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DiskQuota" /v "Enable" /t R
 :: do not allow pinning microsoft store app to taskbar
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoPinningStoreToTaskbar" /t REG_DWORD /d "1" /f
 
-:: add atlas' webstite as start page in internet explorer
+:: add atlas' website as a start page in internet explorer
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Internet Explorer\Main" /v "Start Page" /t REG_SZ /d "https://atlasos.net" /f
 
 :: disable devicecensus.exe telemetry process
@@ -1276,9 +1275,6 @@ reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA
 :: hide meet now button on taskbar
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "HideSCAMeetNow" /t REG_DWORD /d "1" /f
 
-:: hide people on taskbar
-%currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "HidePeopleBar" /t REG_DWORD /d "1" /f
-
 :: hide task view button on taskbar
 %currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultiTaskingView\AllUpView" /v "Enabled" /f > nul 2>nul
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowTaskViewButton" /t REG_DWORD /D "0" /f
@@ -1325,6 +1321,9 @@ call :mitigationsDisable /function
 :: https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html
 :: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableTsx" /t REG_DWORD /d "1" /f
 
+:: set Win32PrioritySeparation to short variable 1:1, no foreground boost
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d "36" /f
+
 :: configure multimedia class scheduler
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "SystemResponsiveness" /t REG_DWORD /d "10" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "NoLazyMode" /t REG_DWORD /d "1" /f
@@ -1349,13 +1348,10 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\GameBar" /v "AllowAutoGameMode" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\GameBar" /v "AutoGameModeEnabled" /t REG_DWORD /d "0" /f
 
-:: disallow background apps
+:: disable background apps
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsRunInBackground" /t REG_DWORD /d "2" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" /v "GlobalUserDisabled" /t REG_DWORD /d "1" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "BackgroundAppGlobalToggle" /t REG_DWORD /d "0" /f
-
-:: set Win32PrioritySeparation to short variable 1:1, no foreground boost
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d "36" /f
 
 :: disable notifications/action center
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
