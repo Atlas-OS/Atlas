@@ -30,22 +30,22 @@ if %errorlevel%==4 (goto alwaysoff)
 
 :optin
 echo]
-bcdedit /set nx optin > nul
+bcdedit /set nx OptIn > nul
 if %errorlevel%==0 (goto success) else (goto fail)
 
 :optout
 echo]
-bcdedit /set nx optout > nul
+bcdedit /set nx OptOut > nul
 if %errorlevel%==0 (goto success) else (goto fail)
 
 :alwayson
 echo]
-bcdedit /set nx alwayson > nul
+bcdedit /set nx AlwaysOn > nul
 if %errorlevel%==0 (goto success) else (goto fail)
 
 :alwaysoff
 echo]
-bcdedit /set nx alwaysoff > nul
+bcdedit /set nx AlwaysOff > nul
 if %errorlevel%==0 (goto success) else (goto fail)
 
 :success
