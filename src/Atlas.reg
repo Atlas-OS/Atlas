@@ -37,6 +37,9 @@ Windows Registry Editor Version 5.00
 "RestartNotificationsAllowed2"=dword:00000000
 "HideMCTLink"=dword:00000001
 
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\MRT]
+"DontOfferThroughWUAU"=-
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching]
 "SearchOrderConfig"=dword:00000000
 
