@@ -233,7 +233,6 @@ vcreR
 sendToDebloat
 
 "Mitigations"
-mitigationsDefault
 mitigationsDisable
 mitigationsEnable	
 
@@ -1546,11 +1545,6 @@ bcdedit /deletevalue useplatformclock > nul 2>nul
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
 bcdedit /set disabledynamictick Yes
 
-:: disable data execution prevention
-:: may need to enable for faceit, valorant, and other anti-cheats
-:: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
-bcdedit /set nx AlwaysOff
-
 :: use legacy boot menu
 bcdedit /set bootmenupolicy Legacy
 
@@ -1903,17 +1897,15 @@ if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch enabled...>> %user_l
 goto finish
 
 :depD
+:: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 echo If you get issues with some anti-cheats, please re-enable DEP.
 bcdedit /set nx AlwaysOff
 if %ERRORLEVEL%==0 echo %date% - %time% Data Execution Policy disabled...>> %user_log%
 goto finish
 
 :depE
-bcdedit /set nx Optin
-:: enable control flow guard for valorant related processes
-for %%a in (valorant valorant-win64-shipping vgtray vgc) do (
-    %PowerShell% -NoProfile -Command "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
-)
+:: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
+bcdedit /set nx OptIn
 if %ERRORLEVEL%==0 echo %date% - %time% Data Execution Policy enabled...>> %user_log%
 goto finish
 
@@ -3007,6 +2999,56 @@ for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to 
 
 goto finishNRB
 
+:mitigationsDisable
+:: disable spectre and meltdown
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "3" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f
+
+:: disable fault tolerant heap
+:: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
+:: doc listed as only affected in windows 7, is also in 7+
+reg add "HKLM\SOFTWARE\Microsoft\FTH" /v "Enabled" /t REG_DWORD /d "0" /f
+
+:: exists in ntoskrnl strings, keep for now
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "1" /f
+
+:: find correct mitigation values for different Windows versions - AMIT
+:: initialize bit mask in registry by disabling a random mitigation
+%PowerShell% "Set-ProcessMitigation -System -Disable CFG"
+
+:: get current bit mask
+for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentCgfontrolSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
+    set "mitigation_mask=%%a"
+)
+
+:: set all bits to 2 (disable all mitigations)
+for /l %%a in (0,1,9) do (
+    set "mitigation_mask=!mitigation_mask:%%a=2!"
+)
+
+:: apply mask to kernel
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "%mitigation_mask%" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /t REG_BINARY /d "%mitigation_mask%" /f
+
+:: disable virtualization-based protection of code integrity
+:: https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /t REG_DWORD /d "0" /f
+
+:: disable data execution prevention
+:: may need to enable for faceit, valorant and other anti-cheats
+:: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
+bcdedit /set nx AlwaysOff
+
+:: disable file system mitigations
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
+
+:: callable label which can be used in a post install
+:: call :mitigationsDisable /function
+if "%~1"=="/function" exit /b
+
+echo]
+goto finish
+
 :mitigationsEnable
 :: fully enable spectre variant 2 and meltdown mitigations
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f
@@ -3023,9 +3065,8 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization" /v "M
 :: enable structured exception handling overwrite protection (SEHOP)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "0" /f
 
-:: force data execution prevention
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoDataExecutionPrevention" /t REG_DWORD /d "0" /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "DisableHHDEP" /t REG_DWORD /d "0" /f
+:: enable data execution prevention
+:: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 bcdedit /set nx AlwaysOn
 
 :: enable all other kernel mitigations
@@ -3050,91 +3091,8 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Mitig
 :: enable file system mitigations (default)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "1" /f
 
-:: callable label, can be used in a post install or whatever else
+:: callable label which can be used in a post install
 :: call :mitigationsEnable /function
-if "%~1"=="/function" exit /b
-
-echo]
-goto finish
-
-:mitigationsDisable
-:: disable spectre and meltdown
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "3" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f
-
-:: disable fault tolerant heap
-:: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
-:: doc listed as only affected in windows 7, is also in 7+
-reg add "HKLM\SOFTWARE\Microsoft\FTH" /v "Enabled" /t REG_DWORD /d "0" /f
-
-:: exists in ntoskrnl strings, keep for now
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "1" /f
-
-:: find correct mitigation values for different Windows versions - AMIT
-:: initialize bit mask in registry by disabling a random mitigation
-%PowerShell% "Set-ProcessMitigation -System -Disable CFG"
-
-:: get current bit mask
-for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
-    set "mitigation_mask=%%a"
-)
-
-:: set all bits to 2 (disable all mitigations)
-for /l %%a in (0,1,9) do (
-    set "mitigation_mask=!mitigation_mask:%%a=2!"
-)
-
-:: apply mask to kernel
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "%mitigation_mask%" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /t REG_BINARY /d "%mitigation_mask%" /f
-
-:: disable virtualization-based protection of code integrity
-:: https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /t REG_DWORD /d "0" /f
-
-:: set DEP to AlwaysOff
-bcdedit /set nx AlwaysOff
-
-:: disable file system mitigations
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
-
-:: callable label, can be used in a post install or whatever else
-:: call :mitigationsDisable /function
-if "%~1"=="/function" exit /b
-
-echo]
-goto finish
-
-:mitigationsDefault
-:: set default spectre and meltdown mitigation options
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /f > nul 2>nul
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /f > nul 2>nul
-
-:: enable fault tolerant heap (default)
-:: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
-:: doc listed as only affected in windows 7, is also in 7+
-reg add "HKLM\SOFTWARE\Microsoft\FTH" /v "Enabled" /t REG_DWORD /d "1" /f
-
-:: delete DisableExceptionChainValidation (default)
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /f > nul 2>nul
-
-:: set default mitigations
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /f > nul 2>nul
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /f > nul 2>nul
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /f > nul 2>nul
-
-:: set virtualization-based protection of code integrity to default
-:: https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /f > nul 2>nul
-
-:: opt in to DEP (default)
-bcdedit /set nx OptIn
-
-:: enable file system mitigations (default)
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "1" /f
-
-:: callable label, can be used in a post install or whatever else
-:: call :mitigationsDefault /function
 if "%~1"=="/function" exit /b
 
 echo]
