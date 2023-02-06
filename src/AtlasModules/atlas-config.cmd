@@ -61,7 +61,7 @@ SETLOCAL EnableDelayedExpansion
 
 for %%a in (
 
-"Post install script"
+"Post-Installation script"
 startup
 
 "Test prompt"
@@ -76,73 +76,75 @@ scoop
 altsoftwarescoop
 scoopCache
 
-"Toggle DWM animations"
+"DWM animations"
 aniD
 aniE
 
-"Toggle Data Execution Prevention (anti-cheat compatibility)"
+"Data Execution Prevention (anti-cheat compatibility)"
 depD
 depE
 
-"Toggle background apps"
+"Background apps"
 backD
 backE
 
-"Toggle Bluetooth services"
+"Bluetooth"
 btD
 btE
 
-"Toggle clipboard service (also required for Snip & Sketch)"
+"Clipboard service (also required for Snip & Sketch)"
 cbdhsvcD
 cbdhsvcE
 
-"Toggle Event Log related components"
+"Event Log"
 eventlogD
 eventlogE
 
-"Toggle Task Scheduler related components"
+"Task Scheduler"
 scheduleD
 scheduleE
 
-"Toggle Windows Firewall"
+"Windows Firewall"
 firewallD
 firewallE
 
-"Toggle HDD performance related features/services"
+"HDD performance related features/services"
 hddD
 hddE
 
-"Hyper-V toggle"
+"Hyper-V"
 hyperD
 hyperE
 
-"Disable Internet Explorer"
+"Internet Explorer"
 ieD
+ieE
 
-"Disable Windows Media Player"
+"Windows Media Player"
 wmpD
+wmpE
 
-"Toggle Microsoft Store"
+"Microsoft Store"
 storeD
 storeE
 
-"Toggle network sharing"
+"Network Sharing"
 networksharingD
 networksharingE
 
-"Toggle notifications"
+"Notifications"
 notiD
 notiE
 
-"Toggle sleep states in power scheme"
+"Sleep states in power scheme"
 sleepD
 sleepE
 
-"Toggle CPU idle states in power scheme"
+"CPU idle states in power scheme"
 idleD
 idleE
 
-"Printing services toggle"
+"Printing"
 printD
 printE
 
@@ -151,7 +153,7 @@ processExplorerInstall
 processExplorerDisable
 processExplorerEnable
 
-"Indexing toggles"
+"Search Indexing"
 indexD
 indexE
 
@@ -162,46 +164,46 @@ enableStartSearch
 "Unlock start menu layout"
 startlayout
 
-"Diagnostics services toggle"
+"Diagnostics services"
 diagD
 diagE
 
-"Disable/enable UAC"
+"User Account Control (UAC)"
 uacD
 uacE
 
-"Toggle UWP services"
+"Universal Windows Platform (UWP)"
 uwpD
 uwpE
 
 "Install Open-Shell (required for disabling search/start menu)"
 openshellInstall
 
-"Configure Xbox apps and services"
+"Xbox apps and services"
 xboxU
 xboxD
 xboxE
 
-"VPN-related services toggle"
+"VPN"
 vpnD
 vpnE
 
-"Wi-Fi services toggle"
+"Wi-Fi"
 wifiD
 wifiE
 
-"Workstation service toggle"
+"Workstation service"
 workstationD
 workstationE
 
 "Select exe to set DSCP values to"
 dscpauto
 
-"NVIDIA Display Container LS service toggle"
+"NVIDIA Display Container LS service"
 nvcontainerD
 nvcontainerE
 
-"Context menu for NVIDIA Display Container LS service"
+"NVIDIA Display Container LS service context menu"
 nvcontainerCMD
 nvcontainerCME
 
@@ -209,11 +211,11 @@ nvcontainerCME
 NVPstate
 revertNVPState
 
-"Disable HDCP (High-bandwidth Digital Content Protection)"
+"HDCP (High-bandwidth Digital Content Protection)"
 hdcpD
 hdcpE
 
-"Automatic Static IP address"
+"Set Automatic Static IP address"
 staticip
 
 "Network settings"
@@ -233,7 +235,7 @@ vcreR
 sendToDebloat
 
 "Mitigations"
-mitigationsDisable
+mitD
 mitigationsEnable	
 
 ) do (
@@ -2443,7 +2445,7 @@ goto finish
 %setSvc% mrxsmb 4
 %setSvc% srv2 4
 %setSvc% LanmanWorkstation 4
-DISM /Online /Disable-Feature /FeatureName:SmbDirect /norestart
+DISM /Online /Disable-Feature /FeatureName:SmbDirect /NoRestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation disabled...>> %user_log%
 goto finish
 
@@ -2454,7 +2456,7 @@ goto finish
 %setSvc% mrxsmb 3
 %setSvc% srv2 3
 %setSvc% LanmanWorkstation 2
-DISM /Online /Enable-Feature /FeatureName:SmbDirect /norestart
+DISM /Online /Enable-Feature /FeatureName:SmbDirect /NoRestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation enabled...>> %user_log%
 if "%~1" EQU "int" goto :EOF
 goto finish
@@ -2607,11 +2609,19 @@ if %ERRORLEVEL%==0 echo %date% - %time% VPN support enabled...>> %user_log%
 goto finish
 
 :wmpD
-DISM /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /norestart
+DISM /Online /Disable-Feature /FeatureName:WindowsMediaPlayer /NoRestart
+goto finish
+
+:wmpE
+DISM /Online /Enable-Feature /FeatureName:WindowsMediaPlayer /NoRestart
 goto finish
 
 :ieD
-DISM /Online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart
+DISM /Online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /NoRestart
+goto finish
+
+:ieE
+DISM /Online Enable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /NoRestart
 goto finish
 
 :eventlogD
@@ -2999,7 +3009,7 @@ for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to 
 
 goto finishNRB
 
-:mitigationsDisable
+:mitD
 :: disable spectre and meltdown
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "3" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f
@@ -3017,7 +3027,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Disab
 %PowerShell% "Set-ProcessMitigation -System -Disable CFG"
 
 :: get current bit mask
-for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentCgfontrolSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
+for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
     set "mitigation_mask=%%a"
 )
 
@@ -3049,7 +3059,7 @@ if "%~1"=="/function" exit /b
 echo]
 goto finish
 
-:mitigationsEnable
+:mitE
 :: fully enable spectre variant 2 and meltdown mitigations
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f
 wmic cpu get name | findstr "Intel" > nul && (
