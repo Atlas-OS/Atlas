@@ -236,7 +236,7 @@ sendToDebloat
 
 "Mitigations"
 mitD
-mitigationsEnable	
+mitE
 
 ) do (
     if "%~1"=="/%%a" (
@@ -265,7 +265,7 @@ pause & exit /b 1
 :: create log directory for troubleshooting
 mkdir %WinDir%\AtlasModules\logs
 cls & echo Please wait, this may take a moment.
-setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\AtlasModules\Tools;%WinDir%\AtlasModules\Other;" -m  > nul 2>nul
+setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\AtlasModules\Other;%WinDir%\AtlasModules\Tools;" -m  > nul 2>nul
 if %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %install_log%)
 
@@ -372,7 +372,7 @@ for %%a in (
 )
 
 :: if e.g. VMWare is used, set network adapter to normal priority as undefined on some virtual machines may break internet connection
-wmic computersystem get manufacturer /format:value | findstr /i /C:VMWare && (
+wmic computersystem get manufacturer /format:value | findstr /I /C:VMWare && (
     for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /L "PCI\VEN_"') do (
         reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2"  /f > nul 2>nul
     )
@@ -399,7 +399,7 @@ fsutil repair set C: 0 > nul 2>nul
 :: https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/manually-rebuild-performance-counters
 lodctr /r > nul 2>nul
 lodctr /r > nul 2>nul
-winmgmt.exe /resyncperf
+winmgmt /resyncperf
 
 :: disable PowerShell telemetry
 :: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.3
@@ -443,6 +443,9 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "RestrictAnonymousSAM" /t
 :: restrict anonymous enumeration of shares
 :: https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220930
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "RestrictAnonymous" /t REG_DWORD /d "1" /f
+
+:: disable network location wizard
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff" /f
 
 :: netbios hardening
 :: netbios is disabled. if it manages to become enabled, protect against NBT-NS poisoning attacks
@@ -1160,6 +1163,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\HandwritingErrorReports" /v "P
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Input\Settings" /v "InsightsEnabled" /t REG_DWORD /d "0" /f
 
 :: disable windows error reporting
+reg add "HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting" /v "DoReport" /t REG_DWORD /d "0 /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting" /v "Disabled" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting" /v "DontSendAdditionalData" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting" /v "LoggingDisabled" /t REG_DWORD /d "1" /f
