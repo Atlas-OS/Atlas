@@ -140,7 +140,7 @@ notiE
 sleepD
 sleepE
 
-"CPU idle states in power scheme"
+"CPU idle states"
 idleD
 idleE
 
@@ -161,7 +161,7 @@ processExplorerEnable
 indexD
 indexE
 
-"Toggle search and start menu services"
+"Search and start menu services"
 SearchStartDisable
 enableStartSearch
 
@@ -2181,7 +2181,7 @@ DevManView.exe /disable "Microsoft Windows Management Interface for ACPI"
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f
 
 :: set atlas - high performance power scheme
-powercfg -setactive 11111111-1111-1111-1111-111111111111
+powercfg -setactive 11111111-1111-1111-1111-111111111111 > nul 2>&1
 
 :: callable label which can be used in a post install
 :: call :powerD /function
@@ -2232,12 +2232,12 @@ if %ERRORLEVEL%==2 goto powerA
 
 :powerA
 :: set atlas - high performance power scheme
-powercfg -setactive 11111111-1111-1111-1111-111111111111
+powercfg -setactive 11111111-1111-1111-1111-111111111111 > nul 2>&1
 goto powerC
 
 :powerB
 :: set balanced power scheme - for laptops
-powercfg -setactive 381b4222-f694-41f0-9685-ff5bb260df2e
+powercfg -setactive 381b4222-f694-41f0-9685-ff5bb260df2e > nul 2>&1
 goto powerC
 
 :powerC
