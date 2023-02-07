@@ -2180,6 +2180,9 @@ DevManView.exe /disable "Microsoft Windows Management Interface for ACPI"
 :: exists only on Intel CPUs, 6 generation or higher
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f
 
+:: set atlas - high performance power scheme
+powercfg -setactive 11111111-1111-1111-1111-111111111111
+
 :: callable label which can be used in a post install
 :: call :powerD /function
 if "%~1"=="/function" exit /b
@@ -2218,6 +2221,9 @@ DevManView.exe /enable "Microsoft Windows Management Interface for ACPI"
 :: enable power throttling
 :: exists only on Intel CPUs, 6 generation or higher
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /f > nul 2>&1
+
+:: set balanced power scheme - for laptops
+powercfg -setactive 381b4222-f694-41f0-9685-ff5bb260df2e
 
 :: callable label which can be used in a post install
 :: call :powerE /function
