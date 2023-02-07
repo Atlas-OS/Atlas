@@ -144,6 +144,10 @@ sleepE
 idleD
 idleE
 
+"Power"
+powerD
+powerE
+
 "Printing"
 printD
 printE
@@ -524,33 +528,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /
 
 if %ERRORLEVEL%==0 (echo %date% - %time% Service split treshold set...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to set service split treshold! >> %install_log%)
-
-:: disable drivers power savings
-for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
-    for %%i in (
-    	"AllowIdleIrpInD3"
-        "D3ColdSupported"
-        "DeviceSelectiveSuspended"
-        "EnableIdlePowerManagement"
-        "EnableSelectiveSuspend"
-        "EnhancedPowerManagementEnabled"
-        "IdleInWorkingState"
-        "SelectiveSuspendEnabled"
-        "SelectiveSuspendOn"
-        "WaitWakeEnabled"
-        "WakeEnabled"
-        "WdfDirectedPowerTransitionEnable"
-    ) do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%i" /t REG_DWORD /d "0" /f
-    )
-)
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled drivers power savings...>> %install_log%
-) ELSE (echo %date% - %time% Failed to disable drivers power savings! >> %install_log%)
-
-:: disable PnP power savings
-%PowerShell% "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}"
-if %ERRORLEVEL%==0 (echo %date% - %time% Disabled PnP power savings...>> %install_log%
-) ELSE (echo %date% - %time% Failed to disable PnP power savings! >> %install_log%)
 
 :: disable unnecessary autologgers
 for %%a in (
@@ -1259,11 +1236,8 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync" /v "DisableSyncOn
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows" /v "Enabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync" /v "SyncPolicy" /t REG_DWORD /d "5" /f
 
-:: configure power settings
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power" /v "EnergyEstimationEnabled" /t REG_DWORD /d "0" /f
-:: reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power" /v "CsEnabled" /t REG_DWORD /d "0" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power" /v "EventProcessorEnabled" /t REG_DWORD /d "0" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f
+:: disable power settings
+call :powerD /function
 
 :: location tracking
 reg add "HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice" /v "AllowFindMyDevice" /t REG_DWORD /d "0" /f
@@ -2173,6 +2147,84 @@ powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2
 powercfg -setactive scheme_current
 if %ERRORLEVEL%==0 echo %date% - %time% Idle enabled...>> %user_log%
 goto finishNRB
+
+:powerD
+:: disable drivers power savings
+for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
+    for %%i in (
+    	"AllowIdleIrpInD3"
+        "D3ColdSupported"
+        "DeviceSelectiveSuspended"
+        "EnableIdlePowerManagement"
+        "EnableSelectiveSuspend"
+        "EnhancedPowerManagementEnabled"
+        "IdleInWorkingState"
+        "SelectiveSuspendEnabled"
+        "SelectiveSuspendOn"
+        "WaitWakeEnabled"
+        "WakeEnabled"
+        "WdfDirectedPowerTransitionEnable"
+    ) do (
+        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%i" /t REG_DWORD /d "0" /f
+    )
+)
+
+:: disable PnP power savings
+%PowerShell% "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}"
+
+:: disable acpi devices
+DevManView.exe /disable "ACPI Processor Aggregator"
+DevManView.exe /disable "Microsoft Windows Management Interface for ACPI"
+
+:: disable power throttling
+:: exists only on Intel CPUs, 6 generation or higher
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f
+
+:: callable label which can be used in a post install
+:: call :powerD /function
+if "%~1"=="/function" exit /b
+
+if %ERRORLEVEL%==0 echo %date% - %time% Power features disabled...>> %user_log%
+goto finish
+
+:powerE
+:: enable drivers power savings
+for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
+    for %%i in (
+    	"AllowIdleIrpInD3"
+        "D3ColdSupported"
+        "DeviceSelectiveSuspended"
+        "EnableIdlePowerManagement"
+        "EnableSelectiveSuspend"
+        "EnhancedPowerManagementEnabled"
+        "IdleInWorkingState"
+        "SelectiveSuspendEnabled"
+        "SelectiveSuspendOn"
+        "WaitWakeEnabled"
+        "WakeEnabled"
+        "WdfDirectedPowerTransitionEnable"
+    ) do (
+        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%i" /t REG_DWORD /d "1" /f
+    )
+)
+
+:: enable PnP power savings
+%PowerShell% "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $True; $power_device.psbase.put()}}}}"
+
+:: enable acpi devices
+DevManView.exe /enable "ACPI Processor Aggregator"
+DevManView.exe /enable "Microsoft Windows Management Interface for ACPI"
+
+:: enable power throttling
+:: exists only on Intel CPUs, 6 generation or higher
+reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /f > nul 2>&1
+
+:: callable label which can be used in a post install
+:: call :powerE /function
+if "%~1"=="/function" exit /b
+
+if %ERRORLEVEL%==0 echo %date% - %time% Power features enabled...>> %user_log%
+goto finish
 
 :harden
 :: LARGELY based on https://gist.github.com/ricardojba/ecdfe30dadbdab6c514a530bc5d51ef6
