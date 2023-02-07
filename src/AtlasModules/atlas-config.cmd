@@ -1483,6 +1483,31 @@ attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\
 attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
 attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
 
+:: remove print from context menu
+reg add "HKCR\SystemFileAssociations\image\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f
+for %%a in (
+    "batfile"
+    "cmdfile"
+    "docxfile"
+    "fonfile"
+    "htmlfile"
+    "inffile"
+    "inifile"
+    "JSEFile"
+    "otffile"
+    "pfmfile"
+    "regfile"
+    "rtffile"
+    "ttcfile"
+    "ttffile"
+    "txtfile"
+    "VBEFile"
+    "VBSFile"
+    "WSFFile"
+) do (
+    reg add "HKCR\%%a\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f
+)
+
 :: add .bat, .cmd, .reg and .ps1 to the 'New' context menu
 reg add "HKLM\SOFTWARE\Classes\.bat\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "@C:\Windows\System32\acppage.dll,-6002" /f
 reg add "HKLM\SOFTWARE\Classes\.bat\ShellNew" /v "NullFile" /t REG_SZ /d "" /f
@@ -2544,6 +2569,31 @@ if "%~1" EQU "int" goto :EOF
 goto finish
 
 :printD
+:: remove print from context menu
+reg add "HKCR\SystemFileAssociations\image\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f
+for %%a in (
+    "batfile"
+    "cmdfile"
+    "docxfile"
+    "fonfile"
+    "htmlfile"
+    "inffile"
+    "inifile"
+    "JSEFile"
+    "otffile"
+    "pfmfile"
+    "regfile"
+    "rtffile"
+    "ttcfile"
+    "ttffile"
+    "txtfile"
+    "VBEFile"
+    "VBSFile"
+    "WSFFile"
+) do (
+    reg add "HKCR\%%a\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f
+)
+
 %setSvc% Spooler 4
 if %ERRORLEVEL%==0 echo %date% - %time% Printing disabled...>> %user_log%
 goto finish
@@ -2568,6 +2618,31 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers" /v "DisableWebPnP
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers" /v "DisableHTTPPrinting" /t REG_DWORD /d "1" /f
 
 :printECont
+:: add print to context menu
+reg delete "HKCR\SystemFileAssociations\image\shell\print" /v "ProgrammaticAccessOnly" /f
+for %%a in (
+    "batfile"
+    "cmdfile"
+    "docxfile"
+    "fonfile"
+    "htmlfile"
+    "inffile"
+    "inifile"
+    "JSEFile"
+    "otffile"
+    "pfmfile"
+    "regfile"
+    "rtffile"
+    "ttcfile"
+    "ttffile"
+    "txtfile"
+    "VBEFile"
+    "VBSFile"
+    "WSFFile"
+) do (
+    reg delete "HKCR\%%a\shell\print" /v "ProgrammaticAccessOnly" /f
+)
+
 %setSvc% Spooler 2
 if %ERRORLEVEL%==0 echo %date% - %time% Printing enabled...>> %user_log%
 goto finish
