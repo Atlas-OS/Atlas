@@ -25,6 +25,10 @@ for /f "tokens=4-7 delims=[.] " %%a in ('ver') do set "build=%%a.%%b.%%c.%%d"
 :: set correct username variable of the currently logged in user
 for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
 
+:: set cpu brand
+wmic cpu get name | findstr "Intel" > nul && set "CPU=INTEL"
+wmic cpu get name | findstr "AMD" > nul && set "CPU=AMD"
+
 set "branch=%releaseid%"
 set "ver=v0.1.0"
 title Atlas Configuration Script %branch% %ver%
@@ -2175,34 +2179,54 @@ goto finishNRB
 
 :powerD
 :: disable drivers power savings
-for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
-    for %%i in (
-    	"AllowIdleIrpInD3"
-        "D3ColdSupported"
-        "DeviceSelectiveSuspended"
-        "EnableIdlePowerManagement"
-        "EnableSelectiveSuspend"
-        "EnhancedPowerManagementEnabled"
-        "IdleInWorkingState"
-        "SelectiveSuspendEnabled"
-        "SelectiveSuspendOn"
-        "WaitWakeEnabled"
-        "WakeEnabled"
-        "WdfDirectedPowerTransitionEnable"
-    ) do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%~i" /t REG_DWORD /d "0" /f
+for %%a in (
+    "AllowIdleIrpInD3"
+    "D3ColdSupported"
+    "DeviceSelectiveSuspended"
+    "EnableIdlePowerManagement"
+    "EnableSelectiveSuspend"
+    "EnhancedPowerManagementEnabled"
+    "IdleInWorkingState"
+    "SelectiveSuspendEnabled"
+    "SelectiveSuspendOn"
+    "WaitWakeEnabled"
+    "WdfDirectedPowerTransitionEnable"
+) do (
+    for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%~a" ^| findstr "HKEY"') do (
+        reg add "%%b" /v "%%~a" /t REG_DWORD /d "0" /f > nul
     )
 )
+
+for %%a in (
+    "DisableIdlePowerManagement"
+) do (
+	for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%~a" ^| findstr "HKEY"') do (
+		reg add "%%b" /v "%%~a" /t REG_DWORD /d "1" /f > nul
+	)
+)
+
+if "%CPU%"=="AMD" (
+    for %%a in (
+        "WakeEnabled" 
+        "WdkSelectiveSuspendEnable"
+    ) do (
+        for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /s /f "%%~a" ^| findstr "HKEY"') do (
+            reg add "%%b" /v "%%~a" /t REG_DWORD /d "0" /f > nul
+        )
+    )
+)
+
 
 :: disable PnP power savings
 %PowerShell% "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}"
 
-:: disable acpi devices
+:: disable ACPI devices
 DevManView.exe /disable "ACPI Processor Aggregator"
 DevManView.exe /disable "Microsoft Windows Management Interface for ACPI"
 
 :: disable power throttling
 :: exists only on Intel CPUs, 6 generation or higher
+:: https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f
 
 :: set atlas - high performance power scheme
@@ -2217,34 +2241,53 @@ goto finish
 
 :powerE
 :: enable drivers power savings
-for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "USB\VID_"') do (   
-    for %%i in (
-    	"AllowIdleIrpInD3"
-        "D3ColdSupported"
-        "DeviceSelectiveSuspended"
-        "EnableIdlePowerManagement"
-        "EnableSelectiveSuspend"
-        "EnhancedPowerManagementEnabled"
-        "IdleInWorkingState"
-        "SelectiveSuspendEnabled"
-        "SelectiveSuspendOn"
-        "WaitWakeEnabled"
-        "WakeEnabled"
-        "WdfDirectedPowerTransitionEnable"
+for %%a in (
+    "AllowIdleIrpInD3"
+    "D3ColdSupported"
+    "DeviceSelectiveSuspended"
+    "EnableIdlePowerManagement"
+    "EnableSelectiveSuspend"
+    "EnhancedPowerManagementEnabled"
+    "IdleInWorkingState"
+    "SelectiveSuspendEnabled"
+    "SelectiveSuspendOn"
+    "WaitWakeEnabled"
+    "WdfDirectedPowerTransitionEnable"
+) do (
+    for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%~a" ^| findstr "HKEY"') do (
+        reg add "%%b" /v "%%~a" /t REG_DWORD /d "1" /f > nul
+    )
+)
+
+for %%a in (
+    "DisableIdlePowerManagement"
+) do (
+	for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%~a" ^| findstr "HKEY"') do (
+		reg add "%%b" /v "%%~a" /t REG_DWORD /d "0" /f > nul
+	)
+)
+
+if "%CPU%"=="AMD" (
+    for %%a in (
+        "WakeEnabled" 
+        "WdkSelectiveSuspendEnable"
     ) do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%~i" /t REG_DWORD /d "1" /f
+        for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /s /f "%%~a" ^| findstr "HKEY"') do (
+            reg add "%%b" /v "%%~a" /t REG_DWORD /d "1" /f > nul
+        )
     )
 )
 
 :: enable PnP power savings
 %PowerShell% "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $True; $power_device.psbase.put()}}}}"
 
-:: enable acpi devices
+:: enable ACPI devices
 DevManView.exe /enable "ACPI Processor Aggregator"
 DevManView.exe /enable "Microsoft Windows Management Interface for ACPI"
 
 :: enable power throttling
 :: exists only on Intel CPUs, 6 generation or higher
+:: https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling/
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /f > nul 2>&1
 
 :: callable label which can be used in a post install
@@ -3252,10 +3295,10 @@ goto finish
 :mitE
 :: fully enable spectre variant 2 and meltdown mitigations
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f
-wmic cpu get name | findstr "Intel" > nul && (
+if "%CPU%"=="INTEL" (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "0" /f
 )
-wmic cpu get name | findstr "AMD" > nul && (
+if "%CPU%"=="AMD" (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "64" /f
 )
 
