@@ -2,7 +2,7 @@
   <br>
   <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
 </h1>
-<h4 align="center">An open and transparent Windows operating system, designed to optimize performance and latency.</h4>
+<h4 align="center">Isang bukas at transparent na operating system ng Windows, na idinisenyo upang i-optimize ang performance at latency.</h4>
 
 <p align="center">
   <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Installation</a>
