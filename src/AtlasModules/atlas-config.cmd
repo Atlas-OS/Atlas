@@ -15,33 +15,33 @@
 :: - Xyueta
 
 @echo off
-
 :: set variables for identifying the operating system
-:: - %releaseid% - release ID (e.g. 21H2, 22H2)
+:: - %releaseid% - release ID (e.g. 22H2)
 :: - %build% - current build of Windows (e.g. 10.0.19045.2006)
-for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "DisplayVersion"') do set "releaseid=%%a"
-for /f "tokens=4-7 delims=[.] " %%a in ('ver') do set "build=%%a.%%b.%%c.%%d"
+for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "DisplayVersion"') do set releaseid=%%a
+for /f "tokens=4-7 delims=[.] " %%a in ('ver') do set build=%%a.%%b.%%c.%%d
 
 :: set correct username variable of the currently logged in user
-for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
+for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set loggedinUsername=%%a
 
 :: set cpu brand
-wmic cpu get name | findstr "Intel" > nul && set "CPU=INTEL"
-wmic cpu get name | findstr "AMD" > nul && set "CPU=AMD"
-
-set "branch=%releaseid%"
-set "ver=v0.1.0"
-title Atlas Configuration Script %branch% %ver%
+wmic cpu get name | findstr "Intel" > nul && set CPU=INTEL
+wmic cpu get name | findstr "AMD" > nul && set CPU=AMD
 
 :: set other variables (do not touch)
-set "currentuser=%WinDir%\AtlasModules\Apps\NSudo.exe -U:C -P:E -Wait"
-set "PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
-set "setSvc=call :setSvc"
-set "unZIP=call :unZIP"
-set "firewallBlockExe=call :firewallBlockExe"
-set "install_log=%WinDir%\AtlasModules\logs\install.log"
-set "user_log=%WinDir%\AtlasModules\logs\userScript.log"
+set currentuser=%WinDir%\AtlasModules\Apps\NSudo.exe -U:C -P:E -Wait
+set PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command
+set setSvc=call :setSvc
+set unZIP=call :unZIP
+set firewallBlockExe=call :firewallBlockExe
+set install_log=%WinDir%\AtlasModules\logs\install.log
+set user_log=%WinDir%\AtlasModules\logs\userScript.log
 set system=true
+
+:: script settings
+set branch=%releaseid%
+set ver=v0.1.0
+title Atlas Configuration Script %branch% %ver%
 
 :: check for administrator privileges
 if "%~2"=="/skipAdminCheck" goto permSUCCESS
@@ -263,11 +263,11 @@ echo Please report this to the Atlas Discord server or GitHub.
 pause & exit /b 1
 
 :test
-set /p c="Test with echo on?"
-if %c% equ Y echo on
-set /p argPrompt="Which script would you like to test? E.g. (:testScript)"
+set /P c="Test with echo on? "
+if "%c%"=="Y" echo on
+set /P argPrompt="Which script would you like to test? E.g. (:testScript) "
 goto %argPrompt%
-echo You should not reach this message!
+echo You should not reach this message^!
 pause & exit /b 1
 
 :startup
@@ -278,7 +278,6 @@ setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\Atla
 if %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %install_log%)
 
-break > C:\Users\Public\success.txt
 echo false > C:\Users\Public\success.txt
 
 :auto
@@ -1293,7 +1292,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "DisablePageCombining" /t REG_DWORD /d "1" /f
 
 :: disable mitigations
-call :mitigationsDisable /function
+call :mitD /function
 
 :: disable TsX
 :: https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html
@@ -1581,7 +1580,6 @@ echo This log keeps track of which scripts have been run. This is never transfer
 echo -------------------------------------------------------------------------------------------------------------------- >> %user_log%
 
 :: clear false value
-break > C:\Users\Public\success.txt
 echo true > C:\Users\Public\success.txt
 echo %date% - %time% Post-Install finished redirecting to sub script...>> %install_log%
 exit
@@ -1626,7 +1624,7 @@ echo Applications like Microsoft Store and Spotify may not function correctly wh
 %setSvc% WlanSvc 4
 %setSvc% vwififlt 4
 set /P c="Would you like to disable the network icon? (disables two extra services) [Y/N]: "
-if /I "%c%" EQU "N" goto wifiDskip
+if /I "%c%"=="N" goto wifiDskip
 %setSvc% netprofm 4
 %setSvc% NlaSvc 4
 
@@ -1793,7 +1791,7 @@ pause
 
 :: detect if user is using a microsoft account
 %PowerShell% "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
-if "%MSACCOUNT%"=="NO" ( %setSvc% wlidsvc 4 ) ELSE ( echo "Microsoft Account detected, not disabling wlidsvc..." )
+if "%MSACCOUNT%"=="NO" (%setSvc% wlidsvc 4) ELSE (echo "Microsoft Account detected, not disabling wlidsvc...")
 
 :: disable the option for microsoft store in the "Open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "1" /f
@@ -1933,9 +1931,9 @@ echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended
 pause
 
 :existS
-set /P c=This will disable SearchApp and StartMenuExperienceHost, are you sure you want to continue [Y/N]?
-if /I "%c%" EQU "Y" goto continSS
-if /I "%c%" EQU "N" exit /b
+set /P c="This will disable SearchApp and StartMenuExperienceHost, are you sure you want to continue [Y/N]? "
+if /I "%c%"=="Y" goto continSS
+if /I "%c%"=="N" exit /b
 
 :continSS
 :: rename start menu
@@ -1988,9 +1986,9 @@ IF EXIST "%WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2t
 goto rmSSOS
 
 :existOS
-set /P c=It appears search and start are installed, would you like to disable them also? [Y/N]?
-if /I "%c%" EQU "Y" goto rmSSOS
-if /I "%c%" EQU "N" goto skipRM
+set /P c="It appears search and start are installed, would you like to disable them also? [Y/N]? "
+if /I "%c%"=="Y" goto rmSSOS
+if /I "%c%"=="N" goto skipRM
 
 :rmSSOS
 :: rename start menu
@@ -2421,7 +2419,7 @@ call :netcheck
 
 curl.exe -L# "https://live.sysinternals.com/procexp.exe" -o "%WinDir%\AtlasModules\Apps\procexp.exe"
 if %ERRORLEVEL%==1 (
-	echo Failed to download Process Explorer!
+	echo Failed to download Process Explorer^!
 	pause
 	exit /b 1
 )
@@ -2429,7 +2427,7 @@ if %ERRORLEVEL%==1 (
 :: Create the shortcut
 %PowerShell% "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\procexp.exe"""; $Shortcut.Save()"
 if %ERRORLEVEL%==1 (
-	echo Process Explorer shortcut could not be created in the start menu!
+	echo Process Explorer shortcut could not be created in the start menu^!
 )
 
 echo]
@@ -2452,16 +2450,16 @@ if not exist "procexp.exe" (
 	pause > nul
 	set procexpEnableInstall=true
 	echo]
-	goto procexpI
+	goto processExplorerInstall
 )
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\AtlasModules\Apps\procexp.exe" /f > nul
 %setSvc% pcw 4
 goto finishNRB
 
 :xboxU
-set /P c=This is IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]
-if /I "%c%" EQU "N" exit /b
-if /I "%c%" EQU "Y" goto :xboxConfirm
+set /P c="This is IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]"
+if /I "%c%"=="N" exit /b
+if /I "%c%"=="Y" goto :xboxConfirm
 exit
 
 :xboxConfirm
@@ -2493,7 +2491,7 @@ goto finishNRB
 :vcreR
 echo Uninstalling Visual C++ Redistributables...
 vcredist.exe /aiR
-echo Finished uninstalling!
+echo Finished uninstalling^!
 echo]
 echo Opening Visual C++ Redistributables installer, simply click next.
 vcredist.exe
@@ -2538,8 +2536,8 @@ echo]
 goto finish
 
 :uacSettings
-mode con:cols=46 lines=14
-chcp 65001 >nul
+mode con: cols=46 lines=14
+chcp 65001 > nul
 echo]
 echo [32m                 Enabling UAC
 echo   ──────────────────────────────────────────[0m
@@ -2643,9 +2641,9 @@ goto finish
 
 :printE
 echo You may be vulnerable to Print Nightmare Exploits while printing is enabled. 
-set /P c=Would you like to add Group Policies to protect against them? [Y/N]
-if /I "%c%" EQU "Y" goto nightmareGPO
-if /I "%c%" EQU "N" goto printECont
+set /P c="Would you like to add Group Policies to protect against them? [Y/N] "
+if /I "%c%"=="Y" goto nightmareGPO
+if /I "%c%"=="N" goto printECont
 goto nightmareGPO
 
 :nightmareGPO
@@ -2855,8 +2853,8 @@ goto finish
 :scoop
 echo Installing Scoop...
 set /P c="Review install script before executing? [Y/N]: "
-if /I "%c%" EQU "Y" curl "https://cdn.jsdelivr.net/gh/ScoopInstaller/Install@master/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad install.ps1
-if /I "%c%" EQU "N" curl "https://cdn.jsdelivr.net/gh/ScoopInstaller/Install@master/install.ps1" -o %WinDir%\AtlasModules\install.ps1
+if /I "%c%"=="Y" curl "https://cdn.jsdelivr.net/gh/ScoopInstaller/Install@master/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad install.ps1
+if /I "%c%"=="N" curl "https://cdn.jsdelivr.net/gh/ScoopInstaller/Install@master/install.ps1" -o %WinDir%\AtlasModules\install.ps1
 %PowerShell% "install.ps1 -RunAsAdmin"
 echo Refreshing environment for Scoop...
 call refreshenv.cmd
@@ -2876,8 +2874,8 @@ goto finish
 :choco
 echo Installing Chocolatey
 set /P c="Review install script before executing? [Y/N]: "
-if /I "%c%" EQU "Y" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad install.ps1
-if /I "%c%" EQU "N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1
+if /I "%c%"=="Y" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad install.ps1
+if /I "%c%"=="N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1
 %PowerShell% "install.ps1"
 echo Refreshing environment for Chocolatey...
 call refreshenv.cmd
@@ -3157,7 +3155,7 @@ echo To complete, enable Network Sharing in control panel.
 goto finish
 
 :diagD
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "0" /f >nul 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "0" /f
 %setSvc% DPS 4
 %setSvc% WdiServiceHost 4
 %setSvc% WdiSystemHost 4
@@ -3165,7 +3163,7 @@ echo %date% - %time% Diagnotics disabled...>> %user_log%
 goto finish
 
 :diagE
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "1" /f >nul 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "1" /f
 %setSvc% DPS 2
 %setSvc% WdiServiceHost 3
 %setSvc% WdiSystemHost 3
@@ -3214,7 +3212,7 @@ for %%a in (
 
 for /f "usebackq tokens=*" %%a in (
 	`multichoice.exe "Send To Debloat" "Tick the default 'Send To' context menu items that you want to disable here (un-checked items are enabled)" "Bluetooth device;Compressed (zipped) folder;Desktop (create shortcut);Mail recipient;Documents;Removable Drives"`
-) do (set "items=%%a")
+) do (set items=%%a)
 for %%a in ("%items:;=" "%") do (
 	if "%%~a"=="Bluetooth device" (set bluetooth=true)
 	if "%%~a"=="Compressed (zipped) folder" (set zipfolder=true)
@@ -3261,12 +3259,12 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Disab
 
 :: get current bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
-    set "mitigation_mask=%%a"
+    set mitigation_mask=%%a
 )
 
 :: set all bits to 2 (disable all mitigations)
 for /l %%a in (0,1,9) do (
-    set "mitigation_mask=!mitigation_mask:%%a=2!"
+    set mitigation_mask=!mitigation_mask:%%a=2!
 )
 
 :: apply mask to kernel
@@ -3286,7 +3284,7 @@ bcdedit /set nx AlwaysOff
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f
 
 :: callable label which can be used in a post install
-:: call :mitigationsDisable /function
+:: call :mitD /function
 if "%~1"=="/function" exit /b
 
 echo]
@@ -3319,12 +3317,12 @@ bcdedit /set nx AlwaysOn
 
 :: get current bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
-    set "mitigation_mask=%%a"
+    set mitigation_mask=%%a
 )
 
 :: set all bits to 1 (enable all mitigations)
 for /l %%a in (0,1,9) do (
-    set "mitigation_mask=!mitigation_mask:%%a=1!"
+    set mitigation_mask=!mitigation_mask:%%a=1!
 )
 
 :: apply mask to kernel
@@ -3335,7 +3333,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Mitig
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "1" /f
 
 :: callable label which can be used in a post install
-:: call :mitigationsEnable /function
+:: call :mitE /function
 if "%~1"=="/function" exit /b
 
 echo]
@@ -3350,8 +3348,8 @@ systeminfo > %WinDir%\AtlasModules\logs\systemInfo.log
 goto finish
 
 :invalidInput <label>
-if "%c%"=="" echo Empty input! Please enter Y or N. & goto %~1
-if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid input! Please enter Y or N. & goto %~1
+if "%c%"=="" echo Empty input^! Please enter Y or N. & goto %~1
+if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid input^! Please enter Y or N. & goto %~1
 goto :EOF
 
 :netcheck
@@ -3388,10 +3386,10 @@ if "%system%"=="false" (
 )
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f > nul || (
 	if "%system%"=="false" (
-		echo Failed to set service %~1 with start value %~2! Not running as System, access denied?
+		echo Failed to set service %~1 with start value %~2^! Not running as System, access denied?
 		exit /b 1
 	) else (
-		echo Failed to set service %~1 with start value %~2! Unknown error.
+		echo Failed to set service %~1 with start value %~2^! Unknown error.
 		exit /b 1
 	)
 )
