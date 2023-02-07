@@ -520,8 +520,11 @@ powercfg -setacvalueindex 11111111-1111-1111-1111-111111111111 e73a048d-bf27-4f1
 :: set the active scheme as the current scheme
 powercfg -setactive scheme_current
 
-if %ERRORLEVEL%==0 (echo %date% - %time% Power scheme configured...>> %install_log%
-) ELSE (echo %date% - %time% Failed to configure power scheme! >> %install_log%)
+:: disable power management features
+call :powerD /function
+
+if %ERRORLEVEL%==0 (echo %date% - %time% Power management features configured...>> %install_log%
+) ELSE (echo %date% - %time% Failed to configure power management features! >> %install_log%)
 
 :: set service split threshold
 reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "4294967295" /f
@@ -1235,9 +1238,6 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync" /v "DisableSyncOn
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Accessibility" /v "Enabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows" /v "Enabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync" /v "SyncPolicy" /t REG_DWORD /d "5" /f
-
-:: disable power settings
-call :powerD /function
 
 :: location tracking
 reg add "HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice" /v "AllowFindMyDevice" /t REG_DWORD /d "0" /f
@@ -2222,13 +2222,25 @@ DevManView.exe /enable "Microsoft Windows Management Interface for ACPI"
 :: exists only on Intel CPUs, 6 generation or higher
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /f > nul 2>&1
 
-:: set balanced power scheme - for laptops
-powercfg -setactive 381b4222-f694-41f0-9685-ff5bb260df2e
-
 :: callable label which can be used in a post install
 :: call :powerE /function
 if "%~1"=="/function" exit /b
 
+choice /c:yn /n /m "Do you want to use Balanced power plan instead of Atlas power plan (Better temperatures on laptops) "
+if %ERRORLEVEL%==1 goto powerB
+if %ERRORLEVEL%==2 goto powerA
+
+:powerA
+:: set atlas - high performance power scheme
+powercfg -setactive 11111111-1111-1111-1111-111111111111
+goto powerC
+
+:powerB
+:: set balanced power scheme - for laptops
+powercfg -setactive 381b4222-f694-41f0-9685-ff5bb260df2e
+goto powerC
+
+:powerC
 if %ERRORLEVEL%==0 echo %date% - %time% Power features enabled...>> %user_log%
 goto finish
 
