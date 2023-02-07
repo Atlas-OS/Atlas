@@ -2719,24 +2719,41 @@ goto finish
 
 :staticIP
 call :netcheck
-set /P dns1="Set DNS Server (e.g. 1.1.1.1): "
-for /f "tokens=4" %%a in ('netsh int show interface ^| find "Connected"') do set devicename=%%a
-:: for /f "tokens=2 delims=[]" %%a in ('ping -4 -n 1 %ComputerName% ^| findstr [') do set LocalIP=%%a
-for /f "tokens=3" %%a in ('netsh int ip show config name^="%devicename%" ^| findstr "IP Address:"') do set LocalIP=%%a
-for /f "tokens=3" %%a in ('netsh int ip show config name^="%devicename%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%a
-for /f "tokens=2 delims=()" %%a in ('netsh int ip show config name^="Ethernet" ^| findstr "Subnet Prefix:"') do for /f "tokens=2" %%i in ("%%a") do set DHCPSubnetMask=%%a
-netsh int ipv4 set address name="%devicename%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway%
-%PowerShell% "Set-DnsClientServerAddress -InterfaceAlias "%devicename%" -ServerAddresses %dns1%"
-echo %date% - %time% Static IP set! (%LocalIP%)(%DHCPGateway%)(%DHCPSubnetMask%) >> %user_log%
+set /P DNS1="Set primary DNS Server (e.g. 1.1.1.1): "
+set /P DNS2="Set alternate DNS Server (e.g. 1.0.0.1): "
+for /f "tokens=4" %%a in ('netsh int show interface ^| find "Connected"') do set DeviceName=%%a
+for /f "tokens=3" %%a in ('netsh int ip show config name^="%DeviceName%" ^| findstr "IP Address:"') do set LocalIP=%%a
+for /f "tokens=3" %%a in ('netsh int ip show config name^="%DeviceName%" ^| findstr "Default Gateway:"') do set DHCPGateway=%%a
+for /f "tokens=2 delims=()" %%a in ('netsh int ip show config name^="%DeviceName%" ^| findstr /r "(.*)"') do for %%i in (%%a) do set DHCPSubnetMask=%%i
 
+:: set static ip
+netsh int ipv4 set address name="%DeviceName%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway% > nul 2 >&1
+netsh int ipv4 set dns name="%DeviceName%" static %DNS1% primary > nul 2>&1
+netsh int ipv4 add dns name="%DeviceName%" %DNS2% index=2 > nul 2>&1
+
+:: display details about the connection
+echo Interface: %DeviceName%
 echo Private IP: %LocalIP%
-echo Gateway: %DHCPGateway%
 echo Subnet Mask: %DHCPSubnetMask%
-echo If this information appears to be incorrect or is blank, please report it on Discord (preferred) or Github.
+echo Gateway: %DHCPGateway%
+echo Primary DNS: %DNS1%
+echo Alternate DNS: %DNS2%
+echo.
+echo If this information appears to be incorrect or is blank, please report it on Discord or Github.
+
+choice /c:yn /n /m "Do you want to disable static ip services (break internet icon)? [Y/N] "
+if %ERRORLEVEL%==1 goto staticIPS
+if %ERRORLEVEL%==2 goto staticIPC
+goto staticIPS
+
+:staticIPS
+%setSvc% Dhcp 4
+%setSvc% netprofm 4
+%setSvc% nlasvc 4
+
+:staticIPC
+echo %date% - %time% Static IP set! (%DeviceName%) (%LocalIP%) (%DHCPSubnetMask%) (%DHCPGateway%)( %DNS1%) (%DNS2%) >> %user_log%
 goto finish
-:: %setSvc% Dhcp 4
-:: %setSvc% NlaSvc 4
-:: %setSvc% netprofm 4
 
 :DSCPauto
 for /f "tokens=* delims=\" %%i in ('filepicker.exe exe') do (
