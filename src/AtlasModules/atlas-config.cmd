@@ -215,8 +215,9 @@ revertNVPState
 hdcpD
 hdcpE
 
-"Set Automatic Static IP address"
+"Static IP"
 staticip
+revertstaticIP
 
 "Network settings"
 netAtlasDefault
@@ -2749,10 +2750,26 @@ goto staticIPS
 :staticIPS
 %setSvc% Dhcp 4
 %setSvc% netprofm 4
-%setSvc% nlasvc 4
+%setSvc% NlaSvc 4
 
 :staticIPC
 echo %date% - %time% Static IP set! (%DeviceName%) (%LocalIP%) (%DHCPSubnetMask%) (%DHCPGateway%)( %DNS1%) (%DNS2%) >> %user_log%
+goto finish
+
+:revertstaticIP
+for /f "tokens=4" %%a in ('netsh int show interface ^| find "Connected"') do set DeviceName=%%a
+
+:: set dhcp instead of static ip
+netsh int ipv4 set address name="%DeviceName%" dhcp
+netsh int ipv4 set dnsservers name="%DeviceName%" dhcp
+netsh int ipv4 show config "%DeviceName%"
+
+:: enable static ip services (fixes internet icon)
+%setSvc% Dhcp 2
+%setSvc% netprofm 3
+%setSvc% nlasvc 2
+
+echo %date% - %time% Static IP reverted! >> %user_log%
 goto finish
 
 :DSCPauto
