@@ -552,7 +552,7 @@ for %%a in (
     "WdiContextLog"
     "WiFiSession"
 ) do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\%%a" /v "Start" /t REG_DWORD /d "0" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\%%~a" /v "Start" /t REG_DWORD /d "0" /f
 )
 if %ERRORLEVEL%==0 (echo %date% - %time% Disabled unnecessary autologgers...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to disable unnecessary autologgers! >> %install_log%)
@@ -633,8 +633,8 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
         "WakeOnSlot"
         "WakeUpModeCap"
     ) do (
-        for /f %%j in ('reg query "%%a" /v "%%i" ^| findstr "HKEY"') do (
-            reg add "%%j" /v "%%i" /t REG_SZ /d "0" /f
+        for /f %%j in ('reg query "%%a" /v "%%~i" ^| findstr "HKEY"') do (
+            reg add "%%j" /v "%%~i" /t REG_SZ /d "0" /f
         )
     )
 )
@@ -700,15 +700,15 @@ set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Window
 echo Windows Registry Editor Version 5.00 >> %filename%
 echo] >> %filename%
 for /f "skip=1" %%a in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
-	    set svc=%%a
-	    set svc=!svc: =!
-	    for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-            set /a start=%%a
-            echo !start!
-            echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
-            echo "Start"=dword:0000000!start! >> %filename%
-            echo] >> %filename%
-	    )
+    set svc=%%a
+    set svc=!svc: =!
+	for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
+        set /a start=%%a
+        echo !start!
+        echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
+        echo "Start"=dword:0000000!start! >> %filename%
+        echo] >> %filename%
+	)
 ) > nul 2>&1
 
 :: backup default windows drivers
@@ -1069,7 +1069,7 @@ for %%a in (
     "SubscribedContent-338387Enabled"
     "SubscribedContent-338388Enabled"
 ) do (
-    %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "%%a" /t REG_DWORD /d "0" /f
+    %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "%%~a" /t REG_DWORD /d "0" /f
 )
 
 :: disable windows spotlight features
@@ -1505,7 +1505,7 @@ for %%a in (
     "VBSFile"
     "WSFFile"
 ) do (
-    reg add "HKCR\%%a\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f
+    reg add "HKCR\%%~a\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f
 )
 
 :: add .bat, .cmd, .reg and .ps1 to the 'New' context menu
@@ -1683,7 +1683,7 @@ for %%a in (
     "vmbusr"
     "vpci"
 ) do (
-    %setSvc% %%a 4 > nul 2>nul
+    %setSvc% %%~a 4 > nul 2>nul
 )
 
 :: disable services
@@ -1700,7 +1700,7 @@ for %%a in (
     "vmicvmsession"
     "vmicvss"
 ) do (
-    %setSvc% %%a 4 > nul 2>nul
+    %setSvc% %%~a 4 > nul 2>nul
 )
 
 :: disable system devices
@@ -1769,7 +1769,7 @@ for %%a in (
 	"vmicvmsession"
 	"vmicvss"
 ) do (
-    %setSvc% %%a 3 > nul 2>nul
+    %setSvc% %%~a 3 > nul 2>nul
 )
 
 :: enable system devices
@@ -2190,7 +2190,7 @@ for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "US
         "WakeEnabled"
         "WdfDirectedPowerTransitionEnable"
     ) do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%i" /t REG_DWORD /d "0" /f
+        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%~i" /t REG_DWORD /d "0" /f
     )
 )
 
@@ -2232,7 +2232,7 @@ for /f "tokens=*" %%a in ('wmic path Win32_PnPEntity GET DeviceID ^| findstr "US
         "WakeEnabled"
         "WdfDirectedPowerTransitionEnable"
     ) do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%i" /t REG_DWORD /d "1" /f
+        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters" /v "%%~i" /t REG_DWORD /d "1" /f
     )
 )
 
@@ -2294,7 +2294,7 @@ for %%a in (
     "wsfile"
     "wshfile"
 ) do (
-    ftype %%a="%WinDir%\System32\notepad.exe" "%1"
+    ftype %%~a="%WinDir%\System32\notepad.exe" "%1"
 )
 
 :: - ElamDrivers?
@@ -2591,7 +2591,7 @@ for %%a in (
     "VBSFile"
     "WSFFile"
 ) do (
-    reg add "HKCR\%%a\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f
+    reg add "HKCR\%%~a\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f
 )
 
 %setSvc% Spooler 4
@@ -2640,7 +2640,7 @@ for %%a in (
     "VBSFile"
     "WSFFile"
 ) do (
-    reg delete "HKCR\%%a\shell\print" /v "ProgrammaticAccessOnly" /f
+    reg delete "HKCR\%%~a\shell\print" /v "ProgrammaticAccessOnly" /f
 )
 
 %setSvc% Spooler 2
@@ -2706,8 +2706,8 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
         "WakeOnSlot"
         "WakeUpModeCap"
     ) do (
-        for /f %%j in ('reg query "%%a" /v "%%i" ^| findstr "HKEY"') do (
-            reg add "%%j" /v "%%i" /t REG_SZ /d "0" /f
+        for /f %%j in ('reg query "%%a" /v "%%~i" ^| findstr "HKEY"') do (
+            reg add "%%j" /v "%%~i" /t REG_SZ /d "0" /f
         )
     )
 )
@@ -3166,7 +3166,7 @@ for %%a in (
 	"documents"
 	"removableDrives"
 ) do (
-	set "%%a=false"
+	set "%%~a=false"
 )
 
 for /f "usebackq tokens=*" %%a in (
