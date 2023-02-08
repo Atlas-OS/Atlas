@@ -22,7 +22,7 @@ for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\Current
 for /f "tokens=4-7 delims=[.] " %%a in ('ver') do set build=%%a.%%b.%%c.%%d
 
 :: set correct username variable of the currently logged in user
-for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set loggedinUsername=%%a
+for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set loggedinusername=%%a
 
 :: set cpu brand
 wmic cpu get name | findstr "Intel" > nul && set CPU=INTEL
@@ -31,11 +31,11 @@ wmic cpu get name | findstr "AMD" > nul && set CPU=AMD
 :: set other variables (do not touch)
 set currentuser=%WinDir%\AtlasModules\Apps\NSudo.exe -U:C -P:E -Wait
 set PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command
-set setSvc=call :setSvc
-set unZIP=call :unZIP
-set firewallBlockExe=call :firewallBlockExe
 set install_log=%WinDir%\AtlasModules\logs\install.log
 set user_log=%WinDir%\AtlasModules\logs\userScript.log
+set firewallBlockExe=call :firewallBlockExe
+set setSvc=call :setSvc
+set unZIP=call :unZIP
 set system=true
 
 :: script settings
@@ -167,7 +167,7 @@ indexE
 
 "Search and start menu services"
 SearchStartDisable
-enableStartSearch
+SearchStartEnable
 
 "Unlock start menu layout"
 startlayout
@@ -1271,7 +1271,7 @@ reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\Defa
 reg add "HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\Shell\Open\Command" /ve /t REG_SZ /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}" /ve /t REG_SZ /d "All Tasks" /f
 
-:: disable hyper-v and vbs as default
+:: disable hyper-v and virtualization based security as default
 :: https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Windows.DeviceGuard::VirtualizationBasedSecuritye
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "EnableVirtualizationBasedSecurity" /d "0" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /t REG_DWORD /v "RequirePlatformSecurityFeatures" /d "1" /f
@@ -1333,6 +1333,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsRunInBa
 :: disable notifications/action center
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" /v "NoTileApplicationNotification" /t REG_DWORD /d "1" /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
 
 :: unpin all quick access shortcuts by default
 %currentuser% reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.WiFi" /t REG_NONE /d "" /f
@@ -1350,7 +1351,6 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsRunInBa
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings" /v "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings" /v "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "LockScreenToastEnabled" /t REG_DWORD /d "0" /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
 
 :: disable autoplay and autorun
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" /v "DisableAutoplay" /t REG_DWORD /d "1" /f
@@ -1419,7 +1419,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance"
 %currentuser% %PowerShell% "New-ItemProperty -Path 'HKCU:\AppEvents\Schemes' -Name '(Default)' -Value '.None' -Force | Out-Null"
 %currentuser% %PowerShell% "Get-ChildItem -Path 'HKCU:\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
 
-:: disable audio excludive mode on all devices
+:: disable audio exclusive mode on all devices
 for /f "delims=" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture"') do (
     reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},3" /t REG_DWORD /d "0" /f
     reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},4" /t REG_DWORD /d "0" /f
@@ -1482,9 +1482,9 @@ reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Shell Extens
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "link" /t REG_BINARY /d "00000000" /f
 
 :: debloat 'Send To' context menu, hidden files do not show up in the 'Send To' context menu
-attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
-attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
-attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
+attrib +h "C:\Users\%loggedinusername%\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+attrib +h "C:\Users\%loggedinusername%\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
+attrib +h "C:\Users\%loggedinusername%\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
 
 :: remove print from context menu
 reg add "HKCR\SystemFileAssociations\image\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f
@@ -1963,7 +1963,7 @@ NSudo.exe -U:C explorer.exe
 if %ERRORLEVEL%==0 echo %date% - %time% Search and Start Menu disabled...>> %user_log%
 goto finish
 
-:enableStartSearch
+:SearchStartEnable
 :: rename start menu
 chdir /d %WinDir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 ren StartMenuExperienceHost.old StartMenuExperienceHost.exe
