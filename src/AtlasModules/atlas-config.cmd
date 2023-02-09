@@ -1810,7 +1810,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" 
 %setSvc% FileInfo 4
 %setSvc% FileCrypt 4
 if %ERRORLEVEL%==0 echo %date% - %time% Microsoft Store disabled...>> %user_log%
-if "%~1" EQU "int" goto :EOF
+if "%~1"=="int" goto :EOF
 goto finish
 
 :storeE
@@ -1859,7 +1859,7 @@ if "%system%"=="true" (
 sc stop BthAvctpSvc > nul 2>nul
 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth disabled...>> %user_log%
-if "%~1" EQU "int" goto :EOF
+if "%~1"=="int" goto :EOF
 goto finish
 
 :btE
@@ -2519,7 +2519,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution 
 %setSvc% luafv 4
 %setSvc% Appinfo 4
 if %ERRORLEVEL%==0 echo %date% - %time% UAC disabled...>> %user_log%
-if "%~1" EQU "int" goto :EOF
+if "%~1"=="int" goto :EOF
 goto finish
 
 :uacE
@@ -2559,7 +2559,7 @@ exit
 %setSvc% mpssvc 4
 %setSvc% BFE 4
 if %ERRORLEVEL%==0 echo %date% - %time% Firewall disabled...>> %user_log%
-if "%~1" EQU "int" goto :EOF
+if "%~1"=="int" goto :EOF
 goto finish
 
 :firewallE
@@ -2606,7 +2606,7 @@ goto finish
 %setSvc% LanmanWorkstation 2
 DISM /Online /Enable-Feature /FeatureName:SmbDirect /NoRestart
 if %ERRORLEVEL%==0 echo %date% - %time% Workstation enabled...>> %user_log%
-if "%~1" EQU "int" goto :EOF
+if "%~1"=="int" goto :EOF
 goto finish
 
 :printD
