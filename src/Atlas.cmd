@@ -1,6 +1,6 @@
 @echo off
 SETLOCAL EnableDelayedExpansion
-echo Please wait. This may take a moment. DO NOT CLOSE THIS WINDOW^!
+echo Please wait. This may take a moment. DO NOT CLOSE THIS WINDOW^^!
 
 :start
 set success=
@@ -13,7 +13,7 @@ set /p success= < C:\Users\Public\success.txt
 if %success% equ true goto success
 
 :: if not, restart script
-echo POST INSTALL SCRIPT CLOSED^!
+echo POST INSTALL SCRIPT CLOSED^^!
 echo Relaunching...
 goto start
 

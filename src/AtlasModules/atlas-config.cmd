@@ -267,7 +267,7 @@ set /P c="Test with echo on? "
 if "%c%"=="Y" echo on
 set /P argPrompt="Which script would you like to test? E.g. (:testScript) "
 goto %argPrompt%
-echo You should not reach this message^!
+echo You should not reach this message^^!
 pause & exit /b 1
 
 :startup
@@ -2419,7 +2419,7 @@ call :netcheck
 
 curl.exe -L# "https://live.sysinternals.com/procexp.exe" -o "%WinDir%\AtlasModules\Apps\procexp.exe"
 if %ERRORLEVEL%==1 (
-	echo Failed to download Process Explorer^!
+	echo Failed to download Process Explorer^^!
 	pause
 	exit /b 1
 )
@@ -2427,7 +2427,7 @@ if %ERRORLEVEL%==1 (
 :: Create the shortcut
 %PowerShell% "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\procexp.exe"""; $Shortcut.Save()"
 if %ERRORLEVEL%==1 (
-	echo Process Explorer shortcut could not be created in the start menu^!
+	echo Process Explorer shortcut could not be created in the start menu^^!
 )
 
 echo]
@@ -2491,7 +2491,7 @@ goto finishNRB
 :vcreR
 echo Uninstalling Visual C++ Redistributables...
 vcredist.exe /aiR
-echo Finished uninstalling^!
+echo Finished uninstalling^^!
 echo]
 echo Opening Visual C++ Redistributables installer, simply click next.
 vcredist.exe
@@ -3348,8 +3348,8 @@ systeminfo > %WinDir%\AtlasModules\logs\systemInfo.log
 goto finish
 
 :invalidInput <label>
-if "%c%"=="" echo Empty input^! Please enter Y or N. & goto %~1
-if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid input^! Please enter Y or N. & goto %~1
+if "%c%"=="" echo Empty input^^! Please enter Y or N. & goto %~1
+if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid input^^! Please enter Y or N. & goto %~1
 goto :EOF
 
 :netcheck
@@ -3386,10 +3386,10 @@ if "%system%"=="false" (
 )
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f > nul || (
 	if "%system%"=="false" (
-		echo Failed to set service %~1 with start value %~2^! Not running as System, access denied?
+		echo Failed to set service %~1 with start value %~2^^! Not running as System, access denied?
 		exit /b 1
 	) else (
-		echo Failed to set service %~1 with start value %~2^! Unknown error.
+		echo Failed to set service %~1 with start value %~2^^! Unknown error.
 		exit /b 1
 	)
 )
