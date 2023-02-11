@@ -81,7 +81,7 @@ Ayrıca tartışmalar sekmesinde [özel bir alanımız var](https://github.com/A
 
 ## Feragatname
 
-Bu imajlardan herhangi birini kullanarak, değiştirirek ya da kullanarak [Microsoft'un Şartlarını](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) kabul etmiş sayılırsınız. Bu resimlerin hiçbiri önceden etkinleştirilmiş değildir,
+Bu imajlardan herhangi birini kullanarak, değiştirirek ya da kullanarak [Microsoft'un Şartlarını](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) kabul etmiş sayılırsınız. Bu imajların hiçbiri önceden etkinleştirilmiş değildir,
 gerçek bir ürün anahtarı kullanmak **zorundasınız**.
 
 ## Translation contributors (Çeviriye katkıda bulunanlar)
