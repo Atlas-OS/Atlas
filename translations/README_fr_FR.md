@@ -2,7 +2,7 @@
   <br>
   <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
 </h1>
-<h4 align="center">Un système d'exploitation Windows ouvert et respecteux de la vie privé, créé pour optimiser la performance et la latence.</h4>
+<h4 align="center">Un système d'exploitation Windows ouvert et respecteux de la vie privée, créé pour optimiser la performance et la latence.</h4>
 
 <p align="center">
   <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Installation</a>
@@ -15,18 +15,18 @@
 </p>
 
 
-# Qu'est-ce Atlas?
+# Qu'est-ce Atlas ?
 
-Atlas est une version modifiée de Windows 10 qui enlève tous les défauts de Windows, qui diminuent les performances de jeu. Nous sommes un projet en source ouverte et respecteux de la vie privée qui vise pour l'égalité pour les joueurs, que tu ais une pomme de terre, ou un ordinateur de jeu.
+Atlas est une version modifiée de Windows 10 qui supprime tous les défauts de Windows qui diminuent les performances de jeu. Nous sommes un projet Open Source respecteux de la vie privée qui recherche l'égalité pour les joueurs, que tu ais une pomme de terre, ou un ordinateur de jeu.
 
-Même si nous nous focalisons est sur la performance, nous sommes aussi un très bon choix pour réduire la latence système, la latence de reseau, la latence d'entrée, et pour garder votre système privé.
+Nous nous présentons également comme une excellente option pour réduire la latence du système, la latence du réseau, le décalage en entrée pour garder votre système privé tout en nous concentrant principalement sur les performances.
 
 ## Table des matières (Liens wiki en Anglais.)
 
 - [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [Qu'est-ce le projet Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [Comment installer Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [Qu'est-ce qui est enlevé dans Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
+  - [Qu'est-ce le projet Atlas ?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
+  - [Comment installer Atlas ?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
+  - [Qu'est-ce qui est enlevé dans Atlas ?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Après l'installation](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
 - [Kit d'art](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
@@ -35,12 +35,12 @@ Même si nous nous focalisons est sur la performance, nous sommes aussi un très
 
 ### **Respect de la vie privée**
 
-Atlas enlève toutes les types d'éspionnage dans Windows et renforce des centaines de <em>group policies</em> pour minimizer la collecte de données. Pour les choses en-dehors de Windows nous pouvons pas les rendre plus privé, comme les sites Web que vous visitez.
+Atlas supprime tous les types de traqueurs de suivi intégrés dans Windows et implémente de nombreuses <em>stratégies de groupe</em> pour minimiser la collecte de données. Pour les éléments hors de portée de Windows nous ne pouvons pas augmenter la confidentialité, comme pour les sites Web que vous visitez.
 
-### **Sécurisé**
+### **Sécuriser**
 
-Atlas vise être le plus sécurisé possible sans perte de performance. Nous faisons cela en désactivant les fonctionnalités qui peuvent causer une fuite de données ou qui peuvent être éxploités. Il y a des éxceptions pour ça comme [Spectre](https://spectreattack.com/spectre.pdf) et [Meltdown](https://meltdownattack.com/meltdown.pdf). Ces mesures sécuritaires sont enlevées pour améliorer les performances.
-Si une mesure sécuritaire reduit la pérformance, elle va être enlevée. Ci-dessous des mesures sécuritaires qui ont étés alterés ou enlevées, si elles ont un (P), ce sont des risques de sécurité qui ont été corrigé. (Les articles ci-dessous sont en Anglais.)
+Atlas vise être le plus sécurisé possible sans perte de performance. Nous y parvenons en désactivant les fonctionnalités qui peuvent causer une fuite de données ou qui peuvent être éxploités. Il y a des éxceptions pour ça comme [Spectre](https://spectreattack.com/spectre.pdf) et [Meltdown](https://meltdownattack.com/meltdown.pdf). Ces mesures sécuritaires sont supprimées pour améliorer les performances.
+Si une mesure sécuritaire reduit la pérformance, elle va être enlevée. Ci-dessous des mesures sécuritaires qui ont été alterées ou enlevées, si elles ont un (P), ce sont des risques de sécurité qui ont été corrigés. (Les articles ci-dessous sont en Anglais.)
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
@@ -50,7 +50,7 @@ Si une mesure sécuritaire reduit la pérformance, elle va être enlevée. Ci-de
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Éxtraction de données possible_)
 
-### **Nettoyé**
+### **Nettoyer**
 
 Atlas est éxtrêmement nettoyé, les applications préinstallées sont enlevées, et d'autres composants du système sont enlevés. Même si cela peut casser certaines applications, cela réduit fortement la taille de l'ISO et de l'installation. Les fonctionnalités comme Windows Defender et similaires sont complètement retirés. Cette modification est purement centrée sur le jeu, mais la majorité des applications de travail et d'éducation fonctionnent. [Regardez ce que nous avons enlevées d'autres dans notre FAQ (En Anglais)](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
