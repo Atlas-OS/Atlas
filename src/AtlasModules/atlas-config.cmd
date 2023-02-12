@@ -1547,8 +1547,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Registry configuration applied...>> %in
 
 :: lowering dual boot choice time
 :: no, this does not affect single OS boot time.
-:: this is directly shown in microsoft docs https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/
---timeout#parameters
+:: this is directly shown in microsoft docs https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/--timeout#parameters
 bcdedit /timeout 10
 
 :: setting to "no" provides worse results, delete the value instead.
