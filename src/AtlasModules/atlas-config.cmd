@@ -397,10 +397,6 @@ net user defaultuser0 /delete > nul 2>nul
 :: disable reserved storage
 DISM /Online /Set-ReservedStorageState /State:Disabled
 
-:: disable automatic repair
-bcdedit /set recoveryenabled no
-fsutil repair set C: 0
-
 :: rebuild performance counters
 :: https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/manually-rebuild-performance-counters
 lodctr /r > nul 2>nul
@@ -1551,7 +1547,8 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Registry configuration applied...>> %in
 
 :: lowering dual boot choice time
 :: no, this does not affect single OS boot time.
-:: this is directly shown in microsoft docs https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--timeout#parameters
+:: this is directly shown in microsoft docs https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/
+--timeout#parameters
 bcdedit /timeout 10
 
 :: setting to "no" provides worse results, delete the value instead.
@@ -1563,6 +1560,9 @@ bcdedit /set disabledynamictick Yes
 
 :: use legacy boot menu
 bcdedit /set bootmenupolicy Legacy
+
+:: disable automatic repair
+bcdedit /set recoveryenabled no
 
 :: make dual boot menu more descriptive
 bcdedit /set description Atlas %branch% %ver%
