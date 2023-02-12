@@ -50,6 +50,7 @@ Windows Registry Editor Version 5.00
 "SusClientId"="00000000-0000-0000-0000-000000000000"
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent]
+"DisableSoftLanding"=dword:00000001
 "DisableWindowsConsumerFeatures"=dword:00000001
 
 ; disable first logon animation

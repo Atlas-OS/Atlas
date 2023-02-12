@@ -1124,15 +1124,29 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCloud
 :: do not display or track items in jump lists from remote locations
 %currentuser% reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoRemoteDestinations" /t REG_DWORD /d "1" /f
 
+:: disable content delivery manager
+:: disable pre-installed apps
+:: disable windows welcome experience 
 :: disable suggested content in immersive control panel
 :: disable fun facts, tips, tricks on windows spotlight
 :: disable start menu suggestions
+:: disable get tips, tricks, and suggestions as you use windows
 for %%a in (
+    "ContentDeliveryAllowed"
+    "OemPreInstalledAppsEnabled"
+    "PreInstalledAppsEnabled"
+    "PreInstalledAppsEverEnabled"
+    "SilentInstalledAppsEnabled"
+    "SubscribedContent-310093Enabled"
     "SubscribedContent-338393Enabled"
     "SubscribedContent-353694Enabled"
     "SubscribedContent-353696Enabled"
     "SubscribedContent-338387Enabled"
+    "RotatingLockScreenOverlayEnabled"
     "SubscribedContent-338388Enabled"
+    "SystemPaneSuggestionsEnabled"
+    "SubscribedContent-338389Enabled"
+    "SoftLandingEnabled"
 ) do (
     %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "%%~a" /t REG_DWORD /d "0" /f
 )
