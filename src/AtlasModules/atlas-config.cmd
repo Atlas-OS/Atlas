@@ -3390,18 +3390,9 @@ if "%~1"=="/function" exit /b
 echo]
 goto finish
 
-:::::::::::::::::::
-:: CMD Functions ::
-:::::::::::::::::::
-
-:debugProfile
-systeminfo > %WinDir%\AtlasModules\logs\systemInfo.log
-goto finish
-
-:invalidInput <label>
-if "%c%"=="" echo Empty input^^! Please enter Y or N. & goto %~1
-if "%c%" NEQ "Y" if "%c%" NEQ "N" echo Invalid input^^! Please enter Y or N. & goto %~1
-goto :EOF
+:::::::::::::::::::::
+:: Batch Functions ::
+:::::::::::::::::::::
 
 :netcheck
 ping -n 1 -4 1.1.1.1 | find "time=" > nul 2>nul
