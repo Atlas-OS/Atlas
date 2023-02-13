@@ -26,6 +26,7 @@
 <kbd>[<img title="Deutsch" alt="Deutsch" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/de.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_de_DE.md)</kbd>
 <kbd>[<img title="Türkçe" alt="Türkçe" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/tr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_tr_TR.md)</kbd>
 <kbd>[<img title="Українська" alt="Українська" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ua.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ua_UA.md)</kbd>
+<kbd>[<img title="'Merican" alt="'Merican" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/us.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_en_US.md)</kbd>
 
 #### _Want to help us by translating documents? Please follow this [README](translations/README.md)._
 
