@@ -61,7 +61,7 @@ SETLOCAL EnableDelayedExpansion
 :: append any new labels/scripts here (with a comment)
 :: anything in "" is a comment
 
-:: it has to be the same as the batch labels here!
+:: it has to be the same as the batch labels here
 
 for %%a in (
 
@@ -1204,7 +1204,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v "DisablePCA" /t 
 %currentuser% reg add "HKCU\Control Panel\Mouse" /v "MouseThreshold2" /t REG_SZ /d "0" /f
 %currentuser% reg add "HKCU\Control Panel\Mouse" /v "MouseHoverTime" /t REG_SZ /d "0" /f
 
-:: disable ease of access settings
+:: disable annoying keyboard and mouse features
 %currentuser% reg add "HKCU\Control Panel\Accessibility\HighContrast" /v "Flags" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Control Panel\Accessibility\Keyboard Response" /v "Flags" /t REG_DWORD /d "0" /f
 %currentuser% reg add "HKCU\Control Panel\Accessibility\MouseKeys" /v "Flags" /t REG_DWORD /d "0" /f
