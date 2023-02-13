@@ -275,6 +275,7 @@ pause & exit /b 1
 mkdir %WinDir%\AtlasModules\logs
 cls & echo Please wait, this may take a moment.
 setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\AtlasModules\Other;%WinDir%\AtlasModules\Tools;" -m  > nul 2>nul
+call %WinDir%\AtlasModules\refreshenv.cmd
 if %ERRORLEVEL%==0 (echo %date% - %time% Atlas Modules path set...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to set Atlas Modules path! >> %install_log%)
 
