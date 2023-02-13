@@ -1989,13 +1989,19 @@ goto finish
 :depD
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 echo If you get issues with some anti-cheats, please re-enable DEP.
+%PowerShell% "Set-ProcessMitigation -System -Disable DEP, EmulateAtlThunks"
 bcdedit /set nx AlwaysOff
 if %ERRORLEVEL%==0 echo %date% - %time% Data Execution Policy disabled...>> %user_log%
 goto finish
 
 :depE
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
-bcdedit /set nx OptIn
+%PowerShell% "Set-ProcessMitigation -System -Enable DEP, EmulateAtlThunks"
+bcdedit /set nx Optin
+:: enable cfg for valorant related processes
+for %%a in (valorant valorant-win64-shipping vgtray vgc) do (
+    %PowerShell% -NoProfile -Command "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
+)
 if %ERRORLEVEL%==0 echo %date% - %time% Data Execution Policy enabled...>> %user_log%
 goto finish
 
