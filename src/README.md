@@ -1,7 +1,7 @@
 # Atlas source
 
 Here you can find sources files used to build Atlas:
-- NTLite preset (Atlas_1803.xml/Atlas_20H2.xml/Atlas_22H2.xml)
+- NTLite preset (1803.xml/20H2.xml/22H2.xml)
 - Registry files
 - Scripts
 - Others, such as programs needed to interface with Windows easier
