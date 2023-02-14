@@ -19,7 +19,7 @@ There are plenty of reasons to build Atlas from source such as:
   - You can use Free license, but usage of NTLite will be limited.
 - An archive extractor (e.g. 7-Zip)
 - A local copy of the Atlas repository.
-- A default Windows build from Microsoft. ([1](https://tb.rg-adguard.net) [2](https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-iso-download-tool) [3](https://uupdump.net))
+- A default Windows build from Microsoft. ([1](https://github.com/pbatard/Fido/releases) [2](https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-iso-download-tool) [3](https://uupdump.net))
 
 ### Getting started
 
