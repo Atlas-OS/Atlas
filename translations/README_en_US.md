@@ -58,8 +58,8 @@ Y'all better believe that Atlas is the most performant version of Windows you'll
 
 - Got us a customized power scheme, cranks up that performance like a hot rod
 - Thinned out them services and drivers, runnin' lean and mean
-- urned off that audio exclusive, yer games and movies'll sound just fine
-= Unplugged them unneeded devices, not a wire or cable in sight
+- Turned off that audio exclusive, yer games and movies'll sound just fine
+- Unplugged them unneeded devices, not a wire or cable in sight
 - Cut the power savings, full steam ahead all the time
 - Done disabled them performance-hungry security measures, keepin' yer games runnin' smooth
 - Automatically enabled MSI mode on all them devices, now that's a hot rod
