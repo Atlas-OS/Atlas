@@ -1,0 +1,1 @@
+hardentools may make your system more secure (and possibly make up for the lack of Spectre and Meltdown patches), but may make your system more difficult to use. It may also interfere with anti-cheat software.
