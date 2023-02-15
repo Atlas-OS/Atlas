@@ -748,7 +748,7 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% fdPHost 4
 %setSvc% FDResPub 4
 %setSvc% FontCache 4
-%setSvc% FontCache3.0.0.0 3
+%setSvc% FontCache3.0.0.0 4
 %setSvc% gcs 4
 %setSvc% hvhost 4
 %setSvc% icssvc 4
@@ -758,14 +758,14 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% IpxlatCfgSvc 4
 :: %setSvc% KeyIso 4 < causes issues with nvcleanstall's driver telemetry tweak
 %setSvc% KtmRm 4
-%setSvc% LanmanServer 3
+%setSvc% LanmanServer 4
 %setSvc% LanmanWorkstation 4
 %setSvc% lmhosts 4
 %setSvc% MSDTC 4
 %setSvc% NetTcpPortSharing 4
 %setSvc% PcaSvc 4
 %setSvc% PhoneSvc 4
-%setSvc% QWAVE 3
+%setSvc% QWAVE 4
 %setSvc% RasMan 4
 %setSvc% SharedAccess 4
 %setSvc% ShellHWDetection 4
@@ -833,7 +833,7 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% passthruparser 4
 :: %setSvc% PEAUTH 4 < breaks uwp streaming apps like netflix, manual mode does not fix
 %setSvc% pvhdparser 4
-%setSvc% QWAVEdrv 3
+%setSvc% QWAVEdrv 4
 :: set rdbss to manual instead of disabling (fixes wsl), thanks phlegm
 %setSvc% rdbss 3
 %setSvc% rdyboost 4
