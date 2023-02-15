@@ -49,7 +49,7 @@ Dưới đây là một số tính năng/tinh chỉnh đã được thay đổi,
 - [(P) ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - [(P) Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Possible Information Retrieval_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Khả năng tìm được thông tin_)
 
 ### **Loại bỏ**
 
@@ -75,10 +75,10 @@ Bạn có muốn tạo một hình nền Atlas của riêng bạn không? Hãy t
 
 Chúng tôi cũng có [một mục riêng trong khu vục thảo luận](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), bạn có thể chia sẻ sự sáng tạo của mình với các nhà thiết kế khác, hoặc có thể bạn cũng sẽ tìm được nguồn cảm hứng ở đó thì sao!
 
-## Disclaimer
+## Trách nhiệm pháp lý
 
-By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
+Bằng việc tải, thay đổi, hay sử dụng một trong những hình ảnh này, bạn đồng ý với [Điều khoản của Microsoft.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) Không hình ảnh nào sau đây đã được kích hoạt sẵn, bạn **phải** dùng chìa khoá kích hoạt bản quyền.
 
-## Translation contributors (Những người đóng góp dịch thuật)
+## Những người đóng góp dịch thuật
 
-[Cuong Tien Dinh](https://github.com/dtcu0ng) | [Nguyễn Cao Hoài Nam](https://github.com/sant1ago-da-hanoi)
+[Cuong Tien Dinh](https://github.com/dtcu0ng) | [Nguyễn Cao Hoài Nam](https://github.com/sant1ago-da-hanoi) | [Ngô Đức Dũng](https://github.com/Netxv)
