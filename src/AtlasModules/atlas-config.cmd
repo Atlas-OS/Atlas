@@ -748,7 +748,7 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% fdPHost 4
 %setSvc% FDResPub 4
 %setSvc% FontCache 4
-%setSvc% FontCache3.0.0.0 3
+%setSvc% FontCache3.0.0.0 4
 %setSvc% gcs 4
 %setSvc% hvhost 4
 %setSvc% icssvc 4
@@ -1989,6 +1989,7 @@ goto finish
 :hddD
 %setSvc% SysMain 4
 %setSvc% FontCache 4
+%setSvc% FontCache3.0.0.0 4
 if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetching disabled...>> %user_log%
 goto finish
 
@@ -1997,6 +1998,7 @@ goto finish
 %PowerShell% "Disable-MMAgent -MemoryCompression -PageCombining"
 %setSvc% SysMain 2
 %setSvc% FontCache 2
+%setSvc% FontCache3.0.0.0 2
 if %ERRORLEVEL%==0 echo %date% - %time% Hard Drive Prefetch enabled...>> %user_log%
 goto finish
 
