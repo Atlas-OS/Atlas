@@ -748,7 +748,7 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% fdPHost 4
 %setSvc% FDResPub 4
 %setSvc% FontCache 4
-%setSvc% FontCache3.0.0.0 4
+%setSvc% FontCache3.0.0.0 3
 %setSvc% gcs 4
 %setSvc% hvhost 4
 %setSvc% icssvc 4
@@ -758,7 +758,7 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 %setSvc% IpxlatCfgSvc 4
 :: %setSvc% KeyIso 4 < causes issues with nvcleanstall's driver telemetry tweak
 %setSvc% KtmRm 4
-%setSvc% LanmanServer 3
+%setSvc% LanmanServer 4
 %setSvc% LanmanWorkstation 4
 %setSvc% lmhosts 4
 %setSvc% MSDTC 4
