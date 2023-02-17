@@ -2005,7 +2005,7 @@ goto finish
 bcdedit /set nx Optin
 :: enable cfg for valorant related processes
 for %%a in (valorant valorant-win64-shipping vgtray vgc) do (
-    %PowerShell% -NoProfile -Command "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
+    %PowerShell% "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
 )
 if %ERRORLEVEL%==0 echo %date% - %time% Data Execution Policy enabled...>> %user_log%
 goto finish
