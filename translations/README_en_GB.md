@@ -35,7 +35,7 @@ But that's not all, chum! We also sort out system latency, network latency, and 
 
 Atlas removes all types of tracking embedded within Windows and implements numerous group policies to minimize data collection. Things outside the scope of Windows we can not increase privacy for, such as websites you visit.
 
-### **Atlas is the dog's bollocks when it comes to privacy! **
+### **Atlas is the dog's bollocks when it comes to privacy!**
 We make sure there ain't no sneaky tracking going on, and we use all sorts of fancy group policies to minimize any data collection. Of course, we can't do nothing about them pesky websites you visit, but we've got you covered where we can. So, what are you waiting for? Give Atlas a go and keep your bits and bobs all to yourself! Cheers!
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
