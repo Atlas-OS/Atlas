@@ -2968,6 +2968,10 @@ if /I "%c%"=="N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%
 %PowerShell% "install.ps1"
 echo Refreshing environment for Chocolatey...
 call refreshenv.cmd
+
+:: Enable global confirmation for chocolatey
+cmd /c choco feature enable -n allowGlobalConfirmation
+
 echo]
 echo If this did not install Chocolatey, instead you can try installing via the install guide: https://chocolatey.org/install
 goto finish
