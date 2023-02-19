@@ -8,7 +8,7 @@ function WriteList ($list, $name) {
 
     [int]$number = Read-Host "Enter the number to select the option"
 
-    Write-Host "You've selected $($listname[$number-1])."
+    Write-Host "You have selected $($listname[$number-1])."
     return $listname[$number-1]
 }
 
