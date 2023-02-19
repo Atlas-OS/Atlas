@@ -86,6 +86,6 @@ if ($global:install) {
     }
 
     if ($installPackages.count -ne 0) {
-        PowerShell -NoProfile -Command "scoop install $installPackages --global"
+        scoop install $installPackages --global
     }
 }
