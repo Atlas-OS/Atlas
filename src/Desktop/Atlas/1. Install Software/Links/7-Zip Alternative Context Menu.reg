@@ -1,5 +1,8 @@
 Windows Registry Editor Version 5.00
 
+; originally exported by CatGamerOP 
+; modified by Xyueta
+
 [HKEY_CURRENT_USER\SOFTWARE\7-Zip\FM\Columns]
 "RootFolder"=hex(3):01,00,00,00,00,00,00,00,01,00,00,00,04,00,00,00,01,00,\
 00,00,A0,00,00,00
