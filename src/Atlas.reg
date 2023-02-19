@@ -65,8 +65,3 @@ Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search]
 "AllowCortana"=dword:00000000
-
-; set .ps1 file types to open with PowerShell by default
-
-[HKEY_CLASSES_ROOT\Microsoft.PowerShellScript.1\Shell\Open\Command]
-@="\"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -File \"%1\""

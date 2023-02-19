@@ -408,6 +408,9 @@ winmgmt /resyncperf
 :: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.3
 setx POWERSHELL_TELEMETRY_OPTOUT 1
 
+:: set .ps1 file types to open with PowerShell by default
+ftype Microsoft.PowerShellScript.1="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -ExecutionPolicy Unrestricted -File "%1" %*
+
 :: disable hibernation and fast startup
 powercfg -h off
 
