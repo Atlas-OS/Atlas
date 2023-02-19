@@ -2969,7 +2969,7 @@ if /I "%c%"=="N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%
 echo Refreshing environment for Chocolatey...
 call refreshenv.cmd
 
-:: Enable global confirmation for chocolatey
+:: enable global confirmation for chocolatey
 cmd /c choco feature enable -n allowGlobalConfirmation
 
 echo]
