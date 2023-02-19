@@ -2985,7 +2985,7 @@ for /f "tokens=*" %%a in ('multichoice.exe "Common Software" "Install Common Sof
 goto finish
 
 :altSoftwarechoco
-for /f "tokens=*" %%a in ('multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
+for /f "tokens=*" %%a in ('multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7-zip"') do (
 	set spacedelimited=%%a
 	set spacedelimited=!spacedelimited:;= !
 	cmd /c choco install !spacedelimited!
