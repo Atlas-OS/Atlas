@@ -86,6 +86,6 @@ if ($global:install) {
     }
 
     if ($installPackages.count -ne 0) {
-        PowerShell -NoProfile -Command "choco install $installPackages"
+        choco install $installPackages
     }
 }
