@@ -1,6 +1,7 @@
 function WriteList ($list, $name) {
     $listname = $list
 
+    Clear-Host
     Write-Host "Please select a $name to install:"
     For ($i=0; $i -lt $listname.Count; $i++)  {
     Write-Host "$($i+1): $($listname[$i])"
@@ -8,6 +9,8 @@ function WriteList ($list, $name) {
 
     [int]$number = Read-Host "Enter the number to select the option"
 
+    Write-Host "You've selected $($listname[$number-1])."
+    Clear-Host
     Write-Host "You have selected $($listname[$number-1])."
     return $listname[$number-1]
 }
