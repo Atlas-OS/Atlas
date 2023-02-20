@@ -367,9 +367,9 @@ cls & echo Please wait. This may take a moment.
 :: enable MSI mode on USB, GPU, SATA controllers and network adapters
 :: deleting DevicePriority sets the priority to undefined
 for %%a in (
-    Win32_USBController, 
-    Win32_VideoController, 
-    Win32_NetworkAdapter, 
+    Win32_USBController,
+    Win32_VideoController,
+    Win32_NetworkAdapter,
     Win32_IDEController
 ) do (
     for /f %%i in ('wmic path %%a get PNPDeviceID ^| findstr /l "PCI\VEN_"') do (
@@ -936,7 +936,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "HideRecentlyAdde
 :: disable startup delay of running apps
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize" /v "StartupDelayInMSec" /t REG_DWORD /d "0" /f
 
-:: reduce menu show delay time 
+:: reduce menu show delay time
 :: automatically close any apps and continue to restart, shut down, or sign out of windows
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "AutoEndTasks" /t REG_SZ /d "1" /f
 %currentuser% reg add "HKCU\Control Panel\Desktop" /v "MenuShowDelay" /t REG_SZ /d "0" /f
@@ -994,7 +994,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSyncN
 :: disable speech model updates
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Speech" /v "AllowSpeechModelUpdate" /t REG_DWORD /d "0" /f
 
-:: disable online speech recognition 
+:: disable online speech recognition
 reg add "HKLM\SOFTWARE\Policies\Microsoft\InputPersonalization" /v "AllowInputPersonalization" /t REG_DWORD /d "0" /f
 
 :: disable windows insider and build previews
@@ -1134,7 +1134,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCloud
 
 :: disable content delivery manager
 :: disable pre-installed apps
-:: disable windows welcome experience 
+:: disable windows welcome experience
 :: disable suggested content in immersive control panel
 :: disable fun facts, tips, tricks on windows spotlight
 :: disable start menu suggestions
@@ -1318,9 +1318,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableCloud
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" /v "NoGenTicket" /t REG_DWORD /d "1" /f
 
 :: disable windows feedback
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Siuf\Rules" /v "NumberOfSIUFInPeriod" /t REG_DWORD /d "0" /f 
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Siuf\Rules" /v "NumberOfSIUFInPeriod" /t REG_DWORD /d "0" /f
 %currentuser% reg delete "HKCU\SOFTWARE\Microsoft\Siuf\Rules" /v "PeriodInNanoSeconds" /f > nul 2>nul
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v "DoNotShowFeedbackNotifications" /t REG_DWORD /d "1" /f 
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v "DoNotShowFeedbackNotifications" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v "DoNotShowFeedbackNotifications" /t REG_DWORD /d "1" /f
 
 :: disable settings sync
@@ -1446,7 +1446,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificat
 
 :: disable autoplay and autorun
 %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" /v "DisableAutoplay" /t REG_DWORD /d "1" /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDriveTypeAutoRun" /t REG_DWORD /d "255" /f 
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDriveTypeAutoRun" /t REG_DWORD /d "255" /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoAutorun" /t REG_DWORD /d "1" /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoAutoplayfornonVolume" /t REG_DWORD /d "1" /f
 
@@ -2294,7 +2294,7 @@ for %%a in (
 
 if "%CPU%"=="AMD" (
     for %%a in (
-        "WakeEnabled" 
+        "WakeEnabled"
         "WdkSelectiveSuspendEnable"
     ) do (
         for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /s /f "%%~a" ^| findstr "HKEY"') do (
@@ -2356,7 +2356,7 @@ for %%a in (
 
 if "%CPU%"=="AMD" (
     for %%a in (
-        "WakeEnabled" 
+        "WakeEnabled"
         "WdkSelectiveSuspendEnable"
     ) do (
         for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /s /f "%%~a" ^| findstr "HKEY"') do (
@@ -2729,7 +2729,7 @@ if %ERRORLEVEL%==0 echo %date% - %time% Printing disabled...>> %user_log%
 goto finish
 
 :printE
-echo You may be vulnerable to Print Nightmare Exploits while printing is enabled. 
+echo You may be vulnerable to Print Nightmare Exploits while printing is enabled.
 set /P c="Would you like to add Group Policies to protect against them? [Y/N] "
 if /I "%c%"=="Y" goto nightmareGPO
 if /I "%c%"=="N" goto printECont
@@ -3380,6 +3380,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMo
 :: call :mitD /function
 if "%~1"=="/function" exit /b
 
+echo %date% - %time% Mitigations disabled...>> %user_log%
 echo]
 goto finish
 
@@ -3428,7 +3429,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMo
 :: callable label which can be used in a post install
 :: call :mitE /function
 if "%~1"=="/function" exit /b
-
+echo %date% - %time% Mitigations enabled...>> %user_log%
 echo]
 goto finish
 
