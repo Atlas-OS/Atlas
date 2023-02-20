@@ -3441,9 +3441,9 @@ goto finish
 call :workstationE
 
 :: QWAVE
-%setSvc% qwavedrv 3
-%setSvc% qwave 3
-%setSvc% fontcache 2
+%setSvc% QwaveDrv 3
+%setSvc% Qwave 3
+%setSvc% FontCache 2
 
 echo %date% - %time% Oculus Services enabled...>> %user_log%
 echo]
@@ -3451,9 +3451,9 @@ goto finish
 
 :oculusD
 :: Do not disable workstation, as it's a dependency of many other features
-%setSvc% qwavedrv 4
-%setSvc% qwave 4
-%setSvc% fontcache 4
+%setSvc% QwaveDrv 4
+%setSvc% Qwave 4
+%setSvc% FontCache 4
 
 echo %date% - %time% Oculus Services disabled...>> %user_log%
 echo]
