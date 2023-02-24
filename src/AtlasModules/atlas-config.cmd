@@ -3007,7 +3007,7 @@ for /f "tokens=3" %%a in ('netsh int ip show config name^="%DeviceName%" ^| find
 for /f "tokens=2 delims=()" %%a in ('netsh int ip show config name^="%DeviceName%" ^| findstr /r "(.*)"') do for %%i in (%%a) do set DHCPSubnetMask=%%i
 
 :: set static ip
-netsh int ipv4 set address name="%DeviceName%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway% > nul 2 >&1
+netsh int ipv4 set address name="%DeviceName%" static %LocalIP% %DHCPSubnetMask% %DHCPGateway% > nul 2>&1
 netsh int ipv4 set dns name="%DeviceName%" static %DNS1% primary > nul 2>&1
 netsh int ipv4 add dns name="%DeviceName%" %DNS2% index=2 > nul 2>&1
 
