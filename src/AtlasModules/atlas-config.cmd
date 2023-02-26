@@ -71,15 +71,6 @@ startup
 "Test prompt"
 test
 
-"Chocolatey scripts"
-choco
-altsoftwarechoco
-
-"Scoop scripts"
-scoop
-altsoftwarescoop
-scoopCache
-
 "DWM animations"
 aniD
 aniE
@@ -2951,64 +2942,6 @@ goto finish
 :scheduleE
 %setSvc% Schedule 2
 if %ERRORLEVEL%==0 echo %date% - %time% Task Scheduler enabled...>> %user_log%
-goto finish
-
-:scoop
-echo Installing Scoop...
-set /P c="Review install script before executing? [Y/N]: "
-if /I "%c%"=="Y" curl "https://cdn.jsdelivr.net/gh/ScoopInstaller/Install@master/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad install.ps1
-if /I "%c%"=="N" curl "https://cdn.jsdelivr.net/gh/ScoopInstaller/Install@master/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-%PowerShell% "install.ps1 -RunAsAdmin"
-echo Refreshing environment for Scoop...
-call refreshenv.cmd
-echo]
-echo Installing git...
-:: using scoop install in cmd file requires script re-run
-:: otherwise it will break the whole script if a warning or error shows up
-cmd /c scoop install git -g
-call refreshenv.cmd
-echo]
-echo Adding extras and games bucket...
-cmd /c scoop bucket add extras
-cmd /c scoop bucket add games
-echo If this did not install Scoop, instead you can try installing via the install guide: https://scoop.sh
-goto finish
-
-:choco
-echo Installing Chocolatey
-set /P c="Review install script before executing? [Y/N]: "
-if /I "%c%"=="Y" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1 && notepad install.ps1
-if /I "%c%"=="N" curl "https://community.chocolatey.org/install.ps1" -o %WinDir%\AtlasModules\install.ps1
-%PowerShell% "install.ps1"
-echo Refreshing environment for Chocolatey...
-call refreshenv.cmd
-
-:: enable global confirmation for chocolatey
-cmd /c choco feature enable -n allowGlobalConfirmation
-
-echo]
-echo If this did not install Chocolatey, instead you can try installing via the install guide: https://chocolatey.org/install
-goto finish
-
-:altSoftwarescoop
-for /f "tokens=*" %%a in ('multichoice.exe "Common Software" "Install Common Software" "discord;webcord;czkawka-gui;bleachbit;notepadplusplus;onlyoffice-desktopeditors;libreoffice;geekuninstaller;bitwarden;keepassxc;sharex;qbittorrent;everything;msiafterburner;rtss;thunderbird;foobar2000;irfanview;nomacs;git;mpv;mpv-git;vlc;vscode;putty;ditto;heroic-games-launcher;playnite;legendary"') do (
-	set spacedelimited=%%a
-	set spacedelimited=!spacedelimited:;= !
-	cmd /c scoop install !spacedelimited! -g
-)
-goto finish
-
-:altSoftwarechoco
-for /f "tokens=*" %%a in ('multichoice.exe "Common Software" "Install Common Software" "discord;discord-canary;steam;steamcmd;playnite;bleachbit;notepadplusplus;msiafterburner;thunderbird;foobar2000;irfanview;git;mpv;vlc;vscode;putty;ditto;7zip"') do (
-	set spacedelimited=%%a
-	set spacedelimited=!spacedelimited:;= !
-	cmd /c choco install !spacedelimited!
-)
-goto finish
-
-:scoopCache
-echo Removing cache from Scoop...
-scoop cache rm *
 goto finish
 
 :staticIP

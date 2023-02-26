@@ -24,7 +24,7 @@ function InstallBrowser {
 }
 
 function InstallAltSoft {
-    $script = $PSScriptRoot+"\Manual\Install Other Software via $provider.cmd"
+    $script = $PSScriptRoot+"\Manual\Install Other Software via $provider.ps1"
     & $script
 }
 
@@ -43,7 +43,7 @@ if ($provider -eq "Chocolatey") {
         $ChocoInstalled = $true
     } else {
         Write-Host "Chocolatey not found, installing..."
-        & "$PSScriptRoot\Manual\Install $provider.cmd"
+        & "$PSScriptRoot\Manual\Install $provider.ps1"
     }
 } else {
     $ScoopInstalled = $false
@@ -51,7 +51,7 @@ if ($provider -eq "Chocolatey") {
         $ScoopInstalled = $true
     } else {
         Write-Host "Scoop not found, installing..."
-        & "$PSScriptRoot\Manual\Install $provider.cmd"
+        & "$PSScriptRoot\Manual\Install $provider.ps1"
     }
 }
 InstallSoftware
