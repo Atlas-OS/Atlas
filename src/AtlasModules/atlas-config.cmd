@@ -1560,16 +1560,19 @@ reg delete "HKCR\UserLibraryFolder\shellex\ContextMenuHandlers\Sharing" /f > nul
 :: remove cast to device from context menu
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{7AD84985-87B4-4a16-BE58-8B72A5B390F7}" /t REG_SZ /d "" /f
 
-:: remove share in context menu
+:: remove share from context menu
 reg delete "HKCR\*\shellex\ContextMenuHandlers\ModernSharing" /f > nul 2>nul
+
+:: remove extract all from context menu
+reg delete "HKCR\CompressedFolder\ShellEx\ContextMenuHandlers\{b8cdcb65-b1bf-4b42-9428-1dfdb7ee92af}" /f > nul 2>nul
 
 :: remove bitmap image from the 'New' context menu
 reg delete "HKCR\.bmp\ShellNew" /f > nul 2>nul
 
-:: remove rich text document from 'New' context menu
+:: remove rich text document from the 'New' context menu
 reg delete "HKCR\.rtf\ShellNew" /f > nul 2>nul
 
-:: remove include in library context menu
+:: remove include in library from context menu
 reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
 reg delete "HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
 
@@ -1620,7 +1623,7 @@ reg add "HKLM\SOFTWARE\Classes\.ps1\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d 
 reg add "HKLM\SOFTWARE\Classes\.reg\ShellNew" /v "NullFile" /t REG_SZ /d "" /f
 reg add "HKLM\SOFTWARE\Classes\.reg\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "@C:\Windows\regedit.exe,-309" /f
 
-:: install cab context menu
+:: add install cab to context menu
 reg delete "HKCR\CABFolder\Shell\RunAs" /f > nul 2>nul
 reg add "HKCR\CABFolder\Shell\RunAs" /ve /t REG_SZ /d "Install" /f
 reg add "HKCR\CABFolder\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "" /f
