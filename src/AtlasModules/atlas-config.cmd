@@ -148,9 +148,8 @@ printD
 printE
 
 "Replace Task Manager with Process Explorer"
+processExplorerUninstall
 processExplorerInstall
-processExplorerDisable
-processExplorerEnable
 
 "Search Indexing"
 indexD
@@ -2523,31 +2522,14 @@ if %ERRORLEVEL%==1 (
 	echo Process Explorer shortcut could not be created in the start menu^^!
 )
 
-echo]
-if "%procexpEnableInstall%"=="true" (
-	goto processExplorerEnable
-) else (
-	goto finishNRB
-)
-
-:processExplorerDisable
-reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /f > nul 2>nul
-%setSvc% pcw 0
-goto finish
-
-:processExplorerEnable
-if not exist "procexp.exe" (
-	echo You need to have Process Explorer installed first to use this script.
-	echo]
-	echo Press any key to install it right now...
-	pause > nul
-	set procexpEnableInstall=true
-	echo]
-	goto processExplorerInstall
-)
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%WinDir%\AtlasModules\Apps\procexp.exe" /f > nul
 %setSvc% pcw 4
 goto finishNRB
+
+:processExplorerUninstall
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /f > nul 2>nul
+%setSvc% pcw 0
+goto finish
 
 :xboxU
 set /P c="This is IRREVERSIBLE (A reinstall is required to restore these components), continue? [Y/N]"
