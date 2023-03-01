@@ -3,7 +3,7 @@
 :: source: https://raw.githubusercontent.com/chocolatey-archive/chocolatey/master/src/redirects/RefreshEnv.cmd
 :: modified by Xyueta
 
-echo | set /p dummy="Refreshing environment variables. Please wait..."
+echo | set /p info="Refreshing environment variables. Please wait..."
 goto main
 
 :SetFromReg
