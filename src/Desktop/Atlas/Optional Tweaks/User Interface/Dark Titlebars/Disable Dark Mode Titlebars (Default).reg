@@ -1,5 +1,5 @@
 Windows Registry Editor Version 5.00
-;; source: https://github.com/Aetopia/Dark-Mode-Titlebars
+; source: https://github.com/Aetopia/Dark-Mode-Titlebars
 
 [-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\DWM]
 [-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent]

@@ -2959,7 +2959,7 @@ goto staticIPS
 %setSvc% NlaSvc 4
 
 :staticIPC
-echo %date% - %time% Static IP set! (%DeviceName%) (%LocalIP%) (%DHCPSubnetMask%) (%DHCPGateway%)( %DNS1%) (%DNS2%) >> %user_log%
+echo %date% - %time% Static IP set! (%DeviceName%) (%LocalIP%) (%DHCPSubnetMask%) (%DHCPGateway%) (%DNS1%) (%DNS2%) >> %user_log%
 goto finish
 
 :revertstaticIP
