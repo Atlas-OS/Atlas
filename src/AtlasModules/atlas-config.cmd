@@ -31,8 +31,8 @@ wmic cpu get name | findstr "AMD" > nul && set CPU=AMD
 :: set other variables (do not touch)
 set currentuser=%WinDir%\AtlasModules\Apps\NSudo.exe -U:C -P:E -Wait
 set PowerShell=%WinDir%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command
-set install_log=%WinDir%\AtlasModules\logs\install.log
-set user_log=%WinDir%\AtlasModules\logs\userScript.log
+set install_log=%WinDir%\AtlasModules\Logs\install.log
+set user_log=%WinDir%\AtlasModules\Logs\userScript.log
 set firewallBlockExe=call :firewallBlockExe
 set setSvc=call :setSvc
 set unZIP=call :unZIP
@@ -262,7 +262,7 @@ pause & exit /b 1
 
 :startup
 :: create log directory for troubleshooting
-mkdir %WinDir%\AtlasModules\logs
+mkdir %WinDir%\AtlasModules\Logs
 cls & echo Please wait, this may take a moment.
 setx path "%path%;%WinDir%\AtlasModules;%WinDir%\AtlasModules\Apps;%WinDir%\AtlasModules\Other;%WinDir%\AtlasModules\Tools;" -m  > nul 2>nul
 call %WinDir%\AtlasModules\refreshenv.cmd
