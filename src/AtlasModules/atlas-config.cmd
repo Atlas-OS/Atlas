@@ -656,6 +656,7 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Network optimized...>> %install_log%
 %WinDir%\AtlasModules\Apps\DevManView.exe /disable "AMD PSP"
 %WinDir%\AtlasModules\Apps\DevManView.exe /disable "AMD SMBus"
 %WinDir%\AtlasModules\Apps\DevManView.exe /disable "Base System Device"
+%WinDir%\AtlasModules\Apps\DevManView.exe /disable "*Bluetooth*" /use_wildcard
 %WinDir%\AtlasModules\Apps\DevManView.exe /disable "Composite Bus Enumerator"
 %WinDir%\AtlasModules\Apps\DevManView.exe /disable "High precision event timer"
 %WinDir%\AtlasModules\Apps\DevManView.exe /disable "Intel Management Engine"
@@ -1942,6 +1943,7 @@ if "%system%"=="true" (
 )
 %setSvc% BthAvctpSvc 4
 sc stop BthAvctpSvc > nul 2>nul
+DevManView.exe /disable "*Bluetooth*" /use_wildcard
 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==0 echo %date% - %time% Bluetooth disabled...>> %user_log%
 if "%~1"=="int" goto :EOF
@@ -1955,6 +1957,7 @@ if "%system%"=="true" (
 	exit /b 1
 )
 %setSvc% BthAvctpSvc 2
+DevManView.exe /enable "*Bluetooth*" /use_wildcard
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
 if %ERRORLEVEL%==1 attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 if %ERRORLEVEL%==2 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
