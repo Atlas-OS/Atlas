@@ -34,8 +34,8 @@ To verify the legitmacy of these binaries (executables), there is information pr
 
 ### VCRedist
 - Directory: `\AtlasModules\Apps\vcredist.exe`
-- SHA256 Hash: `A566D1EC8F848D41BE721DBC43C4F6582F1F3EA20851033D07EFD6123DC2EB15`
-- Source: https://github.com/abbodi1406/vcredist/releases/download/v0.65.0/VisualCppRedist_AIO_x86_x64_65.zip
+- SHA256 Hash: `6939D3FC633EBDA86D300BF0664A7FA5996A13E370B2E561CD0E72E6F0F8973F`
+- Source: https://github.com/abbodi1406/vcredist/releases/download/v0.65.0/VisualCppRedist_AIO_x86_x64_67.zip
 - Repository: https://github.com/abbodi1406/vcredist
-- Last Verified: 2023-02-02 by Xyueta
+- Last Verified: 2023-03-03 by Xyueta
 - `VisualCppRedist_AIO_x86_x64.exe` was extracted from the `.zip` and renamed to `vcredist.exe`
