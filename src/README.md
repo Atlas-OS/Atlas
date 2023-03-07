@@ -28,12 +28,12 @@ There are plenty of reasons to build Atlas from source such as:
 3. Import the Atlas preset from the repo and apply it.
 4. Integrate drivers and registry files if needed.
 5. Copy the following folders/files to the NTLite mount directory (%temp%\NLTmpMnt)
-  - Web >> %temp%\NLTmpMnt\Windows\Web (delete the existing folder first)
-  - layout.xml >> %temp%\NLTmpMnt\Windows\layout.xml
-  - AtlasModules >> %temp%\NLTmpMnt\Windows\AtlasModules
-  - User Account Pictures >> %temp%\NLTmpMnt\ProgramData\Microsoft\User Account Pictures (delete the existing folder first!=)
-  - Desktop/Atlas >> %temp%\NLTmpMnt\Users\Default\Desktop\Atlas
-  - Atlas.cmd >> %temp%\NLTmpMnt\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\Atlas.cmd
+  - Web --> %temp%\NLTmpMnt\Windows\Web (delete the existing folder first)
+  - layout.xml --> %temp%\NLTmpMnt\Windows\layout.xml
+  - AtlasModules --> %temp%\NLTmpMnt\Windows\AtlasModules
+  - User Account Pictures --> %temp%\NLTmpMnt\ProgramData\Microsoft\User Account Pictures (delete the existing folder first!=)
+  - Desktop/Atlas --> %temp%\NLTmpMnt\Users\Default\Desktop\Atlas
+  - Atlas.cmd --> %temp%\NLTmpMnt\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\Atlas.cmd
 
 6. Make any changes you want to NTLite's components, settings, services etc.
 7. Go to the "Apply" tab and click Process
