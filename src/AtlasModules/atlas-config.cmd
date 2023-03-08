@@ -19,7 +19,7 @@
 :: - %releaseid% - release ID (e.g. 22H2)
 :: - %build% - current build of Windows (e.g. 10.0.19045.2006)
 for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "DisplayVersion"') do set releaseid=%%a
-for /f "tokens=4-7 delims=[.] " %%a in ('ver') do set build=%%a.%%b.%%c.%%d
+set build=%OSBuildNumber%
 
 :: set correct username variable of the currently logged in user
 for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set loggedinusername=%%a
@@ -604,14 +604,14 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" /v "DefaultPnPC
 
 :: configure nic settings
 :: modified by Xyueta
-for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr "HKEY"') do (
+for /f "tokens=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "WakeOnMagicPacket" /s ^| findstr "HKEY"') do (
     for %%i in (
-        "*EEE"
-        "*FlowControl"
-        "*LsoV2IPv4"
-        "*LsoV2IPv6"
-        "*SelectiveSuspend"
-        "*WakeOnMagicPacket"
+        "EEE"
+        "FlowControl"
+        "LsoV2IPv4"
+        "LsoV2IPv6"
+        "SelectiveSuspend"
+        "WakeOnMagicPacket"
         "*WakeOnPattern"
         "AdvancedEEE"
         "AutoDisableGigabit"
@@ -631,9 +631,7 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
         "WakeOnSlot"
         "WakeUpModeCap"
     ) do (
-        for /f %%j in ('reg query "%%a" /v "%%~i" ^| findstr "HKEY"') do (
-            reg add "%%j" /v "%%~i" /t REG_SZ /d "0" /f
-        )
+        reg add "%%a" /v "%%i" /t REG_SZ /d "0" /f >nul
     )
 )
 
@@ -695,34 +693,39 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled system devices...>> %install_l
 ) ELSE (echo %date% - %time% Failed to disable system devices! >> %install_log%)
 
 :: backup default windows services
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows services.reg"
-echo Windows Registry Editor Version 5.00 >> %filename%
-echo] >> %filename%
-for /f "skip=1" %%a in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
-    set svc=%%a
-    set svc=!svc: =!
-	for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-        set /a start=%%a
+set "filename=C:\%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows services.reg"
+echo Windows Registry Editor Version 5.00 > "%filename%"
+echo. >> "%filename%"
+for /f "skip=1" %%a in ('wmic service get Name ^| findstr /r "^[a-z]" ^| findstr /v "TermService"') do (
+    set "svc=%%a"
+    set "svc=!svc: =!"
+    for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services!svc!" /t REGDWORD /s /c /f "Start" /e ^| findstr /r "[0-4]$"' ) do (
+        set /a "start=%%a"
         echo !start!
-        echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
-        echo "Start"=dword:0000000!start! >> %filename%
-        echo] >> %filename%
-	)
+        (
+            echo [HKEYLOCAL_MACHINE\SYSTEM\CurrentControlSet\Services!svc!]
+            echo "Start"=dword:0000000!start!
+            echo.
+        ) >> "%filename%"
+    )
 ) > nul 2>&1
 
 :: backup default windows drivers
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows drivers.reg"
-echo Windows Registry Editor Version 5.00 >> %filename%
-echo] >> %filename%
+set "filename=C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Windows drivers.reg"
+(
+    echo Windows Registry Editor Version 5.00
+    echo.
+) > "%filename%"
 for /f "delims=," %%a in ('driverquery /FO CSV') do (
-	set svc=%%a
-	for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /a start=%%a
-		echo !start!
-		echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
-		echo "Start"=dword:0000000!start! >> %filename%
-		echo] >> %filename%
-	)
+    set "svc=%%~a"
+    for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services!svc!" /t REGDWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
+        set /a "start=%%a"
+        (
+            echo [HKEYLOCAL_MACHINE\SYSTEM\CurrentControlSet\Services!svc!]
+            echo "Start"=dword:0000000!start!
+            echo.
+        ) >> "%filename%"
+    )
 ) > nul 2>&1
 
 :: services
@@ -873,35 +876,44 @@ if %ERRORLEVEL%==0 (echo %date% - %time% Disabled services...>> %install_log%
 ) ELSE (echo %date% - %time% Failed to disable services! >> %install_log%)
 
 :: backup default Atlas services
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas services.reg"
-echo Windows Registry Editor Version 5.00 >> %filename%
-echo] >> %filename%
-for /f "skip=1" %%a in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
-	set svc=%%a
-	set svc=!svc: =!
-	for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /a start=%%a
-		echo !start!
-		echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
-		echo "Start"=dword:0000000!start! >> %filename%
-		echo] >> %filename%
-	)
-) > nul 2>&1
+set "filename=C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas services.reg"
+(
+    echo Windows Registry Editor Version 5.00
+    echo.
+) > "%filename%"
+for /f "skip=1 delims=" %%a in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
+    set "svc=%%a"
+    set "svc=!svc: =!"
+    for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services!svc!" /t REGDWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
+        set /a start=%%a
+        (
+            echo [HKEYLOCAL_MACHINE\SYSTEM\CurrentControlSet\Services!svc!]
+            echo "Start"=dword:0000000!start!
+            echo.
+        ) >> "%filename%"
+    )
+) >nul 2>&1
 
 :: backup default Atlas drivers
-set filename="C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas drivers.reg"
-echo Windows Registry Editor Version 5.00 >> %filename%
-echo] >> %filename%
-for /f "delims=," %%a in ('driverquery /FO CSV') do (
-	set svc=%%a
-	for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\!svc!" /t REG_DWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
-		set /a start=%%a
-		echo !start!
-		echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\!svc!] >> %filename%
-		echo "Start"=dword:0000000!start! >> %filename%
-		echo] >> %filename%
-	)
-) > nul 2>&1
+set "filename=C:%HOMEPATH%\Desktop\Atlas\Troubleshooting\Services\Default Atlas drivers.reg"
+(
+    echo Windows Registry Editor Version 5.00
+    echo.
+) > "%filename%"
+
+for /f "tokens=2 delims=," %%a in ('driverquery /FO CSV ^| findstr /r /c:"\"[a-z]" /c:"\"[A-Z]"') do (
+    set "svc=%%~a"
+    set "svc=!svc: =!"
+    for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services!svc!" /t REGDWORD /s /c /f "Start" /e ^| findstr "[0-4]$"') do (
+        set /a "start=%%a"
+        echo !start!
+        (
+            echo [HKEYLOCAL_MACHINE\SYSTEM\CurrentControlSet\Services!svc!]
+            echo "Start"=dword:0000000!start!
+            echo.
+        ) >> "%filename%"
+    )
+) >nul 2>&1
 
 :: Registry
 
@@ -1473,50 +1485,42 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescripti
 reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}\PropertyBag" /v "ThisPCPolicy" /t REG_SZ /d "Hide" /f
 
 :: add music and videos folders to quick access
-start /b %PowerShell% "$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb("""pintohome"""); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb("""pintohome""")" > nul 2>&1
+start /b %PowerShell% "new-object -com shell.application | foreach {$.Namespace('%userprofile%\Videos').Self.InvokeVerb('pintohome'); $.Namespace('%userprofile%\Music').Self.InvokeVerb('pintohome')}" >nul 2>&1
 
 :: fix no downloads folder bug
-reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}" > nul 2>nul
-if %ERRORLEVEL%==1 (
-    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}" /f
-)
+reg query "HKEYLOCALMACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace{088e3905-0323-4b02-9826-5d99428e115f}" > nul 2>&1 || reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace{088e3905-0323-4b02-9826-5d99428e115f}" /f > nul 2>&1
 
 :: enable legacy photo viewer
-for %%a in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
-    reg add "HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations" /v ".%%~a" /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
-)
+set "exts=tif tiff bmp dib gif jfif jpe jpeg jpg jxr png"
+for %%a in (%exts%) do reg add "HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations" /v ".%%~a" /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f >nul 2>&1
 
 :: set legacy photo viewer as default
-for %%a in (tif tiff bmp dib gif jfif jpe jpeg jpg jxr png) do (
-    %currentuser% reg add "HKCU\SOFTWARE\Classes\.%%~a" /ve /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f
-)
+set "exts=tif tiff bmp dib gif jfif jpe jpeg jpg jxr png"
+for %%a in (%exts%) do %currentuser% reg add "HKCU\SOFTWARE\Classes.%%~a" /ve /t REG_SZ /d "PhotoViewer.FileAssoc.Tiff" /f >nul 2>&1
 
 :: disable gamebar presence writer
-reg add "HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter" /v "ActivationType" /t REG_DWORD /d "0" /f
+reg add "HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter" /v "ActivationType" /d 0 /f >nul 2>&1
 
 :: disable maintenance
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance" /v "MaintenanceDisabled" /t REG_DWORD /d "1" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance" /v "MaintenanceDisabled" /d 1 /f >nul 2>&1
 
 :: do not reduce sounds while in a call
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio" /v "UserDuckingPreference" /t REG_DWORD /d "3" /f
+%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio" /v "UserDuckingPreference" /d 3 /f >nul 2>&1
 
 :: do not show hidden/disconnected devices in sound settings
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl" /v "ShowDisconnectedDevices" /t REG_DWORD /d "0" /f
-%currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl" /v "ShowHiddenDevices" /t REG_DWORD /d "0" /f
+for %%a in ("ShowDisconnectedDevices" "ShowHiddenDevices") do %currentuser% reg add "HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl" /v "%%~a" /d 0 /f >nul 2>&1
 
 :: set sound scheme to no sounds
-%currentuser% %PowerShell% "New-ItemProperty -Path 'HKCU:\AppEvents\Schemes' -Name '(Default)' -Value '.None' -Force | Out-Null"
-%currentuser% %PowerShell% "Get-ChildItem -Path 'HKCU:\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
+for /f "tokens=*" %%a in ('%PowerShell% -Command "(New-ItemProperty -Path 'HKCU:\AppEvents\Schemes' -Name '(Default)' -Value '.None' -Force | Out-Null); (Get-ChildItem -Path 'HKCU:\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value '')"') do set "result=%%a"
+if defined result echo Error: %result%
 
 :: disable audio exclusive mode on all devices
 for /f "delims=" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture"') do (
-    reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},3" /t REG_DWORD /d "0" /f
-    reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},4" /t REG_DWORD /d "0" /f
+    for %%b in (3 4) do reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},%%b" /d 0 /f >nul 2>&1
 )
 
 for /f "delims=" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render"') do (
-    reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},3" /t REG_DWORD /d "0" /f
-    reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},4" /t REG_DWORD /d "0" /f
+    for %%b in (3 4) do reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},%%b" /d 0 /f >nul 2>&1
 )
 
 :: show removable drivers only in 'This PC' on the file explorer sidebar
@@ -1524,7 +1528,7 @@ reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Name
 reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}" /f
 
 :: disable network navigation pane in file explorer
-reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder" /v "Attributes" /t REG_DWORD /d "2962489444" /f
+reg add "HKCR\CLSID{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder" /v "Attributes" /d 2962489444 /f
 
 :: remove restore previous versions from context menu and files' properties
 reg delete "HKCR\AllFilesystemObjects\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}" /f > nul 2>nul
@@ -1547,23 +1551,23 @@ reg delete "HKCR\LibraryFolder\background\shellex\ContextMenuHandlers\Sharing" /
 reg delete "HKCR\UserLibraryFolder\shellex\ContextMenuHandlers\Sharing" /f > nul 2>nul
 
 :: remove cast to device from context menu
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{7AD84985-87B4-4a16-BE58-8B72A5B390F7}" /t REG_SZ /d "" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{7AD84985-87B4-4a16-BE58-8B72A5B390F7}" /d "" /f
 
 :: remove share from context menu
-reg delete "HKCR\*\shellex\ContextMenuHandlers\ModernSharing" /f > nul 2>nul
+reg delete "HKCR*\shellex\ContextMenuHandlers\ModernSharing" /f >nul 2>&1
 
 :: remove extract all from context menu
-reg delete "HKCR\CompressedFolder\ShellEx\ContextMenuHandlers\{b8cdcb65-b1bf-4b42-9428-1dfdb7ee92af}" /f > nul 2>nul
+reg delete "HKCR\CompressedFolder\ShellEx\ContextMenuHandlers{b8cdcb65-b1bf-4b42-9428-1dfdb7ee92af}" /f >nul 2>&1
 
 :: remove bitmap image from the 'New' context menu
-reg delete "HKCR\.bmp\ShellNew" /f > nul 2>nul
+reg delete "HKCR.bmp\ShellNew" /f >nul 2>&1
 
 :: remove rich text document from the 'New' context menu
-reg delete "HKCR\.rtf\ShellNew" /f > nul 2>nul
+reg delete "HKCR.rtf\ShellNew" /f >nul 2>&1
 
 :: remove include in library from context menu
-reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
-reg delete "HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location" /f > nul 2>nul
+reg delete "HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location" /f >nul 2>&1
+reg delete "HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location" /f >nul 2>&1
 
 :: remove troubleshooting compatibility from context menu
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{1d27f844-3a1f-4410-85ac-14651078412d}" /t REG_SZ /d "" /f
