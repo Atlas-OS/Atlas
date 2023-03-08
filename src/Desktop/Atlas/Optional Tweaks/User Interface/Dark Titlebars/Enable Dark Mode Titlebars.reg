@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+; source: https://github.com/Aetopia/Dark-Mode-Titlebars
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\DWM]
+"ColorizationColor"=dword:c4000000
+"ColorizationAfterglow"=dword:c4000000
+"AccentColor"=dword:ff000000
+"ColorPrevalence"=dword:00000001
+"AccentColorInactive"=dword:ff2b2b2b
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent]
+"AccentColorMenu"=dword:c4000000

@@ -1,0 +1,41 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\exefile\shell\Priority]
+"MUIVerb"="Run with priority"
+"SubCommands"=""
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\001flyout]
+@="Realtime"
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\001flyout\command]
+@="cmd /c start \"\" /Realtime \"%1\""
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\002flyout]
+@="High"
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\002flyout\command]
+@="cmd /c start \"\" /High \"%1\""
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\003flyout]
+@="Above normal"
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\003flyout\command]
+@="cmd /c start \"\" /AboveNormal \"%1\""
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\004flyout]
+@="Normal"
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\004flyout\command]
+@="cmd /c start \"\" /Normal \"%1\""
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\005flyout]
+@="Below normal"
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\005flyout\command]
+@="cmd /c start \"\" /BelowNormal \"%1\""
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\006flyout]
+@="Low"
+
+[HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\006flyout\command]
+@="cmd /c start \"\" /Low \"%1\""

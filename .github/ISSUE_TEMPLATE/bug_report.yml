@@ -1,6 +1,5 @@
 name: Bug report
 description: create a bug report to help us inprove Atlas.
-assignees: Zusier
 labels: bug
 title: Bug report
 body:

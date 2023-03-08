@@ -1,3 +1,3 @@
-# perform crlf normalization on bat and cmd scripts
+# perform crlf normalization on batch and cmd files
 *.bat eol=crlf
 *.cmd eol=crlf

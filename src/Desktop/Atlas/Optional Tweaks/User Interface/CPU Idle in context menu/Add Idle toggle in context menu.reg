@@ -1,0 +1,21 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\DesktopBackground\Shell\Idle]
+"Icon"="powercpl.dll"
+"MUIVerb"="CPU Idle"
+"Position"="Bottom"
+"SubCommands"=""
+
+[HKEY_CLASSES_ROOT\DesktopBackground\Shell\Idle\Shell\Disable Idle]
+"MUIVerb"="Disable Idle"
+"Icon"="powercpl.dll"
+
+[HKEY_CLASSES_ROOT\DesktopBackground\Shell\Idle\Shell\Disable Idle\Command]
+@="powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 1"
+
+[HKEY_CLASSES_ROOT\DesktopBackground\Shell\Idle\Shell\Enable Idle]
+"MUIVerb"="Enable Idle"
+"Icon"="powercpl.dll"
+
+[HKEY_CLASSES_ROOT\DesktopBackground\Shell\Idle\Shell\Enable Idle\Command]
+@="powercfg -setacvalueindex scheme_current sub_processor 5d76a2ca-e8c0-402f-a133-2158492d58ad 0"

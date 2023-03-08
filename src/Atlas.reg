@@ -1,10 +1,14 @@
 Windows Registry Editor Version 5.00
 
-; disable UAC (needed for correct post-install script perms)
-[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System]
-"EnableLUA"=dword:00000000
+; disable user account control (needed for correct post-install script permissions)
 
-; disable updates (shows up in OOBE)
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System]
+"ConsentPromptBehaviorAdmin"=dword:00000000
+"EnableLUA"=dword:00000000
+"PromptOnSecureDesktop"=dword:00000000
+
+; disable updates (shows up in oobe)
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate]
 "ExcludeWUDriversInQualityUpdate"=dword:00000001
 "DisableWindowsUpdateAccess"=dword:00000001
@@ -23,13 +27,18 @@ Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU]
 "AUOptions"=dword:00000002
-"AutoInstallMinorUpdates"=dword:00000000
 "NoAutoUpdate"=dword:00000001
 "NoAUAsDefaultShutdownOption"=dword:00000001
 "NoAUShutdownOption"=dword:00000001
 "NoAutoRebootWithLoggedOnUsers"=dword:00000001
-"IncludeRecommendedUpdates"=dword:00000000
-"EnableFeaturedSOFTWARE"=dword:00000000
+"EnableFeaturedSoftware"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings]
+"RestartNotificationsAllowed2"=dword:00000000
+"HideMCTLink"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\MRT]
+"DontOfferThroughWUAU"=-
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching]
 "SearchOrderConfig"=dword:00000000
@@ -37,5 +46,22 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata]
 "PreventDeviceMetadataFromNetwork"=dword:00000001
 
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate]
+"SusClientId"="00000000-0000-0000-0000-000000000000"
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent]
+"DisableSoftLanding"=dword:00000001
 "DisableWindowsConsumerFeatures"=dword:00000001
+
+; disable first logon animation
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System]
+"EnableFirstLogonAnimation"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+"EnableFirstLogonAnimation"=dword:00000000
+
+; disable cortana (removes a unnecssary page in oobe)
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search]
+"AllowCortana"=dword:00000000
