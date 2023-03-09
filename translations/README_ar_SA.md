@@ -83,4 +83,4 @@ By downloading, modifying, or utilizing any of these images, you agree to [Micro
 
 ## Translation Contributors
 
-[Khalil'](https://github.com/pewpewded)
+[Khalil Melhem](https://github.com/pewpewded)
