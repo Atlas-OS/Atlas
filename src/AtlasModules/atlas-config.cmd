@@ -614,6 +614,7 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
         "*WakeOnMagicPacket"
         "*WakeOnPattern"
         "AdvancedEEE"
+        "*PriorityVLANTag"
         "AutoDisableGigabit"
         "AutoPowerSaveModeEnabled"
         "EnableConnectedPowerGating"
