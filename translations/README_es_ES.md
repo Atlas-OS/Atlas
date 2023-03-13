@@ -64,7 +64,7 @@ Atlas está pre-modificado. Mientras mantiene la compatibilidad, pero también p
 - Ahorro de energía desactivado.
 - Mitigaciones de seguridad que afectan el rendimiento deshabilitadas.
 - Modo MSI habilitado en todos los dispositivos.
-- Configuración de booteo
+- Configuración de booteo optimizada.
 - Programación de procesos optimizada.
 
 ## La creatividad no tiene limites
