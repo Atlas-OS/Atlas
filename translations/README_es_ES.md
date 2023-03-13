@@ -57,15 +57,15 @@ Atlas ha sido intensamente reducido, aplicaciones pre-instaladas y otros compone
 
 Atlas está pre-modificado. Mientras mantiene la compatibilidad, pero también por el rendimiento, hemos buscado exprimir hasta la última gota de rendimiento en nuestras ISO de Windows. Algunos de los muchos cambios que hemos hecho para mejorar Windows son:
 
-- Customized power scheme
-- Reduced amount of services and drivers
-- Disabled audio exclusive
-- Disabled unneeded devices
-- Disabled power savings
-- Disabled performance-hungry security mitigations
-- Automatically enabled MSI mode on all devices
-- Boot configuration optimization
-- Optimized process scheduling
+- Plan de energía personalizado.
+- Reducción de servicios y drivers.
+- Audio exclusivo desactivado.
+- Dispositivos innecesarios desactivados.
+- Ahorro de energía desactivado.
+- Mitigaciones de seguridad que afectan el rendimiento deshabilitadas.
+- Modo MSI habilitado en todos los dispositivos.
+- Configuración de booteo
+- Programación de procesos optimizada.
 
 ## La creatividad no tiene limites
 
@@ -73,7 +73,7 @@ Te gustaría crear tu propio fondo de pantalla de Atlas? Quieres jugar un poco c
 
 También tenemos una [area de discuciones e ideas](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), Para que puedas compartir tus ideas y creaciones con otros. ¡También quizás y encuentres algo que te inspire a poner a volar la imaginación!
 
-## Disclaimer / Aviso legal
+## Disclaimer
 
 
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
