@@ -13,6 +13,7 @@
 <kbd>[<img title="'Merican" alt="'Merican" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/us.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_en_US.md)</kbd>
 <kbd>[<img title="'Bri'ish" alt="Bri'ish" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/gb.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_en_GB.md)</kbd>
 <kbd>[<img title="العربية" alt="العربية" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/sa.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ar_SA.md)</kbd>
+<kbd>[<img title="Español" alt="Español" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/es.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_es_ES.md)</kbd>
 
 # Translation guide
 
