@@ -47,7 +47,7 @@ Atlas mål är att du ska vara så säker som möjligt utan att förlora prestan
 - [(P) ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - [(P) Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Possible Information Retrieval_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Möjlig Informations Hämtning_)
 
 ### **Rensning**
 
