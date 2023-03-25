@@ -39,7 +39,7 @@ Atlas tar bort all typ av spårning som finns i Windows och implementerar ett fl
 
 ### **Säkerhet**
 
-Atlas mål är att du ska vara så säker som möjligt utan att förlora prestanda. Vi gör detta genom att stänga av funktioner som kan läcka information eller utnyttjas för dåliga handlingar. Det finns undantag till detta såsom [Spectre](https://spectreattack.com/spectre.pdf) och [Meltdown](https://meltdownattack.com/meltdown.pdf). Dessa begränsningar är avstängda för att improvisera prestanda. Om en säkerhets begränsning försämrar prestanda blir avaktiverade. Nedanför finns en lista på begränsningar/funktioner som har blivit ändrade, om det finns ett (P) i namnet tyder detta på att det finns säkerhets risker som blivit fixade:
+Atlas mål är att du ska vara så säker som möjligt utan att förlora prestanda. Vi gör detta genom att stänga av funktioner som kan läcka information eller funktioner som kan utnyttjas för dåliga handlingar. Det finns undantag till detta såsom [Spectre](https://spectreattack.com/spectre.pdf) och [Meltdown](https://meltdownattack.com/meltdown.pdf). Dessa begränsningar är avstängda för att improvisera prestanda. Om en säkerhets begränsning försämrar prestanda blir avaktiverade. Nedanför finns en lista på begränsningar/funktioner som har blivit ändrade, om det finns ett (P) i namnet tyder detta på att det finns säkerhets risker som såklart blivit fixade:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
@@ -55,7 +55,7 @@ Atlas är tungt rensat från onödiga funktioner, förinstallerade applikationer
 
 ### **Effektivitet**
 
-Atlas är för-tweakad. Vi behåller kompabilitet, men vi striver även för prestanda. Vi har tryckt ut varenda droppe av prestanda som går in i Atlas. Vissa av många förändringar som vi har gjort för att improvisera Windows kan du hitta nedanför.
+Atlas är för-tweakad. Vi behåller kompabilitet, men vi striver även för prestanda. Vi har tryckt ut varenda jädra droppe av prestanda som går in i Atlas. Vissa av de många förändringar som vi har gjort för att improvisera Windows kan du hitta här nedanför vettu.
 
 - Anpassat "Power Scheme"
 - Reducerad mängd tjänster och drivrutiner
