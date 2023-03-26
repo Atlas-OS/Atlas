@@ -1,79 +1,81 @@
 <h1 align="center">
-    <br>
-    <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
-  </h1>
-  <h4 align="center">Atlas, El sistema diseñado al rendimiento y baja latencia. Bienvenido a Atlas
-  <p align="center">
-    <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Instalación</a>
-    •
-    <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">Preguntas (FAQ)</a>
-    •
-    <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
-    •
-    <a href="https://forum.atlasos.net">Foro</a>
-  </p>
-  
-  # Qué es Atlas? 
-  
-  Atlas es una versión modificada de Windows que remueve todas los problemas de Windows, que pueden afectar negativamente el rendimiento en Gaming. Somos un proyecto abierto y transparente que nos esforzamos por la igualdad de los jugadores, tanto si se trata de un PC de Gama baja como un PC Gaming.
-  
-  Tambien somos una gran opción para reducir la latencia en el sistema, retraso de la conexión, Input lag y mantener el sistema seguro mientras nos enfocamos en el rendimiento.
-  
-  ## Table of contents
-  
-  - [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-    - [Qué es el proyecto Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-    - [Comó instalo Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-    - [Que ha sido eliminado en Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
-  - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-  - [Despues de instalar](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-  - [Kit de marca](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-  
- ## Windows vs. Atlas
+  <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+</h1>
 
-### **Privacidad**
+<h4 align="center">Un sistema operativo Windows lleno de libertad, diseñado para optimizar el rendimiento y disminuir la latencia.</h4>
 
-Atlas elimina todo tipo de rastreo integrado en Windows e implementa directrices de grupo para minimizar la recolección de datos. Cosas fuera del ambiente de Windows a las que no podemos aumentar la privacidad. Como las páginas que visitas
+<p align="center">
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Instalación</a>
+  •
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">Preguntas frecuentes</a>
+  •
+  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  •
+  <a href="https://forum.atlasos.net">Foro</a>
+</p>
 
-### **Seguridad**
+## 🤔 **¿Qué es Atlas?** 
+  
+Atlas OS es una versión modificada de Windows 10 que soluciona todos los inconvenientes negativos de Windows que afectan adversamente el rendimiento. Somos un proyecto transparente y de código abierto que se esfuerza por la igualdad de los jugadores, ya sea si posees un PC de gama baja o un PC para gaming.
+  
+También somos una buena opción para reducir la latencia en el sistema, el retraso de la conexión, el input lag y mantener tu sistema privado, siempre enfocándonos en el rendimiento.
 
-Atlas apunta a ser lo más seguro posible sin perder rendimiento. Hacemos esto deshabilitando funciones que pueden filtrar información o ser explotadas. Hay un par de excepciones a esto como lo son [Spectre](https://spectreattack.com/spectre.pdf), y también [Meltdown](https://meltdownattack.com/meltdown.pdf). Estas mitigaciones están deshabilitadas para mejorar el rendimiento.
-Si una medida de mitigación reduce el rendimiento, esta será deshabilitada.
-Abajo hay algunas funciones/mitigaciones que han sido alteradas; Si su etiqueta contienen una (P) son riesgos de seguridad que han sido solucionados:
+## 📚 **Contenidos**
+  
+- [Preguntas frecuentes](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
+  - [¿Qué es el proyecto Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
+  - [¿Cómo instalo Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
+  - [¿Qué se remueve en Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-what-is-removed-in-atlas-os)
+- <a href="#-windows-vs-atlas">Windows vs. Atlas</a>
+- [Instalación](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
+- [Posinstalación](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
+- [Software](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
+- [Kit de marca](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
+- [Aviso legal](https://github.com/Atlas-OS/Atlas/wiki/Legal)
+
+## 🆚 **Windows vs. Atlas**
+
+### 🔒 Mayor privacidad
+Atlas elimina todo tipo de rastreo integrado en Windows e implementa varias directrices de grupo para minimizar la recolección de datos. Ten en cuenta que no podemos hacer nada en cuanto a los sitios web que visitas, por ejemplo, pero te cubriremos donde podamos.
+
+### 🛡️ Seguridad reforzada
+Atlas apunta a ser lo más seguro posible, sin perder rendimiento. Logramos esto deshabilitando o mitigando funciones que podrían filtrar información o ser vulneradas. Podría haber un par de excepciones a esto, como lo son [Meltdown](https://meltdownattack.com/meltdown.pdf) y [Spectre](https://spectreattack.com/spectre.pdf); las mitigaciones a estos exploits fueron quitadas para mejorar el rendimiento.
+Si una medida de seguridad o mitigación ralentiza tu sistema, entonces la quitaremos/revertiremos.
+
+Aquí te dejamos la lista de vulnerabilidades mitigadas que alteramos; si una de ellas está marcada con una "(P)" al lado, significa que neutralizamos sus mitigaciones pero fueron solucionadas.
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
 - [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
-- [(P) ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
-- [(P) Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
+- (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
+- (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Posible recuperación de información_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Posible recuperación de información*)
 
-### **Reducción**
+### 🚀 Desinflado
+Atlas ha sido intensamente desinflado; las aplicaciones preinstaladas y otros componentes innecesarios (bloatware) han sido eliminados. A pesar de la posibilidad de problemas de compatibilidad, hacer esto reduce significativamente el peso de la ISO y de la instalación. Funciones como Windows Defender y similares se eliminan por completo.
 
-Atlas ha sido intensamente reducido, aplicaciones pre-instaladas y otros componentes han sido eliminados. A pesar de la posibilidad de problemas de compatibilidad, esto reduce significativamente el peso de la ISO y la instalación. Funciones como Windows Defender, y similares se eliminan por completo. Esta modificación esta centrada puramente en Gaming, pero la mayoria de aplicaciones de estudio y trabajo funcionan perfectamente. [Revisa qué más ha sido eliminado de atlas en Preguntas Frecuentes(FAQ)](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Esta modificación está centrada puramente en el gaming, pero la mayoría de aplicaciones de estudio y trabajo funcionan perfectamente. Revisa qué más hemos removido del sistema en [nuestra sección de Preguntas Frecuentes](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-what-is-removed-in-atlas-os).
 
-### **Rendimiento**
+### ✅ Eficiente
+Atlas está premodificado. Manteniendo la compatibilidad, pero también esforzándonos por el rendimiento, hemos buscado exprimir hasta la última gota del mismo en nuestras ISO de Windows.
 
-Atlas está pre-modificado. Mientras mantiene la compatibilidad, pero también por el rendimiento, hemos buscado exprimir hasta la última gota de rendimiento en nuestras ISO de Windows. Algunos de los muchos cambios que hemos hecho para mejorar Windows son:
+A continuación, algunos de los cambios que hemos hecho para mejorar Windows:
 
-- Plan de energía personalizado.
-- Reducción de servicios y drivers.
-- Audio exclusivo desactivado.
-- Dispositivos innecesarios desactivados.
-- Ahorro de energía desactivado.
-- Mitigaciones de seguridad que afectan el rendimiento deshabilitadas.
-- Modo MSI habilitado en todos los dispositivos.
-- Configuración de booteo optimizada.
-- Programación de procesos optimizada.
+- Plan de energía personalizado
+- Reducción de servicios y drivers
+- Audio exclusivo desactivado
+- Dispositivos innecesarios desactivados
+- Ahorro de energía desactivado
+- Mitigaciones de seguridad que afectan el rendimiento anuladas
+- Modo MSI habilitado en todos los dispositivos
+- Configuración de arranque optimizada
+- Programación de procesos optimizada
 
-## La creatividad no tiene limites
+## 🎨 Kit de marca
+¿Te gustaría crear tu propio fondo de pantalla de Atlas? ¿Quieres jugar un poco con nuestro logo para crear tu propio diseño? Tenemos esto a disposición al público para despertar ideas creativas en toda la comunidad. ¡Revisa nuestro [kit de marca](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip) y crea algo impresionante!
 
-Te gustaría crear tu propio fondo de pantalla de Atlas? Quieres jugar un poco con nuestro logo para crear tu propio diseño? Tenemos esto a disposición al público para despertar ideas creativas en toda la comunidad. [Revisa nuestro kit de marca para que puedas crear algo impresionante.](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
+También tenemos una [área dedicada en el apartado de discusiones](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork) para que puedas compartir tus ideas y creaciones con otros. ¡Quizás y encuentres algo que te inspire a poner a volar tu imaginación!
 
-También tenemos una [area de discuciones e ideas](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), Para que puedas compartir tus ideas y creaciones con otros. ¡También quizás y encuentres algo que te inspire a poner a volar la imaginación!
-
-## Disclaimer
-
-
+## ⚠️ Disclaimer
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
