@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Instalación</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ">Preguntas frecuentes</a>
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">Preguntas frecuentes</a>
   •
   <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
   •
@@ -26,10 +26,6 @@ También somos una buena opción para reducir la latencia en el sistema, el retr
   - [¿Qué es el proyecto Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
   - [¿Cómo instalo Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
   - [¿Qué se remueve en Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-what-is-removed-in-atlas-os)
-  - [¿Cómo me fijo si mi almacenamiento es GPT?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#14-how-do-i-check-if-my-storage-is-gpt)
-  - [¿Cómo convierto mi unidad a GPT?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#15-how-do-i-convert-my-drive-to-gpt)
-  - [¿Por qué una característica de Windows no funciona?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#16-windows-features-is-not-working)
-  - [¿Por qué Spotify o Microsoft Store fallan al conectar?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#17-storespotify-fails-to-connect)
 - <a href="#-windows-vs-atlas">Windows vs. Atlas</a>
 - [Instalación](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
 - [Posinstalación](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
