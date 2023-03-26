@@ -50,7 +50,7 @@ So, here's a rundown of what we done changed, and we put a little (P) next to th
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Posible recuperación de información*)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Posible information retrival*)
 
 ### 🚀 Debloated and Rarin' to Go!
 
