@@ -20,6 +20,8 @@
 
 First of all, thank you for considering helping us by translating documents! Here are some small things you should remember before creating a translated README.MD.
 
+• Please use the Origin_README.md in this folder for your translation.
+
 • Please keep the disclaimer in English for legal reasons.
 
 • Please keep your translation close to the original text.
