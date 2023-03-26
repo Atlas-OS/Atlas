@@ -1,7 +1,7 @@
 <h1 align="center">
-  <br>
-  <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
+  <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
+
 <h4 align="center">نظام تشغيل مليء بالحرية، مصمم لتحسين الأداء وتقليل أزمنة الانتقال.</h4>
 
 <p align="center">

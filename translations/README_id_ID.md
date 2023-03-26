@@ -1,7 +1,7 @@
 <h1 align="center">
-  <br>
-  <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900"></a>
+  <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
+
 <h4 align="center">Sistem operasi Windows yang bersumber terbuka dan transparan, didesain untuk performa dan latensi yang optimal.</h4>
 
 <p align="center">
