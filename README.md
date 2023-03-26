@@ -37,7 +37,7 @@
 
 ## 🤔 **What is Atlas?**
 
-Atlas is a modified version of Windows 10 which removes all the negative drawbacks of Windows, which adversely affect gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a low-end, or a gaming PC.
+Atlas is a modified version of Windows 10, which removes all the negative drawbacks of Windows that adversely affect gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a low-end, or a gaming PC.
 
 We are also a great option to reduce system latency, network latency, input lag, and keep your system private while keeping our main focus on performance.
 
