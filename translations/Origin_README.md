@@ -53,7 +53,7 @@ Below are some features/mitigations that have been altered, if they contain a (P
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Posible recuperación de información*)
 
 ### 🚀 Debloated
-eavily stripped, pre-installed applications and other components are removed. Despite the possibility of compatibility issues, this significantly decreases ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. 
+Atlas is heavily stripped, pre-installed applications and other components are removed. Despite the possibility of compatibility issues, this significantly decreases ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. 
 
 This modification is focused on pure gaming, but most work and education applications work. [Check out what else we have removed in our FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
@@ -79,3 +79,8 @@ We also have a [dedicated area in the discussions tab](https://github.com/Atlas-
 
 ## ⚠️ Disclaimer
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
+
+## Translation contributors (!!Translation contributor in the translated language)
+[Contributor A](https://github.com/A) | 
+[Contributor B](https://github.com/B) | 
+[Contributor C](https://github.com/C)

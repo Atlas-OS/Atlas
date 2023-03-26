@@ -79,3 +79,7 @@ También tenemos una [área dedicada en el apartado de discusiones](https://gith
 
 ## ⚠️ Disclaimer
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
+
+## Translation contributors (Colaboradores de traducción)
+[Bryan Rivalyr](https://github.com/Rivalyr) | 
+[Naxitoo](https://github.com/naxitoo)
