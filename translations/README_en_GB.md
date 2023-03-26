@@ -50,7 +50,7 @@ So, what are you waiting for? Give Atlas a go and keep your bits and bobs all to
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Possible Information Retrieval_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Possible information retrieval*)
 
 ### 🚀 Now, pay attention, chap! If you're serious about gaming, you don't want any of that bloated nonsense weighing you down, right?
 That's where Atlas comes in! We've stripped away all the pre-installed apps and other guff that you don't need, which makes the install size much smaller. We even got rid of things like Windows Defender - who needs that anyway? This mod is all about giving you the purest gaming experience possible, even though there might be a few snags here and there. But don't just take my word for it, have a butcher's at our FAQ and see for yourself what else we've given the heave-ho! Cheers, Atlas, you're a proper diamond!

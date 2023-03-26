@@ -50,7 +50,7 @@ Nedanför finns en lista på begränsningar/funktioner som har blivit ändrade, 
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Möjlig Informations Hämtning_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Möjlig informations hämtning*)
 
 ### 🚀 Rensning
 Atlas är tungt rensat från onödiga funktioner, förinstallerade applikationer och andra komponenter är borttagna. Trots möjligheten av inkompabilitets problem, Atlas minskar ISO och installations storleken. Funktioner såsom Windows Defender är totalt strippade. Dessa modifikationer är fokuserade på ren gaming, men de flesta jobb och skol appar fungerar utan problem. [Kolla in andra grejer vi stängt av i vår FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).

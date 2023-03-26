@@ -50,7 +50,7 @@ Di bawah ini adalah beberapa fitur/mitigasi yang telah diubah, jika itu mengandu
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Kemungkinan Pengambilan Informasi_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Kemungkinan pengambilan informasi*)
 
 ### 🚀 Debloated
 Banyak yang dihilangkan dari Atlas, aplikasi-aplikasi pra-instal dan komponen lainnya dihapus. Terlepas dari kemungkinan masalah kompatibilitas, ini secara signifikan mengurangi ukuran ISO dan pemasangan. Fungsionalitas seperti Windows Defender, dan semacamnya dicopot sepenuhnya. 

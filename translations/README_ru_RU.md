@@ -50,7 +50,7 @@ Atlas стремится быть максимально безопасным б
 - [(P) ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - [(P) Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Возможный поиск информации_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Возможный поиск информации*)
 
 ### 🚀 Удаленно
 Atlas сильно очищен, удалены предустановленные приложения и другие компоненты. Несмотря на возможность возникновения проблем с совместимостью, это значительно уменьшает размер ISO и размер установки. Функциональные возможности, такие как Windows Defender и подобные, полностью удалены. 

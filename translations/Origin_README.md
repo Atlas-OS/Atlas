@@ -50,7 +50,7 @@ Below are some features/mitigations that have been altered, if they contain a (P
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Posible information retrival*)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Posible information retrieval*)
 
 ### 🚀 Debloated
 Atlas is heavily stripped, pre-installed applications and other components are removed. Despite the possibility of compatibility issues, this significantly decreases ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. 

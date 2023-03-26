@@ -50,7 +50,7 @@ Dưới đây là một số tính năng/tinh chỉnh đã được thay đổi,
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Khả năng tìm được thông tin_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Khả năng tìm được thông tin*)
 
 ### 🚀 Loại bỏ
 Atlas được tháo dỡ rất nhiều, cài đặt sẵn các ứng dụng và các thành phần khác được loại bỏ. Mặc dù có khả năng tương thích các vấn đề, điều này làm giảm đáng kể kích thước ISO và cài đặt. Các chức năng như Windows Defender, và như vậy được loại bỏ hoàn toàn.

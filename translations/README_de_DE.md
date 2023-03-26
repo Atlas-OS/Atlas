@@ -50,7 +50,7 @@ Atlas strebt danach, so sicher wie möglich zu sein, ohne Leistungseinbußen zu 
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Mögliche Informationsbeschaffung_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Mögliche Informationsbeschaffung*)
 
 ### 🚀 Debloated
 Atlas ist sehr stark zerlegt. Vorinstallierte Anwendungen und andere Komponenten wurden entfernt. Trotz möglicher Kompatibilitätsprobleme wird dadurch die ISO- und Installationsgröße erheblich verringert. Funktionen wie Windows Defender usw. wurden vollständig entfernt. 

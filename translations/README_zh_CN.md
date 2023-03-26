@@ -50,7 +50,7 @@ Atlas 的目标是在不损失性能的情况下保证系统尽可能的安全�
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [远程桌面](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_可能存在信息检索_ )
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*可能存在信息检索* )
 
 ### 🚀 精简
 我们删除,剥离了大量的预装的应用程序和其他组件。尽管有可能出现兼容性问题，但这大大减少了ISO镜像和安装空间。诸如Windows Defender之类的功能被完全剥离。

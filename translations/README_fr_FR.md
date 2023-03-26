@@ -50,7 +50,7 @@ Vous trouverez ci-dessous certaines fonctionnalités/atténuations qui ont été
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (_Éxtraction de données possible_)
+- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Éxtraction de données possible*)
 
 ### 🚀 Nettoyage
 Atlas est fortement dépouillé, les applications préinstallées et les autres composants système sont supprimés. Malgré la possibilité de problèmes de compatibilité, cela diminue considérablement la taille de l'ISO et de l'installation. Des fonctionnalités telles que Windows Defender ou similaires sont complètement supprimées. 
