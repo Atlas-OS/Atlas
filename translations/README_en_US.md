@@ -72,7 +72,7 @@ Y'all better believe that Atlas is the most performant version of Windows you'll
 
 ## 🎨 Brandin' kit
 
-Would you like to create yer own Atlas wallpaper? Maybe mess around with our logo to make yer own design? We got this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make somethin' spectacular.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+Would you like to create yer own Atlas wallpaper? Maybe mess around with our logo to make yer own design? We got this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make somethin' spectacular.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 We also got a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share yer creations with other creative geniuses and maybe even spark some inspiration!
 

@@ -73,7 +73,7 @@ Một số thay đổi và cải thiện có thể kể tới như sau.
 - Tối ưu lên lịch tiến trình
 
 ## 🎨 Bộ thương hiệu
-Bạn có muốn tạo một hình nền Atlas của riêng bạn không? Hãy thử tùy biến một chút với bộ logo của chúng tôi xem, có thể bạn sẽ nảy ra được ý tưởng hay ho đó! Chúng tôi có những mục công khai để giúp khơi dậy các ý tưởng sáng tạo mới trên toàn cộng đồng, xem thử nhé? [Bộ thương hiệu của Atlas.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+Bạn có muốn tạo một hình nền Atlas của riêng bạn không? Hãy thử tùy biến một chút với bộ logo của chúng tôi xem, có thể bạn sẽ nảy ra được ý tưởng hay ho đó! Chúng tôi có những mục công khai để giúp khơi dậy các ý tưởng sáng tạo mới trên toàn cộng đồng, xem thử nhé? [Bộ thương hiệu của Atlas.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 Chúng tôi cũng có [một mục riêng trong khu vục thảo luận](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), bạn có thể chia sẻ sự sáng tạo của mình với các nhà thiết kế khác, hoặc có thể bạn cũng sẽ tìm được nguồn cảm hứng ở đó!
 

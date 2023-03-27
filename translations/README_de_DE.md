@@ -73,7 +73,7 @@ Atlas ist voroptimiert. Unter Beibehaltung der Kompatibilität, aber auch in dem
 
 ## 🎨 Branding-Kit
 
-Möchten Sie Ihr eigenes Atlas-Hintergrundbild erstellen? Vielleicht mit unserem Logo herumspielen, um Ihr eigenes Design zu entwerfen? Usere Branding-Kit ist für die Öffentlichkeit frei zugänglich. Wir freuen uns über neue kreative Ideen der Gemeinschaft. [Sehen Sie sich unser Branding-Kit an und machen Sie etwas Spektakuläres.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+Möchten Sie Ihr eigenes Atlas-Hintergrundbild erstellen? Vielleicht mit unserem Logo herumspielen, um Ihr eigenes Design zu entwerfen? Usere Branding-Kit ist für die Öffentlichkeit frei zugänglich. Wir freuen uns über neue kreative Ideen der Gemeinschaft. [Sehen Sie sich unser Branding-Kit an und machen Sie etwas Spektakuläres.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 Wir haben auch einen [eigenen Bereich im Discussions-Tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), damit Sie Ihre Kreationen mit anderen kreativen Genies teilen und sich vielleicht sogar inspirieren lassen können!
 

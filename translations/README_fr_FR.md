@@ -73,7 +73,7 @@ Certains des nombreux changements que nous avons apportés pour améliorer Windo
  - Planification optimisée des processus
 
 ## 🎨 Kit de la marque
-Vous souhaitez créer votre propre fond d'écran Atlas ? Peut-être jouer avec notre logo pour créer votre propre design ? Nous rendons cela accessible au public pour susciter de nouvelles idées créatives au sein de la Communauté. [Découvrez notre kit de marque et créez quelque chose de spectaculaire.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+Vous souhaitez créer votre propre fond d'écran Atlas ? Peut-être jouer avec notre logo pour créer votre propre design ? Nous rendons cela accessible au public pour susciter de nouvelles idées créatives au sein de la Communauté. [Découvrez notre kit de marque et créez quelque chose de spectaculaire.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 Nous avons également un espace dédié dans [l'onglet discussions](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), afin que vous puissiez partager vos créations avec d'autres génies créatifs et peut-être même susciter l'inspiration !
 

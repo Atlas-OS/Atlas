@@ -71,7 +71,7 @@ Atlas jest wstępnie zoptymalizowany. Zachowując kompatybilność, ale także d
 - Zoptymalizowano harmonogramowanie procesów
 
 ## 🎨 Zestaw marki
-Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stworzyć własne? Mamy to dostępne publicznie, aby pobudzić nowe kreatywne pomysły w całej społeczności. [Sprawdź nasz zestaw marki i stwórz coś niesamowitego](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true).
+Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stworzyć własne? Mamy to dostępne publicznie, aby pobudzić nowe kreatywne pomysły w całej społeczności. [Sprawdź nasz zestaw marki i stwórz coś niesamowitego](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip).
 
 Mamy też [dedykowany obszar w zakładce dyskusje](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), więc możesz podzielić się swoimi projektami z innymi kreatywnymi twórcami, a może nawet zaskoczyć jakąś inspiracją!
 

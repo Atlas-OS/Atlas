@@ -72,7 +72,7 @@ Atlas是被预调试过的。在保持兼容性的同时，也努力追求性能
 
 ## 🎨 品牌工具包
 
-想制作自己的 Atlas 壁纸吗？也许你可以用我们的 logo 来制作你自己的设计？功能面向社区开放，以激发整个社区的创意。[尝试制作一些让人眼前一亮的东西！](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+想制作自己的 Atlas 壁纸吗？也许你可以用我们的 logo 来制作你自己的设计？功能面向社区开放，以激发整个社区的创意。[尝试制作一些让人眼前一亮的东西！](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 我们在 Discussion 页面有专门的分区用于分享社区制作的壁纸，您可以前往[这里](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)发布您独一无二的创意作品！
 

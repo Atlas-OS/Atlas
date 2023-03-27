@@ -73,7 +73,7 @@ Vissa av de många förändringar som vi har gjort för att improvisera Windows 
 
 ## 🎨 Varumärkes Kit
 
-Vill du göra din egna Atlas bakgrundsbild? Kanske leka runt lite med våran logga och göra din egna design? Vi har detta åtkomstbart till alla för att införa nya krativa idéer runt gemenskapen. [Ta en titt på vårat varumärkes kit och hitta på något spektakulärt.](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
+Vill du göra din egna Atlas bakgrundsbild? Kanske leka runt lite med våran logga och göra din egna design? Vi har detta åtkomstbart till alla för att införa nya krativa idéer runt gemenskapen. [Ta en titt på vårat varumärkes kit och hitta på något spektakulärt.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 Vi har också en [dedikerad plats i våran diskussions plats](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), så att du kan dela med dig med dina kreativa idéer till andra kreativa smarton och kanske sprida lite inspiration!
 

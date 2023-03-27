@@ -71,7 +71,7 @@ We've pre-tweaked this bad boy to within an inch of its life, while still making
 ## 🎨 Well, hello there, mate! Are you feeling creative?
 Maybe you want to jazz up your desktop with some Atlas-themed wallpaper, or add a bit of pizzazz to our logo? Well, you're in luck, because we've got just the thing to tickle your fancy!
 
-We've made [our branding kit](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true) available to the public, so you can let your imagination run wild and make something really spiffing! And if you're feeling chatty, we've even got a special area [in our discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork) where you can share your masterpieces with other creative types and get some ideas brewing! So what are you waiting for, old sport? Check out our brand kit and get cracking!
+We've made [our branding kit](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) available to the public, so you can let your imagination run wild and make something really spiffing! And if you're feeling chatty, we've even got a special area [in our discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork) where you can share your masterpieces with other creative types and get some ideas brewing! So what are you waiting for, old sport? Check out our brand kit and get cracking!
 
 ## ⚠️ Disclaimer
 

@@ -73,7 +73,7 @@ A continuación, algunos de los cambios que hemos hecho para mejorar Windows:
 - Programación de procesos optimizada
 
 ## 🎨 Kit de marca
-¿Te gustaría crear tu propio fondo de pantalla de Atlas? ¿Quieres jugar un poco con nuestro logo para crear tu propio diseño? Tenemos esto a disposición al público para despertar ideas creativas en toda la comunidad. ¡Revisa nuestro [kit de marca](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip) y crea algo impresionante!
+¿Te gustaría crear tu propio fondo de pantalla de Atlas? ¿Quieres jugar un poco con nuestro logo para crear tu propio diseño? Tenemos esto a disposición al público para despertar ideas creativas en toda la comunidad. ¡Revisa nuestro [kit de marca](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) y crea algo impresionante!
 
 También tenemos una [área dedicada en el apartado de discusiones](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork) para que puedas compartir tus ideas y creaciones con otros. ¡Quizás y encuentres algo que te inspire a poner a volar tu imaginación!
 

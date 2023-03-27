@@ -73,7 +73,7 @@ Beberapa dari perubahan-perubahan yang telah kami lakukan untuk meningkatkan Win
 - Penjadwalan proses yang dioptimalkan
 
 ## 🎨 Branding kit
-Apakah kamu ingin membuat wallpaper Atlas-mu sendiri? Mungkin mencoba hal baru dengan logo kami untuk membuat desainmu sendiri? Kami punya ini yang bisa diakses oleh publik untuk memicu ide-ide kreatif baru di seluruh komunitas. [Lihat Branding Kit kami dan buat sesuatu yang spektakuler.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+Apakah kamu ingin membuat wallpaper Atlas-mu sendiri? Mungkin mencoba hal baru dengan logo kami untuk membuat desainmu sendiri? Kami punya ini yang bisa diakses oleh publik untuk memicu ide-ide kreatif baru di seluruh komunitas. [Lihat Branding Kit kami dan buat sesuatu yang spektakuler.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 Kami juga memiliki [area khusus di tab diskusi](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), jadi kamu bisa membagikan kreasimu dengan jenius kreatif lainnya dan bahkan mungkin memicu beberapa inspirasi!
 

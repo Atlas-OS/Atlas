@@ -73,7 +73,7 @@ Nakalista sa ibaba ang ilan sa maraming pagbabago na ginawa namin upang mapabuti
 - Na-optimize na pag-iiskedyul ng proseso
 
 ## 🎨 Branding kit
-Gusto mo bang gumawa ng sarili mong wallpaper ng Atlas? Baka magulo ang aming logo para gumawa ng sarili mong disenyo? Naa-access namin ito sa publiko para makapagsimula ng mga bagong malikhaing ideya sa buong komunidad. [Tingnan ang aming brand kit at gumawa ng kamangha-manghang bagay.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+Gusto mo bang gumawa ng sarili mong wallpaper ng Atlas? Baka magulo ang aming logo para gumawa ng sarili mong disenyo? Naa-access namin ito sa publiko para makapagsimula ng mga bagong malikhaing ideya sa buong komunidad. [Tingnan ang aming brand kit at gumawa ng kamangha-manghang bagay.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 Mayroon din kaming [nakalaang lugar sa tab ng mga talakayan](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), para maibahagi mo ang iyong mga likha sa iba pang mga magagaling sa pag-drawing at maaaring maging spark ng inspirasyon!
 

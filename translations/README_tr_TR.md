@@ -73,7 +73,7 @@ Windows'u iyileştirmek için yaptığımız birçok değişiklikten bazıları 
 - Optimize edilmiş süreç programlama
 
 ## 🎨 Marka kiti
-Kendi Atlas duvar kağıdınızı tasarlamak ister misiniz? Belki kendi tasarımınızı yapmak için logomuzla uğraşabilirsiniz? Topluluk genelinde yeni yaratıcı fikirleri harekete geçirmek için bunu topluluğun erişimine açtık. [Marka kitimize göz atın ve muhteşem bir şey yapın.](https://github.com/Atlas-OS/Atlas/blob/main/img/brand-kit.zip?raw=true)
+Kendi Atlas duvar kağıdınızı tasarlamak ister misiniz? Belki kendi tasarımınızı yapmak için logomuzla uğraşabilirsiniz? Topluluk genelinde yeni yaratıcı fikirleri harekete geçirmek için bunu topluluğun erişimine açtık. [Marka kitimize göz atın ve muhteşem bir şey yapın.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 Ayrıca tartışmalar sekmesinde [özel bir alanımız var](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), böylece yarattıklarınızı diğer yaratıcı dahilerle paylaşabilir ve belki biraz ilham bile uyandırabilirsiniz!
 
