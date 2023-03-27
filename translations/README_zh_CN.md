@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://i.imgur.com/xV08gIt.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">一个开放的Windows操作系统，旨在优化性能和延迟。</h4>

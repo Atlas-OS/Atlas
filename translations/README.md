@@ -26,6 +26,8 @@ First of all, thank you for considering helping us by translating documents! Her
 
 • Please keep your translation close to the original text.
 
+• Please do not modify the README.md format for your translation.
+
 • Please do not change any things other then the text you need to translate (if changed, mention it in the pull request).
 
 • Please double check your translation before submitting a pull request.
