@@ -237,6 +237,10 @@ sendToDebloat
 mitD
 mitE
 
+"Oculus VR"
+oculusE
+oculusD
+
 ) do (
     if "%~1"=="/%%a" (
         goto %%a
@@ -3362,6 +3366,29 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMo
 :: call :mitE /function
 if "%~1"=="/function" exit /b
 echo %date% - %time% Mitigations enabled...>> %user_log%
+echo]
+goto finish
+
+:oculusE
+:: Enable workstation and hidden dependencies
+call :workstationE
+
+:: QWAVE
+%setSvc% QwaveDrv 3
+%setSvc% Qwave 3
+%setSvc% FontCache 2
+
+echo %date% - %time% Oculus Services enabled...>> %user_log%
+echo]
+goto finish
+
+:oculusD
+:: Do not disable workstation, as it's a dependency of many other features
+%setSvc% QwaveDrv 4
+%setSvc% Qwave 4
+%setSvc% FontCache 4
+
+echo %date% - %time% Oculus Services disabled...>> %user_log%
 echo]
 goto finish
 
