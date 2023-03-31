@@ -2,85 +2,80 @@
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
-<h4 align="center">An open and transparent Windows operating system, designed to optimize performance and latency.</h4>
+<h4 align="center">パフォーマンスとレイテンシを最適化するように設計された、オープンで透過的なWindowsオペレーテ</h4>
 
 <p align="center">
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Installation</a>
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">インストール</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
+  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">よくある質問</a>
   •
-  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">不和</a>
   •
-  <a href="https://forum.atlasos.net">Forum</a>
+  <a href="https://forum.atlasos.net">フォーラム</a>
 </p>
 
-## 🤔 **What is Atlas?**
+## 🤔 **アトラスとは何ですか？**
 
-Atlas is a modified version of Windows 10, which removes all the negative drawbacks of Windows that adversely affect gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a low-end, or a gaming PC.
+Atlasはwindows10の修正版であり、ゲームのパフォーマンスに悪影響を与えるWindowsのすべての負の欠点を取り除きます. 私たちは、あなたがローエンド、またはゲームPCを実行しているかどうか、プレイヤーのための平等な権利のために努力し、透明でオープンソースのプロジ
 
-We are also a great option to reduce system latency, network latency, input lag, and keep your system private while keeping our main focus on performance.
+また、システムレイテンシ、ネットワークレイテンシ、入力レイテンシを削減し、パフォーマンスに焦点を当てながらシステムを非公開にするのにも最適なオプションです.
 
-## 📚 **Table of contents**
+## 📚 **目次**
 
 - [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [What is the Atlas project?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [How do I install Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [What is removed in Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
+  - [アトラスプロジェクトとは何ですか？](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
+  - [Atlasをインストールするにはどうすればよいですか？](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
+  - [Atlasで削除されるものは何ですか？](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [Installation](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Software](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
-- [Branding kit](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-- [Legal](https://github.com/Atlas-OS/Atlas/wiki/Legal)
+- [インストール](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
+- [インストール後](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
+- [ソフトウェア](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
+- [ブランディングキット](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
+- [リーガル](https://github.com/Atlas-OS/Atlas/wiki/Legal)
 
-## 🆚 **Windows vs. Atlas**
+## 🆚 **Windows ペア Atlas**
 
-### 🔒 Private
-Atlas removes all types of tracking embedded within Windows and implements numerous group policies to minimize data collection. Things outside the scope of Windows we can not increase privacy for, such as websites you visit.
+### 🔒 プライベート
+Atlasは、Windows内に埋め込まれたすべての種類の追跡を削除し、データ収集を最小限に抑えるために多数のグループポリシーを実装します. Windowsの範囲外のものは、我々は、このようなあなたが訪問するウェブサイトなどのためのプライバシーを高めることはできません.
 
-### 🛡️ Secure
-Atlas aims to be secure as possible without losing performance. We do this by disabling features that can leak information or be exploited. There are exceptions to this such as [Spectre](https://spectreattack.com/spectre.pdf), and [Meltdown](https://meltdownattack.com/meltdown.pdf). These mitigations are disabled to improve performance.
+### 🛡️ セキュア
+Atlasは、パフォーマンスを失うことなく、可能な限り安全であることを目指しています. これを行うには、情報が漏洩したり悪用されたりする可能性のある機能を無効にします。 これには[Spectre]などの例外があります（https://spectreattack.com/spectre.pdf）、および[メルトダウン]（https://meltdownattack.com/meltdown.pdfこれらの緩和策は、パフォーマンスを向上させるために無効になっています.
 
-If a security mitigation measure decreases performance, it will be disabled.
-Below are some features/mitigations that have been altered, if they contain a (P) they are security risks that have been fixed:
+セキュリティ緩和策がパフォーマンスを低下させると、無効になります.
+以下は変更されたいくつかの機能/緩和策ですが、（P）が含まれている場合は、修正されたセキュリティリスクです:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
 - [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
 - (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
 - (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
-- [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
+- [リモートデスクトップ](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Posible information retrieval*)
 
-### 🚀 Debloated
-Atlas is heavily stripped, pre-installed applications and other components are removed. Despite the possibility of compatibility issues, this significantly decreases ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. 
+### 🚀 デブロート
+アトラスは大きく剥がされ、プリインストールされたアプリケーションやその他のコンポーネントが削除されます. 互換性の問題の可能性があるにもかかわらず、これはISOとインストールサイズを大幅に減少させます. Windows Defenderなどの機能は完全に削除されます.
 
-This modification is focused on pure gaming, but most work and education applications work. [Check out what else we have removed in our FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+この変更は純粋なゲームに焦点を当てていますが、ほとんどの仕事と教育アプリケーションは機能します. [私たちは私たちのFAQで削除した他に何をチェックしてください](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
-### ✅ Performant
-Atlas is pre-tweaked. While maintaining compatibility, but also striving for performance, we have squeezed every last drop of performance into our Windows images. 
+### ✅ パフォーマンス
+アトラスは事前に調整されています. 互換性を維持するだけでなく、パフォーマンスのために努力しながら、我々は私たちのWindowsイメージにパフォーマンスのすべての最後の 
 
-Some of the many changes that we have done to improve Windows have been listed below.
+Windowsを改善するために行った多くの変更のいくつかを以下に示します.
 
-- Customized power scheme
-- Reduced amount of services and drivers
-- Disabled audio exclusive
-- Disabled unneeded devices
-- Disabled power savings
-- Disabled performance-hungry security mitigations
-- Automatically enabled MSI mode on all devices
-- Boot configuration optimization
-- Optimized process scheduling
+- カスタマイズされた力の機構
+- サービスとドライバーの量の削減
+- 無効なオーディオ排他
+- 不要なデバイスを無効にする
+- 無効化された省電力
+- パフォーマンスを重視するセキュリティ緩和策が無効になっています
+- すべてのデバイスでMSIモードを自動的に有効にする
+- ブート構成の最適化
+- 最適化されたプロセススケジューリング
 
-## 🎨 Branding kit
-Would you like to create your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something spectacular.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+## 🎨 ブランディングキット
+あなた自身のアトラスの壁紙を作成したいですか？ あなた自身のデザインを作るために私たちのロゴを混乱させるかもしれませんか？ 私たちは、コミュニティ全体で新しい創造的なアイデアを刺激するために、これを一般に公開しています. [私たちのブランドキットをチェックして、壮大な何かを作る。](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
-We also have a [dedicated area in the discussions tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), so you can share your creations with other creative geniuses and maybe even spark some inspiration!
+また、[ディスカッション]タブには[専用エリア]があります。(https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), だから、他の創造的な天才とあなたの作品を共有し、多分いくつかのインスピレーションを刺激することができます!
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer (免責事項)
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
-
-## Translation contributors (!!Translation contributor in the translated language)
-[Contributor A](https://github.com/A) | 
-[Contributor B](https://github.com/B) | 
-[Contributor C](https://github.com/C)
