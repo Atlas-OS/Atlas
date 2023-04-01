@@ -7,20 +7,6 @@ body:
     attributes:
       value: |
         A clear and concise description of what the bug is.
-  - type: checkboxes
-    attributes:
-      label: Prerequisites
-      description: |
-        To rule out invalid issues, confirm and check each one of the checkboxes.
-      options:
-        - label: This is not a support issue or a question. For any support, questions or help, visit our [Discord server](https://discord.com/servers/atlas-795710270000332800).
-          required: true
-        - label: I performed a [cursory search of the issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to avoid opening a duplicate issue.
-          required: true
-        - label: I checked the [documentation](https://github.com/Atlas-OS/Atlas/wiki) to understand that the issue I am reporting is not normal behavior.
-          required: true
-        - label: I understand that not filling out this template will lead to the issue being closed.
-          required: true
 
   - type: textarea
     attributes:
@@ -53,9 +39,14 @@ body:
     validations:
       required: true
 
-  - type: input
+  - type: dropdown
     attributes:
-      label: Atlas Version (1803/20H2/21H2)
+      label: Atlas Version
+      options:
+        - Atlas 10 22H2
+        - Atlas 11 22H2
+        - Atlas 10 Legacy (1803/20H2/21H2)
+        - Tweaked Atlas
     validations:
       required: true
 
@@ -67,9 +58,24 @@ body:
        - Processor [Intel or AMD, include specifics]
        - RAM amount (e.g. 8GB, 16GB, 32GB...)
        - System Drive Type (SSD or HDD)
-       - Graphics card
+       - Graphics card (e.g. NVIDIA RTX 2060 Super)
     validations:
       required: true
+
+  - type: checkboxes
+    attributes:
+      label: Prerequisites
+      description: |
+        To rule out invalid issues, confirm and check each one of the checkboxes.
+      options:
+        - label: This is not a support issue or a question. For any support, questions or help, join our [Discord server](https://discord.com/invite/atlasos).
+          required: true
+        - label: I performed a [cursory search of the issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to avoid opening a duplicate issue.
+          required: true
+        - label: I checked the [documentation](https://docs.atlasos.net) to understand that the issue I am reporting is not normal behavior.
+          required: true
+        - label: I understand that not filling out this template will lead to the issue being closed.
+          required: true
 
   - type: textarea
     attributes:

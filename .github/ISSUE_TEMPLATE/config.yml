@@ -4,8 +4,5 @@ contact_links:
     url: https://discord.com/servers/atlas-795710270000332800
     about: Please join our Discord server for general inquiries.
   - name: General questions (if you do not have Discord)
-    url: https://github.com/Atlas-OS/Atlas/discussions/new
+    url: https://forum.atlasos.net
     about: In case you do not have Discord, use this.
-  - name: Call of Duty Modern Warfare II fix
-    url: https://github.com/Atlas-OS/Atlas/discussions/362
-    about: Do you have problems running COD Modern Warfare II? If so, follow this guide.
