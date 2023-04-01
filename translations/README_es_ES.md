@@ -21,7 +21,7 @@ Atlas OS es una versión modificada de Windows 10 que soluciona todos los inconv
   
 También somos una buena opción para reducir la latencia en el sistema, el retraso de la conexión, el input lag y mantener tu sistema privado, siempre enfocándonos en el rendimiento.
 
-You can learn more about Atlas in our official [Website](https://atlasos.net)
+You can learn more about Atlas in our official [Website](https://atlasos.net).
 
 ## 📚 **Table of contents**
 - FAQ
@@ -62,7 +62,7 @@ Aquí te dejamos la lista de vulnerabilidades mitigadas que alteramos; si una de
 ### 🚀 Desinflado
 Atlas ha sido intensamente desinflado; las aplicaciones preinstaladas y otros componentes innecesarios (bloatware) han sido eliminados. A pesar de la posibilidad de problemas de compatibilidad, hacer esto reduce significativamente el peso de la ISO y de la instalación. Funciones como Windows Defender y similares se eliminan por completo.
 
-Esta modificación está centrada puramente en el gaming, pero la mayoría de aplicaciones de estudio y trabajo funcionan perfectamente. Revisa qué más hemos removido del sistema en [nuestra sección de Preguntas Frecuentes](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-what-is-removed-in-atlas-os).
+This modification is focused on pure gaming, but most work and education applications work. Check out what else we have removed in our [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features/).
 
 ### ✅ Eficiente
 Atlas está premodificado. Manteniendo la compatibilidad, pero también esforzándonos por el rendimiento, hemos buscado exprimir hasta la última gota del mismo en nuestras ISO de Windows.

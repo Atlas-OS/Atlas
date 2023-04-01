@@ -40,7 +40,7 @@ Atlas is a modified version of Windows 10, which removes all the negative drawba
 
 We are also a great option to reduce system latency, network latency, input lag, and keep your system private while keeping our main focus on performance.
 
-You can learn more about Atlas in our official [Website](https://atlasos.net)
+You can learn more about Atlas in our official [Website](https://atlasos.net).
 
 ## 📚 **Table of contents**
 - FAQ

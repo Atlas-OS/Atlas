@@ -21,7 +21,7 @@ Atlas ist eine modifizierte Version von Windows 10, welche alle negativen Nachte
 
 Obwohl unser Hauptthema auf der Leistung liegt, sind wir auch eine hervorragende Option zur Reduzierung von System- und Netzwerklatenz, Eingabeverzögerung und zum Schutz Ihrer Privatsphäre.
 
-You can learn more about Atlas in our official [Website](https://atlasos.net)
+You can learn more about Atlas in our official [Website](https://atlasos.net).
 
 ## 📚 **Table of contents**
 
