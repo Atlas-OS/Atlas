@@ -6,11 +6,11 @@
 <h4 align="center">Ein offenes und transparentes Windows-Betriebssystem, das zur Optimierung von Leistung und Latenzzeit entwickelt wurde.</h4>
 
 <p align="center">
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Installation</a>
+  <a href="https://atlasos.net">Website</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
+  <a href="https://docs.atlasos.net/FAQ/Installation/">FAQ</a>
   •
-  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  <a href="https://discord.com/invite/atlasos" target="_blank">Discord</a>
   •
   <a href="https://forum.atlasos.net">Forum</a>
 </p>
@@ -21,18 +21,25 @@ Atlas ist eine modifizierte Version von Windows 10, welche alle negativen Nachte
 
 Obwohl unser Hauptthema auf der Leistung liegt, sind wir auch eine hervorragende Option zur Reduzierung von System- und Netzwerklatenz, Eingabeverzögerung und zum Schutz Ihrer Privatsphäre.
 
-## 📚 **Inhaltsübersicht**
+You can learn more about Atlas in our official [Website](https://atlasos.net)
 
-- [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [Was ist das Atlas-Projekt?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [Wie kann ich Atlas installieren?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [Was wird in Atlas entfernt?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
+## 📚 **Table of contents**
+
+- FAQ
+  - [Install](https://docs.atlasos.net/FAQ/Installation/)
+  - [Contribute](https://docs.atlasos.net/FAQ/Contribute/)
+
+- Getting Started
+  - [Installation](https://docs.atlasos.net/Getting%20started/Installation/)
+  - [Other install methods](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB/)
+  - [Post Install](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers/)
+
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/Troubleshooting/Removed%20features/)
+  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts/)
+
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [Installation](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Software](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
-- [Branding-Kit](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-- [Legal](https://github.com/Atlas-OS/Atlas/wiki/Legal)
+- [Branding kit](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 ## Windows vs. Atlas
 
@@ -56,7 +63,7 @@ Atlas strebt danach, so sicher wie möglich zu sein, ohne Leistungseinbußen zu 
 ### 🚀 Debloated
 Atlas ist sehr stark zerlegt. Vorinstallierte Anwendungen und andere Komponenten wurden entfernt. Trotz möglicher Kompatibilitätsprobleme wird dadurch die ISO- und Installationsgröße erheblich verringert. Funktionen wie Windows Defender usw. wurden vollständig entfernt. 
 
-Diese Änderungen sind auf Gaming ausgerichtet, aber die meisten Arbeits- und Bildungsanwendungen funktionieren. [Was wir sonst noch entfernt haben, finden Sie in unserer FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Diese Änderungen sind auf Gaming ausgerichtet, aber die meisten Arbeits- und Bildungsanwendungen funktionieren. [Was wir sonst noch entfernt haben, finden Sie in unserer FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features/).
 
 ### ✅ Leistungsstark
 
@@ -76,11 +83,11 @@ Atlas ist voroptimiert. Unter Beibehaltung der Kompatibilität, aber auch in dem
 
 Möchten Sie Ihr eigenes Atlas-Hintergrundbild erstellen? Vielleicht mit unserem Logo herumspielen, um Ihr eigenes Design zu entwerfen? Usere Branding-Kit ist für die Öffentlichkeit frei zugänglich. Wir freuen uns über neue kreative Ideen der Gemeinschaft. [Sehen Sie sich unser Branding-Kit an und machen Sie etwas Spektakuläres.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
-Wir haben auch einen [eigenen Bereich im Discussions-Tab](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), damit Sie Ihre Kreationen mit anderen kreativen Genies teilen und sich vielleicht sogar inspirieren lassen können!
+We also have a dedicated area on our [Forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration! 
 
 ## ⚠️ Disclaimer (Haftungsausschluss)
 
-By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms.](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) None of these images are pre-activated, you **must** use a genuine key.
+AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to run Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). 
 
 ## Translation contributors (Beitragende zur Übersetzung)
 
