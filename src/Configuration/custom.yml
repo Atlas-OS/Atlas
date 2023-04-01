@@ -1,0 +1,12 @@
+---
+title: Custom
+description: Custom Atlas configuration
+privilege: Admin
+actions: []
+features:
+- features\atlas\start.yml
+- features\atlas\services.yml
+- features\atlas\appx.yml
+- features\atlas\components.yml
+- features\atlas\packages.yml
+- features\atlas\config.yml
