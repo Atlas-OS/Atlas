@@ -1,6 +1,6 @@
 name: Feature request
 description: create a feature request to help us inprove Atlas.
-labels: enhancement
+labels: enhancement, pending
 title: Feature request
 body:
   - type: markdown

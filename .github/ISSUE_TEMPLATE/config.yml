@@ -6,3 +6,6 @@ contact_links:
   - name: General questions (if you do not have Discord)
     url: https://forum.atlasos.net
     about: In case you do not have Discord, use this.
+  - name: Contribute to Atlas Docs
+    url: https://github.com/Atlas-OS/Docs
+    about: Please contribute https://docs.atlasos.net in a seperate repository.
