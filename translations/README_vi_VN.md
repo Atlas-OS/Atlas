@@ -20,7 +20,7 @@ Atlas là một phiên bản Windows 10 đã được chỉnh sửa, loại bỏ
 
 Ngoài việc tập trung vào hiệu năng, chúng tôi còn là một lựa chọn tốt để giảm độ trễ hệ thống, mạng, nhập liệu và giữ cho hệ thống của bạn được bảo mật.
 
-## 📚 **Những Lưu Ý**
+## 📚 **Mục lục**
 
 - [Các câu hỏi thường gặp (FAQ)](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
   - [Dự án Atlas là gì?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
@@ -29,7 +29,7 @@ Ngoài việc tập trung vào hiệu năng, chúng tôi còn là một lựa ch
 - <a href="#windows-vs-atlas">So sánh Windows và Atlas</a>
 - [Cách cài đặt](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
 - [Sau khi cài đặt](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Phần Mềm Hỗ Trợ](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
+- [Phần mềm thay thế](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
 - [Bộ thương hiệu](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
 - [Tính pháp lý](https://github.com/Atlas-OS/Atlas/wiki/Legal)
 
@@ -39,10 +39,10 @@ Ngoài việc tập trung vào hiệu năng, chúng tôi còn là một lựa ch
 Atlas loại bỏ tất cả các trình theo dõi được nhúng trong Windows và triển khai nhiều nhóm chính sách để giảm thiểu sự thu thập dữ liệu. Chúng tôi không thể tăng cường sự riêng tư cho những thứ ngoài phạm vi của Windows, chẳng hạn như các trang web mà bạn truy cập.
 
 ### 🛡️ Bảo mật
-Atlas hướng tới sự bảo mật tối đa mà không làm giảm hiệu năng bằng cách vô hiệu hoá các tính năng có thể gây rò rỉ thông tin hoặc có thể bị tin tặc khai thác. Có một số ngoại lệ như [Spectre](https://spectreattack.com/spectre.pdf) và [Meltdown](https://meltdownattack.com/meltdown.pdf). Các tinh chỉnh bảo mật này đã được vô hiệu hoá để cải thiện hiệu suất.
+Atlas hướng tới sự bảo mật tối đa mà không làm giảm hiệu năng bằng cách vô hiệu hoá các tính năng có thể gây rò rỉ thông tin hoặc có thể bị tin tặc khai thác. Có một số ngoại lệ như [Spectre](https://spectreattack.com/spectre.pdf) và [Meltdown](https://meltdownattack.com/meltdown.pdf). Các chỉnh sửa bảo mật này đã được vô hiệu hoá để cải thiện hiệu suất.
 
 Nếu một biện pháp bảo mật làm giảm hiệu năng, nó sẽ bị vô hiệu hoá.
-Dưới đây là một số tính năng/tinh chỉnh đã được thay đổi, trong đó các mục có ký hiệu (P) là các rủi ro bảo mật đã được vá:
+Dưới đây là một số biện pháp/chỉnh sửa đã được thay đổi, trong đó các mục có ký hiệu (P) là các rủi ro bảo mật đã được vá:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
@@ -53,9 +53,9 @@ Dưới đây là một số tính năng/tinh chỉnh đã được thay đổi,
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Khả năng tìm được thông tin*)
 
 ### 🚀 Loại bỏ
-Atlas đã được gỡ bỏ rất nhiều những cài đặt sẵn các ứng dụng và các thành phần khác cũng đã được loại bỏ. Mặc dù có khả năng có các vấn đề về tương thích, nhưng điều này làm giảm đáng kể kích thước ISO và cài đặt. Các chức năng như Windows Defender,...và những thành phần tương tự đã được loại bỏ hoàn toàn.
+Atlas đã loại bỏ nhiều ứng dụng được cài đặt sẵn và các thành phần khác. Mặc dù có khả năng có các vấn đề về tương thích, nhưng điều này làm giảm đáng kể kích thước ISO và bản cài đặt. Các thành phần như Windows Defender và những thành phần tương tự đã được loại bỏ hoàn toàn.
 
-Sự thay đổi này tập trung vào hiệu năng trong trò chơi thuần túy, nhưng hầu hết các ứng dụng cho công việc và học tập đều hoạt động. [Xem xem những gì chúng tôi đã gỡ bỏ trong FAQ] (https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ # 13-whats-in-Atlas-os).phần mềm dành cho giáo dục hay phần mềm để làm việc vẫn sẽ hoạt động được.
+Sự thay đổi này tập trung vào hiệu năng trong trò chơi, nhưng hầu hết các ứng dụng cho công việc và học tập đều sẽ hoạt động. [Xem những gì chúng tôi đã gỡ bỏ trong FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
 ### ✅ Hiệu suất
 Atlas là một bản hệ điều hành Windows được tinh chỉnh sẵn. Để duy trì sự tương thích, và cả hiệu năng, chúng tôi sẽ cung cấp cho bạn một phiên bản Windows với hiệu năng được đẩy tới cực hạn. 
@@ -63,12 +63,12 @@ Atlas là một bản hệ điều hành Windows được tinh chỉnh sẵn. Đ
 Một số thay đổi và cải thiện có thể kể tới như sau.
 
 - Power scheme được tuỳ chỉnh riêng
-- Giảm số lượng tiến trình
-- Giảm số lượng driver
+- Giảm số lượng tiến trình và driver
+- Vô hiệu hoá chế độ độc quyền âm thanh
 - Vô hiệu hoá các thiết bị không cần thiết
 - Vô hiệu hoá tiết kiệm pin
 - Vô hiệu hoá các biện pháp bảo mật mà ảnh hưởng tới hiệu năng
-- Tự động kích hoạt chế độ MSI
+- Tự động kích hoạt chế độ MSI cho tất cả thiết bị
 - Tối ưu cấu hình khởi động
 - Tối ưu lên lịch tiến trình
 
