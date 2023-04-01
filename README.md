@@ -56,7 +56,7 @@ We are also a great option to reduce system latency, network latency, input lag,
   - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts/)
 
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [Branding kit](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
+- [Branding kit](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 ## 🆚 **Windows vs. Atlas**
 
