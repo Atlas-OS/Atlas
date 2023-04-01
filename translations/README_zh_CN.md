@@ -24,16 +24,21 @@ Atlas 在主要优化性能的同时，也是减少系统、网络、输入延�
 
 ## 📚 **目录**
 
-- [常见问题](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [Atlas 项目在哪?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [如何安装 Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [Atlas 移除了什么?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
-- <a href="Windows 对比 Atlas">Windows 对比 Atlas</a>
-- [安装Atlas](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [安装后](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [软件](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
-- [品牌工具包](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
+- 常见问题
+  - [安装相关](https://docs.atlasos.net/FAQ/Installation/)
+  - [贡献相关](https://docs.atlasos.net/FAQ/Contribute/)
 
+- 开始安装
+  - [安装](https://docs.atlasos.net/Getting%20started/Installation/)
+  - [其他安装方式](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB/)
+  - [安装后](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers/)
+
+- 解决问题
+  - [被移除的功能](https://docs.atlasos.net/Troubleshooting/Removed%20features/)
+  - [脚本](https://docs.atlasos.net/Troubleshooting/Scripts/)
+
+- <a href="#windows-vs-atlas">Windows vs. Atlas</a>
+- [品牌工具包](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 ## 🆚 **Windows 对比 Atlas**
 
 ### 🔒 隐私
