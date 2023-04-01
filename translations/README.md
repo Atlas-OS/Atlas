@@ -20,7 +20,7 @@
 
 First of all, thank you for considering helping us by translating documents! Here are some small things you should remember before creating a translated README.MD.
 
-• Please use the Origin_README.md in this folder for your translation.
+• Please copy the Origin_README.md in this folder, rename it to the language's corrosponding ISO code (e.g. README_zh_CN.md), then commit the README translated.
 
 • Please keep the disclaimer in English for legal reasons.
 
