@@ -42,16 +42,21 @@ We are also a great option to reduce system latency, network latency, input lag,
 
 ## 📚 **Table of contents**
 
-- [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [What is the Atlas project?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [How do I install Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [What is removed in Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
+- FAQ
+  - [Install](https://docs.atlasos.net/FAQ/Installation/)
+  - [Contribute](https://docs.atlasos.net/FAQ/Contribute/)
+
+- Getting Started
+  - [Installation](https://docs.atlasos.net/Getting%20started/Installation/)
+  - [Other install methods](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB/)
+  - [Post Install](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers/)
+
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/Troubleshooting/Removed%20features/)
+  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts/)
+
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [Installation](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Software](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
 - [Branding kit](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-- [Legal](https://github.com/Atlas-OS/Atlas/wiki/Legal)
 
 ## 🆚 **Windows vs. Atlas**
 
