@@ -1,4 +1,3 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -21,18 +20,23 @@ Atlas là một phiên bản Windows 10 đã được chỉnh sửa, loại bỏ
 
 Ngoài việc tập trung vào hiệu năng, chúng tôi còn là một lựa chọn tốt để giảm độ trễ hệ thống, mạng, nhập liệu và giữ cho hệ thống của bạn được bảo mật.
 
-## 📚 **Những Lưu Ý**
+## 📚 **Mục lục**
 
-- [Các câu hỏi thường gặp (FAQ)](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [Dự án Atlas là gì?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [Cách cài đặt Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [Những thành phần đã được loại bỏ trong Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
-- <a href="#windows-vs-atlas">So sánh Windows và Atlas</a>
-- [Cách cài đặt](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [Sau khi cài đặt](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Phần Mềm Hỗ Trợ](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
+- Các câu hỏi thường gặp (FAQ)
+  - [Cách cài đặt](https://github.com/Atlas-OS/Atlas/FAQ/Instrallation/)
+  - [Cách đóng góp](https://github.com/Atlas-OS/Atlas/FAQ/Contribute/)
+
+- Bắt đầu sử dụng Atlas
+  - [Các bước cài đặt](https://github.com/Atlas-OS/Atlas/Getting%started/Instrallation/)
+  - [Cài đặt bằng cách khác](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB/)
+  - [Thực hiện sau khi cài đặt](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers/)
+
+- Xử lý lỗi, sự cố
+  - [Về các tính năng đã bị xóa](https://docs.atlasos.net/Troubleshooting/Removed%20features/)
+  - [Về các kịch bản (scripts)](https://docs.atlasos.net/Troubleshooting/Scripts/)
+
+- <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Bộ thương hiệu](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-- [Tính pháp lý](https://github.com/Atlas-OS/Atlas/wiki/Legal)
 
 ## 🆚 **Windows vs. Atlas**
 
@@ -56,7 +60,7 @@ Dưới đây là một số tính năng/tinh chỉnh đã được thay đổi,
 ### 🚀 Loại bỏ
 Atlas đã được gỡ bỏ rất nhiều những cài đặt sẵn các ứng dụng và các thành phần khác cũng đã được loại bỏ. Mặc dù có khả năng có các vấn đề về tương thích, nhưng điều này làm giảm đáng kể kích thước ISO và cài đặt. Các chức năng như Windows Defender,...và những thành phần tương tự đã được loại bỏ hoàn toàn.
 
-Sự thay đổi này tập trung vào hiệu năng trong trò chơi thuần túy, nhưng hầu hết các ứng dụng cho công việc và học tập đều hoạt động. [Xem xem những gì chúng tôi đã gỡ bỏ trong FAQ] (https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ # 13-whats-in-Atlas-os).phần mềm dành cho giáo dục hay phần mềm để làm việc vẫn sẽ hoạt động được.
+Sự thay đổi này tập trung vào hiệu năng trong trò chơi thuần túy, nhưng hầu hết các ứng dụng cho công việc và học tập đều hoạt động. [Xem xem những gì chúng tôi đã gỡ bỏ trong FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-in-Atlas-os).
 
 ### ✅ Hiệu suất
 Atlas là một bản hệ điều hành Windows được tinh chỉnh sẵn. Để duy trì sự tương thích, và cả hiệu năng, chúng tôi sẽ cung cấp cho bạn một phiên bản Windows với hiệu năng được đẩy tới cực hạn. 
@@ -67,7 +71,7 @@ Một số thay đổi và cải thiện có thể kể tới như sau.
 - Giảm số lượng tiến trình
 - Giảm số lượng driver
 - Vô hiệu hoá các thiết bị không cần thiết
-- Vô hiệu hoá tiết kiệm pin
+- Vô hiệu hoá chế độ tiết kiệm pin
 - Vô hiệu hoá các biện pháp bảo mật mà ảnh hưởng tới hiệu năng
 - Tự động kích hoạt chế độ MSI
 - Tối ưu cấu hình khởi động
@@ -83,6 +87,4 @@ By downloading, modifying, or utilizing any of these images, you agree to [Micro
 
 ## Translation contributors (Những người đóng góp dịch thuật)
 
-[Cuong Tien Dinh](https://github.com/dtcu0ng) | 
-[Nguyễn Cao Hoài Nam](https://github.com/sant1ago-da-hanoi) |
-[Nguyen Thuy Linh](https://github.com/WhiteSnow00)
+[Cuong Tien Dinh](https://github.com/dtcu0ng) | [Nguyễn Cao Hoài Nam](https://github.com/sant1ago-da-hanoi) | [Nguyen Thuy Linh](https://github.com/WhiteSnow00) | [Le Huy Giang](https://github.com/lehuygiang28)
