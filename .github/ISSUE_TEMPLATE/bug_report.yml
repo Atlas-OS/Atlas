@@ -1,7 +1,7 @@
 name: Bug report
 description: create a bug report to help us inprove Atlas.
 labels: bug, pending
-title: [BUG REPORT]
+title: "[BUG REPORT] - "
 body:
   - type: markdown
     attributes:
