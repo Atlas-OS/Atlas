@@ -58,7 +58,7 @@ Atlas được rút gọn rất nhiều, những ứng dụng cài sẵn cũng n
 Sự tinh chỉnh này tập trung vào hiệu năng chơi game thuần túy, nhưng đa số các ứng dụng cho công việc và học tập đều hoạt động. [Cùng xem chúng tôi đã lược bỏ thêm những gì trong phần FAQ] (https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ # 13-whats-in-Atlas-os).
 
 ### ✅ Hiệu suất
-Atlas đã được tinh chỉnh sẵn. Trong lúc duy trì sự tương thích, nhwung vẫn đảm bảo cả hiệu năng, chúng tôi đẩy hiệu năng tới cực hạn cho các bản Windows. 
+Atlas đã được tinh chỉnh sẵn. Trong lúc duy trì sự tương thích, nhưng vẫn đảm bảo cả hiệu năng, chúng tôi đẩy hiệu năng tới cực hạn cho các bản Windows. 
 
 Một trong vô số thay đổi chúng tôi đã thực hiện để cải thiện Windows được liệt kê dưới đây.
 
