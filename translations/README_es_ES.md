@@ -6,13 +6,13 @@
 <h4 align="center">Un sistema operativo Windows lleno de libertad, diseñado para optimizar el rendimiento y disminuir la latencia.</h4>
 
 <p align="center">
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Instalación</a>
+  <a href="https://atlasos.net">Website</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">Preguntas frecuentes</a>
+  <a href="https://docs.atlasos.net/FAQ/Installation/">FAQ</a>
   •
-  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  <a href="https://discord.com/invite/atlasos" target="_blank">Discord</a>
   •
-  <a href="https://forum.atlasos.net">Foro</a>
+  <a href="https://forum.atlasos.net">Forum</a>
 </p>
 
 ## 🤔 **¿Qué es Atlas?** 
@@ -21,18 +21,24 @@ Atlas OS es una versión modificada de Windows 10 que soluciona todos los inconv
   
 También somos una buena opción para reducir la latencia en el sistema, el retraso de la conexión, el input lag y mantener tu sistema privado, siempre enfocándonos en el rendimiento.
 
-## 📚 **Contenidos**
-  
-- [Preguntas frecuentes](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [¿Qué es el proyecto Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [¿Cómo instalo Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [¿Qué se remueve en Atlas OS?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-what-is-removed-in-atlas-os)
-- <a href="#-windows-vs-atlas">Windows vs. Atlas</a>
-- [Instalación](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [Posinstalación](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Software](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
-- [Kit de marca](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-- [Aviso legal](https://github.com/Atlas-OS/Atlas/wiki/Legal)
+You can learn more about Atlas in our official [Website](https://atlasos.net)
+
+## 📚 **Table of contents**
+- FAQ
+  - [Install](https://docs.atlasos.net/FAQ/Installation/)
+  - [Contribute](https://docs.atlasos.net/FAQ/Contribute/)
+
+- Getting Started
+  - [Installation](https://docs.atlasos.net/Getting%20started/Installation/)
+  - [Other install methods](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB/)
+  - [Post Install](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers/)
+
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/Troubleshooting/Removed%20features/)
+  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts/)
+
+- <a href="#windows-vs-atlas">Windows vs. Atlas</a>
+- [Branding kit](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 ## 🆚 **Windows vs. Atlas**
 
