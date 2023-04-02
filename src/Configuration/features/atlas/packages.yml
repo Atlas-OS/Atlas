@@ -954,10 +954,11 @@ actions:
   - !systemPackage: {name: 'microsoft-windows-RemoteFX-clientVM-RemoteFXWDDMDriver-WOW64-d-LanguagePack', arch: amd64, language: 'en-US'}
   - !systemPackage: {name: 'microsoft-windows-RemoteFX-clientVM-RemoteFXWDDMDriver-WOW64-d', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'microsoft-windows-RemoteFX-remoteclient-files-regkeys-component', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'microsoft-windows-RemoteFX-setup-update-oob-deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'microsoft-windows-RemoteFX-setup-update-oob-deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'microsoft-windows-RemoteFX-setup-update-oob-synth3d-deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'microsoft-windows-RemoteFX-setup-update-oob-synth3d-deployment', arch: amd64, language: 'neutral'}
+#    Breaks Hyper-V
+#  - !systemPackage: {name: 'microsoft-windows-RemoteFX-setup-update-oob-deployment-LanguagePack', arch: amd64, language: 'en-US'}
+#  - !systemPackage: {name: 'microsoft-windows-RemoteFX-setup-update-oob-deployment', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'microsoft-windows-RemoteFX-setup-update-oob-synth3d-deployment-LanguagePack', arch: amd64, language: 'en-US'}
+#  - !systemPackage: {name: 'microsoft-windows-RemoteFX-setup-update-oob-synth3d-deployment', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'microsoft-windows-RemoteFX-UMTS-Events-component', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'microsoft-windows-RemoteFX-UMTS-files-regkeys-component', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'microsoft-windows-RemoteFX-UMTS-perfcounters-component', arch: amd64, language: 'neutral'}
@@ -1066,10 +1067,11 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-Font-StaticCache', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Application-Compatibility-UI-Recording', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Application-Compatibility-UI-Recording', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-StepsRecorder-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Microsoft-Windows-StepsRecorder-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-StepsRecorder-FOD-wow64-Deployment-LanguagePack', arch: wow64, language: 'en-US'}
-  - !systemPackage: {name: 'Microsoft-Windows-StepsRecorder-FOD-wow64-Deployment', arch: wow64, language: 'neutral'}
+#    Breaks steps recorder
+#  - !systemPackage: {name: 'Microsoft-Windows-StepsRecorder-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
+#  - !systemPackage: {name: 'Microsoft-Windows-StepsRecorder-Deployment', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-StepsRecorder-FOD-wow64-Deployment-LanguagePack', arch: wow64, language: 'en-US'}
+#  - !systemPackage: {name: 'Microsoft-Windows-StepsRecorder-FOD-wow64-Deployment', arch: wow64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-mobsyncexe', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-mobsyncexe', arch: wow64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-mobsync', arch: amd64, language: 'neutral'}
