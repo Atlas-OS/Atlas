@@ -19,11 +19,7 @@ function WriteList ($list, $name) {
 $provider = WriteList -list @("Chocolatey", "Scoop") -name "provider"
 
 function InstallBrowser {
-	if ($provider -eq "Chocolatey") {
-		$script = $PSScriptRoot+"\Manual\Install Browser via $provider (recommended).ps1"
-	} else {
-		$script = $PSScriptRoot+"\Manual\Install Browser via $provider.ps1"
-	}
+    $script = $PSScriptRoot+"\Manual\Install Browser via $provider.ps1"
     & $script
 }
 
