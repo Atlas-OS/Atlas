@@ -1,4 +1,4 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
+
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -6,33 +6,39 @@
 <h4 align="center">Открытая и прозрачная операционная система Windows, разработанная для оптимизации производительности и задержки.</h4>
 
 <p align="center">
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Установка</a>
+  <a href="https://atlasos.net">Веб-сайт</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
+  <a href="https://docs.atlasos.net/FAQ/Installation/">FAQ</a>
   •
-  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  <a href="https://discord.com/invite/atlasos" target="_blank">Discord</a>
   •
   <a href="https://forum.atlasos.net">Форум</a>
 </p>
 
 ## 🤔 **Что такое Atlas?**
 
-Atlas - это модифицированная версия Windows 10, в которой устранены все негативные недостатки Windows, отрицательно влияющие на игровую производительность. Мы являемся прозрачным проектом с открытым исходным кодом, стремящимся к равным правам для игроков, независимо от того, используете ли вы ПК низкого класса или игровой ПК.
+Atlas - это модифицированная версия Windows 10, в которой устранены все негативные особенности Windows, отрицательно влияющие на игровую производительность. Мы являемся прозрачным проектом с открытым исходным кодом, стремящимся к равным правам для игроков, независимо от того, используете ли вы ПК низкого класса или игровой ПК.
 
 Уделяя основное внимание производительности, мы также являемся отличным вариантом для снижения системных задержек, сетевых задержек, задержек ввода и сохранения конфиденциальности вашей системы.
 
-## 📚 **Содержание**
+Вы можете узнать больше об Atlas на нашем официальном [сайте](https://atlasos.net).
 
-- [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [Что представляет собой проект Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [Как установить Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [Что удаленно в Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
+## 📚 **Содержание**
+- FAQ
+  - [Установка](https://docs.atlasos.net/FAQ/Installation/)
+  - [Внести вклад](https://docs.atlasos.net/FAQ/Contribute/)
+
+- Первые шаги
+  - [Установка](https://docs.atlasos.net/Getting%20started/Installation/)
+  - [Другие методы установки](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB/)
+  - [После установки](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers/)
+
+- Устранение неполадок
+  - [Удалённые функции](https://docs.atlasos.net/Troubleshooting/Removed%20features/)
+  - [Скрипты](https://docs.atlasos.net/Troubleshooting/Scripts/)
+
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [Installation](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Software](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
-- [Branding kit](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-- [Legal](https://github.com/Atlas-OS/Atlas/wiki/Legal)
+- [Брендовый кит](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 ## 🆚 **Windows vs. Atlas**
 
@@ -48,39 +54,40 @@ Atlas стремится быть максимально безопасным б
 - [Spectre](https://spectreattack.com/spectre.pdf)
 - [Meltdown](https://meltdownattack.com/meltdown.pdf)
 - [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
-- [(P) ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
-- [(P) Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
+- (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
+- (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
 - [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Возможный поиск информации*)
 
-### 🚀 Удаленно
+### 🚀 Удалено
 Atlas сильно очищен, удалены предустановленные приложения и другие компоненты. Несмотря на возможность возникновения проблем с совместимостью, это значительно уменьшает размер ISO и размер установки. Функциональные возможности, такие как Windows Defender и подобные, полностью удалены. 
 
-Эта модификация ориентирована на чистые игры, но большинство рабочих и образовательных приложений работают. [Узнайте, что еще мы удалили в нашем FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Эта модификация ориентирована на безупречный гейминг, но также работают большинство рабочих и образовательных приложений. Узнайте, что еще мы удалили в нашем [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features/).
 
 ### ✅ Производительность
-Atlas предварительно настроен. Сохраняя совместимость, но также стремясь к производительности, мы выжали все до последней капли производительности из наших образов Windows. 
+Atlas предварительно настроен. Сохраняя совместимость, но также стремясь к производительности, мы вложили в наши образы Windows все до последней капли. 
 
 Ниже перечислены некоторые из многочисленных изменений, которые мы сделали для улучшения Windows.
 
 - Настроенная схема питания
-- Сокращены количества служб
-- Сокращены количества драйверов
-- Отключены не используемые устройств
-- Отключенное энергосбережение
-- Отключение требовательных к производительности средств защиты
-- Автоматически включенный режим MSI
+- Сокращение количества служб и драйверов
+- Отключены эксклюзивы аудио
+- Отключены неиспользуемые устройства
+- Отключено энергосбережение
+- Отключены требовательные к производительности средства защиты
+- Автоматически включенный режим MSI на всех устройствах
 - Оптимизация конфигурации загрузки
 - Оптимизированное планирование процессов
 
 ## 🎨 Брендовый набор
 Хотите создать свои собственные обои Atlas? Может быть, поизвращаться с нашим логотипом, чтобы создать свой собственный дизайн? Мы предоставляем это в открытый доступ, чтобы вдохнуть новые творческие идеи в сообщество. [Посмотрите наш набор для создания бренда и сделайте что-нибудь впечатляющее.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
-У нас также есть [специальная область во вкладке обсуждений](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), где вы можете поделиться своими творениями с другими творческими гениями и, возможно, даже вдохновиться!
+У нас также есть специальная область на [форуме](https://forum.atlasos.net/t/art-showcase), где вы можете поделиться своими творениями с другими творческими гениями и, возможно, даже вдохновиться!
 
 ## ⚠️ Disclaimer
-By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
+AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to run Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). 
 
-## Translation contributors (Автор перевода)
+## Translation contributors (Авторы перевода)
 
-[arl1ne](https://github.com/arl1nef)
+[arl1ne](https://github.com/arl1nef) |
+[Lumaeris](https://github.com/Lumaeris)
