@@ -626,8 +626,8 @@ actions:
   - !service: {name: 'ErrDev', operation: change, startup: 4}
   - !service: {name: 'fdc', operation: change, startup: 4}
   - !service: {name: 'flpydisk', operation: change, startup: 4}
-    # FileInfo 4 < breaks installing Microsoft Store apps to different disk (now disabled via store script)
-    # FileCrypt 4 < Breaks installing Microsoft Store apps to different disk (now disabled via store script)
+    # FileInfo 4 < breaks installing Microsoft Store applications to different disk (now disabled via store script)
+    # FileCrypt 4 < Breaks installing Microsoft Store applications to different disk (now disabled via store script)
   - !service: {name: 'gencounter', operation: change, startup: 4}
   - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
   - !service: {name: 'HidBth', operation: change, startup: 4}
@@ -640,7 +640,7 @@ actions:
   - !service: {name: 'NdisVirtualBus', operation: change, startup: 4}
   - !service: {name: 'nvraid', operation: change, startup: 4}
   - !service: {name: 'passthruparser', operation: change, startup: 4}
-    # PEAUTH 4 < breaks uwp streaming apps like netflix, manual mode does not fix
+    # PEAUTH 4 < breaks uwp streaming applications such as netflix, manual mode does not fix
   - !service: {name: 'pvhdparser', operation: change, startup: 4}
     # Set rdbss to manual instead of disabling (fixes wsl), thanks phlegm
   - !service: {name: 'rdbss', operation: change, startup: 3}
@@ -681,7 +681,7 @@ actions:
 
   - !writeStatus: {status: 'Modifying registry settings'}
 
-    # Clean up firewall rules
+    # Clear firewall rules
   - !registryKey:
     path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules'
   - !registryKey:
@@ -756,7 +756,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable startup delay of running apps
+    # Disable startup delay of running applications 
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize'
     value: 'StartupDelayInMSec'
@@ -764,7 +764,7 @@ actions:
     type: REG_DWORD
 
     # Reduce menu show delay time
-    # Automatically close any apps and continue to restart, shut down, or sign out of windows
+    # Automatically close any applications and continue to restart, shut down, or sign out of windows
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'AutoEndTasks'
@@ -872,7 +872,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable auto download of Microsoft Store apps
+    # Disable auto download of Microsoft Store applications 
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\WindowsStore'
     value: 'AutoDownload'
@@ -943,7 +943,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable Windows Customer Experience Improvement Program
+    # Disable Windows Customer Experience Improvement Program (CEIP)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\AppV\CEIP'
     value: 'CEIPEnable'
@@ -965,7 +965,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable fullscreen prompt for UAC - convienience
+    # Disable fullscreen prompt for User Account Control (UAC)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
     value: 'PromptOnSecureDesktop'
@@ -979,7 +979,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable Windows Media DRM internet access
+    # Disable Windows DRM internet access
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\WMDRM'
     value: 'DisableOnline'
@@ -1286,10 +1286,10 @@ actions:
     type: REG_SZ
 
     # Disable Content Delivery Manager
-    # Disable pre-installed apps
-    # Disable windows welcome experience
+    # Disable pre-installed applications
+    # Disable Windows welcome experience
     # Disable suggested content in Immersive Control Panel
-    # Disable fun facts, tips, tricks on windows spotlight
+    # Disable fun facts, tips, tricks on Windows Spotlight
     # Disable start menu suggestions
     # Disable get tips, tricks, and suggestions as you use windows
   - !registryValue:
@@ -1368,7 +1368,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable windows spotlight features
+    # Disable Windows Spotlight features
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableWindowsSpotlightFeatures'
@@ -1415,7 +1415,7 @@ actions:
     data: 'https://atlasos.net'
     type: REG_SZ
 
-    # Disable program compatibility assistant
+    # Disable Program Compatibility Assistant (PCA)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
     value: 'AITEnable'
@@ -1491,7 +1491,6 @@ actions:
     type: REG_SZ
 
     # Configure ease of access settings
-    # Both immersive and legacy control panel
 
     # Disable always read and scan this section in ease of access
   - !registryValue:
@@ -1636,7 +1635,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable Windows Error Reporting
+    # Disable Windows Error Reporting (WER)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting'
     value: 'DoReport'
@@ -1787,7 +1786,7 @@ actions:
     data: 'Deny'
     type: REG_SZ
 
-    # Disable smartscreen for Microsoft Store apps
+    # Disable smartscreen for Microsoft Store applications
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AppHost'
     value: 'EnableWebContentEvaluation'
@@ -1799,7 +1798,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable smartscreen for apps and files from web
+    # Disable smartscreen for applications and files from web
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
     value: 'EnableSmartScreen'
@@ -1897,7 +1896,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable settings sync
+    # Disable setting synchronization
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'
     value: 'DisableSettingSync'
@@ -1999,7 +1998,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Show all tasks in control panel
+    # Show all tasks in Control Panel
   - !registryValue:
     path: 'HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}'
     data: 'All Tasks'
@@ -2151,7 +2150,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Configure multimedia class scheduler
+    # Configure multimedia class scheduler (MMCSS)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
     value: 'SystemResponsiveness'
@@ -2252,7 +2251,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable background apps
+    # Disable background applications
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy'
     value: 'LetAppsRunInBackground'
@@ -2825,14 +2824,8 @@ actions:
     # Remove SecurityHealthSystray startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
-  - !writeStatus: {status: 'Changing sound scheme'}
-
-    # Set sound scheme to no sounds
-  - !powerShell:
-    command: 'New-ItemProperty -Path ''HKCU:\AppEvents\Schemes'' -Name ''(Default)'' -Value ''.None'' -Force | Out-Null'
-
-  - !powerShell:
-    command: 'Get-ChildItem -Path ''HKCU:\AppEvents\Schemes\Apps'' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq ''.Current''} | Set-ItemProperty -Name ''(Default)'' -Value '''''
+    # Set sound scheme to 'No Sounds' (apply to all users) 
+  - !registryValue: {path: 'HKCU\AppEvents\Schemes', value: '', type: REG_SZ, data: '.None'}
 
   - !writeStatus: {status: 'Changing boot manager options'}
 
