@@ -812,18 +812,6 @@ actions:
     data: '100'
     type: REG_DWORD
 
-    # Disable lockscreen
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData'
-    value: 'AllowLockScreen'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
-    value: 'NoLockScreen'
-    data: '1'
-    type: REG_DWORD
-
     # Disable acrylic blur effect on sign-in screen background
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
