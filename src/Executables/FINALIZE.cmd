@@ -123,7 +123,7 @@ for %%a in (valorant valorant-win64-shipping vgtray vgc) do (
     PowerShell -NoP -C "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
 )
 
-:: Set correct username variable of the currently logged in user
+:: Set correct username variable of the currently logged-in user
 @for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinusername=%%a"
 
 :: Debloat 'Send To' context menu, hidden files do not show up in the 'Send To' context menu
@@ -148,7 +148,7 @@ for /f "delims=" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVers
 
 :: Set sound scheme to 'No Sounds'
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
-    REM If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
+    :: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
     reg query "HKEY_USERS\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul 2>&1
     if not !errorlevel! == 1 (
         PowerShell -NoP -C "New-PSDrive HKU Registry HKEY_USERS; Get-ChildItem -Path 'HKU:\%%a\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
@@ -161,5 +161,5 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 echo BCD Options Set...
 
 :: Write to script log file
-echo This log keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > !windir!\AtlasModules\logs\userScript.log
+echo This log keeps track of which scripts have been run. This is never transferred to an online resource and stays local. > !windir!\AtlasModules\logs\userScript.log
 echo -------------------------------------------------------------------------------------------------------------------- >> !windir!\AtlasModules\logs\userScript.log
