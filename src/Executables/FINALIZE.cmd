@@ -123,7 +123,7 @@ for %%a in (valorant valorant-win64-shipping vgtray vgc) do (
     PowerShell -NoP -C "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
 )
 
-:: Set correct username variable of the currently logged in user
+:: Set correct username variable of the currently logged-in user
 @for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinusername=%%a"
 
 :: Debloat 'Send To' context menu, hidden files do not show up in the 'Send To' context menu
@@ -161,5 +161,5 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 echo BCD Options Set...
 
 :: Write to script log file
-echo This log keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > !windir!\AtlasModules\logs\userScript.log
+echo This log keeps track of which scripts have been run. This is never transferred to an online resource and stays local. > !windir!\AtlasModules\logs\userScript.log
 echo -------------------------------------------------------------------------------------------------------------------- >> !windir!\AtlasModules\logs\userScript.log
