@@ -16,10 +16,7 @@
 
 # Translations
 
-<kbd>[<img title="العربية" alt="العربية" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/sa.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ar_SA.md)</kbd>
 <kbd>[<img title="Deutsch" alt="Deutsch" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/de.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_de_DE.md)</kbd>
-<kbd>[<img title="'Bri'ish" alt="Bri'ish" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/gb.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_en_GB.md)</kbd>
-<kbd>[<img title="'Merican" alt="'Merican" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/us.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_en_US.md)</kbd>
 <kbd>[<img title="Español" alt="Español" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/es.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_es_ES.md)</kbd>
 <kbd>[<img title="Française" alt="Française" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/fr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_fr_FR.md)</kbd>
 <kbd>[<img title="Bahasa Indonesia" alt="Bahasa Indonesia" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/id.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_id_ID.md)</kbd>
