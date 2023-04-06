@@ -340,10 +340,6 @@ actions:
     # Disable driver power saving
   - !powerShell: {command: '$usb_devices = @(''Win32_USBController'', ''Win32_USBControllerDevice'', ''Win32_USBHub''); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}'}
 
-    # Disable ACPI devices
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "ACPI Processor Aggregator"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "Microsoft Windows Management Interface for ACPI"'}
-
     # Disable power throttling
     # https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling
   - !registryValue:
@@ -491,29 +487,8 @@ actions:
     command: 'Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr'
 
     # Disable system devices
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "AMD PSP"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "AMD SMBus"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "Base System Device"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "*Bluetooth*" /use_wildcard'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "Composite Bus Enumerator"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "High precision event timer"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "Intel Management Engine"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "Intel SMBus"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "*Hyper-V*" /use_wildcard'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "Microsoft Kernel Debug Network Adapter"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "Microsoft RRAS Root Enumerator"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "Motherboard resources"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "NDIS Virtual Network Adapter Enumerator"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "Numeric Data Processor"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "PCI Data Acquisition and Signal Processing Controller"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "PCI Encryption/Decryption Controller"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "PCI Memory Controller"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "PCI Simple Communications Controller"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "SM Bus Controller"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "System CMOS/real time clock"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "System Speaker"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "System Timer"'}
-  - !run: {exe: 'C:\Windows\AtlasModules\Apps\DevManView.exe', args: '/disable "UMBus Root Bus Enumerator"'}
+  - !powerShell:
+    command: '.\DISABLEPNP.ps1'
 
   - !writeStatus: {status: 'Configuring services'}
 

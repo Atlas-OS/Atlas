@@ -60,7 +60,7 @@ for %%a in (
 )
 
 :: Disable system devices
-DevManView.exe /disable "*Hyper-V*" /use_wildcard
+ToggleDevices.cmd "*Hyper-V*"
 
 echo Finished, please reboot your device for changes to apply.
 pause

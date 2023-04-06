@@ -6,16 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b 0
 )
 
-DevManView.exe /disable "WAN Miniport (IKEv2)"
-DevManView.exe /disable "WAN Miniport (IP)"
-DevManView.exe /disable "WAN Miniport (IPv6)"
-DevManView.exe /disable "WAN Miniport (L2TP)"
-DevManView.exe /disable "WAN Miniport (Network Monitor)"
-DevManView.exe /disable "WAN Miniport (PPPOE)"
-DevManView.exe /disable "WAN Miniport (PPTP)"
-DevManView.exe /disable "WAN Miniport (SSTP)"
-DevManView.exe /disable "NDIS Virtual Network Adapter Enumerator"
-DevManView.exe /disable "Microsoft RRAS Root Enumerator"
+ToggleDevices.cmd "WAN Miniport*" "NDIS Virtual Network Adapter Enumerator" "Microsoft RRAS Root Enumerator"
 
 !setSvcScript! IKEEXT 4
 !setSvcScript! WinHttpAutoProxySvc 4
