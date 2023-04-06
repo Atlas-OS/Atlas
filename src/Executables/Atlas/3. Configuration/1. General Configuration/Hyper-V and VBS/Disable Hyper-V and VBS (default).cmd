@@ -60,7 +60,7 @@ for %%a in (
 )
 
 :: Disable system devices
-ToggleDevices.cmd "*Hyper-V*"
+call ToggleDevices.cmd "*Hyper-V*"
 
 echo Finished, please reboot your device for changes to apply.
 pause

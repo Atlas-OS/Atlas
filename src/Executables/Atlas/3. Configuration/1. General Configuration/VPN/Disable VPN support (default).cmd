@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b 0
 )
 
-ToggleDevices.cmd "WAN Miniport*" "NDIS Virtual Network Adapter Enumerator" "Microsoft RRAS Root Enumerator"
+call ToggleDevices.cmd "WAN Miniport*" "NDIS Virtual Network Adapter Enumerator" "Microsoft RRAS Root Enumerator"
 
 !setSvcScript! IKEEXT 4
 !setSvcScript! WinHttpAutoProxySvc 4

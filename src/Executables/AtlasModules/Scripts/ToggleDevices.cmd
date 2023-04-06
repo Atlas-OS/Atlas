@@ -6,7 +6,7 @@ goto main
 ----------------------------------------------------------------------------
 [USAGE IN A SCRIPT]
 - Below shows how to use it for mass disabling devices in a script
-- For more simple tasks, use: ToggleDevices.cmd [/e] "Device1" "Device2" ...
+- For more simple tasks, use: call ToggleDevices.cmd [/e] "Device1" "Device2" ...
 ----------------------------------------------------------------------------
 
 if defined EnableDelayedExpansion (set __noChange=true) else (setlocal EnabledDelayedExpansion)
@@ -23,7 +23,7 @@ for %%a in (
 	)
 )
 
-ToggleDevices.cmd %__devices%
+call ToggleDevices.cmd %__devices%
 if defined __noChange setlocal DisableDelayedExpansion
 
 ----------------------------------------------------------------------------

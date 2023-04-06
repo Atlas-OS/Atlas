@@ -25,7 +25,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 !setSvcScript! RFCOMM 4
 
 :: Enable Bluetooth devices
-ToggleDevices.cmd /e "*Bluetooth*"
+call ToggleDevices.cmd /e "*Bluetooth*"
 
 attrib +h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 
