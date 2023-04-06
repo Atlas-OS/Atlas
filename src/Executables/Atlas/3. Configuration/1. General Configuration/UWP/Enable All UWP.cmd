@@ -12,16 +12,16 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 :: Block access to Microsoft Store
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f > nul 2>&1
 
-!setSvcScript! AppXSvc 3
-!setSvcScript! BFE 2
-!setSvcScript! ClipSVC 3
-!setSvcScript! InstallService 3
-!setSvcScript! LicenseManager 3
-!setSvcScript! mpssvc 2
-!setSvcScript! TabletInputService 3
-!setSvcScript! TokenBroker 3
-!setSvcScript! WinHttpAutoProxySvc 3
-!setSvcScript! wlidsvc 3
+call setSvc,cmd AppXSvc 3
+call setSvc,cmd BFE 2
+call setSvc,cmd ClipSVC 3
+call setSvc,cmd InstallService 3
+call setSvc,cmd LicenseManager 3
+call setSvc,cmd mpssvc 2
+call setSvc,cmd TabletInputService 3
+call setSvc,cmd TokenBroker 3
+call setSvc,cmd WinHttpAutoProxySvc 3
+call setSvc,cmd wlidsvc 3
 
 taskkill /f /im StartMenuExperienceHost* > nul 2>&1
 ren %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy

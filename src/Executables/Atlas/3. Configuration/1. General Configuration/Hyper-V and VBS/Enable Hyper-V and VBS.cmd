@@ -34,20 +34,20 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorE
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "WasEnabledBy" /t REG_DWORD /d "1" /f
 
 :: Enable drivers
-!setSvcScript! hvservice 3
-!setSvcScript! vhdparser 3
-!setSvcScript! vmbus 0
-!setSvcScript! Vid 1
-!setSvcScript! bttflt 0
-!setSvcScript! gencounter 3
-!setSvcScript! hvsocketcontrol 3
-!setSvcScript! passthruparser 3
-!setSvcScript! pvhdparser 3
-!setSvcScript! spaceparser 3
-!setSvcScript! storflt 0
-!setSvcScript! vmgid 3
-!setSvcScript! vmbusr 3
-!setSvcScript! vpci 0
+call setSvc,cmd hvservice 3
+call setSvc,cmd vhdparser 3
+call setSvc,cmd vmbus 0
+call setSvc,cmd Vid 1
+call setSvc,cmd bttflt 0
+call setSvc,cmd gencounter 3
+call setSvc,cmd hvsocketcontrol 3
+call setSvc,cmd passthruparser 3
+call setSvc,cmd pvhdparser 3
+call setSvc,cmd spaceparser 3
+call setSvc,cmd storflt 0
+call setSvc,cmd vmgid 3
+call setSvc,cmd vmbusr 3
+call setSvc,cmd vpci 0
 
 :: Enable services
 for %%a in (
@@ -63,11 +63,11 @@ for %%a in (
 	"vmicvmsession"
 	"vmicvss"
 ) do (
-    !setSvcScript! %%~a 3
+    call setSvc,cmd %%~a 3
 )
 
 :: Enable system devices
-call ToggleDevices.cmd /e "*Hyper-V*"
+call toggleDev.cmd /e "*Hyper-V*"
 
 echo Finished, please reboot your device for changes to apply.
 pause

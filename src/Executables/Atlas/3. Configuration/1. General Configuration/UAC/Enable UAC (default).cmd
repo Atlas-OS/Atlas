@@ -15,7 +15,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "Con
 :: Unlock UserAccountControlSettings.exe
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /f > nul 2>&1
 
-!setSvcScript! luafv 2
+call setSvc,cmd luafv 2
 
 echo Finished, please reboot your device for changes to apply.
 pause

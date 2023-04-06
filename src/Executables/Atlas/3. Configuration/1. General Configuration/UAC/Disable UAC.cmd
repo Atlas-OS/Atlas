@@ -24,7 +24,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "Con
 :: Lock UserAccountControlSettings.exe - users can enable UAC from there without luafv enabled, which breaks UAC completely and causes issues
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /t REG_SZ /d "\"C:\Users\%username%\Desktop\Atlas\Configuration\General Coniguration\UAC\Enable UAC (default).cmd\" /uacSettings" /f > nul 2>&1
 
-!setSvcScript! luafv 4
+call setSvc,cmd luafv 4
 
 echo Finished, please reboot your device for changes to apply.
 pause

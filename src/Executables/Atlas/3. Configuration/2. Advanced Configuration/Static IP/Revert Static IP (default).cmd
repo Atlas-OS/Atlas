@@ -14,9 +14,9 @@ netsh int ipv4 set dnsservers name="%DeviceName%" dhcp
 netsh int ipv4 show config "%DeviceName%"
 
 :: enable static ip services (fixes internet icon)
-!setSvcScript! Dhcp 2
-!setSvcScript! netprofm 3
-!setSvcScript! nlasvc 2
+call setSvc,cmd Dhcp 2
+call setSvc,cmd netprofm 3
+call setSvc,cmd nlasvc 2
 
 echo Finished, please reboot your device for changes to apply.
 pause

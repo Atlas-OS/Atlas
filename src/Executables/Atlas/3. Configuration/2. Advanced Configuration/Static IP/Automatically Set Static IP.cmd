@@ -41,9 +41,9 @@ if !errorlevel! == 2 goto staticIPC
 goto staticIPS
 
 :staticIPS
-!setSvcScript! Dhcp 4
-!setSvcScript! netprofm 4
-!setSvcScript! NlaSvc 4
+call setSvc,cmd Dhcp 4
+call setSvc,cmd netprofm 4
+call setSvc,cmd NlaSvc 4
 
 :staticIPC
 echo Finished, please reboot your device for changes to apply.

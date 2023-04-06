@@ -6,24 +6,24 @@ goto main
 ----------------------------------------------------------------------------
 [USAGE IN A SCRIPT]
 - Below shows how to use it for mass disabling devices in a script
-- For more simple tasks, use: call ToggleDevices.cmd [/e] "Device1" "Device2" ...
+- For more simple tasks, use: call toggleDev.cmd [/e] "Device1" "Device2" ...
 ----------------------------------------------------------------------------
 
 if defined EnableDelayedExpansion (set __noChange=true) else (setlocal EnabledDelayedExpansion)
 set "__devices="
 
-for %%a in (
+for %a in (
 	"ACPI Processor Aggregator"
 	"*SmBus*"
 ) do (
 	if defined __devices (
-		set "__devices=!__devices! "%%~a""
+		set "__devices=!__devices! "%~a""
 	) else (
-		set "__devices="%%~a""
+		set "__devices="%~a""
 	)
 )
 
-call ToggleDevices.cmd %__devices%
+call toggleDev.cmd %__devices%
 if defined __noChange setlocal DisableDelayedExpansion
 
 ----------------------------------------------------------------------------

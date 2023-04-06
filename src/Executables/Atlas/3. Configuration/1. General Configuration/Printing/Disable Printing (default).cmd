@@ -31,7 +31,7 @@ for %%a in (
     reg add "HKCR\%%~a\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f > nul 2>&1
 )
 
-!setSvcScript! Spooler 4
+call setSvc,cmd Spooler 4
 
 echo Finished, please reboot your device for changes to apply.
 pause

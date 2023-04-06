@@ -6,15 +6,15 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b 0
 )
 
-call ToggleDevices.cmd "WAN Miniport*" "NDIS Virtual Network Adapter Enumerator" "Microsoft RRAS Root Enumerator"
+call toggleDev.cmd "WAN Miniport*" "NDIS Virtual Network Adapter Enumerator" "Microsoft RRAS Root Enumerator"
 
-!setSvcScript! IKEEXT 4
-!setSvcScript! WinHttpAutoProxySvc 4
-!setSvcScript! RasMan 4
-!setSvcScript! SstpSvc 4
-!setSvcScript! iphlpsvc 4
-!setSvcScript! NdisVirtualBus 4
-!setSvcScript! Eaphost 4
+call setSvc,cmd IKEEXT 4
+call setSvc,cmd WinHttpAutoProxySvc 4
+call setSvc,cmd RasMan 4
+call setSvc,cmd SstpSvc 4
+call setSvc,cmd iphlpsvc 4
+call setSvc,cmd NdisVirtualBus 4
+call setSvc,cmd Eaphost 4
 
 echo Finished, please reboot your device for changes to apply.
 pause

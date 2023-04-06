@@ -27,7 +27,7 @@ if !errorlevel! == 1 (
 )
 
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "!windir!\AtlasModules\Apps\procexp.exe" /f > nul 2>&1
-!setSvcScript! pcw 4
+call setSvc,cmd pcw 4
 
 echo Finished, changes have been applied.
 pause

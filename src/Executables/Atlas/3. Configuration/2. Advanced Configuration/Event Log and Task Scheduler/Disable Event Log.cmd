@@ -10,7 +10,7 @@ echo This may break some features:
 echo - CapFrameX
 echo - Network menu/icon
 echo If you experience random issues, please enable Event Log again.
-!setSvcScript! EventLog 4
+call setSvc,cmd EventLog 4
 
 echo Finished, please reboot your device for changes to apply.
 pause

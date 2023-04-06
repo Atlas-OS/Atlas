@@ -56,11 +56,11 @@ for %%a in (
     "vmicvss"
     "vpci"
 ) do (
-    !setSvcScript! %%~a 4
+    call setSvc,cmd %%~a 4
 )
 
 :: Disable system devices
-call ToggleDevices.cmd "*Hyper-V*"
+call toggleDev.cmd "*Hyper-V*"
 
 echo Finished, please reboot your device for changes to apply.
 pause
