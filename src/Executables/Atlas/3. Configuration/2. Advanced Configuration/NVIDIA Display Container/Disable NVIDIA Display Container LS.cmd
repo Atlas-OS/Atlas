@@ -25,7 +25,7 @@ echo]
 echo Read README.txt for more info.
 pause
 
-call setSvc,cmd NVDisplay.ContainerLocalSystem 4
+call setSvc.cmd NVDisplay.ContainerLocalSystem 4
 sc stop NVDisplay.ContainerLocalSystem > nul 2>&1
 
 echo Finished, changes have been applied.

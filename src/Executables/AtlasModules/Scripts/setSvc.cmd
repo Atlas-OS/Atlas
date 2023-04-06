@@ -29,7 +29,7 @@ call :setSvc %*
 exit /b
 
 :setSvc
-:: example: call setSvc,cmd AppInfo 4
+:: example: call setSvc.cmd AppInfo 4
 :: last argument is the startup type: 0, 1, 2, 3, 4
 if [%~1]==[] (echo You need to run this with a service/driver to disable. & exit /b 1)
 if [%~2]==[] (echo You need to run this with an argument ^(1-5^) to configure the service's startup. & exit /b 1)

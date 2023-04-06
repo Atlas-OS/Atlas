@@ -56,7 +56,7 @@ for %%a in (
     "vmicvss"
     "vpci"
 ) do (
-    call setSvc,cmd %%~a 4
+    call setSvc.cmd %%~a 4
 )
 
 :: Disable system devices

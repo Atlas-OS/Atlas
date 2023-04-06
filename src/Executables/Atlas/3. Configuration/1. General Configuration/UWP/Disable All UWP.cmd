@@ -28,7 +28,7 @@ pause
 
 :: Detect if user is using a microsoft account
 PowerShell -NoP -C "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
-if "!MSACCOUNT!"=="NO" ( call setSvc,cmd wlidsvc 4 ) else ( echo "Microsoft Account detected, not disabling wlidsvc..." )
+if "!MSACCOUNT!"=="NO" ( call setSvc.cmd wlidsvc 4 ) else ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 
 :: Disable the option for microsoft store in the "Open with" dialog
@@ -37,15 +37,15 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 :: Block access to Microsoft Store
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f > nul 2>&1
 
-call setSvc,cmd AppXSvc 4
-call setSvc,cmd BFE 4
-call setSvc,cmd ClipSVC 4
-call setSvc,cmd InstallService 4
-call setSvc,cmd LicenseManager 4
-call setSvc,cmd mpssvc 4
-call setSvc,cmd TabletInputService 4
-call setSvc,cmd TokenBroker 4
-call setSvc,cmd WinHttpAutoProxySvc 4
+call setSvc.cmd AppXSvc 4
+call setSvc.cmd BFE 4
+call setSvc.cmd ClipSVC 4
+call setSvc.cmd InstallService 4
+call setSvc.cmd LicenseManager 4
+call setSvc.cmd mpssvc 4
+call setSvc.cmd TabletInputService 4
+call setSvc.cmd TokenBroker 4
+call setSvc.cmd WinHttpAutoProxySvc 4
 
 taskkill /f /im StartMenuExperienceHost* > nul 2>&1
 ren !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old

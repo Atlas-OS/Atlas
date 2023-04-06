@@ -15,7 +15,7 @@ if !errorlevel! == 1 (
     exit /b 1
 )
 
-call setSvc,cmd NVDisplay.ContainerLocalSystem 2
+call setSvc.cmd NVDisplay.ContainerLocalSystem 2
 sc start NVDisplay.ContainerLocalSystem > nul 2>&1
 
 echo Finished, changes have been applied.

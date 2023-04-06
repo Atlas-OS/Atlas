@@ -12,14 +12,14 @@ goto main
 if defined EnableDelayedExpansion (set __noChange=true) else (setlocal EnabledDelayedExpansion)
 set "__devices="
 
-for %a in (
+for %%a in (
 	"ACPI Processor Aggregator"
 	"*SmBus*"
 ) do (
 	if defined __devices (
-		set "__devices=!__devices! "%~a""
+		set "__devices=!__devices! "%%~a""
 	) else (
-		set "__devices="%~a""
+		set "__devices="%%~a""
 	)
 )
 
