@@ -5,6 +5,8 @@ goto main
 
 ----------------------------------------------------------------------------
 [USAGE IN A SCRIPT]
+- Below shows how to use it for mass disabling devices in a script
+- For more simple tasks, use: ToggleDevices.cmd [/e] "Device1" "Device2" ...
 ----------------------------------------------------------------------------
 
 if defined enabledelayedexpansion (set __noChange=true) else (setlocal enabledelayedexpansion)
