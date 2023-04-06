@@ -25,7 +25,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 !setSvcScript! bthserv 3
 
 :: Enable Bluetooth devices
-DevManView.exe /enable "*Bluetooth*" /use_wildcard
+ToggleDevices.cmd /e "*Bluetooth*"
 
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
 if !errorlevel! == 1 attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
