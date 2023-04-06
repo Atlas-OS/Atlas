@@ -6,16 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b 0
 )
 
-DevManView.exe /enable "WAN Miniport (IKEv2)"
-DevManView.exe /enable "WAN Miniport (IP)"
-DevManView.exe /enable "WAN Miniport (IPv6)"
-DevManView.exe /enable "WAN Miniport (L2TP)"
-DevManView.exe /enable "WAN Miniport (Network Monitor)"
-DevManView.exe /enable "WAN Miniport (PPPOE)"
-DevManView.exe /enable "WAN Miniport (PPTP)"
-DevManView.exe /enable "WAN Miniport (SSTP)"
-DevManView.exe /enable "NDIS Virtual Network Adapter Enumerator"
-DevManView.exe /enable "Microsoft RRAS Root Enumerator"
+ToggleDevices.cmd /e "WAN Miniport*" "NDIS Virtual Network Adapter Enumerator" "Microsoft RRAS Root Enumerator"
 
 !setSvcScript! IKEEXT 3
 !setSvcScript! BFE 2

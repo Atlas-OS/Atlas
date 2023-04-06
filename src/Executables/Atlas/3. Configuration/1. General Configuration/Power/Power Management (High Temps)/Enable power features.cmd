@@ -10,8 +10,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 PowerShell -NoP -C "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $True; $power_device.psbase.put()}}}}"
 
 :: Enable ACPI devices
-DevManView.exe /enable "ACPI Processor Aggregator"
-DevManView.exe /enable "Microsoft Windows Management Interface for ACPI"
+ToggleDevices.cmd /e "ACPI Processor Aggregator" "Microsoft Windows Management Interface for ACPI"
 
 :: Enable power throttling
 :: https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling/
