@@ -28,8 +28,8 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 ToggleDevices.cmd /e "*Bluetooth*"
 
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
-if !errorlevel! == 1 attrib -h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
-if !errorlevel! == 2 attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+if !errorlevel! == 1 attrib -h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+if !errorlevel! == 2 attrib +h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 
 echo Finished, please reboot your device for changes to apply.
 pause

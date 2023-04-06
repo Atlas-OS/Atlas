@@ -1,7 +1,7 @@
 @echo off
 goto main
 
-:: made by he3als
+:: Made by he3als
 
 ----------------------------------------------------------------------------
 [USAGE IN A SCRIPT]
@@ -9,7 +9,7 @@ goto main
 - For more simple tasks, use: ToggleDevices.cmd [/e] "Device1" "Device2" ...
 ----------------------------------------------------------------------------
 
-if defined enabledelayedexpansion (set __noChange=true) else (setlocal enabledelayedexpansion)
+if defined EnableDelayedExpansion (set __noChange=true) else (setlocal EnabledDelayedExpansion)
 set "__devices="
 
 for %%a in (
@@ -24,14 +24,14 @@ for %%a in (
 )
 
 ToggleDevices.cmd %__devices%
-if defined __noChange setlocal disabledelayedexpansion
+if defined __noChange setlocal DisableDelayedExpansion
 
 ----------------------------------------------------------------------------
 
 :main
-fltmc >nul 2>&1 || (
+fltmc > nul 2>&1 || (
 	echo Administrator privileges are required, run this script as administrator.
-	exit /b 1
+	exit /b
 )
 
 set "__arguments=%*"
@@ -46,16 +46,16 @@ if not defined __arguments (
 
 if "%~1"=="/e" (set __state=enable) else (set __state=disable)
 
-:: remove /e from arguments
+:: Remove /e from arguments
 set __arguments=%__arguments:/e =%
 
 call :dequote __arguments
 
-:: make comma seperated
+:: Make a comma seperated
 set __list=%__arguments:" "=,%
 
-:: disable/enable pnp device(s)
-powershell -noni -nop $devices = """%__list%""" -split ""","""; Get-PnpDevice -FriendlyName $devices -ErrorAction Ignore ^| %__state%-PnpDevice -Confirm:$false -ErrorAction Ignore
+:: Disable/enable PnP device(s)
+PowerShell -NonI -NoP $devices = """%__list%""" -split ""","""; Get-PnpDevice -FriendlyName $devices -ErrorAction Ignore ^| %__state%-PnpDevice -Confirm:$false -ErrorAction Ignore
 
 echo Attempted to %__state% specified devices.
 exit /b

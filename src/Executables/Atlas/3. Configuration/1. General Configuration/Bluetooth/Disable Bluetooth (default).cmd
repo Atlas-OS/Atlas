@@ -24,10 +24,10 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 !setSvcScript! Microsoft_Bluetooth_AvrcpTransport 4
 !setSvcScript! RFCOMM 4
 
-:: Disable Bluetooth devices
-DevManView.exe /disable "*Bluetooth*" /use_wildcard
+:: Enable Bluetooth devices
+ToggleDevices.cmd /e "*Bluetooth*"
 
-attrib +h "%appdata%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+attrib +h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 
 echo Finished, please reboot your device for changes to apply.
 pause

@@ -35,11 +35,6 @@ actions:
     exeDir: true
     command: 'setx path "%PATH%;C:\Windows\AtlasModules;C:\Windows\AtlasModules\Apps;C:\Windows\AtlasModules\Other;C:\Windows\AtlasModules\Tools;C:\Windows\AtlasModules\Scripts" -m'
 
-    # Set environment variable for setSvc
-  - !cmd:
-    exeDir: true
-    command: 'setx -m setSvcScript "call C:\Windows\AtlasModules\Scripts\setSvc.cmd"'
-
   - !writeStatus: {status: 'Configuring updates'}
     # Disable Windows Updates
   - !registryValue:
