@@ -8,7 +8,7 @@ if "!GUID!" == "" goto :Prod
 reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\!GUID!" /f
 
 :Prod
-if "!ProdID!" == "" exit /b 0
+if "!ProdID!" == "" exit /b
 
 for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UpgradeCodes" /d /f "!ProdID!" /s ^| findstr /i /c:"Installer\UpgradeCodes\\"`) do reg delete "%%a" /f
 reg delete "HKCR\Installer\Products\!ProdID!" /f

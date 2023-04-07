@@ -26,15 +26,15 @@ for /d %%a in ("!ProgramData!\Microsoft\Windows\SystemData\*") do (
 	)
 )
 
-exit /b 0
+exit /b
 
 :WALLRUN
 :: Check if the wallpaper was changed from the default wallpaper by the user
-if exist "%~2\Microsoft\Windows\Themes\Transcoded_000" exit /b 0
+if exist "%~2\Microsoft\Windows\Themes\Transcoded_000" exit /b
 if exist "%~2\Microsoft\Windows\Themes\TranscodedWallpaper" (
 	PowerShell -NoP -C "Add-Type -AssemblyName System.Drawing; $img = New-Object System.Drawing.Bitmap '%~2\Microsoft\Windows\Themes\TranscodedWallpaper'; if ($img.Flags -ne 77840) {exit 1}; if ($img.HorizontalResolution -ne 96) {exit 1}; if ($img.VerticalResolution -ne 96) {exit 1}; if ($img.PropertyIdList -notcontains 40961) {exit 1}; if ($img.PropertyIdList -notcontains 20624) {exit 1}; if ($img.PropertyIdList -notcontains 20625) {exit 1}" > nul
 	if !errorlevel! == 1 (
-		exit /b 0
+		exit /b
 	)
 ) 
 

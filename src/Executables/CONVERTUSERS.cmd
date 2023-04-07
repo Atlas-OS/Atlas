@@ -12,7 +12,7 @@ for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\Cu
 for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers" /s /f "WLIDCredentialProvider" ^| findstr /c:"Credential Providers\\"`) do reg delete "%%a" /f
 :: for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentityStore\Providers" /s /f "MicrosoftAccount" ^| findstr /c:"Providers\\"`) do reg delete "%%a" /f
 
-exit /b 0
+exit /b
 
 :CONVERTUSER
 for /f "usebackq delims=" %%a in (`reg query "HKLM\SAM\SAM\Domains\Account\Users" ^| findstr /i /c:"Account\Users"`) do (

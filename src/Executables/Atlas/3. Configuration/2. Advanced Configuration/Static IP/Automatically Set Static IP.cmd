@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" "%*"
-	exit /b 0
+	exit /b
 )
 
 ping -n 1 -4 1.1.1.1 | find "time=" > nul 2>&1

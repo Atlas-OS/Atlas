@@ -4,7 +4,7 @@ setlocal DISABLEDELAYEDEXPANSION
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" "%*"
-	exit /b 0
+	exit /b
 )
 
 :: https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set
@@ -48,7 +48,7 @@ if %errorlevel%==0 (goto success) else (goto fail)
 :success
 echo Finished, please restart to see the changes.
 pause
-exit /b 0
+exit /b
 
 :fail
 echo Something went wrong doing the BCDEDIT command!

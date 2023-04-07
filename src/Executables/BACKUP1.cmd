@@ -24,7 +24,7 @@ for /f "skip=1" %%a in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v 
 :drivers
 :: Backup default windows drivers
 set "filename=C:!HOMEPATH!\Desktop\Atlas\4. Troubleshooting\Services\Default Windows drivers.reg"
-if exist "!filename!" exit /b 0
+if exist "!filename!" exit /b
 
 echo Backing up default drivers...
 

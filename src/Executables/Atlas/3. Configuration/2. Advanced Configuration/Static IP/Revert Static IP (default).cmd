@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" "%*"
-	exit /b 0
+	exit /b
 )
 
 for /f "tokens=4" %%a in ('netsh int show interface ^| find "Connected"') do set DeviceName=%%a

@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" "%*"
-	exit /b 0
+	exit /b
 )
 
 curl -L --output !windir!\AtlasModules\Open-Shell.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.189/OpenShellSetup_4_4_189.exe

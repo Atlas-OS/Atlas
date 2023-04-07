@@ -27,7 +27,7 @@ for /f "usebackq tokens=1* delims=\" %%a in (`schtasks /query /fo list ^| findst
 	schtasks /delete /tn "%%a" /f
 )
 
-exit /b 0
+exit /b
 
 :USERREG
 for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\BannerStore" ^| findstr /i /c:"OneDrive"`) do (
