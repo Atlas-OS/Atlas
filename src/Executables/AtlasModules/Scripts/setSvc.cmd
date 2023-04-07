@@ -13,9 +13,9 @@ if not defined run_by (
 )
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-    set system=false
-    call RunAsTI.cmd "%~f0" "%*"
-    if "!run_by!" == "cmd" (exit) else (exit /b)
+	set system=false
+	call RunAsTI.cmd "%~f0" "%*"
+	if "!run_by!" == "cmd" (exit) else (exit /b)
 )
 set system=true
 goto script

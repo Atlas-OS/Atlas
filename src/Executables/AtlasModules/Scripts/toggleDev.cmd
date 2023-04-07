@@ -6,15 +6,15 @@ if not defined run_by (
 	set "cmdcmdline=!cmdcmdline:"=!" 
 	set "cmdcmdline=!cmdcmdline:~0,-1!"
 	if /i "!cmdcmdline!" == "C:\Windows\System32\cmd.exe" (
-    	set "run_by=cmd"
+        set "run_by=cmd"
 	) else (
 		set "run_by=external"
 	)
 )
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-    call RunAsTI.cmd "%~f0" "%*"
-    if "!run_by!" == "cmd" (exit) else (exit /b)
+	call RunAsTI.cmd "%~f0" "%*"
+	if "!run_by!" == "cmd" (exit) else (exit /b)
 )
 goto main
 
