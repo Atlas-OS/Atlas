@@ -36,7 +36,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 if "%~1" == "" (
 	set /P program_path="Enter the valid path of the program or drag it here: "
 	if "!program_path!" == "" echo error: failed && timeout /t 3 > nul && exit /b 1
-    if exist "!program_path!\*" echo error: !program_path! is a folder && timeout /t 3 > nul && exit /b 1
+	if exist "!program_path!\*" echo error: !program_path! is a folder && timeout /t 3 > nul && exit /b 1
 
 	if exist !program_path! (
 		call :RunAsTI !program_path!
@@ -78,7 +78,15 @@ goto RunAsTI-Elevate
 set ^ #=& set "0=%~f0"& set 1=%*
 (for %%I in ("%~f0";%*) do @echo(%%~I) | PowerShell -NoProfile -Command "$argv = $input | ?{$_}; iex (${%~f0} | out-string)"
 set RunAsTI_Errorlevel=%errorlevel%
-if %RunAsTI_Errorlevel%==1 (goto RunAsTI-Fail) else (if %RunAsTI_Errorlevel%==2 (goto RunAsTI-Declined) else (exit /b))
+if %RunAsTI_Errorlevel% == 1 (
+	goto RunAsTI-Fail
+) else (
+	if %RunAsTI_Errorlevel%==2 (
+		goto RunAsTI-Declined
+	) else (
+		exit /b
+	)
+)
 : end batch / begin powershell #>
 
 Try {
