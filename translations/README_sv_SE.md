@@ -10,7 +10,7 @@
   •
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
   •
-  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  <a href="https://discord.atlasos.net" target="_blank">Discord</a>
   •
   <a href="https://forum.atlasos.net">Forum</a>
 </p>

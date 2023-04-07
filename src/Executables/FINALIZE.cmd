@@ -159,7 +159,3 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 ) ELSE (echo Failed to apply registry configuration!)
 
 echo BCD Options Set...
-
-:: Write to script log file
-echo This log keeps track of which scripts have been run. This is never transfered to an online resource and stays local. > !windir!\AtlasModules\logs\userScript.log
-echo -------------------------------------------------------------------------------------------------------------------- >> !windir!\AtlasModules\logs\userScript.log

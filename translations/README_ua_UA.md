@@ -1,4 +1,4 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
+﻿## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -10,7 +10,7 @@
   •
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
   •
-  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  <a href="https://discord.atlasos.net" target="_blank">Discord</a>
   •
   <a href="https://forum.atlasos.net">Форум</a>
 </p>

@@ -9,7 +9,7 @@
   •
   <a href="https://docs.atlasos.net/FAQ/Installation/">FAQ</a>
   •
-  <a href="https://discord.com/invite/atlasos" target="_blank">Discord</a>
+  <a href="https://discord.atlasos.net" target="_blank">Discord</a>
   •
   <a href="https://forum.atlasos.net">Forum</a>
 </p>

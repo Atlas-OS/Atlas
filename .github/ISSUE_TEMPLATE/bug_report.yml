@@ -1,5 +1,5 @@
 name: Bug report
-description: create a bug report to help us inprove Atlas.
+description: Create a bug report to help us inprove Atlas.
 labels: bug, pending
 title: "[BUG REPORT] - "
 body:
@@ -17,11 +17,11 @@ body:
 
   - type: textarea
     attributes:
-      label: Steps to reproduce (if applicable add screenshots)
+      label: Steps to reproduce (add screenshots if applicable)
       placeholder: |
-        1. [First Step]
-        2. [Second Step]
-        3. [and so on...]
+        1. [First step]
+        2. [Second step]
+        3. [And so on...]
     validations:
       required: true
 
@@ -34,7 +34,7 @@ body:
 
   - type: textarea
     attributes:
-      label: Actual behavior (if applicable add screenshots)
+      label: Actual behavior (add screenshots if applicable)
       description: What happened.
     validations:
       required: true
@@ -56,9 +56,9 @@ body:
       description: Your desktop information is needed for us to define the problem.
       placeholder: |
        - Processor [Intel or AMD, include specifics]
-       - RAM amount (e.g. 8GB, 16GB, 32GB...)
-       - System Drive Type (SSD or HDD)
-       - Graphics card (e.g. NVIDIA RTX 2060 Super)
+       - RAM amount (8GB, 16GB, 32GB...)
+       - System Drive type (SSD, SHDD or HDD)
+       - Graphics card (e.g. NVIDIA RTX 4090)
     validations:
       required: true
 
@@ -68,7 +68,7 @@ body:
       description: |
         To rule out invalid issues, confirm and check each one of the checkboxes.
       options:
-        - label: This is not a support issue or a question. For any support, questions or help, join our [Discord server](https://discord.com/invite/atlasos).
+        - label: This is not a support issue or a question. For any support, questions or help, join our [Discord server](https://discord.atlasos.net).
           required: true
         - label: I performed a [cursory search of the issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to avoid opening a duplicate issue.
           required: true
