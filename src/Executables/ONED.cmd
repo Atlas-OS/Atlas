@@ -23,8 +23,8 @@ for /f "usebackq delims=" %%a in (`dir /b /a:d "!SystemDrive!\Users"`) do (
 
 for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager" ^| findstr /i /c:"OneDrive"`) do echo reg delete "%%a" /f & reg delete "%%a" /f
 
-for /f "tokens=2 delims=\" %a in ('schtasks /query /fo list /v ^| findstr /c:"\OneDrive Reporting Task" /c:"\OneDrive Standalone Update Task"') do (
-	schtasks /delete /tn "%a" /f
+for /f "tokens=2 delims=\" %%a in ('schtasks /query /fo list /v ^| findstr /c:"\OneDrive Reporting Task" /c:"\OneDrive Standalone Update Task"') do (
+	schtasks /delete /tn "%%a" /f
 )
 
 exit /b
