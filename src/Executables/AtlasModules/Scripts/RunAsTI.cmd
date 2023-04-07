@@ -1,14 +1,26 @@
 <# : batch portion
 @echo off
 setlocal EnableDelayedExpansion
+
+:: Detect whether the script is run with cmd or the external script
+if not defined run_by (
+	set "cmdcmdline=!cmdcmdline:"=!"
+	set "cmdcmdline=!cmdcmdline:~0,-1!"
+	if /i "!cmdcmdline!" == "C:\Windows\System32\cmd.exe" (
+		set "run_by=cmd"
+	) else (
+		set "run_by=external"
+	)
+)
+
 goto RunAsTI-Elevate
 
 ----------------------------------------
 
 [CREDITS]
-- All credit goes to AveYo for this snippet/script
+- Adapted from https://github.com/AveYo/LeanAndMean
+- Revised and customized for Atlas by he3als & Xyueta
 - Added error checking and integration with script
-- Repo: https://github.com/AveYo/LeanAndMean
 
 [FEATURES]
 - Innovative HKCU load, no need for 'reg load' or unload ping-pong; programs get the user profile
@@ -35,22 +47,21 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 :RunAsTI-Elevate
 if "%~1" == "" (
 	set /P program_path="Enter the valid path of the program or drag it here: "
-	if "!program_path!" == "" echo error: failed && timeout /t 3 > nul && exit /b 1
-	if exist "!program_path!\*" echo error: !program_path! is a folder && timeout /t 3 > nul && exit /b 1
+	if "!program_path!" == "" echo error: failed && timeout /t 3 > nul & if "!run_by!" == "cmd" (pause & exit) else (exit /b 1)
+	if exist "!program_path!\*" echo error: !program_path! is a folder & if "!run_by!" == "cmd" (pause & exit) else (exit /b 1)
 
 	if exist !program_path! (
 		call :RunAsTI !program_path!
-		exit /b
+		if "!run_by!" == "cmd" (exit) else (exit /b)
 	) else (
 		where !program_path! > nul 2>&1
 		if !errorlevel! == 0 (
 			call :RunAsTI !program_path!
-			exit /b
+			if "!run_by!" == "cmd" (exit) else (exit /b)
 		)
 	)
 	echo error: failed
-	timeout /t 3 > nul
-	exit /b 1
+	if "!run_by!" == "cmd" (pause & exit) else (exit /b 1)
 )
 
 call :RunAsTI %*
