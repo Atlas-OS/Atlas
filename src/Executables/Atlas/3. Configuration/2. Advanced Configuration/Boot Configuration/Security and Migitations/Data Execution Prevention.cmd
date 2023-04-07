@@ -8,7 +8,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 :: https://learn.microsoft.com/en-us/windows/security/identity-protection/credential-guard/credential-guard-manage
 
-echo Data Execution Prevention (DEP). It is a set of hardware and software technologies designed to 
+echo Data Execution Prevention (DEP). It is a set of hardware and software technologies designed to
 echo prevent harmful code from running in protected memory locations.
 echo]
 echo What would you like to do?
