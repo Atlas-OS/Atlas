@@ -59,7 +59,7 @@ Atlas đã được gỡ bỏ rất nhiều những cài đặt sẵn các ứng
 Sự thay đổi này tập trung vào hiệu năng trong trò chơi thuần túy, nhưng hầu hết các ứng dụng cho công việc và học tập đều hoạt động. [Xem xem những gì chúng tôi đã gỡ bỏ trong FAQ] (https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ # 13-whats-in-Atlas-os).phần mềm dành cho giáo dục hay phần mềm để làm việc vẫn sẽ hoạt động được.
 
 ### ✅ Hiệu suất
-Atlas là một bản hệ điều hành Windows được tinh chỉnh sẵn. Để duy trì sự tương thích, và cả hiệu năng, chúng tôi sẽ cung cấp cho bạn một phiên bản Windows với hiệu năng được đẩy tới cực hạn. 
+Atlas là một bản hệ điều hành Windows được tinh chỉnh sẵn. Để duy trì sự tương thích, và cả hiệu năng, chúng tôi sẽ cung cấp cho bạn một phiên bản Windows với hiệu năng được đẩy tới cực hạn.
 
 Một số thay đổi và cải thiện có thể kể tới như sau.
 
@@ -83,6 +83,6 @@ By downloading, modifying, or utilizing any of these images, you agree to [Micro
 
 ## Translation contributors (Những người đóng góp dịch thuật)
 
-[Cuong Tien Dinh](https://github.com/dtcu0ng) | 
+[Cuong Tien Dinh](https://github.com/dtcu0ng) |
 [Nguyễn Cao Hoài Nam](https://github.com/sant1ago-da-hanoi) |
 [Nguyen Thuy Linh](https://github.com/WhiteSnow00)

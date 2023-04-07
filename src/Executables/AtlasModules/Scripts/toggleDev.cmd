@@ -3,10 +3,10 @@ setlocal EnableDelayedExpansion
 
 :: Detect whether the script is run with cmd or the external script
 if not defined run_by (
-	set "cmdcmdline=!cmdcmdline:"=!" 
+	set "cmdcmdline=!cmdcmdline:"=!"
 	set "cmdcmdline=!cmdcmdline:~0,-1!"
 	if /i "!cmdcmdline!" == "C:\Windows\System32\cmd.exe" (
-        set "run_by=cmd"
+		set "run_by=cmd"
 	) else (
 		set "run_by=external"
 	)

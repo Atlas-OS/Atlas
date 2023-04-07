@@ -875,7 +875,7 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-NFS-ClientCore-D-Opt-Deployment', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-NFS-ClientLocalUI-D-Opt-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   - !systemPackage: {name: 'Microsoft-Windows-NFS-ClientLocalUI-D-Opt-Deployment', arch: amd64, language: 'neutral'}
-  
+
 #   OneDrive (Does not remove OneDrive on its own. See ONED.cmd)
   - !systemPackage: {name: 'Microsoft-Windows-OneDrive-Setup-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   - !systemPackage: {name: 'Microsoft-Windows-OneDrive-Setup-Deployment', arch: amd64, language: 'neutral'}
@@ -1036,7 +1036,7 @@ actions:
 #   SettingSync.dll is normally locked by a lot of services and processes (some critical).
 #   This means we cannot realistically remove it in one go on a live system.
 #   The best we can do is remove the CLSID registry key (Class ID) that links to the file, which should
-#   cause it to no longer be used or locked by processes after a restart. A post-restart script could 
+#   cause it to no longer be used or locked by processes after a restart. A post-restart script could
 #   be used, however that's pretty impractical, and the file doesn't inherently harm anything once the
 #   CLSID mapping is removed.
   - !systemPackage: {name: 'Microsoft-Windows-SettingSync', arch: amd64, language: 'neutral', regexExcludeFiles: ['.*\\SettingSync.dll']}

@@ -731,7 +731,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable startup delay of running applications 
+    # Disable startup delay of running applications
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize'
     value: 'StartupDelayInMSec'
@@ -835,7 +835,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable auto download of Microsoft Store applications 
+    # Disable auto download of Microsoft Store applications
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\WindowsStore'
     value: 'AutoDownload'
@@ -2787,7 +2787,7 @@ actions:
     # Remove SecurityHealthSystray startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
-    # Set sound scheme to 'No Sounds' (apply to all users) 
+    # Set sound scheme to 'No Sounds' (apply to all users)
   - !registryValue: {path: 'HKCU\AppEvents\Schemes', value: '', type: REG_SZ, data: '.None'}
 
   - !writeStatus: {status: 'Changing boot manager options'}

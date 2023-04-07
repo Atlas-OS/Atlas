@@ -35,7 +35,7 @@ for /f "usebackq delims=" %%a in (`dir /b /a:d "!SystemDrive!\Users" ^| findstr 
 
 	echo rmdir /q /s "!SystemDrive!\Users\%%a\AppData\Local\Microsoft\EdgeUpdate"
 	rmdir /q /s "!SystemDrive!\Users\%%a\AppData\Local\Microsoft\EdgeUpdate"
-	
+
 	echo rmdir /q /s "!SystemDrive!\Users\%%a\AppData\Local\Microsoft\EdgeCore"
 	rmdir /q /s "!SystemDrive!\Users\%%a\AppData\Local\Microsoft\EdgeCore"
 )

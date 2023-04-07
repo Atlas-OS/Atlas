@@ -49,7 +49,7 @@ Atlas entfernt alle Arten von Tracking, die in Windows eingebettet sind, und imp
 ### 🛡️ Sicherheit
 Atlas strebt danach, so sicher wie möglich zu sein, ohne Leistungseinbußen zu haben. Dies tun wir, indem wir Funktionen deaktivieren, die Informationen preisgeben oder ausgenutzt werden können. Ausnahmen hiervon sind zum Beispiel [Spectre](https://spectreattack.com/spectre.pdf) und [Meltdown](https://meltdownattack.com/meltdown.pdf). Diese Schutzmaßnahmen werden deaktiviert, um die Leistung zu verbessern.
 
- Wenn eine Sicherheitsmaßnahme die Leistung beeinträchtigt, wird sie deaktiviert. 
+ Wenn eine Sicherheitsmaßnahme die Leistung beeinträchtigt, wird sie deaktiviert.
  Unten finden Sie einige Funktionen/Schutzmaßnahmen, die geändert wurden, wenn sie ein (P) enthalten, sind es Sicherheitsrisiken, die behoben wurden:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
@@ -61,7 +61,7 @@ Atlas strebt danach, so sicher wie möglich zu sein, ohne Leistungseinbußen zu 
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Mögliche Informationsbeschaffung*)
 
 ### 🚀 Debloated
-Atlas ist sehr stark zerlegt. Vorinstallierte Anwendungen und andere Komponenten wurden entfernt. Trotz möglicher Kompatibilitätsprobleme wird dadurch die ISO- und Installationsgröße erheblich verringert. Funktionen wie Windows Defender usw. wurden vollständig entfernt. 
+Atlas ist sehr stark zerlegt. Vorinstallierte Anwendungen und andere Komponenten wurden entfernt. Trotz möglicher Kompatibilitätsprobleme wird dadurch die ISO- und Installationsgröße erheblich verringert. Funktionen wie Windows Defender usw. wurden vollständig entfernt.
 
 Diese Änderungen sind auf Gaming ausgerichtet, aber die meisten Arbeits- und Bildungsanwendungen funktionieren. [Was wir sonst noch entfernt haben, finden Sie in unserer FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features/).
 
@@ -83,14 +83,14 @@ Atlas ist voroptimiert. Unter Beibehaltung der Kompatibilität, aber auch in dem
 
 Möchten Sie Ihr eigenes Atlas-Hintergrundbild erstellen? Vielleicht mit unserem Logo herumspielen, um Ihr eigenes Design zu entwerfen? Usere Branding-Kit ist für die Öffentlichkeit frei zugänglich. Wir freuen uns über neue kreative Ideen der Gemeinschaft. [Sehen Sie sich unser Branding-Kit an und machen Sie etwas Spektakuläres.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
-We also have a dedicated area on our [Forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration! 
+We also have a dedicated area on our [Forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration!
 
 ## ⚠️ Disclaimer (Haftungsausschluss)
 
-AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to run Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). 
+AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to run Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
 ## Translation contributors (Beitragende zur Übersetzung)
 
-[DedBash](https://github.com/DedBash/) | 
-[GhostZero](https://github.com/ghostzero/) | 
+[DedBash](https://github.com/DedBash/) |
+[GhostZero](https://github.com/ghostzero/) |
 [Alino001](https://github.com/Alino001)

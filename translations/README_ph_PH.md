@@ -54,12 +54,12 @@ Nasa ibaba ang ilang feature/mitigation na binago, kung naglalaman ang mga ito n
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Possible information retrieval*)
 
 ### 🚀 Debloated
-Ang Atlas ay mabigat na hinubad, ang mga paunang naka-install na application at iba pang mga bahagi ay tinanggal. Sa kabila ng posibilidad ng mga isyu sa compatibility, makabuluhang binabawasan nito ang ISO at laki ng pag-install. Ang mga function tulad ng Windows Defender, at tulad nito ay ganap na tinanggal. 
+Ang Atlas ay mabigat na hinubad, ang mga paunang naka-install na application at iba pang mga bahagi ay tinanggal. Sa kabila ng posibilidad ng mga isyu sa compatibility, makabuluhang binabawasan nito ang ISO at laki ng pag-install. Ang mga function tulad ng Windows Defender, at tulad nito ay ganap na tinanggal.
 
 Nakatuon ang pagbabagong ito sa purong paglalaro, ngunit gumagana ang karamihan sa mga application sa trabaho at edukasyon. [Tingnan kung ano pa ang inalis namin sa aming FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
 ### ✅ Performant
-Ang Atlas ay pre-tweaked. Habang pinapanatili ang pagiging tugma, ngunit nagsusumikap din para sa pagganap, iniipit namin ang bawat huling patak ng pagganap sa aming mga larawan sa Windows. 
+Ang Atlas ay pre-tweaked. Habang pinapanatili ang pagiging tugma, ngunit nagsusumikap din para sa pagganap, iniipit namin ang bawat huling patak ng pagganap sa aming mga larawan sa Windows.
 
 Nakalista sa ibaba ang ilan sa maraming pagbabago na ginawa namin upang mapabuti ang Windows.
 

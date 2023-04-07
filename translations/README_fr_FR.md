@@ -42,7 +42,7 @@ Atlas supprime tous les types de traqueurs de suivi intégrés dans Windows et i
 ### 🛡️ Sécurité
 Atlas vise être le plus sécurisé possible sans perte de performance. Nous y parvenons en désactivant les fonctionnalités qui peuvent causer une fuite de données ou qui peuvent être éxploitées. Il existe des éxceptions pour ça comme [Spectre](https://spectreattack.com/spectre.pdf) et [Meltdown](https://meltdownattack.com/meltdown.pdf). Ces atténuations sont désactivées pour améliorer les performances.
 
-Si une mesure d'atténuation de la sécurité diminue les performances, elle sera désactivée. 
+Si une mesure d'atténuation de la sécurité diminue les performances, elle sera désactivée.
 Vous trouverez ci-dessous certaines fonctionnalités/atténuations qui ont été modifiées, si elles sont précédées d'un (P), ce sont des risques de sécurité qui ont été corrigés: (Les articles ci-dessous sont en anglais.)
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
@@ -54,12 +54,12 @@ Vous trouverez ci-dessous certaines fonctionnalités/atténuations qui ont été
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Éxtraction de données possible*)
 
 ### 🚀 Nettoyage
-Atlas est fortement dépouillé, les applications préinstallées et les autres composants système sont supprimés. Malgré la possibilité de problèmes de compatibilité, cela diminue considérablement la taille de l'ISO et de l'installation. Des fonctionnalités telles que Windows Defender ou similaires sont complètement supprimées. 
+Atlas est fortement dépouillé, les applications préinstallées et les autres composants système sont supprimés. Malgré la possibilité de problèmes de compatibilité, cela diminue considérablement la taille de l'ISO et de l'installation. Des fonctionnalités telles que Windows Defender ou similaires sont complètement supprimées.
 
 Cette modification est axée sur le jeu pur, mais la plupart des applications de travail et d'éducation fonctionnent. Découvrez ce que nous avons supprimé d'autre dans notre [FAQ (en anglais)](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
 
 ### ✅ Performance
-Atlas est pré-modifié. Tout en maintenant la compatibilité, mais aussi en recherchant les performances, nous avons intégré chaque dernière goutte de performance de nos ISO Windows. 
+Atlas est pré-modifié. Tout en maintenant la compatibilité, mais aussi en recherchant les performances, nous avons intégré chaque dernière goutte de performance de nos ISO Windows.
 
 Certains des nombreux changements que nous avons apportés pour améliorer Windows sont énumérés ci-dessous :
 
@@ -82,5 +82,5 @@ Nous avons également un espace dédié dans [l'onglet discussions](https://gith
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
 
 ## Contributeurs à la traduction
-[uncognic](https://github.com/uncognic) | 
+[uncognic](https://github.com/uncognic) |
 [MATsxm](https://github.com/MATsxm)

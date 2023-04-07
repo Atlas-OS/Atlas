@@ -15,10 +15,10 @@
   <a href="https://forum.atlasos.net">Forum</a>
 </p>
 
-## 🤔 **¿Qué es Atlas?** 
-  
+## 🤔 **¿Qué es Atlas?**
+
 Atlas OS es una versión modificada de Windows 10 que soluciona todos los inconvenientes negativos de Windows que afectan adversamente el rendimiento. Somos un proyecto transparente y de código abierto que se esfuerza por la igualdad de los jugadores, ya sea si posees un PC de gama baja o un PC para gaming.
-  
+
 También somos una buena opción para reducir la latencia en el sistema, el retraso de la conexión, el input lag y mantener tu sistema privado, siempre enfocándonos en el rendimiento.
 
 You can learn more about Atlas in our official [Website](https://atlasos.net).
@@ -88,5 +88,5 @@ También tenemos una [área dedicada en el apartado de discusiones](https://gith
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
 
 ## Translation contributors (Colaboradores de traducción)
-[Bryan Rivalyr](https://github.com/Rivalyr) | 
+[Bryan Rivalyr](https://github.com/Rivalyr) |
 [Naxitoo](https://github.com/naxitoo)

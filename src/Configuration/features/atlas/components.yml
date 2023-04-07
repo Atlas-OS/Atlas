@@ -371,7 +371,7 @@ actions:
   - !run: {exeDir: true, exe: 'UPDHEALTH.cmd', weight: 20}
 
   - !file: {path: 'C:\Program Files\Microsoft Update Health Tools'}
-  
+
     # ---------- PC Health Check
   - !writeStatus: {status: 'Removing PC Health Check'}
 
@@ -382,7 +382,7 @@ actions:
     # This could be done in config.yml, howver on the off-chance that
     # the Playbook fails or the system shuts down, we want the users converted
     # before potentially making any MS Accounts inoperable in packages.yml.
-    
+
   - !run:
     exeDir: true
     exe: 'CONVERTUSERS.cmd'

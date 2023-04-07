@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 :: Detect whether the script is run with cmd or the external script
 if not defined run_by (
-	set "cmdcmdline=!cmdcmdline:"=!" 
+	set "cmdcmdline=!cmdcmdline:"=!"
 	set "cmdcmdline=!cmdcmdline:~0,-1!"
 	if /i "!cmdcmdline!" == "C:\Windows\System32\cmd.exe" (
 		set "run_by=cmd"
@@ -25,7 +25,7 @@ goto script
 [CREDITS]
 - Made by he3als & Xyueta
 - Repo: https://github.com/he3als/setSvc
-	
+
 [FEATURES]
 - An interactive option, where it will prompt the user about configuring a service
 - Automatic elevation to TrustedInstaller (if avaliable) or regular admin (/q argument only)

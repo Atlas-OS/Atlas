@@ -54,12 +54,12 @@ Di bawah ini adalah beberapa fitur/mitigasi yang telah diubah, jika itu mengandu
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Kemungkinan pengambilan informasi*)
 
 ### 🚀 Debloated
-Banyak yang dihilangkan dari Atlas, aplikasi-aplikasi pra-instal dan komponen lainnya dihapus. Terlepas dari kemungkinan masalah kompatibilitas, ini secara signifikan mengurangi ukuran ISO dan pemasangan. Fungsionalitas seperti Windows Defender, dan semacamnya dicopot sepenuhnya. 
+Banyak yang dihilangkan dari Atlas, aplikasi-aplikasi pra-instal dan komponen lainnya dihapus. Terlepas dari kemungkinan masalah kompatibilitas, ini secara signifikan mengurangi ukuran ISO dan pemasangan. Fungsionalitas seperti Windows Defender, dan semacamnya dicopot sepenuhnya.
 
 Modifikasi ini terfokus pada gaming murni, tetapi sebagian besar aplikasi-aplikasi pekerjaan dan pendidikan berfungsi. [Cek juga apalagi yang telah kami copot di FAQ kami](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
 ### ✅ Performa
-Atlas sudah diutak-atik sebelumnya. Sambil mempertahankan kompatibilitas, tetapi juga mengupayakan performa, kami telah memeras setiap tetes performa terakhir ke dalam Image Windows kami. 
+Atlas sudah diutak-atik sebelumnya. Sambil mempertahankan kompatibilitas, tetapi juga mengupayakan performa, kami telah memeras setiap tetes performa terakhir ke dalam Image Windows kami.
 
 Beberapa dari perubahan-perubahan yang telah kami lakukan untuk meningkatkan Windows tercantum di bawah ini.
 
@@ -82,5 +82,5 @@ Kami juga memiliki [area khusus di tab diskusi](https://github.com/Atlas-OS/Atla
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
 
 ## Translation contributors (Kontributor terjemahan)
-[Memet Zx](https://github.com/zxce3) | 
+[Memet Zx](https://github.com/zxce3) |
 [Kawaii Ghost](https://github.com/kawaii-ghost)

@@ -12,7 +12,7 @@ function WriteList ($list, $name) {
     Write-Host "You have selected $($listname[$number-1])."
     Start-Sleep -Seconds 2
     Clear-Host
-    
+
     return $listname[$number-1]
 }
 

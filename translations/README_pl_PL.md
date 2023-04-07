@@ -40,9 +40,9 @@ Koncentrując się głównie na wydajności, jesteśmy również świetną opcj�
 Atlas usuwa wszystkie rodzaje śledzenia wbudowane w system Windows i wprowadza setki zasad grupowych, aby zminimalizować gromadzenie danych. W przypadku rzeczy spoza zakresu systemu Windows nie możemy zwiększyć prywatności, takich jak odwiedzane witryny internetowe.
 
 ### 🛡️ Bezpieczny
-Atlas dąży do zapewnienia maksymalnego bezpieczeństwa bez utraty wydajności. Robimy to poprzez wyłączenie funkcji, które mogą wyciekać informacje lub być wykorzystywane. Istnieją wyjątki od tej zasady, takie jak [Spectre](https://spectreattack.com/spectre.pdf) i [Meltdown](https://meltdownattack.com/meltdown.pdf). Te środki łagodzące są wyłączone, aby poprawić wydajność. 
+Atlas dąży do zapewnienia maksymalnego bezpieczeństwa bez utraty wydajności. Robimy to poprzez wyłączenie funkcji, które mogą wyciekać informacje lub być wykorzystywane. Istnieją wyjątki od tej zasady, takie jak [Spectre](https://spectreattack.com/spectre.pdf) i [Meltdown](https://meltdownattack.com/meltdown.pdf). Te środki łagodzące są wyłączone, aby poprawić wydajność.
 
-Jeśli środek zaradczy zmniejszy wydajność, zostanie wyłączony. 
+Jeśli środek zaradczy zmniejszy wydajność, zostanie wyłączony.
 Poniżej znajdują się niektóre funkcje, które zostały zmienione, jeśli zawierają (P) to są to zagrożenia bezpieczeństwa, które zostały naprawione:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
@@ -54,7 +54,7 @@ Poniżej znajdują się niektóre funkcje, które zostały zmienione, jeśli zaw
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Możliwość pozyskiwania informacji*)
 
 ### 🚀 Okrojony
-Atlas jest mocno okrojony, usuwane są preinstalowane przez Windows aplikacje i inne komponenty. Chociaż może to zaburzyć kompatybilność, to znacznie zmniejsza rozmiar ISO i instalacji. Funkcje takie jak Windows Defender i podobne są usunięte całkowicie. 
+Atlas jest mocno okrojony, usuwane są preinstalowane przez Windows aplikacje i inne komponenty. Chociaż może to zaburzyć kompatybilność, to znacznie zmniejsza rozmiar ISO i instalacji. Funkcje takie jak Windows Defender i podobne są usunięte całkowicie.
 
 Ta modyfikacja skupia się na czystym graniu, ale większość aplikacji do pracy i edukacji działa. [Sprawdź co jeszcze usunęliśmy w naszym FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 

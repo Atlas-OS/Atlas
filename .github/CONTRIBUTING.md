@@ -14,7 +14,7 @@ Welcome! First of all, I would like to thank you for your interest in our projec
 
 # 2. Standards
 
-We want to keep this project a safe environment for anyone to contribute. We would like everyone to follow these guidelines to stay proffesional. 
+We want to keep this project a safe environment for anyone to contribute. We would like everyone to follow these guidelines to stay proffesional.
 - Being respectful towards opposing viewpoints, have a discussion, not a fight.
 - Be constructive, give feedback that we can build on.
 

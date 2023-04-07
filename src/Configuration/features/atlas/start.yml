@@ -207,7 +207,7 @@ actions:
   - !file:
     path: 'C:\SoftwareDistribution'
     weight: 20
-    
+
   - !writeStatus: {status: 'Configuring features'}
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"LegacyComponents" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart', weight: 30}

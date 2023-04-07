@@ -40,9 +40,9 @@ Vi är ett öppet och open-source projekt, så du vet att vi inte gömmer något
 Atlas tar bort all typ av spårning som finns i Windows och implementerar ett flertal grupppolicyer för att minimisera data kollektion. Saker utanför Windows kan vi inte improvisera integritet för, t.ex hemsidorna du besöker.
 
 ### 🛡️ Säkerhet
-Atlas mål är att du ska vara så säker som möjligt utan att förlora prestanda. Vi gör detta genom att stänga av funktioner som kan läcka information eller funktioner som kan utnyttjas för dåliga handlingar. Det finns undantag till detta såsom [Spectre](https://spectreattack.com/spectre.pdf) och [Meltdown](https://meltdownattack.com/meltdown.pdf). Dessa begränsningar är avstängda för att improvisera prestanda. 
+Atlas mål är att du ska vara så säker som möjligt utan att förlora prestanda. Vi gör detta genom att stänga av funktioner som kan läcka information eller funktioner som kan utnyttjas för dåliga handlingar. Det finns undantag till detta såsom [Spectre](https://spectreattack.com/spectre.pdf) och [Meltdown](https://meltdownattack.com/meltdown.pdf). Dessa begränsningar är avstängda för att improvisera prestanda.
 
-Om en säkerhets begränsning försämrar prestanda blir avaktiverade. 
+Om en säkerhets begränsning försämrar prestanda blir avaktiverade.
 Nedanför finns en lista på begränsningar/funktioner som har blivit ändrade, om det finns ett (P) i namnet tyder detta på att det finns säkerhets risker som såklart blivit fixade:
 
 - [Spectre](https://spectreattack.com/spectre.pdf)
@@ -57,7 +57,7 @@ Nedanför finns en lista på begränsningar/funktioner som har blivit ändrade, 
 Atlas är tungt rensat från onödiga funktioner, förinstallerade applikationer och andra komponenter är borttagna. Trots möjligheten av inkompabilitets problem, Atlas minskar ISO och installations storleken. Funktioner såsom Windows Defender är totalt strippade. Dessa modifikationer är fokuserade på ren gaming, men de flesta jobb och skol appar fungerar utan problem. [Kolla in andra grejer vi stängt av i vår FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
 ### ✅ Effektivitet
-Atlas är för-tweakad. Vi behåller kompabilitet, men vi striver även för prestanda. Vi har tryckt ut varenda jädra droppe av prestanda som går in i Atlas. 
+Atlas är för-tweakad. Vi behåller kompabilitet, men vi striver även för prestanda. Vi har tryckt ut varenda jädra droppe av prestanda som går in i Atlas.
 
 Vissa av de många förändringar som vi har gjort för att improvisera Windows kan du hitta här nedanför vettu.
 
@@ -82,6 +82,6 @@ Vi har också en [dedikerad plats i våran diskussions plats](https://github.com
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
 
 ## Translation contributors (!!Translation contributor in the translated language)
-[Contributor A](https://github.com/A) | 
-[Contributor B](https://github.com/B) | 
+[Contributor A](https://github.com/A) |
+[Contributor B](https://github.com/B) |
 [Contributor C](https://github.com/C)

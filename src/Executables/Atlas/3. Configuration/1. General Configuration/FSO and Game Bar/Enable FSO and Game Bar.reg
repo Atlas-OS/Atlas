@@ -3,7 +3,7 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\SOFTWARE\Microsoft\GameBar]
 "GamePanelStartupTipIndex"=-
 "AllowAutoGameMode"=-
-"AutoGameModeEnabled"=- 
+"AutoGameModeEnabled"=-
 "UseNexusForGameBarEnabled"=dword:00000001
 "ShowStartupPanel"=dword:00000001
 

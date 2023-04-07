@@ -87,6 +87,6 @@ Atlas是被预调试过的。在保持兼容性的同时，也努力追求性能
 By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
 
 ## Translation contributors (翻译贡献者)
-[PencilNavigator](https://github.com/PencilNavigator) | 
-[Colin](https://github.com/0bo) | 
+[PencilNavigator](https://github.com/PencilNavigator) |
+[Colin](https://github.com/0bo) |
 [Pea Soft](https://github.com/peasoft)

@@ -54,12 +54,12 @@ Aşağıda değiştirilen bazı özellikler/önlemler yer almaktadır, eğer (P)
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Olası bilgi erişimi*)
 
 ### 🚀 Arındırılmış
-Atlas büyük ölçüde temizlenmiş, önceden yüklenmiş uygulamalar ve diğer bileşenler kaldırılmıştır. Uyumluluk sorunları olasılığına rağmen, bu ISO ve yükleme boyutunu önemli ölçüde azaltır. Windows Defender gibi işlevler tamamen kaldırılmıştır. 
+Atlas büyük ölçüde temizlenmiş, önceden yüklenmiş uygulamalar ve diğer bileşenler kaldırılmıştır. Uyumluluk sorunları olasılığına rağmen, bu ISO ve yükleme boyutunu önemli ölçüde azaltır. Windows Defender gibi işlevler tamamen kaldırılmıştır.
 
 Bu değişiklik saf oyun oynamaya odaklanmıştır, ancak çoğu iş ve eğitim uygulaması çalışır.  [Neleri kaldırdığımıza FAQ kısmından bakabilirsin.](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
 
 ### ✅ Performanslı
-Atlas önceden optimize edilmiştir. Uyumluluk sorunlarını minimize ederken performansı artırmak için de çabalayarak, Windows imajımızın performansını son raddeye kadar zorladık. 
+Atlas önceden optimize edilmiştir. Uyumluluk sorunlarını minimize ederken performansı artırmak için de çabalayarak, Windows imajımızın performansını son raddeye kadar zorladık.
 
 Windows'u iyileştirmek için yaptığımız birçok değişiklikten bazıları aşağıda listelenmiştir.
 

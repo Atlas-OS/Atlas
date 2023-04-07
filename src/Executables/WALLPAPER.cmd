@@ -22,7 +22,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 :: Clear lockscreen cache
 for /d %%a in ("!ProgramData!\Microsoft\Windows\SystemData\*") do (
 	for /d %%c in ("%%a\ReadOnly\LockScreen_*") do (
-		rd /s /q "%%c" 
+		rd /s /q "%%c"
 	)
 )
 
@@ -36,7 +36,7 @@ if exist "%~2\Microsoft\Windows\Themes\TranscodedWallpaper" (
 	if !errorlevel! == 1 (
 		exit /b
 	)
-) 
+)
 
 if not exist "!windir!\Web\Wallpaper\Windows\atlas-dark.jpg" exit /b 1
 

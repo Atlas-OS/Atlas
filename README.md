@@ -76,12 +76,12 @@ Below are some features/mitigations that have been altered, if they contain a (P
 - [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Possible information retrieval*)
 
 ### 🚀 Debloated
-Atlas is heavily stripped, with pre-installed applications and other components are removed. Despite the possibility of compatibility issues, this significantly decreases ISO and install size. Functionalities such as Windows Defender, and such are stripped completely. 
+Atlas is heavily stripped, with pre-installed applications and other components are removed. Despite the possibility of compatibility issues, this significantly decreases ISO and install size. Functionalities such as Windows Defender, and such are stripped completely.
 
 This modification is focused on pure gaming, but most work and education applications work. Check out what else we have removed in our [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features/).
 
 ### ✅ Performant
-Atlas is pre-tweaked. While maintaining compatibility, but also striving for performance, we have squeezed every last drop of performance into our Windows images. 
+Atlas is pre-tweaked. While maintaining compatibility, but also striving for performance, we have squeezed every last drop of performance into our Windows images.
 
 Some of the many changes that we have done to improve Windows have been listed below.
 
@@ -98,7 +98,7 @@ Some of the many changes that we have done to improve Windows have been listed b
 ## 🎨 Branding kit
 Would you like to create your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something spectacular.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
-We also have a dedicated area on our [Forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration! 
+We also have a dedicated area on our [Forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration!
 
 ## ⚠️ Disclaimer
-AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to run Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). 
+AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to run Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
