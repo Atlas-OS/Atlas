@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 :: Detect if user uses laptop device or personal computer
 for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"
-for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (setx DEVICE "LAPTOP" -m) else (setx DEVICE "PC" -m)
+for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "DEVICE_TYPE=LAPTOP") else (set "DEVICE_TYPE=PC")
 
 :: Disable Hibernation and Fast Startup
 powercfg -h off
@@ -16,7 +16,7 @@ wevtutil set-log "Microsoft-Windows-SleepStudy/Diagnostic" /e:false
 wevtutil set-log "Microsoft-Windows-Kernel-Processor-Power/Diagnostic" /e:false
 wevtutil set-log "Microsoft-Windows-UserModePowerService/Diagnostic" /e:false
 
-if "!DEVICE!" == "PC" (
+if " !DEVICE_TYPE!" == "PC" (
     rem Duplicate High Performance power scheme, customize it and make it the Atlas power scheme
     powercfg -duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 11111111-1111-1111-1111-111111111111
     powercfg -setactive 11111111-1111-1111-1111-111111111111
