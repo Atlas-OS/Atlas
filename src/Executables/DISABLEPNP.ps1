@@ -1,8 +1,5 @@
-# Disables PnP (plug and play) devices
-
+# Disable PnP (plug and play) devices
 $devices = @(
-    'ACPI Processor Aggregator',
-    'Microsoft Windows Management Interface for ACPI',
     'AMD PSP',
     'AMD SMBus',
     'Base System Device',
