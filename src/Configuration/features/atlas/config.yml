@@ -409,8 +409,19 @@ actions:
     command: 'Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr'
 
     # Disable system devices
-  - !powerShell:
-    command: '.\DISABLEPNP.ps1'
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoProfile -ExecutionPolicy Bypass -File DISABLEPNP.ps1'
+    exeDir: true
+    wait: true
+
+    # Mitigations prompt - asks user in a message box if they want to disable or enable mitigations
+  - !writeStatus: {status: 'Waiting for mitigation prompt'}
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoProfile -ExecutionPolicy Bypass -File MITIGATIONPROMPT.ps1'
+    exeDir: true
+    wait: true
 
   - !writeStatus: {status: 'Configuring services'}
 
@@ -1970,62 +1981,6 @@ actions:
     value: 'DisablePageCombining'
     data: '1'
     type: REG_DWORD
-
-    # ----- File System Mitigations
-
-    # Disable Spectre and Meltdown
-    # Required for Anti-Cheats
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
-    value: 'FeatureSettingsOverride'
-    data: '3'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
-    value: 'FeatureSettingsOverrideMask'
-    data: '3'
-    type: REG_DWORD
-
-    # Disable Fault Tolerant Heap (FTH)
-    # https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
-    # Document listed as only affected in windows 7, is also in 7+
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\FTH'
-    value: 'Enabled'
-    data: '0'
-    type: REG_DWORD
-
-    # Disable Structured Exception Handling Overwrite Protection (SEHOP)
-    # Exists in ntoskrnl strings, keep for now
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
-    value: 'DisableExceptionChainValidation'
-    data: '1'
-    type: REG_DWORD
-
-    # Find correct mitigation values for different Windows versions - AMIT
-    # Initialize bit mask in registry by disabling a random mitigation
-  - !powerShell:
-    command: 'Set-ProcessMitigation -System -Disable CFG'
-
-    # Apply mask to kernel > See FINALIZE.cmd
-
-    # Disable virtualization-based protection of code integrity
-    # https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity'
-    value: 'Enabled'
-    data: '0'
-    type: REG_DWORD
-
-    # Disable file system mitigations
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager'
-    value: 'ProtectionMode'
-    data: '0'
-    type: REG_DWORD
-
-    # ----- File System Mitigations END
 
     # Disable Intel TsX
     # https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html

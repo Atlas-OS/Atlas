@@ -104,25 +104,6 @@ for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 @if !errorlevel! == 0 (echo Network optimized...
 ) ELSE (echo Failed to optimize network!)
 
-:: Get current bit mask
-for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
-    set "mitigation_mask=%%a"
-)
-
-:: Set all bits to 2 (disable all mitigations)
-for /l %%a in (0,1,9) do (
-    set "mitigation_mask=!mitigation_mask:%%a=2!"
-)
-
-:: Apply mask to kernel
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "!mitigation_mask!" /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /t REG_BINARY /d "!mitigation_mask!" /f
-
-:: Fix Valorant with mitigations disabled - enable CFG
-for %%a in (valorant valorant-win64-shipping vgtray vgc) do (
-    PowerShell -NoP -C "Set-ProcessMitigation -Name %%a.exe -Enable CFG"
-)
-
 :: Set correct username variable of the currently logged in user
 @for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinusername=%%a"
 
