@@ -40,17 +40,17 @@ You can learn more about Atlas on our official [Website](https://atlasos.net).
 ## 📚 **Table of contents**
 
 - Getting Started
-  - [Installation](https://docs.atlasos.net/Getting%20started/Installation/)
-  - [Other install methods](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB/)
-  - [Post Install](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers/)
+  - [Installation](https://docs.atlasos.net/Getting%20started/Installation)
+  - [Other installation methods](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB)
+  - [Post-Installation](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers)
 
 - Troubleshooting
-  - [Removed Features](https://docs.atlasos.net/Troubleshooting/Removed%20features/)
-  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts/)
+  - [Removed Features](https://docs.atlasos.net/Troubleshooting/Removed%20features)
+  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts)
 
 - FAQ
-  - [Install](https://docs.atlasos.net/FAQ/Installation/)
-  - [Contribute](https://docs.atlasos.net/FAQ/Contribute/)
+  - [Install](https://docs.atlasos.net/FAQ/Installation)
+  - [Contribute](https://docs.atlasos.net/FAQ/Contribute)
 
 ## 👀 **Why Atlas?**
 
