@@ -88,7 +88,7 @@ Some of the many changes that we have done to improve Windows have been listed b
 - Optimized process scheduling
 
 ### 🔒 Legal
-Most custom Windows OSes distribute their systems by providing a tweaked ISO of Windows. Not only it violate [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), it is also not a safe way to install.
+Many custom Windows OSes distribute their systems by providing a tweaked ISO of Windows. Not only it violate [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), it is also not a safe way to install.
 
 So, Atlas partnered with Windows Ameliorated Team to provide users a safer and legal way to install, the [AME Wizard](https://ameliorated.io). By using this, Atlas fully complies to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
