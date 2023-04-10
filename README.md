@@ -2,12 +2,12 @@
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
-<h4 align="center">An open and transparent Windows operating system, designed to optimize performance and latency.</h4>
+<h4 align="center">An open and transparent operating system, designed to optimize performance and latency.</h4>
 
 <p align="center">
   <a href="https://atlasos.net">Website</a>
   •
-  <a href="https://docs.atlasos.net/FAQ/Installation/">FAQ</a>
+  <a href="https://docs.atlasos.net">Docs</a>
   •
   <a href="https://discord.atlasos.net" target="_blank">Discord</a>
   •
@@ -33,16 +33,13 @@
 
 ## 🤔 **What is Atlas?**
 
-Atlas is a modified version of Windows 10, which removes all the negative drawbacks of Windows that adversely affect gaming performance. We are a transparent and open source project striving for equal rights for players whether you are running a low-end, or a gaming PC.
+Atlas is a modified version of Windows 10, which removes nearly all the drawbacks of Windows that adversely affects gaming performance.
 
-We are also a great option to reduce system latency, network latency, input lag, and keep your system private while keeping our main focus on performance.
+We are also a good option to reduce system latency, network latency, input lag, and keep your system private while keeping our main focus on performance.
 
 You can learn more about Atlas in our official [Website](https://atlasos.net).
 
 ## 📚 **Table of contents**
-- FAQ
-  - [Install](https://docs.atlasos.net/FAQ/Installation/)
-  - [Contribute](https://docs.atlasos.net/FAQ/Contribute/)
 
 - Getting Started
   - [Installation](https://docs.atlasos.net/Getting%20started/Installation/)
@@ -53,35 +50,30 @@ You can learn more about Atlas in our official [Website](https://atlasos.net).
   - [Removed Features](https://docs.atlasos.net/Troubleshooting/Removed%20features/)
   - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts/)
 
-- <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [Branding kit](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+- FAQ
+  - [Install](https://docs.atlasos.net/FAQ/Installation/)
+  - [Contribute](https://docs.atlasos.net/FAQ/Contribute/)
 
-## 🆚 **Windows vs. Atlas**
+## 👀 **Why Atlas?**
 
-### 🔒 Private
-Atlas removes all types of tracking embedded within Windows and implements numerous group policies to minimize data collection. Things outside the scope of Windows we can not increase privacy for, such as websites you visit.
+### 🔒 More private
+Stock Windows contains tracking service that collects your data and upload them to Microsoft.
+Atlas removes all types of tracking embedded within Windows and implements numerous group policies to minimize data collection. 
 
-### 🛡️ Secure
-Atlas aims to be secure as possible without losing performance. We do this by disabling features that can leak information or be exploited. There are exceptions to this such as [Spectre](https://spectreattack.com/spectre.pdf), and [Meltdown](https://meltdownattack.com/meltdown.pdf). These mitigations are disabled to improve performance.
+(Note. We cannot ensure the security for things outside the scope of Windows, Such as browsers, third-party apps.)
 
-If a security mitigation measure decreases performance, it will be disabled.
-Below are some features/mitigations that have been altered, if they contain a (P) they are security risks that have been fixed:
+### 🛡️ More secure
+Dowloading a modified ISO from the internet is risky. Not only it can contain malicious script, it also does not have the latest security patches that can put your computer under serious security risks. 
+Atlas is different. We use [AME Wizard](https://ameliorated.io) to install, and all the scripts we use are Open-Sourced here in our repository. You can also apply the latest security updates before installing Atlas, keeping your system safe & secure.
 
-- [Spectre](https://spectreattack.com/spectre.pdf)
-- [Meltdown](https://meltdownattack.com/meltdown.pdf)
-- [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
-- (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
-- (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
-- [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Possible information retrieval*)
-
-### 🚀 Debloated
+### 🚀 More space
 Atlas is heavily stripped, with pre-installed applications and other components are removed. Despite the possibility of compatibility issues, this significantly decreases ISO and install size. Functionalities such as Windows Defender, and such are stripped completely.
 
 This modification is focused on pure gaming, but most work and education applications work. Check out what else we have removed in our [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features/).
 
-### ✅ Performant
-Atlas is pre-tweaked. While maintaining compatibility, but also striving for performance, we have squeezed every last drop of performance into our Windows images.
+### ✅ More performance
+Some tweaked systems on the internet has tweaked too far away, breaking compatibility for main features such as Bluetooth, Wi-Fi, and etc.
+Atlas is on the sweet point. While getting more performance, but also maintaing a good compatibility.
 
 Some of the many changes that we have done to improve Windows have been listed below.
 
@@ -95,10 +87,16 @@ Some of the many changes that we have done to improve Windows have been listed b
 - Boot configuration optimization
 - Optimized process scheduling
 
-## 🎨 Branding kit
-Would you like to create your own Atlas wallpaper? Maybe mess around with our logo to make your own design? We have this accessible to the public to spark new creative ideas across the community. [Check out our brand kit and make something spectacular.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+### 🔒 Legal
+Many custom Windows OSes distribute their systems by providing a tweaked ISO of Windows. Not only it violate [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), it is also not a safe way to install.
 
-We also have a dedicated area on our [Forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration!
+So, Atlas partnered with Windows Ameliorated Team to provide users a safer and legal way to install, the [AME Wizard](https://ameliorated.io). By using this, Atlas fully complies to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+
+## 🎨 Brand kit
+Feeling creative? Want to create your own Atlas wallpaper with some original creative designs? Well our brand kit has got you covered!
+The Atlas brand kit is accessible to the public, you can download it [here](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) and make something spetacular!
+
+We also have a dedicated area on our [Forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration! You can also find creative wallpapers that other users share here too!
 
 ## ⚠️ Disclaimer
-AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to run Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to activate Windows before running Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
