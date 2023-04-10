@@ -31,6 +31,8 @@ jobs:
       - name: Create playbook
         run: |
             cd src
+            sed -i '/<ProductCode>/d' playbook.conf
+            sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas playbook, build from GitHub Actions from commit ${\{ steps.vars.outputs.sha_short \}}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
             zip -r "Atlas Playbook ${{ steps.vars.outputs.sha_short }}.apbx" . -x "Release ZIP/*"
             mv "Atlas Playbook ${{ steps.vars.outputs.sha_short }}.apbx" "Release ZIP"
 
