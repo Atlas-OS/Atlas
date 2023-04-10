@@ -1,0 +1,43 @@
+name: Create Atlas Playbook
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'src/**'
+      - '.github/workflows/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set variables
+        id: vars
+        run: |
+            echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Validate YAML files
+        run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/.'
+
+      - name: Create playbook
+        run: |
+            cd src
+            zip -r "Atlas Playbook ${{ steps.vars.outputs.sha_short }}.abpx" . -x "Release ZIP/*"
+            mv "Atlas Playbook ${{ steps.vars.outputs.sha_short }}.abpx" "Release ZIP"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Atlas Playbook
+          path: |
+            src/Release ZIP/*
+          if-no-files-found: error

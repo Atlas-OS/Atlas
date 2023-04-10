@@ -4,5 +4,5 @@
 # folder config
 desktop.ini
 
-# drivers directory
-src/Drivers/
+# playbooks
+*.abpx
