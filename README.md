@@ -64,6 +64,7 @@ Atlas removes all types of tracking embedded within Windows and implements numer
 
 ### 🛡️ More secure
 Dowloading a modified ISO from the internet is risky. Not only it can contain malicious script, it also does not have the latest security patches that can put your computer under serious security risks. 
+
 Atlas is different. We use [AME Wizard](https://ameliorated.io) to install, and all the scripts we use are Open-Sourced here in our repository. You can also apply the latest security updates before installing Atlas, keeping your system safe & secure.
 
 ### 🚀 More space
@@ -73,6 +74,7 @@ This modification is focused on pure gaming, but most work and education applica
 
 ### ✅ More performance
 Some tweaked systems on the internet has tweaked too far away, breaking compatibility for main features such as Bluetooth, Wi-Fi, and etc.
+
 Atlas is on the sweet point. While getting more performance, but also maintaing a good compatibility.
 
 Some of the many changes that we have done to improve Windows have been listed below.
@@ -90,7 +92,7 @@ Some of the many changes that we have done to improve Windows have been listed b
 ### 🔒 Legal
 Many custom Windows OSes distribute their systems by providing a tweaked ISO of Windows. Not only it violate [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), it is also not a safe way to install.
 
-So, Atlas partnered with Windows Ameliorated Team to provide users a safer and legal way to install, the [AME Wizard](https://ameliorated.io). By using this, Atlas fully complies to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+Atlas partnered with Windows Ameliorated Team to provide users a safer and legal way to install, the [AME Wizard](https://ameliorated.io). By using this, Atlas fully complies to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
 ## 🎨 Brand kit
 Feeling creative? Want to create your own Atlas wallpaper with some original creative designs? Well our brand kit has got you covered!
