@@ -94,7 +94,7 @@ So, Atlas partnered with Windows Ameliorated Team to provide users a safer and l
 
 ## 🎨 Brand kit
 Feeling creative? Want to create your own Atlas wallpaper with some original creative designs? Well our brand kit has got you covered!
-The Atlas brand kit is accessible to the public, you can download it [HERE](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) and make something spetacular!
+The Atlas brand kit is accessible to the public, you can download it [here](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) and make something spetacular!
 
 We also have a dedicated area on our [Forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration! You can also find creative wallpapers that other users share here too!
 
