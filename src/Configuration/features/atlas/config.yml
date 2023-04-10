@@ -1984,7 +1984,7 @@ actions:
 
     # Disable Intel TsX
     # https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html
-    #   - !registryValue:
+   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
     value: 'DisableTsx'
     data: '1'
