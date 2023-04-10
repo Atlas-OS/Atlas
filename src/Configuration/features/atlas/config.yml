@@ -1984,11 +1984,11 @@ actions:
 
     # Disable Intel TsX
     # https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html
-   - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
-    value: 'DisableTsx'
-    data: '1'
-    type: REG_DWORD
+    # - !registryValue:
+    # path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
+    # value: 'DisableTsx'
+    # data: '1'
+    # type: REG_DWORD
 
     # Configure multimedia class scheduler (MMCSS)
   - !registryValue:
