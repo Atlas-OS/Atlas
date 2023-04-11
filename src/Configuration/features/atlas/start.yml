@@ -242,12 +242,6 @@ actions:
     command: '"%ProgramData%\chocolatey\bin\choco.exe" feature enable -n allowGlobalConfirmation'
     weight: 30
 
-  - !writeStatus: {status: 'Installing vcredist'}
-    # Install VisualCppRedist AIO
-  - !cmd:
-    command: 'for /f "tokens=2" %a in (''curl https://api.github.com/repos/abbodi1406/vcredist/releases/latest ^| findstr "browser_download_url" ^| findstr x86_x64'') do curl %a -L -o %TEMP%\VC++.zip & PowerShell Expand-Archive -Path ''%TEMP%\VC++.zip'' -DestinationPath ''%TEMP%\VC++'' & move /y %TEMP%\VC++\VisualCppRedist_AIO_x86_x64.exe C:\Windows\AtlasModules\Apps & C:\Windows\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe /ai'
-    weight: 100
-
   - !writeStatus: {status: 'Installing .NET 3.5'}
     # Install .NET Framework 3.5
   - !cmd:
@@ -259,6 +253,12 @@ actions:
   - !cmd:
     command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums directx'
     weight: 150
+
+  - !writeStatus: {status: 'Installing vcredist'}
+    # Install VisualCppRedist AIO
+  - !cmd:
+    command: 'for /f "tokens=2" %a in (''curl https://api.github.com/repos/abbodi1406/vcredist/releases/latest ^| findstr "browser_download_url" ^| findstr x86_x64'') do curl %a -L -o %TEMP%\VC++.zip & PowerShell Expand-Archive -Path ''%TEMP%\VC++.zip'' -DestinationPath ''%TEMP%\VC++'' & move /y %TEMP%\VC++\VisualCppRedist_AIO_x86_x64.exe C:\Windows\AtlasModules\Apps & C:\Windows\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe /ai'
+    weight: 100
 
   - !service:
     name: 'wuauserv'
