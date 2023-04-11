@@ -141,3 +141,6 @@ if "!DRIVE!" == "SSD" (
     rem SysMain should already disable it, but make sure it is disabled by executing this command.
     PowerShell -NoP -C "Disable-MMAGent -MemoryCompression"
 )
+
+:: Add Auto-Cleaner to run on startup
+schtasks /create /f /sc ONLOGON /ru "nt authority\system" /tn "\Atlas\Auto-Cleaner" /tr "C:\Windows\AtlasModules\Scripts\Auto-Cleaner.cmd" /delay 0000:30
