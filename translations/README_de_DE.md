@@ -86,8 +86,7 @@ Möchten Sie Ihr eigenes Atlas-Hintergrundbild erstellen? Vielleicht mit unserem
 We also have a dedicated area on our [Forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration!
 
 ## ⚠️ Disclaimer (Haftungsausschluss)
-
-AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to run Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Beitragende zur Übersetzung)
 

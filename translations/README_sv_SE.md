@@ -79,7 +79,7 @@ Vill du göra din egna Atlas bakgrundsbild? Kanske leka runt lite med våran log
 Vi har också en [dedikerad plats i våran diskussions plats](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), så att du kan dela med dig med dina kreativa idéer till andra kreativa smarton och kanske sprida lite inspiration!
 
 ## ⚠️ Disclaimer
-By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (!!Translation contributor in the translated language)
 [Contributor A](https://github.com/A) |

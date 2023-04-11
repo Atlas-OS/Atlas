@@ -77,7 +77,7 @@ Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stw
 Mamy też [dedykowany obszar w zakładce dyskusje](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), więc możesz podzielić się swoimi projektami z innymi kreatywnymi twórcami, a może nawet zaskoczyć jakąś inspiracją!
 
 ## ⚠️ Disclaimer
-By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Twórcy tłumaczenia)
 

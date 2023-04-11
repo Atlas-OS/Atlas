@@ -85,7 +85,7 @@ A continuación, algunos de los cambios que hemos hecho para mejorar Windows:
 También tenemos una [área dedicada en el apartado de discusiones](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork) para que puedas compartir tus ideas y creaciones con otros. ¡Quizás y encuentres algo que te inspire a poner a volar tu imaginación!
 
 ## ⚠️ Disclaimer
-By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Colaboradores de traducción)
 [Bryan Rivalyr](https://github.com/Rivalyr) |

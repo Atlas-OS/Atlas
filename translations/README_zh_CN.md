@@ -83,8 +83,7 @@ Atlas是被预调试过的。在保持兼容性的同时，也努力追求性能
 我们在 论坛 页面有专门的分区用于分享社区制作的壁纸，您可以前往[这里](https://forum.atlasos.net/t/art-showcase)发布您独一无二的创意作品！
 
 ## ⚠️ Disclaimer (免责声明)
-
-By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (翻译贡献者)
 [PencilNavigator](https://github.com/PencilNavigator) |

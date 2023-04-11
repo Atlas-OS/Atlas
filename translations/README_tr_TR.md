@@ -79,7 +79,7 @@ Kendi Atlas duvar kağıdınızı tasarlamak ister misiniz? Belki kendi tasarım
 Ayrıca tartışmalar sekmesinde [özel bir alanımız var](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), böylece yarattıklarınızı diğer yaratıcı dahilerle paylaşabilir ve belki biraz ilham bile uyandırabilirsiniz!
 
 ## ⚠️ Disclaimer
-By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Çeviriye katkıda bulunanlar)
 

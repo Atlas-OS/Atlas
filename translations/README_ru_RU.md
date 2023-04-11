@@ -1,4 +1,4 @@
-﻿
+﻿## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -85,7 +85,7 @@ Atlas предварительно настроен. Сохраняя совме
 У нас также есть специальная область на [форуме](https://forum.atlasos.net/t/art-showcase), где вы можете поделиться своими творениями с другими творческими гениями и, возможно, даже вдохновиться!
 
 ## ⚠️ Disclaimer
-AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to run Atlas. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Авторы перевода)
 

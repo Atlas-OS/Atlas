@@ -79,7 +79,7 @@ Gusto mo bang gumawa ng sarili mong wallpaper ng Atlas? Baka magulo ang aming lo
 Mayroon din kaming [nakalaang lugar sa tab ng mga talakayan](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), para maibahagi mo ang iyong mga likha sa iba pang mga magagaling sa pag-drawing at maaaring maging spark ng inspirasyon!
 
 ## ⚠️ Disclaimer
-By downloading, modifying, or utilizing any of these images, you agree to [Microsoft's Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). None of these images are pre-activated, you **must** use a genuine key.
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Mga tagapag-ambag ng pagsasalin)
 
