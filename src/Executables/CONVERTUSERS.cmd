@@ -10,7 +10,6 @@ rmdir /q /s "!windir!\ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc"
 
 for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers" /s /f "NGC Credential Provider" ^| findstr /c:"Credential Providers\\"`) do reg delete "%%a" /f
 for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers" /s /f "WLIDCredentialProvider" ^| findstr /c:"Credential Providers\\"`) do reg delete "%%a" /f
-:: for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentityStore\Providers" /s /f "MicrosoftAccount" ^| findstr /c:"Providers\\"`) do reg delete "%%a" /f
 
 exit /b
 

@@ -5,8 +5,6 @@ setlocal EnableDelayedExpansion
 set "filename=C:!HOMEPATH!\Desktop\Atlas\4. Troubleshooting\Services\Default Atlas services.reg"
 if exist "!filename!" goto :drivers
 
-echo Backing up services...
-
 echo Windows Registry Editor Version 5.00 >> "!filename!"
 echo] >> "!filename!"
 for /f "skip=1" %%a in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v "TermService"') do (
@@ -19,14 +17,12 @@ for /f "skip=1" %%a in ('wmic service get Name ^| findstr "[a-z]" ^| findstr /v 
 		echo "Start"=dword:0000000!start! >> "!filename!"
 		echo] >> "!filename!"
 	)
-) > nul 2>&1
+)
 
 :drivers
 :: Backup default Atlas drivers
 set "filename=C:!HOMEPATH!\Desktop\Atlas\4. Troubleshooting\Services\Default Atlas drivers.reg"
 if exist "!filename!" exit /b
-
-echo Backing up drivers...
 
 echo Windows Registry Editor Version 5.00 >> "!filename!"
 echo] >> "!filename!"
@@ -39,4 +35,4 @@ for /f "delims=," %%a in ('driverquery /FO CSV') do (
 		echo "Start"=dword:0000000!start! >> "!filename!"
 		echo] >> "!filename!"
 	)
-) > nul 2>&1
+)
