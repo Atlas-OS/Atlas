@@ -28,7 +28,7 @@ Bạn có thể tìm hiểu thêm về Atlas trên [trang web chính thức củ
   - [Sau khi cài đặt](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers)
 
 - Xử lý sự cố
-  - [Những tính năng bị gỡ bỏ](https://docs.atlasos.net/Troubleshooting/Removed%20features)
+  - [Những tính năng đã được loại bỏ](https://docs.atlasos.net/Troubleshooting/Removed%20features)
   - [Các tập lệnh](https://docs.atlasos.net/Troubleshooting/Scripts)
 
 - FAQ
@@ -50,7 +50,7 @@ Atlas thì khác. Chúng tôi sử dụng [AME Wizard](https://ameliorated.io) �
 ### 🚀 Nhiều khoảng trống hơn
 Những ứng dụng được cài đặt sẵn và những thành phần không cần thiết đã bị loại bỏ khỏi Atlas. Mặc dù sẽ có khả năng về các vấn đề tương thích, nhưng điều này làm giảm đáng kể kích thước bản cài đặt và khiến cho hệ thống của bạn mượt mà hơn. Do đó, các chức năng như Windows Defender và những thứ tương tự đã bị loại bỏ hoàn toàn. Hãy xem nhưng gì đã được loại bỏ trong [FAQ của chúng tôi](https://docs.atlasos.net/Troubleshooting/Removed%20features).
 
-### ✅ Hiệu suất hơn
+### ✅ Hiệu năng hơn
 Một số tinh chỉnh hệ thống trên internet đã tinh chỉnh quá sâu, phá vỡ khả năng tương thích với những tính năng chính như Bluetooth, Wi-Fi, và hơn thế nữa. Atlas là một nơi tuyệt vời để bạn có thể nhận thêm hiệu năng, nhưng cũng duy trì được khả năng tương thích tốt.
 
 Một số thay đổi mà chúng tôi đã làm để cải thiện Windows có thể kể tới như sau:
@@ -66,7 +66,7 @@ Một số thay đổi mà chúng tôi đã làm để cải thiện Windows có
 - Tối ưu lên lịch tiến trình
 
 ### 🔒 Tính pháp lý
-Rất nhiều phiên bản Windows được tuỳ chỉnh phân phối phiên bản của họ bằng cách đưa ra một tập tin ISO Windows được tuỳ chỉnh. Nó không chỉ vi phạm [Điều khoản dịch vụ của Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), mà nó cũng không phải là cách an toàn để cài đặt.
+Rất nhiều phiên bản Windows được tuỳ chỉnh phân phối phiên bản của họ bằng cách đưa ra cho người dùng một tập tin ISO Windows đã bị chỉnh sửa. Nó không chỉ vi phạm [Điều khoản dịch vụ của Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), mà nó cũng không phải là cách an toàn để cài đặt.
 
 Atlas đã hợp tác với nhóm Windows Ameliorated để đưa ra cho người dùng một cách hợp pháp và an toàn hơn cho việc cài đặt, sử dụng [AME Wizard](https://ameliorated.io). Bằng cách này, Atlas hoàn toàn tuân thủ [Điều khoản dịch vụ của Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
