@@ -44,17 +44,17 @@ Atlas removes all types of tracking embedded within Windows and implements numer
 (Note. We cannot ensure the security for things outside the scope of Windows, such as browsers, third-party apps.)
 
 ### 🛡️ More secure
-Dowloading a modified ISO from the internet is risky. Not only it can contain malicious script, it also may not have the latest security patches that can put your computer under serious security risks. 
+Downloading a modified ISO from the internet is risky. Not only it can contain malicious script, it also may not have the latest security patches that can put your computer under serious security risks. 
 
 Atlas is different. We use [AME Wizard](https://ameliorated.io) to install, and all the scripts we use are open-sourced here in our repository. You can also apply the latest security updates before installing Atlas, keeping your system safe and secure.
 
 ### 🚀 More space
-Pre-installed applications and other insignifcant components are removed from Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size, and makes your system more fluent. Therfore, functionalities such as Windows Defender, and similar are stripped completely.
+Pre-installed applications and other insignificant components are removed from Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size, and makes your system more fluent. Therefore, functionalities such as Windows Defender, and similar are stripped completely.
 Check out what else we have removed in our [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features).
 
 ### ✅ More performance
 Some tweaked systems on the internet has tweaked too far away, breaking compatibility for main features such as Bluetooth, Wi-Fi, and so on.
-Atlas is on the sweet point. Getting more performance, but also maintaing a good compatibility.
+Atlas is on the sweet point. Getting more performance, but also maintain a good compatibility.
 
 Some of the many changes that we have done to improve Windows have been listed below:
 - Customized power scheme
