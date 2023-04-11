@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Atlas configuration
+description: Applies the Atlas configuration
 privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Configuring system'}

@@ -1,11 +1,12 @@
 ---
 title: Components
-description: Remove certain windows components
+description: Removes certain Windows components
 privilege: TrustedInstaller
 actions:
     # Note: Some of this is redundant with packages.yml
 
   - !taskKill: {name: 'explorer'}
+
     # ---------- Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender'}
   - !taskKill: {name: 'NisSrv'}
@@ -362,8 +363,7 @@ actions:
   - !file: {path: 'C:\ProgramData\Microsoft OneDrive'}
 
     # ---------- Update Health Tools
-  - !writeStatus: {status: 'Removing Update Health'}
-
+  - !writeStatus: {status: 'Removing Update Health Tools'}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\UpdateHealthTools'}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\rempl'}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\CloudManagedUpdate'}
@@ -374,7 +374,6 @@ actions:
 
     # ---------- PC Health Check
   - !writeStatus: {status: 'Removing PC Health Check'}
-
   - !file:
     path: 'C:\Program Files\PCHealthCheck'
 

@@ -1,6 +1,6 @@
 ---
 title: Copy
-description: Copies Atlas and other folders/files
+description: Copies Atlas folders/files and performs the preliminary configuration
 privilege: TrustedInstaller
 actions:
     # Prevent annoying notifications during deployment
@@ -28,6 +28,12 @@ actions:
     exe: "COPYDESKTOP.cmd"
     weight: 20
 
+  - !writeStatus: {status: "Cleaning up the WinSxS folder"}
+  - !cmd:
+    exeDir: true
+    command: 'DISM /Online /Cleanup-Image /StartComponentCleanup'
+    weight: 250
+
   - !writeStatus: {status: 'Setting the environment'}
     # Set path variable for AtlasModules
     # Must be set before changing features
@@ -35,8 +41,7 @@ actions:
     exeDir: true
     command: 'setx path "%PATH%;C:\Windows\AtlasModules;C:\Windows\AtlasModules\Apps;C:\Windows\AtlasModules\Other;C:\Windows\AtlasModules\Tools;C:\Windows\AtlasModules\Scripts" -m'
 
-  - !writeStatus: {status: 'Configuring updates'}
-    # Disable Windows Updates
+  - !writeStatus: {status: 'Configuring Windows Update'}
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
     value: 'ExcludeWUDriversInQualityUpdate'
@@ -187,28 +192,7 @@ actions:
     data: '00000000-0000-0000-0000-000000000000'
     type: REG_SZ
 
-  - !service:
-    name: 'wuauserv'
-    startup: 4
-    operation: change
-  - !service:
-    name: 'wuauserv'
-    operation: stop
-
-  - !service:
-    name: 'bits'
-    operation: stop
-  - !service:
-    name: 'appidsvc'
-    operation: stop
-  - !service:
-    name: 'cryptsvc'
-    operation: stop
-  - !file:
-    path: 'C:\SoftwareDistribution'
-    weight: 20
-
-  - !writeStatus: {status: 'Configuring features'}
+  - !writeStatus: {status: 'Configuring Optional Features'}
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"LegacyComponents" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart', weight: 30}
 
@@ -232,34 +216,40 @@ actions:
   - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Print.Fax.Scan~~~~0.0.1.0" /NoRestart', weight: 30}
 
   - !writeStatus: {status: 'Installing Chocolatey'}
-    # Install Chocolatey
   - !powerShell:
     command: 'Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://community.chocolatey.org/install.ps1''))'
     weight: 30
-
-    # Enable AllowGlobalConfirmation in Chocolatey
   - !cmd:
     command: '"%ProgramData%\chocolatey\bin\choco.exe" feature enable -n allowGlobalConfirmation'
     weight: 30
 
   - !writeStatus: {status: 'Installing .NET 3.5'}
-    # Install .NET Framework 3.5
   - !cmd:
     command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums dotnet3.5'
     weight: 150
 
   - !writeStatus: {status: 'Installing DirectX'}
-    # Install DirectX End-User Runtime
   - !cmd:
     command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums directx'
     weight: 150
 
-  - !writeStatus: {status: 'Installing vcredist'}
-    # Install VisualCppRedist AIO
+  - !writeStatus: {status: 'Installing Visual C++ Redistributable'}
   - !cmd:
     command: 'for /f "tokens=2" %a in (''curl https://api.github.com/repos/abbodi1406/vcredist/releases/latest ^| findstr "browser_download_url" ^| findstr x86_x64'') do curl %a -L -o %TEMP%\VC++.zip & PowerShell Expand-Archive -Path ''%TEMP%\VC++.zip'' -DestinationPath ''%TEMP%\VC++'' & move /y %TEMP%\VC++\VisualCppRedist_AIO_x86_x64.exe C:\Windows\AtlasModules\Apps & C:\Windows\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe /ai'
     weight: 100
 
   - !service:
+    name: 'appidsvc'
+    operation: stop
+  - !service:
+    name: 'bits'
+    operation: stop
+  - !service:
+    name: 'cryptsvc'
+    operation: stop
+  - !service:
     name: 'wuauserv'
     operation: stop
+  - !file:
+    path: 'C:\SoftwareDistribution'
+    weight: 20

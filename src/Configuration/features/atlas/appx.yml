@@ -1,6 +1,6 @@
 ---
 title: APPX
-description: Removal of APPX packages
+description: Removes APPX packages
 privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Removing APPX packages'}

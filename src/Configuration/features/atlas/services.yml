@@ -1,6 +1,6 @@
 ---
 title: Services
-description: Removal and configuration of services
+description: Configures services
 privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Configuring services'}

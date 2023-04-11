@@ -8,7 +8,7 @@ actions:
 # AppxMain, AppxSetup, and similar packages are primarily just stubs, that is, just stray manifests rather than actual files that need to be removed. The actual apps get removed beforehand in appx.yml
 # ---- NOTES END
 
-  - !writeStatus: {status: 'Removing system components'}
+  - !writeStatus: {status: 'Removing system packages'}
 
   - !systemPackage: {name: 'Microsoft-Windows-AddSuggestedFoldersToLibraryDialog.AppxMain', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-AddSuggestedFoldersToLibraryDialog.AppxSetup', arch: amd64, language: 'neutral'}

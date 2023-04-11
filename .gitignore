@@ -1,8 +1,5 @@
 # MacOS
 .DS_Store
 
-# folder config
-desktop.ini
-
-# playbooks
+# Playbooks
 *.apbx
