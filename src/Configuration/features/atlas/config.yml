@@ -36,7 +36,7 @@ actions:
     data: 'AtlasOS'
     type: REG_SZ
 
-  - !registryValue: 
+  - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
     value: 'Manufacturer'
     data: 'Atlas Team'

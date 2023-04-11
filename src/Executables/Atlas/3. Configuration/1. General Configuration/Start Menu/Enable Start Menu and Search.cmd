@@ -8,11 +8,11 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 :: Rename start menu
 chdir /d !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
-ren StartMenuExperienceHost.old StartMenuExperienceHost.exe
+ren StartMenuExperienceHost.exee StartMenuExperienceHost.exe
 
 :: Rename search
 chdir /d !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
-ren SearchApp.old SearchApp.exe
+ren SearchApp.exee SearchApp.exe
 
 :: Search icon
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f > nul 2>&1

@@ -24,13 +24,13 @@ call setSvc.cmd WinHttpAutoProxySvc 3
 call setSvc.cmd wlidsvc 3
 
 taskkill /f /im StartMenuExperienceHost* > nul 2>&1
-ren %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+ren %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewyy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 taskkill /f /im SearchApp* > nul 2>&1
-ren %windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy.old Microsoft.Windows.Search_cw5n1h2txyewy
-ren %windir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old Microsoft.XboxGameCallableUI_cw5n1h2txyewy
-ren %windir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe
+ren %windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewyy Microsoft.Windows.Search_cw5n1h2txyewy
+ren %windir%\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewyy Microsoft.XboxGameCallableUI_cw5n1h2txyewy
+ren %windir%\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwee Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe
 taskkill /f /im RuntimeBroker* > nul 2>&1
-ren %windir%\System32\RuntimeBroker.exe.old RuntimeBroker.exe
+ren %windir%\System32\RuntimeBroker.exee RuntimeBroker.exe
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f > nul 2>&1
 taskkill /f /im explorer.exe
 start explorer.exe

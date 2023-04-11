@@ -28,7 +28,7 @@ pause
 
 :: Detect if user is using a microsoft account
 PowerShell -NoP -C "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
-if "!MSACCOUNT!"=="NO" ( call setSvc.cmd wlidsvc 4 ) else ( echo "Microsoft Account detected, not disabling wlidsvc..." )
+if "!MSACCOUNT!" == "NO" ( call setSvc.cmd wlidsvc 4 ) else ( echo "Microsoft Account detected, not disabling wlidsvc..." )
 choice /c yn /m "Last warning, continue? [Y/N]" /n
 
 :: Disable the option for microsoft store in the "Open with" dialog
@@ -48,14 +48,14 @@ call setSvc.cmd TokenBroker 4
 call setSvc.cmd WinHttpAutoProxySvc 4
 
 taskkill /f /im StartMenuExperienceHost* > nul 2>&1
-ren !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.old
+ren !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewyy
 taskkill /f /im SearchApp* > nul 2>&1
-ren !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewy.old
-ren !windir!\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy Microsoft.XboxGameCallableUI_cw5n1h2txyewy.old
-ren !windir!\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe.old
+ren !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy Microsoft.Windows.Search_cw5n1h2txyewyy
+ren !windir!\SystemApps\Microsoft.XboxGameCallableUI_cw5n1h2txyewy Microsoft.XboxGameCallableUI_cw5n1h2txyewyy
+ren !windir!\SystemApps\Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwe Microsoft.XboxApp_48.49.31001.0_x64__8wekyb3d8bbwee
 
 taskkill /f /im RuntimeBroker* > nul 2>&1
-ren !windir!\System32\RuntimeBroker.exe RuntimeBroker.exe.old
+ren !windir!\System32\RuntimeBroker.exe RuntimeBroker.exee
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f > nul 2>&1
 taskkill /f /im explorer.exe
 start explorer.exe

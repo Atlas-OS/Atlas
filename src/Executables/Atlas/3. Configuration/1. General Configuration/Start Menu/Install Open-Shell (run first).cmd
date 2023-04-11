@@ -22,7 +22,7 @@ chdir /d !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2tx
 
 :OSrestartStart
 taskkill /f /im StartMenuExperienceHost* > nul 2>&1
-ren StartMenuExperienceHost.exe StartMenuExperienceHost.old
+ren StartMenuExperienceHost.exe StartMenuExperienceHost.exee
 
 :: Loop if it fails to rename the first time
 if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto OSrestartStart
@@ -32,7 +32,7 @@ chdir /d !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
 :OSrestartSearch
 taskkill /f /im SearchApp* > nul 2>&1
-ren SearchApp.exe SearchApp.old
+ren SearchApp.exe SearchApp.exee
 
 :: Loop if it fails to rename the first time
 if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto OSrestartSearch
