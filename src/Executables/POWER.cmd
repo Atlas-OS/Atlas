@@ -48,9 +48,9 @@ powercfg -setacvalueindex scheme_current 2e601130-5351-4d9d-8e04-252966bad054 d5
 :: Allow Throttle States - Off
 powercfg -setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb 0
 :: Processor performance autonomous mode - Disabled
-powercfg -setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 8baa4a8a-14c6-4451-8e8b-14bdbd197537 0
+:: powercfg -setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 8baa4a8a-14c6-4451-8e8b-14bdbd197537 0
 :: Processor autonomous activity window - 0 microseconds
-powercfg -setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 cfeda3d0-7697-4566-a922-a9086cd49dfa 0
+:: powercfg -setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 cfeda3d0-7697-4566-a922-a9086cd49dfa 0
 :: Dim display after - 0 seconds
 powercfg -setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 17aaa29b-8b43-4b94-aafe-35f64daaf1ee 0
 :: Turn off display after - 0 seconds
