@@ -1,5 +1,4 @@
-﻿## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
-<h1 align="center">
+﻿<h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
@@ -10,79 +9,78 @@
   •
   <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">Những câu hỏi thường gặp (FAQ)</a>
   •
-  <a href="https://discord.atlasos.net" target="_blank">Discord</a>
+  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
   •
   <a href="https://forum.atlasos.net">Diễn đàn</a>
 </p>
 
 ## 🤔 **Atlas là gì?**
 
-Atlas là một phiên bản Windows 10 đã được chỉnh sửa, loại bỏ tất cả những nhược điểm của Windows làm ảnh hưởng tới hiệu năng chơi game. Đây là một dự án mở và minh bạch, hướng tới sự tiện dụng cho người chơi cho dù bạn sử dụng một chiếc PC có cấu hình yếu hay là gaming PC
-
+Atlas là một phiên bản Windows 10 đã được chỉnh sửa, loại bỏ tất cả những nhược điểm của Windows làm ảnh hưởng tới hiệu năng chơi game.
 Ngoài việc tập trung vào hiệu năng, chúng tôi còn là một lựa chọn tốt để giảm độ trễ hệ thống, mạng, nhập liệu và giữ cho hệ thống của bạn được bảo mật.
+Bạn có thể tìm hiểu thêm về Atlas trên [trang web chính thức của chúng tôi](https://atlasos.net).
 
-## 📚 **Những Lưu Ý**
+## 📚 **Mục lục**
 
-- [Các câu hỏi thường gặp (FAQ)](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [Dự án Atlas là gì?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [Cách cài đặt Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [Những thành phần đã được loại bỏ trong Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
-- <a href="#windows-vs-atlas">So sánh Windows và Atlas</a>
-- [Cách cài đặt](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [Sau khi cài đặt](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Phần Mềm Hỗ Trợ](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
-- [Bộ thương hiệu](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-- [Tính pháp lý](https://github.com/Atlas-OS/Atlas/wiki/Legal)
+- Bắt đầu
+  - [Cài đặt](https://docs.atlasos.net/Getting%20started/Installation)
+  - [Các cách cài đặt khác](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB)
+  - [Sau khi cài đặt](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers)
 
-## 🆚 **Windows vs. Atlas**
+- Xử lý sự cố
+  - [Những tính năng đã được loại bỏ](https://docs.atlasos.net/Troubleshooting/Removed%20features)
+  - [Các tập lệnh](https://docs.atlasos.net/Troubleshooting/Scripts)
 
-### 🔒 Quyền riêng tư
-Atlas loại bỏ tất cả các trình theo dõi được nhúng trong Windows và triển khai nhiều nhóm chính sách để giảm thiểu sự thu thập dữ liệu. Chúng tôi không thể tăng cường sự riêng tư cho những thứ ngoài phạm vi của Windows, chẳng hạn như các trang web mà bạn truy cập.
+- FAQ
+  - [Cài đặt](https://docs.atlasos.net/FAQ/Installation)
+  - [Đóng góp](https://docs.atlasos.net/FAQ/Contribute)
 
-### 🛡️ Bảo mật
-Atlas hướng tới sự bảo mật tối đa mà không làm giảm hiệu năng bằng cách vô hiệu hoá các tính năng có thể gây rò rỉ thông tin hoặc có thể bị tin tặc khai thác. Có một số ngoại lệ như [Spectre](https://spectreattack.com/spectre.pdf) và [Meltdown](https://meltdownattack.com/meltdown.pdf). Các tinh chỉnh bảo mật này đã được vô hiệu hoá để cải thiện hiệu suất.
+## 👀 **Tại sao nên dùng Atlas?**
 
-Nếu một biện pháp bảo mật làm giảm hiệu năng, nó sẽ bị vô hiệu hoá.
-Dưới đây là một số tính năng/tinh chỉnh đã được thay đổi, trong đó các mục có ký hiệu (P) là các rủi ro bảo mật đã được vá:
+### 🔒 Riêng tư hơn
+Phiên bản Windows gốc có chứa dịch vụ theo dõi, nó thu thập dữ liệu của bạn và gửi chúng tới Microsoft.
+Atlas loại bỏ tất cả các trình theo dõi được nhúng trong Windows và triển khai nhiều nhóm chính sách để giảm thiểu sự thu thập dữ liệu.
 
-- [Spectre](https://spectreattack.com/spectre.pdf)
-- [Meltdown](https://meltdownattack.com/meltdown.pdf)
-- [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
-- (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
-- (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
-- [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Khả năng tìm được thông tin*)
+(Lưu ý. Chúng tôi không thể đảm bảo việc bảo mật cho những thứ ngoài phạm vi của Windows, chẳng hạn như các trình duyệt và ứng dụng bên thứ ba.)
 
-### 🚀 Loại bỏ
-Atlas đã được gỡ bỏ rất nhiều những cài đặt sẵn các ứng dụng và các thành phần khác cũng đã được loại bỏ. Mặc dù có khả năng có các vấn đề về tương thích, nhưng điều này làm giảm đáng kể kích thước ISO và cài đặt. Các chức năng như Windows Defender,...và những thành phần tương tự đã được loại bỏ hoàn toàn.
+### 🛡️ Bảo mật hơn
+Việc tải xuống một ISO đã được tuỳ chỉnh từ internet khá rủi ro. Nó không chỉ có thể chứa các tập lệnh độc hại mà khiến máy tính của bạn gặp rủi ro bảo mật nghiêm trọng.
+Atlas thì khác. Chúng tôi sử dụng [AME Wizard](https://ameliorated.io) để cài đặt, và tất cả các tập lệnh được dùng đều có mã nguồn mở tại repository này của chúng tôi. Bạn còn có thể cài đặt những bản cập nhật bảo mật mới nhất trước khi cài đặt Atlas, giúp hệ thống của bạn an toàn và bảo mật.
 
-Sự thay đổi này tập trung vào hiệu năng trong trò chơi thuần túy, nhưng hầu hết các ứng dụng cho công việc và học tập đều hoạt động. [Xem xem những gì chúng tôi đã gỡ bỏ trong FAQ] (https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ # 13-whats-in-Atlas-os).phần mềm dành cho giáo dục hay phần mềm để làm việc vẫn sẽ hoạt động được.
+### 🚀 Nhiều khoảng trống hơn
+Những ứng dụng được cài đặt sẵn và những thành phần không cần thiết đã bị loại bỏ khỏi Atlas. Mặc dù sẽ có khả năng về các vấn đề tương thích, nhưng điều này làm giảm đáng kể kích thước bản cài đặt và khiến cho hệ thống của bạn mượt mà hơn. Do đó, các chức năng như Windows Defender và những thứ tương tự đã bị loại bỏ hoàn toàn. Hãy xem nhưng gì đã được loại bỏ trong [FAQ của chúng tôi](https://docs.atlasos.net/Troubleshooting/Removed%20features).
 
-### ✅ Hiệu suất
-Atlas là một bản hệ điều hành Windows được tinh chỉnh sẵn. Để duy trì sự tương thích, và cả hiệu năng, chúng tôi sẽ cung cấp cho bạn một phiên bản Windows với hiệu năng được đẩy tới cực hạn.
+### ✅ Hiệu năng hơn
+Một số tinh chỉnh hệ thống trên internet đã tinh chỉnh quá sâu, phá vỡ khả năng tương thích với những tính năng chính như Bluetooth, Wi-Fi, và hơn thế nữa. Atlas là một nơi tuyệt vời để bạn có thể nhận thêm hiệu năng, nhưng cũng duy trì được khả năng tương thích tốt.
 
-Một số thay đổi và cải thiện có thể kể tới như sau.
+Một số thay đổi mà chúng tôi đã làm để cải thiện Windows có thể kể tới như sau:
 
 - Power scheme được tuỳ chỉnh riêng
-- Giảm số lượng tiến trình
-- Giảm số lượng driver
+- Giảm số lượng tiến trình và driver
+- Vô hiệu hoá chế độ độc quyền âm thanh
 - Vô hiệu hoá các thiết bị không cần thiết
-- Vô hiệu hoá tiết kiệm pin
+- Vô hiệu hoá chế độ tiết kiệm pin (cho máy tính cá nhân)
 - Vô hiệu hoá các biện pháp bảo mật mà ảnh hưởng tới hiệu năng
-- Tự động kích hoạt chế độ MSI
+- Tự động kích hoạt chế độ MSI cho tất cả thiết bị
 - Tối ưu cấu hình khởi động
 - Tối ưu lên lịch tiến trình
 
-## 🎨 Bộ thương hiệu
-Bạn có muốn tạo một hình nền Atlas của riêng bạn không? Hãy thử tùy biến một chút với bộ logo của chúng tôi xem, có thể bạn sẽ nảy ra được ý tưởng hay ho đó! Chúng tôi có những mục công khai để giúp khơi dậy các ý tưởng sáng tạo mới trên toàn cộng đồng, xem thử nhé? [Bộ thương hiệu của Atlas.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+### 🔒 Tính pháp lý
+Rất nhiều phiên bản Windows được tuỳ chỉnh phân phối phiên bản của họ bằng cách đưa ra cho người dùng một tập tin ISO Windows đã bị chỉnh sửa. Nó không chỉ vi phạm [Điều khoản dịch vụ của Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), mà nó cũng không phải là cách an toàn để cài đặt.
 
-Chúng tôi cũng có [một mục riêng trong khu vục thảo luận](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), bạn có thể chia sẻ sự sáng tạo của mình với các nhà thiết kế khác, hoặc có thể bạn cũng sẽ tìm được nguồn cảm hứng ở đó!
+Atlas đã hợp tác với nhóm Windows Ameliorated để đưa ra cho người dùng một cách hợp pháp và an toàn hơn cho việc cài đặt, sử dụng [AME Wizard](https://ameliorated.io). Bằng cách này, Atlas hoàn toàn tuân thủ [Điều khoản dịch vụ của Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+
+## 🎨 Bộ thương hiệu
+Bạn cảm thấy sáng tạo? Bạn muốn tạo một hình nền Atlas của riêng bạn với những thiết kế sáng tạo? Bộ thương hiệu của chúng tôi là dành cho bạn!
+Bộ thương hiệu của Atlas có thể truy cập một cách công khai, bạn có thể tải nó xuống [ở đây](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) và làm thứ gì đó thật đặc biệt!
+
+Chúng tôi cũng có [một mục riêng trong diễn đàn của chúng tôi](https://forum.atlasos.net/t/art-showcase), bạn có thể chia sẻ sự sáng tạo của mình với các nhà thiết kế khác, hoặc có thể bạn cũng sẽ tìm được nguồn cảm hứng ở đó!
 
 ## ⚠️ Disclaimer
-https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
+AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to activate Windows. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
 ## Translation contributors (Những người đóng góp dịch thuật)
 
-[Cuong Tien Dinh](https://github.com/dtcu0ng) |
+[Cuong Tien Dinh](https://github.com/dtcu0ng) | 
 [Nguyễn Cao Hoài Nam](https://github.com/sant1ago-da-hanoi) |
 [Nguyen Thuy Linh](https://github.com/WhiteSnow00)
