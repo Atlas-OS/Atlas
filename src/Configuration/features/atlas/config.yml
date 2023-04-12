@@ -1191,9 +1191,11 @@ actions:
 
     # Disable automatic folder type discovery
   - !registryKey:
+    path: 'HKCU\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\BagMRU'
+  - !registryKey:
     path: 'HKCU\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags'
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell'
+    path: 'HKCU\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\All Folders\Shell'
     value: 'FolderType'
     data: 'NotSpecified'
     type: REG_SZ
