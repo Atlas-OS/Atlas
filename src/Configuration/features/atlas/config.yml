@@ -524,16 +524,16 @@ actions:
   - !service: {name: 'Beep', operation: change, startup: 4}
   - !service: {name: 'bindflt', operation: change, startup: 4}
   - !service: {name: 'BthA2dp', operation: change, startup: 4}
-  - !service: {name: 'BthEnum', operation: change, startup: 4}
+    # BthEnum 4 < Potential fix for generic Bluteooth issues
   - !service: {name: 'BthHFEnum', operation: change, startup: 4}
   - !service: {name: 'BthLEEnum', operation: change, startup: 4}
-  - !service: {name: 'BthMini', operation: change, startup: 4}
+    # BthMini 4 < Potential fix for generic bluetooth issues
   - !service: {name: 'BTHMODEM', operation: change, startup: 4}
   - !service: {name: 'BthPan', operation: change, startup: 4}
-  - !service: {name: 'BTHPORT', operation: change, startup: 4}
-  - !service: {name: 'BTHUSB', operation: change, startup: 4}
+    # BTHPORT 4 < Potential fix for generic Bluteooth issues
+    # BTHUSB 4 < Potential fix for generic bluetooth issues
   - !service: {name: 'bttflt', operation: change, startup: 4}
-  - !service: {name: 'buttonconverter', operation: change, startup: 4}
+    # buttonconverter 4 < Potential fix for Fn key issues
   - !service: {name: 'CAD', operation: change, startup: 4}
   - !service: {name: 'cdfs', operation: change, startup: 4}
   - !service: {name: 'CimFS', operation: change, startup: 4}
