@@ -155,7 +155,7 @@ actions:
     # Mitigate against HiveNightmare/SeriousSam
   - !run: {exe: 'icacls', args: '"C:\Windows\system32\config\*.*" /inheritance:e', showOutput: false}
 
-    # Hide useless windows Immersive Control Panel pages
+    # Hide useless Windows Immersive Control Panel pages
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'SettingsPageVisibility'
@@ -681,7 +681,7 @@ actions:
     type: REG_DWORD
 
     # Reduce menu show delay time
-    # Automatically close any applications and continue to restart, shut down, or sign out of windows
+    # Automatically close any applications and continue to restart, shut down, or sign out of Windows
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'AutoEndTasks'
@@ -784,7 +784,7 @@ actions:
     data: '2'
     type: REG_DWORD
 
-    # Users can not add microsoft accounts
+    # Users can not add Microsoft accounts
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
     value: 'NoConnectedUser'
@@ -1206,7 +1206,7 @@ actions:
     # Disable suggested content in Immersive Control Panel
     # Disable fun facts, tips, tricks on Windows Spotlight
     # Disable start menu suggestions
-    # Disable get tips, tricks, and suggestions as you use windows
+    # Disable get tips, tricks, and suggestions as you use Windows
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'ContentDeliveryAllowed'
