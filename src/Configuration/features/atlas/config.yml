@@ -283,7 +283,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Set strong cryptography on 64 bit and 32 bit .Net Framework (version 4 and above) to fix the scoop installation issue
+    # Set strong cryptography on 64 bit and 32 bit .Net Framework (version 4 and above) to fix the Scoop installation issue
     # https://github.com/ScoopInstaller/Scoop/issues/2040#issuecomment-369686748
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\.NetFramework\v4.0.30319'
