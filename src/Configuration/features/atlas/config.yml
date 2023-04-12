@@ -296,7 +296,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Set service split threshold
+    # Set service split threshold [#491]
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control'
     value: 'SvcHostSplitThresholdInKB'
