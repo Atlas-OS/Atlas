@@ -21,7 +21,7 @@ if /I "!c!" == "N" exit /b
 chdir /d !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 
 :restartStart
-taskkill /f /im StartMenuExperienceHost*
+taskkill /f /im StartMenuExperienceHost* > nul 2>&1
 ren StartMenuExperienceHost.exe StartMenuExperienceHost.exee
 
 :: Loop if it fails to rename the first time
@@ -39,8 +39,8 @@ if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 
 :: Search icon
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f > nul 2>&1
-taskkill /f /im explorer.exe
-start explorer.exe
+taskkill /f /im explorer.exe > nul 2>&1
+start explorer.exe > nul 2>&1
 
 echo Finished, please reboot your device for changes to apply.
 pause

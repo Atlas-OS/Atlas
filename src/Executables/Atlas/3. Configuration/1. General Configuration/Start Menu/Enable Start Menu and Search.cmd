@@ -16,8 +16,8 @@ ren SearchApp.exee SearchApp.exe
 
 :: Search icon
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "1" /f > nul 2>&1
-taskkill /f /im explorer.exe
-start explorer.exe
+taskkill /f /im explorer.exe > nul 2>&1
+start explorer.exe > nul 2>&1
 
 echo Finished, please reboot your device for changes to apply.
 pause
