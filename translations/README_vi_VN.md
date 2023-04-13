@@ -76,8 +76,8 @@ Bộ thương hiệu của Atlas có thể truy cập một cách công khai, b�
 
 Chúng tôi cũng có [một mục riêng trong diễn đàn của chúng tôi](https://forum.atlasos.net/t/art-showcase), bạn có thể chia sẻ sự sáng tạo của mình với các nhà thiết kế khác, hoặc có thể bạn cũng sẽ tìm được nguồn cảm hứng ở đó!
 
-## ⚠️ Disclaimer
-AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to activate Windows. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+## ⚠️ Cảnh 
+AtlasOS **KHÔNG** phải là bản Windows được kích hoạt sẵn, bạn **phải** có một khóa (key) hợp lệ để kích hoạt Windows. Trước khi quyết định mua một giấy phép Windows 10 Home hoặc Pro, hãy chắc chắn rằng bên bán là đáng tin cậy và có key hợp lệ, không quan trọng bạn mua ở đâu. Atlas được xây dựng dựa trên Microsoft Windows, nên việc bạn sử dụng Windows đồng nghĩa là bạn đã đồng ý với [Điều khoản dịch vụ của Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
 ## Translation contributors (Những người đóng góp dịch thuật)
 
