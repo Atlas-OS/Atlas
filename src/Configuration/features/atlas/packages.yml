@@ -823,15 +823,15 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-Wallet-WinRT', arch: wow64, language: 'neutral'}
 #    Just removes Windows\Web files, which are already replaced before
 #  - !systemPackage: {name: 'Microsoft-Windows-Shell-Wallpaper-Common-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-ClientOnly', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-ClientOnly', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-DavClient', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-DavClient', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-Helper', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-Helper', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-MrxDAV', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-WebClient', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-WebClient', arch: wow64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-ClientOnly', arch: amd64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-ClientOnly', arch: wow64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-DavClient', arch: amd64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-DavClient', arch: wow64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-Helper', arch: amd64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-Helper', arch: wow64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-MrxDAV', arch: amd64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-WebClient', arch: amd64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-WebClient', arch: wow64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-WiFiNetworkManager', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-AI-MachineLearning', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-AI-MachineLearning', arch: wow64, language: 'neutral'}
