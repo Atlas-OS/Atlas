@@ -24,7 +24,7 @@ echo - Wi-Fi menu
 echo - Windows Firewall
 echo - Xbox App
 echo Please PROCEED WITH CAUTION, you are doing this at your own risk.
-pause
+pause & cls
 
 :: Detect if user is using a microsoft account
 PowerShell -NoP -C "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=YES || set MSACCOUNT=NO
