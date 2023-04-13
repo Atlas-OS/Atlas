@@ -20,12 +20,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set variables
-        id: vars
-        run: |
-          echo "Setting the latest commit (that caused this workflow run)..."
-          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
       - name: Validate YAML files
         run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/.'
 
@@ -35,15 +29,15 @@ jobs:
           echo "Making playbook display as unverified (remove ProductCode) so that it is not marked as malicious..."
           sed -i '/<ProductCode>/d' playbook.conf
           echo "Change description of playbook..."
-          sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas playbook, built with GitHub Actions from commit ${{ steps.vars.outputs.sha_short }}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
+          sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas playbook, built with GitHub Actions from commit ${{ github.sha }}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
 
       - name: Create playbook (ZIP/APBX password is malte)
         run: |
           cd src
           echo "Make a renamed password protected (malte) ZIP of playbook files..."
-          zip -r -P malte "Atlas Playbook ${{ steps.vars.outputs.sha_short }}.apbx" . -x "Release ZIP/*"
+          zip -r -P malte "Atlas Playbook ${GITHUB_SHA::8}.apbx" . -x "Release ZIP/*"
           echo "Move the .abpx playbook into the 'Release ZIP' to be released as an artifact with the additional files..."
-          mv "Atlas Playbook ${{ steps.vars.outputs.sha_short }}.apbx" "Release ZIP"
+          mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "Release ZIP"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
