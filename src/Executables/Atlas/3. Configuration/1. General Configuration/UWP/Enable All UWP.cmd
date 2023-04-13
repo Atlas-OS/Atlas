@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-:: Disable the option for Microsoft Store in the "Open with" dialog
+:: Enable the option for Microsoft Store in the "Open with" dialog
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f > nul 2>&1
 
 :: Block access to Microsoft Store

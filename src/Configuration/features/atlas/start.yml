@@ -253,5 +253,5 @@ actions:
     name: 'wuauserv'
     operation: stop
   - !file:
-    path: 'C:\SoftwareDistribution'
+    path: 'C:\Windows\SoftwareDistribution'
     weight: 20

@@ -1242,20 +1242,20 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-Mobile-Broadband-Experience-Parser-Task', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-NetworkUX-MBMediaManager', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-OOBE-Machine-Plugins-Wireless', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-Wwan-Adm', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-Wwan-Netsh-Helper', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-Wwan-Provisioning', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WWanHC', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-Wwan-Adm', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-Wwan-Netsh-Helper', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-Wwan-Provisioning', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WWanHC', arch: amd64, language: 'neutral'}
 #   -regexExcludeFiles specifies a regular expression for excluding files.
 #   WwanRadioManager.dll is normally locked by a lot of services and processes (some critical).
 #   This means we cannot realistically remove it in one go on a live system.
 #   The best we can do is remove the CLSID registry key (Class ID) that links to the file, which should
 #   cause it to no longer be used or locked by processes after a restart. A post-restart script could be used
 #   However, that is pretty impractical, and the file does not inherently harm anything once the CLSID mapping is removed.
-  - !systemPackage: {name: 'Microsoft-Windows-WwanRadioManager', arch: amd64, language: 'neutral', regexExcludeFiles: ['.*\\WwanRadioManager.dll']}
-  - !systemPackage: {name: 'Microsoft-Windows-WwanSvc-ServerCfg', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WwanSvc', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-WwanUI', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WwanRadioManager', arch: amd64, language: 'neutral', regexExcludeFiles: ['.*\\WwanRadioManager.dll']}
+#  - !systemPackage: {name: 'Microsoft-Windows-WwanSvc-ServerCfg', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WwanSvc', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WwanUI', arch: amd64, language: 'neutral'}
 
   - !file: {path: 'C:\PerfLogs'}
   - !file: {path: 'C:\Windows\System32\Tasks\Microsoft\Windows\Feedback'}
