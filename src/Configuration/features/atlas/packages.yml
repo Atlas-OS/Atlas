@@ -720,12 +720,12 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-SMB1Server-D-Opt-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   - !systemPackage: {name: 'Microsoft-Windows-SMB1Server-D-Opt-Deployment', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Shell-SoundThemes', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-ShenzhouTTSVoiceCommon-OneCore', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-ShenzhouTTSVoiceCommon-OneCore', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-ShenzhouTTSVoiceCommon', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-ShenzhouTTSVoiceCommon', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-TextToSpeech-en-us', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-TextToSpeech-en-us', arch: wow64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-ShenzhouTTSVoiceCommon-OneCore', arch: amd64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-ShenzhouTTSVoiceCommon-OneCore', arch: wow64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-ShenzhouTTSVoiceCommon', arch: amd64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-ShenzhouTTSVoiceCommon', arch: wow64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-TextToSpeech-en-us', arch: amd64, language: 'neutral'}
+# - !systemPackage: {name: 'Microsoft-Windows-TextToSpeech-en-us', arch: wow64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Font-StaticCache', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Application-Compatibility-UI-Recording', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Application-Compatibility-UI-Recording', arch: wow64, language: 'neutral'}
@@ -823,15 +823,15 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-Wallet-WinRT', arch: wow64, language: 'neutral'}
 #    Just removes Windows\Web files, which are already replaced before
 #  - !systemPackage: {name: 'Microsoft-Windows-Shell-Wallpaper-Common-Deployment', arch: amd64, language: 'neutral'}
-# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-ClientOnly', arch: amd64, language: 'neutral'}
-# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-ClientOnly', arch: wow64, language: 'neutral'}
-# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-DavClient', arch: amd64, language: 'neutral'}
-# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-DavClient', arch: wow64, language: 'neutral'}
-# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-Helper', arch: amd64, language: 'neutral'}
-# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-Helper', arch: wow64, language: 'neutral'}
-# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-MrxDAV', arch: amd64, language: 'neutral'}
-# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-WebClient', arch: amd64, language: 'neutral'}
-# - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-WebClient', arch: wow64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-ClientOnly', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-ClientOnly', arch: wow64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-DavClient', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-DavClient', arch: wow64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-Helper', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-Helper', arch: wow64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-MrxDAV', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-WebClient', arch: amd64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-WebDAVRedir-WebClient', arch: wow64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-WiFiNetworkManager', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-AI-MachineLearning', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-AI-MachineLearning', arch: wow64, language: 'neutral'}
