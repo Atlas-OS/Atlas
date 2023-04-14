@@ -9,13 +9,14 @@ However, old CPUs do not have these mitigations/fixes at a hardware level, meani
 
 You can always change this after you have installed Atlas, and it is recommended to benchmark the effects of this tweak, if you use it.
 
-Realistically, you are unlikely to be attacked due to worse security from disabling CPU mitigations. However, disabling them is worse for security, that's why they exist.
+Realistically, you are unlikely to be attacked due to worse security from disabling CPU mitigations. However, disabling them is significantly worse for security, that's why they exist.
 
-Automatically selecting 'No' in 2 minutes...
+Automatically selecting 'Yes' in 5 minutes...
 '@
 
 $sh = New-Object -ComObject "Wscript.Shell"
-$intButton = $sh.Popup($Message,120,$WindowTitle,4+64+4096)
+$intButton = '6'
+$intButton = $sh.Popup($Message,300,$WindowTitle,4+64+4096)
 
 if ($intButton -eq '6') {
 	Write-Host Disabling mitigiations...
