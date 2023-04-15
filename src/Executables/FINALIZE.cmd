@@ -112,6 +112,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
     REM If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
     reg query "HKEY_USERS\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_"
     if not !errorlevel! == 1 (
+        PowerShell -NoP -C "New-PSDrive HKU Registry HKEY_USERS; New-ItemProperty -Path 'HKU:\%%a\AppEvents\Schemes' -Name '(Default)' -Value '.None' -Force | Out-Null"
         PowerShell -NoP -C "New-PSDrive HKU Registry HKEY_USERS; Get-ChildItem -Path 'HKU:\%%a\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''"
     )
 )

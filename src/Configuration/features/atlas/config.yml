@@ -2677,9 +2677,6 @@ actions:
     # Remove SecurityHealthSystray startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
-    # Set sound scheme to 'No Sounds' (apply to all users)
-  - !registryValue: {path: 'HKCU\AppEvents\Schemes', value: '', type: REG_SZ, data: '.None'}
-
   - !writeStatus: {status: 'Changing boot manager options'}
 
     # Lowering dual boot choice time
