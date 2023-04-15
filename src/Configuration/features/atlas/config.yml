@@ -208,7 +208,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable SMB compression (Possible SMBGhost vulnerability workaround)
+    # Disable SMB compression (possible SMBGhost vulnerability workaround)
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters'
     value: 'DisableCompression'
@@ -1622,6 +1622,16 @@ actions:
     value: 'LimitEnhancedDiagnosticDataWindowsAnalytics'
     data: '0'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
+    value: 'ShowedToastAtLevel'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Diagnostics\Performance'
+    value: 'DisableDiagnosticTracing'
+    data: '1'
+    type: REG_DWORD
 
   # Configure app permissions/privacy section in Immersive Control Panel
   - !registryValue:
@@ -1736,22 +1746,21 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Configure miscellaneous settings
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'
-    value: 'TailoredExperiencesWithDiagnosticDataEnabled'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
-    value: 'ShowedToastAtLevel'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
+    # Disable Improve inking & typing recognition
+    - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Input\TIPC'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
+
+    # Disable Tailored Experiences
+    - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'
+    value: 'TailoredExperiencesWithDiagnosticDataEnabled'
+    data: '0'
+    type: REG_DWORD
+
+    # Do not allow upload and publish of user activities
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
     value: 'UploadUserActivities'
@@ -1762,11 +1771,8 @@ actions:
     value: 'PublishUserActivities'
     data: '0'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Diagnostics\Performance'
-    value: 'DisableDiagnosticTracing'
-    data: '1'
-    type: REG_DWORD
+
+    # Disable Performance Track (PerfTrack)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WDI\{9c5a40da-b965-4fc3-8781-88dd50a6299d}'
     value: 'ScenarioExecutionEnabled'
