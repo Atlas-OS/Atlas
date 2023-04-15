@@ -8,12 +8,12 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 for /f "tokens=4" %%a in ('netsh int show interface ^| find "Connected"') do set DeviceName=%%a
 
-:: set dhcp instead of static ip
-netsh int ipv4 set address name="%DeviceName%" dhcp
-netsh int ipv4 set dnsservers name="%DeviceName%" dhcp
-netsh int ipv4 show config "%DeviceName%"
+:: Set DHCP instead of Static IP
+netsh int ipv4 set address name="!DeviceName!" dhcp
+netsh int ipv4 set dnsservers name="!DeviceName!" dhcp
+netsh int ipv4 show config "!DeviceName!"
 
-:: enable static ip services (fixes internet icon)
+:: Enable Static IP services
 call setSvc.cmd Dhcp 2
 call setSvc.cmd netprofm 3
 call setSvc.cmd nlasvc 2
