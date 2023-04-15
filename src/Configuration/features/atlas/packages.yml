@@ -861,7 +861,7 @@ actions:
 #  - !systemPackage: {name: 'Microsoft-Windows-ErrorReportingConsole', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-ErrorReportingCore', arch: wow64, language: 'neutral'}
 #  - !systemPackage: {name: 'Microsoft-Windows-ErrorReportingFaults', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-ErrorReportingFaults', arch: wow64, language: 'neutral'}
+#  - !systemPackage: {name: 'Microsoft-Windows-ErrorReportingFaults', arch: wow64, language: 'neutral'}
 #  - !systemPackage: {name: 'Microsoft-Windows-ErrorReportingKernel', arch: amd64, language: 'neutral'}
 #  - !systemPackage: {name: 'Microsoft-Windows-ErrorReportingPowershell', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-ErrorReportingPowershell', arch: wow64, language: 'neutral'}
