@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
-<Settings component="StartMenu" version="4.4.170">
+<Settings component="StartMenu" version="4.4.189">
 	<MenuStyle value="Win7"/>
 	<ProgramsMenuDelay value="99999999"/>
+	<RecentPrograms value="None"/>
 	<StartScreenShortcut value="0"/>
 	<SkinW7 value="Fluent-Metro"/>
 	<SkinVariationW7 value=""/>
