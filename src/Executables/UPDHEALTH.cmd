@@ -19,6 +19,6 @@ reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-
 
 for /f "usebackq delims=" %%a in (`PowerShell -NoP -C "(Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\Folders').Property" ^| findstr /i /c:"Update Health Tools"`) do (
 	set "var=%%a"
-	if "!var:~-1!"=="\" set "var=%%a\"
+	if "!var:~-1!" == "\" set "var=%%a\"
 	reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\Folders" /v "!var!" /f
 )

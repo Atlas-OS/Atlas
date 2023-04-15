@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-if "%~1"=="/silent" goto main
+if "%~1" == "/silent" goto main
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" "%*"
@@ -59,7 +59,7 @@ bcdedit /set nx AlwaysOff > nul
 :: Disable file system mitigations
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMode" /t REG_DWORD /d "0" /f > nul
 
-if "%~1"=="/silent" exit /b
+if "%~1" == "/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause

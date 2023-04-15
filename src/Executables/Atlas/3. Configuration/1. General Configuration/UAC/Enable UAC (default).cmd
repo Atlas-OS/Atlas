@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-if /i "%~1"=="/uacSettings" goto uacSettings
+if /i "%~1" == "/uacSettings" goto uacSettings
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" "%*"

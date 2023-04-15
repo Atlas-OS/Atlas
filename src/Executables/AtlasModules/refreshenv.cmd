@@ -1,7 +1,7 @@
 @echo off
-:: a batch script to refresh environment variables from the registry
-:: source: https://raw.githubusercontent.com/chocolatey-archive/chocolatey/master/src/redirects/RefreshEnv.cmd
-:: modified by Xyueta
+:: A batch script to refresh environment variables from the registry
+:: Source: https://raw.githubusercontent.com/chocolatey-archive/chocolatey/master/src/redirects/RefreshEnv.cmd
+:: Modified by Xyueta
 
 echo | set /p info="Refreshing environment variables. Please wait..."
 goto main
@@ -16,7 +16,7 @@ goto :eof
 :GetRegEnv
 reg query "%~1" > "%temp%\_envget.tmp"
 for /f "usebackq skip=2" %%a in ("%temp%\_envget.tmp") do (
-    if /I not "%%~a"=="Path" (
+    if /I not "%%~a" == "Path" (
         call :SetFromReg "%~1" "%%~a" "%%~a"
     )
 )

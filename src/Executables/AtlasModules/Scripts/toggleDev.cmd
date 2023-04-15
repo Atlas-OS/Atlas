@@ -52,7 +52,7 @@ if not defined __arguments (
 	if "!run_by!" == "cmd" (pause & exit) else (exit /b)
 )
 
-if "%~1"=="/e" (set __state=enable) else (set __state=disable)
+if "%~1" == "/e" (set __state=enable) else (set __state=disable)
 
 :: Remove /e from arguments
 set __arguments=!__arguments:/e =!

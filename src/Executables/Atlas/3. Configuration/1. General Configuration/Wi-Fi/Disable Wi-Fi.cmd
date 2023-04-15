@@ -12,7 +12,7 @@ call setSvc.cmd vwififlt 4
 
 echo]
 set /P c="Would you like to disable the network icon? (disables two extra services) [Y/N]: "
-if /I "%c%"=="N" goto wifiDskip
+if /I "!c!" == "N" goto wifiDskip
 call setSvc.cmd netprofm 4
 call setSvc.cmd NlaSvc 4
 

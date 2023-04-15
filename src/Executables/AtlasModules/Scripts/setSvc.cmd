@@ -48,7 +48,7 @@ if [%~2]==[] (echo You need to run this with an argument ^(1-5^) to configure th
 if %~2 LSS 0 (echo Invalid start value ^(%~2^) for %~1. & if "!run_by!" == "cmd" (pause & exit) else (exit /b 1))
 if %~2 GTR 4 (echo Invalid start value ^(%~2^) for %~1. & if "!run_by!" == "cmd" (pause & exit) else (exit /b 1))
 reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" > nul 2>&1 || (echo The specified service/driver ^(%~1^) is not found. & if "!run_by!" == "cmd" (pause & exit) else (exit /b 1))
-if "!system!"=="false" (
+if "!system!" == "false" (
 	echo WARNING: Not running as System, could fail modifying some services/drivers with an access denied error.
 )
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f > nul 2>&1 & if "!run_by!" == "cmd" (echo Successfully changed the startup type of %~1 to %~2. & pause & exit) || (

@@ -10,7 +10,7 @@ if !errorlevel! == 0 (
 )
 
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
-	if "%%a"=="AME_UserHive_Default" (
+	if "%%a" == "AME_UserHive_Default" (
 		call :WALLRUN "%%a" "!SystemDrive!\Users\Default\AppData\Roaming"
 	) else (
 		for /f "usebackq tokens=2* delims= " %%b in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "AppData" ^| findstr /r /x /c:".*AppData[ ]*REG_SZ[ ].*"`) do (
@@ -46,6 +46,6 @@ del /q /f "%~2\Microsoft\Windows\Themes\TranscodedWallpaper"
 rmdir /q /s "%~2\Microsoft\Windows\Themes\CachedFiles"
 
 reg add "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "RotatingLockScreenEnabled" /t REG_DWORD /d "0" /f
-if not "%~1"=="AME_UserHive_Default" (
+if not "%~1" == "AME_UserHive_Default" (
 	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative\%~1" /v "RotatingLockScreenEnabled" /t REG_DWORD /d "0" /f
 )
