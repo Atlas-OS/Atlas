@@ -151,9 +151,6 @@ actions:
   - !powerShell
     command: 'Set-ExecutionPolicy Unrestricted'
 
-    # Mitigate against HiveNightmare/SeriousSam
-  - !run: {exe: 'icacls', args: '"C:\Windows\system32\config\*.*" /inheritance:e'}
-
     # Hide useless Windows Immersive Control Panel pages
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
