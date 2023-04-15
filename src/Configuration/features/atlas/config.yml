@@ -2366,13 +2366,6 @@ actions:
     # Remove Internet Explorer SVG association
   - !registryKey: {path: 'HKCR\svgfile'}
 
-    # Disable gamebar presence writer
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter'
-    value: 'ActivationType'
-    data: '0'
-    type: REG_DWORD
-
     # Disable maintenance
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance'
