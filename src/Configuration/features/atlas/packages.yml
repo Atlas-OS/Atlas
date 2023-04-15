@@ -1257,6 +1257,11 @@ actions:
 #  - !systemPackage: {name: 'Microsoft-Windows-WwanSvc', arch: amd64, language: 'neutral'}
 #  - !systemPackage: {name: 'Microsoft-Windows-WwanUI', arch: amd64, language: 'neutral'}
 
+  # Remove useless files and folders
   - !file: {path: 'C:\PerfLogs'}
   - !file: {path: 'C:\Windows\System32\Tasks\Microsoft\Windows\Feedback'}
   - !file: {path: 'C:\Windows\System32\MRT.exe'}
+  - !file: {path: 'C:\Windows\System32\devicecensus.exe'}
+  - !file: {path: 'C:\Windows\System32\CompatTelRunner.exe'}
+  - !file: {path: 'C:\Windows\System32\GameBarPresenceWriter.exe'}
+  - !file: {path: 'C:\Windows\System32\diagtrack.dll'}
