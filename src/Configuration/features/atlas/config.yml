@@ -1747,14 +1747,14 @@ actions:
     type: REG_DWORD
 
     # Disable Improve inking & typing recognition
-    - !registryValue:
+  - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Input\TIPC'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
 
     # Disable Tailored Experiences
-    - !registryValue:
+  - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'
     value: 'TailoredExperiencesWithDiagnosticDataEnabled'
     data: '0'
