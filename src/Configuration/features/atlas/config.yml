@@ -128,15 +128,15 @@ actions:
   - !writeStatus: {status: 'Configuring system settings'}
 
     # Delete defaultuser0 account used during oobe
-  - !run: {exe: 'net', args: 'user defaultuser0 /delete', showOutput: false, showError: false}
+  - !run: {exe: 'net', args: 'user defaultuser0 /delete'}
 
     # Disable reserved storage
   - !run: {exe: 'DISM', args: '/Online /Set-ReservedStorageState /State:Disabled'}
 
     # Rebuild performance counters
     # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/manually-rebuild-performance-counters
-  - !run: {exe: 'lodctr', args: '/r', showOutput: false, showError: false}
-  - !run: {exe: 'lodctr', args: '/r', showOutput: false, showError: false}
+  - !run: {exe: 'lodctr', args: '/r'}
+  - !run: {exe: 'lodctr', args: '/r'}
   - !run: {exe: 'winmgmt', args: '/resyncperf'}
 
     # Disable PowerShell telemetry
@@ -145,14 +145,14 @@ actions:
   - !run: {exe: 'setx', args: 'POWERSHELL_TELEMETRY_OPTOUT 1'}
 
     # Set .ps1 file types to open with PowerShell by default
-  - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -ExecutionPolicy Unrestricted -File "%1" %*'}
+  - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -File "%1" %*'}
 
     # Set PowerShell execution policy to Unrestricted
   - !powerShell
     command: 'Set-ExecutionPolicy Unrestricted'
 
     # Mitigate against HiveNightmare/SeriousSam
-  - !run: {exe: 'icacls', args: '"C:\Windows\system32\config\*.*" /inheritance:e', showOutput: false}
+  - !run: {exe: 'icacls', args: '"C:\Windows\system32\config\*.*" /inheritance:e'}
 
     # Hide useless Windows Immersive Control Panel pages
   - !registryValue:
@@ -2695,7 +2695,7 @@ actions:
 
     # Setting to "no" provides worse results, delete the value instead.
     # This is here as a safeguard incase of user error
-  - !run: {exe: 'bcdedit', args: '/deletevalue useplatformclock', showOutput: false, showError: false}
+  - !run: {exe: 'bcdedit', args: '/deletevalue useplatformclock'}
 
     # Disable dynamic tick
     # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
