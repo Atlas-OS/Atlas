@@ -1263,5 +1263,4 @@ actions:
   - !file: {path: 'C:\Windows\System32\MRT.exe'}
   - !file: {path: 'C:\Windows\System32\devicecensus.exe'}
   - !file: {path: 'C:\Windows\System32\CompatTelRunner.exe'}
-  - !file: {path: 'C:\Windows\System32\GameBarPresenceWriter.exe'}
   - !file: {path: 'C:\Windows\System32\diagtrack.dll'}
