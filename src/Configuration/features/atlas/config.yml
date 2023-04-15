@@ -2018,11 +2018,6 @@ actions:
     # Configure multimedia class scheduler (MMCSS)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
-    value: 'SystemResponsiveness'
-    data: '10'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
     value: 'NoLazyMode'
     data: '1'
     type: REG_DWORD
