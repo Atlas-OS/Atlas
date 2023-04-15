@@ -16,21 +16,21 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :: Enable Spectre and Meltdown
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d 3 /f > nul
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f > nul
 wmic cpu get name | findstr "Intel" > nul && (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d 0 /f > nul
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "0" /f > nul
 )
 wmic cpu get name | findstr "AMD" > nul && (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d 64 /f > nul
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "64" /f > nul
 )
 
 :: Enable Fault Tolerant Heap (FTH)
 :: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
-:: Document listed as only affected in windows 7, is also in 7+
+:: Document listed as only affected in Windows 7, is also in 7+
 reg add "HKLM\SOFTWARE\Microsoft\FTH" /v "Enabled" /t REG_DWORD /d "1" /f > nul
 
 :: Enable Structured Exception Handling Overwrite Protection (SEHOP)
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d 0 /f > nul
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "0" /f > nul
 
 :: Enable Control Flow Guard (CFG)
 PowerShell -NoP -C "Set-ProcessMitigation -System -Enable CFG"
@@ -51,7 +51,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Mitig
 
 :: Set Virtualization Based Protection Of Code Integrity to default
 :: https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /t REG_DWORD /d 1 /f > nul
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /t REG_DWORD /d "1" /f > nul
 
 :: Enable Data Execution Prevention (DEP)
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention

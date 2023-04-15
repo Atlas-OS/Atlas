@@ -1,5 +1,5 @@
 # Credit to spddl for part of the code
-# Require admin privileges if User Account Control is enabled
+# Require admin privileges if User Account Control (UAC) is enabled
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
     Start-Process PowerShell "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
     exit
