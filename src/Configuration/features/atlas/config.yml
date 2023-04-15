@@ -2027,7 +2027,7 @@ actions:
     type: REG_DWORD
     data: '10000'
 
-    # Configure gamebar/fullscreen exclusive
+    # Disable GameBar and Full Screen Optimizations (FSO)
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\GameBar'
     value: 'GamePanelStartupTipIndex'
@@ -2327,7 +2327,7 @@ actions:
     data: Hide
     type: REG_SZ
 
-    # Add music and videos folders to Quick Access
+    # Add Music and Videos folders to Quick Access
   - !powerShell:
     command: '$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb("""pintohome"""); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb("""pintohome""")'
 
