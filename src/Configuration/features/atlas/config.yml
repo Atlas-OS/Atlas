@@ -469,9 +469,9 @@ actions:
   - !service: {name: 'gcs', operation: change, startup: 4}
   - !service: {name: 'hvhost', operation: change, startup: 4}
   - !service: {name: 'icssvc', operation: change, startup: 4}
-  - !service: {name: 'IKEEXT', operation: change, startup: 4}
+    # IKEEXT 4 < causes Teredo not to work
   - !service: {name: 'InstallService', operation: change, startup: 3}
-  - !service: {name: 'iphlpsvc', operation: change, startup: 4}
+    # iphlpsvc 4 < causes Teredo not to work
   - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
     # KeyIso 4 < causes issues with nvcleanstall's driver telemetry tweak
   - !service: {name: 'KtmRm', operation: change, startup: 4}
