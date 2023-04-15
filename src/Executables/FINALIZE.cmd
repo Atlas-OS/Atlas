@@ -133,6 +133,9 @@ if "!DRIVE!" == "SSD" (
     rem Disable ReadyBoost
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "Start" /t REG_DWORD /d "4" /f
 
+    rem Remove ReadyBoost tab
+    reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}" /f
+
     Rem Disable SysMain (Superfetch and Prefetch)
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f
 

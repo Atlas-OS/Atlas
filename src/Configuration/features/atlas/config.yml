@@ -1880,10 +1880,6 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Remove readyboost tab
-  - !registryKey:
-    path: 'HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}'
-
     # Hide meet now button on taskbar
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
