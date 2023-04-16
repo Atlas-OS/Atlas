@@ -1,14 +1,13 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
-<h4 align="center">Sistem operasi Windows yang bersumber terbuka dan transparan, didesain untuk performa dan latensi yang optimal.</h4>
+<h4 align="center">Sebuah sistem operasi yang terbuka dan transparan, dirancang untuk performa, privasi, serta stabilitas yang optimal.</h4>
 
 <p align="center">
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Instalasi</a>
+  <a href="https://atlasos.net">Laman Situs</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">FAQ</a>
+  <a href="https://docs.atlasos.net">Dokumentasi</a>
   •
   <a href="https://discord.atlasos.net" target="_blank">Discord</a>
   •
@@ -17,66 +16,68 @@
 
 ## 🤔 **Apa itu Atlas?**
 
-Atlas adalah versi modifkasi dari Windows 10 yang menghilangkan semua kekurangan, yang berdampak buruk pada performa game. Kami adalah proyek transparan dan sumber terbuka yang berjuang untuk hak yang sama bagi para pemain apakah kamu menjalankan kentang, atau komputer gaming.
+Atlas adalah versi Windows 10 yang dimodifikasi, yang menghilangkan semua kelemahan Windows yang berdampak buruk pada performa gaming.
 
-Sambil menjaga fokus utama kami pada performa, kami juga merupakan pilihan yang bagus untuk mengurangi latensi sistem, latensi jaringan, keterlambatan input, dan menjaga sistem anda tetap privat.
+Kami juga merupakan pilihan yang bagus untuk mengurangi latensi sistem, latensi jaringan, keterlambatan input, dan menjaga sistemmu tetap privat sambil berfokus terhadap performa.
+
+Kamu bisa mempelajari lebih lanjut tentang Atlas di [laman situs](https://atlasos.net) resmi kami.
 
 ## 📚 **Daftar Isi**
 
-- [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [Apa itu proyek Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [Bagaimana cara menginstal Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [Apa yang dihapus di Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
-- <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [Installation](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [Pasca Instal](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Software](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
-- [Branding kit](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-- [Legal](https://github.com/Atlas-OS/Atlas/wiki/Legal)
+- Panduan Memulai
+  - [Instalasi](https://docs.atlasos.net/Getting%20started/Installation)
+  - [Metode Instalasi Lainnya](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB)
+  - [Pasca-Instalasi](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers)
 
-## 🆚 **Windows vs. Atlas**
+- Pemecahan Masalah
+  - [Fitur yang dibuang](https://docs.atlasos.net/Troubleshooting/Removed%20features)
+  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts)
 
-### 🔒 Privat
-Atlas menghapus semua jenis pelacakan yang ditanamkan di dalam Windows dan menerapkan berbagai kebijakan grup untuk meminimalisir pengumpulan data. Hal-hal di luar cakupan Windows tidak dapat kami tingkatkan privasinya, seperti laman situs yang kamu kunjungi.
+- FAQ
+  - [Install](https://docs.atlasos.net/FAQ/Installation)
+  - [Kontribusi](https://docs.atlasos.net/FAQ/Contribute)
 
-### 🛡️ Aman
-Atlas bertujuan menjadi seaman mungkin tanpa kehilangan performa. Kami melakukan ini dengan menonaktifkan fitur-fitur yang dapat membocorkan informasi atau dieksploitasi. Ada pengecualian untuk ini seperti [Spectre](https://spectreattack.com/spectre.pdf), dan [Meltdown](https://meltdownattack.com/meltdown.pdf). Mitigasi ini dinonaktifkan untuk meningkatkan performa.
+## 👀 **Mengapa Atlas?**
 
-Jika sebuah tindakan mitigasi keamanan menurunkan performa, mitigasi tersebut akan dinonaktifkan.
-Di bawah ini adalah beberapa fitur/mitigasi yang telah diubah, jika itu mengandung (P) itu adalah risiko keamanan yang telah diperbaiki:
+### 🔒 Lebih Privat
+Windows secara bawaan berisi layanan pelacakan yang mengumpulkan datamu dan mengunggahnya ke Microsoft.
+Atlas menghapus semua jenis pelacakan yang tertanam di dalam Windows dan menerapkan berbagai kebijakan grup untuk meminimalisir pengumpulan data.
 
-- [Spectre](https://spectreattack.com/spectre.pdf)
-- [Meltdown](https://meltdownattack.com/meltdown.pdf)
-- [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
-- (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
-- (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
-- [Remote Desktop](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*Kemungkinan pengambilan informasi*)
+(Catatan. Kami tidak dapat menjamin keamanan untuk hal-hal di luar cakupan Windows, seperti browser, aplikasi pihak ketiga).
 
-### 🚀 Debloated
-Banyak yang dihilangkan dari Atlas, aplikasi-aplikasi pra-instal dan komponen lainnya dihapus. Terlepas dari kemungkinan masalah kompatibilitas, ini secara signifikan mengurangi ukuran ISO dan pemasangan. Fungsionalitas seperti Windows Defender, dan semacamnya dicopot sepenuhnya.
+### 🛡️ Lebih Aman
+Mengunduh ISO yang dimodifikasi dari internet itu berisiko. Tidak hanya dapat mengandung skrip berbahaya, tapi juga dapat tidak memiliki patch keamanan terbaru yang dapat mengakibatkan komputermu dalam risiko keamanan yang serius.
 
-Modifikasi ini terfokus pada gaming murni, tetapi sebagian besar aplikasi-aplikasi pekerjaan dan pendidikan berfungsi. [Cek juga apalagi yang telah kami copot di FAQ kami](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os).
+Atlas berbeda. Kami menggunakan [AME Wizard](https://ameliorated.io) untuk menginstal, dan semua skrip yang kami gunakan bersumber terbuka di repositori kami. Kamu juga bisa menerapkan pembaruan keamanan terbaru sebelum menginstal Atlas, sehingga sistemmu tetap aman dan terlindungi.
 
-### ✅ Performa
-Atlas sudah diutak-atik sebelumnya. Sambil mempertahankan kompatibilitas, tetapi juga mengupayakan performa, kami telah memeras setiap tetes performa terakhir ke dalam Image Windows kami.
+### 🚀 Lebih Banyak Ruang
+Aplikasi yang sudah diinstal sebelumnya dan komponen lain yang tidak penting akan dihapus dari Atlas. Meskipun ada kemungkinan masalah kompatibilitas, hal ini secara signifikan mengurangi ukuran instalasi, dan membuat sistemmu lebih lancar. Oleh karena itu, fungsionalitas seperti Windows Defender, dan sejenisnya dihilangkan sepenuhnya. Lihat juga apalagi yang kami hapus di [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features) kami.
 
-Beberapa dari perubahan-perubahan yang telah kami lakukan untuk meningkatkan Windows tercantum di bawah ini.
+### ✅ Performa yang Lebih Baik
+Beberapa sistem yang telah ditweak di internet telah ditweak secara berlebihan, sehingga merusak kompatibilitas untuk fitur utama seperti Bluetooth, Wi-Fi, dan sebagainya. Atlas berada di ditengah-tengah. Mendapatkan performa yang lebih, tetapi tetap mempertahankan kompatibilitas yang baik.
+
+Beberapa dari perubahan yang telah kami lakukan untuk meningkatkan Windows tercantum di bawah ini.
 
 - Skema daya kustom
-- Pengurangan jumlah layanan
-- Pengurangan jumlah driver
-- Penonaktifkan perangkat yang tidak dibutuhkan
-- Penonaktifan penghematan daya
+- Pengurangan jumlah layanan dan driver
+- Penonaktifkan eksklusif audio
+- Penonaktifkan perangkat yang tidak digunakan
+- Penonaktifan penghematan daya (untuk komputer pribadi)
 - Penonaktifkan mitigasi keamanan yang haus akan performa
-- Otomatis mengaktifkan Mode MSI
+- Pengaktifkan Mode MSI secara otomatis
 - Optimalisasi konfigurasi boot
 - Penjadwalan proses yang dioptimalkan
 
-## 🎨 Branding kit
-Apakah kamu ingin membuat wallpaper Atlas-mu sendiri? Mungkin mencoba hal baru dengan logo kami untuk membuat desainmu sendiri? Kami punya ini yang bisa diakses oleh publik untuk memicu ide-ide kreatif baru di seluruh komunitas. [Lihat Branding Kit kami dan buat sesuatu yang spektakuler.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+### 🔒 Legal
+Banyak OS Windows kustom mendistribusikan sistem mereka dengan menyediakan ISO Windows yang telah diubah. Tidak hanya melanggar [Ketentuan Layanan Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), tetapi juga bukan cara yang aman untuk menginstal.
 
-Kami juga memiliki [area khusus di tab diskusi](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), jadi kamu bisa membagikan kreasimu dengan jenius kreatif lainnya dan bahkan mungkin memicu beberapa inspirasi!
+Atlas bekerja sama dengan tim Windows Ameliorated untuk menyediakan sebuah cara yang lebih aman dan legal untuk menginstal bagi pengguna, [AME Wizard](https://ameliorated.io). Dengan menggunakan ini, Atlas sepenuhnya mematuhi [Ketentuan Layanan Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+
+## 🎨 Brand kit
+Merasa kreatif? Ingin membuat wallpaper Atlas-mu sendiri dengan beberapa desain kreatif yang orisinil? Nah, brand kit kami siap membantumu!
+Brand kit Atlas dapat diakses oleh publik, Kamu bisa mengunduhnya di [sini](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) dan ciptakan sesuatu yang spektakuler!
+
+Kami juga memiliki area khusus di [Forum](https://forum.atlasos.net/t/art-showcase) kami, jadi kamu bisa membagikan kreasimu dengan jenius kreatif lainnya dan bahkan mungkin memicu beberapa inspirasi! Kamu juga dapat menemukan wallpaper kreatif yang dibagikan oleh pengguna lain di sini!
 
 ## ⚠️ Disclaimer
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
