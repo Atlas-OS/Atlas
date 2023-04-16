@@ -22,7 +22,7 @@ First of all, thank you for considering helping us by translating documents! Her
 
 • Please copy the Origin_README.md in this folder, rename it to the language's corrosponding ISO code (e.g. README_zh_CN.md), then commit the README translated.
 
-• Please keep the disclaimer in link form.
+• Please keep the disclaimer in link form and **DO NOT TRANSLATE THE DISCLAIMER**.
 
 • Please keep your translation close to the original text.
 
