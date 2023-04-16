@@ -2203,6 +2203,13 @@ actions:
     data: ''
     type: REG_NONE
 
+    # Disable lockscreen
+  - !registryValue:
+    path: 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData'
+    value: 'AllowLockScreen'
+    data: '0'
+    type: REG_DWORD
+
     # Disable all lockscreen notifications
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings'
