@@ -595,11 +595,11 @@ actions:
   - !writeStatus: {status: 'Modifying registry settings'}
 
     # Clear firewall rules
-  - !registryKey:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules'
-  - !registryKey:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules'
-    operation: add
+    # - !registryKey:
+    # path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules'
+    # - !registryKey:
+    # path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules'
+    # operation: add
 
     # Clear image file execution options
   - !registryKey:
