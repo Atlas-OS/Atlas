@@ -8,37 +8,76 @@ actions:
   # Comments are for packages added back that don't get in the way of users at all, and are only dependancies
   # Most of these apps can be reinstalled via Store for users that need them
  
-  # - !appx: {name: '*Microsoft.Windows.AddSuggestedFoldersToLibraryDialog*', type: family}
-  # - !appx: {name: '*Microsoft.AsyncTextService*', type: family}
-  # - !appx: {name: '*Microsoft.Windows.PinningConfirmationDialog*', type: family}
   # File Picker
   # - !appx: {name: '1527c705-839a-4832-9118-54d4Bd6a0c89*', type: family}
+  
   # UWP File Explorer
   # - !appx: {name: 'c5e2524a-ea46-4f67-841f-6a9465d9d515*', type: family}
+  
   # Add Folder Suggestions dialog
   # - !appx: {name: 'F46D4000-FD22-4DB4-AC8E-4E1DDDE828FE*', type: family}
-  # - !appx: {name: '*Microsoft.LockApp*', type: family}
+  
   # Windows Hello
   # - !appx: {name: '*Microsoft.BioEnrollment*', type: family}
+  
   # Contains winget, useful
   # - !appx: {name: '*Microsoft.DesktopAppInstaller*', type: family}
+  
   # Eye Control - dependancy of Mixed Reality?
   # - !appx: {name: '*Microsoft.ECApp*', type: family}
+  
   # Codecs
   # - !appx: {name: '*Microsoft.WebMediaExtensions*', type: family}
   # - !appx: {name: '*Microsoft.WebpImageExtension*', type: family}
   # - !appx: {name: '*Microsoft.VP9VideoExtensions*', type: family}
   # - !appx: {name: '*Microsoft.HEIFImageExtension*', type: family}
+  
   # Dependancy for Phone Link
   # - !appx: {name: '*Microsoft.Windows.CallingShellApp*', type: family}
-  # - !appx: {name: '*Microsoft.Windows.NarratorQuickStart*', type: family}
+  
   # eGPUS?
   # - !appx: {name: '*Microsoft.Windows.XGpuEjectDialog*', type: family}
-  # Barcode Preview - harmless package, related to POS (potential dependancy of some apps/features?)
+  
+  # Barcode Preview - harmless package, related to POS
   # - !appx: {name: '*Windows.CBSPreview*', type: family}
+  
+  # - !appx: {name: '*Microsoft.Windows.AddSuggestedFoldersToLibraryDialog*', type: family}
+  # - !appx: {name: '*Microsoft.AsyncTextService*', type: family}
+  # - !appx: {name: '*Microsoft.Windows.PinningConfirmationDialog*', type: family}
+  # - !appx: {name: '*Microsoft.Windows.NarratorQuickStart*', type: family}
+  # - !appx: {name: '*Microsoft.LockApp*', type: family}
+
+  # ------------------------------------------------------------------------------------------ #
 
   # Cortana
   - !appx: {name: '*Microsoft.549981C3F5F10*', type: family}
+  
+  # Installable via Store
+  - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
+
+  # Assigned Access bloat
+  - !appx: {name: '*Microsoft.Windows.AssignedAccessLockApp*', type: family}
+  
+  # Installs Appx bloat
+  - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
+  
+  # Network connection shouldn't be needed in OOBE
+  # Could force users to have to login to a Microsoft account in OOBE
+  # Wouldn't be a dependancy of anything
+  - !appx: {name: '*Microsoft.Windows.OOBENetworkCaptivePortal*', type: family}
+  - !appx: {name: '*Microsoft.Windows.OOBENetworkConnectionFlow*', type: family}
+
+  # Windows Security (Defender)
+  - !appx: {name: '*Microsoft.Windows.SecHealthUI*', type: family}
+  # SmartScreen
+  - !appx: {name: '*Microsoft.Windows.Apprep.ChxApp*', type: family}
+
+  # Mail and Calander
+  - !appx: {name: '*microsoft.windowscommunicationsapps*', type: family}
+
+  # Take a Test
+  - !appx: {name: '*Microsoft.Windows.SecureAssessmentBrowser*', type: family}
+
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
   - !appx: {name: '*Microsoft.BingWeather*', type: family}
   - !appx: {name: '*Microsoft.GetHelp*', type: family}
@@ -50,8 +89,6 @@ actions:
   - !appx: {name: '*Microsoft.MicrosoftOfficeHub*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftSolitaireCollection*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftStickyNotes*', type: family}
-  # Installable via Store
-  - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
   - !appx: {name: '*Microsoft.MSPaint*', type: family}
   - !appx: {name: '*Microsoft.Office.OneNote*', type: family}
   - !appx: {name: '*Microsoft.People*', type: family}
@@ -59,27 +96,10 @@ actions:
   - !appx: {name: '*Microsoft.ScreenSketch*', type: family}
   - !appx: {name: '*Microsoft.SkypeApp*', type: family}
   - !appx: {name: '*Microsoft.Wallet*', type: family}
-  # Assigned Access bloat
-  - !appx: {name: '*Microsoft.Windows.AssignedAccessLockApp*', type: family}
-  # Installs Appx bloat
-  - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
-  # Network connection shouldn't be needed in OOBE
-  # Could force users to have to login to a Microsoft account in OOBE
-  # Wouldn't be a dependancy of anything
-  - !appx: {name: '*Microsoft.Windows.OOBENetworkCaptivePortal*', type: family}
-  - !appx: {name: '*Microsoft.Windows.OOBENetworkConnectionFlow*', type: family}
   - !appx: {name: '*Microsoft.Windows.ParentalControls*', type: family}
   - !appx: {name: '*Microsoft.Windows.Photos*', type: family}
-  # Windows Security (Defender)
-  - !appx: {name: '*Microsoft.Windows.SecHealthUI*', type: family}
-  # SmartScreen
-  - !appx: {name: '*Microsoft.Windows.Apprep.ChxApp*', type: family}
-  # Take a Test
-  - !appx: {name: '*Microsoft.Windows.SecureAssessmentBrowser*', type: family}
   - !appx: {name: '*Microsoft.WindowsAlarms*', type: family}
   - !appx: {name: '*Microsoft.WindowsCamera*', type: family}
-  # Mail and Calander
-  - !appx: {name: '*microsoft.windowscommunicationsapps*', type: family}
   - !appx: {name: '*Microsoft.WindowsFeedbackHub*', type: family}
   - !appx: {name: '*Microsoft.WindowsMaps*', type: family}
   - !appx: {name: '*Microsoft.WindowsSoundRecorder*', type: family}
