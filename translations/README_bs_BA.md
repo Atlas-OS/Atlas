@@ -17,7 +17,7 @@
 ## 🤔 **Šta je Atlas?**
 
 Atlas je modifikovana verzija od Windows 10, koja se kloni gotov svih nedostataka Windows koje negativno utječu gaming performansu.
-Mi smo isto dobra opciju za smanjenje sistemne latencije, mrežne latencije, unosno zaostajanje, i čuvanje tvog sistema privatnog dok se fokusira na performansu.
+Mi smo isto dobra opcija za smanjenje sistemne latencije, mrežne latencije, unosno zaostajanje, i čuvanje tvog sistema privatnog dok se fokusira na performansu.
 Možete jos naučiti o Atlasu na našoj službenoj [Web stranici](https://atlasos.net).
 
 ## 📚 **Sadržaj**
@@ -46,11 +46,11 @@ Atlas briše sve tipove sakupljanja podataka koji sadrži Windows i unosi brojni
 ### 🛡️ Više siguran
 Skidanje modifikovanog ISO-a sa interneta je rizično. Ne samo što može imati štetne skripte, isto može biti da nema najnovije sigurnosne zakrpe koje mogu tvoj kompjuter uložiti u ozbiljne rizike. 
 
-Atlas je drugačiji. Mi koristimo [AME Wizard](https://ameliorated.io) za instalaciju, i sve skripte koje mi koristimo su open-sourced ovdje u našom spremištu. Isto možete primjeniti sve sigurnosne zarkpe prije instaliranja Atlasa, čuvanje tvog sistema sigurnog.
+Atlas je drugačiji. Mi koristimo [AME Wizard](https://ameliorated.io) za instalaciju, i sve skripte koje mi koristimo su open-sourced ovdje u našem spremištu. Isto možete primjeniti sve sigurnosne zarkpe prije instaliranja Atlasa, čuvanje tvog sistema sigurnog.
 
 ### 🚀 Više prostora
 Unaprijed instalirane aplikacije i druge beznačajne komponente su izbačene iz Atlasa. Uprkos mogućnosti problema kompatibilnosti, ovo značajno smanjuje veličinu instalacije, i znači da je vaš sistem brži. Dakle, funkcionalosti kao što su Windows Defender, i slično su skroz izbačene.
-Vidite šta smo još izbacila na naš [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features).
+Vidite šta smo još izbacili na naš [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features).
 
 ### ✅ Više performansa
 Neki modifikovani sistemi na internetu su promjenili previše, kvarenje kompatibilnosti za glavne karakteristike kao što su Bluetooth, Wi-Fi, i tako dalje.
@@ -68,7 +68,7 @@ Neke od mnoge promjene koje smo mi uradili da poboljšamo Windows su nabrojane i
 - Optimizacije zakazivanje procesa
 
 ### 🔒 Legalno
-Mnogi modifikovani Windows operativni sistemi dijele svoje sisteme pružanje modifikovanog ISO od Windows. Nije samo da krši [Microsoftove uslove korištenje](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), ali isto nije siguran način za instalaciju.
+Mnogi modifikovani Windows operativni sistemi dijele svoje sisteme pružanje modifikovanog ISO od Windows. Nije samo da to krši [Microsoftove uslove korištenje](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), ali isto nije siguran način za instalaciju.
 
 Atlas se pridružava sa Windows Ameliorated Team da pruži korisnicima sigurniji i legalan način da instaliraju, [AME Wizard](https://ameliorated.io). Korištenjem ovog alata, Atlas skroz odgovara [Microsoftovim uslovima korištenja](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
