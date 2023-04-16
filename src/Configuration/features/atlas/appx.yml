@@ -44,7 +44,6 @@ actions:
   # - !appx: {name: '*Microsoft.Windows.AddSuggestedFoldersToLibraryDialog*', type: family}
   # - !appx: {name: '*Microsoft.AsyncTextService*', type: family}
   # - !appx: {name: '*Microsoft.Windows.PinningConfirmationDialog*', type: family}
-  # - !appx: {name: '*Microsoft.Windows.NarratorQuickStart*', type: family}
   # - !appx: {name: '*Microsoft.LockApp*', type: family}
 
   # ------------------------------------------------------------------------------------------ #
@@ -96,6 +95,7 @@ actions:
   - !appx: {name: '*Microsoft.ScreenSketch*', type: family}
   - !appx: {name: '*Microsoft.SkypeApp*', type: family}
   - !appx: {name: '*Microsoft.Wallet*', type: family}
+  - !appx: {name: '*Microsoft.Windows.NarratorQuickStart*', type: family}
   - !appx: {name: '*Microsoft.Windows.ParentalControls*', type: family}
   - !appx: {name: '*Microsoft.Windows.Photos*', type: family}
   - !appx: {name: '*Microsoft.WindowsAlarms*', type: family}
