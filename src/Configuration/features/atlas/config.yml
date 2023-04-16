@@ -488,7 +488,6 @@ actions:
   - !service: {name: 'SstpSvc', operation: change, startup: 4}
   - !service: {name: 'Themes', operation: change, startup: 4}
   - !service: {name: 'TrkWks', operation: change, startup: 4}
-  - !service: {name: 'VaultSvc', operation: change, startup: 4}
   - !service: {name: 'vmcompute', operation: change, startup: 4}
   - !service: {name: 'vmicguestinterface', operation: change, startup: 4}
   - !service: {name: 'vmicheartbeat', operation: change, startup: 4}
