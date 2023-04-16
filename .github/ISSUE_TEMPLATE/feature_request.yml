@@ -29,7 +29,6 @@ body:
   - type: textarea
     attributes:
       label: Is your feature request related to a problem? Please describe.
-      description: A short description of the bug.
       placeholder: |
         A clear and concise description of what the problem is. E.g. When I open [blank] it hangs/freezes.
     validations:
