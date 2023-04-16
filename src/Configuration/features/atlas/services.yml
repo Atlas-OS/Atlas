@@ -28,7 +28,7 @@ actions:
   - !service: {name: 'LicenseManager', operation: stop}
   - !service: {name: 'lfsvc', operation: delete}
   - !service: {name: 'MapsBroker', operation: delete}
-  - !service: {name: 'NetTcpPortSharing', operation: stop}
+#  - !service: {name: 'NetTcpPortSharing', operation: stop}
   - !service: {name: 'RemoteAccess', operation: delete}
   - !service: {name: 'RemoteRegistry', operation: delete}
   - !service: {name: 'SharedAccess', operation: stop}
