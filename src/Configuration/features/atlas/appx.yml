@@ -5,8 +5,8 @@ privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Removing APPX packages'}
   
-  # Comments are for packages added back that don't get in the way of users at all, and are only dependancies
-  # Most of these apps can be reinstalled via Store for users that need them
+  # Comments are for packages added back that do not get in the way of users at all, and are only dependencies
+  # Most of these apps can be reinstalled via Microsoft Store for users that need them
  
   # File Picker
   # - !appx: {name: '1527c705-839a-4832-9118-54d4Bd6a0c89*', type: family}
@@ -20,10 +20,10 @@ actions:
   # Windows Hello
   # - !appx: {name: '*Microsoft.BioEnrollment*', type: family}
   
-  # Contains winget, useful
+  # Contains winget
   # - !appx: {name: '*Microsoft.DesktopAppInstaller*', type: family}
   
-  # Eye Control - dependancy of Mixed Reality?
+  # Eye Control - dependency of Mixed Reality?
   # - !appx: {name: '*Microsoft.ECApp*', type: family}
   
   # Codecs
@@ -32,7 +32,7 @@ actions:
   # - !appx: {name: '*Microsoft.VP9VideoExtensions*', type: family}
   # - !appx: {name: '*Microsoft.HEIFImageExtension*', type: family}
   
-  # Dependancy for Phone Link
+  # Dependency for Phone Link
   # - !appx: {name: '*Microsoft.Windows.CallingShellApp*', type: family}
   
   # eGPUS?
@@ -52,18 +52,18 @@ actions:
   # Cortana
   - !appx: {name: '*Microsoft.549981C3F5F10*', type: family}
   
-  # Installable via Store
+  # MixedReality Portal - Installable via Store
   - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
 
   # Assigned Access bloat
   - !appx: {name: '*Microsoft.Windows.AssignedAccessLockApp*', type: family}
   
-  # Installs Appx bloat
+  # Installs APPX bloat
   - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
   
-  # Network connection shouldn't be needed in OOBE
+  # Network connection should not be needed in OOBE
   # Could force users to have to login to a Microsoft account in OOBE
-  # Wouldn't be a dependancy of anything
+  # Would not be a dependancy of anything
   - !appx: {name: '*Microsoft.Windows.OOBENetworkCaptivePortal*', type: family}
   - !appx: {name: '*Microsoft.Windows.OOBENetworkConnectionFlow*', type: family}
 
@@ -72,7 +72,7 @@ actions:
   # SmartScreen
   - !appx: {name: '*Microsoft.Windows.Apprep.ChxApp*', type: family}
 
-  # Mail and Calander
+  # Mail and Calendar
   - !appx: {name: '*microsoft.windowscommunicationsapps*', type: family}
 
   # Take a Test
