@@ -88,6 +88,10 @@ for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
     netsh int ip set interface %%a routerdiscovery=disabled store=persistent
 )
 
+:: Fix 2502 and 2503 errors while using .MSI files
+for /f "tokens=*" %%a in ('whoami') do (set "USER=%%a")
+icacls "!TEMP!" /grant:r "!USER!:(OI)(CI)F" /grant:r "Administrators:(OI)(CI)F" /T /Q
+
 :: Set correct username variable of the currently logged in user
 for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinusername=%%a"
 
