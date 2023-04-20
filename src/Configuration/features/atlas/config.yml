@@ -148,7 +148,7 @@ actions:
   - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -File "%1" %*'}
 
     # Set PowerShell execution policy to Unrestricted
-  - !powerShell
+  - !powerShell:
     command: 'Set-ExecutionPolicy Unrestricted'
 
     # Hide useless Windows Immersive Control Panel pages
