@@ -4,41 +4,23 @@ description: Configures services
 privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Configuring services'}
-  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\WdNisDrv'}
-  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet001\Services\WdNisDrv'}
-  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\WdNisSvc'}
-  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet001\Services\WdNisSvc'}
-  - !service: {name: 'WpcMonSvc', operation: delete}
-  - !service: {name: 'wisvc', operation: delete}
-  - !service: {name: 'Sense', operation: delete}
-  - !service: {name: 'webthreatdefusersvc*', operation: delete}
-  - !service: {name: 'webthreatdefsvc', operation: delete}
-  - !service: {name: 'UevAgentService', operation: delete}
-  - !taskKill: {name: 'SecurityHealthSystray'}
-  - !taskKill: {name: 'SecurityHealthService'}
-  - !service: {name: 'SecurityHealthService', operation: delete}
-  - !service: {name: 'wscsvc', operation: delete}
+
+  # Stop
   - !service: {name: 'iphlpsvc', operation: stop}
   - !service: {name: 'Winmgmt', operation: stop}
   - !service: {name: 'ClipSVC', operation: stop}
-  - !service: {name: 'DiagTrack', operation: delete}
-  - !service: {name: 'RetailDemo', operation: delete}
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: stop}
   - !service: {name: 'dmwappushservice', operation: stop}
   - !service: {name: 'LicenseManager', operation: stop}
-  - !service: {name: 'lfsvc', operation: delete}
-  - !service: {name: 'MapsBroker', operation: delete}
-#  - !service: {name: 'NetTcpPortSharing', operation: stop}
-  - !service: {name: 'RemoteAccess', operation: delete}
-  - !service: {name: 'RemoteRegistry', operation: delete}
+  # - !service: {name: 'NetTcpPortSharing', operation: stop}
   - !service: {name: 'SharedAccess', operation: stop}
   - !service: {name: 'StorSvc', operation: stop}
-#  - !service: {name: 'WMPNetworkSvc', operation: stop}
+  # - !service: {name: 'WMPNetworkSvc', operation: stop}
   - !service: {name: 'XblAuthManager', operation: stop}
   - !service: {name: 'XblGameSave', operation: stop}
   - !service: {name: 'XboxNetApiSvc', operation: stop}
-  - !service: {name: 'AarSvc', operation: delete}
-  - !service: {name: 'AJRouter', operation: delete}
+
+  # Delete
   - !service: {name: 'AssignedAccessManagerSvc', operation: delete}
   - !service: {name: 'tzautoupdate', operation: delete}
   - !service: {name: 'wbengine', operation: delete}
@@ -51,3 +33,27 @@ actions:
   - !service: {name: 'wlpasvc', operation: delete}
   - !service: {name: 'MessagingService', operation: delete}
   - !service: {name: 'AppVClient', operation: delete}
+  - !service: {name: 'AarSvc', operation: delete}
+  - !service: {name: 'AJRouter', operation: delete}
+  - !service: {name: 'lfsvc', operation: delete}
+  - !service: {name: 'MapsBroker', operation: delete}
+  - !service: {name: 'RemoteAccess', operation: delete}
+  - !service: {name: 'RemoteRegistry', operation: delete}
+  - !service: {name: 'DiagTrack', operation: delete}
+  - !service: {name: 'RetailDemo', operation: delete}
+  - !service: {name: 'SecurityHealthService', operation: delete}
+
+  # Defender
+  - !taskKill: {name: 'SecurityHealthSystray'}
+  - !taskKill: {name: 'SecurityHealthService'}
+  - !service: {name: 'WpcMonSvc', operation: delete}
+  - !service: {name: 'wisvc', operation: delete}
+  - !service: {name: 'Sense', operation: delete}
+  - !service: {name: 'webthreatdefusersvc*', operation: delete}
+  - !service: {name: 'webthreatdefsvc', operation: delete}
+  - !service: {name: 'UevAgentService', operation: delete}
+  - !service: {name: 'wscsvc', operation: delete}
+  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\WdNisDrv'}
+  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet001\Services\WdNisDrv'}
+  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\WdNisSvc'}
+  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet001\Services\WdNisSvc'}
