@@ -938,10 +938,6 @@ actions:
 #  - !systemPackage: {name: 'perceptionsimulationsixdof.inf-LanguagePack', arch: amd64, language: 'en-US'}
   - !systemPackage: {name: 'Windows-Devices-Perception', arch: wow64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-ThemeFiles-Personalization', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-Data-Pdf.Events', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-Data-Pdf.Events', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-Data-Pdf', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-Data-Pdf', arch: wow64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Web-Services-for-Management-Core-Common-Extra', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Web-Services-for-Management-Core', arch: amd64, language: 'neutral', excludeDependents: ['Microsoft-Windows-WMIV2-wmidcom-dll', 'Microsoft-Windows-WMIV2-miutils-dll'], regexExcludeFiles: ['.*\\WsmRes.dll.mui']}
   - !systemPackage: {name: 'Microsoft-Windows-Web-Services-for-Management-Core', arch: wow64, language: 'neutral', excludeDependents: ['Microsoft-Windows-WMIV2-wmidcom-dll', 'Microsoft-Windows-WMIV2-miutils-dll'], regexExcludeFiles: ['.*\\WsmRes.dll.mui']}
