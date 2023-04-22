@@ -8,9 +8,6 @@ for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentitySt
 rmdir /q /s "!windir!\System32\config\systemprofile\AppData\Local\Microsoft\Windows\CloudAPCache"
 rmdir /q /s "!windir!\ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc"
 
-for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers" /s /f "NGC Credential Provider" ^| findstr /c:"Credential Providers\\"`) do reg delete "%%a" /f
-for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers" /s /f "WLIDCredentialProvider" ^| findstr /c:"Credential Providers\\"`) do reg delete "%%a" /f
-
 exit /b
 
 :CONVERTUSER
