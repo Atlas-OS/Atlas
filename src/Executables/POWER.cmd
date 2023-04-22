@@ -91,6 +91,13 @@ if "!DEVICE_TYPE!" == "PC" (
         )
     )
 
+    rem Disable D3 support on SATA/NVMEs while using Modern Standby
+    rem https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/power-management-for-storage-hardware-devices-intro#d3-support
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Storage" /v "StorageD3InModernStandby" /t REG_DWORD /d "0" /f
+
+    rem Disable IdlePowerMode for stornvme.sys (storage devices) - the device will never enter a low-power state
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" /v "IdlePowerMode" /t REG_DWORD /d "0" /f
+
     rem Disable power throttling
     rem https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f

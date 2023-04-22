@@ -389,6 +389,8 @@ actions:
     value: 'Do not use NLA'
     data: '1'
     type: REG_DWORD
+
+    # Disable Link-Local Multicast Name Resolution (LLMNR) protocol
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient'
     value: 'EnableMulticast'
@@ -2356,11 +2358,18 @@ actions:
     data: '0'
     type: REG_DWORD
     
-    # Disable maintenance
+    # Disable automatic maintenance
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance'
     value: 'MaintenanceDisabled'
     data: '1'
+    type: REG_DWORD
+
+    # Disable sheduled system maintenance
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\ScheduledDiagnostics'
+    value: 'EnabledExecution'
+    data: '0'
     type: REG_DWORD
 
     # Do not reduce sounds while in a call
