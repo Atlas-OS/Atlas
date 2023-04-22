@@ -94,16 +94,16 @@ attrib +h "C:\Users\!loggedinusername!\AppData\Roaming\Microsoft\Windows\SendTo\
 attrib +h "C:\Users\!loggedinusername!\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
 
 :: Disable audio exclusive mode on all devices
-for %%x in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture", "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render") do (
-    for /f "delims=" %%a in ('reg query "%%x"') do (
+for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture", "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render") do (
+    for /f "delims=" %%a in ('reg query "%%b"') do (
         reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},3" /t REG_DWORD /d "0" /f
         reg add "%%a\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},4" /t REG_DWORD /d "0" /f
     )
 )
 
 :: Disable all audio enhancements in mmsys.cpl (audio settings)
-for %%x in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture", "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render") do (
-    for /f "delims=" %%a in ('reg query "%%x"') do (
+for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture", "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render") do (
+    for /f "delims=" %%a in ('reg query "%%b"') do (
         reg add "%%a\FxProperties" /v "{1da5d803-d492-4edd-8c23-e0c0ffee7f0e},5" /t REG_DWORD /d "1" /f
         reg add "%%a\FxProperties" /v "{1b5c2483-0839-4523-ba87-95f89d27bd8c},3" /t REG_BINARY /d "030044CD0100000000000000" /f
         reg add "%%a\FxProperties" /v "{73ae880e-8258-4e57-b85f-7daa6b7d5ef0},3" /t REG_BINARY /d "030044CD0100000001000000" /f
