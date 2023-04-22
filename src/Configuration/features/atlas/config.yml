@@ -68,6 +68,9 @@ actions:
     # https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security
   - !run: {exe: 'fsutil', args: 'behavior set disable8dot3 1'}
 
+    # Enable delete notifications (also known as trim or unmap)
+  - !run: {exe: 'fsutil', args: 'behavior set disabledeletenotify 0'}
+
     # ---------------- Scheduled Tasks -----------------
   - !writeStatus: {status: 'Removing scheduled tasks'}
 
