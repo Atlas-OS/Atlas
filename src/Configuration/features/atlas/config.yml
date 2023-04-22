@@ -1404,6 +1404,7 @@ actions:
     type: REG_SZ
 
     # Disable mouse wheel scrolling on inactive windows
+  - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'MouseWheelRouting'
     data: '0'
