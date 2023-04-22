@@ -1403,6 +1403,12 @@ actions:
     data: '0'
     type: REG_SZ
 
+    # Disable mouse wheel scrolling on inactive windows
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'MouseWheelRouting'
+    data: '0'
+    type: REG_SZ
+
     # Configure ease of access settings
 
     # Disable always read and scan this section in ease of access
