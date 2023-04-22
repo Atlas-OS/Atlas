@@ -12,13 +12,6 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Turn off Microsoft consumer experiences
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
-    value: 'DisableWindowsConsumerFeatures'
-    data: '1'
-    type: REG_DWORD
-
     # Set information about the currently used system
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
@@ -186,7 +179,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable remote assistance
+    # Disable Remote Assistance
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
     value: 'fAllowFullControl'
@@ -256,23 +249,6 @@ actions:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient'
     value: 'DisableSmartNameResolution'
     data: '1'
-    type: REG_DWORD
-
-    # Disable Wi-Fi sense
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\wcmsvc\wifinetworkmanager\config'
-    value: 'AutoConnectAllowedOEM'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\wcmsvc\wifinetworkmanager'
-    value: 'WifiSenseCredShared'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\wcmsvc\wifinetworkmanager'
-    value: 'WifiSenseOpen'
-    data: '0'
     type: REG_DWORD
 
     # Disable hotspot 2.0 networks
@@ -804,13 +780,6 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Re-enable onedrive if user manually reinstall it
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive'
-    value: 'DisableFileSyncNGSC'
-    data: '0'
-    type: REG_DWORD
-
     # Disable speech model updates
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Speech'
@@ -951,6 +920,13 @@ actions:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
     value: 'SearchboxTaskbarMode'
     data: '1'
+    type: REG_DWORD
+
+    # Disable Windows Ink workspace suggested applications
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\PenWorkspace'
+    value: 'PenWorkspaceAppSuggestionsEnabled'
+    data: '0'
     type: REG_DWORD
 
     # Configure File Explorer settings
@@ -1282,13 +1258,6 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable Windows Spotlight features
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
-    value: 'DisableWindowsSpotlightFeatures'
-    data: '1'
-    type: REG_DWORD
-
     # Disable tips in Immersive Control Panel
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\default\Settings\AllowOnlineTips'
@@ -1299,6 +1268,39 @@ actions:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'AllowOnlineTips'
     data: '0'
+    type: REG_DWORD
+
+    # Disable Windows Spotlight features
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableWindowsSpotlightFeatures'
+    data: '1'
+    type: REG_DWORD
+
+    # Do not suggest third-party content in Windows Spotlight
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableThirdPartySuggestions'
+    data: '1'
+    type: REG_DWORD
+
+    # Do not use diagnostic data for tailored experiences
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'
+    value: 'TailoredExperiencesWithDiagnosticDataEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableTailoredExperiencesWithDiagnosticData'
+    data: '1'
+    type: REG_DWORD
+
+    # Disable cloud optimized content
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableCloudOptimizedContent'
+    data: '1'
     type: REG_DWORD
 
     # Disable suggest ways I can finish setting up my device
@@ -1717,7 +1719,7 @@ actions:
     data: 'Deny'
     type: REG_SZ
 
-    # Disable smartscreen for Microsoft Store applications
+    # Disable SmartScreen for Microsoft Store applications
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AppHost'
     value: 'EnableWebContentEvaluation'
@@ -1729,7 +1731,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable smartscreen for applications and files from web
+    # Disable SmartScreen for applications and files from web
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
     value: 'EnableSmartScreen'
@@ -1748,17 +1750,10 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable Improve inking & typing recognition
+    # Disable improve inking and typing recognition
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Input\TIPC'
     value: 'Enabled'
-    data: '0'
-    type: REG_DWORD
-
-    # Disable Tailored Experiences
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'
-    value: 'TailoredExperiencesWithDiagnosticDataEnabled'
     data: '0'
     type: REG_DWORD
 
@@ -1786,13 +1781,6 @@ actions:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo'
     value: 'Enabled'
     data: '0'
-    type: REG_DWORD
-
-    # Disable cloud optimized taskbars
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
-    value: 'DisableCloudOptimizedContent'
-    data: '1'
     type: REG_DWORD
 
     # Disable license telemetry
@@ -2009,14 +1997,6 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable Intel TsX
-    # https://www.intel.com/content/www/us/en/support/articles/000059422/processors.html
-    # - !registryValue:
-    # path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
-    # value: 'DisableTsx'
-    # data: '1'
-    # type: REG_DWORD
-
     # Configure multimedia class scheduler (MMCSS)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
@@ -2029,7 +2009,7 @@ actions:
     type: REG_DWORD
     data: '10000'
 
-    # Disable GameBar and Full Screen Optimizations (FSO)
+    # Disable Game Bar and Full Screen Optimizations (FSO)
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\GameBar'
     value: 'GamePanelStartupTipIndex'
@@ -2101,7 +2081,7 @@ actions:
     data: '~ DISABLEDXMAXIMIZEDWINDOWEDMODE'
     type: REG_SZ
 
-    # Disable game mode
+    # Disable Game Mode
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\GameBar'
     value: 'AllowAutoGameMode'
@@ -2154,7 +2134,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Unpin all Quick Access shortcuts by default
+    # Unpin all quick action shortcuts by default
   - !registryValue:
     path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
     value: 'Microsoft.QuickAction.WiFi'
@@ -2369,7 +2349,7 @@ actions:
     # Remove Internet Explorer SVG association
   - !registryKey: {path: 'HKCR\svgfile'}
 
-    # Disable gamebar presence writer
+    # Disable Game Bar presence writer
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter'
     value: 'ActivationType'
@@ -2390,7 +2370,7 @@ actions:
     data: '3'
     type: REG_DWORD
 
-    # Do not show hidden/disconnected devices in sound settings
+    # Do not show hidden and disconnected devices in mmsys.cpl (sound settings)
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl'
     value: 'ShowDisconnectedDevices'
@@ -2406,7 +2386,7 @@ actions:
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}'}
   - !registryKey: {path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}'}
 
-    # Disable network navigation pane in File Explorer
+    # Remove network navigation pane from File Explorer
   - !registryValue:
     path: 'HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder'
     value: 'Attributes'
@@ -2585,7 +2565,7 @@ actions:
     data: ''
     type: REG_SZ
 
-    # Add .bat, .cmd, .reg and .ps1 to the 'New' context menu
+    # Add .bat, .reg and .ps1 to the 'New' context menu
   - !registryValue:
     path: 'HKLM\SOFTWARE\Classes\.bat\ShellNew'
     value: 'ItemName'
@@ -2596,16 +2576,6 @@ actions:
     value: 'NullFile'
     data: ''
     type: REG_SZ
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\.cmd\ShellNew'
-    value: 'NullFile'
-    data: ''
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\.cmd\ShellNew'
-    value: 'ItemName'
-    data: '@C:\Windows\System32\acppage.dll,-6003'
-    type: REG_EXPAND_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\Classes\.ps1\ShellNew'
     value: 'NullFile'
@@ -2627,7 +2597,7 @@ actions:
     data: '@C:\Windows\regedit.exe,-309'
     type: REG_EXPAND_SZ
 
-    # Add 'Install cab' to context menu
+    # Add 'Install CAB' to context menu
   - !registryKey: {path: 'HKCR\CABFolder\Shell\RunAs'}
   - !registryValue:
     path: 'HKCR\CABFolder\Shell\RunAs'
@@ -2645,7 +2615,7 @@ actions:
     data: 'cmd /k DISM /online /add-package /packagepath:\"%1\"'
     type: REG_SZ
 
-    # Add 'Merge as trusted installer' for registry files to context menu
+    # Add 'Merge as Trusted Installer' for registry files to context menu
   - !registryValue:
     path: 'HKCR\regfile\Shell\RunAs'
     value: ''
@@ -2664,25 +2634,26 @@ actions:
 
     # Add 'Double click to import power schemes' to context menu
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\powerplan\DefaultIcon'
+    path: 'HKLM\SOFTWARE\Classes\powerscheme\DefaultIcon'
     value: ''
     data: 'C:\Windows\System32\powercpl.dll,1'
     type: REG_SZ
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\powerplan\Shell\open\command'
+    path: 'HKLM\SOFTWARE\Classes\powerscheme\Shell\open\command'
     value: ''
     data: 'powercfg /import "%1"'
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\Classes\.pow'
     value: ''
-    data: 'powerplan'
+    data: 'powerscheme'
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\Classes\.pow'
     value: 'FriendlyTypeName'
-    data: 'Power Plan'
+    data: 'Power Scheme'
     type: REG_SZ
+
     # ------------------ Registry Portion END ------------------
 
     # Fix no downloads folder bug
@@ -2704,7 +2675,7 @@ actions:
   - !run: {exe: 'bcdedit', args: '/timeout 10'}
 
     # Setting to "no" provides worse results, delete the value instead.
-    # This is here as a safeguard incase of user error
+    # This is here as a safeguard in case of user error
   - !run: {exe: 'bcdedit', args: '/deletevalue useplatformclock'}
 
     # Disable dynamic tick
@@ -2714,7 +2685,7 @@ actions:
     # Use legacy boot menu
   - !run: {exe: 'bcdedit', args: '/set bootmenupolicy Legacy'}
 
-    # Disable Hyper-V and VBS
+    # Disable Hyper-V and Virtualization Based Security (VBS)
   - !run: {exe: 'bcdedit', args: '/set hypervisorlaunchtype off'}
   - !run: {exe: 'bcdedit', args: '/set vm no'}
   - !run: {exe: 'bcdedit', args: '/set vsmlaunchtype Off'}
