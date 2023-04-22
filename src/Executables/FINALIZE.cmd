@@ -1,9 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-:: Make dual boot menu more descriptive
-bcdedit /set description Atlas 22H2
-
 :: MSI Mode
 
 :: Enable MSI mode on USB, GPU, SATA controllers and network adapters

@@ -2692,6 +2692,9 @@ actions:
 
   - !writeStatus: {status: 'Changing boot manager options'}
 
+    # Set dual boot menu description to Atlas
+  - !run: {exe: 'bcdedit', args: '/set description "Atlas 22H2"'}
+
     # Lowering dual boot choice time
     # This does not affect single OS boot time
     # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/--timeout#parameters

@@ -12,6 +12,10 @@ rd /s /q !windir!\temp
 md !TEMP!
 md !windir!\temp
 
+:: Fix errors 2502 and 2503 by fixing temp folder permissions
+for /f "tokens=*" %%a in ('whoami') do (set USER=%%a)
+icacls "C:\Windows\Temp" /grant:r !USER!:(OI)(CI)F /grant:r Administrators:(OI)(CI)F /T /Q
+
 :: Clean up the Prefetch folder
 rd /s /q !windir!\Prefetch
 
