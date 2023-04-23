@@ -772,6 +772,13 @@ actions:
     data: '1'
     type: REG_DWORD
 
+    # Change tooltip color to blue
+  - !registryValue:
+    path: 'HKCU\Control Panel\Colors'
+    value: 'InfoWindow'
+    data: '246 253 255'
+    type: REG_SZ
+
     # Disable auto download of Microsoft Store applications
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\WindowsStore'
