@@ -30,13 +30,13 @@ You can learn more about Atlas in our official [Website](https://atlasos.net).
   - [Contribute](https://docs.atlasos.net/FAQ/Contribute/)
 
 - Getting Started
-  - [Installation](https://docs.atlasos.net/Getting%20started/Installation/)
-  - [Other install methods](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB/)
-  - [Post Install](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers/)
+  - [Installation](https://docs.atlasos.net/getting-started/installation/)
+  - [Other install methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb/)
+  - [Post Install](https://docs.atlasos.net/getting-started/post-installation/drivers/)
 
 - Troubleshooting
-  - [Removed Features](https://docs.atlasos.net/Troubleshooting/Removed%20features/)
-  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts/)
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features/)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts/)
 
 - <a href="#windows-vs-atlas">Windows vs. Atlas</a>
 - [Branding kit](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
@@ -63,7 +63,7 @@ Atlas strebt danach, so sicher wie möglich zu sein, ohne Leistungseinbußen zu 
 ### 🚀 Debloated
 Atlas ist sehr stark zerlegt. Vorinstallierte Anwendungen und andere Komponenten wurden entfernt. Trotz möglicher Kompatibilitätsprobleme wird dadurch die ISO- und Installationsgröße erheblich verringert. Funktionen wie Windows Defender usw. wurden vollständig entfernt.
 
-Diese Änderungen sind auf Gaming ausgerichtet, aber die meisten Arbeits- und Bildungsanwendungen funktionieren. [Was wir sonst noch entfernt haben, finden Sie in unserer FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features/).
+Diese Änderungen sind auf Gaming ausgerichtet, aber die meisten Arbeits- und Bildungsanwendungen funktionieren. [Was wir sonst noch entfernt haben, finden Sie in unserer FAQ](https://docs.atlasos.net/troubleshooting/removed-features/).
 
 ### ✅ Leistungsstark
 

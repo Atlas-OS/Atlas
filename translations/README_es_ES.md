@@ -23,13 +23,13 @@ Puedes aprender más sobre Atlas en nuestro [sitio web oficial](https://atlasos.
 ## 📚 **Tabla de contenidos**
 
 - Comenzando
-  - [Instalación](https://docs.atlasos.net/Getting%20started/Installation)
-  - [Otros métodos de instalación](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB)
-  - [Posinstalación](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers)
+  - [Instalación](https://docs.atlasos.net/getting-started/installation)
+  - [Otros métodos de instalación](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Posinstalación](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
 - Solución de problemas
-  - [Características removidas](https://docs.atlasos.net/Troubleshooting/Removed%20features)
-  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts)
+  - [Características removidas](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - Preguntas frecuentes
   - [Instalar](https://docs.atlasos.net/FAQ/Installation)
@@ -50,7 +50,7 @@ Atlas es diferente. Utilizamos el asistente [AME Wizard](https://ameliorated.io)
 
 ### 🚀 Mayor espacio
 La aplicaciones preinstaladas y otros componentes insignificantes son removidos de Atlas. A pesar de la posibilidad de problemas de compatibilidad, esto reduce significativamente el tamaño de la instalación y hace que tu sistema sea más fluido. Por lo tanto, funcionalidades como Windows Defender y similares son despojadas por completo.
-Echa un vistazo a todo lo demás que hemos removido en nuestro apartado de [solución de problemas](https://docs.atlasos.net/Troubleshooting/Removed%20features).
+Echa un vistazo a todo lo demás que hemos removido en nuestro apartado de [solución de problemas](https://docs.atlasos.net/troubleshooting/removed-features).
 
 ### ✅ Mayor rendimiento
 Algunas ISOs en internet han sido excesivamente modificadas, rompiendo consecuentemente la compatibilidad para ciertas funcionalidades esenciales como el Bluetooth o el Wi-Fi.

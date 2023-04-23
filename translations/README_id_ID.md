@@ -25,13 +25,13 @@ Kamu bisa mempelajari lebih lanjut tentang Atlas di [laman situs](https://atlaso
 ## 📚 **Daftar Isi**
 
 - Panduan Memulai
-  - [Instalasi](https://docs.atlasos.net/Getting%20started/Installation)
-  - [Metode Instalasi Lainnya](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB)
-  - [Pasca-Instalasi](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers)
+  - [Instalasi](https://docs.atlasos.net/getting-started/installation)
+  - [Metode Instalasi Lainnya](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Pasca-Instalasi](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
 - Pemecahan Masalah
-  - [Fitur yang dibuang](https://docs.atlasos.net/Troubleshooting/Removed%20features)
-  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts)
+  - [Fitur yang dibuang](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
   - [Install](https://docs.atlasos.net/FAQ/Installation)
@@ -51,7 +51,7 @@ Mengunduh ISO yang dimodifikasi dari internet itu berisiko. Tidak hanya dapat me
 Atlas berbeda. Kami menggunakan [AME Wizard](https://ameliorated.io) untuk menginstal, dan semua skrip yang kami gunakan bersumber terbuka di repositori kami. Kamu juga bisa menerapkan pembaruan keamanan terbaru sebelum menginstal Atlas, sehingga sistemmu tetap aman dan terlindungi.
 
 ### 🚀 Lebih Banyak Ruang
-Aplikasi yang sudah diinstal sebelumnya dan komponen lain yang tidak penting akan dihapus dari Atlas. Meskipun ada kemungkinan masalah kompatibilitas, hal ini secara signifikan mengurangi ukuran instalasi, dan membuat sistemmu lebih lancar. Oleh karena itu, fungsionalitas seperti Windows Defender, dan sejenisnya dihilangkan sepenuhnya. Lihat juga apalagi yang kami hapus di [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features) kami.
+Aplikasi yang sudah diinstal sebelumnya dan komponen lain yang tidak penting akan dihapus dari Atlas. Meskipun ada kemungkinan masalah kompatibilitas, hal ini secara signifikan mengurangi ukuran instalasi, dan membuat sistemmu lebih lancar. Oleh karena itu, fungsionalitas seperti Windows Defender, dan sejenisnya dihilangkan sepenuhnya. Lihat juga apalagi yang kami hapus di [FAQ](https://docs.atlasos.net/troubleshooting/removed-features) kami.
 
 ### ✅ Performa yang Lebih Baik
 Beberapa sistem yang telah ditweak di internet telah ditweak secara berlebihan, sehingga merusak kompatibilitas untuk fitur utama seperti Bluetooth, Wi-Fi, dan sebagainya. Atlas berada di ditengah-tengah. Mendapatkan performa yang lebih, tetapi tetap mempertahankan kompatibilitas yang baik.

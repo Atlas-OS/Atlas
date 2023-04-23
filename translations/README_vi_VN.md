@@ -23,13 +23,13 @@ Bạn có thể tìm hiểu thêm về Atlas trên [trang web chính thức củ
 ## 📚 **Mục lục**
 
 - Bắt đầu
-  - [Cài đặt](https://docs.atlasos.net/Getting%20started/Installation)
-  - [Các cách cài đặt khác](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB)
-  - [Sau khi cài đặt](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers)
+  - [Cài đặt](https://docs.atlasos.net/getting-started/installation)
+  - [Các cách cài đặt khác](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Sau khi cài đặt](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
 - Xử lý sự cố
-  - [Những tính năng đã được loại bỏ](https://docs.atlasos.net/Troubleshooting/Removed%20features)
-  - [Các tập lệnh](https://docs.atlasos.net/Troubleshooting/Scripts)
+  - [Những tính năng đã được loại bỏ](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Các tập lệnh](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
   - [Cài đặt](https://docs.atlasos.net/FAQ/Installation)
@@ -48,7 +48,7 @@ Việc tải xuống một ISO đã được tuỳ chỉnh từ internet khá r�
 Atlas thì khác. Chúng tôi sử dụng [AME Wizard](https://ameliorated.io) để cài đặt, và tất cả các tập lệnh được dùng đều có mã nguồn mở tại repository này của chúng tôi. Bạn còn có thể cài đặt những bản cập nhật bảo mật mới nhất trước khi cài đặt Atlas, giúp hệ thống của bạn an toàn và bảo mật.
 
 ### 🚀 Nhiều khoảng trống hơn
-Những ứng dụng được cài đặt sẵn và những thành phần không cần thiết đã bị loại bỏ khỏi Atlas. Mặc dù sẽ có khả năng về các vấn đề tương thích, nhưng điều này làm giảm đáng kể kích thước bản cài đặt và khiến cho hệ thống của bạn mượt mà hơn. Do đó, các chức năng như Windows Defender và những thứ tương tự đã bị loại bỏ hoàn toàn. Hãy xem nhưng gì đã được loại bỏ trong [FAQ của chúng tôi](https://docs.atlasos.net/Troubleshooting/Removed%20features).
+Những ứng dụng được cài đặt sẵn và những thành phần không cần thiết đã bị loại bỏ khỏi Atlas. Mặc dù sẽ có khả năng về các vấn đề tương thích, nhưng điều này làm giảm đáng kể kích thước bản cài đặt và khiến cho hệ thống của bạn mượt mà hơn. Do đó, các chức năng như Windows Defender và những thứ tương tự đã bị loại bỏ hoàn toàn. Hãy xem nhưng gì đã được loại bỏ trong [FAQ của chúng tôi](https://docs.atlasos.net/troubleshooting/removed-features).
 
 ### ✅ Hiệu năng hơn
 Một số tinh chỉnh hệ thống trên internet đã tinh chỉnh quá sâu, phá vỡ khả năng tương thích với những tính năng chính như Bluetooth, Wi-Fi, và hơn thế nữa. Atlas là một nơi tuyệt vời để bạn có thể nhận thêm hiệu năng, nhưng cũng duy trì được khả năng tương thích tốt.

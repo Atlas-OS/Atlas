@@ -23,13 +23,13 @@ Možete jos naučiti o Atlasu na našoj službenoj [Web stranici](https://atlaso
 ## 📚 **Sadržaj**
 
 - Početak
-  - [Instalacija](https://docs.atlasos.net/Getting%20started/Installation)
-  - [Druge metode instalacije](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB)
-  - [Poslije instalacije](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers)
+  - [Instalacija](https://docs.atlasos.net/getting-started/installation)
+  - [Druge metode instalacije](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Poslije instalacije](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
 - Troubleshooting
-  - [Izbrisane Karakteristike](https://docs.atlasos.net/Troubleshooting/Removed%20features)
-  - [Skripte](https://docs.atlasos.net/Troubleshooting/Scripts)
+  - [Izbrisane Karakteristike](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Skripte](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
   - [Instalacija](https://docs.atlasos.net/FAQ/Installation)
@@ -50,7 +50,7 @@ Atlas je drugačiji. Mi koristimo [AME Wizard](https://ameliorated.io) za instal
 
 ### 🚀 Više prostora
 Unaprijed instalirane aplikacije i druge beznačajne komponente su izbačene iz Atlasa. Uprkos mogućnosti problema kompatibilnosti, ovo značajno smanjuje veličinu instalacije, i znači da je vaš sistem brži. Dakle, funkcionalosti kao što su Windows Defender, i slično su skroz izbačene.
-Vidite šta smo još izbacili na naš [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features).
+Vidite šta smo još izbacili na naš [FAQ](https://docs.atlasos.net/troubleshooting/removed-features).
 
 ### ✅ Više performansa
 Neki modifikovani sistemi na internetu su promjenili previše, kvarenje kompatibilnosti za glavne karakteristike kao što su Bluetooth, Wi-Fi, i tako dalje.

@@ -1,4 +1,4 @@
-<h1 align="center">
+﻿<h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
@@ -24,23 +24,23 @@
 <li>البداية:
 <ul>
 <li>
-<a href="https://docs.atlasos.net/Getting%20started/Installation">حمل أطلس الآن!</a>
+<a href="https://docs.atlasos.net/getting-started/installation">حمل أطلس الآن!</a>
 </li>
 <li>
-<a href="https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB">طُرق أخرى لتثبيت أطلس</a>
+<a href="https://docs.atlasos.net/getting-started/other-installation-methods/no-usb">طُرق أخرى لتثبيت أطلس</a>
 </li>
 <li>
-<a href="https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers">بعد تثبيت أطلس بنجاح</a>
+<a href="https://docs.atlasos.net/getting-started/post-installation/drivers">بعد تثبيت أطلس بنجاح</a>
 </li>
 </ul>
 </li>
 <li>إذا واجهت مُشكلة:
 <ul>
 <li>
-<a href="https://docs.atlasos.net/Troubleshooting/Removed%20features">ماذا حُذف في أطلس؟</a>
+<a href="https://docs.atlasos.net/troubleshooting/removed-features">ماذا حُذف في أطلس؟</a>
 </li>
 <li>
-<a href="https://docs.atlasos.net/Troubleshooting/Scripts">Scripts</a>
+<a href="https://docs.atlasos.net/troubleshooting/scripts">Scripts</a>
 </li>
 </ul>
 </li>
@@ -70,7 +70,7 @@
 
 ### 🚀 مِساحة أكبر
 
-تمَّ إزالة أغلب التطبيقات المثبتة مسبقًا والمكونات غير المهمة الأُخرى التي تأتي مع ويندوز في أطلس. على الرغم من احتمال حُدوث بعض المشاكل في التوافق، فإن هذا يُقلِّل بشكل كبير من حجم ملفّ التثبيت وحجم الويندوز ككُل، مما يجعل جهازك أكثر سَلاسة. لذلك، الوظائف مثل Windows Defender وما إلى ذلك تمَّ حذفها تمامًا. تحقَّق من الأشياء التي قُمنا بإزالتها في [الأسئلة الشّائعة](https://docs.atlasos.net/Troubleshooting/Removed%20features).
+تمَّ إزالة أغلب التطبيقات المثبتة مسبقًا والمكونات غير المهمة الأُخرى التي تأتي مع ويندوز في أطلس. على الرغم من احتمال حُدوث بعض المشاكل في التوافق، فإن هذا يُقلِّل بشكل كبير من حجم ملفّ التثبيت وحجم الويندوز ككُل، مما يجعل جهازك أكثر سَلاسة. لذلك، الوظائف مثل Windows Defender وما إلى ذلك تمَّ حذفها تمامًا. تحقَّق من الأشياء التي قُمنا بإزالتها في [الأسئلة الشّائعة](https://docs.atlasos.net/troubleshooting/removed-features).
 
 ### ✅ المزيد من الأدَاء
 

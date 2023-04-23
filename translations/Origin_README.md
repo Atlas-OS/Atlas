@@ -23,17 +23,18 @@ You can learn more about Atlas on our official [Website](https://atlasos.net).
 ## 📚 **Table of contents**
 
 - Getting Started
-  - [Installation](https://docs.atlasos.net/Getting%20started/Installation)
-  - [Other installation methods](https://docs.atlasos.net/Getting%20started/Other%20installation%20methods/Install%20with%20no%20USB)
-  - [Post-Installation](https://docs.atlasos.net/Getting%20started/Post-Installation/Drivers)
+  - [Installation](https://docs.atlasos.net/getting-started/installation)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
 - Troubleshooting
-  - [Removed Features](https://docs.atlasos.net/Troubleshooting/Removed%20features)
-  - [Scripts](https://docs.atlasos.net/Troubleshooting/Scripts)
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
-  - [Install](https://docs.atlasos.net/FAQ/Installation)
-  - [Contribute](https://docs.atlasos.net/FAQ/Contribute)
+  - [Discord](https://docs.atlasos.net/faq/community/discord)
+  - [Forums](https://docs.atlasos.net/faq/community/forums)
+  - [GitHub](https://docs.atlasos.net/faq/community/github)
 
 ## 👀 **Why Atlas?**
 
@@ -50,7 +51,7 @@ Atlas is different. We use [AME Wizard](https://ameliorated.io) to install, and 
 
 ### 🚀 More space
 Pre-installed applications and other insignificant components are removed from Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size, and makes your system more fluent. Therefore, functionalities such as Windows Defender, and similar are stripped completely.
-Check out what else we have removed in our [FAQ](https://docs.atlasos.net/Troubleshooting/Removed%20features).
+Check out what else we have removed in our [FAQ](https://docs.atlasos.net/troubleshooting/removed-features).
 
 ### ✅ More performance
 Some tweaked systems on the internet has tweaked too far away, breaking compatibility for main features such as Bluetooth, Wi-Fi, and so on.
