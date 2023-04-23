@@ -2545,6 +2545,13 @@ actions:
     data: '00000000'
     type: REG_BINARY
 
+    # Remove shortcut icon
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Icons'
+    value: '29'
+    data: 'C:\Windows\AtlasModules\Other\Blank.ico,0'
+    type: REG_SZ
+
     # Remove 'Edit with Paint 3D' from context menu
   - !registryKey: {path: 'HKCR\SystemFileAssociations\.3mf\Shell\3D Edit'}
   - !registryKey: {path: 'HKCR\SystemFileAssociations\.bmp\Shell\3D Edit'}
