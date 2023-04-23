@@ -2088,7 +2088,13 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Configure multimedia class scheduler (MMCSS)
+    # Configure Multimedia Class Scheduler (MMCSS)
+    # https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service#registry-settings
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
+    value: 'LazyModeTimeout'
+    type: REG_DWORD
+    data: '10000'
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
     value: 'NoLazyMode'
@@ -2096,9 +2102,9 @@ actions:
     type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
-    value: 'LazyModeTimeout'
+    value: 'SystemResponsiveness'
+    data: '10'
     type: REG_DWORD
-    data: '10000'
 
     # Disable Game Bar and Full Screen Optimizations (FSO)
   - !registryValue:
