@@ -296,6 +296,7 @@ actions:
     type: REG_DWORD
 
     # Disable unnecessary autologgers
+    # https://docs.microsoft.com/en-us/windows/win32/etw/configuring-and-starting-an-autologger-session
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Circular Kernel Context Logger'
     value: 'Start'
