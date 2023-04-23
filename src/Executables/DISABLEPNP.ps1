@@ -1,33 +1,33 @@
 # Disable PnP (plug and play) devices
 $devices = @(
-    'AMD PSP',
-    'AMD SMBus',
-    'Base System Device',
-    '*Bluetooth*',
-    'Composite Bus Enumerator',
-    'Direct memory access controller'
-    'High precision event timer',
-    '*Hyper-V*',
-    'Intel Management Engine',
-    'Intel SMBus',
-    'Legacy device'
-    'Microsoft Kernel Debug Network Adapter',
-    'Microsoft RRAS Root Enumerator',
-    'Motherboard resources',
-    'NDIS Virtual Network Adapter Enumerator',
-    'Numeric Data Processor',
-    'PCI Data Acquisition and Signal Processing Controller',
-    'PCI Encryption/Decryption Controller',
-    'PCI Memory Controller',
-    'PCI Simple Communications Controller',
-    'PCI standard RAM Controller'
-    'Remote Desktop Device Redirector Bus',
-    'SM Bus Controller',
-    'System CMOS/real time clock',
-    'System Speaker',
-    'System Timer',
-    'UMBus Root Bus Enumerator'
-    'Unknown Device'
+    "AMD PSP",
+    "AMD SMBus",
+    "Base System Device",
+    "*Bluetooth*",
+    "Composite Bus Enumerator",
+    "Direct memory access controller"
+    "High precision event timer",
+    "*Hyper-V*",
+    "Intel Management Engine",
+    "Intel SMBus",
+    "Legacy device"
+    "Microsoft Kernel Debug Network Adapter",
+    "Microsoft RRAS Root Enumerator",
+    "Motherboard resources",
+    "NDIS Virtual Network Adapter Enumerator",
+    "Numeric Data Processor",
+    "PCI Data Acquisition and Signal Processing Controller",
+    "PCI Encryption/Decryption Controller",
+    "PCI Memory Controller",
+    "PCI Simple Communications Controller",
+    "PCI standard RAM Controller"
+    "Remote Desktop Device Redirector Bus",
+    "SM Bus Controller",
+    "System CMOS/real time clock",
+    "System Speaker",
+    "System Timer",
+    "UMBus Root Bus Enumerator"
+    "Unknown Device"
 )
 
 # No errors as some devices may not have an option to be disabled
