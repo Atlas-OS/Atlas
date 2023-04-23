@@ -98,6 +98,7 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\DsSvcCleanup', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\ProgramDataUpdater', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\BrokerInfrastructure\BgTaskRegistrationMaintenanceTask', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\CloudExperienceHost\CreateObjectTask', operation: delete}
@@ -131,10 +132,14 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\WaaSMedic\PerformRemediation', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Error Reporting\QueueReporting', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Filtering Platform\BfeOnServiceStartTypeChange', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start', operation: disable}
-  - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start', operation: delete}  
   - !scheduledTask: {path: '\Microsoft\Windows\Wininet\CacheTask', operation: delete}
   - !scheduledTask: {path: '\Microsoft\XblGameSave\XblGameSaveTask', operation: delete}
+
+    # Remove the Windows Update folder using other method
+  - !run: 
+    exe: 'schtasks'
+    args: '/delete /tn "\Microsoft\Windows\WindowsUpdate" /f'
 
     # ------------------ Scheduled Tasks END -------------------
 
@@ -2779,12 +2784,6 @@ actions:
     exe: 'POWER.cmd'
     weight: 20
 
-  - !writeStatus: {status: 'Finalizing configuration'}
-  - !run:
-    exeDir: true
-    exe: 'FINALIZE.cmd'
-    weight: 100
-
   - !writeStatus: {status: 'Cleaning start menu'}
   - !run:
     exeDir: true
@@ -2802,6 +2801,12 @@ actions:
     exeDir: true
     exe: 'PFP.cmd'
     weight: 20
+
+  - !writeStatus: {status: 'Finalizing configuration'}
+  - !run:
+    exeDir: true
+    exe: 'FINALIZE.cmd'
+    weight: 100
 
     # Clean up temp folders and files
   - !cmd:
