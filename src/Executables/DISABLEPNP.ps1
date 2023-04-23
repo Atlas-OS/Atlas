@@ -5,10 +5,12 @@ $devices = @(
     'Base System Device',
     '*Bluetooth*',
     'Composite Bus Enumerator',
+    'Direct memory access controller'
     'High precision event timer',
+    '*Hyper-V*',
     'Intel Management Engine',
     'Intel SMBus',
-    '*Hyper-V*',
+    'Legacy device'
     'Microsoft Kernel Debug Network Adapter',
     'Microsoft RRAS Root Enumerator',
     'Motherboard resources',
@@ -18,11 +20,14 @@ $devices = @(
     'PCI Encryption/Decryption Controller',
     'PCI Memory Controller',
     'PCI Simple Communications Controller',
+    'PCI standard RAM Controller'
+    'Remote Desktop Device Redirector Bus',
     'SM Bus Controller',
     'System CMOS/real time clock',
     'System Speaker',
     'System Timer',
     'UMBus Root Bus Enumerator'
+    'Unknown Device'
 )
 
 # No errors as some devices may not have an option to be disabled
