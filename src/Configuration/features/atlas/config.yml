@@ -68,15 +68,35 @@ actions:
   - !writeStatus: {status: 'Removing scheduled tasks'}
 
   - !scheduledTask:
+    path: '\Microsoft\Windows\.NET Framework'
+    operation: deleteFolder
+  # - !scheduledTask:
+  #   path: '\Microsoft\Windows\Application Experience'
+  #   operation: deleteFolder
+  - !scheduledTask:
+    path: '\Microsoft\Windows\DeviceDirectoryClient'
+    operation: deleteFolder
+  - !scheduledTask:
     path: '\Microsoft\Windows\Maps'
+    operation: deleteFolder
+  - !scheduledTask:
+    path: '\Microsoft\Windows\Speech'
+    operation: deleteFolder
+  - !scheduledTask:
+    path: '\Microsoft\Windows\UpdateOrchestrator'
     operation: deleteFolder
   - !scheduledTask:
     path: '\Microsoft\Windows\Windows Defender'
     operation: deleteFolder
+  # - !scheduledTask:
+  #   path: '\Microsoft\Windows\WindowsUpdate'
+  #   operation: deleteFolder
 
+  - !scheduledTask: {path: '\Microsoft\Windows\AppID\EDP Policy Manager', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierinstall', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\DsSvcCleanup', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\BrokerInfrastructure\BgTaskRegistrationMaintenanceTask', operation: delete}
@@ -94,6 +114,7 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\ProcessMemoryDiagnosticEvents', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\MUI\LPRemove', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\PI\Sqm-Tasks', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Printing\EduPrintProv', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\PushToInstall\LoginCheck', operation: delete}
@@ -106,18 +127,14 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\Time Synchronization\ForceSynchronizeTime', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Time Synchronization\SynchronizeTime', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Time Zone\SynchronizeTimeZone', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\UpdateOrchestrator\Report policies', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\UpdateOrchestrator\Schedule Scan Static Task', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\UpdateOrchestrator\Schedule Scan', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\UpdateOrchestrator\UpdateModelTask', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\UpdateOrchestrator\USO_UxBroker', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\UPnP\UPnPHostConfig', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\WaaSMedic\PerformRemediation', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Error Reporting\QueueReporting', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Filtering Platform\BfeOnServiceStartTypeChange', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start', operation: disable}
   - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Wininet\CacheTask', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\XblGameSave\XblGameSaveTask', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\XblGameSave\XblGameSaveTask', operation: delete}
 
     # ------------------ Scheduled Tasks END -------------------
 
