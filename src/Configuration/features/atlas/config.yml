@@ -1428,6 +1428,13 @@ actions:
     data: '0'
     type: REG_SZ
 
+    # Reduce mouse hover time to 20 miliseconds
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'MouseHoverTime'
+    data: '0'
+    type: REG_SZ
+
     # Configure ease of access settings
 
     # Disable always read and scan this section in ease of access
