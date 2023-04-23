@@ -53,6 +53,7 @@ actions:
   - !run: {exe: 'w32tm', args: '/resync'}
 
     # Optimize NTFS parameters
+    # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil
 
     # Disable last access information on directories, performance/privacy
   - !run: {exe: 'fsutil', args: 'behavior set disablelastaccess 1'}
@@ -65,6 +66,7 @@ actions:
   - !run: {exe: 'fsutil', args: 'behavior set disabledeletenotify 0'}
 
     # ---------------- Scheduled Tasks -----------------
+    # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
   - !writeStatus: {status: 'Removing scheduled tasks'}
 
   - !scheduledTask:
@@ -2776,6 +2778,7 @@ actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
   - !writeStatus: {status: 'Changing boot manager options'}
+    # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/bcdedit
 
     # Set dual boot menu description to Atlas
   - !run: {exe: 'bcdedit', args: '/set description "Atlas 22H2"'}
