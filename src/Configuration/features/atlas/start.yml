@@ -32,7 +32,7 @@ actions:
   - !cmd:
     exeDir: true
     command: 'DISM /Online /Cleanup-Image /StartComponentCleanup'
-    weight: 250
+    weight: 30
 
   - !writeStatus: {status: 'Setting the environment'}
     # Set path variable for AtlasModules
