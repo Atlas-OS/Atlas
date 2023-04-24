@@ -19,6 +19,10 @@ actions:
   - !service: {name: 'XblAuthManager', operation: stop}
   - !service: {name: 'XblGameSave', operation: stop}
   - !service: {name: 'XboxNetApiSvc', operation: stop}
+  - !service: {name: 'appidsvc', operation: stop}
+  - !service: {name: 'bits', operation: stop}
+  - !service: {name: 'cryptsvc', operation: stop}
+  - !service: {name: 'wuauserv', operation: stop}
 
   # Delete
   - !service: {name: 'AssignedAccessManagerSvc', operation: delete}
