@@ -242,7 +242,7 @@ actions:
 
   - !writeStatus: {status: 'Installing 7-Zip'}
   - !cmd:
-    command: 'choco install 7zip'
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums 7zip'
     weight: 150
 
   - !writeStatus: {status: 'Configuring 7-Zip'}
