@@ -136,7 +136,6 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Filtering Platform\BfeOnServiceStartTypeChange', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start', operation: delete}  
   - !scheduledTask: {path: '\Microsoft\Windows\Wininet\CacheTask', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\XblGameSave\XblGameSaveTask', operation: delete}
 
     # ------------------ Scheduled Tasks END -------------------
 
