@@ -247,7 +247,7 @@ actions:
 
   - !writeStatus: {status: 'Configuring 7-Zip'}
   - !registryValue: {path: 'HKCU\SOFTWARE\7-Zip\FM\Columns', value: 'RootFolder', data: '0100000000000000010000000400000001000000A0000000', type: REG_BINARY}
-  - !registryValue: {path: 'HKCU\SOFTWARE\7-Zip\Options', value: 'ContextMenu', data: '4132', type: REG_DWORD}
+  - !registryValue: {path: 'HKCU\SOFTWARE\7-Zip\Options', value: 'ContextMenu', data: '516', type: REG_DWORD}
   - !registryValue: {path: 'HKCU\SOFTWARE\7-Zip\Options', value: 'ElimDupExtract', data: '0', type: REG_DWORD}
   - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.001', value: '', data: '7-Zip.001', type: REG_SZ}
   - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.7z', value: '', data: '7-Zip.7z', type: REG_SZ}
