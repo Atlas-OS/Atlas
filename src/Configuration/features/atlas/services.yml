@@ -85,7 +85,8 @@ actions:
   - !service: {name: 'PhoneSvc', operation: change, startup: 4}
   - !service: {name: 'RasMan', operation: change, startup: 4}
   - !service: {name: 'SharedAccess', operation: change, startup: 4}
-  - !service: {name: 'ShellHWDetection', operation: change, startup: 4}
+  # Breaks BitLocker
+  # - !service: {name: 'ShellHWDetection', operation: change, startup: 4}
   - !service: {name: 'SmsRouter', operation: change, startup: 4}
   - !service: {name: 'Spooler', operation: change, startup: 4}
   - !service: {name: 'SSDPSRV', operation: change, startup: 4}
