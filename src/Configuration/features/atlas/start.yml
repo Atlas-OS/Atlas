@@ -240,6 +240,17 @@ actions:
     command: 'for /f "tokens=2" %a in (''curl https://api.github.com/repos/abbodi1406/vcredist/releases/latest ^| findstr "browser_download_url" ^| findstr x86_x64'') do curl %a -L -o %TEMP%\VC++.zip & PowerShell Expand-Archive -Path ''%TEMP%\VC++.zip'' -DestinationPath ''%TEMP%\VC++'' & md C:\Windows\AtlasModules\Apps & move /y %TEMP%\VC++\VisualCppRedist_AIO_x86_x64.exe C:\Windows\AtlasModules\Apps & C:\Windows\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe /ai'
     weight: 150
 
+  - !writeStatus: {status: 'Installing 7-Zip'}
+  - !cmd:
+    command: 'choco install 7zip'
+    weight: 150
+
+  - !writeStatus: {status: 'Configuring 7-Zip'}
+  - !run:
+    exeDir: true
+    exe: '7ZIP.cmd'
+    weight: 30
+
   - !service:
     name: 'appidsvc'
     operation: stop
