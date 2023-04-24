@@ -112,6 +112,9 @@ actions:
   - !service: {name: 'WpnService', operation: change, startup: 4}
   - !service: {name: 'WSearch', operation: change, startup: 4}
   - !service: {name: 'wuauserv', operation: change, startup: 3}
+  - !service: {name: 'SEMgrSvc', operation: change, startup: 4}
+  - !service: {name: 'OneSyncSvc', operation: change, startup: 4}
+  OneSyncSvc
   # Previously deleted
   - !service: {name: 'wbengine', operation: change, startup: 4}
   - !service: {name: 'MapsBroker', operation: change, startup: 4}
