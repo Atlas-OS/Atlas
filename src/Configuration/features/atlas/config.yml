@@ -476,6 +476,7 @@ actions:
   - !service: {name: 'LanmanServer', operation: change, startup: 4}
   - !service: {name: 'LanmanWorkstation', operation: change, startup: 4}
   - !service: {name: 'lmhosts', operation: change, startup: 4}
+  - !service: {name: 'luafv', operation: change, startup: 4}
   - !service: {name: 'MSDTC', operation: change, startup: 4}
   - !service: {name: 'NetTcpPortSharing', operation: change, startup: 4}
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
@@ -868,12 +869,65 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable fullscreen prompt for User Account Control (UAC)
+    ## Configure User Account Control (UAC)
+    ## Generally EnableLua also disables other policies, but they are here for a safety measure
+    ## Required service: luafv
+
+    # Allow administrators to perform operations that require elevation without consent
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'ConsentPromptBehaviorAdmin'
+    data: '0'
+    type: REG_DWORD
+
+    # Do not detect application installations and prompt for elevation
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'EnableInstallerDetection'
+    data: '0'
+    type: REG_DWORD
+
+    # Disable Admin Approval Mode
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'EnableLua'
+    data: '0'
+    type: REG_DWORD
+
+    # Do not only elevate UIAccess applications that are installed in secure locations
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'EnableSecureUIAPaths'
+    data: '0'
+    type: REG_DWORD
+    
+    # Automatically disable the secure desktop for elevation prompts
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'EnableUIADesktopToggle'
+    data: '1'
+    type: REG_DWORD
+
+    # Disable virtualize file and registry write failures to per-user locations
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'EnableVirtualization'
+    data: '0'
+    type: REG_DWORD
+
+    # Disable switch to the secure desktop when prompting for elevation
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
     value: 'PromptOnSecureDesktop'
     data: '0'
     type: REG_DWORD
+
+    # Lock UserAccountControlSettings.exe - users can enable UAC from there without luafv enabled, which breaks UAC completely and causes issues
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe'
+    value: 'Debugger'
+    data: '"C:\Users\Default\Desktop\Atlas\3. Configuration\1. General Configuration\UAC\Enable UAC.cmd" /uacSettings'
+    type: REG_SZ
 
     # Disable activity feed
   - !registryValue:
