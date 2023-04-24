@@ -692,6 +692,28 @@ actions:
     data: '0'
     type: REG_SZ
 
+    # Decrease shutdown time
+  - !registryValue: 
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control'
+    value: 'WaitToKillServiceTimeout'
+    data: '2000'
+    type: REG_SZ
+  - !registryValue: 
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control'
+    value: 'HungAppTimeout'
+    data: '2000'
+    type: REG_SZ
+  - !registryValue: 
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control'
+    value: 'AutoEndTasks'
+    data: '1'
+    type: REG_SZ
+  - !registryValue: 
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'WaitToKillAppTimeOut'
+    data: '2000'
+    type: REG_SZ
+
     # Enable dark mode and disable transparency
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
