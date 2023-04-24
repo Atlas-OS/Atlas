@@ -94,9 +94,6 @@ $Form.Controls.Add((generate_checkbox "legendary" "legendary"))
 # https://community.chocolatey.org/packages/Everything
 $Form.Controls.Add((generate_checkbox "Everything" "everything"))
 
-# https://community.chocolatey.org/packages/msiafterburner
-$Form.Controls.Add((generate_checkbox "MSI Afterburner" "msiafterburner"))
-
 # https://community.chocolatey.org/packages/thunderbird
 $Form.Controls.Add((generate_checkbox "Mozilla Thunderbird" "thunderbird"))
 
