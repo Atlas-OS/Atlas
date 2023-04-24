@@ -118,9 +118,6 @@ $Form.Controls.Add((generate_checkbox "PuTTY" "putty"))
 # https://community.chocolatey.org/packages/ditto
 $Form.Controls.Add((generate_checkbox "Ditto" "ditto"))
 
-# https://community.chocolatey.org/packages/7zip
-$Form.Controls.Add((generate_checkbox "7-Zip" "7zip"))
-
 # https://community.chocolatey.org/packages/teamspeak
 $Form.Controls.Add((generate_checkbox "Teamspeak" "teamspeak"))
 
