@@ -111,3 +111,9 @@ actions:
   - !appx: {operation: clearCache, name: '*Client.CBS*'}
   - !appx: {operation: clearCache, name: '*StartMenuExperienceHost*'}
   - !appx: {operation: clearCache, name: '*Windows.Search*'}
+  
+  # Spotify
+ - !appx: {name: '*SpotifyAB.SpotifyMusic*', type: family}
+  
+  # Disney+
+ - !appx: {name: '*Disney.37853FC22B2CE*', type: family}
