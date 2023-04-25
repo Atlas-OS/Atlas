@@ -24,7 +24,7 @@ call setSvc.cmd HidBth 4
 call setSvc.cmd Microsoft_Bluetooth_AvrcpTransport 4
 call setSvc.cmd RFCOMM 4
 
-:: Enable Bluetooth devices
+:: Disable Bluetooth devices
 call toggleDev.cmd "*Bluetooth*"
 
 attrib +h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
