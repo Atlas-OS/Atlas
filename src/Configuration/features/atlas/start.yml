@@ -159,13 +159,13 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
     value: 'EnableFeaturedSoftware'
-    data: "0"
+    data: '0'
     type: REG_DWORD
 
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
     value: 'RestartNotificationsAllowed2'
-    data: "0"
+    data: '0'
     type: REG_DWORD
 
   - !registryValue:
@@ -177,7 +177,7 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching'
     value: 'SearchOrderConfig'
-    data: "0"
+    data: '0'
     type: REG_DWORD
 
   - !registryValue:
