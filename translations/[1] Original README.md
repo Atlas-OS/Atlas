@@ -1,0 +1,1 @@
+Please see https://github.com/Atlas-OS/Atlas/blob/main/README.md.
