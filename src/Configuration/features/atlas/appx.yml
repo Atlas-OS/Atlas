@@ -106,6 +106,8 @@ actions:
   - !appx: {name: '*Microsoft.YourPhone*', type: family}
   - !appx: {name: '*Microsoft.ZuneMusic*', type: family}
   - !appx: {name: '*Microsoft.ZuneVideo*', type: family}
+  - !appx: {name: '*disney*', type: family}
+  - !appx: {name: '*spotify*', type: family}
 
   # Necessary to refresh start menu entries etc.
   - !appx: {operation: clearCache, name: '*Client.CBS*'}
