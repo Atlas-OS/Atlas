@@ -13,7 +13,7 @@ echo However, it is slower and more annoying than the legacy Windows 7 boot menu
 echo]
 echo What would you like to do?
 echo [1] Disable the new boot menu (default)
-echo [2] Enable the boot logo
+echo [2] Enable the new boot menu
 echo]
 choice /c 12 /n /m "Type 1 or 2: "
 if !errorlevel! == 1 (
