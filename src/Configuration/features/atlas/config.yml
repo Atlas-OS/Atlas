@@ -2014,18 +2014,8 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Configure Multimedia Class Scheduler (MMCSS)
+    # Set SystemResponsiveness to 10
     # https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service#registry-settings
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
-    value: 'LazyModeTimeout'
-    type: REG_DWORD
-    data: '10000'
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
-    value: 'NoLazyMode'
-    data: '1'
-    type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
     value: 'SystemResponsiveness'
