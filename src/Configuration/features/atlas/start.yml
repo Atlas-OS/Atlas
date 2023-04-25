@@ -56,12 +56,6 @@ actions:
 
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'AllowAutoWindowsUpdateDownloadOverMeteredNetwork'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
     value: 'DisableDualScan'
     data: '1'
     type: REG_DWORD
