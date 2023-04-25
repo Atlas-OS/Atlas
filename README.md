@@ -44,7 +44,7 @@
 <kbd>[<img title="中文（简体）" alt="中文（简体）" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/cn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_zh_CN.md)</kbd>
 <kbd>[<img title="العربية" alt="العربية" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/sa.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ar_SA.md)</kbd>
 
-#### _Do you want to help us by translating documents? If so, please follow these [instructions](2 - README - For Translators.md)._
+#### _Do you want to help us by translating documents? If so, please follow these [instructions](https://github.com/Atlas-OS/Atlas/blob/main/translations/2%20-%20README%20-%20For%20Translators.md)._
 
 ## 🤔 **What is Atlas?**
 
