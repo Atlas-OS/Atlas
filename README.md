@@ -112,6 +112,6 @@ Anyone can access the Atlas brand kit — you can download it [here](https://cdn
 We also have a dedicated area on our [forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration! You can also find creative wallpapers that other users share here too!
 
 ## ⚠️ Disclaimer
-Atlas-OS is **NOT** a pre-activated version of Windows. You **must** use a valid key to activate Windows. Before you buy a Windows 10 (Professional or Home) license, make sure the seller is trustworthy and the key is legitimate — no matter where you buy it.
+Atlas-OS is **NOT** a pre-activated version of Windows. You **must** use a valid key to activate Windows. Before buying a Windows 10 (Professional or Home) license, be sure the seller is trustworthy and the key is legitimate — no matter where you buy it.
 
 Atlas is based on Microsoft Windows. By using Windows, you agree to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).

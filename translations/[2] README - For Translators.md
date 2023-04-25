@@ -10,7 +10,7 @@ First of all: thank you for considering helping us by translating the documents!
 
 - Do not modify the original `README.md` formatting.
 
-- Avoid changing anything other then the text you need to translate (if you need to, make sure to mention it later).
+- Avoid changing anything other then the text you need to translate (if you need to, make sure to mention it in your pull request).
 
 - Double check your translation before submitting a pull request.
 
