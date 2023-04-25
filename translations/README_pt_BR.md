@@ -80,12 +80,12 @@ Listamos aqui algumas das mudanças principais que fizemos para melhorar o Windo
 
 ### 🔒 Aspectos Legais
 Muitas versões customizadas de Windows são distribuídas em uma ISO de Windows alterada.
-Isso não apenas viola os [Termos de Serviço da Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm),
+Isso não apenas viola os [Termos de Serviço da Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_PortugueseBrazil.htm),
 mas também não constitui uma maneira segura de instalação.
 
 O Atlas fez uma parceria com a equipe do Windows Ameliorated para prover aos usuários uma maneira mais
 segura e legal de instalar, o [AME Wizard](https://ameliorated.io).
-Ao usá-lo, o Atlas cumpre integralmente os [Termos de Serviço da Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+Ao usá-lo, o Atlas cumpre integralmente os [Termos de Serviço da Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_PortugueseBrazil.htm).
 
 ## 🎨 Kit de customização de marca
 Você é criativo? Quer criar seu próprio papel de parede Atlas com alguns designs originais e criativos?
