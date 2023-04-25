@@ -46,8 +46,8 @@ Think of these while contributing:
 Doing all of these are not required but appreciated. Please mention in the pull request what you have completed.
 Testing and reviewing should be very easy here is what to test:
 - Look over your changes, make sure there is nothing you missed.
-- First, test it on a virtual machine, my recommedation is [VMware Workstation](https://www.vmware.com). A good alternative is [Oracle VirtualBox](https://www.virtualbox.org).
-- Test what your contribution affects, this is dependant on what you change.
+- First, test it on a virtual machine, my recommendation is [VMware Workstation](https://www.vmware.com). A good alternative is [Oracle VirtualBox](https://www.virtualbox.org).
+- Test what your contribution affects, this is dependent on what you change.
 - Test basic programs and functionalities.
 - Test on an actual machine now, repeat the steps.
 

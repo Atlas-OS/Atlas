@@ -63,7 +63,7 @@ actions:
   
   # Network connection should not be needed in OOBE
   # Could force users to have to login to a Microsoft account in OOBE
-  # Would not be a dependancy of anything
+  # Would not be a dependency of anything
   - !appx: {name: '*Microsoft.Windows.OOBENetworkCaptivePortal*', type: family}
   - !appx: {name: '*Microsoft.Windows.OOBENetworkConnectionFlow*', type: family}
 

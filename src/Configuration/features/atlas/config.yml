@@ -612,7 +612,7 @@ actions:
     data: '0'
     type: REG_SZ
 
-    # Do not allow themes to changes desktop iocns and mouse pointers
+    # Do not allow themes to changes desktop icons and mouse pointers
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
     value: 'ThemeChangesMousePointers'
@@ -919,7 +919,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable dekstop peek
+    # Disable desktop peek
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'DisablePreviewDesktop'
@@ -1338,7 +1338,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable enhance pointer precison
+    # Disable enhance pointer precision
   - !registryValue:
     path: 'HKCU\Control Panel\Mouse'
     value: 'MouseSpeed'
@@ -1362,7 +1362,7 @@ actions:
     data: '0'
     type: REG_SZ
 
-    # Reduce mouse hover time to 20 miliseconds
+    # Reduce mouse hover time to 20 milliseconds
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'MouseHoverTime'
@@ -2386,7 +2386,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable sheduled system maintenance
+    # Disable scheduled system maintenance
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\ScheduledDiagnostics'
     value: 'EnabledExecution'

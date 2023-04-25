@@ -1,5 +1,5 @@
 name: Feature request
-description: Create a feature request to help us inprove Atlas.
+description: Create a feature request to help us improve Atlas.
 labels: enhancement
 title: "[FEATURE REQUEST] - "
 body:
@@ -21,7 +21,7 @@ body:
   - type: input
     attributes:
       label: Other
-      description: Only enter if you choosed "Other"
+      description: Only enter if you chose "Other"
       placeholder: |
         e.g. the...
     validations:

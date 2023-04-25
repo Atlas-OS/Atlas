@@ -8,7 +8,7 @@ contact_links:
     about: Use our forum for General Discussions.
   - name: Contribute to / Report issue for Atlas Documentation
     url: https://github.com/Atlas-OS/docs
-    about: Please contribute https://docs.atlasos.net in a seperate repository.
+    about: Please contribute https://docs.atlasos.net in a separate repository.
   - name: Report a Issue (non-AtlasOS itself issue)
     url: https://forum.atlasos.net
     about: Please report any non-AtlasOS itself issue in our Bug Report session on our forum. (Website, Discord bot, etc.)
