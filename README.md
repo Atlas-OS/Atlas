@@ -82,7 +82,7 @@ Downloading a modified ISO from the internet is risky. Not only it can contain m
 Atlas is different. We use [AME Wizard](https://ameliorated.io) to deploy the packages, and all the scripts we use are open-sourced here in our repository. You can also apply the latest security updates before installing Atlas, keeping your system safe and secure.
 
 ### 🚀 More space
-Pre-installed applications and other insignificant components are removed with Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size and makes your system more fluent. Therefore, functionalities such as Windows Defender and similar applications are stripped completely.
+Pre-installed applications and other insignificant components are removed with Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size and makes your system more fluent. Therefore, some functionalities (such as Windows Defender) are stripped completely.
 Check out what else we have removed in our [FAQ](https://docs.atlasos.net/troubleshooting/removed-features).
 
 ### ✅ More performance
