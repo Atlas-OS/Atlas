@@ -10,7 +10,7 @@
 
 # 1. Intro
 
-Welcome! First of all, I would like to thank you for your interest in our project. We want to make this a simple process for you, so if you would like to contribute, please continue reading.
+Welcome! First of all, We would like to thank you for your interest in our project. We want to make this a simple process for you, so if you would like to contribute, please continue reading.
 
 # 2. Standards
 
