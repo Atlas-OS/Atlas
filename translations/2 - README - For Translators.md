@@ -4,6 +4,8 @@ First of all: thank you for considering helping us by translating the documents!
 
 - Copy the `README.MD` from [here](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/README.md) and rename it to the language's corrosponding ISO code (e.g. `README_zh_CN.md`).
 
+- **Remove the ``Read this file in other languages`` part (translations) from the README you are contributing to.**
+
 - Keep the disclaimer in link form and **DO NOT TRANSLATE THE DISCLAIMER**.
 
 - Keep your translation close to the original text.
