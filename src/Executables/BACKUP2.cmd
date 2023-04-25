@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 :: Backup default Atlas Services and Drivers
-set filename="C:!HOMEPATH!\Desktop\Atlas\4. Troubleshooting\Services\Default Atlas Services and Drivers.reg"
+set filename="C:\Users\!username!\Desktop\Atlas\4. Troubleshooting\Services\Default Atlas Services and Drivers.reg"
 if exist "!filename!" exit /b
 
 echo Windows Registry Editor Version 5.00 >> !filename!
