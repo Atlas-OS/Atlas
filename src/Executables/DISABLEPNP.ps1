@@ -28,6 +28,7 @@ $devices = @(
     "System Timer",
     "UMBus Root Bus Enumerator"
     "Unknown Device"
+    "WAN Miniport*"
 )
 
 # No errors as some devices may not have an option to be disabled
