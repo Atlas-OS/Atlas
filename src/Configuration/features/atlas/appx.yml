@@ -49,6 +49,12 @@ actions:
 
   # ------------------------------------------------------------------------------------------ #
 
+  # Disney
+  - !appx: {name: '*Disney*', type: family}
+  
+  # Spotify
+  - !appx: {name: '*Spotify*', type: family}
+  
   # Cortana
   - !appx: {name: '*Microsoft.549981C3F5F10*', type: family}
   
@@ -106,8 +112,6 @@ actions:
   - !appx: {name: '*Microsoft.YourPhone*', type: family}
   - !appx: {name: '*Microsoft.ZuneMusic*', type: family}
   - !appx: {name: '*Microsoft.ZuneVideo*', type: family}
-  - !appx: {name: '*disney*', type: family}
-  - !appx: {name: '*spotify*', type: family}
 
   # Necessary to refresh start menu entries etc.
   - !appx: {operation: clearCache, name: '*Client.CBS*'}
