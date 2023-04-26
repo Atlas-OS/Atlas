@@ -7,10 +7,13 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :: Clean up temp folders
-rd /s /q !TEMP!
-rd /s /q !windir!\temp
-md !TEMP!
-md !windir!\temp
+for %%a in (
+    "!TEMP!"
+    "!windir!\temp"
+) do (
+    rd /s /q %%a
+    md %%a
+)
 
 :: Fix errors 2502 and 2503 by fixing temp folder permissions
 for /f "tokens=*" %%a in ('whoami') do (set USER=%%a)
@@ -18,11 +21,6 @@ icacls "C:\Windows\Temp" /grant:r !USER!:(OI)(CI)F /grant:r Administrators:(OI)(
 
 :: Clean up the Prefetch folder
 rd /s /q !windir!\Prefetch
-
-:: Delete unneeded files
-for %%a in (log _mp tmp gid chk old) do (
-    del /f /s /q !SystemDrive!\*.%%a
-)
 
 :: Clear the icon cache
 del /a /q "!LOCALAPPDATA!\IconCache.db"
