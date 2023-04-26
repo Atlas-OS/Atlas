@@ -154,14 +154,9 @@ if ($global:column -ne 0) {
 
 $Form.height = $global:lastPos + 80
 
-# Dark Mode/Light Mode Toggle
-$ToggleBtn = New-Object System.Windows.Forms.Button
-$ToggleBtn.Location = New-Object System.Drawing.Point(500, 20)
-$ToggleBtn.Size = New-Object System.Drawing.Size(80, 23)
-$ToggleBtn.Text = "Dark Mode"
-$ToggleBtn.Add_Click({
-if ($this.Text -eq "Dark Mode") {
-    $this.Text = "Light Mode"
+# Check if the system has dark mode or light mode set
+$darkMode = Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" | Select-Object -ExpandProperty "AppsUseLightTheme"
+if ($darkMode -eq 0) {
     $Form.BackColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
     $Form.ForeColor = [System.Drawing.Color]::White
     foreach ($control in $Form.Controls) {
@@ -171,7 +166,6 @@ if ($this.Text -eq "Dark Mode") {
         }
     }
 } else {
-    $this.Text = "Dark Mode"
     $Form.BackColor = [System.Drawing.Color]::White
     $Form.ForeColor = [System.Drawing.Color]::Black
     foreach ($control in $Form.Controls) {
@@ -181,8 +175,6 @@ if ($this.Text -eq "Dark Mode") {
         }
     }
 }
-})
-$Form.Controls.Add($ToggleBtn)
 
 # Install Button
 $lastPosWidth = $form.Width - 80 - 31
