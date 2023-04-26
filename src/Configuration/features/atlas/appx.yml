@@ -49,6 +49,12 @@ actions:
 
   # ------------------------------------------------------------------------------------------ #
 
+  # Disney
+  - !appx: {name: '*Disney*', type: family}
+  
+  # Spotify
+  - !appx: {name: '*Spotify*', type: family}
+  
   # Cortana
   - !appx: {name: '*Microsoft.549981C3F5F10*', type: family}
   
