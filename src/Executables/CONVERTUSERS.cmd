@@ -6,7 +6,6 @@ for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentitySt
 for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentityStore\LogonCache\Sid2Name" ^| findstr /i /c:"Sid2Name"`) do reg delete "%%a" /f
 
 rmdir /q /s "!windir!\System32\config\systemprofile\AppData\Local\Microsoft\Windows\CloudAPCache"
-rmdir /q /s "!windir!\ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc"
 
 exit /b
 
