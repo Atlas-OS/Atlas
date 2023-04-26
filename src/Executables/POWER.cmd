@@ -48,6 +48,8 @@ powercfg -setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 d4
 powercfg -setacvalueindex scheme_current 2e601130-5351-4d9d-8e04-252966bad054 d502f7ee-1dc7-4efd-a55d-f04b6f5c0545 0
 :: Allow Throttle States - Off
 powercfg -setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb 0
+:: Set PCI Link Power to Off
+powercfg -setacvalueindex scheme_current 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 0
 :: Processor performance autonomous mode - Disabled
 :: powercfg -setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 8baa4a8a-14c6-4451-8e8b-14bdbd197537 0
 :: Processor autonomous activity window - 0 microseconds
