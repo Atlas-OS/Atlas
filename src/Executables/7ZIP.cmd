@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 :: Configure 7-Zip options
 reg add "HKCU\SOFTWARE\7-Zip\FM\Columns" /v "RootFolder" /t REG_BINARY /d "0100000000000000010000000400000001000000A0000000" /f
-reg add "HKCU\SOFTWARE\7-Zip\Options" /v "ContextMenu" /t REG_DWORD /d "4132" /f
+reg add "HKCU\SOFTWARE\7-Zip\Options" /v "ContextMenu" /t REG_DWORD /d "1024" /f
 reg add "HKCU\SOFTWARE\7-Zip\Options" /v "ElimDupExtract" /t REG_DWORD /d "0" /f
 reg add "HKCU\SOFTWARE\Classes\.001" /ve /t REG_SZ /d "7-Zip.001" /f
 reg add "HKCU\SOFTWARE\Classes\.7z" /ve /t REG_SZ /d "7-Zip.7z" /f
