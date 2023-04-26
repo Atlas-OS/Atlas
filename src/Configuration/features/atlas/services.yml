@@ -60,7 +60,7 @@ actions:
   - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'diagtrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
-  - !service: {name: 'DisplayEnhancementService', operation: change, startup: 4}
+  # DisplayEnhancementService 4 < breaks brightness slider
   - !service: {name: 'DoSvc', operation: change, startup: 3}
   - !service: {name: 'DPS', operation: change, startup: 4}
   # DsSvc 4 < can cause issues with snip & sketch
