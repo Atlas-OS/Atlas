@@ -6,7 +6,11 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-PowerShell -NoP -C "Get-AppxProvisionedPackage -Online | Where-Object DisplayName -EQ 'Xbox' | Remove-AppxProvisionedPackage -Online"
+:: Remove Xbox applications using wildcards
+PowerShell -NoP -C "Get-ProvisionedAppxPackage -Online | Where-Object { $_.PackageName -match 'Xbox' } | ForEach-Object { Remove-ProvisionedAppxPackage -Online -AllUsers -PackageName $_.PackageName }"
+
+:: Restart explorer.exe for the immediate effect
+taskkill /f /im explorer.exe & explorer.exe
 
 cls & echo Finished, changes have been applied.
 pause
