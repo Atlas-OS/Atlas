@@ -8,6 +8,6 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 PowerShell -NoP -C "Get-AppxProvisionedPackage -Online | Where-Object DisplayName -EQ 'Xbox' | Remove-AppxProvisionedPackage -Online"
 
-echo Finished, changes have been applied.
+cls & echo Finished, changes have been applied.
 pause
 exit /b

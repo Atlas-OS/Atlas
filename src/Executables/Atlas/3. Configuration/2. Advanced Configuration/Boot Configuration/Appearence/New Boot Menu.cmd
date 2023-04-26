@@ -33,6 +33,6 @@ bcdedit /set {default} bootmenupolicy standard > nul 2>&1
 goto finish
 
 :finish
-echo Finished, please reboot your device for changes to apply.
+cls & echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

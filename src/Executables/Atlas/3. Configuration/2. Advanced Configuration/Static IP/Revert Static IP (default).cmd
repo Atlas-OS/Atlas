@@ -18,6 +18,6 @@ call setSvc.cmd Dhcp 2
 call setSvc.cmd netprofm 3
 call setSvc.cmd nlasvc 2
 
-echo Finished, please reboot your device for changes to apply.
+cls & echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

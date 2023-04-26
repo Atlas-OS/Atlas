@@ -44,6 +44,6 @@ for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to 
 	)
 )
 
-echo Finished, changes have been applied.
+cls & echo Finished, changes have been applied.
 pause
 exit /b

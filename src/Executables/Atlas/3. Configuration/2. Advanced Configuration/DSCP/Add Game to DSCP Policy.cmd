@@ -21,6 +21,6 @@ for /f "tokens=* delims=\" %%i in ('filepicker.exe exe') do (
     reg add "HKCU\SOFTWARE\Policies\Microsoft\Windows\QoS\%%~ni%%~xi" /v "Throttle Rate" /t REG_SZ /d "-1" /f > nul 2>&1
 )
 
-echo Finished, please reboot your device for changes to apply.
+cls & echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

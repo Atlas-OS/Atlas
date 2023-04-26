@@ -11,6 +11,6 @@ call setSvc.cmd DPS 4
 call setSvc.cmd WdiServiceHost 4
 call setSvc.cmd WdiSystemHost 4
 
-echo Finished, please reboot your device for changes to apply.
+cls & echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

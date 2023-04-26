@@ -19,6 +19,6 @@ call setSvc.cmd QwaveDrv 3
 call setSvc.cmd Qwave 3
 call setSvc.cmd FontCache 2
 
-echo Finished, please reboot your device for changes to apply.
+cls & echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

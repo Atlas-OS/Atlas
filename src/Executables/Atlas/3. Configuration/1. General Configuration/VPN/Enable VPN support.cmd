@@ -17,6 +17,6 @@ call setSvc.cmd iphlpsvc 3
 call setSvc.cmd NdisVirtualBus 3
 call setSvc.cmd Eaphost 3
 
-echo Finished, please reboot your device for changes to apply.
+cls & echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

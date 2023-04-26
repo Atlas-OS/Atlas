@@ -15,6 +15,6 @@ call setSvc.cmd srv2 4
 
 DISM /Online /Disable-Feature /FeatureName:SmbDirect /NoRestart
 
-echo Finished, please reboot your device for changes to apply.
+cls & echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

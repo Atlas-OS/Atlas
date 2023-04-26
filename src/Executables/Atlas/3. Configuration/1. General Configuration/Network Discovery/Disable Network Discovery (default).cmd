@@ -22,6 +22,6 @@ call setSvc.cmd SSDPSRV 4
 call setSvc.cmd fdPHost 4
 call setSvc.cmd FDResPub 4
 
-echo Finished, please reboot your device for changes to apply.
+cls & echo Finished, please reboot your device for changes to apply.
 pause
 exit /b
