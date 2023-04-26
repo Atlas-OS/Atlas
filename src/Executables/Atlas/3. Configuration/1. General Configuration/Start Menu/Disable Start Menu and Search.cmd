@@ -8,7 +8,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 if exist "C:\Program Files\Open-Shell" goto existS
 if exist "C:\Program Files (x86)\StartIsBack" goto existS
-echo It seems Open-Shell nor StartIsBack are installed. It is HIGHLY recommended to install one of these before running this due to the Start Menu being removed.
+echo It seems Open-Shell nor StartIsBack are not installed. It is HIGHLY recommended to install one of these before running this due to the Start Menu being removed.
 pause
 
 :existS
