@@ -190,6 +190,7 @@ actions:
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"LegacyComponents" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart', weight: 30}
 
+  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30}=
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2Root" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"WCF-TCP-PortSharing45" /NoRestart', weight: 30}
