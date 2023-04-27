@@ -154,6 +154,13 @@ if ($global:column -ne 0) {
 
 $Form.height = $global:lastPos + 80
 
+# Detect internet connection
+$InternetTest = (Test-Connection -ComputerName www.google.com -Quiet)
+if (!$InternetTest) {
+    [System.Windows.Forms.MessageBox]::Show("Internet connection not detected. Please check your network connection and try again.", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+    exit
+}
+
 # Check if the system has dark mode or light mode set
 $darkMode = Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" | Select-Object -ExpandProperty "AppsUseLightTheme"
 if ($darkMode -eq 0) {
