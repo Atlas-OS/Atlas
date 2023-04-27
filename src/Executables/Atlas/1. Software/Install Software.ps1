@@ -148,6 +148,9 @@ $Form.Controls.Add((generate_checkbox "Bulk Crap Uninstaller" "bulk-crap-uninsta
 # https://community.chocolatey.org/packages/hwinfo
 $Form.Controls.Add((generate_checkbox "HWiNFO" "hwinfo"))
 
+# https://community.chocolatey.org/packages/kav
+$Form.Controls.Add((generate_checkbox "Kaspersky Anti-Virus" "kav"))
+
 if ($global:column -ne 0) {
     $global:lastPos += $separate
 }
