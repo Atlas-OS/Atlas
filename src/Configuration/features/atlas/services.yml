@@ -68,7 +68,7 @@ actions:
   - !service: {name: 'FDResPub', operation: change, startup: 4}
   - !service: {name: 'gcs', operation: change, startup: 4}
   - !service: {name: 'hvhost', operation: change, startup: 4}
-  - !service: {name: 'icssvc', operation: change, startup: 4}
+  # icssvc 4 < breaks mobile/wi-fi hotspot
   # IKEEXT 4 < causes Teredo not to work
   - !service: {name: 'InstallService', operation: change, startup: 3}
   # iphlpsvc 4 < causes Teredo not to work
@@ -84,9 +84,8 @@ actions:
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
   - !service: {name: 'PhoneSvc', operation: change, startup: 4}
   - !service: {name: 'RasMan', operation: change, startup: 4}
-  - !service: {name: 'SharedAccess', operation: change, startup: 4}
-  # Breaks BitLocker
-  # - !service: {name: 'ShellHWDetection', operation: change, startup: 4}
+  # SharedAccess 4 < breaks mobile/wi-fi hotspot
+  # ShellHWDetection 4 < breaks bitlocker
   - !service: {name: 'SmsRouter', operation: change, startup: 4}
   - !service: {name: 'Spooler', operation: change, startup: 4}
   - !service: {name: 'SSDPSRV', operation: change, startup: 4}
@@ -185,7 +184,7 @@ actions:
   - !service: {name: 'pvhdparser', operation: change, startup: 4}
   # Set rdbss to manual instead of disabling (fixes wsl), thanks phlegm
   - !service: {name: 'rdbss', operation: change, startup: 3}
-  - !service: {name: 'RFCOMM', operation: change, startup: 4}
+  - !service: {name: 'RFCOMM', operation: change, startup: 4}`
   - !service: {name: 'sfloppy', operation: change, startup: 4}
   - !service: {name: 'SiSRaid2', operation: change, startup: 4}
   - !service: {name: 'SiSRaid4', operation: change, startup: 4}
