@@ -90,3 +90,5 @@ Atlas партнира със Windows Ameliorated Team за да предост�
 
 ## ⚠️ Disclaimer
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
+
+Заслуги/Credits: [dido](https://github.com/notdido)
