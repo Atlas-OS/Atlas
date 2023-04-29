@@ -88,7 +88,7 @@ The only executables included in the playbook are open sourced [here](https://gi
 
 You can also install the latest security updates before installing Atlas, which we recommend to keep your system safe and secure.
 
-Please note that as of Atlas v0.2, Atlas is mostly **not as secure as regualr Windows** due to removed/disabled security features. However, in v0.3, most of these will be added back as optional features. See [here](https://docs.atlasos.net/troubleshooting/removed-features/) for more info.
+Please note that as of Atlas v0.2.0, Atlas is mostly **not as secure as regualr Windows** due to removed/disabled security features. However, in v0.3.0, most of these will be added back as optional features. See [here](https://docs.atlasos.net/troubleshooting/removed-features/) for more info.
 
 ### 🚀 More space
 Pre-installed applications and other insignificant components are removed with Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size and makes your system more fluent. Therefore, some functionalities (such as Windows Defender) are stripped completely.
