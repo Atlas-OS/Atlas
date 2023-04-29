@@ -23,15 +23,15 @@ if !errorlevel! == 1 (
 
 :disable
 echo]
-call setSvc.cmd Schedule 4 > nul 2>&1
+call setSvc.cmd Schedule 4
 goto finish
 
 :enable
 echo]
-call setSvc.cmd Schedule 2 > nul 2>&1
+call setSvc.cmd Schedule 2
 goto finish
 
 :finish
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

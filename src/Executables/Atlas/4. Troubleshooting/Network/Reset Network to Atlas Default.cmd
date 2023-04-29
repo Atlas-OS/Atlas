@@ -64,6 +64,6 @@ netsh int tcp set heuristics disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
 netsh int tcp set global rsc=disabled
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

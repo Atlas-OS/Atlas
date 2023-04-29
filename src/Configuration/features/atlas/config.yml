@@ -45,9 +45,11 @@ actions:
     type: REG_SZ
 
     # Change NTP server from Windows' server to pool.ntp.org
+  - !run: {exe: 'net', args: 'start w32time'}
   - !run: {exe: 'w32tm', args: '/config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"'}
 
     # Resync time to pool.ntp.org
+  - !run: {exe: 'net', args: 'stop w32time'}
   - !run: {exe: 'net', args: 'start w32time'}
   - !run: {exe: 'w32tm', args: '/config /update'}
   - !run: {exe: 'w32tm', args: '/resync'}
@@ -155,15 +157,14 @@ actions:
 
     # Disable PowerShell telemetry
     # https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.3
-  - !run: {exe: 'setx', args: 'DOTNET_CLI_TELEMETRY_OPTOUT 1'}
-  - !run: {exe: 'setx', args: 'POWERSHELL_TELEMETRY_OPTOUT 1'}
+  - !cmd: {command: 'setx DOTNET_CLI_TELEMETRY_OPTOUT 1'}
+  - !cmd: {command: 'setx POWERSHELL_TELEMETRY_OPTOUT 1'}
 
     # Set .ps1 file types to open with PowerShell by default
   - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -File "%1" %*'}
 
     # Set PowerShell execution policy to Unrestricted
-  - !powerShell:
-    command: 'Set-ExecutionPolicy Unrestricted'
+  - !powerShell: {command: 'Set-ExecutionPolicy -ExecutionPolicy Unrestricted'}
 
     # Hide useless Windows Immersive Control Panel pages
   - !registryValue:
@@ -425,8 +426,7 @@ actions:
 
   - !writeStatus: {status: 'Disabling devices'}
 
-  - !powerShell:
-    command: 'Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr'
+  - !powerShell: {command: 'Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr'}
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File DISABLEPNP.ps1'
@@ -739,58 +739,14 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    ## Configure User Account Control (UAC)
-    ## Generally EnableLua also disables other policies, but they are here for a safety measure
-    ## Required service: luafv
-
-    # Allow administrators to perform operations that require elevation without consent
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-    value: 'ConsentPromptBehaviorAdmin'
-    data: '0'
-    type: REG_DWORD
-
-    # Do not detect application installations and prompt for elevation
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-    value: 'EnableInstallerDetection'
-    data: '0'
-    type: REG_DWORD
-
-    # Disable Admin Approval Mode
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-    value: 'EnableLua'
-    data: '0'
-    type: REG_DWORD
-
-    # Do not only elevate UIAccess applications that are installed in secure locations
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-    value: 'EnableSecureUIAPaths'
-    data: '0'
-    type: REG_DWORD
-
-    # Disable virtualize file and registry write failures to per-user locations
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-    value: 'EnableVirtualization'
-    data: '0'
-    type: REG_DWORD
-
-    # Disable switch to the secure desktop when prompting for elevation
+    # Disable switching to the Secure Desktop when prompting for elevation
+    # As a note, UAC will not save you from well-made malware, UAC can easily be bypassed on Windows (check GitHub).
+    # An application would need admin privileges to control the mouse and keyboard to accept the UAC prompt anyways.
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
     value: 'PromptOnSecureDesktop'
     data: '0'
     type: REG_DWORD
-
-    # Lock UserAccountControlSettings.exe - users can enable UAC from there without luafv enabled, which breaks UAC completely and causes issues
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe'
-    value: 'Debugger'
-    data: '"C:\Users\Default\Desktop\Atlas\3. Configuration\1. General Configuration\UAC\Enable UAC.cmd" /uacSettings'
-    type: REG_SZ
 
     # Disable activity feed
   - !registryValue:
@@ -871,7 +827,7 @@ actions:
 
     # Disable Windows Ink workspace suggested applications
   - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\PenWorkspace'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PenWorkspace'
     value: 'PenWorkspaceAppSuggestionsEnabled'
     data: '0'
     type: REG_DWORD
@@ -2134,6 +2090,16 @@ actions:
     value: 'DisableNotificationCenter'
     data: '1'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings'
+    value: 'NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications'
+    value: 'NoCloudApplicationNotification'
+    data: '1'
+    type: REG_DWORD
 
     # Unpin all quick action shortcuts by default
   - !registryValue:
@@ -2318,8 +2284,7 @@ actions:
     type: REG_SZ
 
     # Add Music and Videos folders to Quick Access
-  - !powerShell:
-    command: '$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb("""pintohome"""); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb("""pintohome""")'
+  - !powerShell: {command: '$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb("""pintohome"""); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb("""pintohome""")'}
 
     # Enable legacy photo viewer
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.tif', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}

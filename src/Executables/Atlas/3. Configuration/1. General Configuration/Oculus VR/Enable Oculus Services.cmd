@@ -15,10 +15,10 @@ call setSvc.cmd rdbss 1
 call setSvc.cmd srv2 3
 
 :: QWAVE
-call setSvc.cmd QwaveDrv 3
-call setSvc.cmd Qwave 3
 call setSvc.cmd FontCache 2
+call setSvc.cmd Qwave 3
+call setSvc.cmd QwaveDrv 3
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

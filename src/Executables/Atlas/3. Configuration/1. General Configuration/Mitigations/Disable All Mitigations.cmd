@@ -61,6 +61,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMo
 
 if "%~1" == "/silent" exit /b
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

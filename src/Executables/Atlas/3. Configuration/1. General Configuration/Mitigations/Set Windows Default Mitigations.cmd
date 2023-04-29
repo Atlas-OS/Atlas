@@ -38,6 +38,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMo
 :: Default Hyper-V Settings
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization" /v "MinVmVersionForCpuBasedMitigations" /f > nul 2>&1
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

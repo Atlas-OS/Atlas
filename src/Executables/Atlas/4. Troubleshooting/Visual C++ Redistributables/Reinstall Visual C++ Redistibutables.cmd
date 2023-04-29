@@ -37,6 +37,6 @@ VisualCppRedist_AIO_x86_x64.exe /aiR
 echo Installing Visual C++ Redistibutables...
 VisualCppRedist_AIO_x86_x64.exe /ai
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b
