@@ -588,7 +588,7 @@ actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'UserPreferencesMask'
-    data: '9012078010000000'
+    data: '9012038010000000'
     type: REG_BINARY
 
     # Disable desktop wallpaper import quality reduction
