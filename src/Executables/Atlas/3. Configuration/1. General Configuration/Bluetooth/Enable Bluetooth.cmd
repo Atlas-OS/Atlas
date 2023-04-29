@@ -7,7 +7,10 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :: Enable Bluetooth drivers and services
+call setSvc.cmd BluetoothUserService 3
+call setSvc.cmd BTAGService 3
 call setSvc.cmd BthA2dp 3
+call setSvc.cmd BthAvctpSvc 3
 call setSvc.cmd BthEnum 3
 call setSvc.cmd BthHFEnum 3
 call setSvc.cmd BthLEEnum 3
@@ -15,14 +18,11 @@ call setSvc.cmd BthMini 3
 call setSvc.cmd BTHMODEM 3
 call setSvc.cmd BthPan 3
 call setSvc.cmd BTHPORT 3
+call setSvc.cmd bthserv 3
 call setSvc.cmd BTHUSB 3
 call setSvc.cmd HidBth 3
 call setSvc.cmd Microsoft_Bluetooth_AvrcpTransport 3
 call setSvc.cmd RFCOMM 3
-call setSvc.cmd BluetoothUserService 3
-call setSvc.cmd BTAGService 3
-call setSvc.cmd BthAvctpSvc 3
-call setSvc.cmd bthserv 3
 
 :: Enable Bluetooth devices
 call toggleDev.cmd /e "*Bluetooth*"

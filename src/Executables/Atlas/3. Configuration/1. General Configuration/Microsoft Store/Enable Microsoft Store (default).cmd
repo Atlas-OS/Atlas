@@ -7,10 +7,10 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :: Enable the option for Microsoft Store in the "Open with" dialog
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /t REG_DWORD /d "0" /f > nul 2>&1
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWith" /f > nul 2>&1
 
 :: Allow access to Microsoft Store
-reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "0" /f > nul 2>&1
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /f > nul 2>&1
 
 call setSvc.cmd AppXSvc 3
 call setSvc.cmd ClipSVC 3

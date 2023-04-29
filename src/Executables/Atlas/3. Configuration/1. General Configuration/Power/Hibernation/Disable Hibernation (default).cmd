@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-powercfg /h off
+powercfg -h off
 powercfg -setactive scheme_current
 
 cls & echo Finished, changes have been applied.

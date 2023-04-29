@@ -23,12 +23,12 @@ if !errorlevel! == 1 (
 
 :disable
 echo]
-call setSvc.cmd Schedule 4 > nul 2>&1
+call setSvc.cmd Schedule 4
 goto finish
 
 :enable
 echo]
-call setSvc.cmd Schedule 2 > nul 2>&1
+call setSvc.cmd Schedule 2
 goto finish
 
 :finish

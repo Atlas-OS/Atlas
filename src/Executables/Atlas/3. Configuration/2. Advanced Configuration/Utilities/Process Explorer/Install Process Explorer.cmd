@@ -26,8 +26,8 @@ if !errorlevel! == 1 (
 	echo Process Explorer shortcut could not be created in the start menu^^!
 )
 
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "!windir!\AtlasModules\Apps\procexp.exe" /f > nul 2>&1
 call setSvc.cmd pcw 4
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "!windir!\AtlasModules\Apps\procexp.exe" /f > nul 2>&1
 
 cls & echo Finished, changes have been applied.
 pause

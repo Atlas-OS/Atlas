@@ -871,7 +871,7 @@ actions:
 
     # Disable Windows Ink workspace suggested applications
   - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\PenWorkspace'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PenWorkspace'
     value: 'PenWorkspaceAppSuggestionsEnabled'
     data: '0'
     type: REG_DWORD
@@ -2132,6 +2132,16 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
     value: 'DisableNotificationCenter'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings'
+    value: 'NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications'
+    value: 'NoCloudApplicationNotificatio'
     data: '1'
     type: REG_DWORD
 

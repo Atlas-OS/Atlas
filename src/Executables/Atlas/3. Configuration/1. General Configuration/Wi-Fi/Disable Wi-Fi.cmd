@@ -7,8 +7,8 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 echo Applications like Microsoft Store and Spotify may not function correctly when Wi-Fi is disabled. If this is a problem, enable Wi-Fi and restart the computer.
-call setSvc.cmd WlanSvc 4
 call setSvc.cmd vwififlt 4
+call setSvc.cmd WlanSvc 4
 
 echo]
 set /P c="Would you like to disable the network icon? (disables two extra services) [Y/N]: "

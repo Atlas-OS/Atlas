@@ -23,12 +23,12 @@ if !errorlevel! == 1 (
 
 :disable
 echo]
-call setSvc.cmd EventLog 4 > nul 2>&1
+call setSvc.cmd EventLog 4
 goto finish
 
 :enable
 echo]
-call setSvc.cmd EventLog 2 > nul 2>&1
+call setSvc.cmd EventLog 2
 goto finish
 
 :finish
