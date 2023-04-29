@@ -740,8 +740,8 @@ actions:
     type: REG_DWORD
 
     # Disable switching to the Secure Desktop when prompting for elevation
-    # As a note, UAC will not save you from well-made malware, UAC can easily be bypassed on Windows (just check GitHub)
-    # An application would need admin privileges to control the mouse and keyboard to accept the UAC prompt anyways
+    # As a note, UAC will not save you from well-made malware, UAC can easily be bypassed on Windows (check GitHub).
+    # An application would need admin privileges to control the mouse and keyboard to accept the UAC prompt anyways.
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
     value: 'PromptOnSecureDesktop'
@@ -2097,7 +2097,7 @@ actions:
     type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications'
-    value: 'NoCloudApplicationNotificatio'
+    value: 'NoCloudApplicationNotification'
     data: '1'
     type: REG_DWORD
 

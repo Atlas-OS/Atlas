@@ -25,7 +25,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "Ena
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f > nul 2>&1
 
 :: Lock UserAccountControlSettings.exe - users can enable UAC from there without luafv enabled, which breaks UAC completely and causes issues
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /t REG_SZ /d "\"C:\Users\Default\Desktop\Atlas\3. Configuration\1. General Configuration\UAC\Enable UAC.cmd\" /uacSettings" /f > nul 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /t REG_SZ /d "\"C:\Users\Default\Desktop\Atlas\3. Configuration\1. General Configuration\UAC\Enable UAC.cmd (default)\" /uacSettings" /f > nul 2>&1
 
 call setSvc.cmd luafv 4
 
