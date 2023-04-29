@@ -13,15 +13,15 @@ actions:
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
     exeDir: true
-    command: 'robocopy "Web" "C:\Windows\Web" /E /PURGE /IM /IT /NP'
+    command: 'xcopy "Web" "C:\Windows\Web" /E /Y /I'
     weight: 10
   - !cmd:
     exeDir: true
-    command: 'robocopy "User Account Pictures" "C:\ProgramData\Microsoft\User Account Pictures" /E /PURGE /IM /IT /NP'
+    command: 'xcopy "User Account Pictures" "C:\ProgramData\Microsoft\User Account Pictures" /E /Y /I'
     weight: 10
   - !cmd:
     exeDir: true
-    command: 'robocopy "AtlasModules" "C:\Windows\AtlasModules" /E /PURGE /IM /IT /NP'
+    command: 'xcopy "AtlasModules" "C:\Windows\AtlasModules" /E /Y /I'
     weight: 10
   - !run:
     exeDir: true
