@@ -588,7 +588,7 @@ actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'UserPreferencesMask'
-    data: '9012078010000000'
+    data: '9012038010000000'
     type: REG_BINARY
 
     # Disable desktop wallpaper import quality reduction
@@ -769,13 +769,6 @@ actions:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
     value: 'EnableSecureUIAPaths'
     data: '0'
-    type: REG_DWORD
-    
-    # Automatically disable the secure desktop for elevation prompts
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-    value: 'EnableUIADesktopToggle'
-    data: '1'
     type: REG_DWORD
 
     # Disable virtualize file and registry write failures to per-user locations
@@ -2084,8 +2077,8 @@ actions:
     data: '0'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'
-    value: 'AppCaptureEnabled'
+    path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR'
+    value: 'value'
     data: '0'
     type: REG_DWORD
   - !registryValue:
@@ -2106,12 +2099,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable background applications
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy'
-    value: 'LetAppsRunInBackground'
-    data: '2'
-    type: REG_DWORD
+    # Do not let applications run in the background
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'
     value: 'GlobalUserDisabled'
