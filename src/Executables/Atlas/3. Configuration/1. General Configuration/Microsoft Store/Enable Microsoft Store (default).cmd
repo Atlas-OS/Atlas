@@ -22,6 +22,6 @@ call setSvc.cmd TokenBroker 3
 call setSvc.cmd WinHttpAutoProxySvc 3
 call setSvc.cmd wlidsvc 3
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

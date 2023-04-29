@@ -42,6 +42,6 @@ reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTas
 taskkill /f /im explorer.exe > nul 2>&1
 start explorer.exe > nul 2>&1
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

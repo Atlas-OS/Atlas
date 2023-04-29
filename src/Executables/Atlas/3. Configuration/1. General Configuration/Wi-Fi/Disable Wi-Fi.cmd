@@ -17,6 +17,6 @@ call setSvc.cmd netprofm 4
 call setSvc.cmd NlaSvc 4
 
 :wifiDskip
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

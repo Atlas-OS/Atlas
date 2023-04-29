@@ -8,6 +8,6 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 bcdedit /set {current} safeboot minimal
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

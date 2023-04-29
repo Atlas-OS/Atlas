@@ -62,6 +62,6 @@ for %%a in (
 :: Disable system devices
 call toggleDev.cmd "*Hyper-V*"
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

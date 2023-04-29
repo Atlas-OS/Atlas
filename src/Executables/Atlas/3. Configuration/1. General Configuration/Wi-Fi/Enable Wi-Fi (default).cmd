@@ -12,6 +12,6 @@ call setSvc.cmd NlaSvc 2
 call setSvc.cmd vwififlt 1
 call setSvc.cmd WlanSvc 2
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

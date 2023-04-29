@@ -29,6 +29,6 @@ reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul 2>&1
 taskkill /f /im explorer.exe > nul 2>&1
 start explorer.exe
 
-cls & echo Finished, changes have been applied.
+echo Finished, changes have been applied.
 pause
 exit /b

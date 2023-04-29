@@ -32,6 +32,6 @@ bcdedit /set {globalsettings} advancedoptions true > nul 2>&1
 goto finish
 
 :finish
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

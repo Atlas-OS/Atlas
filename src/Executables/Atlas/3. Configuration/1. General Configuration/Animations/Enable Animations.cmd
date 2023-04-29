@@ -12,6 +12,6 @@ reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "T
 reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /f > nul
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DWM" /v "DisallowAnimations" /f > nul
 
-cls & echo Finished, please reboot your device or login and log out for changes to apply.
+echo Finished, please reboot your device or login and log out for changes to apply.
 pause
 exit /b

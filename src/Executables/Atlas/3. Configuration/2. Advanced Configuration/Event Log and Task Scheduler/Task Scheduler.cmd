@@ -32,6 +32,6 @@ call setSvc.cmd Schedule 2
 goto finish
 
 :finish
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

@@ -28,6 +28,6 @@ pause
 call setSvc.cmd NVDisplay.ContainerLocalSystem 4
 sc stop NVDisplay.ContainerLocalSystem > nul 2>&1
 
-cls & echo Finished, changes have been applied.
+echo Finished, changes have been applied.
 pause
 exit /b

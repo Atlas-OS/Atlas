@@ -12,6 +12,6 @@ PowerShell -NoP -C "Get-ProvisionedAppxPackage -Online | Where-Object { $_.Packa
 :: Restart explorer.exe for the immediate effect
 taskkill /f /im explorer.exe & explorer.exe
 
-cls & echo Finished, changes have been applied.
+echo Finished, changes have been applied.
 pause
 exit /b

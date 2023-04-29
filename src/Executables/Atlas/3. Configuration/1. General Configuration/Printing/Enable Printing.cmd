@@ -34,6 +34,6 @@ for %%a in (
 
 call setSvc.cmd Spooler 2
 
-cls & echo Finished, please reboot your device for changes to apply.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b
