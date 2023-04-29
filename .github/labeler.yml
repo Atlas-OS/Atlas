@@ -1,0 +1,8 @@
+playbook:
+- src/**/*
+
+readme:
+- '**/README.md'
+
+translations:
+- translations/*
