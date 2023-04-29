@@ -27,7 +27,7 @@
   <a href="https://forum.atlasos.net">Forum</a>
 </p>
 
-# Read this file in other languages
+# Read this file in other languages 
 
 <kbd>[<img title="Bosanski" alt="Bosanski" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ba.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_bs_BA.md)</kbd>
 <kbd>[<img title="Português (Brasil)" alt="Português (Brasil)" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/br.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_pt_BR.md)</kbd>
