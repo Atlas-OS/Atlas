@@ -79,10 +79,14 @@ Atlas removes all types of tracking embedded within Windows and implements numer
 
 Note that Atlas cannot ensure the security for things outside the scope of Windows (such as browsers and third-party applications).
 
-### 🛡️ More secure
-Downloading a modified ISO from the internet is risky. Not only it can contain malicious script, it also may not have the latest security patches that can put your computer under serious security risks. 
+### 🛡️ More secure over custom Windows ISOs
+Downloading a modified Windows ISO from the internet is risky. Not only can people easily maliciously change one of the many binary/executable files included in Windows, it also may not have the latest security patches that can put your computer under serious security risks. 
 
-Atlas is different. We use [AME Wizard](https://ameliorated.io) to deploy the packages, and all the scripts we use are open-sourced here in our repository. You can also apply the latest security updates before installing Atlas, keeping your system safe and secure.
+Atlas is different. We use [AME Wizard](https://ameliorated.io) to install Atlas, and all the scripts we use are open source here in our GitHub repository. You can view the compiled Atlas playbook (`.apbx` - AME Wizard script package) as an archive, with the password `malte`, simply to bypass false flags from antiviruses.
+
+The only binaries included in the playbook are open sourced [here](https://github.com/Atlas-OS/Atlas-Utilities) under [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE). Everything else is in plain text.
+
+You can also install the latest security updates before installing Atlas, which we recommend to keep your system safe and secure.
 
 ### 🚀 More space
 Pre-installed applications and other insignificant components are removed with Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size and makes your system more fluent. Therefore, some functionalities (such as Windows Defender) are stripped completely.
