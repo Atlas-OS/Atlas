@@ -2106,12 +2106,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable background applications
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy'
-    value: 'LetAppsRunInBackground'
-    data: '2'
-    type: REG_DWORD
+    # Do not let applications run in the background
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'
     value: 'GlobalUserDisabled'
