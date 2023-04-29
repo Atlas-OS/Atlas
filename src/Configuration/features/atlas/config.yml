@@ -2084,8 +2084,8 @@ actions:
     data: '0'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'
-    value: 'AppCaptureEnabled'
+    path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR'
+    value: 'value'
     data: '0'
     type: REG_DWORD
   - !registryValue:

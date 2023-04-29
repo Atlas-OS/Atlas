@@ -1,10 +1,10 @@
 Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Microsoft\GameBar]
-"ShowStartupPanel"=dword:00000000
-"GamePanelStartupTipIndex"=dword:00000003
 "AllowAutoGameMode"=dword:00000000
 "AutoGameModeEnabled"=dword:00000000
+"GamePanelStartupTipIndex"=dword:00000003
+"ShowStartupPanel"=dword:00000000
 "UseNexusForGameBarEnabled"=dword:00000000
 
 [HKEY_CURRENT_USER\System\GameConfigStore]
@@ -16,14 +16,14 @@ Windows Registry Editor Version 5.00
 "GameDVR_EFSEFeatureFlags"=dword:00000000
 "GameDVR_DSEBehavior"=dword:00000002
 
-[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR]
-"AllowGameDVR"=dword:00000000
-
 [HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR]
 "AppCaptureEnabled"=dword:00000000
 
-[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\BcastDVRUserService]
-"Start"=dword:00000004
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR]
+"AllowGameDVR"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR]
+"value"=dword:00000000
 
 [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment]
 "__COMPAT_LAYER"="~ DISABLEDXMAXIMIZEDWINDOWEDMODE"
