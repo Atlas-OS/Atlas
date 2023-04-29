@@ -770,13 +770,6 @@ actions:
     value: 'EnableSecureUIAPaths'
     data: '0'
     type: REG_DWORD
-    
-    # Automatically disable the secure desktop for elevation prompts
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-    value: 'EnableUIADesktopToggle'
-    data: '1'
-    type: REG_DWORD
 
     # Disable virtualize file and registry write failures to per-user locations
   - !registryValue:
