@@ -66,7 +66,7 @@ Playbook 中包含的二进制文件很少，并且都在[此处](https://github
 
 您还可以在安装 Atlas 之前安装最新的安全更新，并且我们建议您这样做，以保证您的系统安全。
 
-请注意，从 Atlas v0.2.0 开始，由于删除/禁用了安全功能（例如删除了 Windows Defender），Atlas 大多不如常规 Windows 安全。但是，在 Atlas v0.3.0 中，其中大部分将作为可选功能添加回来。有关更多信息，请参见[此处](https://docs.atlasos.net/troubleshooting/removed-features/)。
+请注意，Atlas v0.2.0 及之前版本删除/禁用了某些安全功能（例如 Windows Defender），因此不如未经修改的 Windows 安全。不过，这些功能中的大部分将在 Atlas v0.3.0 中可选地添加回来。更多信息请参见[此处](https://docs.atlasos.net/troubleshooting/removed-features/)。
 
 ### 🚀 精简
 在 Atlas 中，预安装应用程序与其他无关紧要的组件被移除。尽管可能存在兼容性问题，但这能显著减少安装大小，并使您的系统更加流畅。
