@@ -3,16 +3,16 @@
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
-      <img alt="Лицензия" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF&label=Лицензия"/>
+      <img alt="Лицензия" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF&label=%D0%9B%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F"/>
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors">
-      <img alt="Вкладчики" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=Число%20вкладчиков" />
+      <img alt="Вкладчики" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=%D0%A7%D0%B8%D1%81%D0%BB%D0%BE%20%D0%B2%D0%BA%D0%BB%D0%B0%D0%B4%D1%87%D0%B8%D0%BA%D0%BE%D0%B2" />
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/releases/latest">
-      <img alt="Выпуск" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=Выпуск" />
+      <img alt="Выпуск" src="https://img.shields.io/github/v/release/atlas-os/atlas.svg?style=for-the-badge&color=1A91FF&label=%D0%92%D1%8B%D0%BF%D1%83%D1%81%D0%BA" />
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/releases">
-      <img alt="Число скачиваний" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF&label=Число%20скачиваний" />
+      <img alt="Число скачиваний" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF&label=%D0%A7%D0%B8%D1%81%D0%BB%D0%BE%20%D1%81%D0%BA%D0%B0%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D0%B9" />
     </a>
   </p>
 <h4 align="center">Открытая и прозрачная операционная система, разработанная для оптимизации производительности, конфиденциальности и стабильности.</h4>
