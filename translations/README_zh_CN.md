@@ -58,23 +58,23 @@ Atlas 是 Windows 10 的修改版本，几乎消除了 Windows 对游戏性能�
 请注意，Atlas 无法确保 Windows 范围之外（例如浏览器和第三方应用程序）的安全性。
 
 ### 🛡️ 安全
-从互联网下载修改后的 Windows ISO 是有风险的。人们不仅可以轻易地恶意更改 Windows 中包含的众多二进制/可执行文件中的一个，还可能没有最新的安全补丁，这会使您的计算机面临严重的安全风险。
+从互联网下载修改过的 Windows ISO 是有风险的。人们可以轻松地篡改 Windows 中众多二进制/可执行文件中的任何一个。这些系统还可能缺少最新的安全补丁，使您的计算机面临严重的安全风险。
 
-Atlas 与他们不同。我们采用 AME Wizard 来部署 Atlas，使用的所有脚本都 GitHub 存储库中开源。您可以将 Atlas playbook（`.apbx`，AME Wizard 脚本包）作为压缩包打开，密码为 `malte` （AME Wizard playbook 的标准，用以绕过杀毒软件误报）。
+Atlas 与它们不同。我们使用 AME Wizard 部署 Atlas，所有用到的脚本都在 GitHub 存储库中开源。您可以将 Atlas playbook（`.apbx`，AME Wizard 脚本包）作为压缩包打开，密码为 `malte` （AME Wizard playbook 的标准，用以绕过杀毒软件误报）。
 
 Playbook 中包含的二进制文件很少，并且都在[此处](https://github.com/Atlas-OS/Atlas-Utilities)以 [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE) 协议开源，哈希值与发行版相同。其他内容都是纯文本。
 
 您还可以在安装 Atlas 之前安装最新的安全更新，并且我们建议您这样做，以保证您的系统安全。
 
-请注意，Atlas v0.2.0 及之前版本删除/禁用了某些安全功能（例如 Windows Defender），因此不如未经修改的 Windows 安全。不过，这些功能中的大部分将在 Atlas v0.3.0 中可选地添加回来。更多信息请参见[此处](https://docs.atlasos.net/troubleshooting/removed-features/)。
+请注意，Atlas v0.2.0 及之前的版本删除/禁用了部分安全功能（例如 Windows Defender），因此其安全性不如原版 Windows。不过，这些功能中的大部分将在 Atlas v0.3.0 中可选地添加回来。更多信息请参见此处。不过，这些功能中的大部分将在 Atlas v0.3.0 中可选地添加回来。更多信息请参见[此处](https://docs.atlasos.net/troubleshooting/removed-features/)。
 
 ### 🚀 精简
-Atlas 移除了大部分 Windows 预装应用和无关紧要的组件。这可能导致兼容性问题，但能显著减少安装体积，并使系统更加流畅。
+Atlas 移除了大部分 Windows 预装应用和不必要的组件。这可能导致兼容性问题，但能显著减少安装体积，并使系统更加流畅。
 
-因此，包括 Windows Defender 在内的一些功能被完全剥离。完整的功能移除列表参见 [FAQ](https://docs.atlasos.net/troubleshooting/removed-features)。
+因此，包括 Windows Defender 在内的一些功能被完全剥离。完整的功能移除列表请参见 [FAQ](https://docs.atlasos.net/troubleshooting/removed-features)。
 
 ### ✅ 性能
-不同于一些过度优化，甚至影响到基本功能（如 Wi-Fi、蓝牙）的精简系统，Atlas 旨在提高性能的同时保持良好的兼容性。我们进行了许多改进来实现这一目标。
+与一些过度优化、甚至影响到基本功能（如 Wi-Fi、蓝牙）的精简系统不同，Atlas 的目标是在保持良好兼容性的同时提高性能。我们进行了许多改进来实现这一目标。
 
 以下是其中的一些改进：
 
@@ -89,8 +89,7 @@ Atlas 移除了大部分 Windows 预装应用和无关紧要的组件。这可�
 - 优化线程调度
 
 ### 🔒 合法
-许多修改版 Windows 被打包为 Windows ISO 镜像来分发。这不仅违反了[微软软件许可条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_SimplifiedChinese.htm)，而且也不是一种安全的安装方式。
-
+许多修改版 Windows 以 Windows ISO 镜像的形式进行分发。这不仅违反了[微软软件许可条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_SimplifiedChinese.htm)，而且也不是安全的安装方式。
 而 Atlas 与 Windows Ameliorated 团队合作，为用户提供更安全、合法的安装方式：[AME Wizard](https://ameliorated.io)。使用 AME Wizard 部署的 Atlas 完全符合[微软软件许可条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_SimplifiedChinese.htm)。
 
 
