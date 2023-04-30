@@ -88,7 +88,11 @@ Playbook 中包含的二进制文件很少，并且都在[此处](https://github
 - 引导配置优化
 - 优化线程调度
 
-## 🎨 视觉形象包
+### 🔒 合法
+许多修改版 Windows 被打包为 Windows ISO 镜像来分发。这不仅违反了[微软软件许可条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_SimplifiedChinese.htm)，而且也不是一种安全的安装方式。
+
+而 Atlas 与 Windows Ameliorated 团队合作，为用户提供更安全、合法的安装方式：[AME Wizard](https://ameliorated.io)。使用 AME Wizard 部署的 Atlas 完全符合[微软软件许可条款](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_SimplifiedChinese.htm)。
+
 
 ## 🎨 视觉形象包
 感到灵感爆发？想要使用原创设计制作属于自己的 Atlas 壁纸？我们的视觉形象包能够助您一臂之力！
@@ -98,7 +102,7 @@ Playbook 中包含的二进制文件很少，并且都在[此处](https://github
 我们还在[论坛](https://forum.atlasos.net/t/art-showcase)上设置了专用版块，以便您与其他创意天才分享讨论，激发灵感！您还可以在此找到其他用户分享的创意壁纸！
 
 ## ⚠️ Disclaimer | 免责声明
-https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
+参见 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors | 翻译贡献者
 [PencilNavigator](https://github.com/PencilNavigator) |
