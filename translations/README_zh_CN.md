@@ -1,91 +1,107 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
-
-<h4 align="center">一个开放的Windows操作系统，旨在优化性能和延迟。</h4>
+  <p align="center">
+    <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
+      <img alt="License" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/>
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors">
+      <img alt="Contributors" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/releases/latest">
+      <img alt="Release" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/releases">
+      <img alt="Release Downloads" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
+    </a>
+  </p>
+<h4 align="center">一个开放透明的操作系统，旨在优化性能、隐私和稳定性。</h4>
 
 <p align="center">
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">安装</a>
+  <a href="https://atlasos.net">官网</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">常见问题(FAQ)</a>
+  <a href="https://docs.atlasos.net">文档</a>
   •
-  <a href="https://discord.atlasos.net">加入我们的 Discord</a>
+  <a href="https://discord.atlasos.net" target="_blank">Discord</a>
   •
-  <a href="https://forum.atlasos.net">前往我们的论坛</a>
+  <a href="https://forum.atlasos.net">论坛</a>
 </p>
 
 
 ## 🤔 Atlas 是什么?
 
-Atlas 是一个修改版的 Windows 10，删除了众多拖慢 Windows 系统的组件（游戏性能下降的罪魁祸首）。Atlas 是一个透明且开源的项目，致力于让玩家享受到同等的待遇（无论是在一台土豆服务器，还是高性能 PC 上运行）。
+Atlas 是 Windows 10 的修改版本，几乎消除了 Windows 对游戏性能产生负面影响的所有缺点。
 
-Atlas 在主要优化性能的同时，也是减少系统、网络、输入延迟的一个极佳选择。
+如果你希望减少系统延迟、网络延迟、输入延迟，并在提升性能的同时保持系统的隐私性，Atlas 也是一个很好的选择。您可以在我们的[官方网站](https://atlasos.net/)上了解更多关于 Atlas 的信息。
 
 ## 📚 **目录**
 
+- 入门
+  - [安装相关](https://docs.atlasos.net/getting-started/installation)
+  - [其他安装方式](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [安装之后](https://docs.atlasos.net/getting-started/post-installation/drivers)
+
+- 故障排除
+  - [移除功能列表](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [脚本](https://docs.atlasos.net/troubleshooting/scripts)
+
 - 常见问题
-  - [安装相关](https://docs.atlasos.net/FAQ/Installation/)
-  - [贡献相关](https://docs.atlasos.net/FAQ/Contribute/)
+  - [Discord](https://docs.atlasos.net/faq/community/discord)
+  - [论坛](https://docs.atlasos.net/faq/community/forums)
+  - [GitHub](https://docs.atlasos.net/faq/community/github)
 
-- 开始安装
-  - [安装](https://docs.atlasos.net/getting-started/installation/)
-  - [其他安装方式](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb/)
-  - [安装后](https://docs.atlasos.net/getting-started/post-installation/drivers/)
-
-- 解决问题
-  - [被移除的功能](https://docs.atlasos.net/troubleshooting/removed-features/)
-  - [脚本](https://docs.atlasos.net/troubleshooting/scripts/)
-
-- <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [品牌工具包](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
-## 🆚 **Windows 对比 Atlas**
+## 👀 **为什么选择 Atlas？**
 
 ### 🔒 隐私
-Atlas 删除了 Windows 中嵌入的所有跟踪器，并在部署时强制执行数百个组策略以最小化数据收集。我们无法保证除 Windows 系统之外的隐私问题，例如您访问的网站。
+未经修改的 Windows 包含跟踪服务，收集您的数据并将其上传到 Microsoft。 Atlas 删除了 Windows 中内嵌的所有类型的跟踪器，并设置了许多组策略以最大限度地减少数据收集。
 
-### 🛡️ 安全性
-Atlas 的目标是在不损失性能的情况下保证系统尽可能的安全。我们通过禁用可能泄露信息或被利用的功能来做到这一点。但也有一些例外，比如 [Spectre](https://spectreattack.com/spectre.pdf)和[Meltdown](https://meltdownattack.com/meltdown.pdf)。您需要禁用这些缓解措施以提高性能。
+请注意，Atlas 无法确保 Windows 范围之外（例如浏览器和第三方应用程序）的安全性。
 
-如果该安全缓解措施降低了性能，我们将会禁用该措施。
-以下是一些被修改的功能/缓解措施，如果它们包含(P)，则表示其安全风险已被修复：
+### 🛡️ 安全
+从互联网下载修改后的 Windows ISO 是有风险的。人们不仅可以轻易地恶意更改 Windows 中包含的众多二进制/可执行文件中的一个，还可能没有最新的安全补丁，这会使您的计算机面临严重的安全风险。
 
-- [Spectre](https://spectreattack.com/spectre.pdf)
-- [Meltdown](https://meltdownattack.com/meltdown.pdf)
-- [DMA Remapping](https://docs.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt)
-- (P) [ATMFD Exploit](https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2020-1020)
-- (P) [Print Nightmare](https://us-cert.cisa.gov/ncas/current-activity/2021/06/30/printnightmare-critical-windows-print-spooler-vulnerability)
-- [远程桌面](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=Windows+Remote+Desktop)
-- [NetBIOS](https://en.wikipedia.org/wiki/NetBIOS) (*可能存在信息检索* )
+Atlas 与他们不同。我们采用 AME Wizard 来部署 Atlas，使用的所有脚本都 GitHub 存储库中开源。您可以将 Atlas playbook（`.apbx`，AME Wizard 脚本包）作为压缩包打开，密码为 `malte` （AME Wizard playbook 的标准，用以绕过杀毒软件误报）。
+
+Playbook 中包含的二进制文件很少，并且都在[此处](https://github.com/Atlas-OS/Atlas-Utilities)以 [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE) 协议开源，哈希值与发行版相同。其他内容都是纯文本。
+
+您还可以在安装 Atlas 之前安装最新的安全更新，并且我们建议您这样做，以保证您的系统安全。
+
+请注意，从 Atlas v0.2.0 开始，由于删除/禁用了安全功能（例如删除了 Windows Defender），Atlas 大多不如常规 Windows 安全。但是，在 Atlas v0.3.0 中，其中大部分将作为可选功能添加回来。有关更多信息，请参见[此处](https://docs.atlasos.net/troubleshooting/removed-features/)。
 
 ### 🚀 精简
-我们删除,剥离了大量的预装的应用程序和其他组件。尽管有可能出现兼容性问题，但这大大减少了ISO镜像和安装空间。诸如Windows Defender之类的功能被完全剥离。
+在 Atlas 中，预安装应用程序与其他无关紧要的组件被移除。尽管可能存在兼容性问题，但这能显著减少安装大小，并使您的系统更加流畅。
 
-这种修改主要针对游戏，（理论上）不会影响大多数教育和工作程序正常工作。您可以前往[常见问题](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)，查看我们删除了什么。
+因此，例如 Windows Defender 的一些功能被完全剥离。完整的功能移除列表参见 [FAQ](https://docs.atlasos.net/troubleshooting/removed-features)。
 
 ### ✅ 性能
-Atlas是被预调试过的。在保持兼容性的同时，也努力追求性能，我们将每一滴性能都挤进了我们的Windows镜像。
+不同于一些过度优化，甚至影响基本功能（如 Wi-Fi、蓝牙）的精简系统，Atlas 旨在提高性能的同时保持良好的兼容性。我们进行了许多改进来实现这一目标。
+
+以下是其中的一些改进：
 
 - 自定义电源计划
-- 减少服务程序
-- 减少驱动程序
+- 减少服务和驱动程序数量
+- 禁用音频独占
 - 禁用不需要的设备
-- 禁用节电功能
+- 禁用节电功能（对于个人计算机）
 - 禁用影响性能的安全缓解措施
 - 自动启用 MSI（信息信号中断）模式
 - 引导配置优化
 - 优化线程调度
 
-## 🎨 品牌工具包
+## 🎨 视觉形象包
 
-想制作自己的 Atlas 壁纸吗？也许你可以用我们的 logo 来制作你自己的设计？功能面向社区开放，以激发整个社区的创意。[尝试制作一些让人眼前一亮的东西！](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+## 🎨 视觉形象包
+感到灵感爆发？想要使用原创设计制作属于自己的 Atlas 壁纸？我们的视觉形象包能够助您一臂之力！
 
-我们在 论坛 页面有专门的分区用于分享社区制作的壁纸，您可以前往[这里](https://forum.atlasos.net/t/art-showcase)发布您独一无二的创意作品！
+任何人都可以使用 Atlas 视觉形象包 - 您可以在[这里](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)下载它，创作一些令人惊叹的作品！
 
-## ⚠️ Disclaimer (免责声明)
+我们还在[论坛](https://forum.atlasos.net/t/art-showcase)上设置了专用版块，以便您与其他创意天才分享讨论，激发灵感！您还可以在此找到其他用户分享的创意壁纸！
+
+## ⚠️ Disclaimer | 免责声明
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
-## Translation contributors (翻译贡献者)
+## Translation contributors | 翻译贡献者
 [PencilNavigator](https://github.com/PencilNavigator) |
 [Colin](https://github.com/0bo) |
-[Pea Soft](https://github.com/peasoft)
+[Pea Soft](https://github.com/peasoft) |
+[Alex3236](https://github.com/alex3236)
