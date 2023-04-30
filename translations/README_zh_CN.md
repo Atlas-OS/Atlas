@@ -69,12 +69,12 @@ Playbook 中包含的二进制文件很少，并且都在[此处](https://github
 请注意，Atlas v0.2.0 及之前版本删除/禁用了某些安全功能（例如 Windows Defender），因此不如未经修改的 Windows 安全。不过，这些功能中的大部分将在 Atlas v0.3.0 中可选地添加回来。更多信息请参见[此处](https://docs.atlasos.net/troubleshooting/removed-features/)。
 
 ### 🚀 精简
-在 Atlas 中，预安装应用程序与其他无关紧要的组件被移除。尽管可能存在兼容性问题，但这能显著减少安装大小，并使您的系统更加流畅。
+Atlas 移除了大部分 Windows 预装应用和无关紧要的组件。这可能导致兼容性问题，但能显著减少安装体积，并使系统更加流畅。
 
-因此，例如 Windows Defender 的一些功能被完全剥离。完整的功能移除列表参见 [FAQ](https://docs.atlasos.net/troubleshooting/removed-features)。
+因此，包括 Windows Defender 在内的一些功能被完全剥离。完整的功能移除列表参见 [FAQ](https://docs.atlasos.net/troubleshooting/removed-features)。
 
 ### ✅ 性能
-不同于一些过度优化，甚至影响基本功能（如 Wi-Fi、蓝牙）的精简系统，Atlas 旨在提高性能的同时保持良好的兼容性。我们进行了许多改进来实现这一目标。
+不同于一些过度优化，甚至影响到基本功能（如 Wi-Fi、蓝牙）的精简系统，Atlas 旨在提高性能的同时保持良好的兼容性。我们进行了许多改进来实现这一目标。
 
 以下是其中的一些改进：
 
