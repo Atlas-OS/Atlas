@@ -1,4 +1,3 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -11,6 +10,9 @@
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/releases/latest">
       <img alt="Dernière version" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=Derni%C3%A8re%20version" />
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/releases">
+      <img alt="Téléchargements" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF&label=T%C3%A9l%C3%A9chargements" />
     </a>
   </p>
 <h4 align="center">Un système d'exploitation ouvert et transparent, conçu pour optimiser les performances, la confidentialité et la stabilité.</h4>
@@ -55,10 +57,16 @@ Atlas supprime tous les types de traçage intégrés à Windows et met en œuvre
 
 Notez qu'Atlas ne peut pas garantir la sécurité des éléments en dehors du champ d'application de Windows (tels que les navigateurs et les applications tierces).
 
-### 🛡️ Plus sécurisé
-Le téléchargement d'un fichier ISO modifié sur internet est risqué. Non seulement elle peut contenir des scripts malveillants, mais elle peut également ne pas comporter les derniers correctifs de sécurité, ce qui peut exposer votre ordinateur à de graves risques de sécurité. 
+### 🛡️ Plus sécurisé comparé à un ISO modifié
+Le téléchargement d'un fichier ISO modifié sur internet est risqué. Non seulement des personnes peuvent facilement modifier de manière malveillante l'un des nombreux fichiers binaires/exécutables inclus dans Windows, mais il se peut également que l'ISO ne contienne pas les derniers correctifs de sécurité, ce qui peut exposer votre ordinateur à de graves risques de sécurité. 
 
-Atlas est différent. Nous utilisons [AME Wizard](https://ameliorated.io) pour déployer, et tous les scripts que nous utilisons sont en libre accès dans notre dépôt. Vous pouvez également appliquer les dernières mises à jour de sécurité avant d'installer Atlas, afin de garantir la sécurité de votre système.
+Atlas est différent. Nous utilisons [AME Wizard](https://ameliorated.io) pour installer Atlas, et tous les scripts que nous utilisons sont open source ici dans notre dépôt GitHub. Vous pouvez ouvrir le playbook Atlas packagé (`.apbx` - scripts AME Wizard packagés) comme une archive, avec le mot de passe `malte` (le standard pour les playbooks AME Wizard). Le mot de passe existe seulement pour contourner les faux positifs des antivirus.
+
+Les seuls exécutables inclus dans le playbook sont open source et visualisable [ici](https://github.com/Atlas-OS/Atlas-Utilities) sous licence [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE), les hashs étant identiques à ceux des releases. Tout le reste est en clair.
+
+Vous pouvez également installer les dernières mises à jour de sécurité Windows avant d'installer Atlas, ce que nous recommandons pour garder votre système sécurisé.
+
+Veuillez noter que jusqu'à la version 0.2.0, Atlas n'est **pas aussi sécurisé que Windows** en raison des fonctions de sécurité supprimées/désactivées, comme par exemple Windows Defender qui a été supprimé. Cependant, dans Atlas v0.3.0, la plupart de ces fonctions seront réintégrées en option. Voir [ici](https://docs.atlasos.net/troubleshooting/removed-features/) pour plus d'informations.
 
 ### 🚀 Plus léger
 Les applications préinstallées et autres composants insignifiants sont supprimés avec Atlas. Malgré la possibilité de problèmes de compatibilité, cela réduit considérablement la taille de l'installation et rend votre système plus fluide. Par conséquent, certaines fonctionnalités (telles que Windows Defender) sont complètement supprimées.

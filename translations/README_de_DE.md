@@ -1,18 +1,20 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
-<p align="center">
-  <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
-    <img alt="Lizenz" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF&label=Lizenz"/>
-  </a>
-  <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors">
-    <img alt="Mitwirkende" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=Mitwirkende" />
-  </a>
-  <a href="https://github.com/Atlas-OS/Atlas/releases/latest">
-    <img alt="Aktuelle Version" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=Aktuelle Version" />
-  </a>
-</p>
+  <p align="center">
+    <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
+      <img alt="Lizenz" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF&label=Lizenz"/>
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors">
+      <img alt="Mitwirkende" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=Mitwirkende" />
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/releases/latest">
+      <img alt="Aktuelle Version" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=Aktuelle Version" />
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/releases">
+      <img alt="Release Downloads" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
+      </a>
+  </p>
 <h4 align="center">Ein offenes und transparentes Windows-Betriebssystem, das zur Optimierung von Leistung, Privatsphäre und Stabilität entwickelt wurde.</h4>
 
 <p align="center">
@@ -53,10 +55,16 @@ Atlas entfernt alle Arten von Tracking, die in Windows eingebettet sind, und imp
 
 Was außerhalb des Bereichs von Windows liegt, können wir jedoch hinsichtlich des Datenschutzes nicht verbessern, wie zum Beispiel Websites, die Sie besuchen oder Programme von Drittherstellern.
 
-### 🛡️ Mehr Sicherheit
-Eine veränderte Windows ISO aus dem Internet herunterzuladen ist riskant. Sie kann nicht nur bösartige Skripte enthalten, sie enthält möglicherweise nicht die neuesten Sicherheitsupdates, was ein Sicherheitsrisiko für deinen Computer darstellt.
+### 🛡️ Mehr Sicherheit gegenüber benutzerdefinierten Windows-ISOs
+Eine veränderte Windows ISO aus dem Internet herunterzuladen ist riskant. Nicht nur können Personen einfach eine der vielen binären/ausführbaren Dateien, die in Windows enthalten sind, böswillig ändern, sie enthält möglicherweise nicht die neuesten Sicherheitsupdates, was ein Sicherheitsrisiko für deinen Computer darstellt.
 
-Atlas ist anders. Wir benutzen [AME Wizard](https://ameliorated.io) um unsere Pakete bereitzustellen und alle unsere Skripte sind Open-Source hier in unserem Repository zu finden. Du kannst auch alle neusten Sicherheitsupdates anwenden bevor du Atlas installierst um dein System sicher und geschützt zu halten.
+Atlas ist anders. Wir benutzen [AME Wizard](https://ameliorated.io) um Atlas zu installieren und alle unsere Skripte sind Open-Source hier in unserem Repository zu finden. Du kannst das gepackte Atlas-Playbook (`.apbx` - AME Wizard script package) als Archiv anschauen, indem du `malte` (das Standardpasswort für AME Wizard Playbooks) als Passwort verwendest, damit Antiviruse es nicht fälschlicherweise Weise als Virus erkennen.
+
+Die einzigen ausführbaren Dateien, die im Playbook enthalten sind, sind Open-Sourced [hier](https://github.com/Atlas-OS/Atlas-Utilities) unter [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE), wobei die Hashes mit denen aus dem neustem Release (der neusten Atlas-Version) übereinstimmen. Alles andere ist im Klartext.
+
+Du kannst auch alle neusten Sicherheitsupdates anwenden bevor du Atlas installierst um dein System sicher und geschützt zu halten.
+
+Bitte beachte, das mit Atlas v0.2.0, Atlas größtenteils **nicht so sicher wie normales Windows ist**, aufgrund von entfernten/deaktivieten Sicherheitsfunktionen, wie z.B Windows Defender. Allerdings werden in Atlas v0.3.0 die meisten Funktionen als optionale Funktionen hinzugefügt. Schau [hier](https://docs.atlasos.net/troubleshooting/removed-features/) für mehr Informationen.
 
 ### 🚀 Mehr Speicherplatz
 Vorinstallierte Anwendungen und andere Komponenten wurden entfernt. Trotz möglicher Kompatibilitätsprobleme wird dadurch die Installationsgröße erheblich verringert und das System läuft flüssiger. Aus diesem Grund sind bestimmte Funktionen wie Windows Defender usw. vollständig entfernt.

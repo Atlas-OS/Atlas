@@ -4,6 +4,7 @@
 	<ProgramsMenuDelay value="99999999"/>
 	<RecentPrograms value="None"/>
 	<StartScreenShortcut value="0"/>
+	<CheckWinUpdates value="0"/>
 	<SkinW7 value="Fluent-Metro"/>
 	<SkinVariationW7 value=""/>
 	<SkinOptionsW7>
