@@ -13,6 +13,10 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "3" /f > nul
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f > nul
 
+:: Rename Spectre and Meltdown updates
+ren !windir!\System32\mcupdate_GenuineIntel.dll mcupdate_GenuineIntel.old
+ren !windir!\System32\mcupdate_AuthenticAMD.dll mcupdate_AuthenticAMD.old
+
 :: Disable Fault Tolerant Heap (FTH)
 :: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
 :: Document listed as only affected in Windows 7, is also in 7+
@@ -53,7 +57,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorE
 :: Disable Data Execution Prevention (DEP)
 :: It may be needed to enable it for FACEIT, Valorant and other anti-cheats
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
-PowerShell -NoP -C "Set-ProcessMitigation -System -Disable DEP, EmulateAtlThunks" > nul
+PowerShell -NoP -C "Set-ProcessMitigation -System -Disable DEP, EmulateAtlThunks"
 bcdedit /set nx AlwaysOff > nul
 
 :: Disable file system mitigations

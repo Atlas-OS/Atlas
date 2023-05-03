@@ -10,6 +10,10 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /f > nul 2>&1
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /f > nul 2>&1
 
+:: Rename Spectre and Meltdown updates
+ren !windir!\System32\mcupdate_GenuineIntel.old mcupdate_GenuineIntel.dll > nul 2>&1
+ren !windir!\System32\mcupdate_AuthenticAMD.old mcupdate_AuthenticAMD.dll > nul 2>&1
+
 :: Enable Fault Tolerant Heap (FTH)
 :: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
 :: Document listed as only affected in Windows 7, is also in 7+

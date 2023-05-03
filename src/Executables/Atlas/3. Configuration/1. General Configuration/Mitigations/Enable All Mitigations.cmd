@@ -24,6 +24,10 @@ wmic cpu get name | findstr "AMD" > nul && (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "64" /f > nul
 )
 
+:: Rename Spectre and Meltdown updates
+ren !windir!\System32\mcupdate_GenuineIntel.old mcupdate_GenuineIntel.dll > nul 2>&1
+ren !windir!\System32\mcupdate_AuthenticAMD.old mcupdate_AuthenticAMD.dll > nul 2>&1
+
 :: Enable Fault Tolerant Heap (FTH)
 :: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
 :: Document listed as only affected in Windows 7, is also in 7+
