@@ -3,16 +3,16 @@
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
-      <img alt="License" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/>
+      <img alt="Licenca" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/>
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors">
-      <img alt="Contributors" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
+      <img alt="Suradnici" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/releases/latest">
-      <img alt="Release" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
+      <img alt="Izdanje" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/releases">
-      <img alt="Release Downloads" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
+      <img alt="Preuzimanja izdanja" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
     </a>
   </p>
 <h4 align="center">Otvoren i transparentan operativni sustav, dizajniran za optimizaciju performansi, privatnost i stabilnost.</h4>
@@ -87,9 +87,9 @@ Neke od mnogih promjena koje smo učinili kako bismo poboljšali sustav Windows 
 - Optimizirano planiranje procesa
 
 ### 🔒 Legalnost
-Mnogi prilagođeni operacijski sustavi Windows distribuiraju svoje sustave pružajući prilagođeni ISO sustava Windows. Ne samo da krši [Microsoftove uvjete pružanja usluge](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), ali također nije siguran način instaliranja.
+Mnogi prilagođeni operacijski sustavi Windows distribuiraju svoje sustave pružajući prilagođeni ISO sustava Windows. Ne samo da krši [Microsoftove uvjete pružanja usluge](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_Croatian.htm), ali također nije siguran način instaliranja.
 
-Atlas se udružio s Windows Ameliorated Teamom kako bi korisnicima pružio sigurniji i legalan način instalacije: [AME Wizard](https://ameliorated.io). Sa time, Atlas u potpunosti udovoljava [Microsoftove uvjete pružanja usluge](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+Atlas se udružio s Windows Ameliorated Teamom kako bi korisnicima pružio sigurniji i legalan način instalacije: [AME Wizard](https://ameliorated.io). Sa time, Atlas u potpunosti udovoljava [Microsoftove uvjete pružanja usluge](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_Croatian.htm).
 
 ## 🎨 Komplet marke
 Osjećate se kreativno? Želite li izraditi vlastitu Atlas pozadinu s originalnim kreativnim dizajnom? Naš komplet marke vas pokriva!
@@ -100,4 +100,4 @@ Također imamo namjenjen prostor na našem [forumu](https://forum.atlasos.net/t/
 ## ⚠️ Disclaimer
 Atlas-OS **NIJE** unaprijed aktivirana verzija Windowsa. Vi **morate** koristiti važeći ključ za aktiviranje sustava Windows. Prije kupnje licence za Windows 10 (Professional ili Home) provjerite je li prodavatelj vrijedan povjerenja i je li ključ legitiman — bez obzira gdje ga kupujete.
 
-Atlas se temelji na Microsoft Windowsima. Korištenjem sustava Windows pristajete na [Microsoftove uvjete pružanja usluge](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+Atlas se temelji na Microsoft Windowsima. Korištenjem sustava Windows pristajete na [Microsoftove uvjete pružanja usluge](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_Croatian.htm).
