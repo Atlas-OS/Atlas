@@ -101,3 +101,6 @@ Također imamo namjenjen prostor na našem [forumu](https://forum.atlasos.net/t/
 Atlas-OS **NIJE** unaprijed aktivirana verzija Windowsa. Vi **morate** koristiti važeći ključ za aktiviranje sustava Windows. Prije kupnje licence za Windows 10 (Professional ili Home) provjerite je li prodavatelj vrijedan povjerenja i je li ključ legitiman — bez obzira gdje ga kupujete.
 
 Atlas se temelji na Microsoft Windowsima. Korištenjem sustava Windows pristajete na [Microsoftove uvjete pružanja usluge](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/Useterms_Retail_Windows_10_Croatian.htm).
+
+## ✏️ Zasluge/Credits
+[Antun Nitraj](https://github.com/antunnitraj)
