@@ -1640,11 +1640,6 @@ actions:
     value: 'DoNotShowFeedbackNotifications'
     data: '1'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'DoNotShowFeedbackNotifications'
-    data: '1'
-    type: REG_DWORD
 
     # Disable setting synchronization
   - !registryValue:
