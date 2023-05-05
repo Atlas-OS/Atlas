@@ -27,27 +27,25 @@
   <a href="https://forum.atlasos.net">Forum</a>
 </p>
 
-# Read this file in other languages
-
-<kbd>[<img title="Bosanski" alt="Bosanski" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ba.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_bs_BA.md)</kbd>
-<kbd>[<img title="Português (Brasil)" alt="Português (Brasil)" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/br.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_pt_BR.md)</kbd>
-<kbd>[<img title="Български" alt="Български" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/bg.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_bg_BG.md)</kbd>
-<kbd>[<img title="中文（简体）" alt="中文（简体）" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/cn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_zh_CN.md)</kbd>
-<kbd>[<img title="Française" alt="Française" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/fr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_fr_FR.md)</kbd>
-<kbd>[<img title="Deutsch" alt="Deutsch" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/de.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_de_DE.md)</kbd>
-<kbd>[<img title="हिंदी" alt="हिंदी" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/in.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_hi_HI.md)</kbd>
-<kbd>[<img title="Bahasa Indonesia" alt="Bahasa Indonesia" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/id.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_id_ID.md)</kbd>
-<kbd>[<img title="Italiano" alt="Italiano" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/it.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_it_IT.md)</kbd>
-<kbd>[<img title="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" alt="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ph.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ph_PH.md)</kbd>
-<kbd>[<img title="Polski" alt="Polski" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/pl.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_pl_PL.md)</kbd>
-<kbd>[<img title="Русский" alt="Русский" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ru.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ru_RU.md)</kbd>
-<kbd>[<img title="العربية" alt="العربية" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/sa.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ar_SA.md)</kbd>
-<kbd>[<img title="Español" alt="Español" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/es.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_es_ES.md)</kbd>
-<kbd>[<img title="Svenska" alt="Svenska" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/se.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_sv_SE.md)</kbd>
-<kbd>[<img title="Türkçe" alt="Türkçe" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/tr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_tr_TR.md)</kbd>
-<kbd>[<img title="українська мова" alt="українська мова" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ua.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ua_UA.md)</kbd>
-<kbd>[<img title="Tiếng Việt" alt="Tiếng Việt" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/vn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_vi_VN.md)</kbd>
-
+# Translations
+<kbd>[<img title="العربية" alt="العربية" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/sa.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ar_SA.md)</kbd>
+<kbd>[<img title="Български" alt="Български" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/bg.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_bg_BG.md)</kbd>
+<kbd>[<img title="Bosanski" alt="Bosanski" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ba.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_bs_BA.md)</kbd>
+<kbd>[<img title="Deutsch" alt="Deutsch" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/de.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_de_DE.md)</kbd>
+<kbd>[<img title="Español" alt="Español" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/es.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_es_ES.md)</kbd>
+<kbd>[<img title="Française" alt="Française" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/fr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_fr_FR.md)</kbd>
+<kbd>[<img title="हिंदी" alt="हिंदी" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/in.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_hi_HI.md)</kbd>
+<kbd>[<img title="Bahasa Indonesia" alt="Bahasa Indonesia" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/id.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_id_ID.md)</kbd>
+<kbd>[<img title="Italiano" alt="Italiano" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/it.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_it_IT.md)</kbd>
+<kbd>[<img title="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" alt="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ph.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ph_PH.md)</kbd>
+<kbd>[<img title="Polski" alt="Polski" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/pl.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_pl_PL.md)</kbd>
+<kbd>[<img title="Português (Brasil)" alt="Português (Brasil)" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/br.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_pt_BR.md)</kbd>
+<kbd>[<img title="Русский" alt="Русский" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ru.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ru_RU.md)</kbd>
+<kbd>[<img title="Svenska" alt="Svenska" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/se.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_sv_SE.md)</kbd>
+<kbd>[<img title="Türkçe" alt="Türkçe" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/tr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_tr_TR.md)</kbd>
+<kbd>[<img title="українська мова" alt="українська мова" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ua.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ua_UA.md)</kbd>
+<kbd>[<img title="Tiếng Việt" alt="Tiếng Việt" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/vn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_vi_VN.md)</kbd>
+<kbd>[<img title="中文" alt="中文" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/cn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_zh_CN.md)</kbd>
 #### _Do you want to help us by translating documents? If so, please follow these [instructions](https://github.com/Atlas-OS/Atlas/blob/main/translations/README.md)._
 
 ## 🤔 **What is Atlas?**
