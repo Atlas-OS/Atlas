@@ -8,11 +8,11 @@ actions:
   
   ## Double hashtags are used to differentiate between actual comments and commented code
   
-  ## The overall goal here is to strip as least as possible for compatibility reasons, the only things being stripped should be *true* bloat and somehow harmful to the user  
+  ## The overall goal here is to strip as least as possible for compatibility reasons, the only things being stripped should be true bloatware and somehow harmful to the user  
 
   - !writeStatus: {status: 'Removing system packages'}
 
-  ## Unorganised AppX packages
+  ## Unorganized AppX packages
   # - !systemPackage: {name: 'Microsoft-Windows-HEIF-Image-Codec', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-HEIF-Image-Codec', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-AddSuggestedFoldersToLibraryDialog.AppxMain', arch: amd64, language: 'neutral'}

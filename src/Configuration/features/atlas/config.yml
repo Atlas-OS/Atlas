@@ -1827,7 +1827,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Set SystemResponsiveness to 10
+    # Set System Responsiveness to 10
     # https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service#registry-settings
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
@@ -1931,7 +1931,9 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Set Win32PrioritySeparation to short, variable, high foreground boost
+    # Set Win32PrioritySeparation
+    # Short, Variable, High foreground boost
+    # 26 hexadecimal | 38 decimal (default: Programs)
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl'
     value: 'Win32PrioritySeparation'
