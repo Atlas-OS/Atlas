@@ -5,7 +5,7 @@ privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Configuring system'}
 
-    # Prevent privacy OOBE when creating a new user
+    # Do not launch privacy settings experience on user logon
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\OOBE'
     value: 'DisablePrivacyExperience'
@@ -172,17 +172,6 @@ actions:
     value: 'SettingsPageVisibility'
     data: 'hide:quiethours;tabletmode;project;crossdevice;remotedesktop;mobile-devices;network-cellular;network-wificalling;network-airplanemode;nfctransactions;maps;sync;speech;easeofaccess-magnifier;easeofaccess-narrator;easeofaccess-speechrecognition;easeofaccess-eyecontrol;privacy-speech;privacy-general;privacy-speechtyping;privacy-feedback;privacy-activityhistory;privacy-location;privacy-callhistory;privacy-eyetracker;privacy-messaging;privacy-automaticfiledownloads;windowsupdate;delivery-optimization;windowsdefender;backup;recovery;findmydevice;windowsinsider'
     type: REG_SZ
-
-    # Disable and delete adobe font type manager
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Font Drivers'
-    value: 'Adobe Type Manager'
-    operation: delete
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows'
-    value: 'DisableATMFD'
-    data: '1'
-    type: REG_DWORD
 
     # Disable USB autorun/play
   - !registryValue:
