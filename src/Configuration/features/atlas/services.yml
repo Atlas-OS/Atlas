@@ -26,7 +26,6 @@ actions:
 
   # Delete
   - !service: {name: 'AssignedAccessManagerSvc', operation: delete}
-  - !service: {name: 'DiagTrack', operation: delete}
   - !service: {name: 'RetailDemo', operation: delete}
   
   # Defender
@@ -58,7 +57,7 @@ actions:
   - !service: {name: 'CryptSvc', operation: change, startup: 3}
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
   - !service: {name: 'diagsvc', operation: change, startup: 4}
-  - !service: {name: 'diagtrack', operation: change, startup: 4}
+  - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
   # DisplayEnhancementService 4 < breaks brightness slider
   - !service: {name: 'DoSvc', operation: change, startup: 3}
