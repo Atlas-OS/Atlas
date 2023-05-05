@@ -33,7 +33,7 @@ Atlas je modificirana verzija sustava Windows 10 koja uklanja gotovo sve nedosta
 Atlas je također dobra opcija za smanjenje latencije sustava, latencije mreže, kašnjenja unosa te zadržava privatnost vašeg sustava dok se fokusira na performanse.
 Više o Atlasu možete saznati na našoj službenoj [web stranici](https://atlasos.net).
 
-## 📚 **Sadržaj*
+## 📚 **Sadržaj**
 
 - Početak rada
   - [Instalacija](https://docs.atlasos.net/getting-started/installation)
