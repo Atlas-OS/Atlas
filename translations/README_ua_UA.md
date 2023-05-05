@@ -1,4 +1,3 @@
-Зауважте: Це перекладена версія, оригінал: [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), інформація може бути неточною чи застарілою.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -101,3 +100,8 @@ Atlas є партнером команди Ameliorated, щоб забезпеч�
 
 ## ⚠️ Дисклеймер
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
+
+## Translation contributors (Дописувачі перекладу)
+[kentffg](https://github.com/kentffg) |
+[Xyueta](https://github.com/Xyueta) |
+[va1dee](https://github.com/va1dee)
