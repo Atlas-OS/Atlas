@@ -8,7 +8,7 @@ First of all: thank you for considering helping us by translating the documents!
 - Translate the file, keep your translation close to the original text, and make sure to follow the stuff below.
 
 ```
-**THE DISCLAIMER SHOULD NOT BE TRANSLATED**. Keep the disclaimer section as it's link form.
+THE DISCLAIMER SHOULD NOT BE TRANSLATED. Keep the disclaimer section as its link form.
 
 Do not modify the original "README_translate.md" formatting.
 
