@@ -219,7 +219,7 @@ actions:
     type: REG_DWORD
 
     # Restrict anonymous enumeration of shares
-    # https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220930
+    # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220930
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa'
     value: 'RestrictAnonymous'
