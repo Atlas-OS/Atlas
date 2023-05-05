@@ -17,7 +17,7 @@ Avoid changing anything other then the text you need to translate.
 "Atlas", "Spectre" and "Meltdown" should all be kept in English, due to "Atlas" being the organization name and the rest being documented names.
 ```
 
-- Add the flag button for the translated document into the main [README.md](https://github.com/Atlas-OS/Atlas/blob/main). 
+- Add the flag button for the translated document into the main [README.md](https://github.com/Atlas-OS/Atlas/blob/main) (make sure to put it in alphabetical order of it's ISO code.)
 
 - Double check your translation.
 
