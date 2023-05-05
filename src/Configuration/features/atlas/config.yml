@@ -203,13 +203,6 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable SMB compression (possible SMBGhost vulnerability workaround)
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters'
-    value: 'DisableCompression'
-    data: '1'
-    type: REG_DWORD
-
     # Disable SMB bandwidth throttling
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters'
