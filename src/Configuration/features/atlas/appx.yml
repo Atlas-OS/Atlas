@@ -4,6 +4,7 @@ description: Removes APPX packages
 privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Removing APPX packages'}
+  # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
   
   # Comments - packages added back that do not get in the way of users at all, and are only dependencies or hidden, meaningless applications
   # Most of these applications can be reinstalled via Microsoft Store for users that need them

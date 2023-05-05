@@ -243,15 +243,9 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable hotspot 2.0 networks
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\WlanSvc\AnqpCache'
-    value: 'OsuRegistrationStatus'
-    data: '0'
-    type: REG_DWORD
-
     # Set strong cryptography on 64 bit and 32 bit .Net Framework (version 4 and above) to fix the Scoop installation issue
     # https://github.com/ScoopInstaller/Scoop/issues/2040#issuecomment-369686748
+    # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\.NetFramework\v4.0.30319'
     value: 'SchUseStrongCrypto'
@@ -365,21 +359,19 @@ actions:
   - !run: {exe: 'netsh', args: 'interface Teredo set state type=enterpriseclient'}
   - !run: {exe: 'netsh', args: 'interface Teredo set state servername=default'}
 
+    # Do not limit reservable bandwidth
     # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosNonBestEffortLimit
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched'
     value: 'NonBestEffortLimit'
     data: '0'
     type: REG_DWORD
+
+    # Set Network Stack (Packet Scheduler) timer resolution
     # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosTimerResolution
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched'
     value: 'TimerResolution'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\QoS'
-    value: 'Do not use NLA'
     data: '1'
     type: REG_DWORD
 
@@ -459,7 +451,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Set GPO for start menu (tiles)
+    # Lock start menu layout and disable tiles
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
     value: 'StartLayoutFile'
@@ -470,16 +462,6 @@ actions:
     value: 'LockedStartLayout'
     data: '1'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
-    value: 'DisableNotificationCenter'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Group Policy Objects\{2F5183E9-4A32-40DD-9639-F9FAF80C79F4}Machine\Software\Policies\Microsoft\Windows\Explorer'
-    value: 'StartLayoutFile'
-    data: 'C:\Windows\layout.xml'
-    type: REG_EXPAND_SZ
 
     # Configure start menu settings
   - !registryValue:
@@ -515,6 +497,11 @@ actions:
 
     # Decrease shutdown time
   - !registryValue: 
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'WaitToKillAppTimeOut'
+    data: '2000'
+    type: REG_SZ
+  - !registryValue: 
     path: 'HKLM\SYSTEM\CurrentControlSet\Control'
     value: 'WaitToKillServiceTimeout'
     data: '2000'
@@ -528,11 +515,6 @@ actions:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control'
     value: 'AutoEndTasks'
     data: '1'
-    type: REG_SZ
-  - !registryValue: 
-    path: 'HKCU\Control Panel\Desktop'
-    value: 'WaitToKillAppTimeOut'
-    data: '2000'
     type: REG_SZ
 
     # Enable dark mode and disable transparency
@@ -585,7 +567,7 @@ actions:
     data: '0'
     type: REG_SZ
 
-    # Do not allow themes to changes desktop icons and mouse pointers
+    # Disallow themes to changes desktop icons and mouse pointers
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
     value: 'ThemeChangesMousePointers'
@@ -626,7 +608,7 @@ actions:
     data: '246 253 255'
     type: REG_SZ
 
-    # Disable auto download of Microsoft Store applications
+    # Disable the automatic download and installation of application updates
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\WindowsStore'
     value: 'AutoDownload'
@@ -654,7 +636,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable speech model updates
+    # Disable automatic updates of the speech data
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Speech'
     value: 'AllowSpeechModelUpdate'
@@ -662,6 +644,13 @@ actions:
     type: REG_DWORD
 
     # Disable online speech recognition
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy'
+    value: 'HasAccepted'
+    data: '0'
+    type: REG_DWORD
+
+    # Disallow users to enable online speech recognition services
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\InputPersonalization'
     value: 'AllowInputPersonalization'
@@ -671,12 +660,12 @@ actions:
     # Disable Windows Insider and build previews
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds'
-    value: 'EnableConfigFlighting'
+    value: 'AllowBuildPreview'
     data: '0'
     type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds'
-    value: 'AllowBuildPreview'
+    value: 'EnableConfigFlighting'
     data: '0'
     type: REG_DWORD
   - !registryValue:
@@ -706,11 +695,6 @@ actions:
     value: 'CEIPEnable'
     data: '0'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Wow6432Node\Microsoft\VSCommon\15.0\SQM'
-    value: 'OptIn'
-    data: '0'
-    type: REG_DWORD
 
     # Disable switching to the Secure Desktop when prompting for elevation
     # As a note, UAC will not save you from well-made malware, UAC can easily be bypassed on Windows (check GitHub).
@@ -728,7 +712,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable Windows DRM internet access
+    # Prevent Windows Media DRM internet access
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\WMDRM'
     value: 'DisableOnline'
@@ -742,22 +726,21 @@ actions:
     data: '1'
     type: REG_DWORD
 
+    # Disable Windows Media Player diagnostics
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences'
+    value: 'UsageTracking'
+    data: '0'
+    type: REG_DWORD
+
+    # Disallow message service cloud sync
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Messaging'
+    value: 'AllowMessageSync'
+    data: '0'
+    type: REG_DWORD
+
     # Configure search settings
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
-    value: 'ConnectedSearchUseWeb'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
-    value: 'DisableWebSearch'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
-    value: 'AllowCloudSearch'
-    data: '0'
-    type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
     value: 'BingSearchEnabled'
@@ -770,12 +753,12 @@ actions:
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
-    value: 'IsMSACloudSearchEnabled'
+    value: 'IsDeviceSearchHistoryEnabled'
     data: '0'
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
-    value: 'IsDeviceSearchHistoryEnabled'
+    value: 'IsMSACloudSearchEnabled'
     data: '0'
     type: REG_DWORD
   - !registryValue:
@@ -783,8 +766,23 @@ actions:
     value: 'SafeSearchMode'
     data: '0'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'ConnectedSearchUseWeb'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'DisableWebSearch'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'EnableDynamicContentInWSB'
+    data: '0'
+    type: REG_DWORD
 
-    # Disable search suggestions
+    # Disable search online and include web results from Bing
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer'
     value: 'DisableSearchBoxSuggestions'
@@ -970,24 +968,10 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Do not track shell shortcuts during roaming
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-    value: 'LinkResolveIgnoreLinkInfo'
-    data: '1'
-    type: REG_DWORD
-
     # Disable user tracking
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'NoInstrumentation'
-    data: '1'
-    type: REG_DWORD
-
-    # Disable internet file association service
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-    value: 'NoInternetOpenWith'
     data: '1'
     type: REG_DWORD
 
@@ -998,7 +982,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Do not history of recently opened documents
+    # Do not keep history of recently opened documents
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'NoRecentDocsHistory'
@@ -1019,7 +1003,7 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Do not allow pinning Microsoft Store app to taskbar
+    # Disallow pinning Microsoft Store app to taskbar
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer'
     value: 'NoPinningStoreToTaskbar'
@@ -1030,6 +1014,13 @@ actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer'
     value: 'NoRemoteDestinations'
+    data: '1'
+    type: REG_DWORD
+
+    # Disable internet file association service
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'NoInternetOpenWith'
     data: '1'
     type: REG_DWORD
 
@@ -1193,20 +1184,6 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Disable disk quota
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DiskQuota'
-    value: 'Enable'
-    data: '0'
-    type: REG_DWORD
-
-    # Add Atlas' website as a start page in Internet Explorer
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Policies\Microsoft\Internet Explorer\Main'
-    value: 'Start Page'
-    data: 'https://atlasos.net'
-    type: REG_SZ
-
     # Disable Program Compatibility Assistant (PCA)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
@@ -1220,22 +1197,22 @@ actions:
     type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
-    value: 'DisableInventory'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
-    value: 'DisableUAR'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
     value: 'DisableEngine'
     data: '1'
     type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
+    value: 'DisableInventory'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
     value: 'DisablePCA'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
+    value: 'DisableUAR'
     data: '1'
     type: REG_DWORD
 
@@ -1277,13 +1254,6 @@ actions:
     data: '0'
     type: REG_SZ
 
-    # Disable mouse wheel scrolling on inactive windows
-  - !registryValue:
-    path: 'HKCU\Control Panel\Desktop'
-    value: 'MouseWheelRouting'
-    data: '0'
-    type: REG_SZ
-
     # Reduce mouse hover time to 20 milliseconds
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
@@ -1291,7 +1261,7 @@ actions:
     data: '20'
     type: REG_SZ
 
-    # Configure ease of access settings
+    # Configure Ease of Access settings
 
     # Disable always read and scan this section in ease of access
   - !registryValue:
@@ -1405,17 +1375,7 @@ actions:
     # Disable spell checking
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnableSpellchecking'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnableTextPrediction'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnablePredictionSpaceInsertion'
+    value: 'EnableAutocorrection'
     data: '0'
     type: REG_DWORD
   - !registryValue:
@@ -1425,7 +1385,17 @@ actions:
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnableAutocorrection'
+    value: 'EnablePredictionSpaceInsertion'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
+    value: 'EnableSpellchecking'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
+    value: 'EnableTextPrediction'
     data: '0'
     type: REG_DWORD
 
@@ -1444,69 +1414,28 @@ actions:
     type: REG_DWORD
 
     # Disable Windows Error Reporting (WER)
-    # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.WindowsErrorReporting::WerDisable_2
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting'
-    value: 'DoReport'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting'
-    value: 'Disabled'
-    data: '1'
-    type: REG_DWORD
+    # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.InternetCommunicationManagement::PCH_DoNotReport
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
     value: 'Disabled'
     data: '1'
     type: REG_DWORD
   - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting'
+    value: 'DoReport'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
     value: 'Disabled'
     data: '1'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
-    value: 'AutoApproveOSDumps'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
-    value: 'DontSendAdditionalData'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
-    value: 'DontShowUI'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
-    value: 'LoggingDisabled'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting\Consent'
-    value: 'DefaultConsent'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting\Consent'
-    value: 'DefaultOverrideBehavior'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue: 
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting\Consent'
-    value: '0'
-    data: ''
-    type: REG_SZ
 
-    # Disable Windows data collection
-    # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.DataCollection::AllowCommercialDataPipeline
+    # Disallow telemetry/data collection
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
-    value: 'AllowTelemetry'
-    data: '0'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
+    value: 'ShowedToastAtLevel'
+    data: '1'
     type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
@@ -1519,54 +1448,9 @@ actions:
     data: '0'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'AllowCommercialDataPipeline'
+    path: 'HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
+    value: 'AllowTelemetry'
     data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'AllowDesktopAnalyticsProcessing'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'AllowDeviceNameInTelemetry'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'DisableEnterpriseAuthProxy'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'DisableTelemetryOptInChangeNotification'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'DisableTelemetryOptInSettingsUx'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'EnableOneSettingsAuditing'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'LimitEnhancedDiagnosticDataWindowsAnalytics'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-    value: 'MicrosoftEdgeDataOptIn'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
-    value: 'ShowedToastAtLevel'
-    data: '1'
     type: REG_DWORD
 
   # Disable Diagnostic Tracking
@@ -1614,6 +1498,11 @@ actions:
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\email'
+    value: 'Value'
+    data: 'Deny'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'
     value: 'Value'
     data: 'Deny'
     type: REG_SZ
@@ -1696,7 +1585,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Do not allow upload and publish of user activities
+    # Disallow upload and publish of user activities
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
     value: 'UploadUserActivities'
@@ -1719,6 +1608,13 @@ actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo'
     value: 'Enabled'
+    data: '0'
+    type: REG_DWORD
+
+    # Disable Bluetooth advertising
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Bluetooth'
+    value: 'AllowAdvertising'
     data: '0'
     type: REG_DWORD
 
