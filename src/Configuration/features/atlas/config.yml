@@ -190,6 +190,11 @@ actions:
     # Disable Remote Assistance
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
+    value: 'fAllowFullControl'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
     value: 'fAllowToGetHelp'
     data: '0'
     type: REG_DWORD
