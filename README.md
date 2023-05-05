@@ -78,7 +78,7 @@ Atlas removes all types of tracking embedded within Windows and implements numer
 
 Note that Atlas cannot ensure the security for things outside the scope of Windows (such as browsers and third-party applications).
 
-### 🛡️ More secure over custom Windows ISOs
+### 🛡️ More secure (over custom Windows ISOs)
 Downloading a modified Windows ISO from the internet is risky. Not only can people easily maliciously change one of the many binary/executable files included in Windows, it also may not have the latest security patches that can put your computer under serious security risks. 
 
 Atlas is different. We use [AME Wizard](https://ameliorated.io) to install Atlas, and all the scripts we use are open source here in our GitHub repository. You can view the packaged Atlas playbook (`.apbx` - AME Wizard script package) as an archive, with the password being `malte` (the standard for AME Wizard playbooks), which is only to bypass false flags from antiviruses.
