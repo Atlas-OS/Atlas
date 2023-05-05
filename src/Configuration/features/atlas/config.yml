@@ -190,19 +190,10 @@ actions:
     # Disable Remote Assistance
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
-    value: 'fAllowFullControl'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
     value: 'fAllowToGetHelp'
     data: '0'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
-    value: 'fEnableChatControl'
-    data: '0'
-    type: REG_DWORD
+  - !run: {exe: 'netsh', args: 'advfirewall firewall set rule group="Remote Assistance" new enable=no'}
 
     # Restrict anonymous access to named pipes and shares
     # https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220932
