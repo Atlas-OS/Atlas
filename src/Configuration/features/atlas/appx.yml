@@ -5,8 +5,8 @@ privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Removing APPX packages'}
   
-  # Comments are for packages added back that do not get in the way of users at all, and are only dependencies or hidden applications
-  # Most of these apps can be reinstalled via Microsoft Store for users that need them
+  # Comments - packages added back that do not get in the way of users at all, and are only dependencies or hidden, meaningless applications
+  # Most of these applications can be reinstalled via Microsoft Store for users that need them
  
   # File Picker
   # - !appx: {name: '1527c705-839a-4832-9118-54d4Bd6a0c89*', type: family}
