@@ -48,7 +48,7 @@
 <kbd>[<img title="українська мова" alt="українська мова" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ua.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ua_UA.md)</kbd>
 <kbd>[<img title="Tiếng Việt" alt="Tiếng Việt" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/vn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_vi_VN.md)</kbd>
 
-#### _Do you want to help us by translating documents? If so, please follow these [instructions](https://github.com/Atlas-OS/Atlas/blob/main/translations/README%20-%20For%20Translators.md)._
+#### _Do you want to help us by translating documents? If so, please follow these [instructions](https://github.com/Atlas-OS/Atlas/blob/main/translations/README.md)._
 
 ## 🤔 **What is Atlas?**
 
