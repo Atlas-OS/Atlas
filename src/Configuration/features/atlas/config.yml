@@ -168,9 +168,9 @@ actions:
 
     # Rebuild performance counters
     # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/manually-rebuild-performance-counters
-  - !run: {exe: 'lodctr', args: '-r'}
-  - !run: {exe: 'lodctr', args: '-r'}
-  - !run: {exe: 'winmgmt', args: '-resyncperf'}
+  - !run: {exe: 'lodctr', args: '/r'}
+  - !run: {exe: 'lodctr', args: '/r'}
+  - !run: {exe: 'winmgmt', args: '/resyncperf'}
 
     # Disable PowerShell telemetry
     # https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.3
@@ -2477,7 +2477,7 @@ actions:
   - !registryValue:
     path: 'HKCR\CABFolder\Shell\RunAs\Command'
     value: ''
-    data: 'cmd /k DISM /online /add-package /packagepath:\"%1\"'
+    data: 'cmd /k DISM /Online /Add-Package /PackagePath:\"%1\"'
     type: REG_SZ
 
     # Add 'Merge as Trusted Installer' for registry files to context menu

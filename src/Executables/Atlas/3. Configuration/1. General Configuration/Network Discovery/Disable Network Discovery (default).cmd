@@ -7,7 +7,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :: Disable Lanman Workstation (SMB)
-DISM /Online /Disable-Feature /FeatureName:SmbDirect /NoRestart
+DISM /Online /Disable-Feature /FeatureName:"SmbDirect" /NoRestart
 call setSvc.cmd KSecPkg 4
 call setSvc.cmd LanmanWorkstation 4
 call setSvc.cmd mrxsmb 4

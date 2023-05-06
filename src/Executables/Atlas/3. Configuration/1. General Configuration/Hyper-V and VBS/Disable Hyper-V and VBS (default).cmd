@@ -7,7 +7,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :: Disable Hyper-V using DISM
-DISM /Online /Disable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
+DISM /Online /Disable-Feature /FeatureName:"Microsoft-Hyper-V-All" /NoRestart
 
 bcdedit /set hypervisorlaunchtype off > nul 2>&1
 bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS > nul 2>&1

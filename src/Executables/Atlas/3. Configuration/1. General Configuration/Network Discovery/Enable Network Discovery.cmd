@@ -14,7 +14,7 @@ call setSvc.cmd mrxsmb20 3
 call setSvc.cmd rdbss 1
 call setSvc.cmd srv2 3
 
-DISM /Online /Enable-Feature /FeatureName:SmbDirect /NoRestart
+DISM /Online /Enable-Feature /FeatureName:"SmbDirect" /NoRestart
 
 :: Enable EventLog as a dependency
 call setSvc.cmd eventlog 2

@@ -33,12 +33,12 @@ PowerShell -NoP -C "Set-ProcessMitigation -System -Disable CFG" > nul
 
 :: Get current bit mask
 for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions"') do (
-    set mitigation_mask=%%a
+    set "mitigation_mask=%%a"
 )
 
 :: Set all bits to 2 (Disable all process mitigations)
 for /l %%a in (0,1,9) do (
-    set mitigation_mask=!mitigation_mask:%%a=2!
+    set "mitigation_mask=!mitigation_mask:%%a=2!""
 )
 
 :: Fix Valorant with mitigations disabled - enable CFG

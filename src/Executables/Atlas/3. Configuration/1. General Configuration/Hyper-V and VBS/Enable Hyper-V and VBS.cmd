@@ -7,7 +7,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :: Enable Hyper-V with DISM
-DISM /Online /Enable-Feature:Microsoft-Hyper-V-All /Quiet /NoRestart
+DISM /Online /Enable-Feature /FeatureName:"Microsoft-Hyper-V-All" /NoRestart
 
 :: Some registry entry causes this to make an install unbootable, need to look into
 :: bcdedit /set vsmlaunchtype Auto > nul 2>&1
