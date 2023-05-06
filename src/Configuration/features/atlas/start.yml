@@ -140,20 +140,8 @@ actions:
 
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
-    value: 'NoAUShutdownOption'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
     value: 'NoAutoRebootWithLoggedOnUsers'
     data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
-    value: 'EnableFeaturedSoftware'
-    data: '0'
     type: REG_DWORD
 
   - !registryValue:
