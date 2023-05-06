@@ -140,6 +140,8 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\Ras\MobilityManager', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Registry\RegIdleBackup', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\RetailDemo\CleanupOfflineContent', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyMonitor', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyRefresh', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Shell\IndexerAutomaticMaintenance', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTaskNetwork', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\StateRepository\MaintenanceTasks', operation: delete}
@@ -150,6 +152,7 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\WaaSMedic\PerformRemediation', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Error Reporting\QueueReporting', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Filtering Platform\BfeOnServiceStartTypeChange', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\Windows Media Sharing\UpdateLibrary', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start', operation: delete}  
   - !scheduledTask: {path: '\Microsoft\Windows\Wininet\CacheTask', operation: delete}
 
