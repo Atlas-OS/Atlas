@@ -168,9 +168,9 @@ actions:
 
     # Rebuild performance counters
     # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/manually-rebuild-performance-counters
-  - !run: {exe: 'lodctr', args: '/r'}
-  - !run: {exe: 'lodctr', args: '/r'}
-  - !run: {exe: 'winmgmt', args: '/resyncperf'}
+  - !run: {exe: 'lodctr', args: '-r'}
+  - !run: {exe: 'lodctr', args: '-r'}
+  - !run: {exe: 'winmgmt', args: '-resyncperf'}
 
     # Disable PowerShell telemetry
     # https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.3
@@ -1954,7 +1954,7 @@ actions:
     type: REG_DWORD
 
     # Set Win32PrioritySeparation
-    # Short, Variable, High foreground boost
+    # Short Quantum, Variable, High foreground boost
     # 26 hexadecimal | 38 decimal (default: Programs)
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl'
@@ -2521,10 +2521,15 @@ actions:
 
     # ------------------ Registry Portion END ------------------
 
+    # Prevent Microsoft Edge (Chromium) from installing after updates
+    # For future Windows Update support
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'DoNotUpdateToEdgeWithChromium', type: REG_DWORD, data: '1'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'Install{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}', type: REG_DWORD, data: '0'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', type: REG_DWORD, data: '1'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'InstallDefault', type: REG_DWORD, data: '0'}
+
     # Fix no downloads folder bug
-  - !registryKey:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}'
-    operation: add
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}', operation: add}
 
     # Remove SecurityHealthSystray startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
