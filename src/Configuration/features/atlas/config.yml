@@ -1623,7 +1623,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable license telemetry
+    # Disable KMS client online AVS validation
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform'
     value: 'NoGenTicket'
@@ -1945,7 +1945,7 @@ actions:
     data: '38'
     type: REG_DWORD
 
-    # Disable notifications and notification center
+    # Disable notifications and notification/action center
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications'
     value: 'ToastEnabled'
@@ -2048,7 +2048,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable autoplay and autorun
+    # Disable Autoplay and Autorun
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers'
     value: 'DisableAutoplay'
@@ -2183,10 +2183,7 @@ actions:
   - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.jxr', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
   - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.png', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
 
-    # Remove Internet Explorer SVG association
-  - !registryKey: {path: 'HKCR\svgfile'}
-
-    # Disable Game Bar presence writer
+    # Disable Game Bar Presence Writer
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter'
     value: 'ActivationType'
@@ -2214,7 +2211,7 @@ actions:
     data: '3'
     type: REG_DWORD
 
-    # Do not show hidden and disconnected devices in mmsys.cpl (sound settings)
+    # Do not show hidden and disconnected devices in mmsys.cpl
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl'
     value: 'ShowDisconnectedDevices'
