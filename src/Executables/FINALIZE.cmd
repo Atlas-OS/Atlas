@@ -218,10 +218,9 @@ if "!DRIVE!" == "SSD" (
     PowerShell -NoP -C "Disable-MMAGent -MemoryCompression"
 )
 
-:: Disable mobsync.exe
-taskkill /f /im mobsync.exe > nul 2>&1
-taskkill /f /im mobsync.exe > nul 2>&1
-ren "C:\Windows\System32\mobsync.exe" mobsync.exe1
+:: Prevent mobsync.exe from running
+ren "!windir!\System32\mobsync.exe" mobsync.old
+ren "!windir!\SysWOW64\mobsync.exe" mobsync.old
 
 :: Add Auto-Cleaner to run on startup
 schtasks /create /f /sc ONLOGON /ru "nt authority\system" /tn "\Atlas\Auto-Cleaner" /tr "C:\Windows\AtlasModules\Scripts\Auto-Cleaner.cmd" /delay 0000:30
