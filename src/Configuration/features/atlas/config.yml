@@ -78,7 +78,19 @@ actions:
   #   path: '\Microsoft\Windows\Application Experience'
   #   operation: deleteFolder
   - !scheduledTask:
+    path: '\Microsoft\Windows\Customer Experience Improvement Program'
+    operation: deleteFolder
+  - !scheduledTask:
     path: '\Microsoft\Windows\DeviceDirectoryClient'
+    operation: deleteFolder
+  - !scheduledTask:
+    path: '\Microsoft\Windows\DiskDiagnostic'
+    operation: deleteFolder
+  - !scheduledTask:
+    path: '\Microsoft\Windows\Feedback\Siuf'
+    operation: deleteFolder
+  - !scheduledTask:
+    path: '\Microsoft\Windows\Location'
     operation: deleteFolder
   - !scheduledTask:
     path: '\Microsoft\Windows\Maps'
@@ -104,6 +116,7 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\ProgramDataUpdater', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\Autochk\Proxy', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\BrokerInfrastructure\BgTaskRegistrationMaintenanceTask', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\CloudExperienceHost\CreateObjectTask', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Defrag\ScheduledDefrag', operation: delete}
@@ -118,6 +131,7 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\Management\Provisioning\Cellular', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\ProcessMemoryDiagnosticEvents', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\Mobile Broadband Accounts\MNO Metadata Parser', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\MUI\LPRemove', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\PI\Sqm-Tasks', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem', operation: delete}

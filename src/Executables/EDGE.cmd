@@ -34,8 +34,10 @@ for /f "usebackq delims=" %%a in (`dir /b /a:d "!SystemDrive!\Users" ^| findstr 
 for %%a in (
 	"MicrosoftEdgeUpdateTaskMachineCore"
 	"MicrosoftEdgeUpdateTaskMachineUA"
+) do (
+	schtasks /delete /tn "%%~a" /f
 )
-schtasks /delete /tn "%%~a" /f
+
 exit /b
 
 :USERREG
