@@ -109,6 +109,7 @@ actions:
   - !service: {name: 'wercplsupport', operation: change, startup: 4}
   - !service: {name: 'WerSvc', operation: change, startup: 4}
   - !service: {name: 'WEPHOSTSVC', operation: change, startup: 4}
+  - !service: {name: 'WMPNetworkSvc', operation: change, startup: 4}
   - !service: {name: 'WPDBusEnum', operation: change, startup: 4}
   - !service: {name: 'WpnService', operation: change, startup: 4}
   - !service: {name: 'WSearch', operation: change, startup: 4}
