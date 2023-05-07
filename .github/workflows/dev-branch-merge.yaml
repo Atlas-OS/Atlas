@@ -1,6 +1,8 @@
 name: Auto Merge Dev Branch
 
-on: workflow_dispatch
+on:
+  schedule:
+    - cron: '0 0 * * 1'
 
 jobs:
   create_pull_request:
@@ -16,8 +18,9 @@ jobs:
 
       - name: Create pull request
         run: |
-            if git log main..remotes/origin/dev > /dev/null; then
-            gh pr create -B "main" -H "dev" --title "Automatic PR: Merging dev into main ($(git rev-parse --short=7 remotes/origin/dev))" -l "auto-pr" --body "
+            title="Automatic PR: Merging dev into main ($(git rev-parse --short=7 remotes/origin/dev))"
+            
+            body="
             This pull request was automatically created by GitHub Actions, and it is automatically done every week. It merges all of the changes that have happened on the \`dev\` branch into the \`main\` branch.
             
             The reason why the [\`dev\`](https://github.com/Atlas-OS/docs/tree/dev) branch exists is to make sure that all of the code in [\`main\`](https://github.com/Atlas-OS/Atlas) has been properly reviewed and approved. **Five contributors** have to approve this pull request for it to be merged.
@@ -26,6 +29,9 @@ jobs:
                 
             **Last commit to [\`dev\`](https://github.com/Atlas-OS/Atlas/tree/dev):** https://github.com/Atlas-OS/Atlas/commit/$(git rev-parse remotes/origin/dev)
             "
+            
+            if git log main..remotes/origin/dev > /dev/null; then
+                gh pr create -B "main" -H "dev" --title "$title" -l "auto-pr" --body "$body"
             fi
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
