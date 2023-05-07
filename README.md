@@ -1,3 +1,4 @@
+## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -56,6 +57,8 @@ Atlas is also a good option to reduce system latency, network latency, input lag
 You can learn more about Atlas on our official [website](https://atlasos.net).
 
 ## 📚 **Table of contents**
+
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
 - Getting Started
   - [Installation](https://docs.atlasos.net/getting-started/installation)
