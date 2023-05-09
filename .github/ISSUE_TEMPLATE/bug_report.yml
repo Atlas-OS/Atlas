@@ -44,9 +44,6 @@ body:
       label: Atlas Version
       options:
         - Atlas 10 22H2
-        - Atlas 11 22H2
-        - Atlas 10 Legacy (1803/20H2/21H2)
-        - Tweaked Atlas
     validations:
       required: true
 
