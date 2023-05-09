@@ -19,6 +19,11 @@ if !errorlevel! == 1 (
 	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f > nul 2>&1
 )
 
+choice /c:yn /n /m "Do you want the UAC prompt to ask for your password? [Y/N] "
+if !errorlevel! == 1 (
+	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "3" /f > nul 2>&1
+)
+
 :: Unlock UserAccountControlSettings.exe
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /f > nul 2>&1
 
