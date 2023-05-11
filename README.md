@@ -93,7 +93,7 @@ You can also install the latest security updates before installing Atlas, which 
 Please note that as of Atlas v0.2.0, Atlas is mostly **not as secure as regular Windows** due to removed/disabled security features, like Windows Defender being removed. However, in Atlas v0.3.0, most of these will be added back as optional features. See [here](https://docs.atlasos.net/troubleshooting/removed-features/) for more info.
 
 ### 🚀 More space
-Pre-installed applications and other insignificant components are removed with Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size and makes your system more fluent. Therefore, some functionalities (such as Windows Defender) are stripped completely.
+Pre-installed applications and other insignificant components are removed with Atlas. Despite the possibility of compatibility issues, this significantly reduces the installation size and makes your system more fluent. Therefore, some functionalities (such as Windows Defender) are stripped completely.
 Check out what else we have removed in our [FAQ](https://docs.atlasos.net/troubleshooting/removed-features).
 
 ### ✅ More performance
@@ -118,11 +118,11 @@ Atlas partnered with Windows Ameliorated Team to provide users a safer and legal
 
 ## 🎨 Brand kit
 Feeling creative? Want to create your own Atlas wallpaper with some original creative designs? Our brand kit has got you covered!
-Anyone can access the Atlas brand kit — you can download it [here](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) and make something spetacular!
+Anyone can access the Atlas brand kit — you can download it [here](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) and make something spectacular!
 
 We also have a dedicated area on our [forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration! You can also find creative wallpapers that other users share here too!
 
 ## ⚠️ Disclaimer
-Atlas-OS is **NOT** a pre-activated version of Windows. You **must** use a valid key to activate Windows. Before buying a Windows 10 (Professional or Home) license, be sure the seller is trustworthy and the key is legitimate — no matter where you buy it.
+Atlas OS is **NOT** a pre-activated version of Windows. You **must** use a valid key to activate Windows. Before buying a Windows 10 (Professional or Home) license, be sure the seller is trustworthy, and the key is legitimate — no matter where you buy it.
 
 Atlas is based on Microsoft Windows. By using Windows, you agree to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
