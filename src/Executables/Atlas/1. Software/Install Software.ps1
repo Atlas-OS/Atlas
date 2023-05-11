@@ -82,6 +82,9 @@ $Form.Controls.Add((generate_checkbox "Discord Canary" "discord-canary"))
 # https://community.chocolatey.org/packages/steam
 $Form.Controls.Add((generate_checkbox "Steam" "steam"))
 
+# https://community.chocolatey.org/packages/legendary
+$Form.Controls.Add((generate_checkbox "legendary" "legendary"))
+
 # https://community.chocolatey.org/packages/Everything
 $Form.Controls.Add((generate_checkbox "Everything" "everything"))
 
