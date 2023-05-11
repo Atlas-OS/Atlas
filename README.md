@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -35,6 +35,7 @@
 <kbd>[<img title="Español" alt="Español" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/es.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_es_ES.md)</kbd>
 <kbd>[<img title="Française" alt="Française" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/fr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_fr_FR.md)</kbd>
 <kbd>[<img title="हिंदी" alt="हिंदी" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/in.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_hi_HI.md)</kbd>
+<kbd>[<img title="Hrvatski" alt="Hrvatski" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/hr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_hr_HR.md)</kbd>
 <kbd>[<img title="Bahasa Indonesia" alt="Bahasa Indonesia" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/id.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_id_ID.md)</kbd>
 <kbd>[<img title="Italiano" alt="Italiano" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/it.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_it_IT.md)</kbd>
 <kbd>[<img title="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" alt="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ph.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ph_PH.md)</kbd>
@@ -55,6 +56,8 @@ Atlas is also a good option to reduce system latency, network latency, input lag
 You can learn more about Atlas on our official [website](https://atlasos.net).
 
 ## 📚 **Table of contents**
+
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
 - Getting Started
   - [Installation](https://docs.atlasos.net/getting-started/installation)
@@ -78,7 +81,7 @@ Atlas removes all types of tracking embedded within Windows and implements numer
 
 Note that Atlas cannot ensure the security for things outside the scope of Windows (such as browsers and third-party applications).
 
-### 🛡️ More secure over custom Windows ISOs
+### 🛡️ More secure (over custom Windows ISOs)
 Downloading a modified Windows ISO from the internet is risky. Not only can people easily maliciously change one of the many binary/executable files included in Windows, it also may not have the latest security patches that can put your computer under serious security risks. 
 
 Atlas is different. We use [AME Wizard](https://ameliorated.io) to install Atlas, and all the scripts we use are open source here in our GitHub repository. You can view the packaged Atlas playbook (`.apbx` - AME Wizard script package) as an archive, with the password being `malte` (the standard for AME Wizard playbooks), which is only to bypass false flags from antiviruses.

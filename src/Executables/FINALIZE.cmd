@@ -146,12 +146,12 @@ for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 )
 
 :: Set correct username variable of the currently logged in user
-for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinusername=%%a"
+for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
 
 :: Debloat 'Send To' context menu, hidden files do not show up in the 'Send To' context menu
-attrib +h "C:\Users\!loggedinusername!\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
-attrib +h "C:\Users\!loggedinusername!\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
-attrib +h "C:\Users\!loggedinusername!\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
+attrib +h "C:\Users\!loggedinUsername!\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+attrib +h "C:\Users\!loggedinUsername!\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
+attrib +h "C:\Users\!loggedinUsername!\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
 
 :: Disable audio exclusive mode on all devices
 for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture", "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render") do (
@@ -192,10 +192,10 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 
 :: Detect hard drive - Solid State Drive (SSD) or Hard Disk Drive (HDD)
 for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -Number (Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1)).DiskNumber).SerialNumber.TrimStart()).MediaType"') do (
-  set DRIVE=%%a
+  set "diskDrive=%%a"
 )
 
-if "!DRIVE!" == "SSD" (
+if "!diskDrive!" == "SSD" (
     rem Remove lower filters for rdyboost driver
     set "key=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
     for /f "skip=1 tokens=3*" %%a in ('reg query !key! /v "LowerFilters"') do (set val=%%a)
@@ -218,10 +218,9 @@ if "!DRIVE!" == "SSD" (
     PowerShell -NoP -C "Disable-MMAGent -MemoryCompression"
 )
 
-:: Disable mobsync.exe
-taskkill /f /im mobsync.exe > nul 2>&1
-taskkill /f /im mobsync.exe > nul 2>&1
-ren "C:\Windows\System32\mobsync.exe" mobsync.exe1
+:: Prevent mobsync.exe from running
+ren "!windir!\System32\mobsync.exe" mobsync.old
+ren "!windir!\SysWOW64\mobsync.exe" mobsync.old
 
-:: Add Auto-Cleaner to run on startup
+:: Add Auto-Cleaner script to run on startup
 schtasks /create /f /sc ONLOGON /ru "nt authority\system" /tn "\Atlas\Auto-Cleaner" /tr "C:\Windows\AtlasModules\Scripts\Auto-Cleaner.cmd" /delay 0000:30
