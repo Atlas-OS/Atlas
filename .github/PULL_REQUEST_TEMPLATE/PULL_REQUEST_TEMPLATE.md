@@ -1,6 +1,6 @@
 ### Type
 
-- [ ] Bugfix
+- [ ] Bug fix
 - [ ] Enhancement
 
 ### Description of changes
