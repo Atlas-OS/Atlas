@@ -58,8 +58,8 @@ $Label.Size = New-Object System.Drawing.Size(255, 15)
 $Label.Text = "Download and install software using Chocolatey:"
 $Form.Controls.Add($Label)
 
-# https://community.chocolatey.org/packages/ungoogled-chromium
-$Form.Controls.Add((generate_checkbox "ungoogled-chromium" "ungoogled-chromium"))
+# https://community.chocolatey.org/packages/GoogleChrome
+$Form.Controls.Add((generate_checkbox "Google Chrome" "googlechrome"))
 
 # https://community.chocolatey.org/packages/Firefox
 $Form.Controls.Add((generate_checkbox "Mozilla Firefox" "firefox"))
@@ -67,14 +67,11 @@ $Form.Controls.Add((generate_checkbox "Mozilla Firefox" "firefox"))
 # https://community.chocolatey.org/packages/brave
 $Form.Controls.Add((generate_checkbox "Brave Browser" "brave"))
 
-# https://community.chocolatey.org/packages/GoogleChrome
-$Form.Controls.Add((generate_checkbox "Google Chrome" "googlechrome"))
-
 # https://community.chocolatey.org/packages/librewolf
 $Form.Controls.Add((generate_checkbox "LibreWolf" "librewolf"))
 
-# https://community.chocolatey.org/packages/tor-browser
-$Form.Controls.Add((generate_checkbox "Tor Browser" "tor-browser"))
+# https://community.chocolatey.org/packages/ungoogled-chromium
+$Form.Controls.Add((generate_checkbox "ungoogled-chromium" "ungoogled-chromium"))
 
 # https://community.chocolatey.org/packages/discord
 $Form.Controls.Add((generate_checkbox "Discord" "discord"))
@@ -88,8 +85,8 @@ $Form.Controls.Add((generate_checkbox "Steam" "steam"))
 # https://community.chocolatey.org/packages/playnite
 $Form.Controls.Add((generate_checkbox "Playnite" "playnite"))
 
-# https://community.chocolatey.org/packages/legendary
-$Form.Controls.Add((generate_checkbox "legendary" "legendary"))
+# https://community.chocolatey.org/packages/rare
+$Form.Controls.Add((generate_checkbox "Rare" "rare"))
 
 # https://community.chocolatey.org/packages/Everything
 $Form.Controls.Add((generate_checkbox "Everything" "everything"))
@@ -114,9 +111,6 @@ $Form.Controls.Add((generate_checkbox "VLC" "vlc"))
 
 # https://community.chocolatey.org/packages/putty
 $Form.Controls.Add((generate_checkbox "PuTTY" "putty"))
-
-# https://community.chocolatey.org/packages/ditto
-$Form.Controls.Add((generate_checkbox "Ditto" "ditto"))
 
 # https://community.chocolatey.org/packages/teamspeak
 $Form.Controls.Add((generate_checkbox "Teamspeak" "teamspeak"))
@@ -150,6 +144,9 @@ $Form.Controls.Add((generate_checkbox "HWiNFO" "hwinfo"))
 
 # https://community.chocolatey.org/packages/kav
 $Form.Controls.Add((generate_checkbox "Kaspersky Anti-Virus" "kav"))
+
+# https://community.chocolatey.org/packages/microsoft-windows-terminal
+$Form.Controls.Add((generate_checkbox "Windows Terminal" "microsoft-windows-terminal"))
 
 if ($global:column -ne 0) {
     $global:lastPos += $separate
