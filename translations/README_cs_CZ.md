@@ -4,16 +4,16 @@
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
-      <img alt="Licence" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/>
+      <img alt="Licence" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF&label=Licence"/>
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors">
-      <img alt="Přispěvatelé" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
+      <img alt="Přispěvatelé" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF &label=Přispěvatelé" />
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/releases/latest">
-      <img alt="Vydání" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
+      <img alt="Vydání" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF &label=Vydání" />
     </a>
     <a href="https://github.com/Atlas-OS/Atlas/releases">
-      <img alt="Verze ke stažení" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
+      <img alt="Verze ke stažení" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF&label=Verze ke stažení" />
     </a>
   </p>
 <h4 align="center">Otevřený a transparentní operační systém, vyvinutý pro zvýšený výkon, soukromí and stabilitu.</h4>
