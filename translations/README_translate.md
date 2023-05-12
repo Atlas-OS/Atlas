@@ -30,7 +30,7 @@
 
 ## 🤔 **What is Atlas?**
 
-Atlas is a modification to Windows operating system, which removes nearly all the drawbacks of Windows that negatively affect gaming performance.
+Atlas is a modification to Windows, which removes nearly all the drawbacks of Windows that negatively affect gaming performance.
 Atlas is also a good option to reduce system latency, network latency, input lag, and keep your system private while focusing on performance.
 You can learn more about Atlas on our official [website](https://atlasos.net).
 
