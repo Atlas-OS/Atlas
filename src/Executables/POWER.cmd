@@ -7,7 +7,7 @@ for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "
 
 :: Disable Hibernation and Fast Startup
 :: Disabling makes NTFS accessable outside of Windows
-powercfg /h off
+powercfg /hibernate off
 
 :: Disable SleepStudy (UserNotPresentSession.etl)
 wevtutil set-log "Microsoft-Windows-SleepStudy/Diagnostic" /e:false
