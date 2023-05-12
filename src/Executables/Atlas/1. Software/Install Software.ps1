@@ -85,8 +85,8 @@ $Form.Controls.Add((generate_checkbox "Steam" "steam"))
 # https://community.chocolatey.org/packages/playnite
 $Form.Controls.Add((generate_checkbox "Playnite" "playnite"))
 
-# https://community.chocolatey.org/packages/legendary
-$Form.Controls.Add((generate_checkbox "legendary" "legendary"))
+# https://community.chocolatey.org/packages/rare
+$Form.Controls.Add((generate_checkbox "Rare" "rare"))
 
 # https://community.chocolatey.org/packages/Everything
 $Form.Controls.Add((generate_checkbox "Everything" "everything"))
