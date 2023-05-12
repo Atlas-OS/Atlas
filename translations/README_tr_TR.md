@@ -60,7 +60,7 @@ Atlas'ın Windows'un kontrolünde olmayan şeylerde (tarayıcılar ve üçüncü
 ### 🛡️ Daha güvenli (öbür düzenlenmiş Windows ISO'larına göre)
 İnternetten düzenlenmiş bir Windows ISO'su indirmek riskli bir şey. İnsanlar Windows ile birlikte gelen çalıştırılabilir dosyalara kötü amaçlı kod eklemekle kalmayıp, ayrıca Windows'un son güvenlik güncellemelerini içermeyip bilgisayarınızı ciddi risk altına sokabilir.
 
-Atlas diğerlerinden farklı. Atlas'ı yüklemek için [AME Wizard](https://ameliorated.io) kullanıyoruz, ve kullandığımız bütün scriptler burada, GitHub'da açık kaynaklı bir şekilde bulunmakta. Atlas playbook'unu (`.apbx` - AME Wizard script package) kendiniz `malte` şifresi (AME Wizard playblookları için standart) ile inceleyebilirsiniz. Şifre koymamızın nedeni antivirüslerin yanlış sonuç vermemesi. The only executables included in the playbook are open sourced
+Atlas diğerlerinden farklı. Atlas'ı yüklemek için [AME Wizard](https://ameliorated.io) kullanıyoruz, ve kullandığımız bütün scriptler burada, GitHub'da açık kaynaklı bir şekilde bulunmakta. Atlas playbook'unu (`.apbx` - AME Wizard script package) kendiniz `malte` şifresi (AME Wizard playblookları için standart) ile inceleyebilirsiniz. Şifre koymamızın nedeni antivirüslerin yanlış sonuç vermemesi.
 
 Playbook'un içindeki çalıştırılabilir dosyalar [burada](https://github.com/Atlas-OS/Atlas-Utilities) [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE) lisansıyla açık kaynaklı, hashleri aynı bir şekilde mevcut. Geri kalan her şey düz metin halinde.
 
