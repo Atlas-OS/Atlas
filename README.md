@@ -31,6 +31,7 @@
 <kbd>[<img title="العربية" alt="العربية" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/sa.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ar_SA.md)</kbd>
 <kbd>[<img title="Български" alt="Български" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/bg.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_bg_BG.md)</kbd>
 <kbd>[<img title="Bosanski" alt="Bosanski" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ba.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_bs_BA.md)</kbd>
+<kbd>[<img title="Čeština" alt="Čeština" src="(https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/cz.svg)" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_cs_CZ.md)</kbd>
 <kbd>[<img title="Deutsch" alt="Deutsch" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/de.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_de_DE.md)</kbd>
 <kbd>[<img title="Español" alt="Español" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/es.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_es_ES.md)</kbd>
 <kbd>[<img title="Française" alt="Française" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/fr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_fr_FR.md)</kbd>
