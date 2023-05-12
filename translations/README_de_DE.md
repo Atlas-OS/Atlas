@@ -1,6 +1,6 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
+
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -34,6 +34,8 @@ Auf unserer [Website](https://atlasos.net) kannst du mehr über Atlas erfahren.
 
 ## 📚 **Inhaltsverzeichnis**
 
+- [Beitragsrichtlinien (Contribution Guidelines)](https://docs.atlasos.net/contributions)
+
 - Einstieg
   - [Installation](https://docs.atlasos.net/getting-started/installation)
   - [Andere Installations Methoden](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
@@ -56,7 +58,7 @@ Atlas entfernt alle Arten von Tracking, die in Windows eingebettet sind, und imp
 
 Was außerhalb des Bereichs von Windows liegt, können wir jedoch hinsichtlich des Datenschutzes nicht verbessern, wie zum Beispiel Websites, die Sie besuchen oder Programme von Drittherstellern.
 
-### 🛡️ Mehr Sicherheit gegenüber benutzerdefinierten Windows-ISOs
+### 🛡️ Mehr Sicherheit (gegenüber benutzerdefinierten Windows-ISOs)
 Eine veränderte Windows ISO aus dem Internet herunterzuladen ist riskant. Nicht nur können Personen einfach eine der vielen binären/ausführbaren Dateien, die in Windows enthalten sind, böswillig ändern, sie enthält möglicherweise nicht die neuesten Sicherheitsupdates, was ein Sicherheitsrisiko für deinen Computer darstellt.
 
 Atlas ist anders. Wir benutzen [AME Wizard](https://ameliorated.io) um Atlas zu installieren und alle unsere Skripte sind Open-Source hier in unserem Repository zu finden. Du kannst das gepackte Atlas-Playbook (`.apbx` - AME Wizard script package) als Archiv anschauen, indem du `malte` (das Standardpasswort für AME Wizard Playbooks) als Passwort verwendest, damit Antiviruse es nicht fälschlicherweise Weise als Virus erkennen.
