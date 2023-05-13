@@ -122,6 +122,7 @@ for %%a in (
     "SipsEnabled"
     "uAPSDSupport"
     "ULPMode"
+    "WaitAutoNegComplete"
     "WakeOnDisconnect"
     "WakeOnLink"
     "WakeOnMagicPacket"

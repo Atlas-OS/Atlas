@@ -99,14 +99,8 @@ actions:
     path: '\Microsoft\Windows\Speech'
     operation: deleteFolder
   - !scheduledTask:
-    path: '\Microsoft\Windows\UpdateOrchestrator'
-    operation: deleteFolder
-  - !scheduledTask:
     path: '\Microsoft\Windows\Windows Defender'
     operation: deleteFolder
-  # - !scheduledTask:
-  #   path: '\Microsoft\Windows\WindowsUpdate'
-  #   operation: deleteFolder
 
   - !scheduledTask: {path: '\Microsoft\Windows\AppID\EDP Policy Manager', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily', operation: delete}
@@ -520,6 +514,11 @@ actions:
     # Decrease shutdown time
   - !registryValue: 
     path: 'HKCU\Control Panel\Desktop'
+    value: 'HungAppTimeout'
+    data: '2000'
+    type: REG_SZ
+  - !registryValue: 
+    path: 'HKCU\Control Panel\Desktop'
     value: 'WaitToKillAppTimeOut'
     data: '2000'
     type: REG_SZ
@@ -527,16 +526,6 @@ actions:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control'
     value: 'WaitToKillServiceTimeout'
     data: '2000'
-    type: REG_SZ
-  - !registryValue: 
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control'
-    value: 'HungAppTimeout'
-    data: '2000'
-    type: REG_SZ
-  - !registryValue: 
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control'
-    value: 'AutoEndTasks'
-    data: '1'
     type: REG_SZ
 
     # Enable dark mode and disable transparency
@@ -704,11 +693,6 @@ actions:
     # Disable Windows Customer Experience Improvement Program (CEIP)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\AppV\CEIP'
-    value: 'CEIPEnable'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\SQMClient\Windows'
     value: 'CEIPEnable'
     data: '0'
     type: REG_DWORD
@@ -894,13 +878,6 @@ actions:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'HideFileExt'
     data: '0'
-    type: REG_DWORD
-
-    # Disable show thumbnails instead of icons
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-    value: 'IconsOnly'
-    data: '1'
     type: REG_DWORD
 
     # Open File Explorer to 'This PC'

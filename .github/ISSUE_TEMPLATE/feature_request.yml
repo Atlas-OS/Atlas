@@ -6,14 +6,15 @@ body:
   - type: markdown
     attributes:
       value: |
-        A clear and concise description of your feature request.
+        A clear and brief description of your feature request.
 
   - type: dropdown
     attributes:
-      label: What is your Feature Request regarding to?
+      label: What is your feature request regarding to?
       options:
-        - The Atlas OS
-        - Documentation/README
+        - AtlasOS
+        - README
+        - Documentation
         - Other, specify below
     validations:
       required: true
@@ -30,7 +31,7 @@ body:
     attributes:
       label: Is your feature request related to a problem? Please describe.
       placeholder: |
-        A clear and concise description of what the problem is. E.g. When I open [blank] it hangs/freezes.
+        A clear and brief description of what the problem is.
     validations:
       required: true
 
@@ -38,7 +39,7 @@ body:
     attributes:
       label: Describe the solution you would like.
       placeholder: |
-        A clear and concise description of what you want to happen.
+        A clear and brief description of what you want to happen.
     validations:
       required: true
 
