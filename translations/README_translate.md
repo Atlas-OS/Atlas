@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -35,6 +35,8 @@ Atlas is also a good option to reduce system latency, network latency, input lag
 You can learn more about Atlas on our official [website](https://atlasos.net).
 
 ## 📚 **Table of contents**
+
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
 - Getting Started
   - [Installation](https://docs.atlasos.net/getting-started/installation)
