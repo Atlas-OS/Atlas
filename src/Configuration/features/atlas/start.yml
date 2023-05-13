@@ -218,7 +218,7 @@ actions:
 
   - !writeStatus: {status: 'Installing vcredist'}
   - !cmd:
-    command: 'for /f "tokens=2" %a in (''curl https://api.github.com/repos/abbodi1406/vcredist/releases/latest ^| findstr "browser_download_url" ^| findstr exe'') do md %windir%\AtlasModules\Apps & curl %a -L -o %windir%\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe & %windir%\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe /ai' 
+    command: 'md %windir%\AtlasModules\Apps & curl https://github.com/abbodi1406/vcredist/releases/latest/download/VisualCppRedist_AIO_x86_x64.exe -L -o %windir%\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe & %windir%\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe /ai' 
     weight: 150
 
   - !writeStatus: {status: 'Installing 7-Zip'}
