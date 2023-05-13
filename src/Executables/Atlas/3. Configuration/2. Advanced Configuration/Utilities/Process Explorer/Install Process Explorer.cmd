@@ -14,7 +14,7 @@ if !errorlevel! == 1 (
 )
 
 :: Download and install Process Explorer
-choco install procexp -y --ignore-checksums
+choco install procexp -y --force --allow-empty-checksums
 
 :: Create the shortcut
 PowerShell -NoP -C "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\procexp.exe"""; $Shortcut.Save()"

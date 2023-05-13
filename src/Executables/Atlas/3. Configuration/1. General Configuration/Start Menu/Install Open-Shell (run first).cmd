@@ -52,10 +52,10 @@ start explorer.exe > nul 2>&1
 echo]
 
 :: Download and install Open-Shell
-choco install open-shell -y --ignore-checksums --params="'/StartMenu'"
+choco install open-shell -y --force --allow-empty-checksums --params="'/StartMenu'"
 
 :: Download Fluent Metro theme
-for /f "delims=" %%a in ('PowerShell "(Invoke-RestMethod -Uri "https://api.github.com/repos/bonzibudd/Fluent-Metro/releases/latest").assets.browser_download_url') do (
+for /f "delims=" %%a in ('PowerShell "(Invoke-RestMethod -Uri "https://api.github.com/repos/bonzibudd/Fluent-Metro/releases/latest").assets.browser_download_url"') do (
 	curl -L --output !TEMP!\skin.zip %%a
 )
 
