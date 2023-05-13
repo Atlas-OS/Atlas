@@ -99,14 +99,8 @@ actions:
     path: '\Microsoft\Windows\Speech'
     operation: deleteFolder
   - !scheduledTask:
-    path: '\Microsoft\Windows\UpdateOrchestrator'
-    operation: deleteFolder
-  - !scheduledTask:
     path: '\Microsoft\Windows\Windows Defender'
     operation: deleteFolder
-  # - !scheduledTask:
-  #   path: '\Microsoft\Windows\WindowsUpdate'
-  #   operation: deleteFolder
 
   - !scheduledTask: {path: '\Microsoft\Windows\AppID\EDP Policy Manager', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily', operation: delete}
