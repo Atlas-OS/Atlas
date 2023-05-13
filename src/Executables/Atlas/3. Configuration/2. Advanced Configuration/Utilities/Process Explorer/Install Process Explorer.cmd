@@ -22,6 +22,10 @@ if !errorlevel! == 1 (
 	echo Process Explorer shortcut could not be created in the start menu^^!
 )
 
+:: Run Process Explorer always on top and allow only one instance
+reg add "HKCU\SOFTWARE\Sysinternals\Process Explorer" /v "AlwaysOntop" /t REG_DWORD /d "1" /f > nul 2>&1
+reg add "HKCU\SOFTWARE\Sysinternals\Process Explorer" /v "OneInstance" /t REG_DWORD /d "1" /f > nul 2>&1
+
 call setSvc.cmd pcw 4
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "C:\ProgramData\chocolatey\lib\procexp\tools\procexp64.exe" /f > nul 2>&1
 
