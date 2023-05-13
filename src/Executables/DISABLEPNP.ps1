@@ -7,7 +7,6 @@ $devices = @(
     "Composite Bus Enumerator",
     "Direct memory access controller"
     "High precision event timer",
-    "*Hyper-V*",
     "Intel Management Engine",
     "Intel SMBus",
     "Legacy device"
@@ -30,6 +29,11 @@ $devices = @(
     "Unknown Device"
     "WAN Miniport*"
 )
+
+# Don't disable Hyper-V devices on Hyper-V guests
+if ( Get-ItemProperty hklm:\HARDWARE\DESCRIPTION\System -Name SystemBiosVersion | Select-Object -ExpandProperty SystemBiosVersion | Select-String -Quiet "Hyper-V" ) {
+	$devices = $devices + 'HyperV*'
+}
 
 # No errors as some devices may not have an option to be disabled
 Get-PnpDevice -FriendlyName $devices -ErrorAction Ignore | Disable-PnpDevice -Confirm:$false -ErrorAction Ignore
