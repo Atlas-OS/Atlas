@@ -1,6 +1,6 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
+⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">Un sistema operativo aperto e trasparente, progettato per ottimizzare prestazioni, privacy e stabilità.</h4>
@@ -23,19 +23,20 @@ Puoi saperne di più su Atlas sul nostro [sito](https://atlasos.net) ufficiale.
 
 ## 📚 **Tabella dei Contenuti**
 
-- Iniziando
-  - [Installazione](https://docs.atlasos.net/getting-started/installation)
-  - [Altri metodi di installazione](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [Post-Installazione](https://docs.atlasos.net/getting-started/post-installation/drivers)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
-- Soluzione Problemi
-  - [Funzionalità Rimosse](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Script](https://docs.atlasos.net/troubleshooting/scripts)
+- Getting Started
+  - [Installation](https://docs.atlasos.net/getting-started/installation)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
-  - [Discord](https://docs.atlasos.net/faq/community/discord)
-  - [Forum](https://docs.atlasos.net/faq/community/forums)
-  - [GitHub](https://docs.atlasos.net/faq/community/github)
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Perché Atlas?**
 

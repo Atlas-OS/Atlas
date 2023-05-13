@@ -50,22 +50,6 @@ Atlas 是一个精简版的Windows，删除了众多拖慢 Windows 系统的组�
   - [Atlas](https://atlasos.net/faq)
   - [常见故障](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
-贡献指南
-
-入门
-    安装
-    其他安装方法
-    安装后操作
-
-故障排除
-    已移除功能
-    脚本
-
-常见问题
-    Discord
-    论坛
-    GitHub
-
 ## 👀 **为什么选择Atlas？**
 
 ### 🔒 更有隐私
@@ -77,7 +61,7 @@ Atlas 删除了 Windows 中所有类型的跟踪服务，并设置了多种不�
 ### 🛡️ 更加安全 (相比传统精简Windows镜像)
 一直以来，从网上下载魔改版的Windows镜像风险都极大。因为你根本不知道制作这些镜像的作者是否有在他们的镜像中加“盐”。同时，这些系统还可能缺少最新的安全补丁，让你的爱鸡只因面临严重的安全风险。
 
-Atlas就不一样了，我们使用AME Wizard进行部署，并且所有我们使用的脚本，配置文件都开源在我们的GitHub Repo中。您可以将压缩的Atlas Playbook（.apbx - AME Wizard的部署文件）解压，密码为malte（AME Wizard playbooks的通用密码），设置该密码也仅仅只是用于防止杀毒软件误报。
+Atlas就不一样了，我们使用AME Wizard进行部署，并且所有我们使用的脚本，配置文件都开源在我们的GitHub Repo中。您可以将压缩的Atlas Playbook（.apbx - AME Wizard的部署文件）解压，密码为`malte`（AME Wizard playbook的通用密码），设置该密码也仅仅只是用于防止杀毒软件误报。
 
 包含在部署文件中的可执行文件全部都在 [这里](https://github.com/Atlas-OS/Atlas-Utilities) 以 [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE)协议开源，其哈希校验值与发行版无异。 其余所有文件均以明文形式存储。
 

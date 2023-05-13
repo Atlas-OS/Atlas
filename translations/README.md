@@ -10,7 +10,7 @@ First of all: thank you for considering helping us by translating the documents!
 ```
 THE DISCLAIMER SHOULD NOT BE TRANSLATED. Keep the disclaimer section as its link form.
 
-Do not modify the original "README_translate.md" formatting.
+Do not modify the original "README_translate.md" formatting. (This includes but are not limited to deleting sentences, changing links.)
 
 Avoid changing anything other then the text you need to translate.
 
