@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-curl -L --output !windir!\AtlasModules\Open-Shell.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.189/OpenShellSetup_4_4_189.exe
+curl -L --output !windir!\AtlasModules\Apps\Open-Shell.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.189/OpenShellSetup_4_4_189.exe
 if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto existOS
 if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto existOS
 goto skipRM
