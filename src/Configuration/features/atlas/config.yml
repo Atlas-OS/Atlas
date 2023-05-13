@@ -122,6 +122,7 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdates', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdatesAsUser', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\SmartRetry', operation: delete}
+  - !scheduledTask: {path: '\Microsoft\Windows\Maintenance\WinSAT', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Management\Provisioning\Cellular', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\ProcessMemoryDiagnosticEvents', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic', operation: delete}
