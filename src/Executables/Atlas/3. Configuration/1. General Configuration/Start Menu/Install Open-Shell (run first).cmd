@@ -7,9 +7,9 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 curl -L --output !windir!\AtlasModules\Open-Shell.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.189/OpenShellSetup_4_4_189.exe
-if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
-if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existOS
-goto rmSSOS
+if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto existOS
+if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto existOS
+goto skipRM
 
 :existOS
 cls & set /P c="It appears search and start are installed, would you like to disable them also? [Y/N]? "
