@@ -2592,6 +2592,9 @@ actions:
     exe: 'FINALIZE.cmd'
     weight: 100
 
+  # Backup Atlas services & drivers after all modifications
+  - !run: {exe: 'BACKUP2.cmd', exeDir: true}
+
     # Clean up temp folders and files
   - !cmd:
     command: 'for /f %a in (''dir /b "%TEMP%" /a:-d'') do del /q "%TEMP%\%a"'
