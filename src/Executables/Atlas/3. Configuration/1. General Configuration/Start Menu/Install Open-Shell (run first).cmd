@@ -6,6 +6,13 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
+ping -n 1 -4 1.1.1.1 | find "time=" > nul 2>&1
+if !errorlevel! == 1 (
+	echo You must have an internet connection to use this script.
+	pause
+	exit /b
+)
+
 if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto existOS
 if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto existOS
 goto skipRM
@@ -44,13 +51,8 @@ start explorer.exe > nul 2>&1
 :skipRM
 echo]
 
-:: Download Open-Shell
-for /f "delims=" %%a in ('PowerShell "(Invoke-RestMethod -Uri "https://api.github.com/repos/Open-Shell/Open-Shell-Menu/releases/latest").assets.browser_download_url | findstr Setup"') do (
-	curl -L --output !TEMP!\Open-Shell.exe %%a
-)
-
-echo Open-Shell is installing...
-"!TEMP!\Open-Shell.exe" /qn ADDLOCAL=StartMenu
+:: Download and install Open-Shell
+choco install open-shell -y --ignore-checksums --params="'/StartMenu'"
 
 :: Download Fluent Metro theme
 for /f "delims=" %%a in ('PowerShell "(Invoke-RestMethod -Uri "https://api.github.com/repos/bonzibudd/Fluent-Metro/releases/latest").assets.browser_download_url') do (

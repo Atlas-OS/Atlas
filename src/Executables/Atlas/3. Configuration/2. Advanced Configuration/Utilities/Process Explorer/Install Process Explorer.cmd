@@ -13,12 +13,8 @@ if !errorlevel! == 1 (
 	exit /b
 )
 
-curl.exe -L# "https://live.sysinternals.com/procexp.exe" -o "!windir!\AtlasModules\Apps\procexp.exe"
-if !errorlevel! == 1 (
-	echo Failed to download Process Explorer^^!
-	pause
-	exit /b 1
-)
+:: Download and install Process Explorer
+choco install procexp -y --ignore-checksums
 
 :: Create the shortcut
 PowerShell -NoP -C "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\procexp.exe"""; $Shortcut.Save()"
@@ -27,7 +23,7 @@ if !errorlevel! == 1 (
 )
 
 call setSvc.cmd pcw 4
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "!windir!\AtlasModules\Apps\procexp.exe" /f > nul 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "C:\ProgramData\chocolatey\lib\procexp\tools\procexp64.exe" /f > nul 2>&1
 
 echo Finished, changes have been applied.
 pause
