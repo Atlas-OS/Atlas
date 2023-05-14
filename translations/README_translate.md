@@ -104,4 +104,4 @@ We also have a dedicated area on our [forum](https://forum.atlasos.net/t/art-sho
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
 
 ## Translation contributors
-[octocat](https://github.com/octocat) | [mona](https://github.com/mona)
+[Translator 1](https://github.com/octocat) | [Translator 2](https://github.com/mona)
