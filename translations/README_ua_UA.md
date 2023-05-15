@@ -1,6 +1,6 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
+⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -36,19 +36,20 @@ Atlas — це модифікована версія Windows 10, яка приб
 
 ## 📚 **Зміст**
 
-- Початок
-  - [Встановлення](https://docs.atlasos.net/getting-started/installation)
-  - [Інші методи встановлення](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [Пост-встановлення](https://docs.atlasos.net/getting-started/post-installation/drivers)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
-- Пошук та усунення несправностей
-  - [Вилучені функції](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Скрипти](https://docs.atlasos.net/troubleshooting/scripts)
+- Getting Started
+  - [Installation](https://docs.atlasos.net/getting-started/installation)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
-  - [Discord](https://docs.atlasos.net/faq/community/discord)
-  - [Форум](https://docs.atlasos.net/faq/community/forums)
-  - [GitHub](https://docs.atlasos.net/faq/community/github)
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Чому саме Atlas?**
 
@@ -99,7 +100,7 @@ Atlas є партнером команди Ameliorated, щоб забезпеч�
 
 У нас також є спеціальний розділ на нашому [форумі](https://forum.atlasos.net/t/art-showcase), тож ви можете поділитися своїми творіннями з іншими креативними геніями та, можливо, надихнути когось! Також, там ви зможете знайти оригінальні шпалери інших користувачів тут!
 
-## ⚠️ Дисклеймер
+## ⚠️ Disclaimer (Дисклеймер)
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Дописувачі перекладу)

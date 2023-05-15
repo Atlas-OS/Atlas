@@ -47,10 +47,9 @@ Můžete se toho o Atlase dočíst více na našem [webu](https://atlasos.net).
   - [Odstraněné funkce](https://docs.atlasos.net/troubleshooting/removed-features)
   - [Scripty](https://docs.atlasos.net/troubleshooting/scripts)
 
-- Často pokládané otázky
-  - [Discord](https://docs.atlasos.net/faq/community/discord)
-  - [Fórum](https://docs.atlasos.net/faq/community/forums)
-  - [GitHub](https://docs.atlasos.net/faq/community/github)
+- FAQ
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Proč Atlas?**
 

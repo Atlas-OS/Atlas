@@ -1,6 +1,6 @@
-﻿## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
+﻿⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">Một phiên bản Windows được thiết kế để tối ưu hiệu năng và độ trễ.</h4>
@@ -23,18 +23,20 @@ Bạn có thể tìm hiểu thêm về Atlas trên [trang web chính thức củ
 
 ## 📚 **Mục lục**
 
-- Bắt đầu
-  - [Cài đặt](https://docs.atlasos.net/getting-started/installation)
-  - [Các cách cài đặt khác](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [Sau khi cài đặt](https://docs.atlasos.net/getting-started/post-installation/drivers)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
-- Xử lý sự cố
-  - [Những tính năng đã được loại bỏ](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Các tập lệnh](https://docs.atlasos.net/troubleshooting/scripts)
+- Getting Started
+  - [Installation](https://docs.atlasos.net/getting-started/installation)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
-  - [Cài đặt](https://docs.atlasos.net/FAQ/Installation)
-  - [Đóng góp](https://docs.atlasos.net/FAQ/Contribute)
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Tại sao nên dùng Atlas?**
 
@@ -78,7 +80,7 @@ Bộ thương hiệu của Atlas có thể truy cập một cách công khai, b�
 Chúng tôi cũng có [một mục riêng trong diễn đàn của chúng tôi](https://forum.atlasos.net/t/art-showcase), bạn có thể chia sẻ sự sáng tạo của mình với các nhà thiết kế khác, hoặc có thể bạn cũng sẽ tìm được nguồn cảm hứng ở đó!
 
 ## ⚠️ Disclaimer
-AtlasOS is **NOT** a pre-activated version of Windows, you **must** use a genuine key to activate Windows. Before you buy a Windows 10 (Pro OR Home) license, make sure the seller is trusted and the key is legitimate, no matter where you buy it. Atlas is based on Microsoft Windows, by using Windows you agree to [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Những người đóng góp dịch thuật)
 
