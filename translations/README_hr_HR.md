@@ -1,4 +1,3 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -16,7 +15,7 @@
       <img alt="Preuzimanja izdanja" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
     </a>
   </p>
-<h4 align="center">Otvoren i transparentan operativni sustav, dizajniran za optimizaciju performansi, privatnost i stabilnost.</h4>
+<h4 align="center">Otvorena i transparentna modifikacija za Windows, dizajniran za optimizaciju performansi, privatnost i stabilnost.</h4>
 
 <p align="center">
   <a href="https://atlasos.net">Web stranica</a>
@@ -30,11 +29,13 @@
 
 ## 🤔 **Što je Atlas?**
 
-Atlas je modificirana verzija sustava Windows 10 koja uklanja gotovo sve nedostatke sustava Windows koji negativno utječu na performanse igranja.
+Atlas je modifikacija za Windows koja uklanja gotovo sve nedostatke sustava Windows koji negativno utječu na performanse igranja.
 Atlas je također dobra opcija za smanjenje latencije sustava, latencije mreže, kašnjenja unosa te zadržava privatnost vašeg sustava dok se fokusira na performanse.
 Više o Atlasu možete saznati na našoj službenoj [web stranici](https://atlasos.net).
 
 ## 📚 **Sadržaj**
+
+- [Smjernice za doprinos](https://docs.atlasos.net/contributions)
 
 - Početak rada
   - [Instalacija](https://docs.atlasos.net/getting-started/installation)
@@ -53,17 +54,17 @@ Više o Atlasu možete saznati na našoj službenoj [web stranici](https://atlas
 ## 👀 **Zašto Atlas?**
 
 ### 🔒 Privatniji
-Stock Windows contains tracking services that collect your data and upload it to Microsoft.
-Atlas removes all types of tracking embedded within Windows and implements numerous group policies to minimize data collection. 
+Normalni Windows sadrži usluge praćenja koje prikupljaju vaše podatke i prenose ih Microsoftu.
+Atlas uklanja sve vrste praćenja ugrađenih u sustav Windows i implementira brojne grupne politike kako bi se smanjilo prikupljanje podataka.
 
-Note that Atlas cannot ensure the security for things outside the scope of Windows (such as browsers and third-party applications).
+Imajte na umu da Atlas ne može osigurati sigurnost za stvari izvan opsega sustava Windows (kao što su preglednici i aplikacije trećih strana).
 
 ### 🛡️ Sigurniji (u odnosu na prilagođene Windows ISO-ove)
 Preuzimanje modificiranog Windows ISO-a s interneta je rizično. Ne samo da ljudi mogu lako zlonamjerno promijeniti jednu od mnogih binarnih/izvršnih datoteka uključenih u sustavu Windows, on također možda nema najnovije sigurnosne zakrpe koje mogu ozbiljno ugroziti vaše računalo.
 
 Atlas je drugačiji. Mi koristimo [AME Wizard](https://ameliorated.io) za instalaciju Atlasa, a sve skripte koje koristimo otvorenog su koda ovdje u našem GitHub repozitoriju. Možete pogledati zapakiran Atlas playbook (`.apbx` - AME Wizard paket skripti) kao arhivu, sa lozinkom `malte` (standard za priručnike AME Wizard-a), što je samo za zaobilaženje lažnih detekcija antivirusa.
 
-Jedine izvršne datoteke uključene u playbook-u otvorenog su koda [ovdje](https://github.com/Atlas-OS/Atlas-Utilities) pod [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE), s hashovima koji su identični izdanjima. Sve ostalo je u običnom tekstu.
+Jedine izvršne datoteke uključene u playbook-u otvorenog su koda [ovdje](https://github.com/Atlas-OS/Atlas-Utilities) pod [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE) licencom, s hashovima koji su identični izdanjima. Sve ostalo je u običnom tekstu.
 
 Također možete instalirati najnovija sigurnosna ažuriranja prije instaliranja Atlasa, što preporučujemo kako bi vaš sustav bio sigurniji.
 
