@@ -10,12 +10,13 @@ First of all: thank you for considering helping us by translating the documents!
 ```
 THE DISCLAIMER SHOULD NOT BE TRANSLATED. Keep the disclaimer section as its link form.
 
-Do not modify the original "README_translate.md" formatting.
+Do not modify the original "README_translate.md" formatting. (This includes but are not limited to deleting sentences, changing links.)
 
 Avoid changing anything other then the text you need to translate.
 
 "Atlas", "Spectre" and "Meltdown" should all be kept in English, due to "Atlas" being the organization name and the rest being documented names.
 ```
+- Add your name and Github profile link into the "Translation Contributor" section of your translation.
 
 - Add the flag button for the translated document into the main [README.md](https://github.com/Atlas-OS/Atlas/blob/main) (make sure to put it in alphabetical order of it's ISO code.)
 

@@ -33,21 +33,20 @@ Atlas Windows 10'un düzenlenmiş, oyun performansını olumsuz etkileyen tüm b
 
 ## 📚 **İçerik tablosu**
 
-- [Katkı Rehberi](https://docs.atlasos.net/contributions)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
-- Başlangıç
-  - [Yükleme](https://docs.atlasos.net/getting-started/installation)
-  - [Farklı yükleme yöntemleri](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [Yükledikten sonra](https://docs.atlasos.net/getting-started/post-installation/drivers)
+- Getting Started
+  - [Installation](https://docs.atlasos.net/getting-started/installation)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
-- Sorun giderme
-  - [Kaldırılan Özellikler](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Scriptler](https://docs.atlasos.net/troubleshooting/scripts)
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
-- SSS
-  - [Discord](https://docs.atlasos.net/faq/community/discord)
-  - [Forum](https://docs.atlasos.net/faq/community/forums)
-  - [GitHub](https://docs.atlasos.net/faq/community/github)
+- FAQ
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Neden Atlas?**
 

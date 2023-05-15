@@ -44,21 +44,18 @@ body:
       label: Atlas Version
       options:
         - Atlas 10 22H2
-        - Atlas 11 22H2
-        - Atlas 10 Legacy (1803/20H2/21H2)
-        - Tweaked Atlas
     validations:
       required: true
 
   - type: textarea
     attributes:
       label: Desktop information
-      description: Your desktop information is needed for us to define the problem.
+      description: Your hardware specification is needed for us to define the problem.
       placeholder: |
-       - Processor [Intel or AMD, include specifics]
-       - RAM amount (8GB, 16GB, 32GB...)
-       - System Drive type (SSD, SHDD or HDD)
-       - Graphics card (e.g. NVIDIA RTX 4090)
+       - Processor [include brand and specifics]
+       - RAM amount
+       - System Drive [include brand and type]
+       - Graphics card
     validations:
       required: true
 

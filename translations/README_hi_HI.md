@@ -1,6 +1,6 @@
-﻿## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
+﻿⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">एक खुला और पारदर्शी ऑपरेटिंग सिस्टम, जो प्रदर्शन, गोपनीयता और स्थिरता को अनुकूलित करने के लिए डिजाइन किया गया है।</h4>
@@ -21,18 +21,20 @@
 
 ## 📚 **विषयसूची**
 
-- शुरू करना
-  - [स्थापना](https://docs.atlasos.net/getting-started/installation)
-  - [अन्य स्थापना विधियाँ](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [स्थापना के बाद](https://docs.atlasos.net/getting-started/post-installation/drivers)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
-- समस्या निवारण
-  - [हटाई गई विशेषताएं](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [लिपियाँ](https://docs.atlasos.net/troubleshooting/scripts)
+- Getting Started
+  - [Installation](https://docs.atlasos.net/getting-started/installation)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
-- सामान्य प्रश्न
-  - [स्थापित करना](https://docs.atlasos.net/FAQ/Installation)
-  - [योगदान देना](https://docs.atlasos.net/FAQ/Contribute)
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
+
+- FAQ
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **एटलस क्यों?**
 

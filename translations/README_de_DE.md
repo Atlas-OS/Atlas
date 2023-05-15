@@ -1,4 +1,4 @@
-
+⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -34,21 +34,20 @@ Auf unserer [Website](https://atlasos.net) kannst du mehr über Atlas erfahren.
 
 ## 📚 **Inhaltsverzeichnis**
 
-- [Beitragsrichtlinien (Contribution Guidelines)](https://docs.atlasos.net/contributions)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
-- Einstieg
+- Getting Started
   - [Installation](https://docs.atlasos.net/getting-started/installation)
-  - [Andere Installations Methoden](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [Nach der Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
-- Fehlerbehebung
-  - [Entfernte Features](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Skripte](https://docs.atlasos.net/troubleshooting/scripts)
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
-  - [Discord](https://docs.atlasos.net/faq/community/discord)
-  - [Forums](https://docs.atlasos.net/faq/community/forums)
-  - [GitHub](https://docs.atlasos.net/faq/community/github)
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Warum Atlas?**
 

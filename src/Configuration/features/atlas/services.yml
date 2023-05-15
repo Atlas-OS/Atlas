@@ -214,6 +214,3 @@ actions:
   - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
 
   # ----------------------- Drivers END ----------------------
-
-  # Backup Atlas services & drivers
-  - !run: {exe: 'BACKUP2.cmd', exeDir: true}

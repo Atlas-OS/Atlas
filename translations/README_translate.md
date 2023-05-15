@@ -16,7 +16,7 @@
       <img alt="Release Downloads" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
     </a>
   </p>
-<h4 align="center">An open and transparent operating system, designed to optimize performance, privacy and stability.</h4>
+<h4 align="center">An open and transparent modification to Windows, designed to optimize performance, privacy and stability.</h4>
 
 <p align="center">
   <a href="https://atlasos.net">Website</a>
@@ -30,7 +30,7 @@
 
 ## 🤔 **What is Atlas?**
 
-Atlas is a modified version of Windows 10, which removes nearly all the drawbacks of Windows that negatively affect gaming performance.
+Atlas is a modification to Windows, which removes nearly all the drawbacks of Windows that negatively affect gaming performance.
 Atlas is also a good option to reduce system latency, network latency, input lag, and keep your system private while focusing on performance.
 You can learn more about Atlas on our official [website](https://atlasos.net).
 
@@ -48,9 +48,8 @@ You can learn more about Atlas on our official [website](https://atlasos.net).
   - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
-  - [Discord](https://docs.atlasos.net/faq/community/discord)
-  - [Forums](https://docs.atlasos.net/faq/community/forums)
-  - [GitHub](https://docs.atlasos.net/faq/community/github)
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Why Atlas?**
 
@@ -103,3 +102,6 @@ We also have a dedicated area on our [forum](https://forum.atlasos.net/t/art-sho
 
 ## ⚠️ Disclaimer
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
+
+## Translation contributors
+[Translator 1](https://github.com/octocat) | [Translator 2](https://github.com/mona)

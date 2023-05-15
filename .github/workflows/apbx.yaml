@@ -29,7 +29,7 @@ jobs:
           echo "Making playbook display as unverified (remove ProductCode) so that it is not marked as malicious..."
           sed -i '/<ProductCode>/d' playbook.conf
           echo "Change description of playbook..."
-          sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas playbook, built with GitHub Actions from commit ${{ github.sha }}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
+          sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas Playbook, built with GitHub Actions from commit ${{ github.sha }}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
 
       - name: Create playbook (ZIP/APBX password is malte)
         run: |

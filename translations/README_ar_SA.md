@@ -1,6 +1,6 @@
-﻿## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
+﻿⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">نظام تشغيل مَفتوح المصدر، مُصمم لتحسين الأداء وزيادة خُصوصيّة واستقرار نظامك.</h4>

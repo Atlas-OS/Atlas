@@ -15,7 +15,7 @@
       <img alt="Release Downloads" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
     </a>
   </p>
-<h4 align="center">An open and transparent operating system, designed to optimize performance, privacy and stability.</h4>
+<h4 align="center">An open and transparent modification to Windows, designed to optimize performance, privacy and stability.</h4>
 
 <p align="center">
   <a href="https://atlasos.net">Website</a>
@@ -52,7 +52,7 @@
 
 ## 🤔 **What is Atlas?**
 
-Atlas is a modified version of Windows 10, which removes nearly all the drawbacks of Windows that negatively affect gaming performance.
+Atlas is a modification to Windows, which removes nearly all the drawbacks of Windows that negatively affect gaming performance.
 Atlas is also a good option to reduce system latency, network latency, input lag, and keep your system private while focusing on performance.
 You can learn more about Atlas on our official [website](https://atlasos.net).
 
@@ -70,9 +70,8 @@ You can learn more about Atlas on our official [website](https://atlasos.net).
   - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
-  - [Discord](https://docs.atlasos.net/faq/community/discord)
-  - [Forums](https://docs.atlasos.net/faq/community/forums)
-  - [GitHub](https://docs.atlasos.net/faq/community/github)
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Why Atlas?**
 
@@ -95,7 +94,7 @@ Please note that as of Atlas v0.2.0, Atlas is mostly **not as secure as regular 
 
 ### 🚀 More space
 Pre-installed applications and other insignificant components are removed with Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size and makes your system more fluent. Therefore, some functionalities (such as Windows Defender) are stripped completely.
-Check out what else we have removed in our [FAQ](https://docs.atlasos.net/troubleshooting/removed-features).
+Check out what else we have removed in our [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features) section.
 
 ### ✅ More performance
 Some tweaked systems on the internet have tweaked Windows too much, breaking compatibility for main features such as Bluetooth, Wi-Fi, and so on.
