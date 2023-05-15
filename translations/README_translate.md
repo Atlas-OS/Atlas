@@ -48,9 +48,8 @@ You can learn more about Atlas on our official [website](https://atlasos.net).
   - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
 - FAQ
-  - [Discord](https://docs.atlasos.net/faq/community/discord)
-  - [Forums](https://docs.atlasos.net/faq/community/forums)
-  - [GitHub](https://docs.atlasos.net/faq/community/github)
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Why Atlas?**
 
@@ -103,3 +102,6 @@ We also have a dedicated area on our [forum](https://forum.atlasos.net/t/art-sho
 
 ## ⚠️ Disclaimer
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
+
+## Translation contributors
+[Translator 1](https://github.com/octocat) | [Translator 2](https://github.com/mona)

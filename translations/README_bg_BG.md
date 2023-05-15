@@ -1,3 +1,4 @@
+⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -32,21 +33,20 @@ Atlas е също добра опция да се намали забавяне�
 
 ## 📚 **Съдържание**
 
-- [Указания за принос](https://docs.atlasos.net/contributions)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
-- Подготовка за започване
-  - [Инсталация](https://docs.atlasos.net/getting-started/installation)
-  - [Други инсталационни методи](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [След Инсталация](https://docs.atlasos.net/getting-started/post-installation/drivers)
+- Getting Started
+  - [Installation](https://docs.atlasos.net/getting-started/installation)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
-- Отстраняване на неизправности
-  - [Премахнати функции](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Скриптове](https://docs.atlasos.net/troubleshooting/scripts)
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
 
-- Често задавани въпроси
-  - [Дискорд](https://docs.atlasos.net/faq/community/discord)
-  - [Форуми](https://docs.atlasos.net/faq/community/forums)
-  - [GitHub](https://docs.atlasos.net/faq/community/github)
+- FAQ
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Защо Atlas?**
 

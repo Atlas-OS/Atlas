@@ -1,6 +1,6 @@
-## ⚠️WARNING! This translation is not yet updated with the main README.md, information here may be outdated.
+⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">Otwarty i przejrzysty system operacyjny Windows, zaprojektowany w celu optymalizacji wydajności i opóźnień.</h4>
@@ -23,16 +23,20 @@ Koncentrując się głównie na wydajności, jesteśmy również świetną opcj�
 
 ## 📚 **Spis treści**
 
-- [FAQ](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ)
-  - [Co to jest projekt Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#11-what-is-the-atlas-project)
-  - [Jak zainstalować system Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#12-how-do-i-install-atlas-os)
-  - [Co jest usunięte w systemie Atlas?](https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#13-whats-removed-in-atlas-os)
-- <a href="#windows-vs-atlas">Windows vs. Atlas</a>
-- [Installation](https://github.com/Atlas-OS/Atlas/wiki/2.-Installing)
-- [Post Install](https://github.com/Atlas-OS/Atlas/wiki/3.-Post-Install)
-- [Software](https://github.com/Atlas-OS/Atlas/wiki/4.-Software)
-- [Branding kit](https://raw.githubusercontent.com/Atlas-OS/Atlas/main/img/brand-kit.zip)
-- [Legal](https://github.com/Atlas-OS/Atlas/wiki/Legal)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions)
+
+- Getting Started
+  - [Installation](https://docs.atlasos.net/getting-started/installation)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+
+- Troubleshooting
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
+
+- FAQ
+  - [Atlas](https://atlasos.net/faq)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 🆚 **Windows vs. Atlas**
 
