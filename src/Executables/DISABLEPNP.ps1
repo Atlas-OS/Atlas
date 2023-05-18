@@ -31,44 +31,5 @@ $devices = @(
     "WAN Miniport*"
 )
 
-# Hyper-V services and drivers
-$services = @(
-    "bttflt",
-    "gcs",
-    "gencounter",
-    "hvhost",
-    "hvservice",
-    "hvsocketcontrol",
-    "passthruparser",
-    "pvhdparser",
-    "spaceparser",
-    "storflt",
-    "vhdparser",
-    "Vid",
-    "vkrnlintvsc",
-    "vkrnlintvsp",
-    "vmbus",
-    "vmbusr",
-    "vmcompute",
-    "vmgid",
-    "vmicguestinterface",
-    "vmicheartbeat",
-    "vmickvpexchange",
-    "vmicrdv",
-    "vmicshutdown",
-    "vmictimesync",
-    "vmicvmsession",
-    "vmicvss",
-    "vpci"
-)
-
-# Don't disable Hyper-V devices or services on Hyper-V guests/VMs
-if (!(Get-ItemProperty hklm:\HARDWARE\DESCRIPTION\System -Name SystemBiosVersion | Select-Object -ExpandProperty SystemBiosVersion | Select-String -Quiet "Hyper-V")) {
-	$devices = $devices + '*HyperV*'
-	foreach ($service in $services) {Set-Service -Name $service -StartupType Disabled}
-	bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS
-	bcdedit /set hypervisorlaunchtype off
-}
-
 # No errors as some devices may not have an option to be disabled
 Get-PnpDevice -FriendlyName $devices -ErrorAction Ignore | Disable-PnpDevice -Confirm:$false -ErrorAction Ignore
