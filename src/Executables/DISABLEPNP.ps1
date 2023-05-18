@@ -20,7 +20,7 @@ $devices = @(
     "PCI Memory Controller",
     "PCI Simple Communications Controller",
     "PCI standard RAM Controller"
-    "Remote Desktop Device Redirector Bus",
+    # "Remote Desktop Device Redirector Bus",
     "SM Bus Controller",
     "System CMOS/real time clock",
     "System Speaker",
@@ -31,8 +31,8 @@ $devices = @(
 )
 
 # Don't disable Hyper-V devices on Hyper-V guests
-if ( Get-ItemProperty hklm:\HARDWARE\DESCRIPTION\System -Name SystemBiosVersion | Select-Object -ExpandProperty SystemBiosVersion | Select-String -Quiet "Hyper-V" ) {
-	$devices = $devices + 'HyperV*'
+if (!(Get-ItemProperty hklm:\HARDWARE\DESCRIPTION\System -Name SystemBiosVersion | Select-Object -ExpandProperty SystemBiosVersion | Select-String -Quiet "Hyper-V")) {
+	$devices = $devices + '*HyperV*'
 }
 
 # No errors as some devices may not have an option to be disabled
