@@ -2,41 +2,54 @@
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
-
-<h4 align="center">Một phiên bản Windows được thiết kế để tối ưu hiệu năng và độ trễ.</h4>
+  <p align="center">
+    <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
+      <img alt="Giấy phép" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/>
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors">
+      <img alt="Những người đóng góp" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/releases/latest">
+      <img alt="Bản phát hành" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
+    </a>
+    <a href="https://github.com/Atlas-OS/Atlas/releases">
+      <img alt="Tải bản phát hành" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
+    </a>
+  </p>
+<h4 align="center">Bản tinh chỉnh mở và minh bạch cho Windows, được thiết kế để tối ưu hiệu năng, sự riêng tư và ổn định</h4>
 
 <p align="center">
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/2.-Installing">Cài đặt</a>
+  <a href="https://atlasos.net">Website</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/wiki/1.-FAQ#contents">Những câu hỏi thường gặp (FAQ)</a>
+  <a href="https://docs.atlasos.net">Tài liệu</a>
   •
-  <a href="https://discord.com/servers/atlas-795710270000332800" target="_blank">Discord</a>
+  <a href="https://discord.atlasos.net" target="_blank">Discord</a>
   •
   <a href="https://forum.atlasos.net">Diễn đàn</a>
 </p>
 
 ## 🤔 **Atlas là gì?**
 
-Atlas là một phiên bản Windows 10 đã được chỉnh sửa, loại bỏ tất cả những nhược điểm của Windows làm ảnh hưởng tới hiệu năng chơi game.
-Ngoài việc tập trung vào hiệu năng, chúng tôi còn là một lựa chọn tốt để giảm độ trễ hệ thống, mạng, nhập liệu và giữ cho hệ thống của bạn được bảo mật.
+Atlas là một công cụ tinh chỉnh cho Windows, loại bỏ tất cả những nhược điểm của Windows làm ảnh hưởng tới hiệu năng chơi game.
+Ngoài ra, Atlas còn là một lựa chọn tốt để giảm độ trễ của hệ thống, mạng, nhập liệu và giữ cho hệ thống của bạn bảo mật trong khi tập trung vào hiệu năng.
 Bạn có thể tìm hiểu thêm về Atlas trên [trang web chính thức của chúng tôi](https://atlasos.net).
 
 ## 📚 **Mục lục**
 
-- [Contribution Guidelines](https://docs.atlasos.net/contributions)
+- [Nguyên tắc đóng góp](https://docs.atlasos.net/contributions)
 
-- Getting Started
-  - [Installation](https://docs.atlasos.net/getting-started/installation)
-  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+- Bắt đầu
+  - [Cài đặt](https://docs.atlasos.net/getting-started/installation)
+  - [Các cách cài đặt khác](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [Sau khi cài đặt](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
-- Troubleshooting
-  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
+- Xử lý sự cố
+  - [Những tính năng đã bị loại bỏ](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Các tập lệnh](https://docs.atlasos.net/troubleshooting/scripts)
 
-- FAQ
+- Các câu hỏi thường gặp (FAQ)
   - [Atlas](https://atlasos.net/faq)
-  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
+  - [Các vấn đề chung](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Tại sao nên dùng Atlas?**
 
@@ -44,11 +57,18 @@ Bạn có thể tìm hiểu thêm về Atlas trên [trang web chính thức củ
 Phiên bản Windows gốc có chứa dịch vụ theo dõi, nó thu thập dữ liệu của bạn và gửi chúng tới Microsoft.
 Atlas loại bỏ tất cả các trình theo dõi được nhúng trong Windows và triển khai nhiều nhóm chính sách để giảm thiểu sự thu thập dữ liệu.
 
-(Lưu ý. Chúng tôi không thể đảm bảo việc bảo mật cho những thứ ngoài phạm vi của Windows, chẳng hạn như các trình duyệt và ứng dụng bên thứ ba.)
+Lưu ý rằng chúng tôi không thể đảm bảo việc bảo mật cho những thứ ngoài phạm vi của Windows (chẳng hạn như là các trình duyệt và ứng dụng bên thứ ba).
 
-### 🛡️ Bảo mật hơn
-Việc tải xuống một ISO đã được tuỳ chỉnh từ internet khá rủi ro. Nó không chỉ có thể chứa các tập lệnh độc hại mà khiến máy tính của bạn gặp rủi ro bảo mật nghiêm trọng.
-Atlas thì khác. Chúng tôi sử dụng [AME Wizard](https://ameliorated.io) để cài đặt, và tất cả các tập lệnh được dùng đều có mã nguồn mở tại repository này của chúng tôi. Bạn còn có thể cài đặt những bản cập nhật bảo mật mới nhất trước khi cài đặt Atlas, giúp hệ thống của bạn an toàn và bảo mật.
+### 🛡️ Bảo mật hơn (những ISO Windows đã được tuỳ chỉnh)
+Việc tải xuống một ISO đã được tuỳ chỉnh từ internet khá rủi ro. Mọi người không chỉ có thể dễ dàng thay đổi những tập lênh/thực thi được chứa trong Windows một cách ác ý, các phiên bản ISO tuỳ chỉnh còn có thể không có được những bản vá bảo mật mới nhất và đặt máy tính của bạn dưới những rủi ro bảo mật nghiệm trọng.
+
+Atlas thì khác. Chúng tôi sử dụng [AME Wizard](https://ameliorated.io) để cài đặt, và tất cả các tập lệnh được dùng đều có mã nguồn mở tại kho lưu trữ này của chúng tôi. Bạn có thể xem playbook Atlas đã được đóng gói (`.apbx` - gói tập lệnh AME Wizard) như là một tập tin nén, với mật khẩu là `malte` (mật khẩu mặc định cho các playbook của AME Wizard), với mục đích chỉ để vượt qua những phát hiện giả của các trình diệt virus.
+
+Những tệp thực thi được đưa vào trong playbook đều có mã nguồn mở [tại đây](https://github.com/Atlas-OS/Atlas-Utilities) dưới [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE), với các giá trị băm giống với các bản phát hành. Mọi thứ khác đều ở dạng văn bản thuần túy.
+
+Bạn còn có thể cài đặt những bản cập nhật bảo mật mới nhất trước khi cài đặt Atlas, điều mà chúng tôi khuyên làm để giữ cho hệ thống của bạn an toàn và bảo mật.
+
+Vui lòng lưu ý là ở phiên bản Atlas v0.2.0, Atlas hầu như **không bảo mật như phiên bản Windows thường** bởi vì đã loại bỏ/tắt những tính năng bảo mật, như là Windows Defender bị loại bỏ. Nhưng trong phiên bản Atlas v0.3.0, hầu hết chúng sẽ được thêm trở lại như là một tính năng tuỳ chọn. Xem [tại đây](https://docs.atlasos.net/troubleshooting/removed-features/) để biết thêm chi tiết.
 
 ### 🚀 Nhiều khoảng trống hơn
 Những ứng dụng được cài đặt sẵn và những thành phần không cần thiết đã bị loại bỏ khỏi Atlas. Mặc dù sẽ có khả năng về các vấn đề tương thích, nhưng điều này làm giảm đáng kể kích thước bản cài đặt và khiến cho hệ thống của bạn mượt mà hơn. Do đó, các chức năng như Windows Defender và những thứ tương tự đã bị loại bỏ hoàn toàn. Hãy xem nhưng gì đã được loại bỏ trong [FAQ của chúng tôi](https://docs.atlasos.net/troubleshooting/removed-features).
