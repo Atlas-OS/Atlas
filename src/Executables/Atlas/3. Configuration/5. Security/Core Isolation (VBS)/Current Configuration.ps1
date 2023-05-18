@@ -24,9 +24,14 @@ $pages = @(
 			foreach ($feature in $VirtualizationBasedSecurityStatusList) {
 				if ($VirtualizationBasedSecurityStatus -contains $VirtualizationBasedSecurityStatusList.IndexOf($feature)) {
 					Write-Host "VBS Status: " -NoNewLine -ForegroundColor Magenta
-					Write-Host "$feature"
+					Write-Host "$feature`n"
 				}
 			}
+			
+			Write-Host "Notes: " -ForegroundColor Yellow -NoNewLine
+			Write-Host "Some features here are exclusive to Windows 11, you will be mostly looking at Memory Integrity on Windows 10."
+			Write-Host "       Please note that on older CPUs especially, features like Memory Integrity will reduce performance significantly.`n"
+			Write-Host "       You can configure VBS/Core Isolation settings in Windows Security."
 
 			if ($SecurityServicesRunning -contains '0') {
 				Write-Host "`nNo Virtualization Based Security features are running.`n" -ForegroundColor Green
@@ -62,11 +67,14 @@ $pages = @(
 				"System Guard Secure Launch",
 				"SMM Firmware Measurement"
 			)
-
+			
+			Write-Host "Note: " -ForegroundColor Yellow -NoNewLine
+			Write-Host "These are the features configured on startup."
+			
 			if ($SecurityServicesConfigured -contains '0') {
-				Write-Host "No Virtualization Based Security features are configured.`n" -ForegroundColor Green
+				Write-Host "`nNo Virtualization Based Security features are configured.`n" -ForegroundColor Green
 			} else {
-				Write-Host "Virtualization Based Security features configured:`n" -ForegroundColor Yellow
+				Write-Host "`nVirtualization Based Security features configured:`n" -ForegroundColor Yellow
 			}
 			
 			foreach ($feature in $VirtualizationBasedSecurityConfiguredFeatures) {
