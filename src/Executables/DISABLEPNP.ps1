@@ -19,20 +19,53 @@ $devices = @(
     "PCI Encryption/Decryption Controller",
     "PCI Memory Controller",
     "PCI Simple Communications Controller",
-    "PCI standard RAM Controller"
+    "PCI standard RAM Controller",
+	# Commented as Remote Desktop is meant to be supported
     # "Remote Desktop Device Redirector Bus",
     "SM Bus Controller",
     "System CMOS/real time clock",
     "System Speaker",
     "System Timer",
-    "UMBus Root Bus Enumerator"
-    "Unknown Device"
+    "UMBus Root Bus Enumerator",
+    "Unknown Device",
     "WAN Miniport*"
 )
 
-# Don't disable Hyper-V devices on Hyper-V guests
+# Hyper-V services and drivers
+$services = @(
+    "bttflt",
+    "gcs",
+    "gencounter",
+    "hvhost",
+    "hvservice",
+    "hvsocketcontrol",
+    "passthruparser",
+    "pvhdparser",
+    "spaceparser",
+    "storflt",
+    "vhdparser",
+    "Vid",
+    "vkrnlintvsc",
+    "vkrnlintvsp",
+    "vmbus",
+    "vmbusr",
+    "vmcompute",
+    "vmgid",
+    "vmicguestinterface",
+    "vmicheartbeat",
+    "vmickvpexchange",
+    "vmicrdv",
+    "vmicshutdown",
+    "vmictimesync",
+    "vmicvmsession",
+    "vmicvss",
+    "vpci"
+)
+
+# Don't disable Hyper-V devices or services on Hyper-V guests/VMs
 if (!(Get-ItemProperty hklm:\HARDWARE\DESCRIPTION\System -Name SystemBiosVersion | Select-Object -ExpandProperty SystemBiosVersion | Select-String -Quiet "Hyper-V")) {
 	$devices = $devices + '*HyperV*'
+	foreach ($service in $services) {Set-Service -Name $service -StartupType Disabled}
 }
 
 # No errors as some devices may not have an option to be disabled

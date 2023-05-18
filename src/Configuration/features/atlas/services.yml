@@ -65,8 +65,6 @@ actions:
   # DsSvc 4 < can cause issues with snip & sketch
   - !service: {name: 'fdPHost', operation: change, startup: 4}
   - !service: {name: 'FDResPub', operation: change, startup: 4}
-  - !service: {name: 'gcs', operation: change, startup: 4}
-  - !service: {name: 'hvhost', operation: change, startup: 4}
   # icssvc 4 < breaks mobile/wi-fi hotspot
   # IKEEXT 4 < causes Teredo not to work
   - !service: {name: 'InstallService', operation: change, startup: 3}
@@ -92,15 +90,6 @@ actions:
   - !service: {name: 'SstpSvc', operation: change, startup: 4}
   - !service: {name: 'Themes', operation: change, startup: 4}
   - !service: {name: 'TrkWks', operation: change, startup: 4}
-  - !service: {name: 'vmcompute', operation: change, startup: 4}
-  - !service: {name: 'vmicguestinterface', operation: change, startup: 4}
-  - !service: {name: 'vmicheartbeat', operation: change, startup: 4}
-  - !service: {name: 'vmickvpexchange', operation: change, startup: 4}
-  - !service: {name: 'vmicrdv', operation: change, startup: 4}
-  - !service: {name: 'vmicshutdown', operation: change, startup: 4}
-  - !service: {name: 'vmictimesync', operation: change, startup: 4}
-  - !service: {name: 'vmicvmsession', operation: change, startup: 4}
-  - !service: {name: 'vmicvss', operation: change, startup: 4}
   - !service: {name: 'W32Time', operation: change, startup: 4}
   - !service: {name: 'WarpJITSvc', operation: change, startup: 4}
   - !service: {name: 'WdiServiceHost', operation: change, startup: 4}
@@ -156,7 +145,6 @@ actions:
   - !service: {name: 'BthPan', operation: change, startup: 4}
   - !service: {name: 'BTHPORT', operation: change, startup: 4}
   - !service: {name: 'BTHUSB', operation: change, startup: 4}
-  - !service: {name: 'bttflt', operation: change, startup: 4}
   - !service: {name: 'buttonconverter', operation: change, startup: 4}
   - !service: {name: 'CAD', operation: change, startup: 4}
   - !service: {name: 'cdfs', operation: change, startup: 4}
@@ -170,43 +158,28 @@ actions:
   - !service: {name: 'flpydisk', operation: change, startup: 4}
   # FileInfo 4 < breaks installing Microsoft Store applications to different disk (now disabled via store script)
   # FileCrypt 4 < Breaks installing Microsoft Store applications to different disk (now disabled via store script)
-  - !service: {name: 'gencounter', operation: change, startup: 4}
   - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
   - !service: {name: 'HidBth', operation: change, startup: 4}
-  - !service: {name: 'hvservice', operation: change, startup: 4}
-  - !service: {name: 'hvsocketcontrol', operation: change, startup: 4}
   - !service: {name: 'KSecPkg', operation: change, startup: 4}
   - !service: {name: 'Microsoft_Bluetooth_AvrcpTransport', operation: change, startup: 4}
   - !service: {name: 'mrxsmb', operation: change, startup: 4}
   - !service: {name: 'mrxsmb20', operation: change, startup: 4}
   - !service: {name: 'NdisVirtualBus', operation: change, startup: 4}
   - !service: {name: 'nvraid', operation: change, startup: 4}
-  - !service: {name: 'passthruparser', operation: change, startup: 4}
   # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
-  - !service: {name: 'pvhdparser', operation: change, startup: 4}
   # Set rdbss to manual instead of disabling (fixes wsl), thanks phlegm
   - !service: {name: 'rdbss', operation: change, startup: 3}
   - !service: {name: 'RFCOMM', operation: change, startup: 4}
   - !service: {name: 'sfloppy', operation: change, startup: 4}
   - !service: {name: 'SiSRaid2', operation: change, startup: 4}
   - !service: {name: 'SiSRaid4', operation: change, startup: 4}
-  - !service: {name: 'spaceparser', operation: change, startup: 4}
   - !service: {name: 'srv2', operation: change, startup: 4}
-  - !service: {name: 'storflt', operation: change, startup: 4}
   - !service: {name: 'tcpipreg', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
   - !service: {name: 'udfs', operation: change, startup: 4}
   - !service: {name: 'umbus', operation: change, startup: 4}
   - !service: {name: 'VerifierExt', operation: change, startup: 4}
-  - !service: {name: 'vhdparser', operation: change, startup: 4}
-  - !service: {name: 'Vid', operation: change, startup: 4}
-  - !service: {name: 'vkrnlintvsc', operation: change, startup: 4}
-  - !service: {name: 'vkrnlintvsp', operation: change, startup: 4}
-  - !service: {name: 'vmbus', operation: change, startup: 4}
-  - !service: {name: 'vmbusr', operation: change, startup: 4}
-  - !service: {name: 'vmgid', operation: change, startup: 4}
   # volmgrx 4 < breaks dynamic disks
-  - !service: {name: 'vpci', operation: change, startup: 4}
   - !service: {name: 'vsmraid', operation: change, startup: 4}
   - !service: {name: 'VSTXRAID', operation: change, startup: 4}
   # wcifs 4 < breaks various Microsoft Store games, erroring with "filter not found"
