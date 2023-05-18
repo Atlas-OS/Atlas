@@ -2533,12 +2533,6 @@ actions:
     # Use legacy boot menu
   - !run: {exe: 'bcdedit', args: '/set bootmenupolicy Legacy'}
 
-    # Disable Hyper-V and Virtualization Based Security (VBS)
-  - !run: {exe: 'bcdedit', args: '/set hypervisorlaunchtype off'}
-  - !run: {exe: 'bcdedit', args: '/set vm no'}
-  - !run: {exe: 'bcdedit', args: '/set vsmlaunchtype Off'}
-  - !run: {exe: 'bcdedit', args: '/set loadoptions DISABLE-LSA-ISO,DISABLE-VBS'}
-
   - !writeStatus:  {status: 'Setting power options'}
   - !run:
     exeDir: true

@@ -66,6 +66,8 @@ $services = @(
 if (!(Get-ItemProperty hklm:\HARDWARE\DESCRIPTION\System -Name SystemBiosVersion | Select-Object -ExpandProperty SystemBiosVersion | Select-String -Quiet "Hyper-V")) {
 	$devices = $devices + '*HyperV*'
 	foreach ($service in $services) {Set-Service -Name $service -StartupType Disabled}
+	bcdedit /set loadoptions DISABLE-LSA-ISO,DISABLE-VBS
+	bcdedit /set hypervisorlaunchtype off
 }
 
 # No errors as some devices may not have an option to be disabled
