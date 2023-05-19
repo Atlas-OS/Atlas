@@ -3,6 +3,13 @@ title: Configuration
 description: Applies the Atlas configuration
 privilege: TrustedInstaller
 actions:
+  - !writeStatus: {status: 'Optimising PowerShell'}
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File NGEN.ps1'
+    exeDir: true
+    wait: true
+
   - !writeStatus: {status: 'Configuring system'}
 
     # Do not launch privacy settings experience on user logon
@@ -71,9 +78,6 @@ actions:
     # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
   - !writeStatus: {status: 'Removing scheduled tasks'}
 
-  - !scheduledTask:
-    path: '\Microsoft\Windows\.NET Framework'
-    operation: deleteFolder
   # - !scheduledTask:
   #   path: '\Microsoft\Windows\Application Experience'
   #   operation: deleteFolder
