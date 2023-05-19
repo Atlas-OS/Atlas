@@ -6,10 +6,16 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-curl -L --output !windir!\AtlasModules\Open-Shell.exe https://github.com/Open-Shell/Open-Shell-Menu/releases/download/v4.4.189/OpenShellSetup_4_4_189.exe
-if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
-if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existOS
-goto rmSSOS
+ping -n 1 -4 www.example.com | find "time=" > nul 2>&1
+if !errorlevel! == 1 (
+	echo You must have an internet connection to use this script.
+	pause
+	exit /b
+)
+
+if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto existOS
+if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto existOS
+goto skipRM
 
 :existOS
 cls & set /P c="It appears search and start are installed, would you like to disable them also? [Y/N]? "
@@ -44,11 +50,20 @@ start explorer.exe > nul 2>&1
 
 :skipRM
 echo]
-echo Open-Shell is installing...
-"Open-Shell.exe" /qn ADDLOCAL=StartMenu
-curl -L https://github.com/bonzibudd/Fluent-Metro/releases/download/v1.5.3/Fluent-Metro_1.5.3.zip -o !TEMP!\skin.zip
+
+:: Download and install Open-Shell
+choco install open-shell -y --force --allow-empty-checksums --params="'/StartMenu'"
+
+:: Download Fluent Metro theme
+for /f "delims=" %%a in ('PowerShell "(Invoke-RestMethod -Uri "https://api.github.com/repos/bonzibudd/Fluent-Metro/releases/latest").assets.browser_download_url"') do (
+	curl -L --output !TEMP!\skin.zip %%a
+)
+
 PowerShell -NoP -C "Expand-Archive '!TEMP!\skin.zip' -DestinationPath 'C:\Program Files\Open-Shell\Skins'"
+
+del /f /q !TEMP!\Open-Shell.exe > nul 2>&1
 del /f /q !TEMP!\skin.zip > nul 2>&1
+
 taskkill /f /im explorer.exe > nul 2>&1
 start explorer.exe
 

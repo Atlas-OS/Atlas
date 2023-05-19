@@ -221,7 +221,7 @@ if ($global:install) {
 
     if ($installPackages.count -ne 0) {
         Write-Host "$Env:ProgramData\chocolatey\choco.exe install $($installPackages -join ' ') -y"
-        Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install $($installPackages -join ' ') -y --ignore-checksums" -Wait
+        Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install $($installPackages -join ' ') -y --force --allow-empty-checksums" -Wait
     }
     if ($installSeparatedPackages.count -ne 0) {
         foreach ($paket in $installSeparatedPackages) {
