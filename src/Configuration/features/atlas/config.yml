@@ -121,7 +121,6 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\Device Information\Device', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Device Setup\Metadata Refresh', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Diagnosis\Scheduled', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\DiskCleanup\SilentCleanup', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\DiskFootprint\Diagnostics', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdates', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdatesAsUser', operation: delete}
@@ -181,6 +180,13 @@ actions:
 
     # Set PowerShell execution policy to Unrestricted
   - !powerShell: {command: 'Set-ExecutionPolicy -ExecutionPolicy Unrestricted'}
+
+    # Configure and enable Storage Sense
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File STORAGESENSE.ps1'
+    exeDir: true
+    wait: true
 
     # Hide useless Windows Immersive Control Panel pages
   - !registryValue:
