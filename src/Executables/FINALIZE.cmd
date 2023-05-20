@@ -222,6 +222,3 @@ if "!diskDrive!" == "SSD" (
 :: Prevent mobsync.exe from running
 ren "!windir!\System32\mobsync.exe" mobsync.old
 ren "!windir!\SysWOW64\mobsync.exe" mobsync.old
-
-:: Add Auto-Cleaner script to run on startup
-schtasks /create /f /sc ONLOGON /ru "nt authority\system" /tn "\Atlas\Auto-Cleaner" /tr "C:\Windows\AtlasModules\Scripts\Auto-Cleaner.cmd" /delay 0000:30
