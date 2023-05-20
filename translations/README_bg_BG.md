@@ -33,20 +33,20 @@ Atlas е също добра опция да се намали забавяне�
 
 ## 📚 **Съдържание**
 
-- [Contribution Guidelines](https://docs.atlasos.net/contributions)
+- [Указания за принос](https://docs.atlasos.net/contributions)
 
-- Getting Started
-  - [Installation](https://docs.atlasos.net/getting-started/installation)
-  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+- Първи Стъпки
+  - [Инсталация](https://docs.atlasos.net/getting-started/installation)
+  - [Други инсталационни методи](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
+  - [След Инсталацията](https://docs.atlasos.net/getting-started/post-installation/drivers)
 
-- Troubleshooting
-  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
+- Отстраняване на неизправности
+  - [Премахнати функции](https://docs.atlasos.net/troubleshooting/removed-features)
+  - [Скриптове](https://docs.atlasos.net/troubleshooting/scripts)
 
-- FAQ
+- Често задавани въпроси
   - [Atlas](https://atlasos.net/faq)
-  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
+  - [Често срещани проблеми](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Защо Atlas?**
 
@@ -69,7 +69,7 @@ Atlas е различен. Ние използваме [AME Wizard](https://amel
 
 ### 🚀 Повече място
 Предварително инсталираните апликации и други неважни компоненти са премахнати със Atlas. Въпреки възможноста от проблеми със съвместимостта, това значително намалява размера на вашата система и я прави по свободна за ползване. Следователно някои функции (като Windows Defender) са премахната изцяло.
-Вижте какво още сме премахнали във нашите [Често Задавани Въпроси](https://docs.atlasos.net/troubleshooting/removed-features).
+Вижте какво още сме премахнали във нашата секция за [Премахнати функции](https://docs.atlasos.net/troubleshooting/removed-features).
 
 ### ✅ Повече производителност
 Някои променени системи във интернета са променени твърде много, разваляики съвместимостта със главни функции като Bluetooth, Wi-fi, и т.н.  
@@ -99,5 +99,5 @@ Atlas партнира със Windows Ameliorated Team за да предост�
 ## ⚠️ Disclaimer
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
-## Заслуги/Credits: 
+## Translation contributors （Сътрудници за превода）
 [dido](https://github.com/notdido)
