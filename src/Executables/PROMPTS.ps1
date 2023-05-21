@@ -42,7 +42,7 @@ if ($intButton -eq '6') { # if 'Yes'
 $WindowTitle = 'Core Isolation - Atlas'
 
 $Message = @'
-Would you like to disable Core Isolation (Virtualization Based Security)?
+Would you like to enable Core Isolation (Virtualization Based Security)?
 
 Core Isolation is a feature in Windows that aims to protect very important parts of the operating system. The main feature of this is Memory Integrity.
 
