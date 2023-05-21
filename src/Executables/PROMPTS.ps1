@@ -56,7 +56,7 @@ You can configure this later in Windows Security app.
 Automatically selecting 'No' in 5 minutes, which will disable Core Isolation features...
 '@
 
-# default option is 'No'
+# Default option is 'No'
 $intButton = '7'
 $intButton = $sh.Popup($Message,300,$WindowTitle,4+48+0)
 
@@ -64,7 +64,7 @@ $memIntegrity = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\Hy
 $kernelShadowStacks = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\KernelShadowStacks"
 $credentialGuard = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\CredentialGuard"
 
-if ($intButton -eq '6') { # if 'Yes'
+if ($intButton -eq '7') { # if 'No'
 	Write-Host Disabling VBS features...
 
 	# Memory Integrity
@@ -87,9 +87,9 @@ if ($intButton -eq '6') { # if 'Yes'
 		Remove-ItemProperty -Path $credentialGuard -Name "ChangedInBootCycle" -ErrorAction SilentlyContinue
 		Remove-ItemProperty -Path $credentialGuard -Name "WasEnabledBy" -ErrorAction SilentlyContinue
 	}
-} else { # if 'Yes'
-	Set-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 1 -Type DWord
-	Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
+} else {
+Set-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 1 -Type DWord
+Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
 }
 
 <#
@@ -98,11 +98,11 @@ if ($intButton -eq '6') { # if 'Yes'
 		--------------------------
 #>
 
-# as cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
+# As cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
 function Run-AtlasDiskCleanup {
-	# kill running cleanmgr instances, as they will prevent new cleanmgr from starting
+	# Kill running cleanmgr instances, as they will prevent new cleanmgr from starting
 	Get-Process -Name cleanmgr | Stop-Process -Force
-	# cleanmgr preset
+	# Cleanmgr preset
 	# 2 = enabled
 	# 0 = disabled
 	$baseKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches'
@@ -133,12 +133,12 @@ function Run-AtlasDiskCleanup {
 		$path = "$baseKey\$key"
 		Set-ItemProperty -Path $path -Name 'StateFlags0064' -Value $value -Type DWORD
 	}
-	# run preset 64 (0-65535)
+	# Run preset 64 (0-65535)
 	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64"
 }
 
-# check for other installations of Windows
-# if so, show the prompt, if not, run Disk Cleanup without input
+# Check for other installations of Windows
+# If so, show the prompt, if not, run Disk Cleanup without input
 $excludedDrive = "C"
 $drives = Get-PSDrive -PSProvider 'FileSystem' | Where-Object { $_.Name -ne $excludedDrive }
 foreach ($drive in $drives) {
@@ -162,7 +162,7 @@ Automatically selecting 'No' in 5 minutes...
 '@
 
 if ($otherInstalls) {
-	# default option is 'No'
+	# Default option is 'No'
 	$intButton = '7'
 	$intButton = $sh.Popup($Message,300,$WindowTitle,4+48+256)
 	if ($intButton -eq '6') {Run-AtlasDiskCleanup}
