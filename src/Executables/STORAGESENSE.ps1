@@ -2,6 +2,8 @@
 $properties = @{
 	# Enable Storage Sense
     "01" = 1
+	# Run Storage Sense
+	"1024" = 1
 	# Run Storage Sense every month
     "2048" = 30
 	# Enable cleaning temp files
