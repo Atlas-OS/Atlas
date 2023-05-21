@@ -1,11 +1,11 @@
 # Reference: https://gist.github.com/he3als/3d9dcf6e796aa920c24a98130165fb17
 $properties = @{
 	# Enable Storage Sense
-    "01" = 1
+    	"01" = 1
 	# Run Storage Sense
 	"1024" = 1
 	# Run Storage Sense every month
-    "2048" = 30
+   	"2048" = 30
 	# Enable cleaning temp files
 	"04" = 1
 	# Disable downloads being cleared
