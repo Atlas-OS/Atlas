@@ -52,7 +52,7 @@ Although this improves security, it will significantly worsen performance (up to
 
 You can configure this later in Windows Security app.
 
-Automatically selecting 'No' in 5 minutes... Clicking 'Cancel' won't change anything, clicking 'Yes' will enable VBS.
+Automatically selecting 'No' in 5 minutes..., clicking 'Yes' will enable Memory Integrity.
 '@
 
 # Default option is 'No'
