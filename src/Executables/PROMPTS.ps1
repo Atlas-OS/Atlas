@@ -1,3 +1,4 @@
+# https://ss64.com/vb/msgbox.html
 $sh = New-Object -ComObject "Wscript.Shell"
 
 <#
@@ -24,7 +25,7 @@ Automatically selecting 'Yes' in 5 minutes...
 
 # Default option is 'Yes'
 $intButton = '6'
-$intButton = $sh.Popup($Message,300,$WindowTitle,4+48+4096)
+$intButton = $sh.Popup($Message,300,$WindowTitle,4+48+0)
 
 if ($intButton -eq '6') { # if 'Yes'
 	Write-Host Disabling mitigiations...
@@ -52,21 +53,18 @@ Although this improves security, it will significantly worsen performance (up to
 
 You can configure this later in Windows Security app.
 
-Automatically selecting 'No' in 5 minutes..., clicking 'Yes' will enable Memory Integrity.
+Automatically selecting 'No' in 5 minutes, which will disable Core Isolation features...
 '@
 
-# Default option is 'No'
-$intButton = '7'
-$intButton = $sh.Popup($Message,300,$WindowTitle,4+48+4096)
+# default option is 'Yes'
+$intButton = '6'
+$intButton = $sh.Popup($Message,300,$WindowTitle,4+48+0)
 
 $memIntegrity = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
 $kernelShadowStacks = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\KernelShadowStacks"
 $credentialGuard = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\CredentialGuard"
 
 if ($intButton -eq '6') { # if 'Yes'
-	Set-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 1 -Type DWord
-	Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
-} elseif ($intButton -eq '7') { # if 'No'
 	Write-Host Disabling VBS features...
 
 	# Memory Integrity
@@ -89,4 +87,73 @@ if ($intButton -eq '6') { # if 'Yes'
 		Remove-ItemProperty -Path $credentialGuard -Name "ChangedInBootCycle" -ErrorAction SilentlyContinue
 		Remove-ItemProperty -Path $credentialGuard -Name "WasEnabledBy" -ErrorAction SilentlyContinue
 	}
+} else { # if 'Yes'
+	Set-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 1 -Type DWord
+	Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
 }
+
+<#
+		--------------------------
+				 Cleanmgr
+		--------------------------
+#>
+
+# as cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
+function Run-AtlasDiskCleanup {
+	Get-Process -Name cleanmgr | Stop-Process -Force
+	# cleanmgr preset
+	$baseKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches'
+	Set-ItemProperty -Path "$baseKey\Active Setup Temp Folders" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\BranchCache" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\D3D Shader Cache" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Delivery Optimization Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Diagnostic Data Viewer database files" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Downloaded Program Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Internet Cache Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Language Pack" -Name 'StateFlags0064' -Value 0 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Old ChkDsk Files" -Name 'StateFlags0064' -Value 0 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Recycle Bin" -Name 'StateFlags0064' -Value 0 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\RetailDemo Offline Content" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Setup Log Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\System error memory dump files" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\System error minidump files" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Temporary Files" -Name 'StateFlags0064' -Value 0 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Thumbnail Cache" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Update Cleanup" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\User file versions" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	Set-ItemProperty -Path "$baseKey\Windows Error Reporting Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
+	
+	# run preset 64 (0-65535)
+	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64"
+}
+
+# check for other installations of Windows
+# if so, show the prompt, if not, run Disk Cleanup without input
+$excludedDrive = "C"
+$drives = Get-PSDrive -PSProvider 'FileSystem' | Where-Object { $_.Name -ne $excludedDrive }
+foreach ($drive in $drives) {
+    if (Test-Path -Path $(Join-Path -Path $drive.Root -ChildPath 'Windows') -PathType Container) {
+        $otherInstalls = $true
+    }
+}
+
+$WindowTitle = 'Disk Cleanup - Atlas'
+
+$Message = @'
+Would you like to run Disk Cleanup (with the Atlas preset)?
+
+Disk Cleanup is a built-in tool in Windows for freeing disk space by removing temporary files, which is good (in this case) to have a clean base installation.
+
+Due to a Disk Cleanup limitation in Windows, you can only clean all drives on a system when using a Disk Cleanup preset, not just the current installation.
+
+Although nothing unexpected should come from using Disk Cleanup, this will modify other installations of Windows on your computer.
+
+Automatically selecting 'No' in 5 minutes...
+'@
+
+if ($otherInstalls) {
+	# default option is 'No'
+	$intButton = '7'
+	$intButton = $sh.Popup($Message,300,$WindowTitle,4+48+256)
+	if ($intButton -eq '6') {Run-AtlasDiskCleanup}
+} else {Run-AtlasDiskCleanup}

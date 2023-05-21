@@ -28,12 +28,6 @@ actions:
     exe: "COPYDESKTOP.cmd"
     weight: 20
 
-  - !writeStatus: {status: "Cleaning up the WinSxS folder"}
-  - !cmd:
-    exeDir: true
-    command: 'DISM /Online /Cleanup-Image /StartComponentCleanup'
-    weight: 30
-
   - !writeStatus: {status: 'Setting the environment'}
     # Set path variable for AtlasModules
     # Must be set before changing features

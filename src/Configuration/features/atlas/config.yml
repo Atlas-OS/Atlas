@@ -10,6 +10,14 @@ actions:
     exeDir: true
     wait: true
 
+    # Prompts asking if users want to toggle certain features like mitigations
+  - !writeStatus: {status: 'Waiting for user prompts'}
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File PROMPTS.ps1'
+    exeDir: true
+    wait: true
+
   - !writeStatus: {status: 'Configuring system'}
 
     # Do not launch privacy settings experience on user logon
@@ -416,14 +424,6 @@ actions:
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File DISABLEPNP.ps1'
-    exeDir: true
-    wait: true
-
-    # Prompts asking if users want to toggle certain features like mitigations
-  - !writeStatus: {status: 'Waiting for user prompts'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File PROMPTS.ps1'
     exeDir: true
     wait: true
 
@@ -2523,9 +2523,20 @@ actions:
     # Backup Atlas services & drivers after all modifications
   - !run: {exe: 'BACKUP2.cmd', exeDir: true}
 
+  - !writeStatus: {status: "Cleaning up temp files & WinSxS"}
+  - !cmd:
+    exeDir: true
+    command: 'DISM /Online /Cleanup-Image /StartComponentCleanup'
+    weight: 30
+    
     # Clean up temp folders and files
+    # Cleanmgr does not clean these up as AME needs to be prevented from being deleted
   - !cmd:
     command: 'for /f %a in (''dir /b "%TEMP%" /a:-d'') do del /q "%TEMP%\%a"'
+    weight: 10
+    # Windows Temp folder
+  - !cmd:
+    command: 'del /f /s /q C:\Windows\Temp\*'
     weight: 10
     # The AME folder has to be excluded here, otherwise it will remove
     # the Playbook logs and cause issues with the AME Wizard
