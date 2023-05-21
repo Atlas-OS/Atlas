@@ -56,8 +56,8 @@ You can configure this later in Windows Security app.
 Automatically selecting 'No' in 5 minutes, which will disable Core Isolation features...
 '@
 
-# default option is 'Yes'
-$intButton = '6'
+# default option is 'No'
+$intButton = '7'
 $intButton = $sh.Popup($Message,300,$WindowTitle,4+48+0)
 
 $memIntegrity = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
