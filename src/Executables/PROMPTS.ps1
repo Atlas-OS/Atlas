@@ -88,8 +88,8 @@ if ($intButton -eq '7') { # if 'No'
 		Remove-ItemProperty -Path $credentialGuard -Name "WasEnabledBy" -ErrorAction SilentlyContinue
 	}
 } else {
-Set-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 1 -Type DWord
-Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
+	Set-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 1 -Type DWord
+	Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
 }
 
 <#
@@ -99,7 +99,7 @@ Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
 #>
 
 # As cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
-function Run-AtlasDiskCleanup {
+function Invoke-AtlasDiskCleanup {
 	# Kill running cleanmgr instances, as they will prevent new cleanmgr from starting
 	Get-Process -Name cleanmgr | Stop-Process -Force
 	# Cleanmgr preset
@@ -165,5 +165,5 @@ if ($otherInstalls) {
 	# Default option is 'No'
 	$intButton = '7'
 	$intButton = $sh.Popup($Message,300,$WindowTitle,4+48+256)
-	if ($intButton -eq '6') {Run-AtlasDiskCleanup}
-} else {Run-AtlasDiskCleanup}
+	if ($intButton -eq '6') {Invoke-AtlasDiskCleanup}
+} else {Invoke-AtlasDiskCleanup}
