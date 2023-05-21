@@ -1,0 +1,14 @@
+---
+title: Configure PowerShell
+description: Configures PowerShell for the optimal privacy, performance and usability
+privilege: TrustedInstaller
+actions:
+  - !writeStatus: {status: 'Configuring PowerShell'}
+    # Disable PowerShell Core telemetry
+  - !cmd: {command: 'setx POWERSHELL_TELEMETRY_OPTOUT 1'}
+    # Set .ps1 file types to open with PowerShell by default
+    # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
+  - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -File "%1" %*'}
+    # Set PowerShell execution policy to Unrestricted
+    # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
+  - !powerShell: {command: 'Set-ExecutionPolicy -ExecutionPolicy Unrestricted'}

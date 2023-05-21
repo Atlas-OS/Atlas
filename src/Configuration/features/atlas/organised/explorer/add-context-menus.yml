@@ -1,0 +1,94 @@
+---
+title: Adds context menus
+description: Adds Explorer context menus for QoL
+privilege: TrustedInstaller
+actions:
+  - !writeStatus: {status: 'Adding context menus'}
+    # Add 'Merge as Trusted Installer' for registry files to context menu
+  - !registryValue:
+    path: 'HKCR\regfile\Shell\RunAs'
+    value: ''
+    data: 'Merge As TrustedInstaller'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\regfile\Shell\RunAs'
+    value: 'HasLUAShield'
+    data: '1'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\regfile\Shell\RunAs\Command'
+    value: ''
+    data: 'RunAsTI.cmd reg import "%1"'
+    type: REG_SZ
+
+    # Add 'Double click to import power schemes' to context menu
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\powerscheme\DefaultIcon'
+    value: ''
+    data: 'C:\Windows\System32\powercpl.dll,1'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\powerscheme\Shell\open\command'
+    value: ''
+    data: 'powercfg /import "%1"'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.pow'
+    value: ''
+    data: 'powerscheme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.pow'
+    value: 'FriendlyTypeName'
+    data: 'Power Scheme'
+    type: REG_SZ
+
+    # Add 'Install CAB' to context menu
+  - !registryKey: {path: 'HKCR\CABFolder\Shell\RunAs'}
+  - !registryValue:
+    path: 'HKCR\CABFolder\Shell\RunAs'
+    value: ''
+    data: 'Install'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\CABFolder\Shell\RunAs'
+    value: 'HasLUAShield'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\CABFolder\Shell\RunAs\Command'
+    value: ''
+    data: 'cmd /k DISM /Online /Add-Package /PackagePath:\"%1\"'
+    type: REG_SZ
+
+    # Add .bat, .reg and .ps1 to the 'New' context menu
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.bat\ShellNew'
+    value: 'ItemName'
+    data: '@C:\Windows\System32\acppage.dll,-6002'
+    type: REG_EXPAND_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.bat\ShellNew'
+    value: 'NullFile'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.ps1\ShellNew'
+    value: 'NullFile'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.ps1\ShellNew'
+    value: 'ItemName'
+    data: 'New file'
+    type: REG_EXPAND_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.reg\ShellNew'
+    value: 'NullFile'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.reg\ShellNew'
+    value: 'ItemName'
+    data: '@C:\Windows\regedit.exe,-309'
+    type: REG_EXPAND_SZ

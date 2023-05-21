@@ -1,0 +1,157 @@
+---
+title: Remove context menus
+description: Removes default Explorer context menus for QoL
+privilege: TrustedInstaller
+actions:
+    # Remove 'Print' from context menu
+  - !registryValue:
+    path: 'HKCR\SystemFileAssociations\image\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\batfile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\cmdfile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\docxfile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\fonfile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\htmlfile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\inffile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\inifile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\JSEFile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\otffile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\pfmfile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\regfile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\rtffile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\ttcfile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\ttffile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\txtfile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\VBEFile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\VBSFile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\WSFFile\shell\print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+
+    # Remove 'Edit with Paint 3D' from context menu
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.3mf\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.bmp\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.fbx\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.gif\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.jfif\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.jpe\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.jpeg\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.jpg\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.png\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.tif\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.tiff\Shell\3D Edit'}
+
+    # Remove 'Give access to' from context menu
+  - !registryKey: {path: 'HKCR\*\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\Directory\Background\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\Directory\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\Drive\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\LibraryFolder\background\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\UserLibraryFolder\shellex\ContextMenuHandlers\Sharing'}
+
+    # Remove 'Cast to device' from context menu
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked'
+    value: '{7AD84985-87B4-4a16-BE58-8B72A5B390F7}'
+    data: ''
+    type: REG_SZ
+
+    # Remove 'Share' from context menu
+  - !registryKey: {path: 'HKCR\*\shellex\ContextMenuHandlers\ModernSharing'}
+
+    # Remove 'Extract all' from context menu
+  - !registryKey: {path: 'HKCR\CompressedFolder\ShellEx\ContextMenuHandlers\{b8cdcb65-b1bf-4b42-9428-1dfdb7ee92af}'}
+
+    # Remove bitmap image from the 'New' context menu
+  - !registryKey: {path: 'HKCR\.bmp\ShellNew'}
+
+    # Remove rich text document from 'New' context menu
+  - !registryKey: {path: 'HKCR\.rtf\ShellNew'}
+
+    # Remove 'Include in library' from context menu
+  - !registryKey: {path: 'HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location'}
+
+    # Remove 'Troubleshooting compatibility' from context menu
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked'
+    value: '{1d27f844-3a1f-4410-85ac-14651078412d}'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked'
+    value: '{1d27f844-3a1f-4410-85ac-14651078412d}'
+    data: ''
+    type: REG_SZ
