@@ -100,29 +100,39 @@ if ($intButton -eq '6') { # if 'Yes'
 
 # as cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
 function Run-AtlasDiskCleanup {
+	# kill running cleanmgr instances, as they will prevent new cleanmgr from starting
 	Get-Process -Name cleanmgr | Stop-Process -Force
 	# cleanmgr preset
+	# 2 = enabled
+	# 0 = disabled
 	$baseKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches'
-	Set-ItemProperty -Path "$baseKey\Active Setup Temp Folders" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\BranchCache" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\D3D Shader Cache" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Delivery Optimization Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Diagnostic Data Viewer database files" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Downloaded Program Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Internet Cache Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Language Pack" -Name 'StateFlags0064' -Value 0 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Old ChkDsk Files" -Name 'StateFlags0064' -Value 0 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Recycle Bin" -Name 'StateFlags0064' -Value 0 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\RetailDemo Offline Content" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Setup Log Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\System error memory dump files" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\System error minidump files" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Temporary Files" -Name 'StateFlags0064' -Value 0 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Thumbnail Cache" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Update Cleanup" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\User file versions" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	Set-ItemProperty -Path "$baseKey\Windows Error Reporting Files" -Name 'StateFlags0064' -Value 2 -Type DWORD
-	
+	$regValues = @{
+		"Active Setup Temp Folders" = 2
+		"BranchCache" = 2
+		"D3D Shader Cache" = 2
+		"Delivery Optimization Files" = 2
+		"Diagnostic Data Viewer database files" = 2
+		"Downloaded Program Files" = 2
+		"Internet Cache Files" = 2
+		"Language Pack" = 0
+		"Old ChkDsk Files" = 0
+		"Recycle Bin" = 0
+		"RetailDemo Offline Content" = 2
+		"Setup Log Files" = 2
+		"System error memory dump files" = 2
+		"System error minidump files" = 2
+		"Temporary Files" = 0
+		"Thumbnail Cache" = 2
+		"Update Cleanup" = 2
+		"User file versions" = 2
+		"Windows Error Reporting Files" = 2
+	}
+	foreach ($entry in $regValues.GetEnumerator()) {
+		$key = $entry.Key
+		$value = $entry.Value
+		$path = "$baseKey\$key"
+		Set-ItemProperty -Path $path -Name 'StateFlags0064' -Value $value -Type DWORD
+	}
 	# run preset 64 (0-65535)
 	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64"
 }
