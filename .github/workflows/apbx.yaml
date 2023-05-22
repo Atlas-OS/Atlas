@@ -2,13 +2,15 @@ name: Create Atlas Playbook
 
 on:
   push:
+    branches-ignore:
+      - 'na-*'
     paths:
-      - "src/**"
-      - ".github/workflows/**"
+      - 'src/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
-      - "src/**"
-      - ".github/workflows/**"
+      - 'src/**"
+      - '.github/workflows/**'
 
 jobs:
   build:
@@ -18,7 +20,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.head_ref }}
+          ref: ${{ github.head_ref }}
 
       - name: Validate YAML files
         run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/.'
