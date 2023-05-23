@@ -211,17 +211,14 @@ if "!diskDrive!" == "SSD" (
     rem Remove ReadyBoost tab
     reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}" /f
 
-    rem Disable SysMain (Superfetch and Prefetch)
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f
-
     rem Disable Memory Compression
     rem SysMain should already disable it, but make sure it is disabled by executing this command.
     PowerShell -NoP -C "Disable-MMAGent -MemoryCompression"
+
+    rem Disable SysMain (Superfetch and Prefetch)
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f
 )
 
 :: Prevent mobsync.exe from running
 ren "!windir!\System32\mobsync.exe" mobsync.old
 ren "!windir!\SysWOW64\mobsync.exe" mobsync.old
-
-:: Add Auto-Cleaner script to run on startup
-schtasks /create /f /sc ONLOGON /ru "nt authority\system" /tn "\Atlas\Auto-Cleaner" /tr "C:\Windows\AtlasModules\Scripts\Auto-Cleaner.cmd" /delay 0000:30

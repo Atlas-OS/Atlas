@@ -28,12 +28,6 @@ actions:
     exe: "COPYDESKTOP.cmd"
     weight: 20
 
-  - !writeStatus: {status: "Cleaning up the WinSxS folder"}
-  - !cmd:
-    exeDir: true
-    command: 'DISM /Online /Cleanup-Image /StartComponentCleanup'
-    weight: 30
-
   - !writeStatus: {status: 'Setting the environment'}
     # Set path variable for AtlasModules
     # Must be set before changing features
@@ -218,7 +212,7 @@ actions:
 
   - !writeStatus: {status: 'Installing vcredist'}
   - !cmd:
-    command: 'md %windir%\AtlasModules\Apps & curl https://github.com/abbodi1406/vcredist/releases/latest/download/VisualCppRedist_AIO_x86_x64.exe -L -o %windir%\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe & %windir%\AtlasModules\Apps\VisualCppRedist_AIO_x86_x64.exe /ai' 
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums vcredist-all'
     weight: 150
 
   - !writeStatus: {status: 'Installing 7-Zip'}

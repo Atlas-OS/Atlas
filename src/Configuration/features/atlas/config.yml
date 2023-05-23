@@ -3,6 +3,21 @@ title: Configuration
 description: Applies the Atlas configuration
 privilege: TrustedInstaller
 actions:
+  - !writeStatus: {status: 'Optimizing PowerShell'}
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File NGEN.ps1'
+    exeDir: true
+    wait: true
+
+    # Prompts asking if users want to toggle certain features like mitigations
+  - !writeStatus: {status: 'Waiting for user prompts'}
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File PROMPTS.ps1'
+    exeDir: true
+    wait: true
+
   - !writeStatus: {status: 'Configuring system'}
 
     # Do not launch privacy settings experience on user logon
@@ -38,7 +53,7 @@ actions:
     value: 'Model'
     data: 'AtlasOS 22H2'
     type: REG_SZ
-  - !registryValue: 
+  - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
     value: 'SupportURL'
     data: 'https://discord.atlasos.net'
@@ -71,9 +86,6 @@ actions:
     # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
   - !writeStatus: {status: 'Removing scheduled tasks'}
 
-  - !scheduledTask:
-    path: '\Microsoft\Windows\.NET Framework'
-    operation: deleteFolder
   # - !scheduledTask:
   #   path: '\Microsoft\Windows\Application Experience'
   #   operation: deleteFolder
@@ -117,7 +129,6 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\Device Information\Device', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Device Setup\Metadata Refresh', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Diagnosis\Scheduled', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\DiskCleanup\SilentCleanup', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\DiskFootprint\Diagnostics', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdates', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdatesAsUser', operation: delete}
@@ -148,7 +159,7 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Error Reporting\QueueReporting', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Filtering Platform\BfeOnServiceStartTypeChange', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Windows Media Sharing\UpdateLibrary', operation: delete}
-  - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start', operation: delete}  
+  - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Wininet\CacheTask', operation: delete}
 
     # ------------------ Scheduled Tasks END -------------------
@@ -177,6 +188,13 @@ actions:
 
     # Set PowerShell execution policy to Unrestricted
   - !powerShell: {command: 'Set-ExecutionPolicy -ExecutionPolicy Unrestricted'}
+
+    # Configure Storage Sense
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File STORAGESENSE.ps1'
+    exeDir: true
+    wait: true
 
     # Hide useless Windows Immersive Control Panel pages
   - !registryValue:
@@ -415,14 +433,6 @@ actions:
     exeDir: true
     wait: true
 
-    # Mitigations prompt - asks user in a message box if they want to disable or enable mitigations
-  - !writeStatus: {status: 'Waiting for mitigation prompt'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File MITIGATIONPROMPT.ps1'
-    exeDir: true
-    wait: true
-
     # -------------------- Registry Portion --------------------
 
   - !writeStatus: {status: 'Modifying registry settings'}
@@ -513,17 +523,17 @@ actions:
     type: REG_SZ
 
     # Decrease shutdown time
-  - !registryValue: 
+  - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'HungAppTimeout'
     data: '2000'
     type: REG_SZ
-  - !registryValue: 
+  - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'WaitToKillAppTimeOut'
     data: '2000'
     type: REG_SZ
-  - !registryValue: 
+  - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control'
     value: 'WaitToKillServiceTimeout'
     data: '2000'
@@ -828,7 +838,7 @@ actions:
 
     # Fix context menu items missing when more than 15 files are selected
     # Set to 100 instead of 15
-  - !registryValue: 
+  - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
     value: 'MultipleInvokePromptMinimum'
     data: '100'
@@ -1407,7 +1417,7 @@ actions:
     type: REG_DWORD
 
     # Disable Resultant Set of Policy (RSoP) logging
-  - !registryValue: 
+  - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
     value: 'RSoPLogging'
     data: '0'
@@ -1766,54 +1776,6 @@ actions:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}'
     data: 'All Tasks'
     type: REG_SZ
-
-    # Disable Virtualization Based Security (VBS)
-    # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Windows.DeviceGuard::VirtualizationBasedSecurity
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard'
-    value: 'EnableVirtualizationBasedSecurity'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard'
-    value: 'RequirePlatformSecurityFeatures'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard'
-    value: 'HypervisorEnforcedCodeIntegrity'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard'
-    value: 'HVCIMATRequired'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard'
-    value: 'LsaCfgFlags'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard'
-    value: 'ConfigureSystemGuardLaunch'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard'
-    value: 'RequireMicrosoftSignedBootChain'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity'
-    value: 'WasEnabledBy'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity'
-    value: 'Enabled'
-    data: '0'
-    type: REG_DWORD
 
     # Configure paging settings
   - !registryValue:
@@ -2184,7 +2146,7 @@ actions:
     value: 'ActivationType'
     data: '0'
     type: REG_DWORD
-    
+
     # Disable automatic maintenance
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance'
@@ -2534,12 +2496,6 @@ actions:
     # Use legacy boot menu
   - !run: {exe: 'bcdedit', args: '/set bootmenupolicy Legacy'}
 
-    # Disable Hyper-V and Virtualization Based Security (VBS)
-  - !run: {exe: 'bcdedit', args: '/set hypervisorlaunchtype off'}
-  - !run: {exe: 'bcdedit', args: '/set vm no'}
-  - !run: {exe: 'bcdedit', args: '/set vsmlaunchtype Off'}
-  - !run: {exe: 'bcdedit', args: '/set loadoptions DISABLE-LSA-ISO,DISABLE-VBS'}
-
   - !writeStatus:  {status: 'Setting power options'}
   - !run:
     exeDir: true
@@ -2573,9 +2529,20 @@ actions:
     # Backup Atlas services & drivers after all modifications
   - !run: {exe: 'BACKUP2.cmd', exeDir: true}
 
+  - !writeStatus: {status: "Cleaning up temp files & WinSxS"}
+  - !cmd:
+    exeDir: true
+    command: 'DISM /Online /Cleanup-Image /StartComponentCleanup'
+    weight: 30
+
     # Clean up temp folders and files
+    # Cleanmgr does not clean these up as AME needs to be prevented from being deleted
   - !cmd:
     command: 'for /f %a in (''dir /b "%TEMP%" /a:-d'') do del /q "%TEMP%\%a"'
+    weight: 10
+    # Windows Temp folder
+  - !cmd:
+    command: 'del /f /s /q C:\Windows\Temp\*'
     weight: 10
     # The AME folder has to be excluded here, otherwise it will remove
     # the Playbook logs and cause issues with the AME Wizard
