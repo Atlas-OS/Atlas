@@ -1,0 +1,7 @@
+---
+title: Disable .NET CLI Telemetry
+description: Disables .NET CLI telemetry
+privilege: TrustedInstaller
+actions:
+    # https://learn.microsoft.com/en-us/dotnet/core/tools/telemetry
+  - !cmd: {command: 'setx DOTNET_CLI_TELEMETRY_OPTOUT 1'}

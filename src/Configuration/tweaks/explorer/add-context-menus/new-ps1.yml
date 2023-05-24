@@ -1,0 +1,15 @@
+---
+title: Add PowerShell Script to 'New' Context Menu
+description: Adds PowerShell script (.ps1) to 'New' context menu
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.ps1\ShellNew'
+    value: 'NullFile'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.ps1\ShellNew'
+    value: 'ItemName'
+    data: 'New file'
+    type: REG_EXPAND_SZ

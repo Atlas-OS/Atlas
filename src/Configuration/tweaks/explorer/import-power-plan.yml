@@ -1,0 +1,25 @@
+---
+title: Add Power Plan File Association
+description: Adds a file assocation for .pow files, so you can simply double click and import them
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\powerscheme\DefaultIcon'
+    value: ''
+    data: 'C:\Windows\System32\powercpl.dll,1'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\powerscheme\Shell\open\command'
+    value: ''
+    data: 'powercfg /import "%1"'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.pow'
+    value: ''
+    data: 'powerscheme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\.pow'
+    value: 'FriendlyTypeName'
+    data: 'Power Scheme'
+    type: REG_SZ

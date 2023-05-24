@@ -1,0 +1,11 @@
+---
+title: Show User Prompts
+description: Shows prompts to the user to toggle certain features like VBS or Defender
+privilege: TrustedInstaller
+actions:
+  - !writeStatus: {status: 'Waiting for user prompts'}
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File PROMPTS.ps1'
+    exeDir: true
+    wait: true

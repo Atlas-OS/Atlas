@@ -1,0 +1,31 @@
+---
+title: Enable Windows Photo Viewer
+description: Enables and configures the legacy Windows Photo Viewer to be the default for a more familar and lightweight photo viewing experience
+privilege: TrustedInstaller
+actions:
+  - !writeStatus: {status: 'Enabling Windows Photo Viewer'}
+    # Enable legacy photo viewer
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.tif', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.tiff', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.bmp', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.dib', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.gif', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.jfif', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.jpe', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.jpeg', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.jpg', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.jxr', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.png', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+
+    # Set legacy photo viewer as default
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.tif', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.tiff', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.bmp', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.dib', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.gif', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.jfif', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.jpe', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.jpeg', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.jpg', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.jxr', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.png', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}

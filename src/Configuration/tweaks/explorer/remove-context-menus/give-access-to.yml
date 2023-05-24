@@ -1,0 +1,11 @@
+---
+title: Remove 'Give access to' from Context Menu
+description: Removes 'Give access to' from context menu
+privilege: TrustedInstaller
+actions:
+  - !registryKey: {path: 'HKCR\*\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\Directory\Background\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\Directory\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\Drive\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\LibraryFolder\background\shellex\ContextMenuHandlers\Sharing'}
+  - !registryKey: {path: 'HKCR\UserLibraryFolder\shellex\ContextMenuHandlers\Sharing'}

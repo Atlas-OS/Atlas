@@ -1,0 +1,11 @@
+---
+title: Runs NGEN on PowerShell libraries
+description: Optimises PowerShell startup time by compiling the .NET libraries 
+privilege: TrustedInstaller
+actions:
+  - !writeStatus: {status: 'Optimizing PowerShell'}
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File NGEN.ps1'
+    exeDir: true
+    wait: true

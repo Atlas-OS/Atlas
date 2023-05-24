@@ -1,0 +1,18 @@
+---
+title: Tweaks Root Playbook File
+description: Runs all of the Atlas playbook tweaks
+privilege: TrustedInstaller
+actions: []
+features:
+  # ------------------------- NOTES ------------------------- #
+  
+  # - The first playbook file in each section contains the 'writeStatus' for AME Wizard
+  # - You can disable a certain playbook file by commenting it out
+  
+  # ----------------------- END NOTES ----------------------- #
+  
+  # temp
+  - tasks\registry.yml
+  - tasks\services.yml
+  - tasks\appx.yml
+  - tasks\software.yml
