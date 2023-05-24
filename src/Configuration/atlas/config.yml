@@ -3,41 +3,6 @@ title: Configuration
 description: Applies the Atlas configuration
 privilege: TrustedInstaller
 actions:
-    # Disable reserved storage
-  - !run: {exe: 'DISM', args: '/Online /Set-ReservedStorageState /State:Disabled'}
-
-    # Rebuild performance counters
-    # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/manually-rebuild-performance-counters
-  - !run: {exe: 'lodctr', args: '/r'}
-  - !run: {exe: 'lodctr', args: '/r'}
-  - !run: {exe: 'winmgmt', args: '/resyncperf'}
-
-    # Disable PowerShell telemetry
-    # https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.3
-  - !cmd: {command: 'setx DOTNET_CLI_TELEMETRY_OPTOUT 1'}
-
-    # Disable lock screen camera
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
-    value: 'NoLockScreenCamera'
-    data: '1'
-    type: REG_DWORD
-
-    # Restrict anonymous access to named pipes and shares
-    # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220932
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters'
-    value: 'RestrictNullSessAccess'
-    data: '1'
-    type: REG_DWORD
-
-    # Disable SMB bandwidth throttling
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters'
-    value: 'DisableBandwidthThrottling'
-    data: '1'
-    type: REG_DWORD
-
     # Block anonymous enumeration of SAM accounts
     # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220929
   - !registryValue:
@@ -45,19 +10,6 @@ actions:
     value: 'RestrictAnonymousSAM'
     data: '1'
     type: REG_DWORD
-
-    # Restrict anonymous enumeration of shares
-    # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220930
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa'
-    value: 'RestrictAnonymous'
-    data: '1'
-    type: REG_DWORD
-
-    # Disable network location wizard
-  - !registryKey:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff'
-    operation: add
 
     # Disable smart multi-homed name resolution
   - !registryValue:
@@ -71,25 +23,6 @@ actions:
     data: '1'
     type: REG_DWORD
 
-    # Set strong cryptography on 64 bit and 32 bit .Net Framework (version 4 and above) to fix the Scoop installation issue
-    # https://github.com/ScoopInstaller/Scoop/issues/2040#issuecomment-369686748
-    # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\.NetFramework\v4.0.30319'
-    value: 'SchUseStrongCrypto'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319'
-    value: 'SchUseStrongCrypto'
-    data: '1'
-    type: REG_DWORD
-
-
-
-
-
-
     # Do not limit reservable bandwidth
     # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosNonBestEffortLimit
   - !registryValue:
@@ -97,37 +30,6 @@ actions:
     value: 'NonBestEffortLimit'
     data: '0'
     type: REG_DWORD
-
-    # Set Network Stack (Packet Scheduler) timer resolution
-    # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosTimerResolution
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched'
-    value: 'TimerResolution'
-    data: '1'
-    type: REG_DWORD
-
-    # Disable Link-Local Multicast Name Resolution (LLMNR) protocol
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient'
-    value: 'EnableMulticast'
-    data: '0'
-    type: REG_DWORD
-
-    # Set default power saving mode for all network cards to disabled
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters'
-    value: 'DefaultPnPCapabilities'
-    data: '24'
-    type: REG_DWORD
-
-  - !writeStatus: {status: 'Disabling devices'}
-
-  - !powerShell: {command: 'Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File DISABLEPNP.ps1'
-    exeDir: true
-    wait: true
 
     # -------------------- Registry Portion --------------------
 

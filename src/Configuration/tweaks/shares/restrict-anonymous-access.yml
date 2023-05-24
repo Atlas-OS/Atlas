@@ -1,0 +1,11 @@
+---
+title: Restrict Anonymous Access to Named Pipes and Shares
+description: Restricts anonymous access to named pipes and shares to prevent unauthorized system access
+privilege: TrustedInstaller
+actions:
+    # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220932
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters'
+    value: 'RestrictNullSessAccess'
+    data: '1'
+    type: REG_DWORD
