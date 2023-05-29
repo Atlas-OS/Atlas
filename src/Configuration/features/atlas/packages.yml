@@ -5,10 +5,10 @@ privilege: TrustedInstaller
 actions:
   ## WoW64 (x86 emulation) and x86 packages only modify %ProgramFiles(x86)%, %windir%\SysWOW64 and HKLM\SOFTWARE\Wow6432Node (or HKCU)
   ## AppxMain, AppxSetup, and similar packages are primarily just stubs, that is, just stray manifests rather than actual files that need to be removed. The actual apps get removed beforehand in appx.yml
-  
+
   ## Double hashtags are used to differentiate between actual comments and commented code
-  
-  ## The overall goal here is to strip as least as possible for compatibility reasons, the only things being stripped should be true bloatware and somehow harmful to the user  
+
+  ## The overall goal here is to strip as least as possible for compatibility reasons, the only things being stripped should be true bloatware and somehow harmful to the user
 
   - !writeStatus: {status: 'Removing system packages'}
 
@@ -78,7 +78,7 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-Edge-MicrosoftEdgeSH', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-MicrosoftEdgeDevToolsClient.AppxMain', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-MicrosoftEdgeDevToolsClient.AppxSetup', arch: amd64, language: 'neutral'}
-  
+
   ## Parental Controls
   # - !systemPackage: {name: 'Microsoft-Windows-AppModel-FamilySafety-Extension', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-AppModel-FamilySafety-Extension', arch: wow64, language: 'neutral'}
@@ -100,7 +100,7 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-ParentalControlsRatingSystem-WEB', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-ParentalControlsSettings', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-ParentalControlsSettings', arch: wow64, language: 'neutral'}
-  
+
   ## Lock App
   - !systemPackage: {name: 'Microsoft-Windows-LockApp.AppxMain', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-LockApp.AppxSetup', arch: amd64, language: 'neutral'}
@@ -109,7 +109,7 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-LockAppHost-AboveLockAppHost', arch: wow64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-LockAppHost-LockHostingFramework', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-LockAppHost', arch: amd64, language: 'neutral'}
-  
+
   ## SmartScreen
   - !systemPackage: {name: 'Microsoft-Windows-AppRep-ChxApp.appxmain', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-AppRep-ChxApp.appxsetup', arch: amd64, language: 'neutral'}
@@ -119,7 +119,7 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-SmartScreen-Adm', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-SmartScreen', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-SmartScreen', arch: wow64, language: 'neutral'}
-  
+
   ## Windows Defender
   - !systemPackage: {name: 'Windows-Defender-AM-Default-Definitions-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   ## Removing AM-Engine caused updates failed message during restart
@@ -150,7 +150,7 @@ actions:
   - !systemPackage: {name: 'Windows-Defender-UI', arch: wow64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-SecHealthUI.AppxMain', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-SecHealthUI.AppxSetup', arch: amd64, language: 'neutral'}
-  
+
   ## AllJoyn Router
   ## Not stripped just in case for IoT apps
   # - !systemPackage: {name: 'Microsoft-Windows-AllJoyn-Api', arch: amd64, language: 'neutral'}
@@ -160,7 +160,7 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-AllJoyn-Runtime', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-AllJoyn-Runtime', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Networking-MPSSVC-Rules-AllJoyn', arch: amd64, language: 'neutral'}
-  
+
   ## Content Delivery Manager installs common bloatware from Store like Netflix, Disney+, etc...
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager-Capabilities', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager-Utilities', arch: amd64, language: 'neutral'}
@@ -173,7 +173,7 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager.AppxMain', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager.AppxSetup', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-SystemSettings-SettingsHandlers-ContentDeliveryManager', arch: amd64, language: 'neutral'}
-  
+
   ## Speech Recognition, needed for voice activation
   # - !systemPackage: {name: 'Microsoft-OneCore-DictationManager-Component', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-OneCore-SpeechService-Component', arch: amd64, language: 'neutral'}
@@ -201,14 +201,14 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-SpeechEngine', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-VoiceActivation-HW', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Windows-Media-Speech-WinRT', arch: wow64, language: 'neutral'}
-  
+
   # OneDrive (Does not remove OneDrive on its own. See ONED.cmd)
   - !systemPackage: {name: 'Microsoft-Windows-OneDrive-Setup-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   - !systemPackage: {name: 'Microsoft-Windows-OneDrive-Setup-Deployment', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-OneDrive-Setup-WOW64-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   - !systemPackage: {name: 'Microsoft-Windows-OneDrive-Setup-WOW64-Deployment', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-SystemSettings-SettingsHandlers-OneDriveBackup', arch: amd64, language: 'neutral'}
-  
+
   ## Point of Service
   # - !systemPackage: {name: 'Microsoft-Windows-Devices-PointOfService-ClassExtension', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Devices-PointOfService-Daf-POSPayments', arch: amd64, language: 'neutral'}
@@ -226,7 +226,7 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-Devices-PointOfService-CameraBarcodeScannerPreview-Host-Appxsetup', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Devices-PointOfService-CameraBarcodeScannerPreview-Host', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Devices-PointOfService-CameraBarcodeScannerPreview.AppxMain.Deploy', arch: amd64, language: 'neutral'}
-  
+
   ## Tablet/Mobile PC and Tablet Input
   # - !systemPackage: {name: 'Microsoft-Windows-TabletPC-ControlPanel', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-TabletPC-CoreInkRecognition-Events', arch: amd64, language: 'neutral'}
@@ -259,7 +259,7 @@ actions:
   ## Can cause search indexing to break
   # - !systemPackage: {name: 'Microsoft-Windows-TabletPC-InputPersonalization', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-TabletPC-InputPersonalization-Events', arch: amd64, language: 'neutral'}
-  
+
   # - !systemPackage: {name: 'Microsoft-Windows-Internet-Browser-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   # - !systemPackage: {name: 'Microsoft-Windows-Internet-Browser-Deployment', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Management-SecureAssessment-Deployment-LanguagePack', arch: amd64, language: 'en-US'}

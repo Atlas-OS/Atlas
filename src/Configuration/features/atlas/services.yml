@@ -27,7 +27,7 @@ actions:
   # Delete
   - !service: {name: 'AssignedAccessManagerSvc', operation: delete}
   - !service: {name: 'RetailDemo', operation: delete}
-  
+
   # Defender
   - !taskKill: {name: 'SecurityHealthSystray'}
   - !taskKill: {name: 'SecurityHealthService'}
