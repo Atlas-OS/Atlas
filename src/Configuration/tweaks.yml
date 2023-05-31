@@ -8,11 +8,96 @@ features:
   
   # - The first playbook file in each section contains the 'writeStatus' for AME Wizard
   # - You can disable a certain playbook file by commenting it out
+  # - Catorgrising everything will be done at the end of extracting everything from config.yml, the current structure is temporary
+  # - As 
   
   # ----------------------- END NOTES ----------------------- #
+
+  - tweaks\prompts.yml
+  - tweaks\ngen.yml
+
+  # -------------- #
+  #  EXPLORER      #
+  # -------------- #
+  - tweaks\explorer\configure-autorun.yml
+  - tweaks\explorer\disable-folders-this-pc.yml
+  - tweaks\explorer\disable-notifications.yml
+  - tweaks\explorer\import-power-plan.yml
+  - tweaks\explorer\notification-quick-settings.yml
   
-  # temp
-  - tasks\registry.yml
-  - tasks\services.yml
-  - tasks\appx.yml
-  - tasks\software.yml
+  # Adds context menus
+  - tweaks\explorer\add-context-menus\install-cab.yml
+  - tweaks\explorer\add-context-menus\merge-as-trustedinstaller.yml
+  - tweaks\explorer\add-context-menus\new-bat.yml
+  - tweaks\explorer\add-context-menus\new-ps1.yml
+  - tweaks\explorer\add-context-menus\new-reg.yml
+  
+  # Removes context menus
+  - tweaks\explorer\remove-context-menus\cast-to-device.yml
+  - tweaks\explorer\remove-context-menus\extract-all.yml
+  - tweaks\explorer\remove-context-menus\give-access-to.yml
+  - tweaks\explorer\remove-context-menus\include-in-library.yml
+  - tweaks\explorer\remove-context-menus\new-bitmap.yml
+  - tweaks\explorer\remove-context-menus\new-rtf.yml
+  - tweaks\explorer\remove-context-menus\paint-3d.yml
+  - tweaks\explorer\remove-context-menus\print.yml
+  - tweaks\explorer\remove-context-menus\share.yml
+  - tweaks\explorer\remove-context-menus\troubleshooting-compat.yml
+
+  # -------------- #
+  #  NETWORKING    #
+  # -------------- #
+  - tweaks\networking\netsh.yml
+
+  # -------------- #
+  #  SYSTEM        #
+  # -------------- #
+  - tweaks\system\disable-reserved-storage.yml
+  - tweaks\system\optimise-ntfs.yml
+  - tweaks\system\service-host-split.yml
+
+  # -------------- #
+  #  SECURITY      #
+  # -------------- #
+  - tweaks\security\delete-defaultuser0.yml
+  - tweaks\security\disable-remote-assistance.yml
+
+  # -------------- #
+  #  PRIVACY       #
+  # -------------- #
+  - tweaks\privacy\disable-dotnet-cli-telemetry.yml
+  - tweaks\privacy\disable-lockscreen-camera.yml
+
+  # -------------- #
+  #  SHARES        #
+  # -------------- #
+  - tweaks\shares\restrict-anonymous-access.yml
+  - tweaks\shares\restrict-anonymous-enumeration.yml
+  - tweaks\shares\smb-bandwidth-throttling.yml
+
+  # -------------- #
+  #  DEBLOAT       #
+  # -------------- #
+  - tweaks\debloat\autologgers.yml
+  - tweaks\debloat\disable-settings-pages.yml
+  - tweaks\debloat\legacy-photo-viewer.yml
+  - tweaks\debloat\scheduled-tasks.yml
+
+  # ------------------ #
+  #  NOT ORGANISED YET #
+  # ------------------ #
+  - tweaks\block-anonymous-enum-sam.yml
+  - tweaks\configure-powershell.yml
+  - tweaks\configure-time.yml
+  - tweaks\disable-devices.yml
+  - tweaks\disable-llmnr.yml
+  - tweaks\disable-network-location-wizard.yml
+  - tweaks\disable-privacy-experience.yml
+  - tweaks\disable-reserved-bandiwdth.yml
+  - tweaks\disable-smart-name-resolution.yml
+  - tweaks\network-power-saving.yml
+  - tweaks\oem-information.yml
+  - tweaks\packet-sched-timer-res.yml
+  - tweaks\rebuild-perf-counters.yml
+  - tweaks\storage-sense.yml
+  - tweaks\strong-dotnet-crypto.yml
