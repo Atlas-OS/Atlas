@@ -5,43 +5,43 @@ privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Removing APPX packages'}
   # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
-  
+
   # Comments - packages added back that do not get in the way of users at all, and are only dependencies or hidden, meaningless applications
   # Most of these applications can be reinstalled via Microsoft Store for users that need them
- 
+
   # File Picker
   # - !appx: {name: '1527c705-839a-4832-9118-54d4Bd6a0c89*', type: family}
-  
+
   # UWP File Explorer
   # - !appx: {name: 'c5e2524a-ea46-4f67-841f-6a9465d9d515*', type: family}
-  
+
   # Add Folder Suggestions dialog
   # - !appx: {name: 'F46D4000-FD22-4DB4-AC8E-4E1DDDE828FE*', type: family}
-  
+
   # Windows Hello
   # - !appx: {name: '*Microsoft.BioEnrollment*', type: family}
-  
+
   # Contains winget
   # - !appx: {name: '*Microsoft.DesktopAppInstaller*', type: family}
-  
+
   # Eye Control - dependency of Mixed Reality?
   # - !appx: {name: '*Microsoft.ECApp*', type: family}
-  
+
   # Codecs
   # - !appx: {name: '*Microsoft.WebMediaExtensions*', type: family}
   # - !appx: {name: '*Microsoft.WebpImageExtension*', type: family}
   # - !appx: {name: '*Microsoft.VP9VideoExtensions*', type: family}
   # - !appx: {name: '*Microsoft.HEIFImageExtension*', type: family}
-  
+
   # Dependency for Phone Link
   # - !appx: {name: '*Microsoft.Windows.CallingShellApp*', type: family}
-  
+
   # eGPUS?
   # - !appx: {name: '*Microsoft.Windows.XGpuEjectDialog*', type: family}
-  
+
   # Barcode Preview - harmless package, related to POS
   # - !appx: {name: '*Windows.CBSPreview*', type: family}
-  
+
   # - !appx: {name: '*Microsoft.Windows.AddSuggestedFoldersToLibraryDialog*', type: family}
   # - !appx: {name: '*Microsoft.AsyncTextService*', type: family}
   # - !appx: {name: '*Microsoft.Windows.PinningConfirmationDialog*', type: family}
@@ -52,22 +52,22 @@ actions:
 
   # Disney
   - !appx: {name: '*Disney*', type: family}
-  
+
   # Spotify
   - !appx: {name: '*Spotify*', type: family}
-  
+
   # Cortana
   - !appx: {name: '*Microsoft.549981C3F5F10*', type: family}
-  
+
   # MixedReality Portal - Installable via Store
   - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
 
   # Assigned Access bloat
   - !appx: {name: '*Microsoft.Windows.AssignedAccessLockApp*', type: family}
-  
+
   # Installs APPX bloat
   - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
-  
+
   # Network connection should not be needed in OOBE
   # Could force users to have to login to a Microsoft account in OOBE
   # Would not be a dependency of anything

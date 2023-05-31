@@ -121,17 +121,17 @@ actions:
     type: REG_SZ
 
     # Decrease shutdown time
-  - !registryValue: 
+  - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'HungAppTimeout'
     data: '2000'
     type: REG_SZ
-  - !registryValue: 
+  - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'WaitToKillAppTimeOut'
     data: '2000'
     type: REG_SZ
-  - !registryValue: 
+  - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control'
     value: 'WaitToKillServiceTimeout'
     data: '2000'
@@ -436,7 +436,7 @@ actions:
 
     # Fix context menu items missing when more than 15 files are selected
     # Set to 100 instead of 15
-  - !registryValue: 
+  - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
     value: 'MultipleInvokePromptMinimum'
     data: '100'
@@ -1015,7 +1015,7 @@ actions:
     type: REG_DWORD
 
     # Disable Resultant Set of Policy (RSoP) logging
-  - !registryValue: 
+  - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
     value: 'RSoPLogging'
     data: '0'
@@ -1528,7 +1528,7 @@ actions:
     value: 'ActivationType'
     data: '0'
     type: REG_DWORD
-    
+
     # Disable automatic maintenance
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance'
@@ -1682,7 +1682,7 @@ actions:
     exeDir: true
     command: 'DISM /Online /Cleanup-Image /StartComponentCleanup'
     weight: 30
-    
+
     # Clean up temp folders and files
     # Cleanmgr does not clean these up as AME needs to be prevented from being deleted
   - !cmd:
