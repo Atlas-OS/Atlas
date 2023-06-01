@@ -9,7 +9,6 @@ features:
   # - The first playbook file in each section contains the 'writeStatus' for AME Wizard
   # - You can disable a certain playbook file by commenting it out
   # - Catorgrising everything will be done at the end of extracting everything from config.yml, the current structure is temporary
-  # - As 
   
   # ----------------------- END NOTES ----------------------- #
 
