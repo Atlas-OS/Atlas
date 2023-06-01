@@ -1,16 +1,12 @@
-name: Create Atlas Playbook
+name: Create and Validate Atlas Playbook
 
 on:
   push:
-    branches-ignore:
-      - 'na-*'
     paths:
       - 'src/**'
-      - '.github/workflows/**'
   pull_request:
     paths:
       - 'src/**'
-      - '.github/workflows/**'
 
 jobs:
   build:
@@ -20,29 +16,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.ref }}
 
       - name: Validate YAML files
         run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/.'
 
       - name: Configure playbook
+        id: config-playbook
+        if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
         run: |
           cd src
           echo "Making playbook display as unverified (remove ProductCode) so that it is not marked as malicious..."
           sed -i '/<ProductCode>/d' playbook.conf
           echo "Change description of playbook..."
           sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas Playbook, built with GitHub Actions from commit ${{ github.sha }}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
-
       - name: Create playbook (ZIP/APBX password is malte)
+        if: ${{ steps.config-playbook.outcome != 'skipped' }}
         run: |
           cd src
-          echo "Make a renamed password protected (malte) ZIP of playbook files..."
+          echo "Making a renamed password protected (malte) ZIP of playbook files..."
           zip -r -P malte "Atlas Playbook ${GITHUB_SHA::8}.apbx" . -x "Release ZIP/*"
           echo "Move the .abpx playbook into the 'Release ZIP' to be released as an artifact with the additional files..."
           mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "Release ZIP"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v3
+        if: ${{ steps.config-playbook.outcome != 'skipped' }}
         with:
           name: Atlas Playbook
           path: |
