@@ -100,5 +100,10 @@ Svatko može pristupiti kompletu marke Atlas — možete ga preuzeti [ovdje](htt
 
 Također imamo namjenjeni prostor na našem [forumu](https://forum.atlasos.net/t/art-showcase), tako da možete podijeliti svoje kreacije s drugim kreativnim genijima i možda čak potaknuti malo inspiracije! Ovdje također možete pronaći kreativne pozadine koje drugih korisnika!
 
-## ⚠️ Izjava o ograničenju odgovornosti
+## ⚠️ Disclaimer (Izjava o ograničenju odgovornosti)
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
+
+## Translation contributors (Translation contributor in the translated language)
+[Contributor A](https://github.com/A) |
+[Contributor B](https://github.com/B) |
+[Contributor C](https://github.com/C)

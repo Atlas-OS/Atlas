@@ -81,5 +81,10 @@ Atlas brand kit è accessibile al pubblico, puoi scaricarlo [qui](https://cdn.js
 
 Abbiamo anche un'area dedicata sul nostro [Forum](https://forum.atlasos.net/t/art-showcase), in modo che tu possa condividere le tue creazioni con altri geni creativi e magari anche trovare ispirazione! Puoi anche trovare sfondi creativi che altri utenti condividono!
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer (Disclaimer)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
+
+## Translation contributors (Translation contributor in the translated language)
+[Contributor A](https://github.com/A) |
+[Contributor B](https://github.com/B) |
+[Contributor C](https://github.com/C)

@@ -100,7 +100,6 @@ Wir haben auch einen eigenen Bereich in unserem [Forum](https://forum.atlasos.ne
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Beitragende zur Übersetzung)
-
 [DedBash](https://github.com/DedBash/) |
 [GhostZero](https://github.com/ghostzero/) |
 [Alino001](https://github.com/Alino001) |

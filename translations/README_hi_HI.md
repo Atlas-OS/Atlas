@@ -81,3 +81,8 @@
 
 ## ⚠️ Disclaimer
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
+
+## Translation contributors (Translation contributor in the translated language)
+[Contributor A](https://github.com/A) |
+[Contributor B](https://github.com/B) |
+[Contributor C](https://github.com/C)
