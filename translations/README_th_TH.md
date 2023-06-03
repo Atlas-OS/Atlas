@@ -105,4 +105,4 @@ Atlas ร่วมมือกับ Windows Ameliorated Team เพื่อม
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
 
 ## ผู้ร่วมแปล
-[NginREV]https://github.com/NginREV)
+[NginREV](https://github.com/NginREV)
