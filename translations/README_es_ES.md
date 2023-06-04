@@ -81,9 +81,9 @@ El kit de marca de Atlas es accesible al público, ¡puedes descargarlo [aquí](
 
 También tenemos un área dedicada en nuestro [foro](https://forum.atlasos.net/t/art-showcase) para que puedas compartir tus creaciones con otros genios creativos y encontrar fondos de pantalla ingeniosos. ¡Quizás y despiertes alguna inspiración!
 
-## ⚠️ Descargo de responsabilidad
-[Click aquí para leer](https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer)
+## ⚠️ Disclaimer (Descargo de responsabilidad)
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
-## Colaboradores de traducción
+## Translation Contributors (Colaboradores de traducción)
 - [Bryan Rivalyr](https://github.com/Rivalyr)
 - [naxitoo](https://github.com/naxitoo)

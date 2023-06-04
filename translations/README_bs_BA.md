@@ -83,3 +83,8 @@ Mi isto imamo posebnu prostoriju na naš [Forum](https://forum.atlasos.net/t/art
 
 ## ⚠️ Disclaimer (Odricanje odgovornosti)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
+
+## Translation contributors (Translation contributor in the translated language)
+[Contributor A](https://github.com/A) |
+[Contributor B](https://github.com/B) |
+[Contributor C](https://github.com/C)

@@ -99,4 +99,5 @@ Ayrıca [forumumuzda](https://forum.atlasos.net/t/art-showcase), yaptığın tas
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Çeviriye katkıda bulunanlar)
-[imribiy](https://github.com/imribiy) | [Anceph](https://github.com/Anceph)
+[imribiy](https://github.com/imribiy) | 
+[Anceph](https://github.com/Anceph)

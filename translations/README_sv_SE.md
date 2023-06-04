@@ -81,7 +81,7 @@ Vill du göra din egna Atlas bakgrundsbild? Kanske leka runt lite med våran log
 
 Vi har också en [dedikerad plats i våran diskussions plats](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), så att du kan dela med dig med dina kreativa idéer till andra kreativa smarton och kanske sprida lite inspiration!
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer (Disclaimer)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (!!Translation contributor in the translated language)
