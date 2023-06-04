@@ -3,7 +3,6 @@ title: Disable Service Host Splitting
 description: Disables Service Host splitting, meaning that at a cost of reduced stability, there will be lower RAM usage and process count
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Disabling Service Host splitting''}
     # Set service split threshold to ffffffff [#491]
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control'
