@@ -100,8 +100,10 @@ Anyone can access the Atlas brand kit — you can download it [here](https://cdn
 
 We also have a dedicated area on our [forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creative geniuses and maybe even spark some inspiration! You can also find creative wallpapers that other users share here too!
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer ("Disclaimer" word itself in the translated language here)
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
 
-## Translation contributors
-[Translator 1](https://github.com/octocat) | [Translator 2](https://github.com/mona)
+## Translation contributors (Translation contributor in the translated language)
+[Contributor A](https://github.com/A) |
+[Contributor B](https://github.com/B) |
+[Contributor C](https://github.com/C)

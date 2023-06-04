@@ -99,11 +99,10 @@ Bộ thương hiệu của Atlas có thể truy cập một cách công khai, b�
 
 Chúng tôi cũng có [một mục riêng trong diễn đàn của chúng tôi](https://forum.atlasos.net/t/art-showcase), bạn có thể chia sẻ sự sáng tạo của mình với các nhà thiết kế khác, hoặc có thể bạn cũng sẽ tìm được nguồn cảm hứng ở đó!
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer (Disclaimer)
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Những người đóng góp dịch thuật)
-
 [Cuong Tien Dinh](https://github.com/dtcu0ng) | 
-[Nguyễn Cao Hoài Nam](https://github.com/sant1ago-da-hanoi) |
+[Nguyễn Cao Hoài Nam](https://github.com/sant1ago-da-hanoi) | 
 [Nguyen Thuy Linh](https://github.com/WhiteSnow00)
