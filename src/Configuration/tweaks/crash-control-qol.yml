@@ -1,0 +1,30 @@
+---
+title: Crash Control Quality of Life
+description: Configures the BSoD for having the most useful information and not leaving behind dumps (which most people won't look into anyways)
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'
+    value: 'AutoReboot'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'
+    value: 'CrashDumpEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'
+    value: 'LogEvent'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'
+    value: 'DisplayParameters'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl\StorageTelemetry'
+    value: 'DeviceDumpEnabled'
+    data: '0'
+    type: REG_DWORD

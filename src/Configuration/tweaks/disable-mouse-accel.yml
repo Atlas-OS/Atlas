@@ -1,0 +1,20 @@
+---
+title: Disable Mouse Acceleration
+description: Disables mouse acceleration (also called 'Enhance Pointer Precision') for 1:1 mouse movement, which is what most gamers would want
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\Control Panel\Mouse'
+    value: 'MouseSpeed'
+    data: '0'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\Control Panel\Mouse'
+    value: 'MouseThreshold1'
+    data: '0'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\Control Panel\Mouse'
+    value: 'MouseThreshold2'
+    data: '0'
+    type: REG_SZ

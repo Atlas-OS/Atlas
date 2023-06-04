@@ -1,0 +1,10 @@
+---
+title: Hide UWP Badges on Taskbar
+description: Hides badges on the taskbar for QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'TaskbarBadges'
+    data: '0'
+    type: REG_DWORD

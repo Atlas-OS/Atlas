@@ -1,0 +1,27 @@
+---
+title: Disable Windows Insider
+description: Windows Insider requires you to enable telemetry and is basically allows you to be Microsoft's test subject, meaning worsened stability and privacy
+privilege: TrustedInstaller
+actions:
+    # Disable Windows Insider and build previews
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds'
+    value: 'AllowBuildPreview'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds'
+    value: 'EnableConfigFlighting'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds'
+    value: 'EnableExperimentation'
+    data: '0'
+    type: REG_DWORD
+    # Hide the Windows Insider page
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\WindowsSelfHost\UI\Visibility'
+    value: 'HideInsiderPage'
+    data: '1'
+    type: REG_DWORD

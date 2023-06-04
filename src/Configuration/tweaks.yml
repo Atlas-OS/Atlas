@@ -23,7 +23,30 @@ features:
   - tweaks\explorer\disable-notifications.yml
   - tweaks\explorer\import-power-plan.yml
   - tweaks\explorer\notification-quick-settings.yml
-  
+  - tweaks\explorer\alt-tab-open-windows.yml
+  - tweaks\explorer\always-more-details-transfer.yml
+  - tweaks\explorer\always-show-all-tray-icons.yml
+  - tweaks\explorer\cmd-win-x.yml
+  - tweaks\explorer\configure-snap-settings.yml
+  - tweaks\explorer\disable-aero-shake.yml
+  - tweaks\explorer\disable-app-launch-tracking.yml
+  - tweaks\explorer\disable-badges-taskbar.yml
+  - tweaks\explorer\disable-desktop-peek.yml
+  - tweaks\explorer\disable-folder-type-discovery.yml
+  - tweaks\explorer\disable-low-disk-warning.yml
+  - tweaks\explorer\disable-sharing-wizard.yml
+  - tweaks\explorer\disable-sync-provider-notifs.yml
+  - tweaks\explorer\disable-user-tracking.yml
+  - tweaks\explorer\extend-cache.yml
+  - tweaks\explorer\full-context-on-more-than-15-items.yml
+  - tweaks\explorer\hide-frequently-used-items.yml
+  - tweaks\explorer\no-internet-open-with.yml
+  - tweaks\explorer\no-search-invalid-shortcuts.yml
+  - tweaks\explorer\no-store-taskbar-pin.yml
+  - tweaks\explorer\old-alt-tab.yml
+  - tweaks\explorer\open-to-this-pc.yml
+  - tweaks\explorer\show-files.yml
+
   # Adds context menus
   - tweaks\explorer\add-context-menus\install-cab.yml
   - tweaks\explorer\add-context-menus\merge-as-trustedinstaller.yml
@@ -100,3 +123,43 @@ features:
   - tweaks\rebuild-perf-counters.yml
   - tweaks\storage-sense.yml
   - tweaks\strong-dotnet-crypto.yml
+  - tweaks\blue-tooltips.yml
+  - tweaks\clear-ifeo.yml
+  - tweaks\config-app-permissions.yml
+  - tweaks\config-content-delivery.yml
+  - tweaks\config-start-menu.yml
+  - tweaks\config-windows-ink-workspace.yml
+  - tweaks\config-windows-media-player.yml
+  - tweaks\configure-search.yml
+  - tweaks\crash-control-qol.yml
+  - tweaks\dark-mode-disable-transparency.yml
+  - tweaks\decrease-shutdown-time.yml
+  - tweaks\disable-activity-feed.yml
+  - tweaks\disable-auto-background-login.yml
+  - tweaks\disable-blur-login.yml
+  - tweaks\disable-ceip.yml
+  - tweaks\disable-cloud-optimised-content.yml
+  - tweaks\disable-fast-user-switching.yml
+  - tweaks\disable-insider.yml
+  - tweaks\disable-menu-delay.yml
+  - tweaks\disable-mouse-accel.yml
+  - tweaks\disable-online-file-security-warn.yml
+  - tweaks\disable-online-speech-recognition.yml
+  - tweaks\disable-pca.yml
+  - tweaks\disable-settings-tips.yml
+  - tweaks\disable-speech-auto-updates.yml
+  - tweaks\disable-startup-delay.yml
+  - tweaks\disable-store-auto-updates.yml
+  - tweaks\disable-suggest-ways-to-finish-setup.yml
+  - tweaks\disable-tablet-mode.yml
+  - tweaks\disable-tailored-experiences.yml
+  - tweaks\disable-uac-secure-desktop.yml
+  - tweaks\disable-web-lang-list-access.yml
+  - tweaks\disable-windows-spotlight.yml
+  - tweaks\disallow-message-cloud-sync.yml
+  - tweaks\disallow-ms-accounts.yml
+  - tweaks\disallow-theme-changes.yml
+  - tweaks\force-end-shutdown-apps.yml
+  - tweaks\search-settings.yml
+  - tweaks\visual-effects.yml
+  - tweaks\wallpaper-quality.yml
