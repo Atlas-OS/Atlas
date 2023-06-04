@@ -1,3 +1,4 @@
+⚠️Note: This is a translated version of the original README.md, information here may not be accurate and can be outdated.
 <h1 align="center">
   <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
@@ -26,30 +27,6 @@
   •
   <a href="https://forum.atlasos.net">포럼</a>
 </p>
-
-# 번역
-<kbd>[<img title="العربية" alt="العربية" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/sa.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ar_SA.md)</kbd>
-<kbd>[<img title="Български" alt="Български" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/bg.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_bg_BG.md)</kbd>
-<kbd>[<img title="Bosanski" alt="Bosanski" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ba.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_bs_BA.md)</kbd>
-<kbd>[<img title="Čeština" alt="Čeština" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/cz.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_cs_CZ.md)</kbd>
-<kbd>[<img title="Deutsch" alt="Deutsch" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/de.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_de_DE.md)</kbd>
-<kbd>[<img title="Español" alt="Español" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/es.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_es_ES.md)</kbd>
-<kbd>[<img title="Française" alt="Française" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/fr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_fr_FR.md)</kbd>
-<kbd>[<img title="हिंदी" alt="हिंदी" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/in.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_hi_HI.md)</kbd>
-<kbd>[<img title="Hrvatski" alt="Hrvatski" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/hr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_hr_HR.md)</kbd>
-<kbd>[<img title="Bahasa Indonesia" alt="Bahasa Indonesia" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/id.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_id_ID.md)</kbd>
-<kbd>[<img title="Italiano" alt="Italiano" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/it.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_it_IT.md)</kbd>
-<kbd>[<img title="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" alt="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ph.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ph_PH.md)</kbd>
-<kbd>[<img title="Polski" alt="Polski" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/pl.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_pl_PL.md)</kbd>
-<kbd>[<img title="Português (Brasil)" alt="Português (Brasil)" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/br.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_pt_BR.md)</kbd>
-<kbd>[<img title="Русский" alt="Русский" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ru.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ru_RU.md)</kbd>
-<kbd>[<img title="Svenska" alt="Svenska" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/se.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_sv_SE.md)</kbd>
-<kbd>[<img title="Türkçe" alt="Türkçe" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/tr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_tr_TR.md)</kbd>
-<kbd>[<img title="українська мова" alt="українська мова" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ua.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ua_UA.md)</kbd>
-<kbd>[<img title="Tiếng Việt" alt="Tiếng Việt" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/vn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_vi_VN.md)</kbd>
-<kbd>[<img title="中文" alt="中文" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/cn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_zh_CN.md)</kbd>
-<kbd>[<img title="한국어" alt="한국어" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/kr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ko_KR.md)</kbd>
-#### _문서를 번역하여 우리를 도와주실 의향이 있으신가요? 그렇다면 다음 [지침](https://github.com/Atlas-OS/Atlas/blob/main/translations/README.md)을 따라주세요._
 
 ## 🤔 **Atlas란?**
 
@@ -123,9 +100,7 @@ Atlas는 Windows Ameliorated Team과 협력하여 사용자에게 더 안전하�
 우리는 또한 [포럼](https://forum.atlasos.net/t/art-showcase), 전용 영역을 가지고 있습니다. [여기](https://forum.atlasos.net/t/art-showcase)에서 다른 창의적인 천재들과 당신의 창작물을 공유하고 영감을 줄 수도 있습니다! 또한 다른 사용자가 공유하는 창의적인 배경 화면도 찾을 수 있습니다!
 
 ## ⚠️ 면책 조항
-Atlas-OS는 **정품 인증된 윈도우 버전이 아닙니다.** 윈도우를 활성화하려면  **유효한 키** 를 사용해야 합니다. 윈도우 10(프로페셔널 또는 홈) 라이센스를 구매하기 전에 판매자가 신뢰할 수 있는지 확인하고 키가 유효한지 확인하십시오. 어디서 구매하든 상관 없습니다.
-
-Atlas는 마이크로소프트 윈도우를 기반으로 합니다. 윈도우를 사용함으로써 귀하는 [마이크로소프트의 서비스 약관](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm)에 동의하게 됩니다.
+https://github.com/Atlas-OS/Atlas/tree/readme-update#%EF%B8%8F-disclaimer
 
 ## 번역 기여자
 [앙시모사우루스](https://github.com/Angsimosaurus)
