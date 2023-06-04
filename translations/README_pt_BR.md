@@ -98,8 +98,11 @@ Nós também temos uma área dedicada em nosso [Fórum](https://forum.atlasos.ne
 para que você possa compartilhar suas criações com outros gênios criativos e talvez até gerar alguma inspiração!
 E você ainda pode encontrar papéis de parede criativos que outros usuários compartilharam aqui, também!
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer (Disclaimer)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
-## Contribuiu com a tradução
-[Marcelo A F Gomes](https://github.com/mafgomes)
+## Translation contributors (Contribuiu com a tradução)
+[Marcelo A F Gomes](https://github.com/mafgomes) |
+[Contributor B](https://github.com/B) |
+[Contributor C](https://github.com/C)
+
