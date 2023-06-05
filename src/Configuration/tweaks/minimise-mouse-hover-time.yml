@@ -1,0 +1,11 @@
+---
+title: Minimise Mouse Hover Time for Item Info
+description: Minimises mouse hover time (from 400ms to 20ms) for hovering over files or folders mostly in File Explorer, so that you can instantly see information for QoL
+privilege: TrustedInstaller
+actions:
+    # Reduce mouse hover time to 20 milliseconds
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'MouseHoverTime'
+    data: '20'
+    type: REG_SZ

@@ -1,0 +1,47 @@
+---
+title: Disable Input Telemetry
+description: Disables text, ink and handwriting telemetry for privacy
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\InputPersonalization'
+    value: 'RestrictImplicitInkCollection'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\InputPersonalization'
+    value: 'RestrictImplicitTextCollection'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\InputPersonalization\TrainedDataStore'
+    value: 'HarvestContacts'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Personalization\Settings'
+    value: 'AcceptedPrivacyPolicy'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\TabletPC'
+    value: 'PreventHandwritingDataSharing'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\HandwritingErrorReports'
+    value: 'PreventHandwritingErrorReports'
+    data: '1'
+    type: REG_DWORD
+    # Disable typing insights
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Input\Settings'
+    value: 'InsightsEnabled'
+    data: '0'
+    type: REG_DWORD
+    # Disable improve inking and typing recognition
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Input\TIPC'
+    value: 'Enabled'
+    data: '0'
+    type: REG_DWORD

@@ -7,8 +7,10 @@ features:
   # ------------------------- NOTES ------------------------- #
   
   # - The first playbook file in each section contains the 'writeStatus' for AME Wizard
+  #     - As a note, this will be done after the restructure 
   # - You can disable a certain playbook file by commenting it out
-  # - Catorgrising everything will be done at the end of extracting everything from config.yml, the current structure is temporary
+  # - Catorgrising everything will be done at the end of extracting everything from config.yml, the current structure is very much temporary
+  # - During the restructure, certain tweak files may be seperated up further or generally reorganised
   
   # ----------------------- END NOTES ----------------------- #
 
@@ -77,6 +79,10 @@ features:
   - tweaks\system\disable-reserved-storage.yml
   - tweaks\system\optimise-ntfs.yml
   - tweaks\system\service-host-split.yml
+  - tweaks\system\configure-boot-config.yml
+  - tweaks\system\configure-paging.yml
+  - tweaks\system\script-power.yml
+  - tweaks\system\win32-priority-seperation.yml
 
   # -------------- #
   #  SECURITY      #
@@ -104,6 +110,12 @@ features:
   - tweaks\debloat\disable-settings-pages.yml
   - tweaks\debloat\legacy-photo-viewer.yml
   - tweaks\debloat\scheduled-tasks.yml
+
+  # Ease Of Access
+  - tweaks\ease-of-access\disable-always-read-section.yml
+  - tweaks\ease-of-access\disable-annoying-features-shortcuts.yml
+  - tweaks\ease-of-access\disable-making-touch-easier.yml
+  - tweaks\ease-of-access\disable-warning-sounds.yml
 
   # ------------------ #
   #  NOT ORGANISED YET #
@@ -163,3 +175,24 @@ features:
   - tweaks\search-settings.yml
   - tweaks\visual-effects.yml
   - tweaks\wallpaper-quality.yml
+  - tweaks\configure-fse-gamebar.yml
+  - tweaks\configure-mmcss.yml
+  - tweaks\disable-background-apps.yml
+  - tweaks\disable-diagnostic-tracing.yml
+  - tweaks\disable-experimentation.yml
+  - tweaks\disable-game-mode.yml
+  - tweaks\disable-input-telemetry.yml
+  - tweaks\disable-lockscreen.yml
+  - tweaks\disable-rsop-logging.yml
+  - tweaks\disable-setting-sync.yml
+  - tweaks\disable-spell-checking.yml
+  - tweaks\disable-touch-visual-feedback.yml
+  - tweaks\disable-win-error-reporting.yml
+  - tweaks\disallow-data-collection.yml
+  - tweaks\disallow-user-activity-upload.yml
+  - tweaks\minimise-mouse-hover-time.yml
+  - tweaks\script-ngen.yml
+  - tweaks\script-prompts.yml
+  - tweaks\script-startmenu.yml
+  - tweaks\script-wallpaper.yml
+  - tweaks\disable-smartscreen.yml

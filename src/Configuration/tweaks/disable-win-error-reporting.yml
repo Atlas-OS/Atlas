@@ -1,0 +1,21 @@
+---
+title: Disable Windows Error Reporting
+description: Disables Windows Error Reporting for QoL and privacy
+privilege: TrustedInstaller
+actions:
+  # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.InternetCommunicationManagement::PCH_DoNotReport
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'Disabled'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting'
+    value: 'DoReport'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'Disabled'
+    data: '1'
+    type: REG_DWORD
