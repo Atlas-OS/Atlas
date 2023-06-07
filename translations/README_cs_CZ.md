@@ -100,5 +100,10 @@ Přístup ke značkové sadě Atlas má každý - můžete si ji stáhnout [zde]
 
 Na našem [fóru](https://forum.atlasos.net/t/art-showcase) máme také vyhrazený prostor, kde se můžete podělit o své výtvory s ostatními kreativními génii a možná i načerpat inspiraci! Můžete zde také najít kreativní tapety, které sdílejí ostatní uživatelé!
 
-## ⚠️ Vyloučení odpovědnosti
+## ⚠️ Disclaimer (Vyloučení odpovědnosti)
 https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
+
+## Translation contributors (Translation contributor in the translated language)
+[Contributor A](https://github.com/A) |
+[Contributor B](https://github.com/B) |
+[Contributor C](https://github.com/C)

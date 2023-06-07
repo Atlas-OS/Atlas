@@ -80,9 +80,8 @@ Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stw
 
 Mamy też [dedykowany obszar w zakładce dyskusje](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), więc możesz podzielić się swoimi projektami z innymi kreatywnymi twórcami, a może nawet zaskoczyć jakąś inspiracją!
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer (Disclaimer)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Twórcy tłumaczenia)
-
 [Xyueta](https://github.com/Xyueta)
