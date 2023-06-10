@@ -1,0 +1,31 @@
+---
+title: Show All Tasks in Control Panel
+description: Shows 'All Tasks' in Control Panel (God Mode), so that people can easily access all settings for QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}'
+    data: 'All Tasks'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}'
+    value: 'InfoTip'
+    data: 'View list of all Control Panel tasks'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}'
+    value: 'System.ControlPanel.Category'
+    data: '5'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\DefaultIcon'
+    data: 'C:\Windows\System32\imageres.dll,-27'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\Shell\Open\Command'
+    data: 'explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}'
+    data: 'All Tasks'
+    type: REG_SZ

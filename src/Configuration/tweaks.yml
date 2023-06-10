@@ -196,3 +196,25 @@ features:
   - tweaks\script-startmenu.yml
   - tweaks\script-wallpaper.yml
   - tweaks\disable-smartscreen.yml
+  - tweaks\disable-advertising-info.yml
+  - tweaks\disable-automatic-maintenance.yml
+  - tweaks\disable-bluetooth-advertising.yml
+  - tweaks\disable-kms-telemetry.yml
+  - tweaks\disable-location-tracking.yml
+  - tweaks\disable-network-navigation-pane.yml
+  - tweaks\disable-news-and-interests.yml
+  - tweaks\disable-perf-track.yml
+  - tweaks\disable-shared-experiences.yml
+  - tweaks\disable-usb-issues-notifications.yml
+  - tweaks\disable-windows-feedback.yml
+  - tweaks\do-not-reduce-sounds.yml
+  - tweaks\hide-disabled-disconnected-sounds.yml
+  - tweaks\hide-meet-now.yml
+  - tweaks\hide-task-view.yml
+  - tweaks\removable-drives-only-this-pc.yml
+  - tweaks\remove-previous-versions.yml
+  - tweaks\remove-shortcut-icon.yml
+  - tweaks\remove-shortcut-text.yml
+  - tweaks\script-finalize.yml
+  - tweaks\script-pfp.yml
+  - tweaks\show-all-tasks-control-panel.yml
