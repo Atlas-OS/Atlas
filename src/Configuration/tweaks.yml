@@ -218,3 +218,8 @@ features:
   - tweaks\script-finalize.yml
   - tweaks\script-pfp.yml
   - tweaks\show-all-tasks-control-panel.yml
+  - tweaks\prevent-edge-update.yml
+  - tweaks\fix-no-downloads-bug.yml
+  - tweaks\cleanup-temp-files.yml
+  - tweaks\clean-winsxs.yml
+  - tweaks\script-backup2.yml

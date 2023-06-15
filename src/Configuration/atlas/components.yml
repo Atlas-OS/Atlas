@@ -32,6 +32,9 @@ actions:
   - !file: {path: 'C:\Program Files\Windows Defender Advanced Threat Protection'}
   - !file: {path: 'C:\ProgramData\Microsoft\Windows Defender Advanced Threat Protection'}
 
+    # Remove SecurityHealthSystray startup item
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
+
     # ---------- Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge'}
   - !taskKill: {name: 'MicrosoftEdgeUpdate'}

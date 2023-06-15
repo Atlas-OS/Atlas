@@ -11,4 +11,3 @@ features:
   - atlas\packages.yml
   # Tweaks YAML that runs all of the tweaking playbook files
   - tweaks.yml
-  - config.yml
