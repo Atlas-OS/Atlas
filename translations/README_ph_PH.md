@@ -82,7 +82,7 @@ Gusto mo bang gumawa ng sarili mong wallpaper ng Atlas? Baka magulo ang aming lo
 
 Mayroon din kaming [nakalaang lugar sa tab ng mga talakayan](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), para maibahagi mo ang iyong mga likha sa iba pang mga magagaling sa pag-drawing at maaaring maging spark ng inspirasyon!
 
-## ⚠️ Disclaimer (Disclaimer)
+## ⚠️ Disclaimer (babala)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Mga tagapag-ambag ng pagsasalin)
