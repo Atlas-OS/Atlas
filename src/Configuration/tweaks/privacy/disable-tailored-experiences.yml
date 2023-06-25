@@ -1,6 +1,6 @@
 ---
 title: Do not use Diagnostic Data for Tailored Experiences
-description: Prevents Windows from using diagnostic data for tailored experiences for privacy, also labeled as "let Microsoft provide more tailored experiences with relevant tips and recommendations by using your diagnostic data"
+description: Prevents Windows from using diagnostic data for tailored experiences for privacy, also labeled as "Let Microsoft provide more tailored experiences with relevant tips and recommendations by using your diagnostic data"
 privilege: TrustedInstaller
 actions:
   - !registryValue:

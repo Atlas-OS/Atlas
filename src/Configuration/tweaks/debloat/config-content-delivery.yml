@@ -1,6 +1,6 @@
 ---
 title: Configure Content Delivery Manager
-description: Configures Content Delivery Manager to not download any normally pre-installed applications ( e.g. bloat like Disney+) mostly for QoL, but also for privacy.
+description: Configures Content Delivery Manager to not download any normally pre-installed applications (e.g. bloat like Disney+) mostly for QoL, but also for privacy.
 privilege: TrustedInstaller
 actions:
     # Disable Content Delivery Manager
