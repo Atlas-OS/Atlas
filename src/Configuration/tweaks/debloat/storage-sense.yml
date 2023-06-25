@@ -3,6 +3,7 @@ title: Configure and Enable Storage Sense
 description: Configures Storage Sense to automatically cleanup Windows every month
 privilege: TrustedInstaller
 actions:
+  - !writeStatus: {status: 'Configuring and enabling Storage Sense'}
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File STORAGESENSE.ps1'

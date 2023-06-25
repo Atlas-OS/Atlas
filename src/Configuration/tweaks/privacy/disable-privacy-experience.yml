@@ -1,4 +1,4 @@
-
+---
 title: Disable OOBE Privacy Experience
 description: Disables the OOBE (Out of Box Experience) privacy configuration that you might see on updates to not override current settings
 privilege: TrustedInstaller

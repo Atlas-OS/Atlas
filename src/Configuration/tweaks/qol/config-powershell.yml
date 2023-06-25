@@ -3,6 +3,7 @@ title: Configure PowerShell
 description: Configures PowerShell for the optimal privacy, performance and usability
 privilege: TrustedInstaller
 actions:
+  - !writeStatus: {status: 'Configuring PowerShell'}
     # Disable PowerShell Core telemetry
   - !cmd: {command: 'setx POWERSHELL_TELEMETRY_OPTOUT 1'}
     # Set .ps1 file types to open with PowerShell by default

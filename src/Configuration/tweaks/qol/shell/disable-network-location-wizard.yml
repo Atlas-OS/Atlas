@@ -1,4 +1,4 @@
-
+---
 title: Disable Network Location Wizard
 description: Disables the Network Location Wizard, which is the pop-up about your PC being discoverable
 privilege: TrustedInstaller

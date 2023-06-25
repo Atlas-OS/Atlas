@@ -1,4 +1,4 @@
-
+---
 title: Disable Windows Insider
 description: Windows Insider requires you to enable telemetry and is basically allows you to be Microsoft's test subject, meaning worsened stability and privacy
 privilege: TrustedInstaller

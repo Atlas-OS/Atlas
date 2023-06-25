@@ -1,4 +1,4 @@
-
+---
 title: Disable .NET CLI Telemetry
 description: Disables .NET CLI telemetry
 privilege: TrustedInstaller

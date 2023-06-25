@@ -1,4 +1,4 @@
-
+---
 title: Rebuild Performance Counters
 description: Manually rebuilds performance counters to ensure that there's no issues
 privilege: TrustedInstaller

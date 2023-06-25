@@ -1,4 +1,4 @@
-
+---
 title: Enable Legacy Alt-Tab
 description: Enables the legacy alt-tab, as it's technically the fastest (no opening delay), and it also doesn't show thumbnails, potentially contributing to its speed?
 privilege: TrustedInstaller

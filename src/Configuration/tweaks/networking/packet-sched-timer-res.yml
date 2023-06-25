@@ -1,4 +1,4 @@
-
+---
 title: Set Packet Scheduler Timer Resolution
 description: Sets the network stack (packet scheduler) timer resolution to be more precise
 privilege: TrustedInstaller

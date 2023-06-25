@@ -1,4 +1,4 @@
-
+---
 title: Configure Explorer to Show All Files with File Extensions
 description: Configures Explorer to show all files with file extensions, meaning that you can see system files, hidden files, etc... This is for QoL and also security.
 privilege: TrustedInstaller

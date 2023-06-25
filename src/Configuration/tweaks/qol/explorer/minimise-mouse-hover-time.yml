@@ -1,4 +1,4 @@
-
+---
 title: Minimise Mouse Hover Time for Item Info
 description: Minimises mouse hover time (from 400ms to 20ms) for hovering over files or folders mostly in File Explorer, so that you can instantly see information for QoL
 privilege: TrustedInstaller

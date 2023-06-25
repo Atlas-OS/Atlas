@@ -1,8 +1,9 @@
-
+---
 title: Disable Settings pages
 description: Disables certain Settings pages as they are either broken with other changes or for a more minimal experience
 privilege: TrustedInstaller
 actions:
+  - !writeStatus: {status: 'Disabling Settings pages'}
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'SettingsPageVisibility'

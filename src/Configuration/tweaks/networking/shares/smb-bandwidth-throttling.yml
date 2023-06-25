@@ -1,4 +1,4 @@
-
+---
 title: Disable SMB Bandwidth Throttling
 description: Disables SMB bandwidth throttling for improved performance
 privilege: TrustedInstaller

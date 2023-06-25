@@ -1,4 +1,4 @@
-
+---
 title: Disable Automatic Maintenance
 description: Disables automatic maintenance, which does tasks such as updates in the background, for QoL and performance
 privilege: TrustedInstaller

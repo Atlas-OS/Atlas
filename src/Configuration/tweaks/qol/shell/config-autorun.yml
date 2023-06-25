@@ -3,6 +3,7 @@ title: Disable AutoRun/AutoPlay
 description: Disables AutoRun/AutoPlay for the optimal security and usability/QoL
 privilege: TrustedInstaller
 actions:
+  - !writeStatus: {status: 'Disabling AutoRun/AutoPlay'}
     # Disable USB autorun/play
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'

@@ -1,4 +1,4 @@
-
+---
 title: Disable Website Access to Language List
 description: Disables websites accessing the Windows language list for the best privacy, as it's a common fingerprinting technique to identify a user by their languages
 privilege: TrustedInstaller

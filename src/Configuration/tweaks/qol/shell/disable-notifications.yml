@@ -3,6 +3,7 @@ title: Disable notifications
 description: Disables notifications by defualt for having a more minimal experience
 privilege: TrustedInstaller
 actions:
+  - !writeStatus: {status: 'Disabling notifications'}
     # Disable all lockscreen notifications
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings'

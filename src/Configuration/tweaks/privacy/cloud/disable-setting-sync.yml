@@ -1,4 +1,4 @@
-
+---
 title: Disable Settings Sync
 description: Disables Settings sync for QoL and privacy, as most people wouldn't want it anyways and it's extra connections
 privilege: TrustedInstaller

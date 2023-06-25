@@ -1,4 +1,4 @@
-
+---
 title: Disable Windows Spotlight
 description: Windows Spotlight provides lockscreen messages like 'Like what you see?', and are disabled for QoL and privacy
 privilege: TrustedInstaller

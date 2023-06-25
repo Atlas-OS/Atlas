@@ -1,4 +1,4 @@
-
+---
 title: Cleanup Temporary Files
 description: Cleans up temporary files, excluding AME folders
 privilege: TrustedInstaller

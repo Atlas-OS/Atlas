@@ -1,4 +1,4 @@
-
+---
 title: Disable GameBar and Enable Fullscreen Exclusive
 description: Disables GameBar as it's mostly not used and is considered as bloat (as well as being incompatible with FSE), and enables fullscreen exclusive for the best possible latency, although this should be looked into more with recent Windows versions
 privilege: TrustedInstaller

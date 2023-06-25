@@ -1,4 +1,4 @@
-
+---
 title: Disable Blur on Login Background
 description: Disables the blur on the login background so that the background is clear and for a potential and very small performance improvement
 privilege: TrustedInstaller
