@@ -3,7 +3,6 @@ title: Configure Quick Settings in Notification Center
 description: Configures Quick Settings in Notification Center for QoL
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Configuring Quick Settings in Notification Center'}
     # Unpin all quick action shortcuts by default
   - !registryValue:
     path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'

@@ -6,15 +6,15 @@ actions: []
 features:
   # ------------------------- NOTES ------------------------- #
   
-  # - The first playbook file in each section contains the 'writeStatus' for AME Wizard
-  #     - As a note, this will be done after the restructure 
+  # - Each root folder has its own AME Wizard status
   # - You can disable a certain playbook file by commenting it out
-  # - Catorgrising everything will be done at the end of extracting everything from config.yml, the current structure is very much temporary
-  # - During the restructure, certain tweak files may be seperated up further or generally reorganised
+  # - The playbook files are ran in order
   
   # ----------------------- END NOTES ----------------------- #
-
+  
+  - tweaks\statuses\status-prompts.yml
   - tweaks\scripts\script-prompts.yml
+  - tweaks\statuses\status-ngen.yml
   - tweaks\scripts\script-ngen.yml
 
   # -----------------------------------------------------
@@ -25,30 +25,13 @@ features:
   # Miscellaneous tweaks which don't fit into other
   # categories.
   # -----------------------------------------------------
+  - tweaks\statuses\status-misc.yml
   - tweaks\misc\config-time.yml
   - tweaks\misc\disable-fast-user-switching.yml
   - tweaks\misc\disable-game-mode.yml
   - tweaks\misc\fix-no-downloads-bug.yml
   - tweaks\misc\oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
-  
-  # -----------------------------------------------------
-  #                        Debloat                        
-  # -----------------------------------------------------
-  # >>> Description <<<
-  #
-  # Tweaks for debloating Windows, which could be for
-  # storage space or convienience.
-  # -----------------------------------------------------
-  - tweaks\debloat\autologgers.yml
-  - tweaks\debloat\clean-winsxs.yml
-  - tweaks\debloat\cleanup-temp-files.yml
-  - tweaks\debloat\config-content-delivery.yml
-  - tweaks\debloat\disable-settings-pages.yml
-  - tweaks\debloat\legacy-photo-viewer.yml
-  - tweaks\debloat\prevent-edge-update.yml
-  - tweaks\debloat\scheduled-tasks.yml
-  - tweaks\debloat\storage-sense.yml
 
   # -----------------------------------------------------
   #                      Networking                        
@@ -58,6 +41,7 @@ features:
   # Tweaks for modifying network settings, which could be
   # for improving network performance, privacy and more.
   # -----------------------------------------------------
+  - tweaks\statuses\status-networking.yml
   - tweaks\networking\disable-llmnr.yml
   - tweaks\networking\disable-reserved-bandwidth.yml
   - tweaks\networking\disable-smart-name-resolution.yml
@@ -80,6 +64,7 @@ features:
   # Tweaks for improving the performance of Windows, which
   # includes responsiveness, latency, etc...
   # -----------------------------------------------------
+  - tweaks\statuses\status-performance.yml
   - tweaks\performance\clear-ifeo.yml
   - tweaks\performance\config-fse-gamebar.yml
   - tweaks\performance\config-mmcss.yml
@@ -112,6 +97,7 @@ features:
   # Also includes disabling features that are commonly
   # related to impacting privacy, like advertising.
   # -----------------------------------------------------
+  - tweaks\statuses\status-privacy.yml
   - tweaks\privacy\config-app-permissions.yml
   - tweaks\privacy\config-windows-media-player.yml
   - tweaks\privacy\disable-activity-feed.yml
@@ -168,6 +154,7 @@ features:
   # QoL tweaks can be anything, but they're mostly to do 
   # with modifying the shell, Windows Explorer.
   # -----------------------------------------------------
+  - tweaks\statuses\status-qol.yml
   - tweaks\qol\best-wallpaper-quality.yml
   - tweaks\qol\config-powershell.yml
   - tweaks\qol\config-start-menu.yml
@@ -302,10 +289,31 @@ features:
   # These tweaks aim to enhance Windows' security, upon
   # its defaults.
   # -----------------------------------------------------
+  - tweaks\statuses\status-security.yml
   - tweaks\security\block-anonymous-enum-sam.yml
   - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
   - tweaks\security\strong-dotnet-crypto.yml
+
+  # -----------------------------------------------------
+  #                        Debloat                        
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Tweaks for debloating Windows, which could be for
+  # storage space or convienience.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-clean-winsxs.yml
+  # Cleaning WinSxS sets its own status before the rest of the debloating, as it's a long operation
+  - tweaks\debloat\clean-winsxs.yml
+  - tweaks\statuses\status-debloat.yml
+  - tweaks\debloat\autologgers.yml
+  - tweaks\debloat\config-content-delivery.yml
+  - tweaks\debloat\disable-settings-pages.yml
+  - tweaks\debloat\legacy-photo-viewer.yml
+  - tweaks\debloat\prevent-edge-update.yml
+  - tweaks\debloat\scheduled-tasks.yml
+  - tweaks\debloat\cleanup-temp-files.yml
 
   # -----------------------------------------------------
   #                        Scripts                       
@@ -315,6 +323,8 @@ features:
   # These are playbook files that run external PowerShell
   # or batch scripts for more advanced operations.
   # -----------------------------------------------------
+  - tweaks\statuses\status-scripts.yml
+  - tweaks\scripts\script-storage-sense.yml
   - tweaks\scripts\script-devices.yml
   - tweaks\scripts\script-startmenu.yml
   - tweaks\scripts\script-pfp.yml

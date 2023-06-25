@@ -3,7 +3,6 @@ title: Configure Time Servers
 description: Configures time servers to be more reliable and accurate than the defaults
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Configuring time servers'}
     # Change NTP server from Windows' server to pool.ntp.org
   - !run: {exe: 'net', args: 'start w32time'}
   - !run: {exe: 'w32tm', args: '/config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"'}
