@@ -12,6 +12,8 @@ features:
   
   # ----------------------- END NOTES ----------------------- #
   
+  # Configure PowerShell first so that other PowerShell scripts work
+  - tweaks\qol\config-powershell.yml
   - tweaks\statuses\status-prompts.yml
   - tweaks\scripts\script-prompts.yml
   - tweaks\statuses\status-ngen.yml
@@ -156,7 +158,6 @@ features:
   # -----------------------------------------------------
   - tweaks\statuses\status-qol.yml
   - tweaks\qol\best-wallpaper-quality.yml
-  - tweaks\qol\config-powershell.yml
   - tweaks\qol\config-start-menu.yml
   - tweaks\qol\config-windows-ink-workspace.yml
   - tweaks\qol\disable-background-auto-login.yml
