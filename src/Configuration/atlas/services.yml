@@ -164,7 +164,7 @@ actions:
   - !service: {name: 'Microsoft_Bluetooth_AvrcpTransport', operation: change, startup: 4}
   - !service: {name: 'mrxsmb', operation: change, startup: 4}
   - !service: {name: 'mrxsmb20', operation: change, startup: 4}
-  - !service: {name: 'NdisVirtualBus', operation: change, startup: 4}
+  # NdisVirtualBus 4 < breaks network bridges
   - !service: {name: 'nvraid', operation: change, startup: 4}
   # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
   # Set rdbss to manual instead of disabling (fixes wsl), thanks phlegm

@@ -82,7 +82,7 @@ Brand kit Atlas dapat diakses oleh publik, Kamu bisa mengunduhnya di [sini](http
 
 Kami juga memiliki area khusus di [Forum](https://forum.atlasos.net/t/art-showcase) kami, jadi kamu bisa membagikan kreasimu dengan jenius kreatif lainnya dan bahkan mungkin memicu beberapa inspirasi! Kamu juga dapat menemukan wallpaper kreatif yang dibagikan oleh pengguna lain di sini!
 
-## ⚠️ Disclaimer (Disclaimer)
+## ⚠️ Disclaimer (Penafian)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Kontributor terjemahan)
