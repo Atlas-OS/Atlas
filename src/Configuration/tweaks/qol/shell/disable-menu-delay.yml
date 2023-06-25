@@ -1,4 +1,4 @@
----
+
 title: Disable Menu Hover Delay
 description: Makes hovering over sub-menus in menus instant, instead of having a slight delay on hover
 privilege: TrustedInstaller

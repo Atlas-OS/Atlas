@@ -1,4 +1,4 @@
----
+
 title: Remove 'Print' Context Menu
 description: Removes the 'Print' context menu by default
 privilege: TrustedInstaller

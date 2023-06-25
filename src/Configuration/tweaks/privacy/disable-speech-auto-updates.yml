@@ -1,4 +1,4 @@
----
+
 title: Disable Automatic Updates of Speech Data
 description: Disables auto-updates of speech data, as it's commonly not used, and it's a potential privacy concern or an overall annoyance
 privilege: TrustedInstaller

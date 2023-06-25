@@ -1,4 +1,4 @@
----
+
 title: Disable Network Navigation Pane in Explorer
 description: Disables the network navigation pane/item in the Explorer sidebar for QoL, as it is mostly unused
 privilege: TrustedInstaller

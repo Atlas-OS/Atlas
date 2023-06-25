@@ -1,4 +1,4 @@
----
+
 title: Prevent Microsoft Edge Updates
 description: Prevents Microsoft Edge updates so that it can't reinstall on updates
 privilege: TrustedInstaller

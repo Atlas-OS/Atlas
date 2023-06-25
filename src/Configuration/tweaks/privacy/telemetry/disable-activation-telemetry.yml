@@ -1,4 +1,4 @@
----
+
 title: Disable Key Management System Telemetry
 description: Turns off KMS client online AVS validation, which preventing sending data to Microsoft regarding its activation state, for privacy
 privilege: TrustedInstaller

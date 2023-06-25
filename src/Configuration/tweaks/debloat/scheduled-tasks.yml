@@ -3,7 +3,6 @@ title: Configure Scheduled Tasks
 description: Configures scheduled tasks to debloat Windows by improving performance, privacy and more
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Configuring scheduled tasks'}
   # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
 
   # - !scheduledTask:
@@ -11,7 +10,6 @@ actions:
   #   operation: deleteFolder
   - !scheduledTask:
     path: '\Microsoft\Windows\Customer Experience Improvement Program'
-    operation: deleteFolder
   - !scheduledTask:
     path: '\Microsoft\Windows\DeviceDirectoryClient'
     operation: deleteFolder

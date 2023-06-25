@@ -3,7 +3,6 @@ title: Optimise NTFS
 description: Optimises the NTFS filesystem for optimal performance, security and privacy
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Optimising the filesystem'}
     # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil
 
     # Disable last access information on directories, performance/privacy

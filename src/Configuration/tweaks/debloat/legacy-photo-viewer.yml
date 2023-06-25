@@ -1,9 +1,8 @@
----
+
 title: Enable Windows Photo Viewer
 description: Enables and configures the legacy Windows Photo Viewer to be the default for a more familar and lightweight photo viewing experience
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Enabling Windows Photo Viewer'}
     # Enable legacy photo viewer
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.tif', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.tiff', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}

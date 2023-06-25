@@ -1,4 +1,4 @@
----
+
 title: Show Removable Drives Only in 'This PC'
 description: Shows removable drives only in 'This PC', instead of being seperate in the Explorer sidebar, for QoL
 privilege: TrustedInstaller

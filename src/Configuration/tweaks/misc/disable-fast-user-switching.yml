@@ -1,4 +1,4 @@
----
+
 title: Disable Fast User Switching
 description: Disables fast user switching, as it's a feature with a problematic history, and most people do not use it anyways
 privilege: TrustedInstaller

@@ -1,4 +1,4 @@
----
+
 title: Don't Show Edge Tabs in Alt-Tab
 description: Sets the 'Alt + Tab shows' option to 'Open windows only', meaning that individual Edge tabs won't be displayed, which would clutter the alt-tab interface
 privilege: TrustedInstaller

@@ -1,4 +1,4 @@
----
+
 title: Disable Background Apps
 description: Disables background apps, so that there's minimal resources used in the background
 privilege: TrustedInstaller

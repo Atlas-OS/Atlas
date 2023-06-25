@@ -3,7 +3,6 @@ title: Disable folders from This PC
 description: Disables folders in 'This PC' as they are also in Quick Access to reduce clutter, and adds 'Music' and 'Videos' to Quick Access
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Removing folders from This PC'}
     # Disable folders in 'This PC'
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{31C0DD25-9439-4F12-BF41-7FF4EDA38722}\PropertyBag'

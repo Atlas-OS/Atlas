@@ -1,4 +1,4 @@
----
+
 title: Configure Power Settings
 description: Script to configure power settings for the best performance, especially focusing on the lowest latency, e.g. by reducing any potential jitter
 privilege: TrustedInstaller

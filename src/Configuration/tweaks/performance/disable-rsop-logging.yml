@@ -1,4 +1,4 @@
----
+
 title: Disable Resultant Set of Policy (RSoP) Logging
 description: Disables RSoP, which disables logging of Group Policy settings
 privilege: TrustedInstaller

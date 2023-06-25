@@ -1,4 +1,4 @@
----
+
 title: Disable Task View on Taskbar
 description: Disables the Task View button on the taskbar for QoL, as it can be accessed with Win + Tab anyways
 privilege: TrustedInstaller

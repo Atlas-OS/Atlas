@@ -1,4 +1,4 @@
----
+
 title: Crash Control Quality of Life
 description: Configures the BSoD for having the most useful information and not leaving behind dumps (which most people won't look into anyways)
 privilege: TrustedInstaller

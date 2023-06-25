@@ -1,4 +1,4 @@
----
+
 title: Set Strong Cryptography 
 description: Set strong cryptography on AMD64 and x86 .NET Framework (version 4 and above) to fix a Scoop installation issue
 privilege: TrustedInstaller

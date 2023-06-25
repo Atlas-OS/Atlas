@@ -1,4 +1,4 @@
----
+
 title: Disable SmartScreen
 description: SmartScreen is a security feature for warning users about the dangers of executing certain files from third party sources, and it is disabled for QoL.
 privilege: TrustedInstaller

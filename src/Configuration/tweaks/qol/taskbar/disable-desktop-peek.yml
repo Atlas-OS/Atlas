@@ -1,4 +1,4 @@
----
+
 title: Disable Show Desktop Peek on Taskbar
 description: Disables the 'Show Desktop' peek feature on the taskbar, as most of the time people accidently trigger it, so it's disabled here for QoL
 privilege: TrustedInstaller

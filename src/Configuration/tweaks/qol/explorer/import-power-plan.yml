@@ -1,4 +1,4 @@
----
+
 title: Add Power Plan File Association
 description: Adds a file assocation for .pow files, so you can simply double click and import them
 privilege: TrustedInstaller

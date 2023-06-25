@@ -1,4 +1,4 @@
----
+
 title: Disable 'Open file' Security Warning Message
 description: Disables the pop-up asking if you want to run a file downloaded from the internet for QoL
 privilege: TrustedInstaller

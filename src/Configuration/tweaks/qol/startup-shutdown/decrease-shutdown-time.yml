@@ -1,4 +1,4 @@
----
+
 title: Decrease Shutdown Time
 description: Makes it so that Windows is less tolerable to hung apps, and tries to kill them as fast as possible on shutdown
 privilege: TrustedInstaller

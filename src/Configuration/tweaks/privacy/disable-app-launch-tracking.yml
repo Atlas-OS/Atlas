@@ -1,4 +1,4 @@
----
+
 title: Disable App Launch Tracking
 description: Disables Windows from automatically tracking which apps you use the most to enhance search and start menu results for privacy
 privilege: TrustedInstaller

@@ -1,4 +1,4 @@
----
+
 title: Hide Disabled and Disconnected Devices in Sounds Panel
 description: Hides disabled and disconnected devices in the Sounds (mmsys.cpl) panel for QoL
 privilege: TrustedInstaller

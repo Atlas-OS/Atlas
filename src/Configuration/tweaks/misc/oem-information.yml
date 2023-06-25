@@ -1,9 +1,8 @@
----
+
 title: Configure OEM Information
 description: Sets OEM information to Atlas to make users go to us for support instead of OEMs
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Setting Atlas OEM information'}
     # Set information about the currently used system
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion'

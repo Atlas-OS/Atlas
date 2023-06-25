@@ -1,4 +1,4 @@
----
+
 title: Show More Details by Default on Transfers
 description: Shows more details by default on file transfers, meaning that you can see the exact speed of files copying, moving, deleting, etc...
 privilege: TrustedInstaller

@@ -3,7 +3,6 @@ title: Disable unnecessary autologgers
 description: Disables unnecessary autologgers for the optimal performance and privacy
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Disabling unnecessary autologgers'}
     # https://docs.microsoft.com/en-us/windows/win32/etw/configuring-and-starting-an-autologger-session
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Circular Kernel Context Logger'

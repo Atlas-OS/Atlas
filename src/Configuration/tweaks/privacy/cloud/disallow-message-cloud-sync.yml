@@ -1,4 +1,4 @@
----
+
 title: Disallow Message Service Cloud Sync
 description: Disallows the Message service (which should be disabled anyways) from syncing with the cloud, as that's potentially harmful on privacy
 privilege: TrustedInstaller

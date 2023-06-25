@@ -1,4 +1,4 @@
----
+
 title: Disable Auto-logon to Finish Setting up Device after an Update or Restart
 description: Disables automatically logging-in in the background of the lockscreen, also called 'Use sign-in info to auto-finish setting up device after update or restart'
 privilege: TrustedInstaller
