@@ -67,6 +67,9 @@ $Form.Controls.Add((generate_checkbox "Mozilla Firefox" "firefox"))
 # https://community.chocolatey.org/packages/brave
 $Form.Controls.Add((generate_checkbox "Brave Browser" "brave"))
 
+# https://community.chocolatey.org/packages/microsoft-edge
+$Form.Controls.Add((generate_checkbox "Microsoft Edge" "microsoft-edge"))
+
 # https://community.chocolatey.org/packages/librewolf
 $Form.Controls.Add((generate_checkbox "LibreWolf" "librewolf"))
 
