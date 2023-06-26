@@ -3,4 +3,4 @@ title: Status in AME Wizard for Cleaning the Component Store
 description: Displays a status in AME Wizard for a specified category
 privilege: TrustedInstaller
 actions:
-  - !writeStatus: {status: 'Cleaning the component store...'}
+  - !writeStatus: {status: 'Cleaning the component store'}

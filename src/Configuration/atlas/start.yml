@@ -210,7 +210,7 @@ actions:
     command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums directx'
     weight: 150
 
-  - !writeStatus: {status: 'Installing vcredist'}
+  - !writeStatus: {status: 'Installing C++ runtimes'}
   - !cmd:
     command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums vcredist-all'
     weight: 150
