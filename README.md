@@ -59,20 +59,20 @@ You can learn more about Atlas on our official [website](https://atlasos.net).
 
 ## 📚 **Table of contents**
 
-- [Contribution Guidelines](https://docs.atlasos.net/contributions)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions/)
 
 - Getting Started
-  - [Installation](https://docs.atlasos.net/getting-started/installation)
-  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/usb)
-  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+  - [Installation](https://docs.atlasos.net/getting-started/installation/)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/usb/)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers/)
 
 - Troubleshooting
-  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features/)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts/)
 
 - FAQ
   - [Atlas](https://atlasos.net/faq)
-  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v)
+  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
 
 ## 👀 **Why Atlas?**
 
@@ -91,11 +91,11 @@ The only executables included in the playbook are open sourced [here](https://gi
 
 You can also install the latest security updates before installing Atlas, which we recommend to keep your system safe and secure.
 
-Please note that as of Atlas v0.2.0, Atlas is mostly **not as secure as regular Windows** due to removed/disabled security features, like Windows Defender being removed. However, in Atlas v0.3.0, most of these will be added back as optional features. See [here](https://docs.atlasos.net/troubleshooting/removed-features) for more info.
+Please note that as of Atlas v0.2.0, Atlas is mostly **not as secure as regular Windows** due to removed/disabled security features, like Windows Defender being removed. However, in Atlas v0.3.0, most of these will be added back as optional features. See [here](https://docs.atlasos.net/troubleshooting/removed-features/) for more info.
 
 ### 🚀 More space
 Pre-installed applications and other insignificant components are removed with Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size and makes your system more fluent. Therefore, some functionalities (such as Windows Defender) are stripped completely.
-Check out what else we have removed in our [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features) section.
+Check out what else we have removed in our [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features/) section.
 
 ### ✅ More performance
 Some tweaked systems on the internet have tweaked Windows too much, breaking compatibility for main features such as Bluetooth, Wi-Fi, and so on.
