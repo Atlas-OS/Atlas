@@ -169,7 +169,6 @@ features:
   - tweaks\qol\disable-spell-checking.yml
   - tweaks\qol\disable-store-auto-updates.yml
   - tweaks\qol\disable-touch-visual-feedback.yml
-  - tweaks\qol\disable-uac-secure-desktop.yml
   - tweaks\qol\disable-usb-issues-notifications.yml
   - tweaks\qol\disable-windows-feedback.yml
   - tweaks\qol\disable-windows-spotlight.yml
@@ -242,6 +241,7 @@ features:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\security\disable-online-file-security-warn.yml
   - tweaks\qol\security\disable-smartscreen.yml
+  - tweaks\qol\disable-uac-secure-desktop.yml
  
   # -------------------------------------------------------------------------- #
   #  qol\shell                                                                 #
