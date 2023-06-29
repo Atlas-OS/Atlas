@@ -1,0 +1,24 @@
+---
+title: Disable News and Interests
+description: Disables News and Interests in the taskbar for privacy (lots of third party connections) and QoL
+privilege: TrustedInstaller
+actions:
+  # https://www.tenforums.com/tutorials/178178-how-enable-disable-news-interests-taskbar-windows-10-a.html
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Feeds'
+    value: 'ShellFeedsTaskbarViewMode'
+    data: '2'
+    type: REG_DWORD
+    operation: add
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds'
+    value: 'EnableFeeds'
+    data: '0'
+    type: REG_DWORD
+    operation: add
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\default\NewsAndInterests\AllowNewsAndInterests'
+    value: 'value'
+    data: '0'
+    type: REG_DWORD
+    operation: add

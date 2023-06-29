@@ -1,0 +1,16 @@
+---
+title: Remove 'Edit with Paint 3D' from Context Menu
+description: Removes 'Edit with Paint 3D' from context menu
+privilege: TrustedInstaller
+actions:
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.3mf\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.bmp\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.fbx\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.gif\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.jfif\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.jpe\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.jpeg\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.jpg\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.png\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.tif\Shell\3D Edit'}
+  - !registryKey: {path: 'HKCR\SystemFileAssociations\.tiff\Shell\3D Edit'}

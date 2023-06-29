@@ -1,12 +1,13 @@
 ---
-title: Custom
-description: Custom Atlas configuration
-privilege: Admin
+title: Root Playbook File
+description: Runs all of the playbook files
+privilege: TrustedInstaller
 actions: []
 features:
-- features\atlas\start.yml
-- features\atlas\services.yml
-- features\atlas\appx.yml
-- features\atlas\components.yml
-- features\atlas\packages.yml
-- features\atlas\config.yml
+  - atlas\start.yml
+  - atlas\services.yml
+  - atlas\appx.yml
+  - atlas\components.yml
+  - atlas\packages.yml
+  # Tweaks YAML that runs all of the tweaking playbook files
+  - tweaks.yml

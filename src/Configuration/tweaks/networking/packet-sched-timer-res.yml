@@ -1,0 +1,11 @@
+---
+title: Set Packet Scheduler Timer Resolution
+description: Sets the network stack (packet scheduler) timer resolution to be more precise
+privilege: TrustedInstaller
+actions:
+  # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.QualityofService::QosTimerResolution
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched'
+    value: 'TimerResolution'
+    data: '1'
+    type: REG_DWORD

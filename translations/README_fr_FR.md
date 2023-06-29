@@ -100,7 +100,7 @@ Tout le monde peut accéder au kit de marque Atlas - vous pouvez le télécharge
 
 Nous avons également un espace dédié sur notre [forum](https://forum.atlasos.net/t/art-showcase) pour que vous puissiez partager vos créations avec d'autres génies créatifs et peut-être même susciter de l'inspiration ! Vous pouvez également y trouver des fonds d'écran partagés par d'autres utilisateurs !
 
-## ⚠️ Disclaimer (Disclaimer)
+## ⚠️ Disclaimer (Clause de non-responsabilité)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation Contributors (Contributeurs à la traduction)

@@ -1,0 +1,6 @@
+---
+title: Status in AME Wizard for the Miscellaneous Category
+description: Displays a status in AME Wizard for a specified category
+privilege: TrustedInstaller
+actions:
+  - !writeStatus: {status: 'Running miscellaneous tweaks'}

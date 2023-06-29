@@ -1,0 +1,23 @@
+---
+title: Configure Boot Configuration
+description: Configures the boot configuration for the best performance and QoL
+privilege: TrustedInstaller
+actions:
+    # Set dual boot menu description to Atlas
+  - !run: {exe: 'bcdedit', args: '/set description "Atlas 22H2"'}
+
+    # Lowering dual boot choice time
+    # This does not affect single OS boot time
+    # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/--timeout#parameters
+  - !run: {exe: 'bcdedit', args: '/timeout 10'}
+
+    # Setting to "no" provides worse results, delete the value instead.
+    # This is here as a safeguard in case of user error
+  - !run: {exe: 'bcdedit', args: '/deletevalue useplatformclock'}
+
+    # Disable dynamic tick
+    # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
+  - !run: {exe: 'bcdedit', args: '/set disabledynamictick yes'}
+
+    # Use legacy boot menu
+  - !run: {exe: 'bcdedit', args: '/set bootmenupolicy Legacy'}

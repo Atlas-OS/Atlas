@@ -99,7 +99,7 @@
 
 हमारे [मंच](https://forum.atlasos.net/t/art-showcase) पर हमारा एक विशेष क्षेत्र भी है, जिससे आप अन्य रचनात्मक जीनियस के साथ अपनी रचनाओं को साझा कर सकते हैं और शायद थोड़ी सी प्रेरणा उत्पन्न कर सकते हैं! आप यहां दूसरे उपयोगकर्ताओं द्वारा साझा की गई रचनात्मक वॉलपेपर भी खोज सकते हैं!
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer (अस्वीकरण)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 
 ## Translation contributors (Translation contributor in the translated language)

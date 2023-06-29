@@ -1,0 +1,10 @@
+---
+title: Disable Startup Delay
+description: Disables the startup delay of startup applications
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize'
+    value: 'StartupDelayInMSec'
+    data: '0'
+    type: REG_DWORD

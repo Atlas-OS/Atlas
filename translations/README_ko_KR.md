@@ -99,8 +99,8 @@ Atlas는 Windows Ameliorated Team과 협력하여 사용자에게 더 안전하�
 
 우리는 또한 [포럼](https://forum.atlasos.net/t/art-showcase), 전용 영역을 가지고 있습니다. [여기](https://forum.atlasos.net/t/art-showcase)에서 다른 창의적인 천재들과 당신의 창작물을 공유하고 영감을 줄 수도 있습니다! 또한 다른 사용자가 공유하는 창의적인 배경 화면도 찾을 수 있습니다!
 
-## ⚠️ 면책 조항
-https://github.com/Atlas-OS/Atlas/tree/readme-update#%EF%B8%8F-disclaimer
+## ⚠️ Disclaimer (면책 조항)
+https://github.com/Atlas-OS/Atlas/#%EF%B8%8F-disclaimer
 
 ## 번역 기여자
 [앙시모사우루스](https://github.com/Angsimosaurus)

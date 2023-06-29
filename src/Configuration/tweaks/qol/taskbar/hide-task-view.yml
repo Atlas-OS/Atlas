@@ -1,0 +1,14 @@
+---
+title: Disable Task View on Taskbar
+description: Disables the Task View button on the taskbar for QoL, as it can be accessed with Win + Tab anyways
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultiTaskingView\AllUpView'
+    value: 'Enabled'
+    operation: delete
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'ShowTaskViewButton'
+    data: '0'
+    type: REG_DWORD

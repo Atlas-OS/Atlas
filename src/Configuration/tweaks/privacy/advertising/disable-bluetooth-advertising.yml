@@ -1,0 +1,12 @@
+---
+title: Disable Bluetooth Advertising
+description: Disables advertising via Bluetooth for QoL
+privilege: TrustedInstaller
+actions:
+  # https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-bluetooth
+  # https://en.wikipedia.org/wiki/Bluetooth_advertising
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Bluetooth'
+    value: 'AllowAdvertising'
+    data: '0'
+    type: REG_DWORD

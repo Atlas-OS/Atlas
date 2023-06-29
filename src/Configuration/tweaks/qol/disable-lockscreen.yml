@@ -1,0 +1,10 @@
+---
+title: Disable Lockscreen
+description: Disables the lockscreen for QoL, as it's faster to go straight to the login screen over pressing space. This is customisable later
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData'
+    value: 'AllowLockScreen'
+    data: '0'
+    type: REG_DWORD

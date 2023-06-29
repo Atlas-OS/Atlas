@@ -1,0 +1,392 @@
+---
+title: Components
+description: Removes certain Windows components
+privilege: TrustedInstaller
+actions:
+    # Note: Some of this is redundant with packages.yml
+
+  - !taskKill: {name: 'explorer'}
+
+    # ---------- Windows Defender
+  - !writeStatus: {status: 'Removing Windows Defender'}
+  - !taskKill: {name: 'NisSrv'}
+  - !taskKill: {name: 'SecurityHealthHost'}
+  - !taskKill: {name: 'SecurityHealthService'}
+  - !taskKill: {name: 'SecurityHealthSystray'}
+  - !taskKill: {name: 'SkypeBackgroundHost'}
+  - !taskKill: {name: 'MsMpEng'}
+  - !taskKill: {name: 'msiexec'}
+  - !file: {path: 'C:\Windows\System32\smartscreen.exe'}
+  - !file: {path: 'C:\Windows\System32\SecurityHealthSystray.exe'}
+  - !file: {path: 'C:\Windows\System32\SecurityHealthService.exe'}
+  - !file: {path: 'C:\Windows\System32\SecurityHealthAgent.dll'}
+  - !file: {path: 'C:\Windows\System32\SecurityHealthHost.exe'}
+  - !file: {path: 'C:\Windows\System32\SecurityHealthSSO.dll'}
+  - !file: {path: 'C:\Windows\System32\SecurityHealthCore.dll'}
+  - !file: {path: 'C:\Windows\System32\SecurityHealthProxyStub.dll'}
+  - !file: {path: 'C:\Windows\System32\SecurityHealthUdk.dll'}
+  - !file: {path: 'C:\Program Files\Windows Defender', weight: 30}
+  - !file: {path: 'C:\ProgramData\Microsoft\Windows Defender', weight: 30}
+  - !file: {path: 'C:\Program Files (x86)\Windows Defender', weight: 30}
+  - !file: {path: 'C:\Windows\System32\drivers\WdNisDrv.sys'}
+  - !file: {path: 'C:\Program Files\Windows Defender Advanced Threat Protection'}
+  - !file: {path: 'C:\ProgramData\Microsoft\Windows Defender Advanced Threat Protection'}
+
+    # Remove SecurityHealthSystray startup item
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
+
+    # ---------- Microsoft Edge
+  - !writeStatus: {status: 'Removing Microsoft Edge'}
+  - !taskKill: {name: 'MicrosoftEdgeUpdate'}
+  - !taskKill: {name: 'msedge'}
+  - !taskKill: {name: 'MicrosoftEdge*'}
+  - !taskKill: {name: 'setup', pathContains: '\Edge'}
+  - !taskKill: {name: 'msedgewebview2'}
+  - !service: {name: 'edgeupdate', operation: delete}
+  - !service: {name: 'edgeupdatem', operation: delete}
+  - !service: {name: 'MicrosoftEdgeElevationService', operation: delete}
+
+  - !file: {path: 'C:\Users\Public\Desktop\Microsoft Edge.lnk'}
+  - !file: {path: 'C:\ProgramData\Microsoft\EdgeUpdate'}
+  - !file: {path: 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk'}
+
+  - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced', value: 'TaskbarMigratedBrowserPin', operation: delete}
+  - !registryKey: {path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate'}
+  - !registryKey: {path: 'HKCR\CLSID\{1FCBE96C-1697-43AF-9140-2897C7C69767}'}
+  - !registryKey: {path: 'HKCR\AppID\{1FCBE96C-1697-43AF-9140-2897C7C69767}'}
+  - !registryKey: {path: 'HKCR\Interface\{C9C2B807-7731-4F34-81B7-44FF7779522B}'}
+  - !registryKey: {path: 'HKCR\TypeLib\{C9C2B807-7731-4F34-81B7-44FF7779522B}'}
+  - !registryKey: {path: 'HKCR\MSEdgeHTM'}
+  - !registryKey: {path: 'HKCR\MSEdgePDF'}
+  - !registryKey: {path: 'HKCR\MSEdgeMHT'}
+  - !registryKey: {path: 'HKCR\AppID\{628ACE20-B77A-456F-A88D-547DB6CEEDD5}'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Clients\StartMenuInternet\Microsoft Edge'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\RegisteredApplications', value: 'Microsoft Edge', operation: delete}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe'}
+  - !registryValue: {path: 'HKCR\.htm\OpenWithProgIds', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCR\.html\OpenWithProgIds', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCR\.shtml\OpenWithProgids', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCR\.svg\OpenWithProgIds', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCR\.xht\OpenWithProgIds', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCR\.xhtml\OpenWithProgIds', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCR\.webp\OpenWithProgids', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCR\.xml\OpenWithProgIds', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts', value: 'MSEdgeHTM_microsoft-edge', operation: delete}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Internet Explorer\Main\EnterpriseMode', value: 'MSEdgePath', operation: delete}
+  - !registryKey: {path: 'HKCR\AppID\ie_to_edge_bho.dll'}
+  - !registryKey: {path: 'HKCR\AppID\{31575964-95F7-414B-85E4-0E9A93699E13}'}
+  - !registryKey: {path: 'HKCR\CLSID\{1FD49718-1D00-4B19-AF5F-070AF6D5D54C}'}
+  - !registryKey: {path: 'HKCR\WOW6432Node\CLSID\{1FD49718-1D00-4B19-AF5F-070AF6D5D54C}'}
+  - !registryKey: {path: 'HKCR\ie_to_edge_bho.IEToEdgeBHO'}
+  - !registryKey: {path: 'HKCR\ie_to_edge_bho.IEToEdgeBHO.1'}
+
+    # Internet Explorer
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Internet Explorer\Main\EnterpriseMode', value: 'MSEdgePath', operation: delete}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Internet Explorer\Low Rights\ElevationPolicy\{c9abcf16-8dc2-4a95-bae3-24fd98f2ed29}'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Internet Explorer\Low Rights\ElevationPolicy\{c9abcf16-8dc2-4a95-bae3-24fd98f2ed29}'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Internet Explorer\ProtocolExecute\microsoft-edge'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Internet Explorer\ProtocolExecute\microsoft-edge'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Internet Explorer\EdgeIntegration\AdapterLocations\C:\Program Files (x86)\Microsoft\Edge', value: 'Application', operation: delete}
+
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects\{1FD49718-1D00-4B19-AF5F-070AF6D5D54C}'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects\{1FD49718-1D00-4B19-AF5F-070AF6D5D54C}'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Ext\PreApproved\{1FD49718-1D00-4B19-AF5F-070AF6D5D54C}'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Ext\CLSID', value: '{1FD49718-1D00-4B19-AF5F-070AF6D5D54C}', operation: delete}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Edge'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Edge'}
+  - !registryKey: {path: 'HKCR\CLSID\{3A84F9C2-6164-485C-A7D9-4B27F8AC009E}'}
+  - !registryKey: {path: 'HKCR\WOW6432Node\CLSID\{3A84F9C2-6164-485C-A7D9-4B27F8AC009E}'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PreviewHandlers', value: '{3A84F9C2-6164-485C-A7D9-4B27F8AC009E}', operation: delete}
+  - !registryValue: {path: 'HKCR\.pdf\ShellEx\{8895b1c6-b41f-4c1c-a562-0d564250836f}', value: '(Default)', operation: delete}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components\{9459C573-B17A-45AE-9F64-1857B5D58CEE}'}
+  - !registryKey: {path: 'HKU\S-1-5-21-3476428458-2503407758-626446112-1002\SOFTWARE\Microsoft\Active Setup\Installed Components\{9459C573-B17A-45AE-9F64-1857B5D58CEE}'}
+  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Application\Edge'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\MediaPlayer\ShimInclusionList\msedge.exe'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update'}
+
+    # WebView
+  - !registryKey: {path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView'}
+
+  - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'Microsoft Edge Update', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\RegisteredApplications', value: 'Microsoft Edge', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.htm\OpenWithProgids', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.html\OpenWithProgids', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.shtml\OpenWithProgids', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.svg\OpenWithProgids', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.xht\OpenWithProgids', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.xhtml\OpenWithProgids', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.webp\OpenWithProgids', value: 'MSEdgeHTM', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts', value: 'MSEdgeHTM_microsoft-edge', operation: delete}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Microsoft\Active Setup\Installed Components\{9459C573-B17A-45AE-9F64-1857B5D58CEE}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Microsoft\Edge'}
+
+    # WebView
+  - !registryKey: {path: 'HKCU\SOFTWARE\Microsoft\EdgeWebView'}
+
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    value: 'FavoritesResolve'
+    data: '320300004C0000000114020000000000C0000000000000468300800020000000549E39A5246AD8012B113CA5246AD801A8B6C6DADDACD501970100000000000001000000000000000000000000000000A0013A001F80C827341F105C1042AA032EE45287D668260001002600EFBE1200000056F21270246AD8010F37A185246AD8012B113CA5246AD80114005600310000000000B154E29B11005461736B42617200400009000400EFBEB154C69BB154E29B2E000000F4940100000001000000000000000000000000000000D5BA89005400610073006B00420061007200000016000E01320097010000874F0749200046494C4545587E312E4C4E4B00007C0009000400EFBEB154E29BB154E29B2E00000097900100000002000000000000000000520000000000589C4400460069006C00650020004500780070006C006F007200650072002E006C006E006B00000040007300680065006C006C00330032002E0064006C006C002C002D003200320030003600370000001C00220000001E00EFBE02005500730065007200500069006E006E006500640000001C00120000002B00EFBE2B113CA5246AD8011C00420000001D00EFBE02004D006900630072006F0073006F00660074002E00570069006E0064006F00770073002E004500780070006C006F0072006500720000001C0000009B0000001C000000010000001C0000002D000000000000009A0000001100000003000000E4A63B761000000000433A5C55736572735C757365725C417070446174615C526F616D696E675C4D6963726F736F66745C496E7465726E6574204578706C6F7265725C517569636B204C61756E63685C557365722050696E6E65645C5461736B4261725C46696C65204578706C6F7265722E6C6E6B000060000000030000A058000000000000006465736B746F702D62356E36683339006E1A1EE27BFFA94ABB0361D86F25337E500764DB17D6EC11A598000C2907D6A06E1A1EE27BFFA94ABB0361D86F25337E500764DB17D6EC11A598000C2907D6A045000000090000A03900000031535053B1166D44AD8D7048A748402EA43D788C1D000000680000000048000000CE2181FCD4BF31408F25FF009E4345CA000000000000000000000000'
+    type: REG_BINARY
+    operation: add
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    value: 'Favorites'
+    data: '00A40100003A001F80C827341F105C1042AA032EE45287D668260001002600EFBE1200000056F21270246AD8010F37A185246AD8012B113CA5246AD80114005600310000000000B154E29B11005461736B42617200400009000400EFBEB154C69BB154E29B2E000000F4940100000001000000000000000000000000000000D5BA89005400610073006B00420061007200000016001201320097010000874F0749200046494C4545587E312E4C4E4B00007C0009000400EFBEB154E29BB154E29B2E00000097900100000002000000000000000000520000000000589C4400460069006C00650020004500780070006C006F007200650072002E006C006E006B00000040007300680065006C006C00330032002E0064006C006C002C002D003200320030003600370000001C00120000002B00EFBE2B113CA5246AD8011C00420000001D00EFBE02004D006900630072006F0073006F00660074002E00570069006E0064006F00770073002E004500780070006C006F0072006500720000001C00260000001E00EFBE0200530079007300740065006D00500069006E006E006500640000001C000000FF'
+    type: REG_BINARY
+    operation: add
+
+  - !run: {exeDir: true, exe: 'EDGE.cmd', weight: 20}
+
+  - !file: {path: 'C:\Program Files (x86)\Microsoft\Edge', weight: 10}
+  - !file: {path: 'C:\Program Files (x86)\Microsoft\EdgeUpdate', weight: 10}
+  - !file: {path: 'C:\Program Files (x86)\Microsoft\EdgeCore', weight: 10}
+
+    # WebView
+  - !file: {path: 'C:\Program Files (x86)\Microsoft\EdgeWebView', weight: 10}
+
+    # ---------- OneDrive
+  - !writeStatus: {status: 'Removing OneDrive'}
+  - !taskKill: {name: 'OneDriveStandaloneUpdater'}
+  - !taskKill: {name: 'OneDriveSetup'}
+  - !taskKill: {name: 'OneDrive*'}
+  - !service: {name: 'OneSyncSvc*', operation: delete}
+
+  - !run: {exeDir: true, exe: 'ONED.cmd', weight: 20}
+
+  - !registryKey: {path: 'HKCR\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'OneDrive', operation: delete}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Microsoft\OneDrive'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\.fluid'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\.note'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\.whiteboard'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\.loop'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\TypeLib\{F904F88C-E60D-4327-9FA2-865AD075B400}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{A87958FF-B414-7748-9183-DBF183A25905}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{A87958FF-B414-7748-9183-DBF183A25905}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\NucleusNativeMessaging.NucleusNativeMessaging.1'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\NucleusNativeMessaging.NucleusNativeMessaging'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{917E8742-AA3B-7318-FA12-10485FB322A2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{917E8742-AA3B-7318-FA12-10485FB322A2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\NucleusToastActivator.NucleusToastActivator.1'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\NucleusToastActivator.NucleusToastActivator'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{47E6DCAF-41F8-441C-BD0E-A50D5FE6C4D1}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{47E6DCAF-41F8-441C-BD0E-A50D5FE6C4D1}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\mssharepointclient'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Google\Chrome\NativeMessagingHosts\com.microsoft.onedrive.nucleus.auth.provider'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\AppID\{EEABD3A3-784D-4334-AAFC-BB13234F17CF}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\AppID\OneDrive.EXE'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{6bb93b4e-44d8-40e2-bd97-42dbcf18a40f}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{AB807329-7324-431B-8B36-DBD581F56E0B}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{1EDD003E-C446-43C5-8BA0-3778CC4792CC}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{1EDD003E-C446-43C5-8BA0-3778CC4792CC}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\TypeLib\{4B1C80DA-FA45-468F-B42B-46496BDBE0C5}\1.0'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\SyncEngineStorageProviderHandlerProxy.SyncEngineStorageProviderHandlerProxy'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{A3CA1CF4-5F3E-4AC0-91B9-0D3716E1EAC3}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\TypeLib\{638805C3-4BA3-4AC8-8AAC-71A0BA2BC284}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\FileSyncClient.FileSyncClient.1'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\FileSyncClient.FileSyncClient'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{7B37E4E2-C62F-4914-9620-8FB5062718CC}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\FileSyncClient.AutoPlayHandler.1'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\FileSyncClient.AutoPlayHandler'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{5999E1EE-711E-48D2-9884-851A709F543D}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\BannerNotificationHandler.BannerNotificationHandler'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{2e7c0a19-0438-41e9-81e3-3ad3d64f55ba}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{F0AF7C30-EAE4-4644-961D-54E6E28708D6}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{F0AF7C30-EAE4-4644-961D-54E6E28708D6}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{9D613F8A-B30E-4938-8490-CB5677701EBF}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{9D613F8A-B30E-4938-8490-CB5677701EBF}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{79A2A54C-3916-41FD-9FAB-F26ED0BBA755}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{79A2A54C-3916-41FD-9FAB-F26ED0BBA755}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{0299ECA9-80B6-43C8-A79A-FB1C5F19E7D8}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{0299ECA9-80B6-43C8-A79A-FB1C5F19E7D8}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{0f872661-c863-47a4-863f-c065c182858a}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{0f872661-c863-47a4-863f-c065c182858a}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{da82e55e-fa2f-45b3-aec3-e7294106ef52}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{da82e55e-fa2f-45b3-aec3-e7294106ef52}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{e9de26a1-51b2-47b4-b1bf-c87059cc02a7}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{e9de26a1-51b2-47b4-b1bf-c87059cc02a7}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{2692D1F2-2C7C-4AE0-8E73-8F37736C912D}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{2692D1F2-2C7C-4AE0-8E73-8F37736C912D}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{5D5DD08F-A10E-4FEF-BCA7-E73E666FC66C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{5D5DD08F-A10E-4FEF-BCA7-E73E666FC66C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{EE15BBBB-9E60-4C52-ABCB-7540FF3DF6B3}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{EE15BBBB-9E60-4C52-ABCB-7540FF3DF6B3}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{8D3F8F15-1DE1-4662-BF93-762EABE988B2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{8D3F8F15-1DE1-4662-BF93-762EABE988B2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{2B865677-AC3A-43BD-B9E7-BF6FCD3F0596}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{2B865677-AC3A-43BD-B9E7-BF6FCD3F0596}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{50487D09-FFA9-45E1-8DF5-D457F646CD83}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{50487D09-FFA9-45E1-8DF5-D457F646CD83}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{D32F7B3A-DEC8-4F44-AF28-E9B7FEB62118}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{D32F7B3A-DEC8-4F44-AF28-E9B7FEB62118}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{ACDB5DB0-C9D5-461C-BAAA-5DCE0B980E40}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{ACDB5DB0-C9D5-461C-BAAA-5DCE0B980E40}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\TypeLib\{909A6CCD-6810-46C4-89DF-05BE7EB61E6C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{10C9242E-D604-49B5-99E4-BF87945EF86C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{10C9242E-D604-49B5-99E4-BF87945EF86C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{F062BA81-ADFE-4A92-886A-23FD851D6406}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{F062BA81-ADFE-4A92-886A-23FD851D6406}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{3A4E62AE-45D9-41D5-85F5-A45B77AB44E5}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{3A4E62AE-45D9-41D5-85F5-A45B77AB44E5}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{390AF5A7-1390-4255-9BC9-935BFCFA5D57}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{390AF5A7-1390-4255-9BC9-935BFCFA5D57}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{1196AE48-D92B-4BC7-85DE-664EC3F761F1}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{1196AE48-D92B-4BC7-85DE-664EC3F761F1}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{D0ED5C72-6197-4AAD-9B16-53FE461DD85C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{D0ED5C72-6197-4AAD-9B16-53FE461DD85C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{AF60000F-661D-472A-9588-F062F6DB7A0E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{AF60000F-661D-472A-9588-F062F6DB7A0E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{5d65dd0d-81bf-4ff4-aeea-6effb445cb3f}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{5d65dd0d-81bf-4ff4-aeea-6effb445cb3f}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{b5c25645-7426-433f-8a5f-42b7ff27a7b2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{b5c25645-7426-433f-8a5f-42b7ff27a7b2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{f0440f4e-4884-4a8F-8a45-ba89c00f96f2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{f0440f4e-4884-4a8F-8a45-ba89c00f96f2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{0776ae27-5ab9-4e18-9063-1836da63117a}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{0776ae27-5ab9-4e18-9063-1836da63117a}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{1b7aed4f-fcaf-4da4-8795-c03e635d8edc}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{1b7aed4f-fcaf-4da4-8795-c03e635d8edc}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{0d4e4444-cb20-4c2b-b8b2-94e5656ecae8}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{0d4e4444-cb20-4c2b-b8b2-94e5656ecae8}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{d8c80ebb-099c-4208-afa3-fbc4d11f8a3c}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{d8c80ebb-099c-4208-afa3-fbc4d11f8a3c}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{C2FE84F5-E036-4A07-950C-9BFD3EAB983A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{C2FE84F5-E036-4A07-950C-9BFD3EAB983A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{8B9F14F4-9559-4A3F-B7D0-312E992B6D98}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{8B9F14F4-9559-4A3F-B7D0-312E992B6D98}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{22A68885-0FD9-42F6-9DED-4FB174DC7344}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{22A68885-0FD9-42F6-9DED-4FB174DC7344}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{a7126d4c-f492-4eb9-8a2a-f673dbdd3334}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{a7126d4c-f492-4eb9-8a2a-f673dbdd3334}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{c1439245-96b4-47fc-b391-679386c5d40f}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{c1439245-96b4-47fc-b391-679386c5d40f}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{944903E8-B03F-43A0-8341-872200D2DA9C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{944903E8-B03F-43A0-8341-872200D2DA9C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{B54E7079-90C9-4C62-A6B8-B2834C33A04A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{B54E7079-90C9-4C62-A6B8-B2834C33A04A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{1B71F23B-E61F-45C9-83BA-235D55F50CF9}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{1B71F23B-E61F-45C9-83BA-235D55F50CF9}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{049FED7E-C3EA-4B66-9D92-10E8085D60FB}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{049FED7E-C3EA-4B66-9D92-10E8085D60FB}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{2387C6BD-9A36-41A2-88ED-FF731E529384}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{2387C6BD-9A36-41A2-88ED-FF731E529384}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{EA23A664-A558-4548-A8FE-A6B94D37C3CF}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{EA23A664-A558-4548-A8FE-A6B94D37C3CF}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{2F12C599-7AA5-407A-B898-09E6E4ED2D1E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{2F12C599-7AA5-407A-B898-09E6E4ED2D1E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{2EB31403-EBE0-41EA-AE91-A1953104EA55}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{2EB31403-EBE0-41EA-AE91-A1953104EA55}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{AEEBAD4E-3E0A-415B-9B94-19C499CD7B6A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{AEEBAD4E-3E0A-415B-9B94-19C499CD7B6A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{fac14b75-7862-4ceb-be41-f53945a61c17}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{fac14b75-7862-4ceb-be41-f53945a61c17}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\TypeLib\{BAE13F6C-0E2A-4DEB-AA46-B8F55319347C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{466F31F7-9892-477E-B189-FA5C59DE3603}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{466F31F7-9892-477E-B189-FA5C59DE3603}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{869BDA08-7ACF-42B8-91AE-4D8D597C0B33}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{869BDA08-7ACF-42B8-91AE-4D8D597C0B33}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{679EC955-75AA-4FB2-A7ED-8C0152ECF409}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{679EC955-75AA-4FB2-A7ED-8C0152ECF409}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{BBACC218-34EA-4666-9D7A-C78F2274A524}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{BBACC218-34EA-4666-9D7A-C78F2274A524}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{5AB7172C-9C11-405C-8DD5-AF20F3606282}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{5AB7172C-9C11-405C-8DD5-AF20F3606282}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{A78ED123-AB77-406B-9962-2A5D9D2F7F30}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{A78ED123-AB77-406B-9962-2A5D9D2F7F30}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{A0396A93-DC06-4AEF-BEE9-95FFCCAEF20E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{A0396A93-DC06-4AEF-BEE9-95FFCCAEF20E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{F241C880-6982-4CE5-8CF7-7085BA96DA5A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{F241C880-6982-4CE5-8CF7-7085BA96DA5A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{9AA2F32D-362A-42D9-9328-24A483E2CCC3}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{9AA2F32D-362A-42D9-9328-24A483E2CCC3}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{C5FF006E-2AE9-408C-B85B-2DFDD5449D9C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{C5FF006E-2AE9-408C-B85B-2DFDD5449D9C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{7AFDFDDB-F914-11E4-8377-6C3BE50D980C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{7AFDFDDB-F914-11E4-8377-6C3BE50D980C}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{82CA8DE3-01AD-4CEA-9D75-BE4C51810A9E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{82CA8DE3-01AD-4CEA-9D75-BE4C51810A9E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{1BF42E4C-4AF4-4CFD-A1A0-CF2960B8F63E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{1BF42E4C-4AF4-4CFD-A1A0-CF2960B8F63E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{20894375-46AE-46E2-BAFD-CB38975CDCE6}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{20894375-46AE-46E2-BAFD-CB38975CDCE6}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{0827D883-485C-4D62-BA2C-A332DBF3D4B0}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{0827D883-485C-4D62-BA2C-A332DBF3D4B0}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{CB3D0F55-BC2C-4C1A-85ED-23ED75B5106B}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{CB3D0F55-BC2C-4C1A-85ED-23ED75B5106B}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\*\shellex\ContextMenuHandlers\ FileSyncEx'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Directory\Background\shellex\ContextMenuHandlers\ FileSyncEx'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Directory\shellex\ContextMenuHandlers\ FileSyncEx'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\IE.AssocFile.URL\shellex\ContextMenuHandlers\ FileSyncEx'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\lnkfile\shellex\ContextMenuHandlers\ FileSyncEx'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{021E4F06-9DCC-49AD-88CF-ECC2DA314C8A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{021E4F06-9DCC-49AD-88CF-ECC2DA314C8A}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{31508CC7-9BC7-494B-9D0F-7B1C7F144182}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{31508CC7-9BC7-494B-9D0F-7B1C7F144182}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\TypeLib\{C9F3F6BB-3172-4CD8-9EB7-37C9BE601C87}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\SyncEngineFileInfoProvider.SyncEngineFileInfoProvider.1'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\SyncEngineFileInfoProvider.SyncEngineFileInfoProvider'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{71DCE5D6-4B57-496B-AC21-CD5B54EB93FD}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{71DCE5D6-4B57-496B-AC21-CD5B54EB93FD}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\OOBERequestHandler.OOBERequestHandler.1'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\OOBERequestHandler.OOBERequestHandler'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{94269C4E-071A-4116-90E6-52E557067E4E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{94269C4E-071A-4116-90E6-52E557067E4E}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\TypeLib\{082D3FEC-D0D0-4DF6-A988-053FECE7B884}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{389510b7-9e58-40d7-98bf-60b911cb0ea9}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{389510b7-9e58-40d7-98bf-60b911cb0ea9}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{4410DC33-BC7C-496B-AA84-4AEA3EEE75F7}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{4410DC33-BC7C-496B-AA84-4AEA3EEE75F7}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{B05D37A9-03A2-45CF-8850-F660DF0CBF07}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{B05D37A9-03A2-45CF-8850-F660DF0CBF07}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{53de12aa-df96-413d-a25e-c75b6528abf2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{53de12aa-df96-413d-a25e-c75b6528abf2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{A926714B-7BFC-4D08-A035-80021395FFA8}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{A926714B-7BFC-4D08-A035-80021395FFA8}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{6A821279-AB49-48F8-9A27-F6C59B4FF024}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{6A821279-AB49-48F8-9A27-F6C59B4FF024}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{A91EFACB-8B83-4B84-B797-1C8CF3AB3DCB}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{A91EFACB-8B83-4B84-B797-1C8CF3AB3DCB}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\Interface\{C47B67D4-BA96-44BC-AB9E-1CAC8EEA9E93}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\Interface\{C47B67D4-BA96-44BC-AB9E-1CAC8EEA9E93}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{4410DC33-BC7C-496B-AA84-4AEA3EEE75F7}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{4410DC33-BC7C-496B-AA84-4AEA3EEE75F7}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{9489FEB2-1925-4D01-B788-6D912C70F7F2}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{9489FEB2-1925-4D01-B788-6D912C70F7F2}'}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION', value: 'OneDrive.exe', operation: delete}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\odopen'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Microsoft\SkyDrive'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\SyncEngines\Providers\OneDrive'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'}
+  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'}
+
+  - !file: {path: 'C:\Windows\System32\OneDriveSetup.exe'}
+  - !file: {path: 'C:\Windows\SysWOW64\OneDriveSetup.exe'}
+  - !file: {path: 'C:\Windows\SysWOW64\OneDriveSettingSyncProvider.dll'}
+  - !file: {path: 'C:\OneDriveTemp'}
+  - !file: {path: 'C:\ProgramData\Microsoft OneDrive'}
+
+    # ---------- Update Health Tools
+  - !writeStatus: {status: 'Removing Update Health Tools'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\UpdateHealthTools'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\rempl'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\CloudManagedUpdate'}
+
+  - !run: {exeDir: true, exe: 'UPDHEALTH.cmd', weight: 20}
+
+  - !file: {path: 'C:\Program Files\Microsoft Update Health Tools'}
+
+    # ---------- PC Health Check
+  - !writeStatus: {status: 'Removing PC Health Check'}
+  - !file:
+    path: 'C:\Program Files\PCHealthCheck'
+
+  - !run: {exe: 'explorer.exe', wait: false}
+    # This could be done in config.yml, however on the off-chance that
+    # the Playbook fails or the system shuts down, we want the users converted
+    # before potentially making any MS Accounts inoperable in packages.yml.
+
+  - !run:
+    exeDir: true
+    exe: 'CONVERTUSERS.cmd'
+    weight: 30

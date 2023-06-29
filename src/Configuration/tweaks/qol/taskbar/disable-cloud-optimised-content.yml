@@ -1,0 +1,11 @@
+---
+title: Disable Cloud Optimised Content in the Taskbar
+description: Disables cloud optimised content in the taskbar for QoL, which will pin items dependant on what you use like having a linked phone or Xbox Live
+privilege: TrustedInstaller
+actions:
+    # Disable cloud optimized content
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableCloudOptimizedContent'
+    data: '1'
+    type: REG_DWORD
