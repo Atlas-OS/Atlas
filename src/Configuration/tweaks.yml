@@ -248,7 +248,9 @@ features:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\shell\alt-tab-open-windows.yml
   - tweaks\qol\shell\config-autorun.yml
-  - tweaks\qol\shell\config-snap-settings.yml
+  # Most people would find this feature useful and it wouldn't really get in the way
+  # However, as this removal is opinionated, it will still stay, commented
+  # - tweaks\qol\shell\config-snap-settings.yml
   - tweaks\qol\shell\disable-aero-shake.yml
   - tweaks\qol\shell\disable-low-disk-warning.yml
   - tweaks\qol\shell\disable-menu-delay.yml
