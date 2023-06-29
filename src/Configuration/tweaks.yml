@@ -67,7 +67,9 @@ features:
   # includes responsiveness, latency, etc...
   # -----------------------------------------------------
   - tweaks\statuses\status-performance.yml
-  - tweaks\performance\clear-ifeo.yml
+  # Placebo, mostly protects old vulnerable default Windows processes
+  # Clearing could cause potential issues and only worsens security with no gains
+  # - tweaks\performance\clear-ifeo.yml
   - tweaks\performance\config-fse-gamebar.yml
   - tweaks\performance\config-mmcss.yml
   - tweaks\performance\disable-automatic-maintenance.yml
