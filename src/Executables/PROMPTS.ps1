@@ -81,7 +81,7 @@ if ($intButton -eq '7') { # if 'No'
 		Remove-ItemProperty -Path $kernelShadowStacks -Name "WasEnabledBy" -ErrorAction SilentlyContinue
 	}
 
-	# Kernel-mode Hardware-enforced Stack Protection (Windows 11 only)
+	# Credential Guard (Windows 11 only)
 	if (Test-Path $credentialGuard) {
 		New-ItemProperty -Path $credentialGuard -Name "Enabled" -Value 0 -PropertyType DWORD -Force
 		Remove-ItemProperty -Path $credentialGuard -Name "ChangedInBootCycle" -ErrorAction SilentlyContinue
