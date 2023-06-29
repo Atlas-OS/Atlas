@@ -28,6 +28,7 @@ jobs:
             bypass
             auto-pr
             translations
+            readme
             "
             
             no_run=false
