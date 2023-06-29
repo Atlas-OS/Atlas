@@ -8,5 +8,5 @@ $env:path = $([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory(
 }
 
 # run these tasks in the background to make sure that it's all ngened
-.\schtasks /Run /TN "\Microsoft\Windows\.NET Framework\.NET Framework NGEN v4.0.30319"
-.\schtasks /Run /TN "\Microsoft\Windows\.NET Framework\.NET Framework NGEN v4.0.30319 64"
+& "C:\Windows\System32\schtasks.exe" /Run /TN "\Microsoft\Windows\.NET Framework\.NET Framework NGEN v4.0.30319"
+& "C:\Windows\System32\schtasks.exe" /Run /TN "\Microsoft\Windows\.NET Framework\.NET Framework NGEN v4.0.30319 64"

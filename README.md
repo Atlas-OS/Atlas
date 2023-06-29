@@ -59,16 +59,16 @@ You can learn more about Atlas on our official [website](https://atlasos.net).
 
 ## 📚 **Table of contents**
 
-- [Contribution Guidelines](https://docs.atlasos.net/contributions)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions/)
 
 - Getting Started
-  - [Installation](https://docs.atlasos.net/getting-started/installation)
-  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+  - [Installation](https://docs.atlasos.net/getting-started/installation/)
+  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/usb/)
+  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers/)
 
 - Troubleshooting
-  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
+  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features/)
+  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts/)
 
 - FAQ
   - [Atlas](https://atlasos.net/faq)
@@ -87,7 +87,7 @@ Downloading a modified Windows ISO from the internet is risky. Not only can peop
 
 Atlas is different. We use [AME Wizard](https://ameliorated.io) to install Atlas, and all the scripts we use are open source here in our GitHub repository. You can view the packaged Atlas playbook (`.apbx` - AME Wizard script package) as an archive, with the password being `malte` (the standard for AME Wizard playbooks), which is only to bypass false flags from antiviruses.
 
-The only executables included in the playbook are open sourced [here](https://github.com/Atlas-OS/Atlas-Utilities) under [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE), with the hashes being identical to the releases. Everything else is in plain text.
+The only executables included in the playbook are open sourced [here](https://github.com/Atlas-OS/utilities) under [GPLv3](https://github.com/Atlas-OS/utilities/blob/main/LICENSE), with the hashes being identical to the releases. Everything else is in plain text.
 
 You can also install the latest security updates before installing Atlas, which we recommend to keep your system safe and secure.
 
@@ -95,7 +95,7 @@ Please note that as of Atlas v0.2.0, Atlas is mostly **not as secure as regular 
 
 ### 🚀 More space
 Pre-installed applications and other insignificant components are removed with Atlas. Despite the possibility of compatibility issues, this significantly reduces the install size and makes your system more fluent. Therefore, some functionalities (such as Windows Defender) are stripped completely.
-Check out what else we have removed in our [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features) section.
+Check out what else we have removed in our [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features/) section.
 
 ### ✅ More performance
 Some tweaked systems on the internet have tweaked Windows too much, breaking compatibility for main features such as Bluetooth, Wi-Fi, and so on.

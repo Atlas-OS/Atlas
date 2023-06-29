@@ -26,7 +26,8 @@ $devices = @(
 	"System CMOS/real time clock",
 	"System Speaker",
 	"System Timer",
-	"UMBus Root Bus Enumerator",
+	# Breaks Hyper-V Enhanced Session
+	# "UMBus Root Bus Enumerator",
 	"Unknown Device",
 	"WAN Miniport*"
 )
