@@ -167,7 +167,7 @@ actions:
   # NdisVirtualBus 4 < breaks network bridges
   - !service: {name: 'nvraid', operation: change, startup: 4}
   # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
-  # Set rdbss to manual instead of disabling (fixes wsl), thanks phlegm
+  # Set rdbss to manual instead of disabling (fixes wsl), thanks Phlegm
   - !service: {name: 'rdbss', operation: change, startup: 3}
   - !service: {name: 'RFCOMM', operation: change, startup: 4}
   - !service: {name: 'sfloppy', operation: change, startup: 4}
@@ -177,7 +177,9 @@ actions:
   - !service: {name: 'tcpipreg', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
   - !service: {name: 'udfs', operation: change, startup: 4}
-  - !service: {name: 'umbus', operation: change, startup: 4}
+  # Breaks Hyper-V Enhanced Session
+  # It's normally manual anyways, disabling it shouldn't harm anything
+  # - !service: {name: 'umbus', operation: change, startup: 4}
   - !service: {name: 'VerifierExt', operation: change, startup: 4}
   # volmgrx 4 < breaks dynamic disks
   - !service: {name: 'vsmraid', operation: change, startup: 4}
