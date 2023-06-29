@@ -167,7 +167,7 @@ actions:
   # NdisVirtualBus 4 < breaks network bridges
   - !service: {name: 'nvraid', operation: change, startup: 4}
   # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
-  # Set rdbss to manual instead of disabling (fixes wsl), thanks Phlegm
+  # Set rdbss to manual instead of disabling (fixes wsl), thanks phlegm
   - !service: {name: 'rdbss', operation: change, startup: 3}
   - !service: {name: 'RFCOMM', operation: change, startup: 4}
   - !service: {name: 'sfloppy', operation: change, startup: 4}
