@@ -41,7 +41,7 @@ features:
   # >>> Description <<<
   #
   # Tweaks for modifying network settings, which could be
-  # for improving network performance.
+  # for improving network performance, security, etc...
   # -----------------------------------------------------
   - tweaks\statuses\status-networking.yml
   - tweaks\networking\disable-llmnr.yml
@@ -154,7 +154,7 @@ features:
   # more pleasent to use for more advanced general users.
   #
   # QoL tweaks can be anything, but they're mostly to do 
-  # with modifying the graphical interface.
+  # with modifying the graphical interface and Explorer.
   # -----------------------------------------------------
   - tweaks\statuses\status-qol.yml
   - tweaks\qol\best-wallpaper-quality.yml
@@ -305,8 +305,7 @@ features:
   # storage space or convienience.
   # -----------------------------------------------------
   - tweaks\statuses\status-clean-winsxs.yml
-  # Cleaning WinSxS sets its own status before the rest of the debloating
-  # as it's a long operation on some devices
+  # Has its own status as it's a long operation in comparison
   - tweaks\debloat\clean-winsxs.yml
   - tweaks\statuses\status-debloat.yml
   - tweaks\debloat\autologgers.yml
