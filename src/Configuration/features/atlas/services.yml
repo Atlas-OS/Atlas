@@ -177,9 +177,7 @@ actions:
   - !service: {name: 'tcpipreg', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
   - !service: {name: 'udfs', operation: change, startup: 4}
-  # Breaks Hyper-V Enhanced Session
-  # It's normally manual anyways, disabling it shouldn't harm anything
-  # - !service: {name: 'umbus', operation: change, startup: 4}
+  - !service: {name: 'umbus', operation: change, startup: 4}
   - !service: {name: 'VerifierExt', operation: change, startup: 4}
   # volmgrx 4 < breaks dynamic disks
   - !service: {name: 'vsmraid', operation: change, startup: 4}
