@@ -7,7 +7,7 @@ $fileName = "Atlas Test"
 
 # if the script should delete any playbook that already exists with the same name or not
 # if not, it will make something like "Atlas Test (1).apbx"
-$replaceOldPlaybook = $false
+$replaceOldPlaybook = $true
 
 # choose not to modify certain aspects from playbook.conf
 $removeRequirements = $true
