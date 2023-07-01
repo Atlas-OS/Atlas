@@ -271,6 +271,7 @@ features:
   #  qol\system                                                                #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\system\crash-control-qol.yml
+  - tweaks\qol\system\disable-wpbt.yml
   
   # -------------------------------------------------------------------------- #
   #  qol\taskbar                                                               #
