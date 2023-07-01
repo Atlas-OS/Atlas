@@ -70,11 +70,9 @@ $filteredItems = (Get-ChildItem | Where-Object { $excludeFiles -notcontains $_.N
 
 # remove entries in playbook config that make it awkward for testing
 $patterns = @()
+# 0.6.5 has a bug where it will crash without the 'Requirements' field, but all of the requirements are removed
+# "<Requirements>" and # "</Requirements>"
 if ($removeRequirements) {$patterns += "<Requirement>"}
-# 0.6.5 has a bug where it will crash without the 'Requirements' field
-# Fixed next release
-# "<Requirements>"
-# "</Requirements>"
 if ($removeBuildRequirement) {$patterns += "<string>", "</SupportedBuilds>", "<SupportedBuilds>"}
 if ($removeProductCode) {$patterns += "<ProductCode>"}
 
