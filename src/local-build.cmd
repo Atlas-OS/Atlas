@@ -7,7 +7,7 @@ $fileName = "Atlas Test"
 
 # if the script should delete any playbook that already exists with the same name or not
 # if not, it will make something like "Atlas Test (1).apbx"
-$replaceOldPlaybook = $true
+$replaceOldPlaybook = $false
 
 # choose not to modify certain aspects from playbook.conf
 $removeRequirements = $true
@@ -66,7 +66,7 @@ if (!($?) -and (Test-Path -Path "playbook.conf.old")) {
 	exit 1
 }
 
-$filteredItems = (Get-ChildItem | Where-Object { $excludeFiles -notcontains $_.Name }).FullName + "$tempPlaybook"
+$filteredItems = (Get-ChildItem | Where-Object { $excludeFiles -notcontains $_.Name -and $_.Name -notlike "*.apbx" }).FullName + "$tempPlaybook"
 
 # remove entries in playbook config that make it awkward for testing
 $patterns = @()
