@@ -3,7 +3,12 @@ title: Components
 description: Removes certain Windows components
 privilege: TrustedInstaller
 actions:
-    # Note: Some of this is redundant with packages.yml
+
+  # ------------------------- NOTES ------------------------- #
+  
+  # - Some of this is redundant with packages.yml
+  
+  # ----------------------- END NOTES ----------------------- #
 
   - !taskKill: {name: 'explorer'}
 
@@ -154,6 +159,9 @@ actions:
 
   - !run: {exeDir: true, exe: 'ONED.cmd', weight: 20}
 
+  - !cmd: {command: 'C:\Windows\System32\OneDriveSetup.exe /uninstall'}
+  - !cmd: {command: 'C:\Windows\SysWOW64\OneDriveSetup.exe /uninstall'}
+  
   - !registryKey: {path: 'HKCR\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'}
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'OneDrive', operation: delete}
   - !registryKey: {path: 'HKCU\SOFTWARE\Microsoft\OneDrive'}
