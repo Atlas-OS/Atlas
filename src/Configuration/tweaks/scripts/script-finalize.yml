@@ -1,6 +1,6 @@
 ---
 title: Do Final Tweaks
-description: Does final tweaks that are run from a batch script, as some tweaks can't be done in playbooks
+description: Does final tweaks that are run from a batch script, as some tweaks can not be done in yaml
 privilege: TrustedInstaller
 actions:
   - !run:
