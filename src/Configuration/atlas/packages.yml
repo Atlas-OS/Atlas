@@ -554,17 +554,17 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-netplwiz-client', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Netplwiz-Exe', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-netplwiz', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Framework', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Framework', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service-Modern', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service-Modern', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-WinComponents', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-WinRT', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-LocationProvider-Adm', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-SystemSettings-SettingsHandlers-Geolocation', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-WindowsPhone-LocationServiceProvider-Events', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Framework', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Framework', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service-Modern', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service-Modern', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-WinComponents', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-WinRT', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-LocationProvider-Adm', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-SystemSettings-SettingsHandlers-Geolocation', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-WindowsPhone-LocationServiceProvider-Events', arch: amd64, language: 'neutral'}
   ## This package just contains %windir%\Web\Screen\img0-5, which we replace beforehand anyways.
   # - !systemPackage: {name: 'Microsoft-Windows-ThemeUI-LockscreenBackgrounds-Client', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-ThemeUI-LockscreenBackgrounds-Client', arch: wow64, language: 'neutral'}
