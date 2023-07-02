@@ -828,10 +828,10 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-AdvancedTaskManager', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'TaskSchedulerSettings', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-OneCore-SystemSettings-InputCloudStore', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-AIT-Static', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Inventory-Data-Sources', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Mitigations-C8', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Program-Data', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-AIT-Static', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Inventory-Data-Sources', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Mitigations-C8', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Program-Data', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-InboxDataFiles', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-Logger', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser', arch: amd64, language: 'neutral'}
