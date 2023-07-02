@@ -161,7 +161,7 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-AllJoyn-Runtime', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Networking-MPSSVC-Rules-AllJoyn', arch: amd64, language: 'neutral'}
 
-  ## Content Delivery Manager installs common bloatware from Store like Netflix, Disney+, etc...
+  ## Content Delivery Manager
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager-Capabilities', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager-Utilities', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager-Utilities', arch: wow64, language: 'neutral'}
