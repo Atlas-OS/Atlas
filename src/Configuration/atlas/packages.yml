@@ -330,18 +330,18 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-PeerDist-Client-Group-WOW64-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   # - !systemPackage: {name: 'Microsoft-Windows-PeerDist-Client-Group-WOW64-Deployment', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-AcProxy', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-CEIPEnable-Adm', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Client-SQM-Consolidator', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-CEIPEnable-Adm', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Client-SQM-Consolidator', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-ImageBasedSetup-IE-SQMAPI-windows', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-ImageBasedSetup-IE-SQMAPI-windows', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Media-Format-SQM', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Media-Format-SQM', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-SQM-Consolidator-Base', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-SQM-Consolidator-Base', arch: amd64, language: 'neutral'}
   ## sqmapi dll is present in Atlas, which this would remove
   # - !systemPackage: {name: 'Microsoft-Windows-SQMApi', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-SQMApi', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-UsbCeip', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-UsbCeip', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-UsbCeip', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-UsbCeip', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-WPD-PortableDeviceSQM', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-WPD-PortableDeviceSQM', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-CellularTime-Service-Modern', arch: amd64, language: 'neutral'}
