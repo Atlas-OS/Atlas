@@ -1,5 +1,5 @@
 ---
-title: Add Registry Entries to 'New' Context Menu
+title: Add Registry Entries To 'New' Context Menu
 description: Adds registry entries (.reg) to 'New' context menu
 privilege: TrustedInstaller
 actions:

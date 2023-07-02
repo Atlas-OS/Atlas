@@ -3,7 +3,6 @@ title: Disable Windows Feedback
 description: Disables Windows Feedback for QoL
 privilege: TrustedInstaller
 actions:
-  # https://www.makeuseof.com/windows-disable-feedback-notifications
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Siuf\Rules'
     value: 'NumberOfSIUFInPeriod'

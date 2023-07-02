@@ -1,6 +1,6 @@
 ---
 title: Diasble Low Disk Space Checks
-description: DIsables low disk space checks, meaning that there won't be a low disk space warning for QoL
+description: DIsables low disk space checks, meaning that there will not be a low disk space warning for QoL
 privilege: TrustedInstaller
 actions:
   - !registryValue:

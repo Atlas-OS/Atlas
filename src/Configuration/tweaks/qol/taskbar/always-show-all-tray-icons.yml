@@ -1,6 +1,6 @@
 ---
 title: Always Show All Tray Icons
-description: Always shows all tray icons, and therefore disabling the system tray, meaning that users can always see running background applications (which have a tray icon)
+description: Always shows all tray icons, and thus disabling the system tray, meaning that users can always see running background applications for security and QoL
 privilege: TrustedInstaller
 actions:
   - !registryValue:

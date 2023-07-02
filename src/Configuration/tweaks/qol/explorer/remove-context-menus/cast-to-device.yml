@@ -1,5 +1,5 @@
 ---
-title: Remove 'Cast to device' from Context Menu
+title: Remove 'Cast to device' From Context Menu
 description: Removes 'Cast to device' from Context Menu
 privilege: TrustedInstaller
 actions:

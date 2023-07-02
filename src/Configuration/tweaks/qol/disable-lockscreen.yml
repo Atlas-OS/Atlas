@@ -1,6 +1,6 @@
 ---
 title: Disable Lockscreen
-description: Disables the lockscreen for QoL, as it's faster to go straight to the login screen over pressing space. This is customisable later
+description: Disables the lockscreen for QoL, as it is faster to go straight to the login screen over pressing space. This is customizable later
 privilege: TrustedInstaller
 actions:
   - !registryValue:

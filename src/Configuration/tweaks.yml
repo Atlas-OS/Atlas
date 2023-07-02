@@ -204,7 +204,7 @@ features:
   - tweaks\qol\explorer\full-context-on-more-than-15-items.yml
   - tweaks\qol\explorer\hide-frequently-used-items.yml
   - tweaks\qol\explorer\import-power-plan.yml
-  - tweaks\qol\explorer\minimise-mouse-hover-time.yml
+  - tweaks\qol\explorer\minimize-mouse-hover-time.yml
   - tweaks\qol\explorer\no-internet-open-with.yml
   - tweaks\qol\explorer\open-to-this-pc.yml
   - tweaks\qol\explorer\removable-drives-only-this-pc.yml
@@ -247,7 +247,7 @@ features:
   #  qol\shell                                                                 #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\shell\alt-tab-open-windows.yml
-  - tweaks\qol\shell\config-autorun.yml
+  - tweaks\qol\shell\config-autorun-autoplay.yml
   # Most people would find this feature useful and it wouldn't really get in the way
   # However, as this removal is opinionated, it will still stay, commented
   # - tweaks\qol\shell\config-snap-settings.yml
@@ -279,7 +279,7 @@ features:
   - tweaks\qol\taskbar\always-show-all-tray-icons.yml
   - tweaks\qol\taskbar\cmd-win-x.yml
   - tweaks\qol\taskbar\disable-badges-taskbar.yml
-  - tweaks\qol\taskbar\disable-cloud-optimised-content.yml
+  - tweaks\qol\taskbar\disable-cloud-optimized-content.yml
   - tweaks\qol\taskbar\disable-desktop-peek.yml
   - tweaks\qol\taskbar\disable-news-and-interests.yml
   - tweaks\qol\taskbar\disable-tablet-mode.yml

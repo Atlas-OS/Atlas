@@ -1,5 +1,5 @@
 ---
-title: Remove 'Troubleshooting Compatibility' from Context Menu
+title: Remove 'Troubleshooting Compatibility' From Context Menu
 description: Removes 'Troubleshooting Compatibility' from context menu
 privilege: TrustedInstaller
 actions:

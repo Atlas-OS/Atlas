@@ -1,5 +1,5 @@
 ---
-title: Add PowerShell Script to 'New' Context Menu
+title: Add PowerShell Script To 'New' Context Menu
 description: Adds PowerShell script (.ps1) to 'New' context menu
 privilege: TrustedInstaller
 actions:

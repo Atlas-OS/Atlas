@@ -8,7 +8,6 @@ actions:
     value: 'DisableWindowsSpotlightFeatures'
     data: '1'
     type: REG_DWORD
-    # Do not suggest third-party content in Windows Spotlight
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableThirdPartySuggestions'

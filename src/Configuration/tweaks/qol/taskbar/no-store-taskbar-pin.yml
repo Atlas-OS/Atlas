@@ -1,6 +1,6 @@
 ---
-title: Disallow Pinning Microsoft Store App to Taskbar
-description: Disallows pinning the Microsoft Store app to the taskbar, as most people realistically don't want it there 
+title: Disallow Pinning Microsoft Store App To Taskbar
+description: Disallows pinning the Microsoft Store app to the taskbar, as most people realistically do not want it there 
 privilege: TrustedInstaller
 actions:
   - !registryValue:

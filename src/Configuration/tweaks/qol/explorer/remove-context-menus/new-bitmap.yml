@@ -1,5 +1,5 @@
 ---
-title: Remove Bitmap Image from the 'New' Context Menu
+title: Remove Bitmap Image From 'New' Context Menu
 description: Removes bitmap image from the 'New' context menu
 privilege: TrustedInstaller
 actions:

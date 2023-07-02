@@ -1,9 +1,8 @@
 ---
 title: Disable Shared Experiences
-description: Disables 'Shared Experiences', which is a way of sharing items between advices, as it is mostly unused
+description: Disables 'Shared Experiences', which is a way of sharing items between advices for privacy and QoL
 privilege: TrustedInstaller
 actions:
-  # https://www.tenforums.com/tutorials/109989-enable-disable-shared-experiences-windows-10-a.html
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
     value: 'EnableCdp'

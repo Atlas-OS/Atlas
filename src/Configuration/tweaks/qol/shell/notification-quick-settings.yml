@@ -1,9 +1,8 @@
 ---
-title: Configure Quick Settings in Notification Center
+title: Configure Quick Settings In Notification Center
 description: Configures Quick Settings in Notification Center for QoL
 privilege: TrustedInstaller
 actions:
-    # Unpin all quick action shortcuts by default
   - !registryValue:
     path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
     value: 'Microsoft.QuickAction.WiFi'

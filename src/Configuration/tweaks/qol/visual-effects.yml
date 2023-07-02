@@ -1,6 +1,6 @@
 ---
 title: Configure Visual Effects
-description: Configures the visual effects in Windows for the optimal responsiveness/'snappiness', performance and QoL
+description: Configures the visual effects in Windows for the optimal responsiveness, performance and QoL
 privilege: TrustedInstaller
 actions:
   - !registryValue:
@@ -34,12 +34,13 @@ actions:
     value: 'EnableWindowColorization'
     data: '1'
     type: REG_DWORD
-    # Most likely will be commented once the tweaks are went through, no info on what it does, probably placebo
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
-    value: 'Composition'
-    data: '0'
-    type: REG_DWORD
+    # No info on what it does, probably placebo
+    # - !registryValue:
+    # path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
+    # value: 'Composition'
+    # data: '0'
+    # type: REG_DWORD
+
     # Disable taskbar animations
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'

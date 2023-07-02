@@ -1,6 +1,6 @@
 ---
-title: Change the Tooltip Colour to Blue
-description: Changes the tooltip colour to blue, because it looks better I guess?
+title: Change The Tooltip Color To Blue
+description: Changes the tooltip color to blue
 privilege: TrustedInstaller
 actions:
   - !registryValue:
