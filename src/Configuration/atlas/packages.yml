@@ -838,8 +838,8 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner-DailyTask', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Compat-GeneralTel', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: amd64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
-  # - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: wow64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
+  - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: amd64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
+  - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: wow64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
   # - !systemPackage: {name: 'Microsoft-Windows-DataCollection-Adm', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-DeviceCensus-Schedule-ClientServer', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-KeyboardDiagnostic', arch: amd64, language: 'neutral'}
