@@ -26,6 +26,7 @@ actions:
   # Related to Windows Hello - biometric (face and fingerprint recognition)
   # - !appx: {name: '*Microsoft.BioEnrollment*', type: family}
 
+  # Used to install APPX and UWP applications in Windows
   # Contains winget
   # - !appx: {name: '*Microsoft.DesktopAppInstaller*', type: family}
 
@@ -41,7 +42,7 @@ actions:
   # Dependency for Phone Link
   # - !appx: {name: '*Microsoft.Windows.CallingShellApp*', type: family}
 
-  # eGPUS?
+  # USB eject for external graphics cards
   # - !appx: {name: '*Microsoft.Windows.XGpuEjectDialog*', type: family}
 
   # Barcode Preview - harmless package, related to POS
@@ -64,11 +65,8 @@ actions:
   # Cortana
   - !appx: {name: '*Microsoft.549981C3F5F10*', type: family}
 
-  # MixedReality Portal - Installable via Store
+  # MixedReality Portal
   - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
-
-  # Assigned Access bloat
-  - !appx: {name: '*Microsoft.Windows.AssignedAccessLockApp*', type: family}
 
   # Installation of unwanted content such as apps and ads
   - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
@@ -88,6 +86,7 @@ actions:
   - !appx: {name: '*microsoft.windowscommunicationsapps*', type: family}
 
   # Take a Test
+  # https://www.mdsec.co.uk/2021/03/phishing-users-to-take-a-test
   - !appx: {name: '*Microsoft.Windows.SecureAssessmentBrowser*', type: family}
 
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
@@ -108,6 +107,7 @@ actions:
   - !appx: {name: '*Microsoft.ScreenSketch*', type: family}
   - !appx: {name: '*Microsoft.SkypeApp*', type: family}
   - !appx: {name: '*Microsoft.Wallet*', type: family}
+  - !appx: {name: '*Microsoft.Windows.AssignedAccessLockApp*', type: family}
   - !appx: {name: '*Microsoft.Windows.ParentalControls*', type: family}
   - !appx: {name: '*Microsoft.Windows.Photos*', type: family}
   - !appx: {name: '*Microsoft.WindowsAlarms*', type: family}
@@ -119,7 +119,7 @@ actions:
   - !appx: {name: '*Microsoft.ZuneMusic*', type: family}
   - !appx: {name: '*Microsoft.ZuneVideo*', type: family}
 
-  # Necessary to refresh start menu entries etc.
+  # Necessary to refresh start menu related entries
   - !appx: {operation: clearCache, name: '*Client.CBS*'}
   - !appx: {operation: clearCache, name: '*StartMenuExperienceHost*'}
   - !appx: {operation: clearCache, name: '*Windows.Search*'}
