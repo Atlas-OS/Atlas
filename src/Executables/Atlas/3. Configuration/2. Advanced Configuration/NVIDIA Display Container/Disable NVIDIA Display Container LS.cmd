@@ -9,7 +9,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 :: check if the service exists
 sc query NVDisplay.ContainerLocalSystem > nul 2>&1
 if !errorlevel! == 1 (
-    echo The NVIDIA Display Container LS service does not exist, you can not continue.
+    echo The NVIDIA Display Container LS service does not exist, you cannot continue.
 	echo You may not have NVIDIA drivers installed.
     pause
     exit /b 1
