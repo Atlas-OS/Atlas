@@ -4,12 +4,8 @@ description: Copies Atlas folders/files and performs the preliminary configurati
 privilege: TrustedInstaller
 actions:
     # Prevent annoying notifications during deployment
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance'
-    value: 'Enabled'
-    type: REG_DWORD
-    data: '0'
-
+  - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance', value: 'Enabled', type: REG_DWORD, data: '0'}
+ 
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
     exeDir: true
@@ -36,137 +32,28 @@ actions:
     command: 'setx path "%PATH%;C:\Windows\AtlasModules;C:\Windows\AtlasModules\Apps;C:\Windows\AtlasModules\Other;C:\Windows\AtlasModules\Tools;C:\Windows\AtlasModules\Scripts" -m'
 
   - !writeStatus: {status: 'Configuring Windows Update'}
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'ExcludeWUDriversInQualityUpdate'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'DisableWindowsUpdateAccess'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'DisableDualScan'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'AUPowerManagement'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'SetAutoRestartNotificationDisable'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'ManagePreviewBuilds'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'ManagePreviewBuildsPolicyValue'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'DeferFeatureUpdates'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'BranchReadinessLevel'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'DeferFeatureUpdatesPeriodInDays'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'DeferQualityUpdates'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'DeferQualityUpdatesPeriodInDays'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    value: 'SetDisableUXWUAccess'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
-    value: 'AUOptions'
-    data: '2'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
-    value: 'NoAutoUpdate'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
-    value: 'NoAUAsDefaultShutdownOption'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
-    value: 'NoAutoRebootWithLoggedOnUsers'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
-    value: 'RestartNotificationsAllowed2'
-    data: '0'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
-    value: 'HideMCTLink'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching'
-    value: 'SearchOrderConfig'
-    data: '0'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata'
-    value: 'PreventDeviceMetadataFromNetwork'
-    data: '1'
-    type: REG_DWORD
-
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate'
-    value: 'SusClientId'
-    data: '00000000-0000-0000-0000-000000000000'
-    type: REG_SZ
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'ExcludeWUDriversInQualityUpdate', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DisableWindowsUpdateAccess', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DisableDualScan', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'AUPowerManagement', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'SetAutoRestartNotificationDisable', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'ManagePreviewBuilds', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'ManagePreviewBuildsPolicyValue', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferFeatureUpdates', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'BranchReadinessLevel', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferFeatureUpdatesPeriodInDays', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferQualityUpdates', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferQualityUpdatesPeriodInDays', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'SetDisableUXWUAccess', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'AUOptions', data: '2', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'NoAutoUpdate', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'NoAUAsDefaultShutdownOption', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'NoAutoRebootWithLoggedOnUsers', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings', value: 'RestartNotificationsAllowed2', data: '0', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings', value: 'HideMCTLink', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching', value: 'SearchOrderConfig', data: '0', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata', value: 'PreventDeviceMetadataFromNetwork', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate', value: 'SusClientId', data: '00000000-0000-0000-0000-000000000000', type: REG_SZ}
 
   - !writeStatus: {status: 'Configuring Optional Features'}
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"LegacyComponents" /NoRestart', weight: 30}
