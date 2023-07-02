@@ -1,9 +1,8 @@
 ---
 title: Disable Remote Assistance
-description: As Remote Assistance is an unused and potentially vulnerable feature, it is restricted
+description: As Remote Assistance is an unused and a potential vulnerable feature, it is disabled
 privilege: TrustedInstaller
 actions:
-    # Disable Remote Assistance
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
     value: 'fAllowFullControl'
