@@ -1,6 +1,6 @@
 ---
-title: Cleanup Temporary Files
-description: Cleans up temporary files, excluding AME folders
+title: Clean Up Temporary Files
+description: Cleans up temporary files created during the playbook process, excluding AME folders
 privilege: TrustedInstaller
 actions:
     # Cleanmgr does not clean these up as AME needs to be prevented from being deleted

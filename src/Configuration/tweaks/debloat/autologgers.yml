@@ -1,6 +1,6 @@
 ---
-title: Disable unnecessary autologgers
-description: Disables unnecessary autologgers for the optimal performance and privacy
+title: Configure Autologgers
+description: Configures and disables unnecessary autologgers for the optimal performance and privacy
 privilege: TrustedInstaller
 actions:
     # https://docs.microsoft.com/en-us/windows/win32/etw/configuring-and-starting-an-autologger-session
