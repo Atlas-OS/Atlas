@@ -482,8 +482,8 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-twext', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-FCI-Client-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   # - !systemPackage: {name: 'Microsoft-Windows-FCI-Client-Deployment', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-OOBE-FirstLogonAnimExe', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-OOBE-FirstLogonAnim', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-OOBE-FirstLogonAnimExe', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-OOBE-FirstLogonAnim', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-GameExplorer', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-GameExplorer', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-DirectX-GPM', arch: amd64, language: 'neutral'}
