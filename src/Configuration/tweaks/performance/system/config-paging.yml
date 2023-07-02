@@ -1,6 +1,6 @@
 ---
 title: Configure Paging Settings
-description: Configures memory paging for the best performance
+description: Configures memory paging settings for the best performance
 privilege: TrustedInstaller
 actions:
   - !registryValue:

@@ -1,6 +1,6 @@
 ---
 title: Configure Boot Configuration
-description: Configures the boot configuration for the best performance and QoL
+description: Configures the boot configuration (BCD) for the best performance and QoL
 privilege: TrustedInstaller
 actions:
     # Set dual boot menu description to Atlas
@@ -16,6 +16,7 @@ actions:
   - !run: {exe: 'bcdedit', args: '/deletevalue useplatformclock'}
 
     # Disable dynamic tick
+    # It was implemented as a power saving feature
     # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
   - !run: {exe: 'bcdedit', args: '/set disabledynamictick yes'}
 

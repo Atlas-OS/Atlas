@@ -1,6 +1,6 @@
 ---
-title: Disable Resultant Set of Policy (RSoP) Logging
-description: Disables RSoP, which disables logging of Group Policy settings
+title: Disable Resultant Set Of Policy (RSoP) Logging
+description: Disables logging of Group Policy settings (RSoP) for privacy
 privilege: TrustedInstaller
 actions:
   - !registryValue:

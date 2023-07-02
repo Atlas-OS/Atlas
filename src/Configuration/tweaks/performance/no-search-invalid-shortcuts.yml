@@ -1,15 +1,13 @@
 ---
-title: Disable Searching for Shortcuts are Invalid
-description: Disables searching drives or using NTFS file system tracking for shortcuts that have invalid/non-existant paths for performance
+title: Disable Searching For Invalid Shortcuts
+description: Disables searching drives or using NTFS file system tracking for shortcuts that have invalid/non-existant paths for responsiveness
 privilege: TrustedInstaller
 actions:
-    # Do not use the search-based method when resolving shell shortcuts
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'NoResolveSearch'
     data: '1'
     type: REG_DWORD
-    # Do not use the tracking-based method when resolving shell shortcuts
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'NoResolveTrack'

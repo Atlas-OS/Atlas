@@ -72,7 +72,7 @@ features:
   # - tweaks\performance\clear-ifeo.yml
   - tweaks\performance\config-fse-gamebar.yml
   - tweaks\performance\config-mmcss.yml
-  - tweaks\performance\disable-automatic-maintenance.yml
+  - tweaks\performance\disable-windows-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
   - tweaks\performance\disable-perf-track.yml
   - tweaks\performance\disable-rsop-logging.yml
@@ -85,7 +85,7 @@ features:
   - tweaks\performance\system\config-boot-config.yml
   - tweaks\performance\system\config-paging.yml
   - tweaks\performance\system\disable-reserved-storage.yml
-  - tweaks\performance\system\optimise-ntfs.yml
+  - tweaks\performance\system\optimize-ntfs.yml
   - tweaks\performance\system\script-power.yml
   - tweaks\performance\system\service-host-split.yml
   - tweaks\performance\system\win32-priority-seperation.yml
