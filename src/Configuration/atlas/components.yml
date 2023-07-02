@@ -161,7 +161,7 @@ actions:
 
   - !cmd: {command: 'C:\Windows\System32\OneDriveSetup.exe /uninstall'}
   - !cmd: {command: 'C:\Windows\SysWOW64\OneDriveSetup.exe /uninstall'}
-  
+
   - !registryKey: {path: 'HKCR\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'}
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'OneDrive', operation: delete}
   - !registryKey: {path: 'HKCU\SOFTWARE\Microsoft\OneDrive'}
@@ -390,10 +390,10 @@ actions:
     path: 'C:\Program Files\PCHealthCheck'
 
   - !run: {exe: 'explorer.exe', wait: false}
+
     # This could be done in config.yml, however on the off-chance that
     # the Playbook fails or the system shuts down, we want the users converted
     # before potentially making any MS Accounts inoperable in packages.yml.
-
   - !run:
     exeDir: true
     exe: 'CONVERTUSERS.cmd'
