@@ -7,7 +7,7 @@ features:
   # ------------------------- NOTES ------------------------- #
   
   # - Each root folder has its own AME Wizard status
-  # - You can disable a certain playbook file by commenting it out
+  # - You can disable a certain yaml file by commenting it out
   # - The playbook files are ran in order
   
   # ----------------------- END NOTES ----------------------- #
@@ -24,7 +24,7 @@ features:
   # -----------------------------------------------------
   # >>> Description <<<
   #
-  # Miscellaneous tweaks which don't fit into other
+  # Miscellaneous tweaks which do not fit into other
   # categories.
   # -----------------------------------------------------
   - tweaks\statuses\status-misc.yml
@@ -40,12 +40,13 @@ features:
   # -----------------------------------------------------
   # >>> Description <<<
   #
-  # Tweaks for modifying network settings, which could be
-  # for improving network performance, security, etc...
+  # Tweaks for modifying network settings, which can lead
+  # to improving network performance, security, etc.
   # -----------------------------------------------------
   - tweaks\statuses\status-networking.yml
   - tweaks\networking\disable-llmnr.yml
-  - tweaks\networking\disable-reserved-bandwidth.yml
+  # Network Bandwidth is not limited in Windows
+  # - tweaks\networking\disable-reserved-bandwidth.yml
   - tweaks\networking\disable-smart-name-resolution.yml
   - tweaks\networking\netsh.yml
   - tweaks\networking\network-power-saving.yml
@@ -63,8 +64,8 @@ features:
   # -----------------------------------------------------
   # >>> Description <<<
   #
-  # Tweaks for improving the performance of Windows, which
-  # includes responsiveness, latency, etc...
+  # Tweaks for improving the performance of Windows, such as
+  # responsiveness, latency, etc.
   # -----------------------------------------------------
   - tweaks\statuses\status-performance.yml
   # Placebo, mostly protects old vulnerable default Windows processes
@@ -88,7 +89,8 @@ features:
   - tweaks\performance\system\optimize-ntfs.yml
   - tweaks\performance\system\script-power.yml
   - tweaks\performance\system\service-host-split.yml
-  - tweaks\performance\system\win32-priority-seperation.yml
+  # Windows Default is Programs - 26/38 
+  # - tweaks\performance\system\win32-priority-seperation.yml
   
   # -----------------------------------------------------
   #                        Privacy                       
@@ -155,8 +157,8 @@ features:
   # modifications designed for making Windows easier and 
   # more pleasent to use for more advanced general users.
   #
-  # QoL tweaks can be anything, but they're mostly to do 
-  # with modifying the graphical interface and Explorer.
+  # QoL tweaks can be anything, but they are mostly to do 
+  # with modifying the graphical user interface (GUI).
   # -----------------------------------------------------
   - tweaks\statuses\status-qol.yml
   - tweaks\qol\best-wallpaper-quality.yml
@@ -216,7 +218,8 @@ features:
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\explorer\add-context-menus\install-cab.yml
+  # Currently and in the future, this will have no use
+  # - tweaks\qol\explorer\add-context-menus\install-cab.yml
   - tweaks\qol\explorer\add-context-menus\merge-as-trustedinstaller.yml
   - tweaks\qol\explorer\add-context-menus\new-bat.yml
   - tweaks\qol\explorer\add-context-menus\new-ps1.yml
@@ -297,7 +300,7 @@ features:
   # -----------------------------------------------------
   - tweaks\statuses\status-security.yml
   - tweaks\security\block-anonymous-enum-sam.yml
-  # Useless? Should be deleted after OOBE.
+  # The account should be deleted after OOBE.
   # - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
   # No longer needed as Atlas only runs on new Windows versions
@@ -312,7 +315,7 @@ features:
   # storage space or convienience.
   # -----------------------------------------------------
   - tweaks\statuses\status-clean-winsxs.yml
-  # Has its own status as it's a long operation in comparison
+  # Has its own status as it is a long operation in comparison
   - tweaks\debloat\clean-winsxs.yml
   - tweaks\statuses\status-debloat.yml
   - tweaks\debloat\autologgers.yml
