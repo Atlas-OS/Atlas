@@ -840,22 +840,22 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-Compat-GeneralTel', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: amd64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
   - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: wow64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
-  # - !systemPackage: {name: 'Microsoft-Windows-DataCollection-Adm', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-DeviceCensus-Schedule-ClientServer', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-DataCollection-Adm', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-DeviceCensus-Schedule-ClientServer', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-KeyboardDiagnostic', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Power-EnergyEstimationEngine-Client-Overrides', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-SetupPlatform-Telemetry-AutoLogger', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-SetupPlatform-Telemetry-AutoLogger', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-SystemSettings-SettingsHandlers-SIUF', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-TelemetryClient', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-TelemetryPermission', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Aggregators', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-AutoLogger-Default', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Decoder-Host', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Settings-WindowsClient', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-WoWOnly', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-TelemetryClient', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-TelemetryPermission', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Aggregators', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-AutoLogger-Default', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Decoder-Host', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Settings-WindowsClient', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-WoWOnly', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Telnet-Client-Opt-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   # - !systemPackage: {name: 'Microsoft-Windows-Telnet-Client-Opt-Deployment', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-TFTP-Client-Opt-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
