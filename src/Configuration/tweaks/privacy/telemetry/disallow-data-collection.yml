@@ -1,6 +1,6 @@
 ---
-title: Disallow Telemetry and Data Collection
-description: Disallows telemetry and data collection for improved privacy
+title: Disallow Telemetry And Data Collection
+description: Disallows telemetry and data collection to improve privacy
 privilege: TrustedInstaller
 actions:
   - !registryValue:

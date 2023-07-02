@@ -1,6 +1,6 @@
 ---
 title: Disable Activity Feed
-description: Disables Activity Feed in Task View for privacy (as it's an online feature) and QoL
+description: Disables Activity Feed in Task View for privacy (as it is an online feature) and QoL
 privilege: TrustedInstaller
 actions:
   - !registryValue:
