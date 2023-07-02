@@ -65,7 +65,7 @@ actions:
   # Assigned Access bloat
   - !appx: {name: '*Microsoft.Windows.AssignedAccessLockApp*', type: family}
 
-  # Installs APPX bloat
+  # Installation of unwanted content such as apps and ads
   - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
 
   # Network connection should not be needed in OOBE
