@@ -11,7 +11,8 @@ actions:
 
   # ------------------------------------------------------------------------------------------ #
 
-  # Comments - packages added back that do not get in the way of users at all, and are only dependencies or hidden, meaningless applications
+  # Comments - packages added back that do not get in the way of users at all
+  # and are only dependencies or hidden, meaningless applications.
 
   # File Picker
   # - !appx: {name: '1527c705-839a-4832-9118-54d4Bd6a0c89*', type: family}
@@ -22,7 +23,7 @@ actions:
   # Add Folder Suggestions dialog
   # - !appx: {name: 'F46D4000-FD22-4DB4-AC8E-4E1DDDE828FE*', type: family}
 
-  # Windows Hello
+  # Related to Windows Hello - biometric (face and fingerprint recognition)
   # - !appx: {name: '*Microsoft.BioEnrollment*', type: family}
 
   # Contains winget
