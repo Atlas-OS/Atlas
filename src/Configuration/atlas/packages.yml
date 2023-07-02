@@ -832,12 +832,12 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Inventory-Data-Sources', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Mitigations-C8', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Program-Data', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-InboxDataFiles', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-Logger', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner-DailyTask', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-GeneralTel', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-InboxDataFiles', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-Logger', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner-DailyTask', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-GeneralTel', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: amd64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
   # - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: wow64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
   # - !systemPackage: {name: 'Microsoft-Windows-DataCollection-Adm', arch: amd64, language: 'neutral'}
