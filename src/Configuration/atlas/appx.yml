@@ -4,15 +4,16 @@ description: Removes APPX packages
 privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Removing APPX packages'}
-  # The reason of removing those applications is that there is a huge potential of them
-  # sending users' data, showing unwanted content including advertisements and using hardware resources.
-  # However, most of these applications can be reinstalled via Microsoft Store in case user need them.
+  
+  # The reason of removing those applications is that there is a huge potential of them sending users'
+  # data, showing unwanted content including advertisements and using hardware resources. However,
+  # most of these applications can be reinstalled via Microsoft Store in case user need them.
+  
   # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
 
-  # ------------------------------------------------------------------------------------------ #
-
-  # Comments - packages added back that do not get in the way of users at all
-  # and are only dependencies or hidden, meaningless applications.
+  # ------------------------------------------------------------------------------------------------ #
+  # Applications added back: Dependencies or hidden apps that do not get in the way of users.        #
+  # ------------------------------------------------------------------------------------------------ #
 
   # File Picker
   # - !appx: {name: '1527c705-839a-4832-9118-54d4Bd6a0c89*', type: family}
@@ -26,7 +27,7 @@ actions:
   # Related to Windows Hello - biometric (face and fingerprint recognition)
   # - !appx: {name: '*Microsoft.BioEnrollment*', type: family}
 
-  # Used to install APPX and UWP applications in Windows
+  # Used to install AppX and UWP applications in Windows
   # Contains winget
   # - !appx: {name: '*Microsoft.DesktopAppInstaller*', type: family}
 
@@ -54,7 +55,7 @@ actions:
   # - !appx: {name: '*Microsoft.LockApp*', type: family}
   # - !appx: {name: '*Microsoft.Windows.NarratorQuickStart*', type: family}
 
-  # ------------------------------------------------------------------------------------------ #
+  # ------------------------------------------------------------------------------------------------ #
 
   # Disney
   - !appx: {name: '*Disney*', type: family}
@@ -65,10 +66,10 @@ actions:
   # Cortana
   - !appx: {name: '*Microsoft.549981C3F5F10*', type: family}
 
-  # MixedReality Portal
+  # Mixed Reality
   - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
 
-  # Installation of unwanted content such as apps and ads
+  # Installs unwanted content such as apps like Disney+ and advertisements
   - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
 
   # Network connection should not be needed in OOBE
