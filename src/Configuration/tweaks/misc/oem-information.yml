@@ -1,6 +1,6 @@
 ---
 title: Configure OEM Information
-description: Configures OEM information to contain model, discord server and OS name
+description: Configures OEM information to contain the Atlas version and the Atlas Discord server
 privilege: TrustedInstaller
 actions:
   - !registryValue:

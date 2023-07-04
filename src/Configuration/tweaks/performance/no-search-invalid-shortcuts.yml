@@ -1,5 +1,5 @@
 ---
-title: Disable Searching For Invalid Shortcuts
+title: Disable Searching for Invalid Shortcuts
 description: Disables searching drives or using NTFS file system tracking for shortcuts that have invalid/non-existant paths for responsiveness
 privilege: TrustedInstaller
 actions:

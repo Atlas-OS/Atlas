@@ -1,6 +1,6 @@
 ---
 title: Disable Game Mode
-description: Disables Windows Game Mode feature
+description: Disables the Windows Game Mode feature
 privilege: TrustedInstaller
 actions:
   - !registryValue:

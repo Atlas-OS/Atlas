@@ -1,5 +1,5 @@
 ---
-title: Disable News And Interests
+title: Disable News and Interests
 description: Disables News and Interests on the taskbar for privacy (lots of third party connections) and QoL
 privilege: TrustedInstaller
 actions:

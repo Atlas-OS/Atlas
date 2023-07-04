@@ -1,5 +1,5 @@
 ---
-title: Disable Ease Of Access Sounds
+title: Disable Ease of Access Sounds
 description: Disable Ease Of Access sounds on activation or sound warnings, like the infamous sticky keys sound, for QoL
 privilege: TrustedInstaller
 actions:

@@ -1,5 +1,5 @@
 ---
-title: Remove 'Edit with Paint 3D' From Context Menu
+title: Remove 'Edit with Paint 3D' from Context Menu
 description: Removes 'Edit with Paint 3D' from context menu
 privilege: TrustedInstaller
 actions:

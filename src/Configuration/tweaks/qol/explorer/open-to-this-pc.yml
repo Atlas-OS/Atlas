@@ -1,5 +1,5 @@
 ---
-title: Open File Explorer To This PC
+title: Open File Explorer to This PC
 description: Configures File Explorer to open to This PC instead of Quick Access for QoL
 privilege: TrustedInstaller
 actions:

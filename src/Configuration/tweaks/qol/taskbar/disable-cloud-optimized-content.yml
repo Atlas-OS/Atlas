@@ -1,5 +1,5 @@
 ---
-title: Disable Cloud Optimized Content On Taskbar
+title: Disable Cloud Optimized Content on Taskbar
 description: Disables cloud optimized content in the taskbar for QoL, which will pin items dependant on what you use like having a linked phone or Xbox Live
 privilege: TrustedInstaller
 actions:

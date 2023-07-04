@@ -78,7 +78,7 @@ features:
   # - tweaks\performance\clear-ifeo.yml
   - tweaks\performance\config-fse-gamebar.yml
   - tweaks\performance\config-mmcss.yml
-  - tweaks\performance\disable-windows-maintenance.yml
+  - tweaks\performance\disable-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
   - tweaks\performance\disable-perf-track.yml
   - tweaks\performance\disable-rsop-logging.yml

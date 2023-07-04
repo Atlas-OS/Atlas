@@ -1,6 +1,6 @@
 ---
-title: Disable GameBar And Enable Fullscreen Exclusive
-description: Disables GameBar as it is considered as a bloatware feature (as well as being incompatible with FSE) and enables fullscreen exclusive for the best possible latency, although this should be looked into more with recent Windows versions
+title: Disable Game Bar and Enable Fullscreen Exclusive
+description: Disables XBOX Game Bar as it is considered as a bloatware feature (as well as being incompatible with FSE) and enables fullscreen exclusive for the best possible latency, although this should be looked into more with recent Windows versions
 privilege: TrustedInstaller
 actions:
   - !registryValue:

@@ -1,5 +1,5 @@
 ---
-title: Hide UWP Badges On Taskbar
+title: Hide UWP Badges on Taskbar
 description: Hides badges on the taskbar for QoL
 privilege: TrustedInstaller
 actions:

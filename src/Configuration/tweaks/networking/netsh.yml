@@ -1,5 +1,5 @@
 ---
-title: Configure Network Settings With Network Shell
+title: Configure Network Settings with Network Shell
 description: Configures the optimal networking settings using Network Shell (netsh.exe)
 privilege: TrustedInstaller
 actions:

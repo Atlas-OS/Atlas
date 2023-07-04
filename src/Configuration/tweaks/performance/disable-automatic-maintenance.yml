@@ -1,6 +1,6 @@
 ---
-title: Disable Windows Maintenance
-description: Disables automatic and system maintenance, which does tasks such as updates in the background, for QoL and performance
+title: Disable Automatic Maintenance
+description: Disables the 'Automatic Maintenance' feature in Windows, which does tasks such as updates in the background, for QoL and performance
 privilege: TrustedInstaller
 actions:
   - !registryValue:

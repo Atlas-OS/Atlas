@@ -1,5 +1,5 @@
 ---
-title: Blocks Anonymous Enumeration Of SAM Accounts 
+title: Blocks Anonymous Enumeration of SAM Accounts 
 description: Blocks the anonymous enumeration of SAM accounts to prevent the ability to list the potential points of attack to the system
 privilege: TrustedInstaller
 actions:

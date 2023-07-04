@@ -1,5 +1,5 @@
 ---
-title: Enable Dark Mode And Disable Transparency
+title: Enable Dark Mode and Disable Transparency
 description: Enables dark mode and disables transparency for possible performance and QoL
 privilege: TrustedInstaller
 actions:

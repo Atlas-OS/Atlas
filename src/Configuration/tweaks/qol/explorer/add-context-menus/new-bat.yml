@@ -1,5 +1,5 @@
 ---
-title: Adds Batch Scripts To 'New' Context Menu
+title: Adds Batch Scripts to 'New' Context Menu
 description: Adds batch scripts (.bat) to 'New' context menu
 privilege: TrustedInstaller
 actions:

@@ -1,5 +1,5 @@
 ---
-title: Remove 'Share' From Context Menu
+title: Remove 'Share' from Context Menu
 description: Removes 'Share' from Context Menu
 privilege: TrustedInstaller
 actions:

@@ -1,5 +1,5 @@
 ---
-title: Remove 'Extract all' From Context Menu
+title: Remove 'Extract all' from Context Menu
 description: Removes 'Extract all' from Context Menu
 privilege: TrustedInstaller
 actions:

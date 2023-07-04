@@ -1,5 +1,5 @@
 ---
-title: Add 'Install CAB' To Context Menu
+title: Add 'Install CAB' to Context Menu
 description: Allows you to install Windows packages in the form of .cab files in the context menu
 privilege: TrustedInstaller
 actions:

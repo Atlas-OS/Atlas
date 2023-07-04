@@ -1,5 +1,5 @@
 ---
-title: Disallow Users To Be Non-Local
+title: Disallow Users to Be Non-local
 description: For privacy and QoL, users are prevented from adding Microsoft accounts as user accounts instead of local accounts
 privilege: TrustedInstaller
 actions:

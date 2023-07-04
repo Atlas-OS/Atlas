@@ -1,5 +1,5 @@
 ---
-title: Disable Automatic Updates For Apps In Store
+title: Disable Automatic Updates for Apps in Store
 description: Disables automatic updates for apps in Store so that the user has more control
 privilege: TrustedInstaller
 actions:
