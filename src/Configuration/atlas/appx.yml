@@ -6,8 +6,9 @@ actions:
   - !writeStatus: {status: 'Removing APPX packages'}
   
   # The reason of removing those applications is that there is a huge potential of them sending users'
-  # data, showing unwanted content including advertisements and using hardware resources. However,
-  # most of these applications can be reinstalled via Microsoft Store in case user need them.
+  # data, showing unwanted content including advertisements and using hardware resources. They can also
+  # simply be annoyances that are never used. However, most of these applications can be reinstalled
+  # via Microsoft Store in case user need them.
   
   # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
 
@@ -28,7 +29,7 @@ actions:
   # - !appx: {name: '*Microsoft.BioEnrollment*', type: family}
 
   # Used to install AppX and UWP applications in Windows
-  # Contains winget
+  # Contains the Windows Package Manager
   # - !appx: {name: '*Microsoft.DesktopAppInstaller*', type: family}
 
   # Eye Control - dependency of Mixed Reality?
