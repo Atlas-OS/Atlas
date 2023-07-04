@@ -7,20 +7,25 @@ features:
   # ------------------------- NOTES ------------------------- #
   
   # - Each root folder has its own AME Wizard status
-  # - You can disable a certain yaml file by commenting it out
+  # - You can disable a certain YAML file by commenting it out
   # - The playbook files are ran in order
+  # - Each root category is a root folder name
+  # - Comments for the individual playbook files have no text
+  #   length limit, although keep it reasonable
   
   # ----------------------- END NOTES ----------------------- #
   
   # Configure PowerShell first so that other PowerShell scripts work
   - tweaks\qol\config-powershell.yml
+  # User prompts - customise the install
   - tweaks\statuses\status-prompts.yml
   - tweaks\scripts\script-prompts.yml
+  # NGEN - PowerShell optimisation
   - tweaks\statuses\status-ngen.yml
   - tweaks\scripts\script-ngen.yml
 
   # -----------------------------------------------------
-  #                         Miscellaneous                        
+  #                         Misc                         
   # -----------------------------------------------------
   # >>> Description <<<
   #
@@ -300,7 +305,7 @@ features:
   # -----------------------------------------------------
   - tweaks\statuses\status-security.yml
   - tweaks\security\block-anonymous-enum-sam.yml
-  # The account should be deleted after OOBE.
+  # This account should be deleted after OOBE
   # - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
   # No longer needed as Atlas only runs on new Windows versions
