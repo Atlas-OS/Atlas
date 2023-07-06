@@ -1,0 +1,10 @@
+---
+title: Disable Network Adapter Power Saving
+description: Disables the default power saving mode for all network cards by removing the default capability
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters'
+    value: 'DefaultPnPCapabilities'
+    data: '24'
+    type: REG_DWORD

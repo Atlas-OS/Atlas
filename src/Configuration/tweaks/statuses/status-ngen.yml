@@ -1,0 +1,6 @@
+---
+title: Status in AME Wizard for Running .NET Optimization
+description: Displays a status in AME Wizard for a specified category
+privilege: TrustedInstaller
+actions:
+  - !writeStatus: {status: 'Running NGEN'}

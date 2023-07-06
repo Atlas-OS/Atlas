@@ -1,0 +1,10 @@
+---
+title: Hide 'Meet Now' on Taskbar
+description: Hides 'Meet Now' on the taskbar for QoL and privacy (as it is an online feature)
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'HideSCAMeetNow'
+    data: '1'
+    type: REG_DWORD

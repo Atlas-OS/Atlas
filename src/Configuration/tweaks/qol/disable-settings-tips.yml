@@ -1,0 +1,15 @@
+---
+title: Disable Settings Tips
+description: Disables Settings tips for QoL, as most of the time, they only get in the way
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\default\Settings\AllowOnlineTips'
+    value: 'value'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'AllowOnlineTips'
+    data: '0'
+    type: REG_DWORD

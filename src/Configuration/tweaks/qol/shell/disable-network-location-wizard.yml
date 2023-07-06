@@ -1,0 +1,8 @@
+---
+title: Disable Network Location Wizard
+description: Disables the Network Location Wizard, which is the pop-up about your network being discoverable
+privilege: TrustedInstaller
+actions:
+  - !registryKey:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff'
+    operation: add

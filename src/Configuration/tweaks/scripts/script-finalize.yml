@@ -1,0 +1,9 @@
+---
+title: Do Final Tweaks
+description: Does final tweaks that are run from a batch script, as some tweaks cannot be done in playbook YAMLs
+privilege: TrustedInstaller
+actions:
+  - !run:
+    exeDir: true
+    exe: 'FINALIZE.cmd'
+    weight: 100

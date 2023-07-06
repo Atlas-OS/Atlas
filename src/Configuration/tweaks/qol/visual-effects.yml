@@ -1,0 +1,49 @@
+---
+title: Configure Visual Effects
+description: Configures the visual effects in Windows for the optimal responsiveness, performance and QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
+    value: 'VisualFXSetting'
+    data: '3'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'UserPreferencesMask'
+    data: '9012038010000000'
+    type: REG_BINARY
+    # Disable 'Animate Windows when Minimizing and Maximizing'
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop\WindowMetrics'
+    value: 'MinAnimate'
+    data: '0'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DWM'
+    value: 'DisallowAnimations'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
+    value: 'EnableAeroPeek'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
+    value: 'EnableWindowColorization'
+    data: '1'
+    type: REG_DWORD
+    # No info on what it does, probably placebo
+    # - !registryValue:
+    # path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
+    # value: 'Composition'
+    # data: '0'
+    # type: REG_DWORD
+
+    # Disable taskbar animations
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'TaskbarAnimations'
+    data: '0'
+    type: REG_DWORD

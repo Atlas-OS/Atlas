@@ -1,0 +1,10 @@
+---
+title: Clear Image File Execution Options
+description: Clears the default Image File Execution Options to reset default mitigations on various applications
+privilege: TrustedInstaller
+actions:
+  - !registryKey:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options'
+  - !registryKey:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options'
+    operation: add

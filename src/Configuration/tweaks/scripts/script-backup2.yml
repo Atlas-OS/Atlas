@@ -1,0 +1,6 @@
+---
+title: Backup Atlas Services and Drivers
+description: Backs up default Atlas services and drivers, after all the tweaks are finished
+privilege: TrustedInstaller
+actions:
+  - !run: {exe: 'BACKUP2.cmd', exeDir: true}

@@ -1,0 +1,6 @@
+---
+title: Fix No Downloads Folder Bug
+description: Fixes a bug where the 'Downloads' folder does not exist in File Explorer
+privilege: TrustedInstaller
+actions:
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}', operation: add}

@@ -1,0 +1,10 @@
+---
+title: Disallow Pinning Microsoft Store App to Taskbar
+description: Disallows pinning the Microsoft Store app to the taskbar, as most people realistically do not want it there 
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'NoPinningStoreToTaskbar'
+    data: '1'
+    type: REG_DWORD

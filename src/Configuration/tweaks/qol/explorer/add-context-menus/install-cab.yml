@@ -1,0 +1,21 @@
+---
+title: Add 'Install CAB' to Context Menu
+description: Allows you to install Windows packages in the form of .cab files in the context menu
+privilege: TrustedInstaller
+actions:
+  - !registryKey: {path: 'HKCR\CABFolder\Shell\RunAs'}
+  - !registryValue:
+    path: 'HKCR\CABFolder\Shell\RunAs'
+    value: ''
+    data: 'Install'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\CABFolder\Shell\RunAs'
+    value: 'HasLUAShield'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\CABFolder\Shell\RunAs\Command'
+    value: ''
+    data: 'cmd /k DISM /Online /Add-Package /PackagePath:\"%1\"'
+    type: REG_SZ

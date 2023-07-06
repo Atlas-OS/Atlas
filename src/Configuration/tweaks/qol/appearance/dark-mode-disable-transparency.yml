@@ -1,0 +1,20 @@
+---
+title: Enable Dark Mode and Disable Transparency
+description: Enables dark mode and disables transparency for possible performance and QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+    value: 'SystemUsesLightTheme'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+    value: 'AppsUseLightTheme'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+    value: 'EnableTransparency'
+    data: '0'
+    type: REG_DWORD

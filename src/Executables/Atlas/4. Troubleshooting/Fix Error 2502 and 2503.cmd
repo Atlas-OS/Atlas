@@ -9,8 +9,8 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 set "folder=%windir%\Temp"
 
-echo This script will fix error 2502 and 2503 with Windows installers by resetting the TEMP folder permissions.
-echo The root cause of this issue is unknown, rare and non-specific to Atlas, but it's easily fixed with this script.
+echo This script will fix error 2502 and 2503 with Windows installers by resetting the Windows TEMP folder permissions.
+echo This issue will not be related to Atlas.
 echo]
 pause
 cls

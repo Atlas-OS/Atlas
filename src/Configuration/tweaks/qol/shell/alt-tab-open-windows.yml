@@ -1,0 +1,10 @@
+---
+title: Do Not Show Edge Tabs in Alt-Tab
+description: Sets the 'Alt + Tab shows' option to 'Open windows only', meaning that individual Edge tabs won't be displayed, which would clutter the alt-tab interface
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'MultiTaskingAltTabFilter'
+    data: '3'
+    type: REG_DWORD

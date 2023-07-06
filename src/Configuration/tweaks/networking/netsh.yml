@@ -1,0 +1,10 @@
+---
+title: Configure Network Settings with Network Shell
+description: Configures the optimal networking settings using Network Shell (netsh.exe)
+privilege: TrustedInstaller
+actions:
+  - !run: {exe: 'netsh', args: 'int tcp set heuristics disabled'}
+  - !run: {exe: 'netsh', args: 'int tcp set supplemental Internet congestionprovider=ctcp'}
+  - !run: {exe: 'netsh', args: 'int tcp set global rsc=disabled'}
+  - !run: {exe: 'netsh', args: 'interface Teredo set state type=enterpriseclient'}
+  - !run: {exe: 'netsh', args: 'interface Teredo set state servername=default'}

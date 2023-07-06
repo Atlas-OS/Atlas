@@ -1,0 +1,13 @@
+---
+title: Configure the Multimedia Class Scheduler Service
+description: Configures MMCSS for the best performance
+privilege: TrustedInstaller
+actions:
+    # Set System Responsiveness to 10
+    # Allocates less CPU resources to tasks that request it such as browsers, so that other applications will not be impacted as much
+    # https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service#registry-settings
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
+    value: 'SystemResponsiveness'
+    data: '10'
+    type: REG_DWORD

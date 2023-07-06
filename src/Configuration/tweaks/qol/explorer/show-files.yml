@@ -1,0 +1,15 @@
+---
+title: Configure Explorer to Show All Files with File Extensions
+description: Configures Explorer to show all files with file extensions such as system files, hidden files, etc. This is for QoL and also security.
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'Hidden'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'HideFileExt'
+    data: '0'
+    type: REG_DWORD

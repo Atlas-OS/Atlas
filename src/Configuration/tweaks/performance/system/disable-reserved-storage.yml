@@ -1,0 +1,6 @@
+---
+title: Disable Reserved Storage for Windows Updates
+description: Disables reserved storage for Windows Updates to have more storage space
+privilege: TrustedInstaller
+actions:
+  - !run: {exe: 'DISM', args: '/Online /Set-ReservedStorageState /State:Disabled'}

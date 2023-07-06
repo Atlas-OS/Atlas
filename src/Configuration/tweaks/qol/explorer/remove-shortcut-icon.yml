@@ -1,0 +1,10 @@
+---
+title: Remove Shortcut Icon
+description: Removes the shortcut icon for QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Icons'
+    value: '29'
+    data: 'C:\Windows\AtlasModules\Other\Blank.ico,0'
+    type: REG_SZ

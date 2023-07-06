@@ -10,7 +10,7 @@ echo Disabling UAC breaks fullscreen on certain UWP applications, one of them be
 echo It may also break drag and dropping between certain applications.
 echo It is also less secure to disable UAC, as every application you run has complete access to your computer.
 echo]
-echo With UAC disabled, everything runs as admin, and you can not change that without enabling UAC.
+echo With UAC disabled, everything runs as admin, and you cannot change that without enabling UAC.
 echo]
 choice /c:yn /n /m "Do you want to continue? [Y/N] "
 if !errorlevel! == 1 goto uacDconfirm

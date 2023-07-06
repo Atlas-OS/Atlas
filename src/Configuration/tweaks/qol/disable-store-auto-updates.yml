@@ -1,0 +1,10 @@
+---
+title: Disable Automatic Updates for Apps in Store
+description: Disables automatic updates for apps in Store so that the user has more control
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\WindowsStore'
+    value: 'AutoDownload'
+    data: '2'
+    type: REG_DWORD

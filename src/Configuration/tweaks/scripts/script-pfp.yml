@@ -1,0 +1,9 @@
+---
+title: Set Profile Pictures
+description: Sets the default Atlas profile pictures
+privilege: TrustedInstaller
+actions:
+  - !run:
+    exeDir: true
+    exe: 'PFP.cmd'
+    weight: 20

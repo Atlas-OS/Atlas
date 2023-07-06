@@ -1,0 +1,47 @@
+---
+title: Disable Notifications
+description: Disables notifications by defualt for having a more minimal experience
+privilege: TrustedInstaller
+actions:
+    # Disable all lockscreen notifications
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings'
+    value: 'NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings'
+    value: 'NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications'
+    value: 'LockScreenToastEnabled'
+    data: '0'
+    type: REG_DWORD
+    # Disable notifications and notification/action center
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications'
+    value: 'ToastEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications'
+    value: 'NoTileApplicationNotification'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'DisableNotificationCenter'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings'
+    value: 'NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications'
+    value: 'NoCloudApplicationNotification'
+    data: '1'
+    type: REG_DWORD

@@ -1,0 +1,349 @@
+---
+title: Tweaks Root Playbook File
+description: Runs all of the Atlas playbook tweaks
+privilege: TrustedInstaller
+actions: []
+features:
+  # ------------------------- NOTES ------------------------- #
+  
+  # - Each root folder has its own AME Wizard status
+  # - You can disable a certain YAML file by commenting it out
+  # - The playbook files are ran in order
+  # - Each root category is a root folder name
+  # - Comments for the individual playbook files have no text
+  #   length limit, although keep it reasonable
+  
+  # ----------------------- END NOTES ----------------------- #
+  
+  # Configure PowerShell first so that other PowerShell scripts work
+  - tweaks\qol\config-powershell.yml
+  # User prompts - customise the install
+  - tweaks\statuses\status-prompts.yml
+  - tweaks\scripts\script-prompts.yml
+  # NGEN - PowerShell optimisation
+  - tweaks\statuses\status-ngen.yml
+  - tweaks\scripts\script-ngen.yml
+
+  # -----------------------------------------------------
+  #                         Misc                         
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Miscellaneous tweaks which do not fit into other
+  # categories.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-misc.yml
+  - tweaks\misc\config-time.yml
+  - tweaks\misc\disable-fast-user-switching.yml
+  - tweaks\misc\disable-game-mode.yml
+  - tweaks\misc\fix-no-downloads-bug.yml
+  - tweaks\misc\oem-information.yml
+  - tweaks\misc\rebuild-perf-counters.yml
+
+  # -----------------------------------------------------
+  #                      Networking                        
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Tweaks for modifying network settings, which can lead
+  # to improving network performance, security, etc.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-networking.yml
+  - tweaks\networking\disable-llmnr.yml
+  # Network Bandwidth is not limited in Windows
+  # - tweaks\networking\disable-reserved-bandwidth.yml
+  - tweaks\networking\disable-smart-name-resolution.yml
+  - tweaks\networking\netsh.yml
+  - tweaks\networking\network-power-saving.yml
+  - tweaks\networking\packet-sched-timer-res.yml
+
+  # -------------------------------------------------------------------------- #
+  #  networking\shares                                                         #
+  # -------------------------------------------------------------------------- #
+  - tweaks\networking\shares\restrict-anonymous-access.yml
+  - tweaks\networking\shares\restrict-anonymous-enumeration.yml
+  - tweaks\networking\shares\smb-bandwidth-throttling.yml
+
+  # -----------------------------------------------------
+  #                      Performance                     
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Tweaks for improving the performance of Windows, such as
+  # responsiveness, latency, etc.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-performance.yml
+  # Placebo, mostly protects old vulnerable default Windows processes
+  # Clearing could cause potential issues and only worsens security with no gains
+  # - tweaks\performance\clear-ifeo.yml
+  - tweaks\performance\config-fse-gamebar.yml
+  - tweaks\performance\config-mmcss.yml
+  - tweaks\performance\disable-automatic-maintenance.yml
+  - tweaks\performance\disable-background-apps.yml
+  - tweaks\performance\disable-perf-track.yml
+  - tweaks\performance\disable-rsop-logging.yml
+  - tweaks\performance\extend-cache.yml
+  - tweaks\performance\no-search-invalid-shortcuts.yml
+
+  # -------------------------------------------------------------------------- #
+  #  performance\system                                                        #
+  # -------------------------------------------------------------------------- #
+  - tweaks\performance\system\config-boot-config.yml
+  - tweaks\performance\system\config-paging.yml
+  - tweaks\performance\system\disable-reserved-storage.yml
+  - tweaks\performance\system\optimize-ntfs.yml
+  - tweaks\performance\system\script-power.yml
+  - tweaks\performance\system\service-host-split.yml
+  # Windows Default is Programs - 26/38 
+  # - tweaks\performance\system\win32-priority-seperation.yml
+  
+  # -----------------------------------------------------
+  #                        Privacy                       
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Tweaks for disabling spying/tracking on Windows so
+  # that you have more privacy.
+  #
+  # Also includes disabling features that are commonly
+  # related to impacting privacy, like advertising.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-privacy.yml
+  - tweaks\privacy\config-app-permissions.yml
+  - tweaks\privacy\config-windows-media-player.yml
+  - tweaks\privacy\disable-activity-feed.yml
+  - tweaks\privacy\disable-app-launch-tracking.yml
+  - tweaks\privacy\disable-experimentation.yml
+  - tweaks\privacy\disable-insider.yml
+  - tweaks\privacy\disable-location-tracking.yml
+  - tweaks\privacy\disable-lockscreen-camera.yml
+  - tweaks\privacy\disable-online-speech-recognition.yml
+  - tweaks\privacy\disable-pca.yml
+  - tweaks\privacy\disable-privacy-experience.yml
+  - tweaks\privacy\disable-speech-auto-updates.yml
+  - tweaks\privacy\disable-tailored-experiences.yml
+  - tweaks\privacy\disable-user-tracking.yml
+  - tweaks\privacy\disable-web-lang-list-access.yml
+  - tweaks\privacy\disable-win-error-reporting.yml
+  - tweaks\privacy\disallow-ms-accounts.yml
+  - tweaks\privacy\disallow-user-activity-upload.yml
+  - tweaks\privacy\search-settings.yml
+
+  # -------------------------------------------------------------------------- #
+  #  privacy\advertising                                                       #
+  # -------------------------------------------------------------------------- #
+  - tweaks\privacy\advertising\disable-advertising-info.yml
+  - tweaks\privacy\advertising\disable-bluetooth-advertising.yml
+  - tweaks\privacy\advertising\disable-sync-provider-notifs.yml
+
+  # -------------------------------------------------------------------------- #
+  #  privacy\cloud                                                             #
+  # -------------------------------------------------------------------------- #
+  - tweaks\privacy\cloud\disable-setting-sync.yml
+  - tweaks\privacy\cloud\disable-suggest-ways-to-finish-setup.yml
+  - tweaks\privacy\cloud\disallow-message-cloud-sync.yml
+
+  # -------------------------------------------------------------------------- #
+  #  privacy\telemetry                                                         #
+  # -------------------------------------------------------------------------- #
+  - tweaks\privacy\telemetry\disable-activation-telemetry.yml
+  - tweaks\privacy\telemetry\disable-ceip.yml
+  - tweaks\privacy\telemetry\disable-diagnostic-tracing.yml
+  - tweaks\privacy\telemetry\disable-dotnet-cli-telemetry.yml
+  - tweaks\privacy\telemetry\disable-input-telemetry.yml
+  - tweaks\privacy\telemetry\disallow-data-collection.yml
+  
+  # -----------------------------------------------------
+  #                          QOL                         
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # QoL stands for Quality Of Life, and are general      
+  # modifications designed for making Windows easier and 
+  # more pleasent to use for more advanced general users.
+  #
+  # QoL tweaks can be anything, but they are mostly to do 
+  # with modifying the graphical user interface (GUI).
+  # -----------------------------------------------------
+  - tweaks\statuses\status-qol.yml
+  - tweaks\qol\best-wallpaper-quality.yml
+  - tweaks\qol\config-start-menu.yml
+  - tweaks\qol\config-windows-ink-workspace.yml
+  - tweaks\qol\disable-background-auto-login.yml
+  - tweaks\qol\disable-lockscreen.yml
+  - tweaks\qol\disable-mouse-accel.yml
+  - tweaks\qol\disable-settings-tips.yml
+  - tweaks\qol\disable-spell-checking.yml
+  - tweaks\qol\disable-store-auto-updates.yml
+  - tweaks\qol\disable-touch-visual-feedback.yml
+  - tweaks\qol\disable-usb-issues-notifications.yml
+  - tweaks\qol\disable-windows-feedback.yml
+  - tweaks\qol\disable-windows-spotlight.yml
+  - tweaks\qol\do-not-reduce-sounds.yml
+  - tweaks\qol\hide-disabled-disconnected-sounds.yml
+  - tweaks\qol\show-all-tasks-control-panel.yml
+  - tweaks\qol\visual-effects.yml
+
+  # -------------------------------------------------------------------------- #
+  #  qol\appearance                                                            #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\appearance\blue-tooltips.yml
+  - tweaks\qol\appearance\dark-mode-disable-transparency.yml
+  - tweaks\qol\appearance\disable-blur-login.yml
+  - tweaks\qol\appearance\disallow-theme-changes.yml
+
+  # -------------------------------------------------------------------------- #
+  #  qol\ease-of-access                                                        #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\ease-of-access\disable-always-read-section.yml
+  - tweaks\qol\ease-of-access\disable-annoying-features-shortcuts.yml
+  - tweaks\qol\ease-of-access\disable-making-touch-easier.yml
+  - tweaks\qol\ease-of-access\disable-warning-sounds.yml
+
+  # -------------------------------------------------------------------------- #
+  #  qol\explorer                                                              #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\explorer\always-more-details-transfer.yml
+  - tweaks\qol\explorer\disable-folder-type-discovery.yml
+  - tweaks\qol\explorer\disable-folders-this-pc.yml
+  - tweaks\qol\explorer\disable-network-navigation-pane.yml
+  - tweaks\qol\explorer\disable-sharing-wizard.yml
+  - tweaks\qol\explorer\full-context-on-more-than-15-items.yml
+  - tweaks\qol\explorer\hide-frequently-used-items.yml
+  - tweaks\qol\explorer\import-power-plan.yml
+  - tweaks\qol\explorer\minimize-mouse-hover-time.yml
+  - tweaks\qol\explorer\no-internet-open-with.yml
+  - tweaks\qol\explorer\open-to-this-pc.yml
+  - tweaks\qol\explorer\removable-drives-only-this-pc.yml
+  - tweaks\qol\explorer\remove-previous-versions.yml
+  - tweaks\qol\explorer\remove-shortcut-icon.yml
+  - tweaks\qol\explorer\remove-shortcut-text.yml
+  - tweaks\qol\explorer\show-files.yml
+
+  # -------------------------------------------------------------------------- #
+  #  qol\explorer\add-context-menus                                            #
+  # -------------------------------------------------------------------------- #
+  # Currently and in the future, this will have no use
+  # - tweaks\qol\explorer\add-context-menus\install-cab.yml
+  - tweaks\qol\explorer\add-context-menus\merge-as-trustedinstaller.yml
+  - tweaks\qol\explorer\add-context-menus\new-bat.yml
+  - tweaks\qol\explorer\add-context-menus\new-ps1.yml
+  - tweaks\qol\explorer\add-context-menus\new-reg.yml
+
+  # -------------------------------------------------------------------------- #
+  #  qol\explorer\remove-context-menus                                         #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\explorer\remove-context-menus\cast-to-device.yml
+  - tweaks\qol\explorer\remove-context-menus\extract-all.yml
+  - tweaks\qol\explorer\remove-context-menus\give-access-to.yml
+  - tweaks\qol\explorer\remove-context-menus\include-in-library.yml
+  - tweaks\qol\explorer\remove-context-menus\new-bitmap.yml
+  - tweaks\qol\explorer\remove-context-menus\new-rtf.yml
+  - tweaks\qol\explorer\remove-context-menus\paint-3D.yml
+  - tweaks\qol\explorer\remove-context-menus\print.yml
+  - tweaks\qol\explorer\remove-context-menus\share.yml
+  - tweaks\qol\explorer\remove-context-menus\troubleshooting-compat.yml
+
+  # -------------------------------------------------------------------------- #
+  #  qol\security                                                              #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\security\disable-online-file-security-warn.yml
+  - tweaks\qol\security\disable-smartscreen.yml
+  - tweaks\qol\disable-uac-secure-desktop.yml
+ 
+  # -------------------------------------------------------------------------- #
+  #  qol\shell                                                                 #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\shell\alt-tab-open-windows.yml
+  - tweaks\qol\shell\config-autorun-autoplay.yml
+  # Most people would find this feature useful and it wouldn't really get in the way
+  # However, as this removal is opinionated, it will still stay, commented
+  # - tweaks\qol\shell\config-snap-settings.yml
+  - tweaks\qol\shell\disable-aero-shake.yml
+  - tweaks\qol\shell\disable-low-disk-warning.yml
+  - tweaks\qol\shell\disable-menu-delay.yml
+  - tweaks\qol\shell\disable-network-location-wizard.yml
+  - tweaks\qol\shell\disable-notifications.yml
+  - tweaks\qol\shell\disable-shared-experiences.yml
+  - tweaks\qol\shell\notification-quick-settings.yml
+  - tweaks\qol\shell\old-alt-tab.yml
+  
+  # -------------------------------------------------------------------------- #
+  #  qol\startup-shutdown                                                      #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\startup-shutdown\decrease-shutdown-time.yml
+  - tweaks\qol\startup-shutdown\disable-startup-delay.yml
+  - tweaks\qol\startup-shutdown\force-end-shutdown-apps.yml
+  
+  # -------------------------------------------------------------------------- #
+  #  qol\system                                                                #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\system\crash-control-qol.yml
+  - tweaks\qol\system\disable-wpbt.yml
+  
+  # -------------------------------------------------------------------------- #
+  #  qol\taskbar                                                               #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\taskbar\always-show-all-tray-icons.yml
+  - tweaks\qol\taskbar\cmd-win-x.yml
+  - tweaks\qol\taskbar\disable-badges-taskbar.yml
+  - tweaks\qol\taskbar\disable-cloud-optimized-content.yml
+  - tweaks\qol\taskbar\disable-desktop-peek.yml
+  - tweaks\qol\taskbar\disable-news-and-interests.yml
+  - tweaks\qol\taskbar\disable-tablet-mode.yml
+  - tweaks\qol\taskbar\hide-meet-now.yml
+  - tweaks\qol\taskbar\hide-task-view.yml
+  - tweaks\qol\taskbar\no-store-taskbar-pin.yml
+  
+  # -----------------------------------------------------
+  #                       Security                       
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # These tweaks aim to enhance Windows' security, upon
+  # its defaults.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-security.yml
+  - tweaks\security\block-anonymous-enum-sam.yml
+  # This account should be deleted after OOBE
+  # - tweaks\security\delete-defaultuser0.yml
+  - tweaks\security\disable-remote-assistance.yml
+  # No longer needed as Atlas only runs on new Windows versions
+  # - tweaks\security\strong-dotnet-crypto.yml
+
+  # -----------------------------------------------------
+  #                        Debloat                        
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Tweaks for debloating Windows, which could be for
+  # storage space or convienience.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-clean-winsxs.yml
+  # Has its own status as it is a long operation in comparison
+  - tweaks\debloat\clean-winsxs.yml
+  - tweaks\statuses\status-debloat.yml
+  - tweaks\debloat\autologgers.yml
+  - tweaks\debloat\config-content-delivery.yml
+  - tweaks\debloat\disable-settings-pages.yml
+  - tweaks\debloat\legacy-photo-viewer.yml
+  - tweaks\debloat\prevent-edge-update.yml
+  - tweaks\debloat\scheduled-tasks.yml
+  - tweaks\debloat\cleanup-temp-files.yml
+
+  # -----------------------------------------------------
+  #                        Scripts                       
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # These are playbook files that run external PowerShell
+  # or batch scripts for more advanced operations.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-scripts.yml
+  - tweaks\scripts\script-storage-sense.yml
+  - tweaks\scripts\script-devices.yml
+  - tweaks\scripts\script-startmenu.yml
+  - tweaks\scripts\script-pfp.yml
+  - tweaks\scripts\script-wallpaper.yml
+  - tweaks\scripts\script-finalize.yml
+  - tweaks\scripts\script-backup2.yml

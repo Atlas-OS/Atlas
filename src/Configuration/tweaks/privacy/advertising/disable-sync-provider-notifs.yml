@@ -1,0 +1,10 @@
+---
+title: Disable Sync Provider Notifications
+description: Disables notifications within File Explorer from OneDrive or other sync providers to avoid advertisements
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'ShowSyncProviderNotifications'
+    data: '0'
+    type: REG_DWORD

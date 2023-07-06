@@ -1,0 +1,10 @@
+---
+title: Disable Shared Experiences
+description: Disables 'Shared Experiences', which is a way of sharing items between advices for privacy and QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'EnableCdp'
+    data: '0'
+    type: REG_DWORD

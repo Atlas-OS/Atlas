@@ -1,0 +1,12 @@
+---
+title: Disable Windows Platform Binary Table Execution (WPBT)
+description: Disables WPBT with an undocumented Registry value, which is an ACPI table in your firmware to execute a program each boot of Windows such as unwanted OEM bloatware.
+privilege: TrustedInstaller
+actions:
+    # https://github.com/Jamesits/dropWPBT
+    # https://download.microsoft.com/download/8/A/2/8A2FB72D-9B96-4E2D-A559-4A27CF905A80/windows-platform-binary-table.docx
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager'
+    value: 'DisableWpbtExecution'
+    data: '1'
+    type: REG_DWORD

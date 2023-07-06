@@ -1,0 +1,10 @@
+---
+title: Disable Auto-Logon to Finish Setting Up Device After an Update or Restart
+description: Disables automatic logging-in in the background of the lockscreen, also called 'Use sign-in info to auto-finish setting up device after update or restart'
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'DisableAutomaticRestartSignOn'
+    data: '1'
+    type: REG_DWORD

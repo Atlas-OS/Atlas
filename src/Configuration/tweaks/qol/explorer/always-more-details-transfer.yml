@@ -1,0 +1,10 @@
+---
+title: Show More Details by Default on Transfers
+description: Shows more details by default on file transfers such as exact speed of files copying, moving, deleting, etc.
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\OperationStatusManager'
+    value: 'EnthusiastMode'
+    data: '1'
+    type: REG_DWORD

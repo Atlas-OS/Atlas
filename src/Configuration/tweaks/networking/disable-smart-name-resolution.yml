@@ -1,0 +1,16 @@
+---
+title: Disable Smart Multi-Homed Name Resolution 
+description: Designed to speed up DNS resolution by sending DNS requests across all available network adapters, but also causes a privacy issue due to DNS leakage
+privilege: TrustedInstaller
+actions:
+  # https://www.ghacks.net/2017/08/14/turn-off-smart-multi-homed-name-resolution-in-windows
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters'
+    value: 'DisableParallelAandAAAA'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient'
+    value: 'DisableSmartNameResolution'
+    data: '1'
+    type: REG_DWORD

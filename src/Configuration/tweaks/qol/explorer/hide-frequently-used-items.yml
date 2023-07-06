@@ -1,0 +1,39 @@
+---
+title: Hide Recent Items
+description: Hide recent items in Quick Access and other places for privacy and QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
+    value: 'ShowFrequent'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
+    value: 'ShowRecent'
+    data: '0'
+    type: REG_DWORD
+    # Disable recent items and frequent places in File Explorer
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'Start_TrackDocs'
+    data: '0'
+    type: REG_DWORD
+    # Clear history of recently opened documents on exit
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'ClearRecentDocsOnExit'
+    data: '1'
+    type: REG_DWORD
+    # Do not keep history of recently opened documents
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'NoRecentDocsHistory'
+    data: '1'
+    type: REG_DWORD
+    # Do not display or track items in jump lists from remote locations
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'NoRemoteDestinations'
+    data: '1'
+    type: REG_DWORD

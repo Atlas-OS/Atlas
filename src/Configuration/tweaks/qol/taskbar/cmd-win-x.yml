@@ -1,0 +1,10 @@
+---
+title: Show Command Prompt on Win+X
+description: Shows Command Prompt instead of PowerShell on Windows + X, as it is what most users are familar with
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'DontUsePowerShellOnWinX'
+    data: '1'
+    type: REG_DWORD

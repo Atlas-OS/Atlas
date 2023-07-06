@@ -1,0 +1,10 @@
+---
+title: Disable Service Host Splitting
+description: Disables Service Host splitting [#491] for lower RAM usage and process count at a cost of reduced stability (if a service crashes) 
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control'
+    value: 'SvcHostSplitThresholdInKB'
+    data: '4294967295'
+    type: REG_DWORD

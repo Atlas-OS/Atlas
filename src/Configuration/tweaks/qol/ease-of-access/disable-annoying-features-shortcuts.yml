@@ -1,0 +1,30 @@
+---
+title: Disable Commonly Annoying Features and Shortcuts
+description: Disables commonly annoying features such as pressing shift 5 times for sticky keys.
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\HighContrast'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\Keyboard Response'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\MouseKeys'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\StickyKeys'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\ToggleKeys'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD

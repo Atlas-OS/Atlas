@@ -1,0 +1,15 @@
+---
+title: Disable Game Mode
+description: Disables the Windows Game Mode feature
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    value: 'AllowAutoGameMode'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    value: 'AutoGameModeEnabled'
+    data: '0'
+    type: REG_DWORD

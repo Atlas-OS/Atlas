@@ -1,0 +1,6 @@
+---
+title: Delete 'defaultuser0' Account Used During OOBE
+description: Deletes the hidden 'defaultuser0' account used during OOBE (Out of Box Experience)
+privilege: TrustedInstaller
+actions:
+  - !run: {exe: 'net', args: 'user defaultuser0 /delete'}

@@ -1,0 +1,10 @@
+---
+title: Prioritize Foreground Applications
+description: Prioritizes foreground applications for process scheduling by setting Win32PrioritySeparation to 26 hex, meaning a short quantum, variable, high foreground boost. This is the same as the 'Programs' options in SystemPropertiesPerformance.exe
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl'
+    value: 'Win32PrioritySeparation'
+    data: '38'
+    type: REG_DWORD

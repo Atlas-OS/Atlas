@@ -1,0 +1,10 @@
+---
+title: Disable Blur on Login Background
+description: Disables the blur on the login background so that the background is clear and for a potential and tiny performance improvement
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'DisableAcrylicBackgroundOnLogon'
+    data: '1'
+    type: REG_DWORD

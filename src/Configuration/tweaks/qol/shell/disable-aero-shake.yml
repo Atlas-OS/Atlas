@@ -1,0 +1,10 @@
+---
+title: Disable Aero Shake
+description: Disables Aero Shake, which is where you shake a window and all other Windows minimise, as most of the time it is accidently triggered
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'DisallowShaking'
+    data: '1'
+    type: REG_DWORD

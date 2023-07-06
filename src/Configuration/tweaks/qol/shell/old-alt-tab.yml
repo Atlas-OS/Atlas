@@ -1,0 +1,10 @@
+---
+title: Enable Legacy Alt-Tab
+description: Enables the legacy alt-tab, as it is technically the fastest (no opening delay), and it also does not show thumbnails, potentially contributing to its speed?
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
+    value: 'AltTabSettings'
+    data: '1'
+    type: REG_DWORD

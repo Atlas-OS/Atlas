@@ -1,0 +1,10 @@
+---
+title: Force Close Applications On Session End
+description: Forcefully closes all applications on restart, shut down, or sign out of Windows, instead of prompting the user to save everything first
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'AutoEndTasks'
+    data: '1'
+    type: REG_SZ

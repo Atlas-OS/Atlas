@@ -1,0 +1,35 @@
+---
+title: Configure OEM Information
+description: Configures OEM information to contain the Atlas version and the Atlas Discord server
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    value: 'EditionSubManufacturer'
+    data: 'Atlas Team'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    value: 'EditionSubstring'
+    data: 'AtlasOS'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    value: 'EditionSubVersion'
+    data: 'AtlasOS'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
+    value: 'Manufacturer'
+    data: 'Atlas Team'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
+    value: 'Model'
+    data: 'AtlasOS 22H2'
+    type: REG_SZ
+  - !registryValue: 
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
+    value: 'SupportURL'
+    data: 'https://discord.atlasos.net'
+    type: REG_SZ

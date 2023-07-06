@@ -1,0 +1,10 @@
+---
+title: Disable Fast User Switching
+description: Disables fast user switching, as it is a feature with a problematic history, and most people do not use it anyways
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'HideFastUserSwitching'
+    data: '1'
+    type: REG_DWORD

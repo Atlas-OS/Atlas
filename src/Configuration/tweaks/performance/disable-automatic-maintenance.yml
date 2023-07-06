@@ -1,0 +1,15 @@
+---
+title: Disable Automatic Maintenance
+description: Disables the 'Automatic Maintenance' feature in Windows, which does tasks such as updates in the background, for QoL and performance
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance'
+    value: 'MaintenanceDisabled'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\ScheduledDiagnostics'
+    value: 'EnabledExecution'
+    data: '0'
+    type: REG_DWORD

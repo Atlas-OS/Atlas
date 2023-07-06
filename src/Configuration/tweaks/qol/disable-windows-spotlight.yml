@@ -1,0 +1,15 @@
+---
+title: Disable Windows Spotlight
+description: Windows Spotlight provides lockscreen messages like 'Like what you see?', and are disabled for QoL and privacy
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableWindowsSpotlightFeatures'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableThirdPartySuggestions'
+    data: '1'
+    type: REG_DWORD

@@ -1,0 +1,10 @@
+---
+title: Remove Shortcut Text
+description: Removes '- Shortcut' text appended onto the end of shortcuts for QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
+    value: 'link'
+    data: '00000000'
+    type: REG_BINARY

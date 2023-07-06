@@ -1,0 +1,15 @@
+---
+title: Hide Disabled and Disconnected Devices in Sounds Panel
+description: Hides disabled and disconnected devices in the sounds panel (mmsys.cpl) for QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl'
+    value: 'ShowDisconnectedDevices'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Multimedia\Audio\DeviceCpl'
+    value: 'ShowHiddenDevices'
+    data: '0'
+    type: REG_DWORD

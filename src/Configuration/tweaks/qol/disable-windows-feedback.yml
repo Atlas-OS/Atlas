@@ -1,0 +1,19 @@
+---
+title: Disable Windows Feedback
+description: Disables Windows Feedback for QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Siuf\Rules'
+    value: 'NumberOfSIUFInPeriod'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Siuf\Rules'
+    value: 'PeriodInNanoSeconds'
+    operation: delete
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
+    value: 'DoNotShowFeedbackNotifications'
+    data: '1'
+    type: REG_DWORD

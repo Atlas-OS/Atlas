@@ -1,0 +1,10 @@
+---
+title: Always Show All Tray Icons
+description: Always shows all tray icons, and thus disabling the system tray, meaning that users can always see running background applications for security and QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
+    value: 'EnableAutoTray'
+    data: '0'
+    type: REG_DWORD

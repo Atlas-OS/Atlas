@@ -1,0 +1,10 @@
+---
+title: Disable Automatic Updates Of Speech Data
+description: Disables auto-updates of speech data, as it is not commonly used, and it is a potential privacy concern or an overall annoyance
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Speech'
+    value: 'AllowSpeechModelUpdate'
+    data: '0'
+    type: REG_DWORD

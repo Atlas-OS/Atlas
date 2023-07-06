@@ -1,0 +1,16 @@
+---
+title: Disable Remote Assistance
+description: As Remote Assistance is an unused and a potential vulnerable feature, it is disabled
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
+    value: 'fAllowFullControl'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
+    value: 'fAllowToGetHelp'
+    data: '0'
+    type: REG_DWORD
+  - !run: {exe: 'netsh', args: 'advfirewall firewall set rule group="Remote Assistance" new enable=no'}

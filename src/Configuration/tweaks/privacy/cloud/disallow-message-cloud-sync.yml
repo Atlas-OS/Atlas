@@ -1,0 +1,10 @@
+---
+title: Disallow Message Service Cloud Sync
+description: Disallows the Message service (which should be disabled anyways) from syncing with the cloud, as that potentially harms privacy
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Messaging'
+    value: 'AllowMessageSync'
+    data: '0'
+    type: REG_DWORD

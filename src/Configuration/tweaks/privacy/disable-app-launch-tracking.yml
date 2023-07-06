@@ -1,0 +1,10 @@
+---
+title: Disable App Launch Tracking
+description: Prevents Windows from automatically tracking applications you use the most to enhance search and start menu results for privacy purposes
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'Start_TrackProgs'
+    data: '0'
+    type: REG_DWORD

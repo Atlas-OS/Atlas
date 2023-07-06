@@ -1,0 +1,10 @@
+---
+title: Disable Activity Feed
+description: Disables Activity Feed in Task View for privacy (as it is an online feature) and QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'EnableActivityFeed'
+    data: '0'
+    type: REG_DWORD

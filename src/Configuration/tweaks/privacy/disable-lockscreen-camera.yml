@@ -1,0 +1,10 @@
+---
+title: Disable Lockscreen Camera
+description: Disables the lockscreen camera
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
+    value: 'NoLockScreenCamera'
+    data: '1'
+    type: REG_DWORD

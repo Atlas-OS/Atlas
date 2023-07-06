@@ -1,0 +1,7 @@
+---
+title: Remove 'Include in Library' from Context Menu
+description: Removes 'Include in Library' from context menu
+privilege: TrustedInstaller
+actions:
+  - !registryKey: {path: 'HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Classes\Folder\ShellEx\ContextMenuHandlers\Library Location'}
