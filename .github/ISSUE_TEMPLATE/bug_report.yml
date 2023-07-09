@@ -54,7 +54,7 @@ body:
       placeholder: |
        - Processor [include brand and specifics]
        - RAM amount
-       - System Drive [include brand and type]
+       - Storage [include brand and type]
        - Graphics card
     validations:
       required: true
