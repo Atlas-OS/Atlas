@@ -55,7 +55,7 @@ body:
        - Processor [include brand and specifics]
        - RAM amount
        - Storage [include brand and type]
-       - Graphics card
+       - Graphics card [include driver version]
     validations:
       required: true
 
