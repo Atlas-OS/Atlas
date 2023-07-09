@@ -93,7 +93,7 @@ Atlas는 최적의 지점에 있습니다. 성능을 향상시키면서도 호�
 
 Atlas는 Windows Ameliorated Team과 협력하여 사용자에게 더 안전하고 합법적인 설치 방법인 [AME 마법사](https://ameliorated.io)를 제공했습니다. 이를 통해 Atlas는 [마이크로소프트의 서비스 약관](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm)을 완전히 준수합니다.
 
-## 🎨 브랜드 키트
+## 🎨Translation Contributors (브랜드 키트)
 무언가 영감이 떠올랐나요? 독창적인 디자인으로 자신만의 Atlas 배경 화면을 만들고 싶으신가요? 저희 브랜드 키트가 도와드릴 수 있습니다!
 누구나 Atlas 브랜드 키트에 접근할 수 있습니다. [이곳](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)에서 다운로드하여 멋진 것을 만들어 보세요!
 
