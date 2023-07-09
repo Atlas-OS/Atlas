@@ -1,6 +1,6 @@
 ---
 title: Disable Automatic Folder Type Discovery
-description: Disables automatic folder type discovery for QoL, as most users would probably want each folder to have the same view/settings
+description: Disables automatic folder type discovery for QoL, as most users would probably want each folder to have the same grid configuration
 privilege: TrustedInstaller
 actions:
   - !registryKey:

@@ -1,6 +1,6 @@
 ---
-title: Disable Settings pages
-description: Disables certain Settings pages as they are either broken with other changes or for a more minimal experience
+title: Hide Settings Pages
+description: Hides unnecessary Settings pages, which are either not recommended to use or disabled within the registry
 privilege: TrustedInstaller
 actions:
   - !registryValue:

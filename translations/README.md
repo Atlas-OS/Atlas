@@ -18,7 +18,7 @@ Avoid changing anything other then the text you need to translate.
 ```
 - Add your name and Github profile link into the "Translation Contributor" section of your translation.
 
-- Add the flag button for the translated document into the main [README.md](https://github.com/Atlas-OS/Atlas/blob/main) (make sure to put it in alphabetical order of it's ISO code.)
+- Add the flag button for the translated document into the main [README.md](https://github.com/Atlas-OS/Atlas/blob/main) (make sure to put it in alphabetical order of it is ISO code.)
 
 - Double check your translation.
 

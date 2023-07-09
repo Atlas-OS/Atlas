@@ -1,6 +1,6 @@
 ---
-title: Disable Immersive Control Panel Tips
-description: Disables Settings (Immersive Control Panel) tips for QoL, as most of the time, they only get in the way
+title: Disable Settings Tips
+description: Disables Settings tips for QoL, as most of the time, they only get in the way
 privilege: TrustedInstaller
 actions:
   - !registryValue:

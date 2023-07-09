@@ -1,6 +1,6 @@
 ---
 title: Configure Network Settings with Network Shell
-description: Configures the optimal networking settings with Network Shell (netsh.exe)
+description: Configures the optimal networking settings using Network Shell (netsh.exe)
 privilege: TrustedInstaller
 actions:
   - !run: {exe: 'netsh', args: 'int tcp set heuristics disabled'}

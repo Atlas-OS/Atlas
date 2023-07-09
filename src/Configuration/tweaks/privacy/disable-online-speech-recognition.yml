@@ -8,7 +8,6 @@ actions:
     value: 'HasAccepted'
     data: '0'
     type: REG_DWORD
-    # Disallow users to enable online speech recognition services
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\InputPersonalization'
     value: 'AllowInputPersonalization'

@@ -1,6 +1,6 @@
 ---
-title: Hide 'Meet Now' on the Taskbar
-description: Hides 'Meet Now' in the taskbar for QoL and privacy (as it's an online feature)
+title: Hide 'Meet Now' on Taskbar
+description: Hides 'Meet Now' on the taskbar for QoL and privacy (as it is an online feature)
 privilege: TrustedInstaller
 actions:
   - !registryValue:

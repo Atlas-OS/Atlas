@@ -1,6 +1,6 @@
 ---
 title: Extend Icon Cache
-description: Extends the icon cache to 4MB for better performance
+description: Extends the icon cache to 4MB for better responsiveness
 privilege: TrustedInstaller
 actions:
   - !registryValue:

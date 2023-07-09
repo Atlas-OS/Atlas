@@ -1,9 +1,8 @@
 ---
 title: Disable Program Compatibility Assistant (PCA)
-description: Disables the Program Compatibility Assistant for QoL and privacy
+description: Disables PCA for QoL and privacy
 privilege: TrustedInstaller
 actions:
-    # Disable Program Compatibility Assistant (PCA)
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
     value: 'AITEnable'

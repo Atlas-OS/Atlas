@@ -1,6 +1,6 @@
 ---
-title: Crash Control Quality of Life
-description: Configures the BSoD for having the most useful information and not leaving behind dumps (which most people won't look into anyways)
+title: Configure Crash Control
+description: Configures the BSoD for having the most useful information and not leaving behind dumps (which most people will not look into anyways)
 privilege: TrustedInstaller
 actions:
   - !registryValue:

@@ -1,9 +1,8 @@
 ---
 title: Configure OEM Information
-description: Sets OEM information to Atlas to make users go to us for support instead of OEMs
+description: Configures OEM information to contain the Atlas version and the Atlas Discord server
 privilege: TrustedInstaller
 actions:
-    # Set information about the currently used system
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     value: 'EditionSubManufacturer'

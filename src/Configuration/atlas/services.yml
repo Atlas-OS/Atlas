@@ -59,18 +59,18 @@ actions:
   - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
-  # DisplayEnhancementService 4 < breaks brightness slider
+  # DisplayEnhancementService 4 < breaks brightness slider on laptops
   - !service: {name: 'DoSvc', operation: change, startup: 3}
   - !service: {name: 'DPS', operation: change, startup: 4}
-  # DsSvc 4 < can cause issues with snip & sketch
+  # DsSvc 4 < can cause issues with Snip & Sketch
   - !service: {name: 'fdPHost', operation: change, startup: 4}
   - !service: {name: 'FDResPub', operation: change, startup: 4}
-  # icssvc 4 < breaks mobile/wi-fi hotspot
+  # icssvc 4 < breaks mobile/Wi-Fi hotspot
   # IKEEXT 4 < causes Teredo not to work
   - !service: {name: 'InstallService', operation: change, startup: 3}
   # iphlpsvc 4 < causes Teredo not to work
   - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
-  # KeyIso 4 < causes issues with nvcleanstall's driver telemetry tweak
+  # KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
   - !service: {name: 'KtmRm', operation: change, startup: 4}
   - !service: {name: 'LanmanServer', operation: change, startup: 4}
   - !service: {name: 'LanmanWorkstation', operation: change, startup: 4}
@@ -81,7 +81,7 @@ actions:
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
   - !service: {name: 'PhoneSvc', operation: change, startup: 4}
   - !service: {name: 'RasMan', operation: change, startup: 4}
-  # SharedAccess 4 < breaks mobile/wi-fi hotspot
+  # SharedAccess 4 < breaks mobile/Wi-Fi hotspot
   # ShellHWDetection 4 < breaks bitlocker
   - !service: {name: 'SmsRouter', operation: change, startup: 4}
   - !service: {name: 'Spooler', operation: change, startup: 4}
@@ -167,7 +167,7 @@ actions:
   # NdisVirtualBus 4 < breaks network bridges
   - !service: {name: 'nvraid', operation: change, startup: 4}
   # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
-  # Set rdbss to manual instead of disabling (fixes wsl), thanks Phlegm
+  # Set rdbss to manual instead of disabling (fixes WSL), thanks Phlegm
   - !service: {name: 'rdbss', operation: change, startup: 3}
   - !service: {name: 'RFCOMM', operation: change, startup: 4}
   - !service: {name: 'sfloppy', operation: change, startup: 4}
@@ -177,9 +177,7 @@ actions:
   - !service: {name: 'tcpipreg', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
   - !service: {name: 'udfs', operation: change, startup: 4}
-  # Breaks Hyper-V Enhanced Session
-  # It's normally manual anyways, disabling it shouldn't harm anything
-  # - !service: {name: 'umbus', operation: change, startup: 4}
+  # umbus 4 < breaks Hyper-V Enhanced Session
   - !service: {name: 'VerifierExt', operation: change, startup: 4}
   # volmgrx 4 < breaks dynamic disks
   - !service: {name: 'vsmraid', operation: change, startup: 4}

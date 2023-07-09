@@ -1,5 +1,5 @@
 ---
-title: Disable notifications
+title: Disable Notifications
 description: Disables notifications by defualt for having a more minimal experience
 privilege: TrustedInstaller
 actions:

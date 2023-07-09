@@ -7,22 +7,26 @@ features:
   # ------------------------- NOTES ------------------------- #
   
   # - Each root folder has its own AME Wizard status
-  # - You can disable a certain playbook file by commenting it out
+  # - You can disable a certain YAML file by commenting it out
   # - The playbook files are ran in order
+  # - Each root category is a root folder name
+  # - Comments for the individual playbook files have no text
+  #   length limit, although keep it reasonable
   
   # ----------------------- END NOTES ----------------------- #
   
   # Configure PowerShell first so that other PowerShell scripts work
   - tweaks\qol\config-powershell.yml
+  # NGEN - PowerShell optimisation
   - tweaks\statuses\status-ngen.yml
   - tweaks\scripts\script-ngen.yml
 
   # -----------------------------------------------------
-  #                         Misc                        
+  #                         Misc                         
   # -----------------------------------------------------
   # >>> Description <<<
   #
-  # Miscellaneous tweaks which don't fit into other
+  # Miscellaneous tweaks which do not fit into other
   # categories.
   # -----------------------------------------------------
   - tweaks\statuses\status-misc.yml
@@ -38,12 +42,13 @@ features:
   # -----------------------------------------------------
   # >>> Description <<<
   #
-  # Tweaks for modifying network settings, which could be
-  # for improving network performance, security, etc...
+  # Tweaks for modifying network settings, which can lead
+  # to improving network performance, security, etc.
   # -----------------------------------------------------
   - tweaks\statuses\status-networking.yml
   - tweaks\networking\disable-llmnr.yml
-  - tweaks\networking\disable-reserved-bandwidth.yml
+  # Network Bandwidth is not limited in Windows
+  # - tweaks\networking\disable-reserved-bandwidth.yml
   - tweaks\networking\disable-smart-name-resolution.yml
   - tweaks\networking\netsh.yml
   - tweaks\networking\network-power-saving.yml
@@ -61,8 +66,8 @@ features:
   # -----------------------------------------------------
   # >>> Description <<<
   #
-  # Tweaks for improving the performance of Windows, which
-  # includes responsiveness, latency, etc...
+  # Tweaks for improving the performance of Windows, such as
+  # responsiveness, latency, etc.
   # -----------------------------------------------------
   - tweaks\statuses\status-performance.yml
   # Placebo, mostly protects old vulnerable default Windows processes
@@ -83,10 +88,11 @@ features:
   - tweaks\performance\system\config-boot-config.yml
   - tweaks\performance\system\config-paging.yml
   - tweaks\performance\system\disable-reserved-storage.yml
-  - tweaks\performance\system\optimise-ntfs.yml
+  - tweaks\performance\system\optimize-ntfs.yml
   - tweaks\performance\system\script-power.yml
   - tweaks\performance\system\service-host-split.yml
-  - tweaks\performance\system\win32-priority-seperation.yml
+  # Windows Default is Programs - 26/38 
+  # - tweaks\performance\system\win32-priority-seperation.yml
   
   # -----------------------------------------------------
   #                        Privacy                       
@@ -153,8 +159,8 @@ features:
   # modifications designed for making Windows easier and 
   # more pleasent to use for more advanced general users.
   #
-  # QoL tweaks can be anything, but they're mostly to do 
-  # with modifying the graphical interface and Explorer.
+  # QoL tweaks can be anything, but they are mostly to do 
+  # with modifying the graphical user interface (GUI).
   # -----------------------------------------------------
   - tweaks\statuses\status-qol.yml
   - tweaks\qol\best-wallpaper-quality.yml
@@ -202,7 +208,7 @@ features:
   - tweaks\qol\explorer\full-context-on-more-than-15-items.yml
   - tweaks\qol\explorer\hide-frequently-used-items.yml
   - tweaks\qol\explorer\import-power-plan.yml
-  - tweaks\qol\explorer\minimise-mouse-hover-time.yml
+  - tweaks\qol\explorer\minimize-mouse-hover-time.yml
   - tweaks\qol\explorer\no-internet-open-with.yml
   - tweaks\qol\explorer\open-to-this-pc.yml
   - tweaks\qol\explorer\removable-drives-only-this-pc.yml
@@ -214,7 +220,8 @@ features:
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\explorer\add-context-menus\install-cab.yml
+  # Currently and in the future, this will have no use
+  # - tweaks\qol\explorer\add-context-menus\install-cab.yml
   - tweaks\qol\explorer\add-context-menus\merge-as-trustedinstaller.yml
   - tweaks\qol\explorer\add-context-menus\new-bat.yml
   - tweaks\qol\explorer\add-context-menus\new-ps1.yml
@@ -245,7 +252,7 @@ features:
   #  qol\shell                                                                 #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\shell\alt-tab-open-windows.yml
-  - tweaks\qol\shell\config-autorun.yml
+  - tweaks\qol\shell\config-autorun-autoplay.yml
   # Most people would find this feature useful and it wouldn't really get in the way
   # However, as this removal is opinionated, it will still stay, commented
   # - tweaks\qol\shell\config-snap-settings.yml
@@ -277,7 +284,7 @@ features:
   - tweaks\qol\taskbar\always-show-all-tray-icons.yml
   - tweaks\qol\taskbar\cmd-win-x.yml
   - tweaks\qol\taskbar\disable-badges-taskbar.yml
-  - tweaks\qol\taskbar\disable-cloud-optimised-content.yml
+  - tweaks\qol\taskbar\disable-cloud-optimized-content.yml
   - tweaks\qol\taskbar\disable-desktop-peek.yml
   - tweaks\qol\taskbar\disable-news-and-interests.yml
   - tweaks\qol\taskbar\disable-tablet-mode.yml
@@ -295,7 +302,7 @@ features:
   # -----------------------------------------------------
   - tweaks\statuses\status-security.yml
   - tweaks\security\block-anonymous-enum-sam.yml
-  # Useless? Should be deleted after OOBE.
+  # This account should be deleted after OOBE
   # - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
   # No longer needed as Atlas only runs on new Windows versions
@@ -310,7 +317,7 @@ features:
   # storage space or convienience.
   # -----------------------------------------------------
   - tweaks\statuses\status-clean-winsxs.yml
-  # Has its own status as it's a long operation in comparison
+  # Has its own status as it is a long operation in comparison
   - tweaks\debloat\clean-winsxs.yml
   - tweaks\statuses\status-debloat.yml
   - tweaks\debloat\autologgers.yml

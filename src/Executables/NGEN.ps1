@@ -7,6 +7,6 @@ $env:path = $([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory(
     ngen install $_.location | % {"`t$_"}
 }
 
-# run these tasks in the background to make sure that it's all ngened
+# run these tasks in the background to make sure that it is all ngened
 & "C:\Windows\System32\schtasks.exe" /Run /TN "\Microsoft\Windows\.NET Framework\.NET Framework NGEN v4.0.30319"
 & "C:\Windows\System32\schtasks.exe" /Run /TN "\Microsoft\Windows\.NET Framework\.NET Framework NGEN v4.0.30319 64"

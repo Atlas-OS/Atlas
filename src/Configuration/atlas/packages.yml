@@ -161,7 +161,7 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-AllJoyn-Runtime', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Networking-MPSSVC-Rules-AllJoyn', arch: amd64, language: 'neutral'}
 
-  ## Content Delivery Manager installs common bloatware from Store like Netflix, Disney+, etc...
+  ## Content Delivery Manager
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager-Capabilities', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager-Utilities', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-ContentDeliveryManager-Utilities', arch: wow64, language: 'neutral'}
@@ -330,18 +330,18 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-PeerDist-Client-Group-WOW64-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   # - !systemPackage: {name: 'Microsoft-Windows-PeerDist-Client-Group-WOW64-Deployment', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-AcProxy', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-CEIPEnable-Adm', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Client-SQM-Consolidator', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-CEIPEnable-Adm', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Client-SQM-Consolidator', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-ImageBasedSetup-IE-SQMAPI-windows', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-ImageBasedSetup-IE-SQMAPI-windows', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Media-Format-SQM', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Media-Format-SQM', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-SQM-Consolidator-Base', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-SQM-Consolidator-Base', arch: amd64, language: 'neutral'}
   ## sqmapi dll is present in Atlas, which this would remove
   # - !systemPackage: {name: 'Microsoft-Windows-SQMApi', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-SQMApi', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-UsbCeip', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-UsbCeip', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-UsbCeip', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-UsbCeip', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-WPD-PortableDeviceSQM', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-WPD-PortableDeviceSQM', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-CellularTime-Service-Modern', arch: amd64, language: 'neutral'}
@@ -482,8 +482,8 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-twext', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-FCI-Client-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   # - !systemPackage: {name: 'Microsoft-Windows-FCI-Client-Deployment', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-OOBE-FirstLogonAnimExe', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-OOBE-FirstLogonAnim', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-OOBE-FirstLogonAnimExe', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-OOBE-FirstLogonAnim', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-GameExplorer', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-GameExplorer', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-DirectX-GPM', arch: amd64, language: 'neutral'}
@@ -554,17 +554,17 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-netplwiz-client', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Netplwiz-Exe', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-netplwiz', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Framework', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Framework', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service-Modern', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service-Modern', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-WinComponents', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Geolocation-WinRT', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-LocationProvider-Adm', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-SystemSettings-SettingsHandlers-Geolocation', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-WindowsPhone-LocationServiceProvider-Events', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Framework', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Framework', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service-Modern', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service-Modern', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-Service', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-WinComponents', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Geolocation-WinRT', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-LocationProvider-Adm', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-SystemSettings-SettingsHandlers-Geolocation', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-WindowsPhone-LocationServiceProvider-Events', arch: amd64, language: 'neutral'}
   ## This package just contains %windir%\Web\Screen\img0-5, which we replace beforehand anyways.
   # - !systemPackage: {name: 'Microsoft-Windows-ThemeUI-LockscreenBackgrounds-Client', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-ThemeUI-LockscreenBackgrounds-Client', arch: wow64, language: 'neutral'}
@@ -828,34 +828,34 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-AdvancedTaskManager', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'TaskSchedulerSettings', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-OneCore-SystemSettings-InputCloudStore', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-AIT-Static', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Inventory-Data-Sources', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Mitigations-C8', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Program-Data', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-InboxDataFiles', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-Logger', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner-DailyTask', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Compat-GeneralTel', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: amd64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
-  # - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: wow64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
-  # - !systemPackage: {name: 'Microsoft-Windows-DataCollection-Adm', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-DeviceCensus-Schedule-ClientServer', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-AIT-Static', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Inventory-Data-Sources', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Mitigations-C8', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Application-Experience-Program-Data', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-InboxDataFiles', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser-Logger', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-Appraiser', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner-DailyTask', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-CompatTelRunner', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Compat-GeneralTel', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: amd64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
+  - !systemPackage: {name: 'Microsoft-Windows-CoreSystem-Bluetooth-Telemetry', arch: wow64, language: 'neutral', regexExcludeFiles: ['.*\\BthTelemetry.dll']}
+  - !systemPackage: {name: 'Microsoft-Windows-DataCollection-Adm', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-DeviceCensus-Schedule-ClientServer', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-KeyboardDiagnostic', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Power-EnergyEstimationEngine-Client-Overrides', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-SetupPlatform-Telemetry-AutoLogger', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-SetupPlatform-Telemetry-AutoLogger', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-SystemSettings-SettingsHandlers-SIUF', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-TelemetryClient', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-TelemetryPermission', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Aggregators', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-AutoLogger-Default', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Decoder-Host', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Settings-WindowsClient', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-WoWOnly', arch: wow64, language: 'neutral'}
-  # - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient', arch: amd64, language: 'neutral'}
-  # - !systemPackage: {name: 'Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-TelemetryClient', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-TelemetryPermission', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Aggregators', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-AutoLogger-Default', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Decoder-Host', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-Settings-WindowsClient', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client-WoWOnly', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Unified-Telemetry-Client', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient', arch: wow64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-Telnet-Client-Opt-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
   # - !systemPackage: {name: 'Microsoft-Windows-Telnet-Client-Opt-Deployment', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-TFTP-Client-Opt-Deployment-LanguagePack', arch: amd64, language: 'en-US'}

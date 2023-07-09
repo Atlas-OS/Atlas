@@ -3,7 +3,6 @@ title: Disable SmartScreen
 description: SmartScreen is a security feature for warning users about the dangers of executing certain files from third party sources, and it is disabled for QoL.
 privilege: TrustedInstaller
 actions:
-    # Disable SmartScreen for Microsoft Store applications
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AppHost'
     value: 'EnableWebContentEvaluation'
@@ -14,8 +13,6 @@ actions:
     value: 'PreventOverride'
     data: '0'
     type: REG_DWORD
-
-    # Disable SmartScreen for applications and files from web
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
     value: 'EnableSmartScreen'

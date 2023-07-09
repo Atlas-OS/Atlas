@@ -3,7 +3,7 @@ title: Set Strong Cryptography
 description: Set strong cryptography on AMD64 and x86 .NET Framework (version 4 and above) to fix a Scoop installation issue
 privilege: TrustedInstaller
 actions:
-    # Probably not needed on modern versions?
+    # Not needed on modern versions of Windows
     # https://github.com/ScoopInstaller/Scoop/issues/2040#issuecomment-369686748
     # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
   - !registryValue:

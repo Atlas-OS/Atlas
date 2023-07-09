@@ -1,6 +1,6 @@
 ---
 title: Disable Settings Sync
-description: Disables Settings sync for QoL and privacy, as most people wouldn't want it anyways and it's extra connections
+description: Disables Settings Synchronization feature for QoL and privacy
 privilege: TrustedInstaller
 actions:
   - !registryValue:

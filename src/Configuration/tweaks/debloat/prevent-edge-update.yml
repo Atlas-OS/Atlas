@@ -1,6 +1,6 @@
 ---
 title: Prevent Microsoft Edge Updates
-description: Prevents Microsoft Edge updates so that it can't reinstall on updates
+description: Prevents Microsoft Edge updates so that it cannot reinstall itself during the updates
 privilege: TrustedInstaller
 actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'DoNotUpdateToEdgeWithChromium', type: REG_DWORD, data: '1'}

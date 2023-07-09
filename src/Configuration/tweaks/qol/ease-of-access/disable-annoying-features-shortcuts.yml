@@ -1,6 +1,6 @@
 ---
 title: Disable Commonly Annoying Features and Shortcuts
-description: Disables commonly annoying features, e.g. pressing shift 5 times for sticky keys.
+description: Disables commonly annoying features such as pressing shift 5 times for sticky keys.
 privilege: TrustedInstaller
 actions:
   - !registryValue:

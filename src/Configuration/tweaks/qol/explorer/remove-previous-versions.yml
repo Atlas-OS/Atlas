@@ -1,6 +1,6 @@
 ---
 title: Remove Previous Versions from Explorer
-description: Removes previous versions from Explorer, as it's mostly unused, for QoL
+description: Removes previous versions from context menu and file's properties, for QoL
 privilege: TrustedInstaller
 actions:
   - !registryKey: {path: 'HKCR\AllFilesystemObjects\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'}

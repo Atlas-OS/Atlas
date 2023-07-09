@@ -3,7 +3,6 @@ title: Disable Advertising ID
 description: Disables advertising ID for privacy
 privilege: TrustedInstaller
 actions:
-    # https://www.tenforums.com/tutorials/76453-enable-disable-advertising-id-relevant-ads-windows-10-a.html
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo'
     value: 'Enabled'

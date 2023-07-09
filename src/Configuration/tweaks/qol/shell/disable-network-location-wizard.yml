@@ -1,9 +1,8 @@
 ---
 title: Disable Network Location Wizard
-description: Disables the Network Location Wizard, which is the pop-up about your PC being discoverable
+description: Disables the Network Location Wizard, which is the pop-up about your network being discoverable
 privilege: TrustedInstaller
 actions:
-  # https://www.tenforums.com/tutorials/92362-enable-disable-network-location-wizard-windows-10-a.html
   - !registryKey:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff'
     operation: add

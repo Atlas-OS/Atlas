@@ -3,7 +3,6 @@ title: Disable Network Navigation Pane in Explorer
 description: Disables the network navigation pane/item in the Explorer sidebar for QoL, as it is mostly unused
 privilege: TrustedInstaller
 actions:
-  # https://www.tenforums.com/tutorials/4854-add-remove-network-navigation-pane-windows-10-a.html
   - !registryValue:
     path: 'HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder'
     value: 'Attributes'

@@ -1,6 +1,6 @@
 ---
-title: Disable GameBar and Enable Fullscreen Exclusive
-description: Disables GameBar as it's mostly not used and is considered as bloat (as well as being incompatible with FSE), and enables fullscreen exclusive for the best possible latency, although this should be looked into more with recent Windows versions
+title: Disable Game Bar and Enable Fullscreen Exclusive
+description: Disables XBOX Game Bar as it is considered as a bloatware feature (as well as being incompatible with FSE) and enables fullscreen exclusive for the best possible latency, although this should be looked into more with recent Windows versions
 privilege: TrustedInstaller
 actions:
   - !registryValue:
@@ -73,7 +73,8 @@ actions:
     value: '__COMPAT_LAYER'
     data: '~ DISABLEDXMAXIMIZEDWINDOWEDMODE'
     type: REG_SZ
-    # Disable Game Bar Presence Writer
+
+    # Disable Game Bar Presence Writer, required for GameBar
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter'
     value: 'ActivationType'

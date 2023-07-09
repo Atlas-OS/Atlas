@@ -19,7 +19,7 @@ jobs:
       - name: Close pull requests that directly commit to main
         run: |
             comment="
-            You can not directly commit to the [\`main\`](https://github.com/Atlas) branch, read the contribution guide and only commit to [\`dev\`](https://github.com/Atlas/tree/dev).
+            You cannot directly commit to the [\`main\`](https://github.com/Atlas) branch, read the contribution guide and only commit to [\`dev\`](https://github.com/Atlas/tree/dev).
                 
             **Contribution Guidelines:** https://docs.atlasos.net/contributions
             "

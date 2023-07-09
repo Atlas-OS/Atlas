@@ -1,6 +1,6 @@
 ---
 title: Configure Scheduled Tasks
-description: Configures scheduled tasks to debloat Windows by improving performance, privacy and more
+description: Configures scheduled tasks to prevent automatic tasks from running at startup, consuming resources and collecting user data
 privilege: TrustedInstaller
 actions:
   # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
