@@ -48,19 +48,10 @@ powercfg /setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 d4
 powercfg /setacvalueindex scheme_current 2e601130-5351-4d9d-8e04-252966bad054 d502f7ee-1dc7-4efd-a55d-f04b6f5c0545 0
 :: Allow Throttle States - Off
 powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb 0
-:: Processor performance autonomous mode - Disabled
-:: powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 8baa4a8a-14c6-4451-8e8b-14bdbd197537 0
-:: Processor autonomous activity window - 0 microseconds
-:: powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 cfeda3d0-7697-4566-a922-a9086cd49dfa 0
 :: Dim display after - 0 seconds
 powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 17aaa29b-8b43-4b94-aafe-35f64daaf1ee 0
 :: Turn off display after - 0 seconds
 powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e 0
-
-:: Prevents parking of multi-threads (do not confuse it with cores parking)
-:: Prefers to use Performance-cores for foreground applications and heavy load situations
-:: Credit: Revision Team
-PowerShell -NoP -C "$cpu = Get-CimInstance Win32_Processor; $cpuName = $cpu.Name; $cpuGen = [int]($cpuName.Substring(0, 2)); if ($cpuGen -gt 11) { powercfg /setacvalueindex scheme_current sub_processor HETEROPOLICY 0; powercfg /setacvalueindex scheme_current sub_processor SCHEDPOLICY 2; }"
 
 :: Set the active scheme as the current scheme
 powercfg /setactive scheme_current
