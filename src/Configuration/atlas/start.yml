@@ -119,11 +119,11 @@ actions:
     wait: true
     option: 'librewolf-winupdater'
     
-  - !writeStatus: {status: 'Installing Watefox', option: 'browser-waterfox'}
+  - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !cmd:
-    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums waterfox'
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums googlechrome'
     weight: 150
-    option: 'browser-waterfox'
+    option: 'browser-chrome'
     
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
   - !cmd:
