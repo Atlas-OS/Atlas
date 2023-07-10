@@ -17,10 +17,10 @@ features:
   
   # Configure PowerShell first so that other PowerShell scripts work
   - tweaks\qol\config-powershell.yml
-  # User prompts - customise the install
+  # User prompts - customize the install
   - tweaks\statuses\status-prompts.yml
   - tweaks\scripts\script-prompts.yml
-  # NGEN - PowerShell optimisation
+  # NGEN - PowerShell optimization
   - tweaks\statuses\status-ngen.yml
   - tweaks\scripts\script-ngen.yml
 
@@ -158,7 +158,7 @@ features:
   # -----------------------------------------------------
   # >>> Description <<<
   #
-  # QoL stands for Quality Of Life, and are general      
+  # QoL stands for Quality of Life, and are general      
   # modifications designed for making Windows easier and 
   # more pleasent to use for more advanced general users.
   #
@@ -256,7 +256,7 @@ features:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\shell\alt-tab-open-windows.yml
   - tweaks\qol\shell\config-autorun-autoplay.yml
-  # Most people would find this feature useful and it wouldn't really get in the way
+  # Most people would find this feature useful and it would not really get in the way
   # However, as this removal is opinionated, it will still stay, commented
   # - tweaks\qol\shell\config-snap-settings.yml
   - tweaks\qol\shell\disable-aero-shake.yml

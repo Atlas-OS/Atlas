@@ -5,10 +5,10 @@ contact_links:
     about: Please join our Discord server for general discussions.
   - name: General discussions (if you do not use Discord)
     url: https://forum.atlasos.net
-    about: Use our forum for General Discussions.
+    about: Use our forum for general discussions.
   - name: Contribute to Atlas Documentation
     url: https://github.com/Atlas-OS/docs
     about: Contribute to Atlas Documentation in this repository.
   - name: Report an issue (non-Atlas related issue)
     url: https://forum.atlasos.net
-    about: Please report any non-Atlas related issue in our ``Bug Report`` section on our Forum. (Website, Discord bot, etc.)
+    about: Please report any non-Atlas related issue in our ``Bug Report`` section on our Forum (Website, Discord bot, etc.).
