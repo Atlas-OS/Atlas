@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param (
-    [Switch]$RemoveAllEdgeSilent
+    [Switch]$RemoveAllEdge
 )
 
 $ProgressPreference = "SilentlyContinue"
@@ -69,7 +69,7 @@ function UninstallAll {
 	}
 }
 
-if ($RemoveAllEdgeSilent) {
+if ($RemoveAllEdge) {
 	$removeWebView = $true
 	UninstallAll
 }
