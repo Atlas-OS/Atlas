@@ -28,7 +28,7 @@ function RunAsScheduledTask {
 function RemoveEdgeChromium {
 	[CmdletBinding()]
 	param (
-		[String]$AsTask
+		[Switch]$AsTask
 	)
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
 	
@@ -98,7 +98,7 @@ function RemoveEdgeAppX {
 function RemoveWebView {
 	[CmdletBinding()]
 	param (
-		[String]$AsTask
+		[Switch]$AsTask
 	)
 	$webviewUninstallKeyPath = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
 	if (Test-Path $webviewUninstallKeyPath) {
