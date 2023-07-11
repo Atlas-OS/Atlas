@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param (
-    [Switch]$RemoveAllEdge
+	[Switch]$Setup
 )
 
 $ProgressPreference = "SilentlyContinue"
@@ -12,6 +12,22 @@ function PauseNul ($message = "Press any key to continue... ") {
 
 function RemoveEdgeChromium {
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
+	
+	# kill Edge
+	$ErrorActionPreference = 'SilentlyContinue'
+
+	Get-Process -Name MicrosoftEdgeUpdate | Stop-Process -Force
+	Get-Process -Name msedge | Stop-Process -Force
+
+	$services = @(
+		'edgeupdate',
+		'edgeupdatem',
+		'MicrosoftEdgeElevationService'
+	)
+
+	foreach ($service in $services) {Stop-Service -Name $service -Force}
+	
+	$ErrorActionPreference = 'Continue'
 
 	# check if 'experiment_control_labels' value exists and delete it if found
 	$keyPath = Join-Path -Path $baseKey -ChildPath "EdgeUpdate\ClientState\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}"
@@ -75,10 +91,15 @@ function UninstallAll {
 	}
 }
 
-if ($RemoveAllEdge) {
-	$removeWebView = $true
+# AppX is not removed as it's handled by AME Wizard
+if ($Setup) {
 	$removeData = $true
-	UninstallAll
+	Write-Warning "Uninstalling Edge Chromium..."
+	RemoveEdgeChromium
+	Write-Warning "Uninstalling Edge WebView..."
+	RemoveWebView
+	Write-Warning "The AppX Edge needs to be removed by AME Wizard..."
+	exit
 }
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
@@ -88,8 +109,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 $removeWebView = $false
 $removeData = $true
 while (!($continue)) {
-	cls
-	Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.
+	cls; Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.
 Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6`n" -ForegroundColor Yellow
 
 	if ($removeWebView) {$colourWeb = "Green"; $textWeb = "Selected"} else {$colourWeb = "Red"; $textWeb = "Unselected"}
