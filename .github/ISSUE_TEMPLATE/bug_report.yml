@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        A clear and concise description of what the bug is.
+        A clear and brief description of what the bug is.
 
   - type: textarea
     attributes:
@@ -54,8 +54,8 @@ body:
       placeholder: |
        - Processor [include brand and specifics]
        - RAM amount
-       - System Drive [include brand and type]
-       - Graphics card
+       - Storage [include brand and type]
+       - Graphics card [include driver version]
     validations:
       required: true
 
