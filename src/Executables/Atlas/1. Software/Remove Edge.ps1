@@ -10,7 +10,26 @@ function PauseNul ($message = "Press any key to continue... ") {
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
 }
 
+# removing Edge Chromium & WebView is meant to be compatible with TrustedInstaller for AME Wizard
+# running the uninstaller as TrustedInstaller causes shortcuts and other things not to be removed properly
+function RunAsScheduledTask {
+	[CmdletBinding()]
+	param (
+		[String]$Command
+	)
+	$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
+	$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument "/c $Command"
+	$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+	$title = "RemoveEdge $(Get-Random -minimum 9999999999)"
+	Register-ScheduledTask -TaskName $title -Action $action -Settings $settings -User $user -RunLevel Highest -Force | Start-ScheduledTask | Out-Null
+	Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
+}
+
 function RemoveEdgeChromium {
+	[CmdletBinding()]
+	param (
+		[String]$AsTask
+	)
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
 	
 	# kill Edge
@@ -47,8 +66,11 @@ function RemoveEdgeChromium {
 	# uninstall Edge
 	$uninstallKeyPath = Join-Path -Path $baseKey -ChildPath "Windows\CurrentVersion\Uninstall\Microsoft Edge"
 	if (Test-Path $uninstallKeyPath) {
-		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString
-		Start-Process cmd.exe "/c $uninstallString --force-uninstall" -WindowStyle Hidden
+		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString + " --force-uninstall"
+		# create a scheduled task as current user so that it works properly with TI perms
+		if ($AsTask) {RunAsScheduledTask -Command $uninstallString} else {
+			Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden
+		}
 	}
 	
 	# remove user data
@@ -66,6 +88,7 @@ function RemoveEdgeAppX {
 	if (Test-Path "$pattern") { reg delete "HKLM$appxStore\InboxApplications\$edgeAppXKey" /f | Out-Null }
 
 	# make the Edge AppX able to uninstall and uninstall
+	$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
 	$SID = (New-Object System.Security.Principal.NTAccount($env:USERNAME)).Translate([Security.Principal.SecurityIdentifier]).Value
 	New-Item -Path "HKLM:$appxStore\EndOfLife\$SID\Microsoft.MicrosoftEdge_8wekyb3d8bbwe" -Force | Out-Null
 	Get-AppxPackage -Name Microsoft.MicrosoftEdge | Remove-AppxPackage | Out-Null
@@ -73,10 +96,16 @@ function RemoveEdgeAppX {
 }
 
 function RemoveWebView {
+	[CmdletBinding()]
+	param (
+		[String]$AsTask
+	)
 	$webviewUninstallKeyPath = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
 	if (Test-Path $webviewUninstallKeyPath) {
-		$webviewUninstallString = (Get-ItemProperty -Path $webviewUninstallKeyPath).UninstallString
-		Start-Process cmd.exe "/c $webviewUninstallString --force-uninstall" -WindowStyle Hidden
+		$webviewUninstallString = (Get-ItemProperty -Path $webviewUninstallKeyPath).UninstallString + " --force-uninstall"
+		if ($AsTask) {RunAsScheduledTask -Command $webviewUninstallString} else {
+			Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden
+		}
 	}
 }
 
@@ -95,15 +124,22 @@ function UninstallAll {
 if ($Setup) {
 	$removeData = $true
 	Write-Warning "Uninstalling Edge Chromium..."
-	RemoveEdgeChromium
+	RemoveEdgeChromium -AsTask
 	Write-Warning "Uninstalling Edge WebView..."
-	RemoveWebView
+	RemoveWebView -AsTask
 	Write-Warning "The AppX Edge needs to be removed by AME Wizard..."
 	exit
 }
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
     Start-Process PowerShell "-NoProfile -ExecutionPolicy Unrestricted -File `"$PSCommandPath`"" -Verb RunAs; exit
+}
+
+if ($(whoami /user | Select-String "S-1-5-18") -ne $null) {
+	Write-Host "This script can't be ran as TrustedInstaller or SYSTEM."
+	Write-Host "Please relaunch this script under a regular admin account.`n"
+	PauseNul "Press any key to exit... "
+	exit 1
 }
 
 $removeWebView = $false
