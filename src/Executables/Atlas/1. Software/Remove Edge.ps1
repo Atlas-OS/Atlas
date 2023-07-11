@@ -34,6 +34,12 @@ function RemoveEdgeChromium {
 		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString
 		Start-Process cmd.exe "/c $uninstallString --force-uninstall" -WindowStyle Hidden
 	}
+	
+	# remove user data
+	if ($removeData) {
+		$path = "$env:LOCALAPPDATA\Microsoft\Edge"
+		if (Test-Path $path) {Remove-Item $path -Force -Recurse}
+	}
 }
 
 function RemoveEdgeAppX {
@@ -71,6 +77,7 @@ function UninstallAll {
 
 if ($RemoveAllEdge) {
 	$removeWebView = $true
+	$removeData = $true
 	UninstallAll
 }
 
@@ -79,21 +86,18 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 }
 
 $removeWebView = $false
+$removeData = $true
 while (!($continue)) {
 	cls
 	Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.
 Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6`n" -ForegroundColor Yellow
 
-	if ($removeWebView) {
-		$colour = "Green"
-		$text = "Selected"
-	} else {
-		$colour = "Red"
-		$text = "Unselected"
-	}
+	if ($removeWebView) {$colourWeb = "Green"; $textWeb = "Selected"} else {$colourWeb = "Red"; $textWeb = "Unselected"}
+	if ($removeData) {$colourData = "Green"; $textData = "Selected"} else {$colourData = "Red"; $textData = "Unselected"}
 	
 	Write-Host "Options:"
-	Write-Host "[1] Remove Edge WebView ($text)`n" -ForegroundColor $colour
+	Write-Host "[1] Remove Edge WebView ($textWeb)" -ForegroundColor $colourWeb
+	Write-Host "[2] Remove Edge User Data ($textData)`n" -ForegroundColor $colourData
 	Write-Host "Press enter to continue or use numbers to select options... " -NoNewLine
 	
 	$input = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
@@ -104,14 +108,16 @@ Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99
 		49 { # num 1
 			$removeWebView = !$removeWebView
 		}
+		50 { # num 2
+			$removeData = !$removeData
+		}
 		13 { # enter
 			$continue = $true
 		}
 	}
 }
 
-cls
-UninstallAll
+cls; UninstallAll
 
 Write-Host "`nCompleted." -ForegroundColor Green
 PauseNul "Press any key to exit... "
