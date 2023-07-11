@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param (
-    [Switch]$RemoveAllEdgeSilent
+    [Switch]$RemoveAllEdge
 )
 
 $ProgressPreference = "SilentlyContinue"
@@ -69,15 +69,9 @@ function UninstallAll {
 	}
 }
 
-if ($RemoveAllEdgeSilent) {
+if ($RemoveAllEdge) {
 	$removeWebView = $true
 	UninstallAll
-}
-
-if (!(Test-Path "C:\Program Files (x86)\Microsoft\Edge")) {
-	Write-Host "It seems like Edge is already uninstalled."
-	Write-Host "Running this script anyways can cause errors.`n"
-	PauseNul "Press any key to continue anyways... "
 }
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
