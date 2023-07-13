@@ -7,4 +7,4 @@ actions:
     exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\1. General Configuration\Mitigations\Disable All Mitigations.cmd'
     args: '/silent'
     wait: true
-    options: 'mitigations-disable'
+    option: 'mitigations-disable'
