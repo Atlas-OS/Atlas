@@ -37,7 +37,7 @@ actions:
   - !file: {path: 'C:\Program Files\Windows Defender Advanced Threat Protection'}
   - !file: {path: 'C:\ProgramData\Microsoft\Windows Defender Advanced Threat Protection'}
 
-    # Remove SecurityHealthSystray startup item
+    # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
     # ---------- Microsoft Edge
