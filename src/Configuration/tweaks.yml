@@ -15,8 +15,6 @@ features:
   
   # ----------------------- END NOTES ----------------------- #
   
-  # Configure PowerShell first so that other PowerShell scripts work
-  - tweaks\qol\config-powershell.yml
   # NGEN - PowerShell optimisation
   - tweaks\statuses\status-ngen.yml
   - tweaks\scripts\script-ngen.yml
