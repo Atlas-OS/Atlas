@@ -10,7 +10,7 @@ $fileName = "Atlas Test"
 $replaceOldPlaybook = $true
 
 # choose not to modify certain aspects from playbook.conf
-$removeRequirements = $true
+$removeRequirements = $false
 $removeBuildRequirement = $true
 # not recommended to disable as it will show malicious
 $removeProductCode = $true
