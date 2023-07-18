@@ -265,7 +265,9 @@ features:
   - tweaks\qol\shell\disable-network-location-wizard.yml
   - tweaks\qol\shell\disable-notifications.yml
   - tweaks\qol\shell\disable-shared-experiences.yml
-  - tweaks\qol\shell\notification-quick-settings.yml
+  # This is easier for some people to use shortcuts
+  # instead of searching through Settings.
+  # - tweaks\qol\shell\notification-quick-settings.yml
   - tweaks\qol\shell\old-alt-tab.yml
   
   # -------------------------------------------------------------------------- #
