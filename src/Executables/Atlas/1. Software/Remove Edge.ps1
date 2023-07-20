@@ -120,14 +120,18 @@ function UninstallAll {
 	}
 }
 
-# AppX is not removed as it's handled by AME Wizard
 if ($Setup) {
+	if ((whoami /user) -like "*S-1-5-18*") {
+		$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
+		$action = New-ScheduledTaskAction -Execute "$env:windir\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument '-NoP -EP Unrestricted -WindowStyle Hidden -File "C:\Users\Default\Desktop\Atlas\1. Software\Remove Edge.ps1" -Setup'
+		$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+		$title = "RemoveEdge $(Get-Random -minimum 9999999999)"
+		Register-ScheduledTask -TaskName $title -Action $action -Settings $settings -User $user -RunLevel Highest -Force | Start-ScheduledTask | Out-Null
+		Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
+		exit
+	}
 	$removeData = $true
-	Write-Warning "Uninstalling Edge Chromium..."
-	RemoveEdgeChromium -AsTask
-	Write-Warning "Uninstalling Edge WebView..."
-	RemoveWebView -AsTask
-	Write-Warning "The AppX Edge needs to be removed by AME Wizard..."
+	UnistallAll
 	exit
 }
 
