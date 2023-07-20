@@ -10,21 +10,6 @@ function PauseNul ($message = "Press any key to continue... ") {
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
 }
 
-# removing Edge Chromium & WebView is meant to be compatible with TrustedInstaller for AME Wizard
-# running the uninstaller as TrustedInstaller causes shortcuts and other things not to be removed properly
-function RunAsScheduledTask {
-	[CmdletBinding()]
-	param (
-		[String]$Command
-	)
-	$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
-	$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument "/c $Command"
-	$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-	$title = "RemoveEdge $(Get-Random -minimum 9999999999)"
-	Register-ScheduledTask -TaskName $title -Action $action -Settings $settings -User $user -RunLevel Highest -Force | Start-ScheduledTask | Out-Null
-	Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
-}
-
 function RemoveEdgeChromium {
 	[CmdletBinding()]
 	param (
@@ -127,11 +112,12 @@ if ($Setup) {
 		$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 		$title = "RemoveEdge $(Get-Random -minimum 9999999999)"
 		Register-ScheduledTask -TaskName $title -Action $action -Settings $settings -User $user -RunLevel Highest -Force | Start-ScheduledTask | Out-Null
-		Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
+		# Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
 		exit
 	}
 	$removeData = $true
-	UnistallAll
+	$removeWebView = $true
+	UninstallAll
 	exit
 }
 
