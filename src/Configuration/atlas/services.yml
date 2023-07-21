@@ -49,11 +49,12 @@ actions:
 
   # ------------------------ Services ------------------------
 
+  - !run:
+    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\1. General Configuration\Bluetooth\Disable Bluetooth (default).cmd'
+    args: '/silent'
+    option: 'disable-bluetooth'
+
   - !service: {name: 'AppIDSvc', operation: change, startup: 4}
-  - !service: {name: 'BluetoothUserService', operation: change, startup: 4}
-  - !service: {name: 'BTAGService', operation: change, startup: 4}
-  - !service: {name: 'BthAvctpSvc', operation: change, startup: 4}
-  - !service: {name: 'bthserv', operation: change, startup: 4}
   - !service: {name: 'CryptSvc', operation: change, startup: 3}
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
   - !service: {name: 'diagsvc', operation: change, startup: 4}
@@ -136,15 +137,6 @@ actions:
   - !service: {name: 'bam', operation: change, startup: 4}
   - !service: {name: 'Beep', operation: change, startup: 4}
   - !service: {name: 'bindflt', operation: change, startup: 4}
-  - !service: {name: 'BthA2dp', operation: change, startup: 4}
-  - !service: {name: 'BthEnum', operation: change, startup: 4}
-  - !service: {name: 'BthHFEnum', operation: change, startup: 4}
-  - !service: {name: 'BthLEEnum', operation: change, startup: 4}
-  - !service: {name: 'BthMini', operation: change, startup: 4}
-  - !service: {name: 'BTHMODEM', operation: change, startup: 4}
-  - !service: {name: 'BthPan', operation: change, startup: 4}
-  - !service: {name: 'BTHPORT', operation: change, startup: 4}
-  - !service: {name: 'BTHUSB', operation: change, startup: 4}
   - !service: {name: 'buttonconverter', operation: change, startup: 4}
   - !service: {name: 'CAD', operation: change, startup: 4}
   - !service: {name: 'cdfs', operation: change, startup: 4}
@@ -159,9 +151,7 @@ actions:
   # FileInfo 4 < breaks installing Microsoft Store applications to different disk (now disabled via store script)
   # FileCrypt 4 < Breaks installing Microsoft Store applications to different disk (now disabled via store script)
   - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
-  - !service: {name: 'HidBth', operation: change, startup: 4}
   - !service: {name: 'KSecPkg', operation: change, startup: 4}
-  - !service: {name: 'Microsoft_Bluetooth_AvrcpTransport', operation: change, startup: 4}
   - !service: {name: 'mrxsmb', operation: change, startup: 4}
   - !service: {name: 'mrxsmb20', operation: change, startup: 4}
   # NdisVirtualBus 4 < breaks network bridges
@@ -169,7 +159,6 @@ actions:
   # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
   # Set rdbss to manual instead of disabling (fixes WSL), thanks Phlegm
   - !service: {name: 'rdbss', operation: change, startup: 3}
-  - !service: {name: 'RFCOMM', operation: change, startup: 4}
   - !service: {name: 'sfloppy', operation: change, startup: 4}
   - !service: {name: 'SiSRaid2', operation: change, startup: 4}
   - !service: {name: 'SiSRaid4', operation: change, startup: 4}
