@@ -18,6 +18,8 @@ if ($DisableAllVBS) {
 		New-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 0 -PropertyType DWORD -Force
 		Remove-ItemProperty -Path $memIntegrity -Name "ChangedInBootCycle" -ErrorAction SilentlyContinue
 		Remove-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -ErrorAction SilentlyContinue
+		New-ItemProperty -Path $memIntegrity -Name "HVCIMATRequired" -Value 0 -PropertyType DWORD -Force
+		New-ItemProperty -Path $memIntegrity -Name "Locked" -Value 0 -PropertyType DWORD -Force
 	}
 
 	# Kernel-mode Hardware-enforced Stack Protection (Windows 11 only)
@@ -25,6 +27,8 @@ if ($DisableAllVBS) {
 		New-ItemProperty -Path $kernelShadowStacks -Name "Enabled" -Value 0 -PropertyType DWORD -Force
 		Remove-ItemProperty -Path $kernelShadowStacks -Name "ChangedInBootCycle" -ErrorAction SilentlyContinue
 		Remove-ItemProperty -Path $kernelShadowStacks -Name "WasEnabledBy" -ErrorAction SilentlyContinue
+		New-ItemProperty -Path $kernelShadowStacks -Name "HVCIMATRequired" -Value 0 -PropertyType DWORD -Force
+		New-ItemProperty -Path $kernelShadowStacks -Name "Locked" -Value 0 -PropertyType DWORD -Force
 	}
 
 	# Credential Guard (Windows 11 only)
@@ -32,12 +36,35 @@ if ($DisableAllVBS) {
 		New-ItemProperty -Path $credentialGuard -Name "Enabled" -Value 0 -PropertyType DWORD -Force
 		Remove-ItemProperty -Path $credentialGuard -Name "ChangedInBootCycle" -ErrorAction SilentlyContinue
 		Remove-ItemProperty -Path $credentialGuard -Name "WasEnabledBy" -ErrorAction SilentlyContinue
+		New-ItemProperty -Path $credentialGuard -Name "HVCIMATRequired" -Value 0 -PropertyType DWORD -Force
+		New-ItemProperty -Path $credentialGuard -Name "Locked" -Value 0 -PropertyType DWORD -Force
 	}
 	exit
 } elseif ($EnableMemoryIntegrity) {
 	Write-Warning "Enabling memory integrity..."
-	Set-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 1 -Type DWord
-	Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
+	if (Test-Path $memIntegrity) {
+		Set-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 1 -Type DWord
+		Set-ItemProperty -Path $memIntegrity -Name "HVCIMATRequired" -Value 1 -Type DWord
+		Set-ItemProperty -Path $memIntegrity -Name "Locked" -Value 1 -Type DWord
+		Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
+		Set-ItemProperty -Path $memIntegrity -Name "ChangedInBootCycle" -Value 2 -Type DWord
+	}
+	# Kernel-mode Hardware-enforced Stack Protection (Windows 11 only)
+	if (Test-Path $kernelShadowStacks) {
+		Set-ItemProperty -Path $kernelShadowStacks -Name "Enabled" -Value 1 -Type DWord
+		Set-ItemProperty -Path $kernelShadowStacks -Name "HVCIMATRequired" -Value 1 -Type DWord
+		Set-ItemProperty -Path $kernelShadowStacks -Name "Locked" -Value 1 -Type DWord
+		Set-ItemProperty -Path $kernelShadowStacks -Name "WasEnabledBy" -Value 2 -Type DWord
+		Set-ItemProperty -Path $kernelShadowStacks -Name "ChangedInBootCycle" -Value 2 -Type DWord
+	}
+	# Credential Guard (Windows 11 only)
+	if (Test-Path $credentialGuard) {
+		Set-ItemProperty -Path $credentialGuard -Name "Enabled" -Value 1 -Type DWord
+		Set-ItemProperty -Path $credentialGuard -Name "HVCIMATRequired" -Value 1 -Type DWord
+		Set-ItemProperty -Path $credentialGuard -Name "Locked" -Value 1 -Type DWord
+		Set-ItemProperty -Path $credentialGuard -Name "WasEnabledBy" -Value 2 -Type DWord
+		Set-ItemProperty -Path $credentialGuard -Name "ChangedInBootCycle" -Value 2 -Type DWord
+	}
 	exit
 }
 
