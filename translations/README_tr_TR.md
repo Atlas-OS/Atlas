@@ -93,7 +93,7 @@ Atlas, Windows Ameliorated Takımı ile partner olup kullanıcılarına Atlas'ı
 ## 🎨 Marka kiti
 İlham mı geldi? Orijinal ve yaratıcı tasarımlarla kendi Atlas arka planını mı yapmak istiyorsun? Marka kitimiz tam da ihtiyacın olan şey! Herkes Atlas marka kitine [buradan](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) ulaşıp, muhteşem şeyler yapabilir!
 
-Ayrıca [forumumuzda](https://forum.atlasos.net/t/art-showcase), yaptığın tasarımları öbür insanlarla paylaşabilir ve hatta belki bazılarına ilham kaynağı olabilirsin! Ayrıca diğer kullanıcıların paylaştığı yaratıcı duvar kağıtlarını da burada bulabilirsin!
+Ayrıca [forumumuzda](https://forum.atlasos.net/t/art-showcase), yaptığın tasarımları başkalarıyla paylaşabilir ve onlara ilham kaynağı olabilirsin! Ayrıca diğer kullanıcıların paylaştığı yaratıcı duvar kağıtlarını da burada bulabilirsin!
 
 ## ⚠️ Disclaimer (Feragetname)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
