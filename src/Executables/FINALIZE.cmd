@@ -150,7 +150,6 @@ for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
 
 :: Debloat 'Send To' context menu, hidden files do not show up in the 'Send To' context menu
-attrib +h "C:\Users\!loggedinUsername!\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 attrib +h "C:\Users\!loggedinUsername!\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
 attrib +h "C:\Users\!loggedinUsername!\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
 

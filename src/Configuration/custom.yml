@@ -4,6 +4,8 @@ description: Runs all of the playbook files
 privilege: TrustedInstaller
 actions: []
 features:
+  # Configure PowerShell first so that other PowerShell scripts work
+  - tweaks\qol\config-powershell.yml
   - atlas\start.yml
   - atlas\services.yml
   - atlas\appx.yml
