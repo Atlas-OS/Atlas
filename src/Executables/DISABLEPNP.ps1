@@ -3,6 +3,7 @@ $devices = @(
 	"AMD PSP",
 	"AMD SMBus",
 	"Base System Device",
+	"*Bluetooth*",
 	"Composite Bus Enumerator",
 	"Direct memory access controller"
 	"High precision event timer",

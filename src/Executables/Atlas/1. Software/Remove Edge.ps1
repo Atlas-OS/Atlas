@@ -10,6 +10,21 @@ function PauseNul ($message = "Press any key to continue... ") {
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
 }
 
+# removing Edge Chromium & WebView is meant to be compatible with TrustedInstaller for AME Wizard
+# running the uninstaller as TrustedInstaller causes shortcuts and other things not to be removed properly
+function RunAsScheduledTask {
+	[CmdletBinding()]
+	param (
+		[String]$Command
+	)
+	$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
+	$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument "/c $Command"
+	$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+	$title = "RemoveEdge $(Get-Random -minimum 9999999999)"
+	Register-ScheduledTask -TaskName $title -Action $action -Settings $settings -User $user -RunLevel Highest -Force | Start-ScheduledTask | Out-Null
+	Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
+}
+
 function RemoveEdgeChromium {
 	[CmdletBinding()]
 	param (
@@ -105,19 +120,14 @@ function UninstallAll {
 	}
 }
 
+# AppX is not removed as it's handled by AME Wizard
 if ($Setup) {
-	if ((whoami /user) -like "*S-1-5-18*") {
-		$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
-		$action = New-ScheduledTaskAction -Execute "$env:windir\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument '-NoP -EP Unrestricted -WindowStyle Hidden -File "C:\Users\Default\Desktop\Atlas\1. Software\Remove Edge.ps1" -Setup'
-		$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-		$title = "RemoveEdge $(Get-Random -minimum 9999999999)"
-		Register-ScheduledTask -TaskName $title -Action $action -Settings $settings -User $user -RunLevel Highest -Force | Start-ScheduledTask | Out-Null
-		# Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
-		exit
-	}
 	$removeData = $true
-	$removeWebView = $true
-	UninstallAll
+	Write-Warning "Uninstalling Edge Chromium..."
+	RemoveEdgeChromium -AsTask
+	Write-Warning "Uninstalling Edge WebView..."
+	RemoveWebView -AsTask
+	Write-Warning "The AppX Edge needs to be removed by AME Wizard..."
 	exit
 }
 

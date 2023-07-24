@@ -65,6 +65,20 @@ actions:
   # - !systemPackage: {name: 'Microsoft-Windows-EnhancedStorage-EhStorTcgDrv', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-EnhancedStorage-EhStorTcgDrv', arch: wow64, language: 'neutral'}
 
+  ## Microsoft Edge (does not remove Edge Chromium, see EDGE.cmd)
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-Angle', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-AXHost', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-EdgeContent', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-EdgeManager', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-MicrosoftEdgeBCHost', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-MicrosoftEdgeCP', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-MicrosoftEdgeDevTools', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-MicrosoftEdgeEnlightenment', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-MicrosoftEdgeEnlightenment', arch: wow64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-Edge-MicrosoftEdgeSH', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-MicrosoftEdgeDevToolsClient.AppxMain', arch: amd64, language: 'neutral'}
+  - !systemPackage: {name: 'Microsoft-Windows-MicrosoftEdgeDevToolsClient.AppxSetup', arch: amd64, language: 'neutral'}
+
   ## Parental Controls
   # - !systemPackage: {name: 'Microsoft-Windows-AppModel-FamilySafety-Extension', arch: amd64, language: 'neutral'}
   # - !systemPackage: {name: 'Microsoft-Windows-AppModel-FamilySafety-Extension', arch: wow64, language: 'neutral'}
