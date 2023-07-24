@@ -1,0 +1,10 @@
+---
+title: Cleanup Temporary Files
+description: Cleans up temporary files using Disk Cleanup (if no other installs of Windows are found)
+privilege: TrustedInstaller
+actions:
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File CLEANUP.ps1'
+    exeDir: true
+    wait: true

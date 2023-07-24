@@ -151,6 +151,9 @@ $Form.Controls.Add((generate_checkbox "Kaspersky Anti-Virus" "kav"))
 # https://community.chocolatey.org/packages/microsoft-windows-terminal
 $Form.Controls.Add((generate_checkbox "Windows Terminal" "microsoft-windows-terminal"))
 
+# https://community.chocolatey.org/packages/waterfox
+$Form.Controls.Add((generate_checkbox "Waterfox" "waterfox"))
+
 if ($global:column -ne 0) {
     $global:lastPos += $separate
 }

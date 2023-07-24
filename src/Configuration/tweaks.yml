@@ -15,11 +15,6 @@ features:
   
   # ----------------------- END NOTES ----------------------- #
   
-  # Configure PowerShell first so that other PowerShell scripts work
-  - tweaks\qol\config-powershell.yml
-  # User prompts - customize the install
-  - tweaks\statuses\status-prompts.yml
-  - tweaks\scripts\script-prompts.yml
   # NGEN - PowerShell optimization
   - tweaks\statuses\status-ngen.yml
   - tweaks\scripts\script-ngen.yml
@@ -331,7 +326,6 @@ features:
   - tweaks\debloat\legacy-photo-viewer.yml
   - tweaks\debloat\prevent-edge-update.yml
   - tweaks\debloat\scheduled-tasks.yml
-  - tweaks\debloat\cleanup-temp-files.yml
 
   # -----------------------------------------------------
   #                        Scripts                       
@@ -343,7 +337,10 @@ features:
   # -----------------------------------------------------
   - tweaks\statuses\status-scripts.yml
   - tweaks\scripts\script-storage-sense.yml
+  - tweaks\scripts\script-core-isolation.yml
+  - tweaks\scripts\script-mitigations.yml
   - tweaks\scripts\script-devices.yml
+  - tweaks\scripts\script-cleanup.yml
   - tweaks\scripts\script-startmenu.yml
   - tweaks\scripts\script-pfp.yml
   - tweaks\scripts\script-wallpaper.yml
