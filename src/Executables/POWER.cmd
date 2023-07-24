@@ -3,8 +3,7 @@ setlocal EnableDelayedExpansion
 
 :: Detect if user uses laptop device or personal computer
 for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"
-set "DEVICE_TYPE=PC"
-for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "DEVICE_TYPE=LAPTOP")
+for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "DEVICE_TYPE=LAPTOP") else (set "DEVICE_TYPE=PC")
 
 :: Disable Hibernation and Fast Startup
 :: Disabling makes NTFS accessable outside of Windows
