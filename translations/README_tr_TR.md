@@ -29,9 +29,9 @@
 
 ## 🤔 **Atlas nedir?**
 
-Atlas Windows 10'un düzenlenmiş, oyun performansını olumsuz etkileyen tüm bileşenlerin kaldırılmış bir halidir. Atlas, performansa odaklanırken ayrıca; sistem gecikmesi, ağ gecikmesi, giriş gecikmesi (input lag) ve sistem güvenliği için de iyi bir seçenektir. Atlas hakkında daha fazla bilgiyi [sitemizden](https://atlasos.net) öğrenebilirsiniz.
+Atlas, Windows'un oyun performansını olumsuz etkileyen neredeyse tüm dezavantajlarını ortadan kaldıran bir Windows düzenlemesidir. Atlas, performansa odaklanmasının yanı sıra; sistem gecikmesi, ağ gecikmesi, girdi gecikmesi (input lag) ve sistem güvenliği için de iyi bir seçenektir. Atlas hakkında daha fazla bilgiyi [sitemizden](https://atlasos.net) öğrenebilirsiniz.
 
-## 📚 **İçerik tablosu**
+## 📚 **İçindekiler tablosu**
 
 - [Contribution Guidelines](https://docs.atlasos.net/contributions)
 
@@ -50,50 +50,50 @@ Atlas Windows 10'un düzenlenmiş, oyun performansını olumsuz etkileyen tüm b
 
 ## 👀 **Neden Atlas?**
 
-### 🔒 Daha gizlilik odaklı
-Stok Windows sizin bilgilerinizi toplayan ve Microsoft'a gönderen servisler içerir.
-Atlas Windows'a gömülü bir şekilde gelen bilgi toplama servislerinin hepsini kaldırır ve grup ilkeleri ile bilgi toplamayı en aza çekmeyi amaçlar.
+### 🔒 Daha gizli
+Stok Windows, verilerinizi toplayan ve Microsoft'a gönderen izleme hizmetleri içerir. Atlas, Windows'a gömülü tüm izleme hizmetlerini kaldırır ve veri toplamayı en aza indirmek için çok sayıda grup ilkesi uygular.
 
-Atlas'ın Windows'un kontrolünde olmayan şeylerde (tarayıcılar ve üçüncü parti uygulamalar gibi) güvenliğinizi sağlayamayacağını unutmayın.
+Atlas'ın Windows kapsamı dışındaki şeyler (tarayıcılar ve üçüncü taraf uygulamalar gibi) için güvenlik sağlayamayacağını unutmayın.
 
-### 🛡️ Daha güvenli (öbür düzenlenmiş Windows ISO'larına göre)
-İnternetten düzenlenmiş bir Windows ISO'su indirmek riskli bir şey. İnsanlar Windows ile birlikte gelen çalıştırılabilir dosyalara kötü amaçlı kod eklemekle kalmayıp, ayrıca Windows'un son güvenlik güncellemelerini içermeyip bilgisayarınızı ciddi risk altına sokabilir.
+### 🛡️ Daha güvenli (diğer düzenlenmiş Windows ISO'larına göre)
+İnternetten düzenlenmiş bir Windows ISO'su indirmek risklidir. İnsanlar Windows ile birlikte gelen çalıştırılabilir dosyalara kötü amaçlı kod eklemekle kalmayıp, ayrıca bu  Windows sürümleri son güvenlik güncellemelerini içermeyip bilgisayarınızı ciddi risk altına sokabilir.
 
-Atlas diğerlerinden farklı. Atlas'ı yüklemek için [AME Wizard](https://ameliorated.io) kullanıyoruz, ve kullandığımız bütün scriptler burada, GitHub'da açık kaynaklı bir şekilde bulunmakta. Atlas playbook'unu (`.apbx` - AME Wizard script package) kendiniz `malte` şifresi (AME Wizard playblookları için standart) ile inceleyebilirsiniz. Şifre koymamızın nedeni antivirüslerin yanlış sonuç vermemesi.
+Atlas diğerlerinden farklıdır. Atlas'ı yüklemek için [AME Wizard](https://ameliorated.io) kullanıyoruz, ve kullandığımız bütün scriptler burada, GitHub'da açık kaynaklı bir şekilde bulunmakta. Atlas playbook'unu (`.apbx` - AME Wizard script package) kendiniz `malte` şifresi (AME Wizard playblookları için standart) ile inceleyebilirsiniz. Şifre koymamızın nedeni antivirüslerin yanlış sonuç vermemesi.
 
-Playbook'un içindeki çalıştırılabilir dosyalar [burada](https://github.com/Atlas-OS/Atlas-Utilities) [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE) lisansıyla açık kaynaklı, hashleri aynı bir şekilde mevcut. Geri kalan her şey düz metin halinde.
+Playbook'un içindeki çalıştırılabilir dosyalar [burada](https://github.com/Atlas-OS/Atlas-Utilities) [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE) lisansıyla açık kaynaklıdır ve  hashleri yayınlanan sürümlerle aynıdır. Geri kalan her şey düz metin halindedir.
 
 Ayrıca Atlas'ı yüklemeden önce en son güvenlik güncellemelerini yükleyebilirsiniz, ki sisteminizi güvenli tutmak için öneriyoruz.
 
-Atlas v0.2.0 ile Atlas şu an **düzenlenmemiş bir Windows kadar güvenli değil**. Bunun sebebi kaldırılan/kapatılan özellikler, Windows Defender'ın kaldırılması gibi. Ancak Atlas v0.3.0 ile çoğu özellik isteğe bağlı olarak geri dönecek. Daha fazla bilgi için [burayı](https://docs.atlasos.net/troubleshooting/removed-features/) inceleyebilirsiniz.
+Mevcut Atlas v0.2.0 sürümünün, Windows Defender gibi güvenlik özelliklerinin kaldırılması/devre dışı bırakılması nedeniyle **stok Windows kadar güvenli olmadığını** unutmayın. Ancak Atlas v0.3.0'da bunların çoğu isteğe bağlı özellikler olarak geri eklenecektir. Daha fazla bilgi için [burayı](https://docs.atlasos.net/troubleshooting/removed-features/) inceleyebilirsiniz.
 
-### 🚀 Daha fazla alan
-Hazır gelen uygulamalar ve diğer önemsiz bileşenler Atlas'da kaldırıldı. Uyumluluk sorunlarına nazaran, indirdiğiniz boyutu önemli ölçüde düşürüyor ve sisteminizi daha akıcı yapıyor. Bu nedenle bazı özellikler (Windows Defender gibi) komple kaldırıldı.
+### 🚀 Daha fazla depolama
+Önyüklü uygulamalar ve diğer önemsiz bileşenler Atlas'da kaldırıldı. Bu, uyumluluk sorunlarına neden olabileceği gibi, yükleme boyutunu önemli ölçüde azaltır ve sisteminizi daha akıcı hale getirir. Bu nedenle bazı özellikler (Windows Defender gibi) komple kaldırıldı.
+
 Kaldırdığımız bütün özellikleri öğrenmek için [SSS](https://docs.atlasos.net/troubleshooting/removed-features)'ı kontrol edin.
 
 ### ✅ Daha fazla performans
-İnternette dolaşan bazı düzenlenmiş sistemler Windows'u o kadar düzenliyor ki, önemli olan Bluetooth, Wi-Fi gibi özelliklerin uyumluluğunu bozuyorlar. Atlas tam ortasını, iyi bir performans alırken iyi seviyede bir uyumluluk da hedefliyor.
+İnternetteki bazı sistemler Windows'u gereğinden fazla düzenleyerek, Wi-Fi ve benzeri ana özelliklerin uyumluluğunu bozar. Atlas tam da bu noktada, hem uyumluluğu korurken hem de daha fazla performans vermeyi amaçlıyor.
 
 Windows'u geliştirmek için yaptığımız bazı değişiklikler:
 - Kişiselleştirilmiş güç planı
 - Azaltılmış hizmet ve sürücü miktarı
-- Özel ses devre dışı bırakıldı
+- Özel kullanım modu (ses) devre dışı bırakıldı
 - Gereksiz cihazlar devre dışı bırakıldı
-- Pil koruma devre dışı bırakıldı (bilgisayarlar için)
-- Performansa olumsuz etki eden güvenlik hafifletmeleri devre dışı bırakıldı
-- Bütün cihazlarda MSI modu otomatik olarak aktifleştirildi
+- Güç tasarrufu devre dışı bırakıldı (masaüstü bilgisayarlar için)
+- Performansa olumsuz etki eden güvenlik önlemleri devre dışı bırakıldı
+- Bütün cihazlarda MSI modu otomatik olarak etkinleştirildi
 - Optimize edilmiş önyükleme yapılandırması
 - Optimize edilmiş işlem planlaması
 
 ### 🔒 Yasal
-Çoğu düzenlenmiş Windows işletim sistemleri, bir ISO dosyasıyla paylaşılır. Bu [Microsoft'un Hizmet Şartları'nı](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) ihlal etmekle kalmayıp, yüklemek için güvenli bir yol da değildir.
+Çoğu düzenlenmiş Windows sistemleri, ISO dosyalarıyla paylaşılır. Bu [Microsoft'un Hizmet Şartları'nı](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) ihlal etmekle kalmayıp, yüklemek için güvenli bir yol da değildir.
 
-Atlas Windows Ameliorated Takımı ile partner olup kullanıcılarına Atlas'ı yüklemek için daha güvenli ve yasal bir yol, [AME Wizard'ı](https://ameliorated.io) sağladı. Bununla Atlas [Microsoft'un Hizmet Şartları'na](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) tamamen uygun.
+Atlas, Windows Ameliorated Takımı ile partner olup kullanıcılarına Atlas'ı yüklemek için daha güvenli ve yasal bir yol, [AME Wizard'ı](https://ameliorated.io) sağladı. Bununla birlikte Atlas, [Microsoft'un Hizmet Şartları'na](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) tamamen uygundur.
 
 ## 🎨 Marka kiti
-İlham mı geldi? Orijinal ve yaratıcı tasarımlarla kendi Atlas arkaplanını mı yapmak istiyorsun? Marka kitimiz tam da ihtiyacın olan şey! Herkes Atlas marka kitine [buradan](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) ulaşıp, muhteşem şeyler yapabilir!
+İlham mı geldi? Orijinal ve yaratıcı tasarımlarla kendi Atlas arka planını mı yapmak istiyorsun? Marka kitimiz tam da ihtiyacın olan şey! Herkes Atlas marka kitine [buradan](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) ulaşıp, muhteşem şeyler yapabilir!
 
-Ayrıca [forumumuzda](https://forum.atlasos.net/t/art-showcase), yaptığın tasarımları öbür insanlarla paylaşabilir ve hatta belki bazılarına ilham kaynağı olabilirsin! İlham kaynağı bulamadıysan başkalarının paylaştığı arkaplanlarını da kullanabilirsin.
+Ayrıca [forumumuzda](https://forum.atlasos.net/t/art-showcase), yaptığın tasarımları başkalarıyla paylaşabilir ve ilham kaynağı olabilirsin! Diğer kullanıcıların paylaştığı yaratıcı duvar kağıtlarını da burada bulabilirsin!
 
 ## ⚠️ Disclaimer (Feragetname)
 https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
@@ -101,3 +101,4 @@ https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 ## Translation contributors (Çeviriye katkıda bulunanlar)
 [imribiy](https://github.com/imribiy) | 
 [Anceph](https://github.com/Anceph)
+[P1ns](https://github.com/p1ns)
