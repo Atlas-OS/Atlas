@@ -24,7 +24,6 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Di
 
 :: Set default mitigations
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /f > nul 2>&1
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /f > nul 2>&1
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /f > nul 2>&1
 
 :: Set Virtualization Based Protection Of Code Integrity to default
