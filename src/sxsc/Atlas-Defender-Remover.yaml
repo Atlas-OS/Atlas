@@ -1,0 +1,188 @@
+copyright: Atlas (GPLv3)
+package: Atlas-NoDefender-Package
+target_arch: amd64
+version: 3.0.0.0
+updates:
+    # Defender Anti-Malware
+  - target_component: Security-Malware-Windows-Defender
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-AM-Default-Definitions-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-AM-Engine
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-AM-Sigs
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+
+    # Application Guard
+  - target_component: Windows-Defender-ApplicationGuard-Inbox-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-ApplicationGuard-Inbox-Deployment-LanguagePack
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-ApplicationGuard-Inbox-WOW64-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-ApplicationGuard-Inbox-WOW64-Deployment-LanguagePack
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+
+    # Defender Branding
+  - target_component: Windows-Defender-Branding
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Branding
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Branding.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Branding.Resources
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+
+    # Defender Events
+  - target_component: Windows-Defender-Events
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Events
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Events.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Events.Resources
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Global-Config
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+
+    # Defender Group Policy
+  - target_component: Windows-Defender-Group-Policy
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Group-Policy.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Group-Policy-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Group-Policy-Deployment-LanguagePack
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+
+    # Defender Management
+  - target_component: Windows-Defender-Management-MDM
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Management-Onecore
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Management-Onecore.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Management-Powershell
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Management-Powershell
+    target_arch: x86
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Management-V1
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DeviceManagement-CspDefinition-Defender
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DeviceManagement-PolicyDefinition-ADMXWindowsDefender
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DeviceManagement-PolicyDefinition-Defender
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DeviceManagement-PolicyDefinition-DefenderSecCenter
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+
+    # Defender Offline
+  - target_component: Windows-Defender-Offline-Amcore
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Offline-Amcore.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Offline-Onecore
+    target_arch: amd64
+
+    # Defender services/drivers
+  - target_component: Windows-Defender-Service
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Service
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Service.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Service.Resources
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Service-MpClientEtw
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Service-MpClientEtw
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Service-MpRtpEtw
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Service-MpSvcEtw
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Nis-Drivers
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Nis-Service
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Drivers
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Drivers-Backup
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-Drivers-NisDrvWfpEtw
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+
+    # Defender UI
+  - target_component: Windows-Defender-UI
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-UI
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-UI.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-UI.Resources
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+
+    # Windows Defender Advanced Threat Protection Service (Sense)
+  - target_component: Microsoft-Windows-SenseClient-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-SenseClient-MDM
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-SenseClient-Service
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-SenseClient-Service.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
