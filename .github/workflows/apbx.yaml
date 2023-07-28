@@ -19,13 +19,13 @@ jobs:
           ref: ${{ github.ref }}
 
       - name: Validate YAML files
-        run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/.'
+        run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/playbook/.'
 
       - name: Configure playbook
         id: config-playbook
         if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
         run: |
-          cd src
+          cd src/playbook
           echo "Making playbook display as unverified (remove ProductCode) so that it is not marked as malicious..."
           sed -i '/<ProductCode>/d' playbook.conf
           echo "Change description of playbook..."
@@ -33,16 +33,16 @@ jobs:
       - name: Create playbook (ZIP/APBX password is malte)
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
         run: |
-          cd src
+          cd src/playbook
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
-          zip -r -P malte "Atlas Playbook ${GITHUB_SHA::8}.apbx" . -x "Release ZIP/*" "local-build.cmd"
+          zip -r -P malte "Atlas Playbook ${GITHUB_SHA::8}.apbx" . -x "local-build.cmd"
           echo "Move the .abpx playbook into the 'Release ZIP' to be released as an artifact with the additional files..."
-          mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "Release ZIP"
+          mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "../release-zip"
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
         with:
           name: Atlas Playbook
           path: |
-            src/Release ZIP/*
+            src/release-zip/*
           if-no-files-found: error
