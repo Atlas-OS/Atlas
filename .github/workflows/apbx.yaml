@@ -37,7 +37,7 @@ jobs:
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
           zip -r -P malte "Atlas Playbook ${GITHUB_SHA::8}.apbx" . -x "local-build.cmd"
           echo "Move the .abpx playbook into the 'Release ZIP' to be released as an artifact with the additional files..."
-          mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "..\release-zip"
+          mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "../release-zip"
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
