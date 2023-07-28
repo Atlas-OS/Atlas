@@ -19,7 +19,7 @@ $removeProductCode = $true
 # script #
 # ------ #
 
-$excludeFiles = @("local-build.cmd", "Release ZIP", "playbook.conf")
+$excludeFiles = @("local-build.cmd", "playbook.conf")
 $apbxFileName = "$fileName.apbx"
 # playbook that is modified for removing requirements
 $tempPlaybook = "$env:temp\playbook.conf"
