@@ -33,7 +33,7 @@ jobs:
       - name: Create playbook (ZIP/APBX password is malte)
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
         run: |
-          cd src/release-zip
+          cd src/playbook
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
           zip -r -P malte "Atlas Playbook ${GITHUB_SHA::8}.apbx" . -x "local-build.cmd"
           echo "Move the .abpx playbook into the 'Release ZIP' to be released as an artifact with the additional files..."
