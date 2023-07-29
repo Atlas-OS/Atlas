@@ -117,6 +117,7 @@ updates:
     version: 38655.38527.65535.65535
   - target_component: Windows-Defender-Offline-Onecore
     target_arch: amd64
+    version: 38655.38527.65535.65535
 
     # Defender services/drivers
   - target_component: Windows-Defender-Service
