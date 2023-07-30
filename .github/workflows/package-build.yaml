@@ -1,0 +1,76 @@
+name: Build CBS Packages
+
+on:
+  push:
+    paths:
+      - 'src/sxsc/*.yaml'
+  pull_request:
+    paths:
+      - 'src/sxsc/*.yaml'
+
+jobs:
+  package-build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 2
+
+      - name: Clone the sxsc repository
+        run: |
+          git clone --depth=1 https://github.com/Atlas-OS/sxsc
+        shell: cmd
+        working-directory: ..
+
+      - name: Copy modified .yaml configs
+        run: |
+          $configs = "..\sxsc\configs"
+          mkdir $configs -EA SilentlyContinue | Out-Null
+
+          $files = git diff-tree --no-commit-id --name-only -r HEAD | Where-Object { $_ -like "src/sxsc/*.yaml" }
+          
+          if ($files -eq $null) {Write-Host "No changes to the CBS packages were found!" -ForegroundColor Red; exit 1}
+          foreach ($file in $files) {
+              Write-Output "Copying: $file"
+              Copy-Item $file $configs -Force
+          }
+
+      - name: Build CAB
+        run: |
+          Write-Host "Installing dependencies..."
+          pip install -r requirements.txt | Out-Null
+
+          $packagePath = "..\Atlas\src\playbook\Executables\AtlasModules\Packages"
+          mkdir $packagePath -EA SilentlyContinue | Out-Null
+          Get-ChildItem -Recurse "configs" -Filter *.yaml | ForEach-Object {
+              Write-Host "`nProcessing $($_.Name)`n------------------------------------------------------"
+              Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
+
+              Write-Host "Generating package files..."
+              python sxs.py
+              if ($LASTEXITCODE -ne 0) { exit 1 }
+
+              Write-Host "Building package..."
+              .\build.bat
+
+              Write-Host "Copying package to AtlasModules..."
+              Get-ChildItem -File -Recurse -Filter *.cab | ForEach-Object {
+                  Copy-Item -Path $_.FullName -Destination $packagePath -Force
+              }
+
+              Write-Host "Cleaning up..."
+              .\clean.bat
+          }
+        working-directory: ..\sxsc
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
+          git push
+        working-directory: src\playbook\Executables\AtlasModules\Packages
