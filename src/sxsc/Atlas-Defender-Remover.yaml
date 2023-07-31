@@ -1,5 +1,5 @@
 copyright: Atlas (GPLv3)
-package: Atlas-NoDefender-Package
+package: Z-Atlas-NoDefender-Package
 target_arch: amd64
 version: 3.0.0.0
 updates:
