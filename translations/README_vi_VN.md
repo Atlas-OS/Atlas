@@ -31,7 +31,7 @@
 ## 🤔 **Atlas là gì?**
 
 Atlas là một công cụ tinh chỉnh cho Windows, loại bỏ hầu như tất cả những nhược điểm của Windows làm ảnh hưởng tới hiệu năng chơi game.
-Ngoài ra, Atlas còn là một lựa chọn tốt để giảm độ trễ của hệ thống, mạng, đầu vào và giữ cho hệ thống của bạn bảo mật trong khi tập trung vào hiệu năng.
+Ngoài ra, Atlas còn là một lựa chọn tốt để giảm độ trễ của hệ thống, mạng, đầu vào và giữ cho hệ thống của bạn bảo mật trong khi tệp trung vào hiệu năng.
 Bạn có thể tìm hiểu thêm về Atlas trên [trang web chính thức của chúng tôi](https://atlasos.net).
 
 ## 📚 **Mục lục**
@@ -45,7 +45,7 @@ Bạn có thể tìm hiểu thêm về Atlas trên [trang web chính thức củ
 
 - Xử lý sự cố
   - [Những tính năng đã bị loại bỏ](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Các tập lệnh](https://docs.atlasos.net/troubleshooting/scripts)
+  - [Các tệp lệnh](https://docs.atlasos.net/troubleshooting/scripts)
 
 - Các câu hỏi thường gặp (FAQ)
   - [Atlas](https://atlasos.net/faq)
@@ -62,7 +62,7 @@ Lưu ý rằng chúng tôi không thể đảm bảo việc bảo mật cho nh�
 ### 🛡️ Bảo mật hơn (những ISO Windows đã được tuỳ chỉnh)
 Việc tải xuống một ISO đã được tuỳ chỉnh từ internet khá rủi ro. Ngoài việc mọi người có thể dễ dàng thêm mã độc và thay đổi những thành phần được đi cùng với Windows, nó còn có thể không có những bản vá bảo mật mới nhất khiến máy tính của bạn gặp những rủi ro bảo mật nghiêm trọng.
 
-Atlas thì khác. Chúng tôi sử dụng [AME Wizard](https://ameliorated.io) để cài đặt, và tất cả các tập lệnh được sử dụng đều có mã nguồn mở tại kho lưu trữ này của chúng tôi. Bạn có thể xem playbook Atlas đã được đóng gói (`.apbx` - gói tập lệnh AME Wizard) như là một tập tin nén, với mật khẩu là `malte` (mật khẩu mặc định cho các playbook của AME Wizard), với mục đích chỉ để vượt qua những phát hiện giả của các trình diệt virus.
+Atlas thì khác. Chúng tôi sử dụng [AME Wizard](https://ameliorated.io) để cài đặt, và tất cả các tệp lệnh được sử dụng đều có mã nguồn mở tại kho lưu trữ này của chúng tôi. Bạn có thể xem playbook Atlas đã được đóng gói (`.apbx` - gói tệp lệnh AME Wizard) như là một tệp tin nén, với mật khẩu là `malte` (mật khẩu mặc định cho các playbook của AME Wizard), với mục đích chỉ để vượt qua những phát hiện giả của các trình diệt virus.
 
 Những tệp thực thi được đưa vào trong playbook đều có mã nguồn mở [tại đây](https://github.com/Atlas-OS/Atlas-Utilities) dưới [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE), với các giá trị băm giống với các bản phát hành. Mọi thứ khác đều ở dạng văn bản thuần túy.
 
@@ -89,7 +89,7 @@ Một số thay đổi mà chúng tôi đã làm để cải thiện Windows có
 - Tối ưu lên lịch tiến trình
 
 ### 🔒 Tính pháp lý
-Rất nhiều phiên bản Windows được tuỳ chỉnh phân phối phiên bản của họ bằng cách đưa ra cho người dùng một tập tin ISO Windows đã bị chỉnh sửa. Nó không chỉ vi phạm [Điều khoản dịch vụ của Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), mà nó cũng không phải là cách an toàn để cài đặt.
+Rất nhiều phiên bản Windows được tuỳ chỉnh phân phối phiên bản của họ bằng cách đưa ra cho người dùng một tệp tin ISO Windows đã bị chỉnh sửa. Nó không chỉ vi phạm [Điều khoản dịch vụ của Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), mà nó cũng không phải là cách an toàn để cài đặt.
 
 Atlas đã hợp tác với nhóm Windows Ameliorated để đưa ra cho người dùng một cách hợp pháp và an toàn hơn cho việc cài đặt, sử dụng [AME Wizard](https://ameliorated.io). Bằng cách này, Atlas hoàn toàn tuân thủ [Điều khoản dịch vụ của Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
