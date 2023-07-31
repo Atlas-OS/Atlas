@@ -9,7 +9,83 @@ on:
       - 'src/**'
 
 jobs:
+  package-build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 2
+
+      - name: Check for modifications & copy .yamls
+        id: check_modifications
+        run: |
+          $files = git diff-tree --no-commit-id --name-only -r HEAD | Where-Object { $_ -like "src/sxsc/*.yaml" }
+
+          if ($files -ne $null) {
+            $changes = 'true'
+
+            $configs = "..\configs"
+            mkdir $configs | Out-Null
+
+            foreach ($file in $files) {
+                Write-Output "Copying: $file"
+                Copy-Item $file $configs -Force
+            }
+          } else {$changes = 'false'}
+          echo "CBS_CHANGES=$changes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding UTF8 -Append
+
+      - name: Clone the sxsc repository
+        id: clone_repo
+        run: |
+          git clone --depth=1 https://github.com/Atlas-OS/sxsc
+          Copy-Item -Path "configs" -Destination ".\sxsc\configs" -Recurse -Force
+        working-directory: ..
+        if: ${{ env.CBS_CHANGES == 'true' }}
+
+      - name: Build CAB
+        run: |
+          Write-Host "Installing dependencies..."
+          pip install -r requirements.txt | Out-Null
+
+          $packagePath = "..\Atlas\src\playbook\Executables\AtlasModules\Packages"
+          mkdir $packagePath -EA SilentlyContinue | Out-Null
+          Get-ChildItem -Recurse "configs" -Filter *.yaml | ForEach-Object {
+              Write-Host "`nProcessing $($_.Name)`n------------------------------------------------------"
+              Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
+
+              Write-Host "Generating package files..."
+              python sxs.py
+              if ($LASTEXITCODE -ne 0) { exit 1 }
+
+              Write-Host "Building package..."
+              .\build.bat
+
+              Write-Host "Copying package to AtlasModules..."
+              Get-ChildItem -File -Recurse -Filter *.cab | ForEach-Object {
+                  Copy-Item -Path $_.FullName -Destination $packagePath -Force
+              }
+
+              Write-Host "Cleaning up..."
+              .\clean.bat
+          }
+        working-directory: ..\sxsc
+        if: ${{ steps.clone_repo.outcome != 'skipped' }}
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
+          git push
+        working-directory: src\playbook\Executables\AtlasModules\Packages
+        if: ${{ steps.clone_repo.outcome != 'skipped' }}
+
   build:
+    needs: package-build
     runs-on: ubuntu-latest
 
     steps:
