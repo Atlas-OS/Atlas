@@ -31,7 +31,7 @@ function generate_checkbox {
         [bool]$enabled = $true
     )
     $checkbox = new-object System.Windows.Forms.checkbox
-    if($global:index -eq ($global:item_count / 2)){
+    if($global:index -eq [math]::Ceiling($global:item_count / 2)){
         $global:column = 1
         $global:lastPos = 50
     }
@@ -167,6 +167,7 @@ init_item "HWiNFO" "hwinfo"
 
 # https://community.chocolatey.org/packages/lightshot
 init_item "Lightshot" "lightshot"
+
 
 $global:item_count = $global:items.Length
 
