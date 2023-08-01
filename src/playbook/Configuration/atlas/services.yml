@@ -28,22 +28,6 @@ actions:
   - !service: {name: 'AssignedAccessManagerSvc', operation: delete}
   - !service: {name: 'RetailDemo', operation: delete}
 
-  # Defender
-  - !taskKill: {name: 'SecurityHealthSystray'}
-  - !taskKill: {name: 'SecurityHealthService'}
-  - !service: {name: 'WpcMonSvc', operation: delete}
-  - !service: {name: 'wisvc', operation: delete}
-  - !service: {name: 'Sense', operation: delete}
-  - !service: {name: 'webthreatdefusersvc*', operation: delete}
-  - !service: {name: 'webthreatdefsvc', operation: delete}
-  - !service: {name: 'UevAgentService', operation: delete}
-  - !service: {name: 'wscsvc', operation: delete}
-  - !service: {name: 'SecurityHealthService', operation: delete}
-  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\WdNisDrv'}
-  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet001\Services\WdNisDrv'}
-  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\WdNisSvc'}
-  - !registryKey: {path: 'HKLM\SYSTEM\CurrentControlSet001\Services\WdNisSvc'}
-
   # Backup default Windows serivces & drivers
   - !run: {exe: 'BACKUP1.cmd', exeDir: true}
 
