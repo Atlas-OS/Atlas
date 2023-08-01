@@ -24,6 +24,7 @@ function init_item{
     )
     $global:items += , @($checkboxText, $package)
 }
+
 function generate_checkbox {
     param(
         [string]$checkboxText,
@@ -174,6 +175,7 @@ init_item "Sharex" "sharex"
 
 $global:item_count = $global:items.Length
 
+# Getting the index for splitting into two columns
 foreach($item in $global:items){
     if($global:index -eq ($global:item_count / 2)){
         $global:column = 1
@@ -201,6 +203,7 @@ if ($this.Text -eq "Dark Mode") {
     light_mode
 }
 })
+# Changed into functions 
 function dark_mode {
     $Form.BackColor = [System.Drawing.Color]::FromArgb(26, 26, 26)
     $Form.ForeColor = [System.Drawing.Color]::White
@@ -221,6 +224,7 @@ function light_mode {
         }
     }
 }
+# Checks the system "app" color (light or dark)
 $registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\"
 $keyName = "AppsUseLightTheme"
 function check_system_theme{
