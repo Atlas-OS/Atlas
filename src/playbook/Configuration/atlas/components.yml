@@ -13,32 +13,20 @@ actions:
   - !taskKill: {name: 'explorer'}
 
     # ---------- Windows Defender
-  - !writeStatus: {status: 'Removing Windows Defender'}
-  - !taskKill: {name: 'NisSrv'}
-  - !taskKill: {name: 'SecurityHealthHost'}
-  - !taskKill: {name: 'SecurityHealthService'}
-  - !taskKill: {name: 'SecurityHealthSystray'}
-  - !taskKill: {name: 'SkypeBackgroundHost'}
-  - !taskKill: {name: 'MsMpEng'}
-  - !taskKill: {name: 'msiexec'}
-  - !file: {path: 'C:\Windows\System32\smartscreen.exe'}
-  - !file: {path: 'C:\Windows\System32\SecurityHealthSystray.exe'}
-  - !file: {path: 'C:\Windows\System32\SecurityHealthService.exe'}
-  - !file: {path: 'C:\Windows\System32\SecurityHealthAgent.dll'}
-  - !file: {path: 'C:\Windows\System32\SecurityHealthHost.exe'}
-  - !file: {path: 'C:\Windows\System32\SecurityHealthSSO.dll'}
-  - !file: {path: 'C:\Windows\System32\SecurityHealthCore.dll'}
-  - !file: {path: 'C:\Windows\System32\SecurityHealthProxyStub.dll'}
-  - !file: {path: 'C:\Windows\System32\SecurityHealthUdk.dll'}
-  - !file: {path: 'C:\Program Files\Windows Defender', weight: 30}
-  - !file: {path: 'C:\ProgramData\Microsoft\Windows Defender', weight: 30}
-  - !file: {path: 'C:\Program Files (x86)\Windows Defender', weight: 30}
-  - !file: {path: 'C:\Windows\System32\drivers\WdNisDrv.sys'}
-  - !file: {path: 'C:\Program Files\Windows Defender Advanced Threat Protection'}
-  - !file: {path: 'C:\ProgramData\Microsoft\Windows Defender Advanced Threat Protection'}
-
+  - !writeStatus: {status: 'Removing Windows Defender', option: 'defender-disable'}
+  - !writeStatus: {status: 'Configuring Windows Defender', option: 'defender-disable'}
+  - !run:
+    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Toggle Defender.cmd'
+    args: '-Disable'
+    wait: true
+    option: 'defender-disable'
+  - !run:
+    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Toggle Defender.cmd'
+    args: '-Enable'
+    wait: true
+    option: 'defender-enable'
     # Remove Security Center startup item
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete, option: 'defender-disable'}
 
     # ---------- Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
