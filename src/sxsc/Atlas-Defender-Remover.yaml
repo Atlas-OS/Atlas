@@ -204,6 +204,14 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
 
+   # Web threat protection
+  - target_component: Microsoft-OneCore-WebThreatDefense-Adm
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DeviceManagement-PolicyDefinition-WebThreatDefense
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+
     # SmartScreen
   - target_component: Microsoft-Windows-AppRep
     target_arch: amd64
@@ -230,13 +238,5 @@ updates:
     target_arch: wow64
     version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-SmartScreen-Adm
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-
-   # Web threat protection
-  - target_component: Microsoft-OneCore-WebThreatDefense-Adm
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-DeviceManagement-PolicyDefinition-WebThreatDefense
     target_arch: amd64
     version: 38655.38527.65535.65535
