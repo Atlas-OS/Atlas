@@ -96,47 +96,6 @@ actions:
   - !systemPackage: {name: 'Microsoft-Windows-LockAppHost-LockHostingFramework', arch: amd64, language: 'neutral'}
   - !systemPackage: {name: 'Microsoft-Windows-LockAppHost', arch: amd64, language: 'neutral'}
 
-  ## SmartScreen
-  - !systemPackage: {name: 'Microsoft-Windows-AppRep-ChxApp.appxmain', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-AppRep-ChxApp.appxsetup', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-AppRep', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-AppRep', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-DeviceManagement-PolicyDefinition-SmartScreen', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-SmartScreen-Adm', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-SmartScreen', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-SmartScreen', arch: wow64, language: 'neutral'}
-
-  ## Windows Defender
-  - !systemPackage: {name: 'Windows-Defender-AM-Default-Definitions-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  ## Removing AM-Engine caused updates failed message during restart
-  - !systemPackage: {name: 'Windows-Defender-AM-Default-Definitions-Deployment', arch: amd64, language: 'neutral', excludeDependents: ['Windows-Defender-AM-Engine']}
-  - !systemPackage: {name: 'Windows-Defender-AppLayer-Group-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Windows-Defender-AppLayer-Group-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-ApplicationGuard-Inbox-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Windows-Defender-ApplicationGuard-Inbox-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-ApplicationGuard-Inbox-WOW64-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Windows-Defender-ApplicationGuard-Inbox-WOW64-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Branding', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Core-Group-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Windows-Defender-Core-Group-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Events', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Group-Policy-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Windows-Defender-Group-Policy-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Management-Group-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Windows-Defender-Management-Group-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Management-MDM-Group-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Windows-Defender-Management-MDM-Group-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Management-Powershell-Group-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Windows-Defender-Management-Powershell-Group-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Management-Powershell', arch: x86, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Nis-Group-Deployment-LanguagePack', arch: amd64, language: 'en-US'}
-  - !systemPackage: {name: 'Windows-Defender-Nis-Group-Deployment', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Service-MpClientEtw', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-Service', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Windows-Defender-UI', arch: wow64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-SecHealthUI.AppxMain', arch: amd64, language: 'neutral'}
-  - !systemPackage: {name: 'Microsoft-Windows-SecHealthUI.AppxSetup', arch: amd64, language: 'neutral'}
-
   ## AllJoyn Router
   ## Not stripped just in case for IoT apps
   # - !systemPackage: {name: 'Microsoft-Windows-AllJoyn-Api', arch: amd64, language: 'neutral'}
