@@ -61,7 +61,7 @@ $Form.ShowIcon = $false
 $Form.MaximizeBox = $false
 $Form.MinimizeBox = $false
 $Form.Size = New-Object System.Drawing.Size(600, 210)
-$Form.AutoSizeMode = 1
+$Form.AutoSizeMode = 0
 $Form.KeyPreview = $True
 $Form.SizeGripStyle = 2
 
