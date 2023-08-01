@@ -171,6 +171,7 @@ init_item "Lightshot" "lightshot"
 # https://community.chocolatey.org/packages/sharex
 init_item "Sharex" "sharex"
 
+
 $global:item_count = $global:items.Length
 
 foreach($item in $global:items){
@@ -191,7 +192,6 @@ $Form.height = $global:lastPos + 80
 $ToggleBtn = New-Object System.Windows.Forms.Button
 $ToggleBtn.Location = New-Object System.Drawing.Point(500, 20)
 $ToggleBtn.Size = New-Object System.Drawing.Size(80, 23)
-$ToggleBtn.Text = "Dark Mode"
 $ToggleBtn.Add_Click({
 if ($this.Text -eq "Dark Mode") {
     $this.Text = "Light Mode"
@@ -226,6 +226,11 @@ $keyName = "AppsUseLightTheme"
 function check_system_theme{
     if(((Get-ItemProperty -Path $registryPath -Name $keyName).$keyName) -eq 0){
         dark_mode
+        $ToggleBtn.Text = "Light Mode"
+    }
+    else{
+        light_mode
+        $ToggleBtn.Text = "Dark Mode"
     }
 }
 check_system_theme
