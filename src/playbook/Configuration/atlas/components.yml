@@ -20,13 +20,8 @@ actions:
     args: '-Disable'
     wait: true
     option: 'defender-disable'
-  - !run:
-    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Toggle Defender.cmd'
-    args: '-Enable'
-    wait: true
-    option: 'defender-enable'
     # Remove Security Center startup item
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete, option: 'defender-disable'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
     # ---------- Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
