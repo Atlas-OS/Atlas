@@ -326,6 +326,7 @@ features:
   - tweaks\debloat\legacy-photo-viewer.yml
   - tweaks\debloat\prevent-edge-update.yml
   - tweaks\debloat\scheduled-tasks.yml
+  - tweaks\debloat\hide-unused-security-pages.yml
 
   # -----------------------------------------------------
   #                        Scripts                       
