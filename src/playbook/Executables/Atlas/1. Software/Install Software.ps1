@@ -60,7 +60,7 @@ $Form.ShowIcon = $false
 $Form.MaximizeBox = $false
 $Form.MinimizeBox = $false
 $Form.Size = New-Object System.Drawing.Size(600, 210)
-$Form.AutoSizeMode = 0
+$Form.AutoSizeMode = 1
 $Form.KeyPreview = $True
 $Form.SizeGripStyle = 2
 
@@ -168,6 +168,8 @@ init_item "HWiNFO" "hwinfo"
 # https://community.chocolatey.org/packages/lightshot
 init_item "Lightshot" "lightshot"
 
+# https://community.chocolatey.org/packages/sharex
+init_item "Sharex" "sharex"
 
 $global:item_count = $global:items.Length
 
