@@ -75,8 +75,6 @@ features:
   - tweaks\performance\config-mmcss.yml
   - tweaks\performance\disable-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
-  - tweaks\performance\disable-perf-track.yml
-  - tweaks\performance\disable-rsop-logging.yml
   - tweaks\performance\extend-cache.yml
   - tweaks\performance\no-search-invalid-shortcuts.yml
 
@@ -114,7 +112,9 @@ features:
   - tweaks\privacy\disable-lockscreen-camera.yml
   - tweaks\privacy\disable-online-speech-recognition.yml
   - tweaks\privacy\disable-pca.yml
+  - tweaks\privacy\disable-perf-track.yml
   - tweaks\privacy\disable-privacy-experience.yml
+  - tweaks\privacy\disable-rsop-logging.yml
   - tweaks\privacy\disable-speech-auto-updates.yml
   - tweaks\privacy\disable-tailored-experiences.yml
   - tweaks\privacy\disable-user-tracking.yml
@@ -261,7 +261,7 @@ features:
   - tweaks\qol\shell\disable-notifications.yml
   - tweaks\qol\shell\disable-shared-experiences.yml
   # This is easier for some people to use shortcuts
-  # instead of searching through Settings.
+  # instead of searching through Settings
   # - tweaks\qol\shell\notification-quick-settings.yml
   - tweaks\qol\shell\old-alt-tab.yml
   
@@ -305,7 +305,8 @@ features:
   # This account should be deleted after OOBE
   # - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
-  # No longer needed as Atlas only runs on new Windows versions
+  # Not needed on modern versions of Windows
+  # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
   # - tweaks\security\strong-dotnet-crypto.yml
 
   # -----------------------------------------------------

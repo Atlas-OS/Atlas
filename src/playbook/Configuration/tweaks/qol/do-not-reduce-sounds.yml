@@ -1,6 +1,6 @@
 ---
 title: Do Not Reduce Sounds While in a Call
-description: Makes it so that Windows does not reduce sounds in a call for QoL, as people generally wouldn't want this behaviour
+description: Makes it so that Windows does not reduce sounds in a call for QoL, as people generally wouldn't want this behavior
 privilege: TrustedInstaller
 actions:
   - !registryValue:

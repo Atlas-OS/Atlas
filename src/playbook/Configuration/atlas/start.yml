@@ -443,3 +443,4 @@ actions:
   - !file:
     path: 'C:\Windows\SoftwareDistribution'
     weight: 20
+    ignoreErrors: true
