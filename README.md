@@ -42,6 +42,7 @@
 <kbd>[<img title="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" alt="ᜆᜄᜎᜓᜄ᜔ (Wikang Tagalog)" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ph.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ph_PH.md)</kbd>
 <kbd>[<img title="Polski" alt="Polski" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/pl.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_pl_PL.md)</kbd>
 <kbd>[<img title="Português (Brasil)" alt="Português (Brasil)" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/br.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_pt_BR.md)</kbd>
+<kbd>[<img title="Português (Brasil)" alt="Português (Brasil)" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ro.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_rou_ROU.md)</kbd>
 <kbd>[<img title="Русский" alt="Русский" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ru.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ru_RU.md)</kbd>
 <kbd>[<img title="Svenska" alt="Svenska" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/se.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_sv_SE.md)</kbd>
 <kbd>[<img title="Türkçe" alt="Türkçe" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/tr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_tr_TR.md)</kbd>
