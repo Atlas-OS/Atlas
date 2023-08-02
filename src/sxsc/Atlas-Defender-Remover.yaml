@@ -186,6 +186,14 @@ updates:
   - target_component: Windows-Defender-UI.Resources
     target_arch: amd64
     version: 38655.38527.65535.65535
+    registry_keys:
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\App and Browser protection
+        perUserVirtualization: false
+        values:
+          - key: UILockdown
+            type: REG_DWORD
+            value: 1
   - target_component: Windows-Defender-UI.Resources
     target_arch: wow64
     version: 38655.38527.65535.65535
