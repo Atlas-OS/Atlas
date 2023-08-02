@@ -11,9 +11,13 @@ for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "
 powercfg /hibernate off
 
 :: Disable SleepStudy (UserNotPresentSession.etl)
-wevtutil set-log "Microsoft-Windows-SleepStudy/Diagnostic" /e:false
-wevtutil set-log "Microsoft-Windows-Kernel-Processor-Power/Diagnostic" /e:false
-wevtutil set-log "Microsoft-Windows-UserModePowerService/Diagnostic" /e:false
+for %%a in (
+    "SleepStudy"
+    "Kernel-Processor-Power"
+    "UserModePowerService"
+) do (
+    wevtutil set-log "Microsoft-Windows-%%~a/Diagnostic" /e:false
+)
 
 :: Duplicate Ultimate Performance power scheme, customize it and make it the Atlas power scheme
 powercfg /duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 11111111-1111-1111-1111-111111111111
