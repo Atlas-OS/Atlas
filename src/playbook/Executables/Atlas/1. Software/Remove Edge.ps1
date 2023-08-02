@@ -4,10 +4,26 @@ param (
 )
 
 $ProgressPreference = "SilentlyContinue"
+$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
+$SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
 
 function PauseNul ($message = "Press any key to continue... ") {
 	Write-Host $message -NoNewLine
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
+}
+
+# removing Edge Chromium & WebView is meant to be compatible with TrustedInstaller for AME Wizard
+# running the uninstaller as TrustedInstaller causes shortcuts and other things not to be removed properly
+function RunAsScheduledTask {
+	[CmdletBinding()]
+	param (
+		[String]$Command
+	)
+	$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument "/c $Command"
+	$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+	$title = "RemoveEdge $(Get-Random -minimum 9999999999)"
+	Register-ScheduledTask -TaskName $title -Action $action -Settings $settings -User $user -RunLevel Highest -Force | Start-ScheduledTask | Out-Null
+	Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
 }
 
 function RemoveEdgeChromium {
@@ -38,7 +54,7 @@ function RemoveEdgeChromium {
 	$valueName = "experiment_control_labels"
 	if (Test-Path $keyPath) {
 		$valueExists = Get-ItemProperty -Path $keyPath -Name $valueName -ErrorAction SilentlyContinue
-		if ($valueExists -ne $null) {
+		if ($null -ne $valueExists) {
 			Remove-ItemProperty -Path $keyPath -Name $valueName -Force | Out-Null
 		}
 	}
@@ -60,7 +76,7 @@ function RemoveEdgeChromium {
 	
 	# remove user data
 	if ($removeData) {
-		$path = "$env:LOCALAPPDATA\Microsoft\Edge"
+		$path = "$env:SystemDrive\Users\$user\AppData\Local\Microsoft\Edge"
 		if (Test-Path $path) {Remove-Item $path -Force -Recurse}
 	}
 }
@@ -73,8 +89,6 @@ function RemoveEdgeAppX {
 	if (Test-Path "$pattern") { reg delete "HKLM$appxStore\InboxApplications\$edgeAppXKey" /f | Out-Null }
 
 	# make the Edge AppX able to uninstall and uninstall
-	$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
-	$SID = (New-Object System.Security.Principal.NTAccount($env:USERNAME)).Translate([Security.Principal.SecurityIdentifier]).Value
 	New-Item -Path "HKLM:$appxStore\EndOfLife\$SID\Microsoft.MicrosoftEdge_8wekyb3d8bbwe" -Force | Out-Null
 	Get-AppxPackage -Name Microsoft.MicrosoftEdge | Remove-AppxPackage | Out-Null
 	Remove-Item -Path "HKLM:$appxStore\EndOfLife\$SID\Microsoft.MicrosoftEdge_8wekyb3d8bbwe" -Force | Out-Null
@@ -96,46 +110,40 @@ function RemoveWebView {
 
 function UninstallAll {
 	Write-Warning "Uninstalling Edge Chromium..."
-	RemoveEdgeChromium
-	Write-Warning "Uninstalling AppX Edge..."
-	RemoveEdgeAppx
+	if ($Setup) {RemoveEdgeChromium -AsTask} else {RemoveEdgeChromium}
+	if (!($Setup)) {
+		Write-Warning "Uninstalling AppX Edge..."
+		RemoveEdgeAppx
+	} else {Write-Warning "AppX Edge needs to be removed by AME Wizard..."}
 	if ($removeWebView) {
 		Write-Warning "Uninstalling Edge WebView..."
-		RemoveWebView
+		if ($Setup) {RemoveWebView -AsTask} else {RemoveWebView}
 	}
 }
 
+# AppX is not removed as it's handled by AME Wizard
 if ($Setup) {
-	if ((whoami /user) -like "*S-1-5-18*") {
-		$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
-		$action = New-ScheduledTaskAction -Execute "$env:windir\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument '-NoP -EP Unrestricted -WindowStyle Hidden -File "C:\Users\Default\Desktop\Atlas\1. Software\Remove Edge.ps1" -Setup'
-		$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-		$title = "RemoveEdge $(Get-Random -minimum 9999999999)"
-		Register-ScheduledTask -TaskName $title -Action $action -Settings $settings -User $user -RunLevel Highest -Force | Start-ScheduledTask | Out-Null
-		# Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
-		exit
-	}
 	$removeData = $true
 	$removeWebView = $true
 	UninstallAll
 	exit
 }
 
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-    Start-Process PowerShell "-NoProfile -ExecutionPolicy Unrestricted -File `"$PSCommandPath`"" -Verb RunAs; exit
-}
-
-if ($(whoami /user | Select-String "S-1-5-18") -ne $null) {
+if ($null -ne $(whoami /user | Select-String "S-1-5-18")) {
 	Write-Host "This script can't be ran as TrustedInstaller or SYSTEM."
 	Write-Host "Please relaunch this script under a regular admin account.`n"
 	PauseNul "Press any key to exit... "
 	exit 1
+} else {
+	if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
+		Start-Process PowerShell "-NoProfile -ExecutionPolicy Unrestricted -File `"$PSCommandPath`"" -Verb RunAs; exit
+	}
 }
 
 $removeWebView = $false
 $removeData = $true
 while (!($continue)) {
-	cls; Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.
+	Clear-Host; Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.
 Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6`n" -ForegroundColor Yellow
 
 	if ($removeWebView) {$colourWeb = "Green"; $textWeb = "Selected"} else {$colourWeb = "Red"; $textWeb = "Unselected"}
@@ -146,11 +154,11 @@ Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99
 	Write-Host "[2] Remove Edge User Data ($textData)`n" -ForegroundColor $colourData
 	Write-Host "Press enter to continue or use numbers to select options... " -NoNewLine
 	
-	$input = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+	$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 	
 	write-host "$input.VirtualKeyCode"
 	
-	switch ($input.VirtualKeyCode) {
+	switch ($userInput.VirtualKeyCode) {
 		49 { # num 1
 			$removeWebView = !$removeWebView
 		}
@@ -163,7 +171,8 @@ Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99
 	}
 }
 
-cls; UninstallAll
+Clear-Host
+UninstallAll
 
 Write-Host "`nCompleted." -ForegroundColor Green
 PauseNul "Press any key to exit... "
