@@ -47,6 +47,7 @@ actions:
     args: '-NoP -EP Unrestricted -File "C:\Users\Default\Desktop\Atlas\1. Software\Remove Edge.ps1" -Setup'
     wait: true
     option: 'uninstall-edge'
+  - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge'}
     
     # ---------- OneDrive
   - !writeStatus: {status: 'Removing OneDrive'}
