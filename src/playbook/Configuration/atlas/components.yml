@@ -10,8 +10,6 @@ actions:
   
   # ----------------------- END NOTES ----------------------- #
 
-  - !taskKill: {name: 'explorer'}
-
     # ---------- Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender'}
   - !taskKill: {name: 'NisSrv'}
@@ -287,8 +285,6 @@ actions:
   - !writeStatus: {status: 'Removing PC Health Check'}
   - !file:
     path: 'C:\Program Files\PCHealthCheck'
-
-  - !run: {exe: 'explorer.exe', wait: false}
 
     # This could be done in config.yml, however on the off-chance that
     # the Playbook fails or the system shuts down, we want the users converted

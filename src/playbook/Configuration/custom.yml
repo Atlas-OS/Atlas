@@ -8,7 +8,7 @@ features:
   - tweaks\qol\config-powershell.yml
   - atlas\start.yml
   - atlas\services.yml
-  - atlas\appx.yml
   - atlas\components.yml
+  - atlas\appx.yml
   - atlas\packages.yml
   - tweaks.yml
