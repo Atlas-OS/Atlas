@@ -14,12 +14,19 @@ actions:
 
     # ---------- Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender', option: 'defender-disable'}
-  - !writeStatus: {status: 'Configuring Windows Defender', option: 'defender-disable'}
   - !run:
     exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Toggle Defender.cmd'
     args: '-Disable'
     wait: true
     option: 'defender-disable'
+  - !run:
+    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Toggle Defender.cmd'
+    args: '-Disable'
+    wait: true
+    option: 'defender-disable'
+  - !registryKey: {path: 'HKLM\SOFTWARE\Atlas', operation: add}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Atlas', value: 'Defender', data: '1', type: REG_DWORD, option: 'defender-enable'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Atlas', value: 'Defender', data: '0', type: REG_DWORD, option: 'defender-disable'}
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 

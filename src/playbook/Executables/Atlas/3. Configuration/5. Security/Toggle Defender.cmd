@@ -33,7 +33,7 @@ param (
 $AtlasPackageName = 'Z-Atlas-NoDefender-Package'
 
 $AtlasModules = "$env:windir\AtlasModules"
-$onlineSxS = "$AtlasModules\Scripts\online-sxs.cmd" 
+$onlineSxS = "$AtlasModules\Scripts\online-sxs.cmd"
 $packagesPath = "$AtlasModules\Packages"
 
 function PauseNul ($message = "Press any key to exit... ") {
@@ -83,7 +83,7 @@ function SetDefenderConfigInRegistry {
 		[bool]$SetValue
 	)
 
-	$registryPath = "HKLM:\Atlas"
+	$registryPath = "HKLM:\SOFTWARE\Atlas"
 	$valueName = "DefenderDisabled"
 
 	if ($GetValue) {
@@ -101,8 +101,8 @@ function SetDefenderConfigInRegistry {
 	}
 
 	if ($SetValue -eq $true) {$value = '1'} else {$value = '0'}
-	New-Item -Path "HKLM:\Atlas" -Force -EA SilentlyContinue | Out-Null
-	Set-ItemProperty -Path "HKLM:\Atlas" -Name "Defender" -Value $value -Type DWord -Force
+	New-Item -Path $registryPath -Force -EA SilentlyContinue | Out-Null
+	Set-ItemProperty -Path $registryPath -Name "Defender" -Value $value -Type DWord -Force
 }
 
 function Finish {
@@ -114,7 +114,7 @@ function Finish {
 	}
 }
 
-if ($Disable) {InstallPackage; exit} elseif ($Enable) {UninstallPackage; exit}
+if ($Disable) {InstallPackage; SetDefenderConfigInRegistry -SetValue $false; exit} elseif ($Enable) {UninstallPackage; SetDefenderConfigInRegistry -SetValue $true; exit}
 
 function Menu {
 	Clear-Host
