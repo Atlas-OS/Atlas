@@ -15,12 +15,12 @@ actions:
     # ---------- Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender', option: 'defender-disable'}
   - !run:
-    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Toggle Defender.cmd'
+    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Defender\Toggle Defender.cmd'
     args: '-Disable'
     wait: true
     option: 'defender-disable'
   - !run:
-    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Toggle Defender.cmd'
+    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Defender\Toggle Defender.cmd'
     args: '-Disable'
     wait: true
     option: 'defender-disable'

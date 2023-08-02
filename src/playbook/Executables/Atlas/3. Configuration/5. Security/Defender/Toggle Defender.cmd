@@ -120,15 +120,15 @@ function Menu {
 	Clear-Host
 	SetDefenderConfigInRegistry -GetValue
 	Write-Host "1) Disable Defender $DefenderDisabled
-2) Enable Defender $DefenderEnabled
+2) Enable Defender $DefenderEnabled`n"
 
-Choose 1 or 2: "
-	[console]::CursorVisible = $false
+	Write-Host "Choose 1 or 2: " -NoNewline -ForegroundColor Yellow
 	$pageInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
-	switch ($pageInput) {
+	switch ($pageInput.Character) {
 		# Disable Defender
 		1 {
+			Clear-Host
 			Write-Host "Are you sure that you want to disable Defender?" -ForegroundColor Red
 			Write-Host "Although disabling Windows Defender will improve performance and convienience, it's important for security.`n"
 			
