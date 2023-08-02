@@ -292,6 +292,7 @@ features:
   - tweaks\qol\taskbar\hide-meet-now.yml
   - tweaks\qol\taskbar\hide-task-view.yml
   - tweaks\qol\taskbar\no-store-taskbar-pin.yml
+  - tweaks\qol\taskbar\config-pins.yml
   
   # -----------------------------------------------------
   #                       Security                       
