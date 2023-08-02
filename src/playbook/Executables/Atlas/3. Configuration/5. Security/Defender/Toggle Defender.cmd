@@ -88,7 +88,7 @@ function SetDefenderConfigInRegistry {
 
 	if ($GetValue) {
 		if (Test-Path -Path $registryPath) {
-			$value = Get-ItemProperty -Path $registryPath -Name $valueName EA SilentlyContinue
+			$value = Get-ItemProperty -Path $registryPath -Name $valueName -EA SilentlyContinue
 			if ($null -ne $value) {
 				if ($value.$DefenderDisabled -eq 0) {
 					$global:DefenderDisabled = "(current)"
