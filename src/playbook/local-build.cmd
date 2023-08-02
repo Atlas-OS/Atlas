@@ -1,5 +1,5 @@
 <# : batch portion
-@echo off & powershell -nop Get-Content "%~f0" -Raw ^| iex & exit /b
+@echo off & powershell -nop Get-Content """%~f0""" -Raw ^| iex & exit /b
 : end batch / begin PowerShell #>
 
 # name of resulting apbx
@@ -66,7 +66,8 @@ if (!($?) -and (Test-Path -Path "playbook.conf.old")) {
 	exit 1
 }
 
-$filteredItems = (Get-ChildItem | Where-Object { $excludeFiles -notcontains $_.Name -and $_.Name -notlike "*.apbx" }).FullName + "$tempPlaybook"
+$filteredItems = @()
+$filteredItems = $filteredItems + (Get-ChildItem | Where-Object { $excludeFiles -notcontains $_.Name -and $_.Name -notlike "*.apbx" }).FullName + "$tempPlaybook"
 
 # remove entries in playbook config that make it awkward for testing
 $patterns = @()
