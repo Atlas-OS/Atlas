@@ -35,6 +35,7 @@ $AtlasPackageName = 'Z-Atlas-NoDefender-Package'
 $AtlasModules = "$env:windir\AtlasModules"
 $onlineSxS = "$AtlasModules\Scripts\online-sxs.cmd"
 $packagesPath = "$AtlasModules\Packages"
+$ProgressPreference = 'SilentlyContinue'
 
 function PauseNul ($message = "Press any key to exit... ") {
 	Write-Host $message -NoNewLine
@@ -53,11 +54,11 @@ function UninstallPackage {
 	} else {
 		foreach ($package in $packages) {
 			try {
-				Remove-WindowsPackage -Online -PackageName $package *>$null
+				Remove-WindowsPackage -Online -PackageName $package -NoRestart -LogLevel 1 *>$null
 			} catch {
 				Write-Host "Something went wrong removing the package: $package" -ForegroundColor Red
 				Write-Host "$_`n" -ForegroundColor Red
-				if ($Enable -or $Disable) {return 1} else {PauseNul; exit 1}
+				if (!($Enable -or $Disable)) {PauseNul}; exit 1
 			}
 		}
 	}
@@ -70,8 +71,7 @@ function InstallPackage {
 		& $onlineSxS "$latestCabPath" -Silent
 	} catch {
 		Write-Host "`nSomething went wrong whilst adding the Defender package.`nPlease report the error above to the Atlas team." -ForegroundColor Yellow
-		PauseNul
-		exit 1
+		if (!($Enable -or $Disable)) {PauseNul}; exit 1
 	}
 }
 
@@ -132,14 +132,20 @@ function Menu {
 			Write-Host "Are you sure that you want to disable Defender?" -ForegroundColor Red
 			Write-Host "Although disabling Windows Defender will improve performance and convienience, it's important for security.`n"
 			
-			Pause; Clear-Host; InstallPackage
-
+			Pause
+			Clear-Host
+			InstallPackage
 			SetDefenderConfigInRegistry -SetValue $false
+			
 			Finish
 		}
 		# Enable Defender
 		2 {
-			Clear-Host; UninstallPackage; SetDefenderConfigInRegistry -SetValue $true; Finish
+			Clear-Host
+			UninstallPackage
+			SetDefenderConfigInRegistry -SetValue $true
+			
+			Finish
 		}
 		default {
 			# Do nothing
