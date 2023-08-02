@@ -243,7 +243,7 @@ features:
   #  qol\security                                                              #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\security\disable-online-file-security-warn.yml
-  - tweaks\qol\security\disable-smartscreen.yml
+  # - tweaks\qol\security\disable-smartscreen.yml
   - tweaks\qol\disable-uac-secure-desktop.yml
  
   # -------------------------------------------------------------------------- #
