@@ -339,7 +339,6 @@ features:
   # or batch scripts for more advanced operations.
   # -----------------------------------------------------
   - tweaks\statuses\status-scripts.yml
-  - tweaks\scripts\script-storage-sense.yml
   - tweaks\scripts\script-core-isolation.yml
   - tweaks\scripts\script-mitigations.yml
   - tweaks\scripts\script-devices.yml
