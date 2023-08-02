@@ -199,6 +199,7 @@ features:
   #  qol\explorer                                                              #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\explorer\always-more-details-transfer.yml
+  - tweaks\qol\explorer\disable-check-boxes.yml
   - tweaks\qol\explorer\disable-folder-type-discovery.yml
   - tweaks\qol\explorer\disable-folders-this-pc.yml
   - tweaks\qol\explorer\disable-network-navigation-pane.yml
