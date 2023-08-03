@@ -10,8 +10,6 @@ actions:
   
   # ----------------------- END NOTES ----------------------- #
 
-  - !taskKill: {name: 'explorer'}
-
     # ---------- Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender', option: 'defender-disable'}
   - !run:
@@ -37,6 +35,7 @@ actions:
     args: '-NoP -EP Unrestricted -File "C:\Users\Default\Desktop\Atlas\1. Software\Remove Edge.ps1" -Setup'
     wait: true
     option: 'uninstall-edge'
+  - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge'}
     
     # ---------- Windows Telemetry
   - !run:
@@ -282,8 +281,6 @@ actions:
   - !writeStatus: {status: 'Removing PC Health Check'}
   - !file:
     path: 'C:\Program Files\PCHealthCheck'
-
-  - !run: {exe: 'explorer.exe', wait: false}
 
     # This could be done in config.yml, however on the off-chance that
     # the Playbook fails or the system shuts down, we want the users converted

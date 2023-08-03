@@ -149,9 +149,16 @@ for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
 :: Set correct username variable of the currently logged in user
 for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
 
-:: Debloat 'Send To' context menu, hidden files do not show up in the 'Send To' context menu
-attrib +h "C:\Users\!loggedinUsername!\AppData\Roaming\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail"
-attrib +h "C:\Users\!loggedinUsername!\AppData\Roaming\Microsoft\Windows\SendTo\Documents.mydocs"
+:: Hide unnecessary items from the 'Send To' context menu
+for %%a in (
+    "Documents.mydocs"
+    "Mail Recipient.MAPIMail"
+) do (
+    attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\%%~a"
+)
+
+:: Remove Fax Recipient from the 'Send to' context menu as Fax feature is removed
+del /f /q "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Fax Recipient.lnk"
 
 :: Disable audio exclusive mode on all devices
 for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture", "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render") do (

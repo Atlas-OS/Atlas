@@ -25,37 +25,91 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMultic
 :: Set default power saving mode for all network cards to disabled
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" /v "DefaultPnPCapabilities" /t REG_DWORD /d "24" /f > nul 2>&1
 
-:: Configure NIC settings
-for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*WakeOnMagicPacket" /s ^| findstr  "HKEY"') do (
-    for %%i in (
-        "*EEE"
-        "*FlowControl"
-        "*LsoV2IPv4"
-        "*LsoV2IPv6"
-        "*SelectiveSuspend"
-        "*WakeOnMagicPacket"
-        "*WakeOnPattern"
-        "AdvancedEEE"
-        "AutoDisableGigabit"
-        "AutoPowerSaveModeEnabled"
-        "EnableConnectedPowerGating"
-        "EnableDynamicPowerGating"
-        "EnableGreenEthernet"
-        "EnableModernStandby"
-        "EnablePME"
-        "EnablePowerManagement"
-        "EnableSavePowerNow"
-        "GigaLite"
-        "PowerSavingMode"
-        "ReduceSpeedOnPowerDown"
-        "ULPMode"
-        "WakeOnLink"
-        "WakeOnSlot"
-        "WakeUpModeCap"
-    ) do (
-        for /f %%j in ('reg query "%%a" /v "%%~i" ^| findstr "HKEY"') do (
-            reg add "%%j" /v "%%~i" /t REG_SZ /d "0" /f > nul 2>&1
-        )
+:: Set network adapter driver registry key
+for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver"') do ( 
+        set "netKey=HKLM\SYSTEM\CurrentControlSet\Control\Class\%%b"
+    )
+)
+
+:: Configure internet adapter settings
+:: Dump of all possible settings found
+:: TO DO: revise and document each setting
+for %%a in (
+    "AdvancedEEE"
+    "AlternateSemaphoreDelay"
+    "ApCompatMode"
+    "ARPOffloadEnable"
+    "AutoDisableGigabit"
+    "AutoPowerSaveModeEnabled"
+    "bAdvancedLPs"
+    "bLeisurePs"
+    "bLowPowerEnable"
+    "DeviceSleepOnDisconnect"
+    "DMACoalescing"
+    "EEE"
+    "EEELinkAdvertisement"
+    "EeePhyEnable"
+    "Enable9KJFTpt"
+    "EnableConnectedPowerGating"
+    "EnableDynamicPowerGating"
+    "EnableEDT"
+    "EnableGreenEthernet"
+    "EnableModernStandby"
+    "EnablePME"
+    "EnablePowerManagement"
+    "EnableSavePowerNow"
+    "EnableWakeOnLan"
+    "FlowControl"
+    "FlowControlCap"
+    "GigaLite"
+    "GPPSW"
+    "GTKOffloadEnable"
+    "InactivePs"
+    "LargeSendOffload"
+    "LargeSendOffloadJumboCombo"
+    "LogLevelWarn"
+    "LsoV1IPv4"
+    "LsoV2IPv4"
+    "LsoV2IPv6"
+    "MasterSlave"
+    "ModernStandbyWoLMagicPacket"
+    "MPC"
+    "NicAutoPowerSaver"
+    "Node"
+    "NSOffloadEnable"
+    "PacketCoalescing"
+    rem Offload "PMARPOffload"
+    rem Offload "PMNSOffload"
+    "PMWiFiRekeyOffload"
+    "PowerDownPll"
+    "PowerSaveMode"
+    "PowerSavingMode"
+    "PriorityVLANTag"
+    "ReduceSpeedOnPowerDown"
+    "S5WakeOnLan"
+    "SavePowerNowEnabled"
+    "SelectiveSuspend"
+    "SipsEnabled"
+    "uAPSDSupport"
+    "ULPMode"
+    "WaitAutoNegComplete"
+    "WakeOnDisconnect"
+    "WakeOnLink"
+    "WakeOnMagicPacket"
+    "WakeOnPattern"
+    "WakeOnSlot"
+    "WakeUpModeCap"
+    "WoWLANLPSLevel"
+    "WoWLANS5Support"
+) do (
+    rem Check without '*'
+    for /f %%b in ('reg query "!netKey!" /v "%%~a" ^| findstr "HKEY"') do (
+        reg add "!netKey!" /v "%%~a" /t REG_SZ /d "0" /f
+    )
+    rem Check with '*'
+    for /f %%b in ('reg query "!netKey!" /v "*%%~a" ^| findstr "HKEY"') do (
+        reg add "!netKey!" /v "*%%~a" /t REG_SZ /d "0" /f
     )
 )
 
@@ -63,6 +117,12 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class" /v "*Wak
 netsh int tcp set heuristics disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
 netsh int tcp set global rsc=disabled
+netsh interface Teredo set state type=enterpriseclient
+netsh interface Teredo set state servername=default
+  
+for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
+    netsh int ip set interface %%a routerdiscovery=disabled store=persistent
+)
 
 echo Finished, please reboot your device for changes to apply.
 pause

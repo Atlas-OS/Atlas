@@ -7,7 +7,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 echo This will break a majority of UWP apps and their deployment.
-echo Extra note: This breaks the "about" page in Immersive Control Panel. If you require it, enable the AppX service.
+echo Extra note: This breaks the "About" page in Immersive Control Panel. If you require it, enable the AppX service.
 pause
 
 :: Detect if user is using a Microsoft account

@@ -9,7 +9,8 @@ features:
   - atlas\kill-kph.yml
   - atlas\start.yml
   - atlas\services.yml
-  - atlas\appx.yml
   - atlas\components.yml
   # - atlas\packages.yml
+  - atlas\appx.yml
+  - atlas\packages.yml
   - tweaks.yml

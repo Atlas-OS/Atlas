@@ -6,8 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-:printECont
-:: add print to context menu
+:: Add print to context menu
 reg delete "HKCR\SystemFileAssociations\image\shell\print" /v "ProgrammaticAccessOnly" /f > nul 2>&1
 for %%a in (
     "batfile"

@@ -91,6 +91,8 @@ actions:
   - !appx: {name: '*Microsoft.GetHelp*', type: family}
   - !appx: {name: '*Microsoft.Getstarted*', type: family}
   - !appx: {name: '*Microsoft.Microsoft3DViewer*', type: family}
+  # - !appx: {name: '*microsoft.microsoftedge.stable*', type: family}
+  # - !appx: {name: '*Microsoft.MicrosoftEdgeDevToolsClient*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftOfficeHub*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftSolitaireCollection*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftStickyNotes*', type: family}
