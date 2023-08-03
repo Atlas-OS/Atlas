@@ -4,30 +4,31 @@ target_arch: amd64
 version: 3.0.0.0
 updates:
     # Windows Error Reporting - used for reporting crash dumps to Microsoft
+    # Comments are to prevent an Automatic Repair loop
   - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
     target_arch: amd64
     version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReporting-Adm
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReporting-Adm.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReporting-Adm
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReporting-Adm.Resources
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-ErrorReporting-Adm-Deployment
     target_arch: amd64
     version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-ErrorReporting-Adm-Deployment-LanguagePack
     target_arch: amd64
     version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingCompatibility
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingCompatibility
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-ErrorReportingCompatibility
     target_arch: wow64
     version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingCompatibility.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingCompatibility.Resources
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-ErrorReportingConsole
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -43,33 +44,33 @@ updates:
   - target_component: Microsoft-Windows-ErrorReportingDumpTypeControl-Deployment
     target_arch: amd64
     version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingFaults
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingFaults
-    target_arch: wow64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingFaults.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingKernel
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingFaults
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingFaults
+  #   target_arch: wow64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingFaults.Resources
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingKernel
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingPowershell
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-ErrorReportingPowershell
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingPowershell
     target_arch: wow64
     version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingUI
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingUI
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-ErrorReportingUI
     target_arch: wow64
     version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingUI.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingUI.Resources
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-Feedback-CourtesyEngine
     target_arch: amd64
     version: 38655.38527.65535.65535
