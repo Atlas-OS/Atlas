@@ -38,6 +38,12 @@ actions:
     wait: true
     option: 'uninstall-edge'
     
+    # ---------- Windows Telemetry
+  - !run:
+    exe: 'C:\Windows\AtlasModules\Scripts\online-sxs.cmd'
+    args: '"C:\Windows\AtlasModules\Packages\Z-Atlas-NoTelemetry-Package31bf3856ad364e35amd643.0.0.0.cab"'
+    wait: true
+
     # ---------- OneDrive
   - !writeStatus: {status: 'Removing OneDrive'}
   - !taskKill: {name: 'OneDriveStandaloneUpdater'}
