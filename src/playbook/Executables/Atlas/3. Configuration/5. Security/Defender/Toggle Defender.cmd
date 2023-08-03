@@ -84,15 +84,15 @@ function SetDefenderConfigInRegistry {
 	)
 
 	$registryPath = "HKLM:\SOFTWARE\Atlas"
-	$valueName = "DefenderDisabled"
+	$valueName = "Defender"
 
 	if ($GetValue) {
 		if (Test-Path -Path $registryPath) {
 			$value = Get-ItemProperty -Path $registryPath -Name $valueName -EA SilentlyContinue
 			if ($null -ne $value) {
-				if ($value.$DefenderDisabled -eq 0) {
+				if ($value.Defender -eq 0) {
 					$global:DefenderDisabled = "(current)"
-				} elseif ($value.$DefenderDisabled -eq 1) {
+				} elseif ($value.Defender -eq 1) {
 					$global:DefenderEnabled = "(current)"
 				}
 			}
