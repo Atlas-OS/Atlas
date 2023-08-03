@@ -11,5 +11,5 @@ features:
   - atlas\services.yml
   - atlas\appx.yml
   - atlas\components.yml
-  - atlas\packages.yml
+  # - atlas\packages.yml
   - tweaks.yml
