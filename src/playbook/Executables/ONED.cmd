@@ -1,0 +1,40 @@
+@echo off
+setlocal EnableDelayedExpansion
+
+for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
+	REM If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
+	reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_"
+	if not !errorlevel! == 1 (
+		call :USERREG "%%a"
+	)
+)
+
+for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
+	rmdir /q /s "C:\Users\%%a\AppData\Local\Microsoft\OneDrive"
+	rmdir /q /s "C:\Users\%%a\OneDrive"
+	del /q /f "C:\Users\%%a\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk"
+)
+
+for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager" ^| findstr /i /c:"OneDrive"`) do reg delete "%%a" /f
+
+for /f "tokens=2 delims=\" %%a in ('schtasks /query /fo list /v ^| findstr /c:"\OneDrive Reporting Task" /c:"\OneDrive Standalone Update Task"') do (
+	schtasks /delete /tn "%%a" /f
+)
+
+exit /b
+
+:USERREG
+for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\BannerStore" ^| findstr /i /c:"OneDrive"`) do (
+	reg delete "%%a" /f
+)
+for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\Handlers" ^| findstr /i /c:"OneDrive"`) do (
+	reg delete "%%a" /f
+)
+for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths" ^| findstr /i /c:"OneDrive"`) do (
+	reg delete "%%a" /f
+)
+for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" ^| findstr /i /c:"OneDrive"`) do (
+	reg delete "%%a" /f
+)
+
+reg delete "HKU\%~1\Environment" /v "OneDrive" /f

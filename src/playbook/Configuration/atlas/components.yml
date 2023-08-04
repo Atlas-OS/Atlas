@@ -10,7 +10,7 @@ actions:
   
   # ----------------------- END NOTES ----------------------- #
 
-    # ---------- Windows Defender
+    # Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender'}
   - !taskKill: {name: 'NisSrv'}
   - !taskKill: {name: 'SecurityHealthHost'}
@@ -38,7 +38,7 @@ actions:
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
-    # ---------- Microsoft Edge
+    # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
   - !run:
     exe: 'C:\Windows\AtlasModules\Tools\NSudoLG.exe'
@@ -48,20 +48,23 @@ actions:
     # AppX uninstallation in the script seems to fail with NSudo, therefore it's not used and AME Wizard is used instead
   - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge'}
 
-    # ---------- OneDrive
+    # OneDrive
   - !writeStatus: {status: 'Removing OneDrive'}
   - !taskKill: {name: 'OneDriveStandaloneUpdater'}
   - !taskKill: {name: 'OneDriveSetup'}
   - !taskKill: {name: 'OneDrive*'}
 
-  - !cmd: {command: '%windir%\SysWOW64\OneDriveSetup.exe /uninstall'}
-  - !file: {path: 'C:\OneDriveTemp'}
+  - !cmd: {command: 'C:\Windows\SysWOW64\OneDriveSetup.exe /uninstall'}
+  - !file: {path: 'C:\Windows\SysWOW64\OneDriveSetup.exe'}
+  - !file: {path: 'C:\ProgramData\Microsoft OneDrive'}
 
-    # ---------- Update Health Tools
+  - !run: {exeDir: true, exe: "ONED.cmd", weight: 20}
+  
+    # Update Health Tools
   - !writeStatus: {status: 'Removing Update Health Tools'}
   - !powerShell: {command: 'Uninstall-MsiexecAppByName "Microsoft Update Health Tools"'}
 
-    # ---------- PC Health Check
+    # PC Health Check
   - !writeStatus: {status: 'Removing PC Health Check'}
   - !powerShell: {command: 'Uninstall-MsiexecAppByName "Windows PC Health Check"'}
 
