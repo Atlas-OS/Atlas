@@ -16,32 +16,23 @@ if not defined run_by (
 goto RunAsTI-Elevate
 
 ----------------------------------------
-
 [CREDITS]
 - Adapted from https://github.com/AveYo/LeanAndMean
 - Revised and customized for Atlas by he3als & Xyueta
-- Added error checking and integration with script
+- Added error checking, an interface and quotes support
 
 [FEATURES]
 - Innovative HKCU load, no need for 'reg load' or unload ping-pong; programs get the user profile
 - Sets ownership privileges, high priority, and Explorer support; get System if TrustedInstaller is unavailable
 - Accepts special characters in paths for which default 'Run as Administrator' fails
 
-[LIMITATIONS]
-- Quoatation marks ("") in arguments will not work correctly
-
 [USAGE]
 - Put this at the top of your script:
-
-:: ------ Elevation ------ ::
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" "%*"
 	exit /b
 )
-
-:: ----------------------- ::
-
 ----------------------------------------
 
 :RunAsTI-Elevate
@@ -86,10 +77,10 @@ pause > nul
 goto RunAsTI-Elevate
 
 :RunAsTI
-set ^ #=& set "0=%~f0"& set 1=%*
-(for %%I in ("%~f0";%*) do @echo(%%~I) | PowerShell -NoProfile -Command "$argv = $input | ?{$_}; iex (${%~f0} | out-string)"
+set "0=%~f0" & set "1=%*"
+powershell -nop -c iex(gc """$env:0""" -Raw)
 set RunAsTI_Errorlevel=%errorlevel%
-if %RunAsTI_Errorlevel% == 1 (
+if %RunAsTI_Errorlevel%==1 (
 	goto RunAsTI-Fail
 ) else (
 	if %RunAsTI_Errorlevel%==2 (
