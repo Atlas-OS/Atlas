@@ -17,7 +17,6 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 
 rmdir /q /s "C:\ProgramData\Microsoft OneDrive"
 
-
 for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
 	rmdir /q /s "C:\Users\%%a\AppData\Local\Microsoft\OneDrive"
 	rmdir /q /s "C:\Users\%%a\OneDrive"
