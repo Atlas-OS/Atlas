@@ -4,7 +4,7 @@ param (
 )
 
 $ProgressPreference = "SilentlyContinue"
-$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
+$user = $env:USERNAME
 $SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
 
 function PauseNul ($message = "Press any key to continue... ") {
@@ -12,25 +12,7 @@ function PauseNul ($message = "Press any key to continue... ") {
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
 }
 
-# removing Edge Chromium & WebView is meant to be compatible with TrustedInstaller for AME Wizard
-# running the uninstaller as TrustedInstaller causes shortcuts and other things not to be removed properly
-function RunAsScheduledTask {
-	[CmdletBinding()]
-	param (
-		[String]$Command
-	)
-	$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument "/c $Command"
-	$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-	$title = "RemoveEdge $(Get-Random -minimum 9999999999)"
-	Register-ScheduledTask -TaskName $title -Action $action -Settings $settings -User $user -RunLevel Highest -Force | Start-ScheduledTask | Out-Null
-	Unregister-ScheduledTask -TaskName $title -Confirm:$false | Out-Null
-}
-
 function RemoveEdgeChromium {
-	[CmdletBinding()]
-	param (
-		[Switch]$AsTask
-	)
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
 	
 	# kill Edge
@@ -68,10 +50,7 @@ function RemoveEdgeChromium {
 	$uninstallKeyPath = Join-Path -Path $baseKey -ChildPath "Windows\CurrentVersion\Uninstall\Microsoft Edge"
 	if (Test-Path $uninstallKeyPath) {
 		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString + " --force-uninstall"
-		# create a scheduled task as current user so that it works properly with TI perms
-		if ($AsTask) {RunAsScheduledTask -Command $uninstallString} else {
-			Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden
-		}
+		Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden
 	}
 	
 	# remove user data
@@ -95,33 +74,25 @@ function RemoveEdgeAppX {
 }
 
 function RemoveWebView {
-	[CmdletBinding()]
-	param (
-		[Switch]$AsTask
-	)
 	$webviewUninstallKeyPath = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
+	if (!(Test-Path $webviewUninstallKeyPath)) {$webviewUninstallKeyPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"}
 	if (Test-Path $webviewUninstallKeyPath) {
 		$webviewUninstallString = (Get-ItemProperty -Path $webviewUninstallKeyPath).UninstallString + " --force-uninstall"
-		if ($AsTask) {RunAsScheduledTask -Command $webviewUninstallString} else {
-			Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden
-		}
+		Start-Process cmd.exe "/c $webviewUninstallString" -WindowStyle Hidden
 	}
 }
 
 function UninstallAll {
 	Write-Warning "Uninstalling Edge Chromium..."
-	if ($Setup) {RemoveEdgeChromium -AsTask} else {RemoveEdgeChromium}
-	if (!($Setup)) {
-		Write-Warning "Uninstalling AppX Edge..."
-		RemoveEdgeAppx
-	} else {Write-Warning "AppX Edge needs to be removed by AME Wizard..."}
+	RemoveEdgeChromium
+	Write-Warning "Uninstalling AppX Edge..."
+	RemoveEdgeAppx
 	if ($removeWebView) {
 		Write-Warning "Uninstalling Edge WebView..."
-		if ($Setup) {RemoveWebView -AsTask} else {RemoveWebView}
+		RemoveWebView
 	}
 }
 
-# AppX is not removed as it's handled by AME Wizard
 if ($Setup) {
 	$removeData = $true
 	$removeWebView = $true
