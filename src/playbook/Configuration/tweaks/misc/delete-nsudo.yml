@@ -1,0 +1,6 @@
+---
+title: Delete Temporary NSudo
+description: Deletes the temporary NSudo used for de-elevation in AME Wizard
+privilege: TrustedInstaller
+actions:
+  !file: {path: 'C:\Windows\AtlasModules\Tools\NSudoLG.exe'}

@@ -20,22 +20,6 @@ features:
   - tweaks\scripts\script-ngen.yml
 
   # -----------------------------------------------------
-  #                         Misc                         
-  # -----------------------------------------------------
-  # >>> Description <<<
-  #
-  # Miscellaneous tweaks which do not fit into other
-  # categories.
-  # -----------------------------------------------------
-  - tweaks\statuses\status-misc.yml
-  - tweaks\misc\config-time.yml
-  - tweaks\misc\disable-fast-user-switching.yml
-  - tweaks\misc\disable-game-mode.yml
-  - tweaks\misc\fix-no-downloads-bug.yml
-  - tweaks\misc\oem-information.yml
-  - tweaks\misc\rebuild-perf-counters.yml
-
-  # -----------------------------------------------------
   #                      Networking                        
   # -----------------------------------------------------
   # >>> Description <<<
@@ -349,3 +333,20 @@ features:
   - tweaks\scripts\script-wallpaper.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
+
+  # -----------------------------------------------------
+  #                         Misc                         
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Miscellaneous tweaks which do not fit into other
+  # categories.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-misc.yml
+  - tweaks\misc\config-time.yml
+  - tweaks\misc\disable-fast-user-switching.yml
+  - tweaks\misc\disable-game-mode.yml
+  - tweaks\misc\fix-no-downloads-bug.yml
+  - tweaks\misc\oem-information.yml
+  - tweaks\misc\rebuild-perf-counters.yml
+  - tweaks\misc\delete-nsudo.yml
