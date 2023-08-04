@@ -51,15 +51,13 @@ echo.
 echo If this information appears to be incorrect or is blank, please report it on Discord or Github.
 
 echo]
-choice /c:yn /n /m "Do you want to disable Static IP services (break internet icon)? [Y/N] "
+choice /c:yn /n /m "Do you want to disable Static IP service? [Y/N] "
 if !errorlevel! == 1 goto staticIPS
 if !errorlevel! == 2 goto staticIPC
 goto staticIPS
 
 :staticIPS
 call setSvc.cmd Dhcp 4
-call setSvc.cmd netprofm 4
-call setSvc.cmd NlaSvc 4
 
 :staticIPC
 echo Finished, please reboot your device for changes to apply.
