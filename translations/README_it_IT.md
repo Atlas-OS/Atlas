@@ -18,7 +18,7 @@
 ## 🤔 **Che cos'è Atlas?**
 
 Atlas è una versione modificata di Windows 10, che rimuove quasi tutti gli svantaggi di Windows che influiscono negativamente sulle prestazioni del gaming.
-Siamo anche una buona opzione per ridurre la latenza del sistema, la latenza di rete, l'input-lag e mantenere privato il tuo sistema concentrandoti sulle prestazioni.<br>
+Siamo anche una buona opzione per ridurre la latenza del sistema, la latenza di rete, l'input-lag e mantenere privato il tuo sistema concentrandoci sulle prestazioni.<br>
 Puoi saperne di più su Atlas sul nostro [sito](https://atlasos.net) ufficiale.
 
 ## 📚 **Tabella dei Contenuti**
@@ -41,13 +41,13 @@ Puoi saperne di più su Atlas sul nostro [sito](https://atlasos.net) ufficiale.
 ## 👀 **Perché Atlas?**
 
 ### 🔒 Più Privato
-Stock Windows contiene un servizio di tracciamento che raccoglie i tuoi dati e li carica su Microsoft.
+Windows Stock contiene servizi di tracciamento che raccolgono i tuoi dati e vengono inviati a Microsoft.
 Atlas rimuove tutti i tipi di tracciamento incorporati in Windows e implementa numerosi criteri di gruppo per ridurre al minimo la raccolta dei dati.
 
 (NOTA: Non possiamo garantire la sicurezza per cose al di fuori dell'ambito di Windows, come browser e applicazioni di terze parti.)
 
 ### 🛡️ Più Sicuro
-Scaricare una ISO modificata da Internet è rischioso. Non solo può contenere script dannosi, ma potrebbe anche non avere le ultime patch di sicurezza che possono mettere il tuo computer a seri rischi per la sicurezza.
+Scaricare una ISO modificata da Internet è rischioso. Non solo può contenere script dannosi, ma potrebbe anche non avere le ultime patch di sicurezza che possono mettere il tuo computer a serio rischio.
 
 Atlas è diverso. Utilizziamo [AME Wizard](https://ameliorated.io) per l'installazione, e tutti gli script utilizzati sono open-source qui nel nostro repository. Puoi anche applicare gli ultimi aggiornamenti di sicurezza prima di installare Atlas, mantenendo il tuo sistema sicuro e protetto.
 
@@ -60,11 +60,11 @@ Alcuni sistemi ottimizzati su Internet sono stati ottimizzati "troppo", facendo 
 Atlas è al punto giusto. Permette di ottenere più prestazioni, mantenendo una buona compatibilità.
 
 Qui sono elencate alcune delle numerose modifiche apportate per migliorare Windows:
-- Schema di potenza personalizzato
-- Numero ridotto di servizi e drivers
+- Powerplan personalizzato
+- Numero ridotto di servizi e driver
 - Audio esclusivo disabilitato
 - Dispositivi non necessari disabilitati
-- Risparmio energetico disabilitato (per personal computer)
+- Risparmio energetico disabilitato (per computer fisso)
 - Disabilitati mitigazioni di sicurezza che abbassano le prestazioni
 - Modalità MSI abilitata automaticamente su tutti i dispositivi
 - Ottimizzazione della configurazione di avvio
@@ -73,10 +73,10 @@ Qui sono elencate alcune delle numerose modifiche apportate per migliorare Windo
 ### 🔒 Legale
 Molti sistemi operativi Windows personalizzati distribuiscono i propri sistemi fornendo un ISO ottimizzato di Windows. Questo, non solo viola [Termini di servizio di Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), ma non è nemmeno un modo sicuro per installarlo.
 
-Atlas ha collaborato con Windows Ameliorated Team per fornire agli utenti un modo più sicuro e legale per l'installazione, il [AME Wizard](https://ameliorated.io). Usando questo, Atlas è pienamente conforme ai [Termini di servizio di Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+Atlas ha collaborato con Windows Ameliorated Team per fornire agli utenti un modo più sicuro e legale per l'installazione, [AME Wizard](https://ameliorated.io). Usandolo Atlas è pienamente conforme ai [Termini di servizio di Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
 ## 🎨 Brand Kit
-Ti senti creativo? Vuoi creare il tuo proprio sfondo di Atlas con alcuni design creativi ed originali? Bene, ci pensa il nostro brand kit!
+Ti senti creativo? Vuoi creare il tuo sfondo di Atlas con alcuni design creativi ed originali? Bene, ci pensa il nostro brand kit!
 Atlas brand kit è accessibile al pubblico, puoi scaricarlo [qui](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) e realizzare qualcosa di spettacolare!
 
 Abbiamo anche un'area dedicata sul nostro [Forum](https://forum.atlasos.net/t/art-showcase), in modo che tu possa condividere le tue creazioni con altri geni creativi e magari anche trovare ispirazione! Puoi anche trovare sfondi creativi che altri utenti condividono!
