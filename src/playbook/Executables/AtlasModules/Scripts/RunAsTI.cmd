@@ -79,9 +79,7 @@ goto RunAsTI-Elevate
 
 :RunAsTI
 set "0=%~f0"
-set "1=%1"
-shift
-set "2=%*"
+set "1=%*"
 powershell -nop -c iex(gc """$env:0""" -Raw)
 set RunAsTI_Errorlevel=%errorlevel%
 if %RunAsTI_Errorlevel%==1 (
@@ -95,7 +93,6 @@ if %RunAsTI_Errorlevel%==1 (
 )
 : end batch / begin powershell #>
 
-Try {
 function RunAsTI ($cmd,$arg) { $id='RunAsTI'; $key="Registry::HKU\$(((whoami /user)-split' ')[-1])\Volatile Environment"; $code=@'
  $I=[int32]; $M=$I.module.gettype("System.Runtime.Interop`Services.Mar`shal"); $P=$I.module.gettype("System.Int`Ptr"); $S=[string]
  $D=@(); $T=@(); $DM=[AppDomain]::CurrentDomain."DefineDynami`cAssembly"(1,1)."DefineDynami`cModule"(1); $Z=[uintptr]::size
@@ -125,7 +122,28 @@ function RunAsTI ($cmd,$arg) { $id='RunAsTI'; $key="Registry::HKU\$(((whoami /us
  if ($11bug) {[Windows.Forms.SendKeys]::SendWait($path)}; do {sleep 7} while(Q); L '.Default' $LNK 'Interactive User'
 '@; $V='';'cmd','arg','id','key'|%{$V+="`n`$$_='$($(gv $_ -val)-replace"'","''")';"}; sp $key $id $($V,$code) -type 7 -force -ea 0
  start powershell -args "-win 1 -nop -c `n$V `$env:R=(gi `$key -ea 0).getvalue(`$id)-join''; iex `$env:R" -verb runas
-}; RunAsTI $env:1 $env:2; #:RunAsTI lean & mean snippet by AveYo, 2023.07.06
+} #:RunAsTI lean & mean snippet by AveYo, 2023.07.06
+
+Try {
+	$initArgs = $env:1
+	$split = ($initArgs -split ' ')[0]
+
+	if ($split -like '*"*') {
+		$exe = ''; $quoteCount = 0
+		foreach ($char in $initArgs.ToCharArray()) {
+			$exe += $char
+			if ($char -eq '"') {
+				$quoteCount++
+				if ($quoteCount -eq 2) {break}
+			}
+		}
+	} else {
+		$exe = $split
+	}
+
+	$arguments = ($initArgs.Remove(0, $exe.Length)).Trim()
+
+	RunAsTI $exe $arguments
 }
 Catch {
 	Write-Host ""
