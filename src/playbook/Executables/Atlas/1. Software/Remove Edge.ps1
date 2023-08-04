@@ -1,11 +1,16 @@
 [CmdletBinding()]
 param (
-	[Switch]$Setup
+	[Switch]$UninstallAll,
+	[Switch]$Exit
 )
 
 $ProgressPreference = "SilentlyContinue"
 $user = $env:USERNAME
 $SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
+
+if ($Exit -and (-not $UninstallAll)) {
+    $Exit = $false
+}
 
 function PauseNul ($message = "Press any key to continue... ") {
 	Write-Host $message -NoNewLine
@@ -74,10 +79,13 @@ function RemoveEdgeAppX {
 }
 
 function RemoveWebView {
-	$webviewUninstallKeyPath = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
-	if (!(Test-Path $webviewUninstallKeyPath)) {$webviewUninstallKeyPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"}
-	if (Test-Path $webviewUninstallKeyPath) {
-		$webviewUninstallString = (Get-ItemProperty -Path $webviewUninstallKeyPath).UninstallString + " --force-uninstall"
+	$webviewUninstallKey = @()
+	$webviewHKCU = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
+	$webviewHKLM = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
+	if (Test-Path $webviewHKCU) {$webviewUninstallKey += $webviewHKCU}
+	if (Test-Path $webviewHKLM) {$webviewUninstallKey += $webviewHKLM}
+	foreach ($key in $webviewUninstallKey) {
+		$webviewUninstallString = (Get-ItemProperty -Path $key).UninstallString + " --force-uninstall"
 		Start-Process cmd.exe "/c $webviewUninstallString" -WindowStyle Hidden
 	}
 }
@@ -93,17 +101,10 @@ function UninstallAll {
 	}
 }
 
-if ($Setup) {
-	$removeData = $true
-	$removeWebView = $true
-	UninstallAll
-	exit
-}
-
 if ($null -ne $(whoami /user | Select-String "S-1-5-18")) {
 	Write-Host "This script can't be ran as TrustedInstaller or SYSTEM."
 	Write-Host "Please relaunch this script under a regular admin account.`n"
-	PauseNul "Press any key to exit... "
+	if (!($Exit)) {PauseNul "Press any key to exit... "}
 	exit 1
 } else {
 	if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
@@ -111,33 +112,42 @@ if ($null -ne $(whoami /user | Select-String "S-1-5-18")) {
 	}
 }
 
-$removeWebView = $false
-$removeData = $true
-while (!($continue)) {
-	Clear-Host; Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.
-Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6`n" -ForegroundColor Yellow
+if ($Exit) {
+	$removeData = $true
+	$removeWebView = $true
+	UninstallAll
+	if ($Exit) {exit} else {}
+}
 
-	if ($removeWebView) {$colourWeb = "Green"; $textWeb = "Selected"} else {$colourWeb = "Red"; $textWeb = "Unselected"}
-	if ($removeData) {$colourData = "Green"; $textData = "Selected"} else {$colourData = "Red"; $textData = "Unselected"}
-	
-	Write-Host "Options:"
-	Write-Host "[1] Remove Edge WebView ($textWeb)" -ForegroundColor $colourWeb
-	Write-Host "[2] Remove Edge User Data ($textData)`n" -ForegroundColor $colourData
-	Write-Host "Press enter to continue or use numbers to select options... " -NoNewLine
-	
-	$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-	
-	write-host "$input.VirtualKeyCode"
-	
-	switch ($userInput.VirtualKeyCode) {
-		49 { # num 1
-			$removeWebView = !$removeWebView
-		}
-		50 { # num 2
-			$removeData = !$removeData
-		}
-		13 { # enter
-			$continue = $true
+$removeWebView = $true
+$removeData = $true
+if (!($UninstallAll)) {
+	while (!($continue)) {
+		Clear-Host; Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.
+	Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6`n" -ForegroundColor Yellow
+
+		if ($removeWebView) {$colourWeb = "Green"; $textWeb = "Selected"} else {$colourWeb = "Red"; $textWeb = "Unselected"}
+		if ($removeData) {$colourData = "Green"; $textData = "Selected"} else {$colourData = "Red"; $textData = "Unselected"}
+		
+		Write-Host "Options:"
+		Write-Host "[1] Remove Edge WebView ($textWeb)" -ForegroundColor $colourWeb
+		Write-Host "[2] Remove Edge User Data ($textData)`n" -ForegroundColor $colourData
+		Write-Host "Press enter to continue or use numbers to select options... " -NoNewLine
+		
+		$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+		
+		write-host "$input.VirtualKeyCode"
+		
+		switch ($userInput.VirtualKeyCode) {
+			49 { # num 1
+				$removeWebView = !$removeWebView
+			}
+			50 { # num 2
+				$removeData = !$removeData
+			}
+			13 { # enter
+				$continue = $true
+			}
 		}
 	}
 }
