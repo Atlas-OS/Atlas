@@ -47,4 +47,3 @@ function Uninstall-MsiexecAppByName {
 }
 
 Export-ModuleMember -Function Uninstall-MsiexecAppByName
-# Uninstall-MsiexecAppByName -Name "Microsoft Update Health Tools"
