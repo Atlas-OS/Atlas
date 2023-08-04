@@ -3,13 +3,6 @@ title: Components
 description: Removes certain Windows components
 privilege: TrustedInstaller
 actions:
-
-  # ------------------------- NOTES ------------------------- #
-  
-  # - Some of this is redundant with packages.yml
-  
-  # ----------------------- END NOTES ----------------------- #
-
     # Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender'}
   - !taskKill: {name: 'NisSrv'}
@@ -34,7 +27,6 @@ actions:
   - !file: {path: 'C:\Windows\System32\drivers\WdNisDrv.sys'}
   - !file: {path: 'C:\Program Files\Windows Defender Advanced Threat Protection'}
   - !file: {path: 'C:\ProgramData\Microsoft\Windows Defender Advanced Threat Protection'}
-
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
@@ -50,15 +42,7 @@ actions:
 
     # OneDrive
   - !writeStatus: {status: 'Removing OneDrive'}
-  - !taskKill: {name: 'OneDriveStandaloneUpdater'}
-  - !taskKill: {name: 'OneDriveSetup'}
-  - !taskKill: {name: 'OneDrive*'}
-
-  - !cmd: {command: 'C:\Windows\SysWOW64\OneDriveSetup.exe /uninstall'}
-  - !file: {path: 'C:\Windows\SysWOW64\OneDriveSetup.exe'}
-  - !file: {path: 'C:\ProgramData\Microsoft OneDrive'}
-
-  - !run: {exeDir: true, exe: "ONED.cmd", weight: 20}
+  - !run: {exeDir: true, exe: "ONED.cmd"}
   
     # Update Health Tools
   - !writeStatus: {status: 'Removing Update Health Tools'}
@@ -74,4 +58,3 @@ actions:
   - !run:
     exeDir: true
     exe: 'CONVERTUSERS.cmd'
-    weight: 30
