@@ -27,10 +27,11 @@ goto RunAsTI-Elevate
 - Accepts special characters in paths for which default 'Run as Administrator' fails
 
 [USAGE]
+- call RunAsTI.cmd "[executable]" [args (optional)]
 - Put this at the top of your script:
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" "%*"
+	call RunAsTI.cmd "%~f0" %*
 	exit /b
 )
 ----------------------------------------
@@ -77,7 +78,10 @@ pause > nul
 goto RunAsTI-Elevate
 
 :RunAsTI
-set "0=%~f0" & set "1=%*"
+set "0=%~f0"
+set "1=%1"
+shift
+set "2=%*"
 powershell -nop -c iex(gc """$env:0""" -Raw)
 set RunAsTI_Errorlevel=%errorlevel%
 if %RunAsTI_Errorlevel%==1 (
@@ -121,7 +125,7 @@ function RunAsTI ($cmd,$arg) { $id='RunAsTI'; $key="Registry::HKU\$(((whoami /us
  if ($11bug) {[Windows.Forms.SendKeys]::SendWait($path)}; do {sleep 7} while(Q); L '.Default' $LNK 'Interactive User'
 '@; $V='';'cmd','arg','id','key'|%{$V+="`n`$$_='$($(gv $_ -val)-replace"'","''")';"}; sp $key $id $($V,$code) -type 7 -force -ea 0
  start powershell -args "-win 1 -nop -c `n$V `$env:R=(gi `$key -ea 0).getvalue(`$id)-join''; iex `$env:R" -verb runas
-}; $A=$env:1-split'\W',2; RunAsTI $A[0] $A[1]; #:RunAsTI lean & mean snippet by AveYo, 2023.07.06
+}; RunAsTI $env:1 $env:2; #:RunAsTI lean & mean snippet by AveYo, 2023.07.06
 }
 Catch {
 	Write-Host ""
