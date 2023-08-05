@@ -1,0 +1,16 @@
+{
+    "yaml.customTags": [
+        "!run: mapping",
+        "!registryKey: mapping",
+        "!registryValue: mapping",
+        "!appx: mapping",
+        "!file: mapping",
+        "!service: mapping",
+        "!scheduledTask: mapping",
+        "!taskKill: mapping",
+        "!systemPackage: mapping",
+        "!cmd: mapping",
+        "!powerShell: mapping",
+        "!writeStatus: mapping"
+    ],
+}
