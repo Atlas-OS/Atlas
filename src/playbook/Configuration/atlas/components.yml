@@ -3,13 +3,6 @@ title: Components
 description: Removes certain Windows components
 privilege: TrustedInstaller
 actions:
-
-  # ------------------------- NOTES ------------------------- #
-  
-  # - Some of this is redundant with packages.yml
-  
-  # ----------------------- END NOTES ----------------------- #
-
     # Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender', option: 'defender-disable'}
   - !run:
