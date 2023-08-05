@@ -57,7 +57,7 @@ jobs:
               Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
 
               Write-Host "Generating package files..."
-              python sxs.py
+              python sxsc.py
               if ($LASTEXITCODE -ne 0) { exit 1 }
 
               Write-Host "Building package..."
