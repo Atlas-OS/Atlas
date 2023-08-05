@@ -61,6 +61,7 @@ features:
   - tweaks\performance\disable-background-apps.yml
   - tweaks\performance\extend-cache.yml
   - tweaks\performance\no-search-invalid-shortcuts.yml
+  - tweaks\performance\disable-fth.yml
 
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
