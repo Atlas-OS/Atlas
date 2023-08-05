@@ -24,15 +24,6 @@ wmic cpu get name | findstr "AMD" > nul && (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "64" /f > nul
 )
 
-:: Rename Spectre and Meltdown updates
-ren !windir!\System32\mcupdate_GenuineIntel.old mcupdate_GenuineIntel.dll > nul 2>&1
-ren !windir!\System32\mcupdate_AuthenticAMD.old mcupdate_AuthenticAMD.dll > nul 2>&1
-
-:: Enable Fault Tolerant Heap (FTH)
-:: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
-:: Document listed as only affected in Windows 7, is also in 7+
-reg add "HKLM\SOFTWARE\Microsoft\FTH" /v "Enabled" /t REG_DWORD /d "1" /f > nul
-
 :: Enable Structured Exception Handling Overwrite Protection (SEHOP)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "0" /f > nul
 
@@ -53,11 +44,7 @@ for /l %%a in (0,1,9) do (
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationAuditOptions" /t REG_BINARY /d "!mitigation_mask!" /f > nul
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "MitigationOptions" /t REG_BINARY /d "!mitigation_mask!" /f > nul
 
-:: Set Virtualization Based Protection Of Code Integrity to default
-:: https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /t REG_DWORD /d "1" /f > nul
-
-:: Enable Data Execution Prevention (DEP)
+:: Enable Data Execution Prevention (DEP) always
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 bcdedit /set nx AlwaysOn > nul
 
