@@ -92,7 +92,7 @@ Viele benutzerdefinierte Windows-Versionen verteilen veränderte ISO-Dateien von
 Atlas hat sich mit dem Windows Ameliorated Team zusammengeschlossen, um Nutzern einen sicheren und legalen Weg der Installation zu ermöglichen: der [AME Wizard](https://ameliorated.io). Mit diesem hält sich Atlas vollständig an die [Nutzungsbedingungen von Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
 ## 🎨 Branding-Kit
-Möchten Sie Ihr eigenes Atlas-Hintergrundbild erstellen? Vielleicht mit unserem Logo herumspielen, um Ihr eigenes Design zu entwerfen? Usere Branding-Kit ist für die Öffentlichkeit frei zugänglich. Wir freuen uns über neue kreative Ideen der Gemeinschaft. [Sehen Sie sich unser Branding-Kit an und machen Sie etwas Spektakuläres.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+Möchten Sie Ihr eigenes Atlas-Hintergrundbild erstellen? Vielleicht mit unserem Logo herumspielen, um Ihr eigenes Design zu entwerfen? Unser Branding-Kit ist für die Öffentlichkeit frei zugänglich. Wir freuen uns über neue kreative Ideen der Gemeinschaft. [Sehen Sie sich unser Branding-Kit an und machen Sie etwas Spektakuläres.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
 
 Wir haben auch einen eigenen Bereich in unserem [Forum](https://forum.atlasos.net/t/art-showcase), damit du deine Kreationen mit anderen kreativen Genies teilen kannst und vielleicht etwas Inspiration findest.
 
@@ -103,4 +103,5 @@ https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
 [DedBash](https://github.com/DedBash/) |
 [GhostZero](https://github.com/ghostzero/) |
 [Alino001](https://github.com/Alino001) |
-[Mahele](https://github.com/leonmartinhess)
+[Mahele](https://github.com/leonmartinhess) |
+[elNino0916](https://github.com/elNino0916/)
