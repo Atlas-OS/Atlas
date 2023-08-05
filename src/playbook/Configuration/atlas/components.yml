@@ -10,7 +10,7 @@ actions:
   
   # ----------------------- END NOTES ----------------------- #
 
-    # ---------- Windows Defender
+    # Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender', option: 'defender-disable'}
   - !run:
     exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Defender\Toggle Defender.cmd'
@@ -28,7 +28,7 @@ actions:
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
-    # ---------- Microsoft Edge
+    # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
   - !run:
     exe: 'C:\Windows\AtlasModules\Tools\NSudoLG.exe'
@@ -38,22 +38,17 @@ actions:
     # AppX uninstallation in the script seems to fail with NSudo, therefore it's not used and AME Wizard is used instead
   - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge'}
 
-    # ---------- OneDrive
+    # OneDrive
   - !writeStatus: {status: 'Removing OneDrive'}
-  - !taskKill: {name: 'OneDriveStandaloneUpdater'}
-  - !taskKill: {name: 'OneDriveSetup'}
-  - !taskKill: {name: 'OneDrive*'}
-
-  - !cmd: {command: '%windir%\SysWOW64\OneDriveSetup.exe /uninstall'}
-  - !file: {path: 'C:\OneDriveTemp'}
-
-    # ---------- Update Health Tools
+  - !run: {exeDir: true, exe: "ONED.cmd"}
+  
+    # Update Health Tools
   - !writeStatus: {status: 'Removing Update Health Tools'}
-  - !powerShell: {command: 'Uninstall-MsiexecByName "Microsoft Update Health Tools"'}
+  - !powerShell: {command: 'Uninstall-MsiexecAppByName "Microsoft Update Health Tools"'}
 
-    # ---------- PC Health Check
+    # PC Health Check
   - !writeStatus: {status: 'Removing PC Health Check'}
-  - !powerShell: {command: 'Uninstall-MsiexecByName "Windows PC Health Check"'}
+  - !powerShell: {command: 'Uninstall-MsiexecAppByName "Windows PC Health Check"'}
 
     # This could be done in config.yml, however on the off-chance that
     # the Playbook fails or the system shuts down, we want the users converted
@@ -61,4 +56,3 @@ actions:
   - !run:
     exeDir: true
     exe: 'CONVERTUSERS.cmd'
-    weight: 30
