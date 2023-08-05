@@ -172,10 +172,6 @@ updates:
           - key: DisableNotifications
             type: REG_DWORD
             value: 1
-  - target_component: Windows-Defender-UI
-    target_arch: wow64
-    version: 38655.38527.65535.65535
-    registry_keys:
       - key_name: >-
           HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Virus and threat protection
         perUserVirtualization: false
@@ -183,10 +179,6 @@ updates:
           - key: UILockdown
             type: REG_DWORD
             value: 1
-  - target_component: Windows-Defender-UI.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-    registry_keys:
       - key_name: >-
           HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\App and Browser protection
         perUserVirtualization: false
@@ -194,6 +186,12 @@ updates:
           - key: UILockdown
             type: REG_DWORD
             value: 1
+  - target_component: Windows-Defender-UI
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-UI.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
   - target_component: Windows-Defender-UI.Resources
     target_arch: wow64
     version: 38655.38527.65535.65535
@@ -236,6 +234,47 @@ updates:
   - target_component: Microsoft-Windows-SmartScreen
     target_arch: amd64
     version: 38655.38527.65535.65535
+    registry_keys:
+        # Disable SmartScreen
+      - key_name: >-
+          HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\AppHost
+        perUserVirtualization: false
+        values:
+          - key: EnableWebContentEvaluation
+            type: REG_DWORD
+            value: 0
+          - key: PreventOverride
+            type: REG_DWORD
+            value: 0
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System
+        perUserVirtualization: false
+        values:
+          - key: EnableSmartScreen
+            type: REG_DWORD
+            value: 0
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer
+        perUserVirtualization: false
+        values:
+          - key: SmartScreenEnabled
+            type: REG_SZ
+            value: 'Off'
+        # Disable 'Open file' Security Warning Message
+      - key_name: >-
+          HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3
+        perUserVirtualization: false
+        values:
+          - key: '1806'
+            type: REG_DWORD
+            value: 0
+      - key_name: >-
+          HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Attachments
+        perUserVirtualization: false
+        values:
+          - key: SaveZoneInformation
+            type: REG_DWORD
+            value: 1
   - target_component: Microsoft-Windows-SmartScreen
     target_arch: wow64
     version: 38655.38527.65535.65535
