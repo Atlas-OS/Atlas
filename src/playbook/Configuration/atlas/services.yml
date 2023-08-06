@@ -57,8 +57,6 @@ actions:
   - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
   # KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
   - !service: {name: 'KtmRm', operation: change, startup: 4}
-  - !service: {name: 'LanmanServer', operation: change, startup: 4}
-  - !service: {name: 'LanmanWorkstation', operation: change, startup: 4}
   - !service: {name: 'lmhosts', operation: change, startup: 4}
   - !service: {name: 'luafv', operation: change, startup: 4}
   - !service: {name: 'MSDTC', operation: change, startup: 4}
@@ -136,18 +134,15 @@ actions:
   # FileInfo 4 < breaks installing Microsoft Store applications to different disk (now disabled via store script)
   # FileCrypt 4 < Breaks installing Microsoft Store applications to different disk (now disabled via store script)
   - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
-  - !service: {name: 'KSecPkg', operation: change, startup: 4}
-  - !service: {name: 'mrxsmb', operation: change, startup: 4}
-  - !service: {name: 'mrxsmb20', operation: change, startup: 4}
   # NdisVirtualBus 4 < breaks network bridges
   - !service: {name: 'nvraid', operation: change, startup: 4}
   # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
   # Set rdbss to manual instead of disabling (fixes WSL), thanks Phlegm
-  - !service: {name: 'rdbss', operation: change, startup: 3}
+  # Commented as we're not sure if it functions normally set to manual
+  # - !service: {name: 'rdbss', operation: change, startup: 3}
   - !service: {name: 'sfloppy', operation: change, startup: 4}
   - !service: {name: 'SiSRaid2', operation: change, startup: 4}
   - !service: {name: 'SiSRaid4', operation: change, startup: 4}
-  - !service: {name: 'srv2', operation: change, startup: 4}
   - !service: {name: 'tcpipreg', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
   - !service: {name: 'udfs', operation: change, startup: 4}

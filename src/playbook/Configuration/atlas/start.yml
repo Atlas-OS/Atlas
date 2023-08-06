@@ -1,4 +1,4 @@
----
+ ---
 title: Copy
 description: Copies Atlas folders/files and performs the preliminary configuration
 privilege: TrustedInstaller
@@ -71,7 +71,6 @@ actions:
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"MSRDC-Infrastructure" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"SmbDirect" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Windows-Defender-Default-Definitions" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"WorkFolders-Client" /NoRestart', weight: 30}
 
