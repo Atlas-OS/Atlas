@@ -235,7 +235,7 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
     registry_keys:
-        # Disable 'Open file' Security Warning Message
+        # Disable 'Open file - Security Warning' Message
       - key_name: >-
           HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Attachments
         perUserVirtualization: false
