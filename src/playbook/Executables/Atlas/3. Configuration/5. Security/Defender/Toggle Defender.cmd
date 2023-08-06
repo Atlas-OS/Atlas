@@ -55,16 +55,13 @@ function UninstallPackage {
 	param (
 		[switch]$Disable
 	)
-
-	if ($(CheckIfPackageIsInstalled) -ne 1) {
-		foreach ($package in $packages) {
-			try {
-				Remove-WindowsPackage -Online -PackageName $package -NoRestart -LogLevel 1 *>$null
-			} catch {
-				Write-Host "Something went wrong removing the package: $package" -ForegroundColor Red
-				Write-Host "$_`n" -ForegroundColor Red
-				if (!($Silent)) {PauseNul}; exit 1
-			}
+	foreach ($package in $packages) {
+		try {
+			Remove-WindowsPackage -Online -PackageName $package -NoRestart -LogLevel 1 *>$null
+		} catch {
+			Write-Host "Something went wrong removing the package: $package" -ForegroundColor Red
+			Write-Host "$_`n" -ForegroundColor Red
+			if (!($Silent)) {PauseNul}; exit 1
 		}
 	}
 }
