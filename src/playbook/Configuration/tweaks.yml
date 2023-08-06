@@ -228,9 +228,7 @@ features:
   # -------------------------------------------------------------------------- #
   #  qol\security                                                              #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\security\disable-online-file-security-warn.yml
-  - tweaks\qol\security\disable-smartscreen.yml
-  - tweaks\qol\disable-uac-secure-desktop.yml
+  - tweaks\qol\security\disable-uac-secure-desktop.yml
  
   # -------------------------------------------------------------------------- #
   #  qol\shell                                                                 #
@@ -314,6 +312,7 @@ features:
   - tweaks\debloat\legacy-photo-viewer.yml
   - tweaks\debloat\prevent-edge-update.yml
   - tweaks\debloat\scheduled-tasks.yml
+  - tweaks\debloat\hide-unused-security-pages.yml
   - tweaks\debloat\config-storage-sense.yml
 
   # -----------------------------------------------------

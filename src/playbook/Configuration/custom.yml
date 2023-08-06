@@ -6,9 +6,9 @@ actions: []
 features:
   # Configure PowerShell first so that other PowerShell scripts work
   - tweaks\qol\config-powershell.yml
+  - atlas\kill-kph.yml
   - atlas\start.yml
   - atlas\services.yml
   - atlas\components.yml
   - atlas\appx.yml
-  - atlas\packages.yml
   - tweaks.yml

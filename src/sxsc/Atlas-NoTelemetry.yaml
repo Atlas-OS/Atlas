@@ -1,0 +1,267 @@
+copyright: Atlas
+package: Z-Atlas-NoTelemetry-Package
+target_arch: amd64
+version: 3.0.0.0
+updates:
+    # Windows Error Reporting - used for reporting crash dumps to Microsoft
+    # Comments are to prevent an Automatic Repair loop
+  - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReporting-Adm
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReporting-Adm.Resources
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReporting-Adm-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReporting-Adm-Deployment-LanguagePack
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingCompatibility
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReportingCompatibility
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingCompatibility.Resources
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReportingConsole
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReportingConsole.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReportingCore
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReportingDumpTypeControl
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReportingDumpTypeControl-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingFaults
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingFaults
+  #   target_arch: wow64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingFaults.Resources
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingKernel
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingPowershell
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReportingPowershell
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingUI
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-ErrorReportingUI
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingUI.Resources
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Feedback-CourtesyEngine
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Feedback-DeploymentMgrClient
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Feedback-DeploymentMgrClient-Desktop-TaskSch
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-FeedbackNotifications-Adm
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-FeedbackNotifications-Adm.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Feedback-Service
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Feedback-Service.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+
+    # Telemetry Client - collects and reports diagnostic info to Microsoft
+  - target_component: Microsoft-OneCore-SystemSettings-InputCloudStore
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Application-Experience-AIT-Static
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Application-Experience-AppInv
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Application-Experience-Core-Inventory-Service
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Application-Experience-Core-Inventory-Service.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Application-Experience-Inventory-Data-Sources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Application-Experience-Mitigations-C8
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Application-Experience-Program-Data
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Application-Experience-Program-Data.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-CodeIntegrity-Aggregator
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Compat-Appraiser
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Compat-Appraiser.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Compat-Appraiser-InboxDataFiles
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Compat-Appraiser-Logger
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Compat-CompatTelRunner
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Compat-CompatTelRunner.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Compat-GeneralTel
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Compatibility-Aggregator
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+    # Breaks Bluetooth
+  # - target_component: Microsoft-Windows-CoreSystem-Bluetooth-Telemetry
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-CoreSystem-Bluetooth-Telemetry
+  #   target_arch: wow64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-CoreSystem-Bluetooth-Telemetry.Resources
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-CoreSystem-Bluetooth-Telemetry.Resources
+  #   target_arch: wow64
+  #   version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DataCollection-Adm
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DataCollection-Adm.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DeviceCensus-Schedule-ClientServer
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-KeyboardDiagnostic
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-KeyboardDiagnostic.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-MediaFoundation-MediaFoundationAggregator
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Power-EnergyEstimationEngine-Client-Overrides
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Security-PwdlessPlat-Aggregator
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SetupPlatform-Telemetry-AutoLogger
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SystemSettings-SettingsHandlers-SIUF
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SystemSettings-SettingsHandlers-SIUF.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-TelemetryClient
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-TelemetryClient
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Unified-Telemetry-Client
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Unified-Telemetry-Client.resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Unified-Telemetry-Client-Aggregators
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Unified-Telemetry-Client-AutoLogger-Default
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Unified-Telemetry-Client-Decoder-Host
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Unified-Telemetry-Client-Settings-WindowsClient
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Unified-Telemetry-Client-WoWOnly
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Update-Aggregators
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+
+    # CEIP/SQM - Windows Customer Experience Program
+  - target_component: Microsoft-Windows-AcProxy
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-AcProxy.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-CEIPEnable-Adm
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-CEIPEnable-Adm.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Client-SQM-Consolidator
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SQMApi
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SQMApi
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SQM-Consolidator-Base
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SQM-Consolidator-Base.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-UsbCeip
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-UsbCeip
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-UsbCeip.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
