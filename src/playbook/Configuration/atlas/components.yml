@@ -15,9 +15,6 @@ actions:
     args: '-Disable'
     wait: true
     option: 'defender-disable'
-  - !registryKey: {path: 'HKLM\SOFTWARE\Atlas', operation: add}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Atlas', value: 'Defender', data: '1', type: REG_DWORD, option: 'defender-enable'}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Atlas', value: 'Defender', data: '0', type: REG_DWORD, option: 'defender-disable'}
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
