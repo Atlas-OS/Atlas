@@ -37,28 +37,33 @@ $onlineSxS = "$AtlasModules\Scripts\online-sxs.cmd"
 $packagesPath = "$AtlasModules\Packages"
 $ProgressPreference = 'SilentlyContinue'
 
+if ($Enable -or $Disable) {$Silent = $true}
+
 function PauseNul ($message = "Press any key to exit... ") {
 	Write-Host $message -NoNewLine
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
 }
+
+$packages = (Get-WindowsPackage -online | Where-Object { $_.PackageName -like "*$AtlasPackageName*" }).PackageName
+if (!($?)) {
+	Write-Host "Failed to get packages!" -ForegroundColor Red
+	if (!($Silent)) {PauseNul}; exit 1
+}
+if ($null -eq $packages) {$DefenderEnabled = '(current)'} else {$DefenderDisabled = '(current)'}
 
 function UninstallPackage {
 	param (
 		[switch]$Disable
 	)
 
-	$packages = (Get-WindowsPackage -online | Where-Object { $_.PackageName -like "*$AtlasPackageName*" }).PackageName
-	if ($null -eq $packages) {
-		if (!($Disable)) { Write-Host "No Defender package is seemingly installed." -ForegroundColor Yellow }
-		return
-	} else {
+	if ($(CheckIfPackageIsInstalled) -ne 1) {
 		foreach ($package in $packages) {
 			try {
 				Remove-WindowsPackage -Online -PackageName $package -NoRestart -LogLevel 1 *>$null
 			} catch {
 				Write-Host "Something went wrong removing the package: $package" -ForegroundColor Red
 				Write-Host "$_`n" -ForegroundColor Red
-				if (!($Enable -or $Disable)) {PauseNul}; exit 1
+				if (!($Silent)) {PauseNul}; exit 1
 			}
 		}
 	}
@@ -71,38 +76,8 @@ function InstallPackage {
 		& $onlineSxS "$latestCabPath" -Silent
 	} catch {
 		Write-Host "`nSomething went wrong whilst adding the Defender package.`nPlease report the error above to the Atlas team." -ForegroundColor Yellow
-		if (!($Enable -or $Disable)) {PauseNul}; exit 1
+		if (!($Silent)) {PauseNul}; exit 1
 	}
-}
-
-function SetDefenderConfigInRegistry {
-	# -SetValue $false = Defender disabled
-	# -SetValue $true = Defender enabled
-	param (
-		[switch]$GetValue,
-		[bool]$SetValue
-	)
-
-	$registryPath = "HKLM:\SOFTWARE\Atlas"
-	$valueName = "Defender"
-
-	if ($GetValue) {
-		if (Test-Path -Path $registryPath) {
-			$value = Get-ItemProperty -Path $registryPath -Name $valueName -EA SilentlyContinue
-			if ($null -ne $value) {
-				if ($value.Defender -eq 0) {
-					$global:DefenderDisabled = "(current)"
-				} elseif ($value.Defender -eq 1) {
-					$global:DefenderEnabled = "(current)"
-				}
-			}
-		}
-		return
-	}
-
-	if ($SetValue -eq $true) {$value = '1'} else {$value = '0'}
-	New-Item -Path $registryPath -Force -EA SilentlyContinue | Out-Null
-	Set-ItemProperty -Path $registryPath -Name "Defender" -Value $value -Type DWord -Force
 }
 
 function Finish {
@@ -114,13 +89,15 @@ function Finish {
 	}
 }
 
-if ($Disable) {InstallPackage; SetDefenderConfigInRegistry -SetValue $false; exit} elseif ($Enable) {UninstallPackage; SetDefenderConfigInRegistry -SetValue $true; exit}
+if ($Disable) {InstallPackage; exit} elseif ($Enable) {UninstallPackage; exit}
 
 function Menu {
 	Clear-Host
-	SetDefenderConfigInRegistry -GetValue
-	Write-Host "1) Disable Defender $DefenderDisabled
-2) Enable Defender $DefenderEnabled`n"
+	$ColourDisable = 'White'; $ColourEnable = $ColourDisable
+	if ($DefenderDisabled) {$ColourDisable = 'Gray'} else {$ColourEnable = 'Gray'}
+
+	Write-Host "1) Disable Defender $DefenderDisabled" -ForegroundColor $ColourDisable
+	Write-Host "2) Enable Defender $DefenderEnabled`n" -ForegroundColor $ColourEnable
 
 	Write-Host "Choose 1 or 2: " -NoNewline -ForegroundColor Yellow
 	$pageInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
@@ -128,6 +105,7 @@ function Menu {
 	switch ($pageInput.Character) {
 		# Disable Defender
 		1 {
+			if ($DefenderDisabled) {Menu}
 			Clear-Host
 			Write-Host "Are you sure that you want to disable Defender?" -ForegroundColor Red
 			Write-Host "Although disabling Windows Defender will improve performance and convienience, it's important for security.`n"
@@ -135,16 +113,13 @@ function Menu {
 			Pause
 			Clear-Host
 			InstallPackage
-			SetDefenderConfigInRegistry -SetValue $false
-			
 			Finish
 		}
 		# Enable Defender
 		2 {
+			if ($DefenderEnabled) {Menu}
 			Clear-Host
 			UninstallPackage
-			SetDefenderConfigInRegistry -SetValue $true
-			
 			Finish
 		}
 		default {
