@@ -9,7 +9,7 @@ on:
       - 'src/**'
 
 env:
-  PACKAGE_PATH: "..\Atlas\src\playbook\Executables\AtlasModules\Packages"
+  PACKAGE_PATH: "../Atlas/src/playbook/Executables/AtlasModules/Packages"
   SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
   ZIP_PASSWORD: "malte"
 
