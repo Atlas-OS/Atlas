@@ -7,7 +7,37 @@ actions:
   - !cmd: {command: 'setx POWERSHELL_TELEMETRY_OPTOUT 1'}
     # Set .ps1 file types to open with PowerShell by default
     # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
-  - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -File "%1" %*'}
+  - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'}
+  - !registryValue:
+    path: 'HKCU\Software\Classes\Applications\powershell.exe\shell\open\command'
+    value: ''
+    data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\Software\Classes\ps1_auto_file\shell\open\command'
+    value: ''
+    data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
+    value: 'a'
+    data: 'powershell.exe'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
+    value: 'MRUList'
+    data: 'ab'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithProgids'
+    value: 'ps1_auto_file'
+    data: ''
+    type: REG_BINARY
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\UserChoice'
+    value: 'ProgId'
+    data: 'Applications\powershell.exe'
+    type: REG_SZ
     # Set PowerShell execution policy to Unrestricted
     # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
   - !powerShell: {command: 'Set-ExecutionPolicy -ExecutionPolicy Unrestricted'}
