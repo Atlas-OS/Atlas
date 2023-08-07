@@ -20,22 +20,6 @@ features:
   - tweaks\scripts\script-ngen.yml
 
   # -----------------------------------------------------
-  #                         Misc                         
-  # -----------------------------------------------------
-  # >>> Description <<<
-  #
-  # Miscellaneous tweaks which do not fit into other
-  # categories.
-  # -----------------------------------------------------
-  - tweaks\statuses\status-misc.yml
-  - tweaks\misc\config-time.yml
-  - tweaks\misc\disable-fast-user-switching.yml
-  - tweaks\misc\disable-game-mode.yml
-  - tweaks\misc\fix-no-downloads-bug.yml
-  - tweaks\misc\oem-information.yml
-  - tweaks\misc\rebuild-perf-counters.yml
-
-  # -----------------------------------------------------
   #                      Networking                        
   # -----------------------------------------------------
   # >>> Description <<<
@@ -75,10 +59,9 @@ features:
   - tweaks\performance\config-mmcss.yml
   - tweaks\performance\disable-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
-  - tweaks\performance\disable-perf-track.yml
-  - tweaks\performance\disable-rsop-logging.yml
   - tweaks\performance\extend-cache.yml
   - tweaks\performance\no-search-invalid-shortcuts.yml
+  - tweaks\performance\disable-fth.yml
 
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
@@ -114,7 +97,9 @@ features:
   - tweaks\privacy\disable-lockscreen-camera.yml
   - tweaks\privacy\disable-online-speech-recognition.yml
   - tweaks\privacy\disable-pca.yml
+  - tweaks\privacy\disable-perf-track.yml
   - tweaks\privacy\disable-privacy-experience.yml
+  - tweaks\privacy\disable-rsop-logging.yml
   - tweaks\privacy\disable-speech-auto-updates.yml
   - tweaks\privacy\disable-tailored-experiences.yml
   - tweaks\privacy\disable-user-tracking.yml
@@ -199,6 +184,7 @@ features:
   #  qol\explorer                                                              #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\explorer\always-more-details-transfer.yml
+  - tweaks\qol\explorer\disable-check-boxes.yml
   - tweaks\qol\explorer\disable-folder-type-discovery.yml
   - tweaks\qol\explorer\disable-folders-this-pc.yml
   - tweaks\qol\explorer\disable-network-navigation-pane.yml
@@ -242,9 +228,7 @@ features:
   # -------------------------------------------------------------------------- #
   #  qol\security                                                              #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\security\disable-online-file-security-warn.yml
-  - tweaks\qol\security\disable-smartscreen.yml
-  - tweaks\qol\disable-uac-secure-desktop.yml
+  - tweaks\qol\security\disable-uac-secure-desktop.yml
  
   # -------------------------------------------------------------------------- #
   #  qol\shell                                                                 #
@@ -261,7 +245,7 @@ features:
   - tweaks\qol\shell\disable-notifications.yml
   - tweaks\qol\shell\disable-shared-experiences.yml
   # This is easier for some people to use shortcuts
-  # instead of searching through Settings.
+  # instead of searching through Settings
   # - tweaks\qol\shell\notification-quick-settings.yml
   - tweaks\qol\shell\old-alt-tab.yml
   
@@ -291,6 +275,7 @@ features:
   - tweaks\qol\taskbar\hide-meet-now.yml
   - tweaks\qol\taskbar\hide-task-view.yml
   - tweaks\qol\taskbar\no-store-taskbar-pin.yml
+  - tweaks\qol\taskbar\config-pins.yml
   
   # -----------------------------------------------------
   #                       Security                       
@@ -305,7 +290,8 @@ features:
   # This account should be deleted after OOBE
   # - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
-  # No longer needed as Atlas only runs on new Windows versions
+  # Not needed on modern versions of Windows
+  # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
   # - tweaks\security\strong-dotnet-crypto.yml
 
   # -----------------------------------------------------
@@ -326,6 +312,8 @@ features:
   - tweaks\debloat\legacy-photo-viewer.yml
   - tweaks\debloat\prevent-edge-update.yml
   - tweaks\debloat\scheduled-tasks.yml
+  - tweaks\debloat\hide-unused-security-pages.yml
+  - tweaks\debloat\config-storage-sense.yml
 
   # -----------------------------------------------------
   #                        Scripts                       
@@ -336,7 +324,6 @@ features:
   # or batch scripts for more advanced operations.
   # -----------------------------------------------------
   - tweaks\statuses\status-scripts.yml
-  - tweaks\scripts\script-storage-sense.yml
   - tweaks\scripts\script-core-isolation.yml
   - tweaks\scripts\script-mitigations.yml
   - tweaks\scripts\script-devices.yml
@@ -346,3 +333,20 @@ features:
   - tweaks\scripts\script-wallpaper.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
+
+  # -----------------------------------------------------
+  #                         Misc                         
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Miscellaneous tweaks which do not fit into other
+  # categories.
+  # -----------------------------------------------------
+  - tweaks\statuses\status-misc.yml
+  - tweaks\misc\config-time.yml
+  - tweaks\misc\disable-fast-user-switching.yml
+  - tweaks\misc\disable-game-mode.yml
+  - tweaks\misc\fix-no-downloads-bug.yml
+  - tweaks\misc\oem-information.yml
+  - tweaks\misc\rebuild-perf-counters.yml
+  - tweaks\misc\delete-nsudo.yml

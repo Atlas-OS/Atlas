@@ -9,15 +9,15 @@ actions:
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
     exeDir: true
-    command: 'xcopy "Web" "C:\Windows\Web" /E /Y /I'
+    command: 'robocopy "Web" "C:\Windows\Web" /E /PURGE /IM /IT /NP'
     weight: 10
   - !cmd:
     exeDir: true
-    command: 'xcopy "User Account Pictures" "C:\ProgramData\Microsoft\User Account Pictures" /E /Y /I'
+    command: 'robocopy "User Account Pictures" "C:\ProgramData\Microsoft\User Account Pictures" /E /PURGE /IM /IT /NP'
     weight: 10
   - !cmd:
     exeDir: true
-    command: 'xcopy "AtlasModules" "C:\Windows\AtlasModules" /E /Y /I'
+    command: 'robocopy "AtlasModules" "C:\Windows\AtlasModules" /E /PURGE /IM /IT /NP'
     weight: 10
   - !run:
     exeDir: true
@@ -30,6 +30,10 @@ actions:
   - !cmd:
     exeDir: true
     command: 'setx path "%PATH%;C:\Windows\AtlasModules;C:\Windows\AtlasModules\Apps;C:\Windows\AtlasModules\Other;C:\Windows\AtlasModules\Tools;C:\Windows\AtlasModules\Scripts" -m'
+    # Set path for Atlas PowerShell modules
+  - !cmd:
+    exeDir: true
+    command: 'setx psmodulepath "%psmodulepath%;C:\Windows\AtlasModules\Scripts\Modules" -m'
 
   - !writeStatus: {status: 'Configuring Windows Update'}
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'ExcludeWUDriversInQualityUpdate', data: '1', type: REG_DWORD}
@@ -67,7 +71,6 @@ actions:
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"MSRDC-Infrastructure" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"SmbDirect" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Windows-Defender-Default-Definitions" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"WorkFolders-Client" /NoRestart', weight: 30}
 
@@ -443,3 +446,4 @@ actions:
   - !file:
     path: 'C:\Windows\SoftwareDistribution'
     weight: 20
+    ignoreErrors: true

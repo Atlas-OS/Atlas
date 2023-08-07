@@ -1,0 +1,21 @@
+---
+title: Hide Unused Windows Security Pages
+description: Hides Windows Security pages that are not commonly needed/used to have a more clean UI
+privilege: TrustedInstaller
+actions:
+    # Remove bloat pages
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Family options'
+    value: 'UILockdown'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Device performance and health'
+    value: 'UILockdown'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Account protection'
+    value: 'UILockdown'
+    data: '1'
+    type: REG_DWORD

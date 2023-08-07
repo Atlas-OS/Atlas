@@ -36,7 +36,7 @@ echo -------------------------------------
 :: AD - create folders / append data
 :: X - traverse folder / execute file
 :: WD - create files / write data
-icacls "%folder%" /grant:r "Administrators:(OI)(CI)F" /grant:r "SYSTEM:(OI)(CI)F" /grant:r "CREATOR OWNER:(OI)(CI)F" /grant:r "Users:(OI)(CI)(X,AD,WD)" /t > nul
+icacls "%windir%\Temp" /grant:r "*S-1-5-32-545:(OI)(CI)F" /grant:r "*S-1-5-18:(OI)(CI)F" /grant:r "*S-1-3-0:(OI)(CI)F" /grant:r "*S-1-5-11:(OI)(CI)(X,AD,WD)" /t > nul
 echo Done.
 
 echo]

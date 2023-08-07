@@ -7,6 +7,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 call setSvc.cmd KSecPkg 4
+call setSvc.cmd LanmanServer 4
 call setSvc.cmd LanmanWorkstation 4
 call setSvc.cmd mrxsmb 4
 call setSvc.cmd mrxsmb20 4

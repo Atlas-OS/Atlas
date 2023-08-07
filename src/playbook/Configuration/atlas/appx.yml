@@ -79,11 +79,6 @@ actions:
   - !appx: {name: '*Microsoft.Windows.OOBENetworkCaptivePortal*', type: family}
   - !appx: {name: '*Microsoft.Windows.OOBENetworkConnectionFlow*', type: family}
 
-  # Windows Security (Defender)
-  - !appx: {name: '*Microsoft.Windows.SecHealthUI*', type: family}
-  # SmartScreen
-  - !appx: {name: '*Microsoft.Windows.Apprep.ChxApp*', type: family}
-
   # Mail and Calendar
   - !appx: {name: '*microsoft.windowscommunicationsapps*', type: family}
 
@@ -96,7 +91,6 @@ actions:
   - !appx: {name: '*Microsoft.GetHelp*', type: family}
   - !appx: {name: '*Microsoft.Getstarted*', type: family}
   - !appx: {name: '*Microsoft.Microsoft3DViewer*', type: family}
-  # - !appx: {name: '*Microsoft.MicrosoftEdge*', type: family}
   # - !appx: {name: '*microsoft.microsoftedge.stable*', type: family}
   # - !appx: {name: '*Microsoft.MicrosoftEdgeDevToolsClient*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftOfficeHub*', type: family}

@@ -154,6 +154,9 @@ $Form.Controls.Add((generate_checkbox "Windows Terminal" "microsoft-windows-term
 # https://community.chocolatey.org/packages/waterfox
 $Form.Controls.Add((generate_checkbox "Waterfox" "waterfox"))
 
+# https://community.chocolatey.org/packages/lightshot
+$Form.Controls.Add((generate_checkbox "Lightshot" "lightshot"))
+
 if ($global:column -ne 0) {
     $global:lastPos += $separate
 }

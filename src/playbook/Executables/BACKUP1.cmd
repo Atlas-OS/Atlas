@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 :: Backup default Windows services and drivers
-set filename="C:\Users\!username!\Desktop\Atlas\4. Troubleshooting\Services\Default Windows Services and Drivers.reg"
+set filename="!userprofile!\Desktop\Atlas\4. Troubleshooting\Services\Default Windows Services and Drivers.reg"
 if exist "!filename!" exit /b
 
 echo Windows Registry Editor Version 5.00 >> !filename!

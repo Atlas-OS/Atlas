@@ -1,0 +1,10 @@
+---
+title: Kill & Disable KProcessHacker2
+description: Kills, removes and disables ProcessHacker using its kernel mode driver to prevent conflicts with Memory Integrity and the Microsoft Vulnerable Driver Blocklist 
+privilege: TrustedInstaller
+actions:
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -Ex Unrestricted -File KILLKPH.ps1'
+    exeDir: true
+    wait: true
