@@ -30,8 +30,7 @@ call setSvc.cmd RFCOMM 4
 :: Disable Bluetooth devices
 call toggleDev.cmd "*Bluetooth*"
 
-for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
-attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+attrib +h "!appdata!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 
 if "%~1"=="/silent" exit
 
