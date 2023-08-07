@@ -1,4 +1,4 @@
-# Credit to spddl for part of the code
+# Credit to spddl for part of the code 
 # Require admin privileges if User Account Control (UAC) is enabled
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
     Start-Process PowerShell "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
@@ -7,11 +7,23 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 
 $ErrorActionPreference = 'SilentlyContinue'
 
+
 [int] $global:column = 0
-[int] $maxColumn = 1
 [int] $separate = 30
 [int] $global:lastPos = 50
-[bool]$global:install = $false
+[int] $global:item_count = 0
+[int] $global:index = 0
+[array] $global:items = @()
+[bool] $global:install = $false
+
+
+function init_item{
+    param(
+        [string]$checkboxText,
+        [string]$package
+    )
+    $global:items += , @($checkboxText, $package)
+}
 
 function generate_checkbox {
     param(
@@ -20,15 +32,17 @@ function generate_checkbox {
         [bool]$enabled = $true
     )
     $checkbox = new-object System.Windows.Forms.checkbox
-    if ($global:column -ge $maxColumn) {
-        $checkbox.Location = new-object System.Drawing.Size(($global:column * 300), $global:lastPos)
-        $global:column = 0
-        $global:lastPos += $separate
+    if($global:index -eq [math]::Ceiling($global:item_count / 2)){
+        $global:column = 1
+        $global:lastPos = 50
     }
-    else {
+    if($global:column -eq 0){
         $checkbox.Location = new-object System.Drawing.Size(30, $global:lastPos)
-        $global:column = $column + 1
     }
+    else{
+        $checkbox.Location = new-object System.Drawing.Size(($global:column * 300), $global:lastPos)
+    }
+    $global:lastPos += $separate
     $checkbox.Size = new-object System.Drawing.Size(250, 18)
     $checkbox.Text = $checkboxText
     $checkbox.Name = $package
@@ -58,101 +72,117 @@ $Label.Size = New-Object System.Drawing.Size(255, 15)
 $Label.Text = "Download and install software using Chocolatey:"
 $Form.Controls.Add($Label)
 
-# https://community.chocolatey.org/packages/GoogleChrome
-$Form.Controls.Add((generate_checkbox "Google Chrome" "googlechrome"))
-
-# https://community.chocolatey.org/packages/Firefox
-$Form.Controls.Add((generate_checkbox "Mozilla Firefox" "firefox"))
-
-# https://community.chocolatey.org/packages/brave
-$Form.Controls.Add((generate_checkbox "Brave Browser" "brave"))
-
-# https://community.chocolatey.org/packages/microsoft-edge
-$Form.Controls.Add((generate_checkbox "Microsoft Edge" "microsoft-edge"))
-
-# https://community.chocolatey.org/packages/librewolf
-$Form.Controls.Add((generate_checkbox "LibreWolf" "librewolf"))
 
 # https://community.chocolatey.org/packages/ungoogled-chromium
-$Form.Controls.Add((generate_checkbox "ungoogled-chromium" "ungoogled-chromium"))
+init_item "ungoogled-chromium" "ungoogled-chromium"
+
+# https://community.chocolatey.org/packages/Firefox
+init_item "Mozilla Firefox" "firefox"
+
+# https://community.chocolatey.org/packages/brave
+init_item "Brave Browser" "brave"
+
+# https://community.chocolatey.org/packages/GoogleChrome
+init_item "Google Chrome" "googlechrome"
+
+# https://community.chocolatey.org/packages/librewolf
+init_item "LibreWolf" "librewolf"
+
+# https://community.chocolatey.org/packages/tor-browser
+init_item "Tor Browser" "tor-browser"
 
 # https://community.chocolatey.org/packages/discord
-$Form.Controls.Add((generate_checkbox "Discord" "discord"))
+init_item "Discord" "discord"
 
 # https://community.chocolatey.org/packages/discord-canary
-$Form.Controls.Add((generate_checkbox "Discord Canary" "discord-canary"))
+init_item "Discord Canary" "discord-canary"
 
 # https://community.chocolatey.org/packages/steam
-$Form.Controls.Add((generate_checkbox "Steam" "steam"))
+init_item "Steam" "steam"
 
 # https://community.chocolatey.org/packages/playnite
-$Form.Controls.Add((generate_checkbox "Playnite" "playnite"))
+init_item "Playnite" "playnite"
 
-# https://community.chocolatey.org/packages/rare
-$Form.Controls.Add((generate_checkbox "Rare" "rare"))
+# https://community.chocolatey.org/packages/legendary
+init_item "legendary" "legendary"
 
 # https://community.chocolatey.org/packages/Everything
-$Form.Controls.Add((generate_checkbox "Everything" "everything"))
+init_item "Everything" "everything"
 
 # https://community.chocolatey.org/packages/thunderbird
-$Form.Controls.Add((generate_checkbox "Mozilla Thunderbird" "thunderbird"))
+init_item "Mozilla Thunderbird" "thunderbird"
 
 # https://community.chocolatey.org/packages/foobar2000
-$Form.Controls.Add((generate_checkbox "foobar2000" "foobar2000"))
+init_item "foobar2000" "foobar2000"
 
 # https://community.chocolatey.org/packages/irfanview
-$Form.Controls.Add((generate_checkbox "IrfanView" "irfanview"))
+init_item "IrfanView" "irfanview"
 
 # https://community.chocolatey.org/packages/git
-$Form.Controls.Add((generate_checkbox "Git" "git"))
+init_item "Git" "git"
 
 # https://community.chocolatey.org/packages/mpv
-$Form.Controls.Add((generate_checkbox "mpv" "mpv"))
+init_item "mpv" "mpv"
 
 # https://community.chocolatey.org/packages/vlc
-$Form.Controls.Add((generate_checkbox "VLC" "vlc"))
+init_item "VLC" "vlc"
 
 # https://community.chocolatey.org/packages/putty
-$Form.Controls.Add((generate_checkbox "PuTTY" "putty"))
+init_item "PuTTY" "putty"
+
+# https://community.chocolatey.org/packages/ditto
+init_item "Ditto" "ditto"
+
+# https://community.chocolatey.org/packages/7zip
+init_item "7-Zip" "7zip"
 
 # https://community.chocolatey.org/packages/teamspeak
-$Form.Controls.Add((generate_checkbox "Teamspeak" "teamspeak"))
+init_item "Teamspeak" "teamspeak"
 
 # https://community.chocolatey.org/packages/spotify
-$Form.Controls.Add((generate_checkbox "Spotify" "spotify"))
+init_item "Spotify" "spotify"
 
 # https://community.chocolatey.org/packages/obs-studio
-$Form.Controls.Add((generate_checkbox "OBS Studio" "obs-studio"))
+init_item "OBS Studio" "obs-studio"
 
 # https://community.chocolatey.org/packages/msiafterburner
-$Form.Controls.Add((generate_checkbox "MSI Afterburner" "msiafterburner"))
+init_item "MSI Afterburner" "msiafterburner"
 
 # https://community.chocolatey.org/packages/cpu-z
-$Form.Controls.Add((generate_checkbox "CPU-Z" "cpu-z"))
+init_item "CPU-Z" "cpu-z"
 
 # https://community.chocolatey.org/packages/gpu-z
-$Form.Controls.Add((generate_checkbox "GPU-Z" "gpu-z"))
+init_item "GPU-Z" "gpu-z"
 
 # https://community.chocolatey.org/packages/notepadplusplus
-$Form.Controls.Add((generate_checkbox "Notepad++" "notepadplusplus"))
+init_item "Notepad++" "notepadplusplus"
 
 # https://community.chocolatey.org/packages/vscode
-$Form.Controls.Add((generate_checkbox "VSCode" "vscode"))
+init_item "VSCode" "vscode"
 
 # https://community.chocolatey.org/packages/bulk-crap-uninstaller
-$Form.Controls.Add((generate_checkbox "Bulk Crap Uninstaller" "bulk-crap-uninstaller"))
+init_item "Bulk Crap Uninstaller" "bulk-crap-uninstaller"
 
 # https://community.chocolatey.org/packages/hwinfo
-$Form.Controls.Add((generate_checkbox "HWiNFO" "hwinfo"))
+init_item "HWiNFO" "hwinfo"
 
-# https://community.chocolatey.org/packages/kav
-$Form.Controls.Add((generate_checkbox "Kaspersky Anti-Virus" "kav"))
+# https://community.chocolatey.org/packages/lightshot
+init_item "Lightshot" "lightshot"
 
-# https://community.chocolatey.org/packages/microsoft-windows-terminal
-$Form.Controls.Add((generate_checkbox "Windows Terminal" "microsoft-windows-terminal"))
+# https://community.chocolatey.org/packages/sharex
+init_item "Sharex" "sharex"
 
-# https://community.chocolatey.org/packages/waterfox
-$Form.Controls.Add((generate_checkbox "Waterfox" "waterfox"))
+
+$global:item_count = $global:items.Length
+
+# Getting the index for splitting into two columns
+foreach($item in $global:items){
+    if($global:index -eq ($global:item_count / 2)){
+        $global:column = 1
+    }
+    $Form.Controls.Add((generate_checkbox $item[0] $item[1]))
+    $global:index ++
+}
 
 # https://community.chocolatey.org/packages/lightshot
 $Form.Controls.Add((generate_checkbox "Lightshot" "lightshot"))
@@ -163,25 +193,31 @@ if ($global:column -ne 0) {
 
 $Form.height = $global:lastPos + 80
 
-# Detect internet connection
-$InternetTest = (Test-Connection -ComputerName www.google.com -Quiet)
-if (!$InternetTest) {
-    [System.Windows.Forms.MessageBox]::Show("Internet connection not detected. Please check your network connection and try again.", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
-    exit
+# Dark Mode/Light Mode Toggle
+$ToggleBtn = New-Object System.Windows.Forms.Button
+$ToggleBtn.Location = New-Object System.Drawing.Point(500, 20)
+$ToggleBtn.Size = New-Object System.Drawing.Size(80, 23)
+$ToggleBtn.Add_Click({
+if ($this.Text -eq "Dark Mode") {
+    $this.Text = "Light Mode"
+    dark_mode
+} else {
+    $this.Text = "Dark Mode"
+    light_mode
 }
-
-# Check if the system has dark mode or light mode set
-$darkMode = Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" | Select-Object -ExpandProperty "AppsUseLightTheme"
-if ($darkMode -eq 0) {
-    $Form.BackColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
+})
+# Changed into functions 
+function dark_mode {
+    $Form.BackColor = [System.Drawing.Color]::FromArgb(26, 26, 26)
     $Form.ForeColor = [System.Drawing.Color]::White
     foreach ($control in $Form.Controls) {
         if ($control.GetType().Name -eq "Checkbox") {
-            $control.BackColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
+            $control.BackColor = [System.Drawing.Color]::FromArgb(26, 26, 26)
             $control.ForeColor = [System.Drawing.Color]::White
         }
     }
-} else {
+}
+function light_mode {
     $Form.BackColor = [System.Drawing.Color]::White
     $Form.ForeColor = [System.Drawing.Color]::Black
     foreach ($control in $Form.Controls) {
@@ -191,6 +227,22 @@ if ($darkMode -eq 0) {
         }
     }
 }
+# Checks the system "app" color (light or dark)
+$registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\"
+$keyName = "AppsUseLightTheme"
+function check_system_theme{
+    if(((Get-ItemProperty -Path $registryPath -Name $keyName).$keyName) -eq 0){
+        dark_mode
+        $ToggleBtn.Text = "Light Mode"
+    }
+    else{
+        light_mode
+        $ToggleBtn.Text = "Dark Mode"
+    }
+}
+check_system_theme
+
+$Form.Controls.Add($ToggleBtn)
 
 # Install Button
 $lastPosWidth = $form.Width - 80 - 31
@@ -230,7 +282,7 @@ if ($global:install) {
 
     if ($installPackages.count -ne 0) {
         Write-Host "$Env:ProgramData\chocolatey\choco.exe install $($installPackages -join ' ') -y"
-        Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install $($installPackages -join ' ') -y --force --allow-empty-checksums" -Wait
+        Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install $($installPackages -join ' ') -y --ignore-checksums" -Wait
     }
     if ($installSeparatedPackages.count -ne 0) {
         foreach ($paket in $installSeparatedPackages) {
