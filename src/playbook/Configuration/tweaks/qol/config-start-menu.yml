@@ -9,11 +9,6 @@ actions:
     value: 'StartLayoutFile'
     data: 'C:\Windows\layout.xml'
     type: REG_EXPAND_SZ
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
-    value: 'LockedStartLayout'
-    data: '1'
-    type: REG_DWORD
 
     # Configure start menu settings
   - !registryValue:
