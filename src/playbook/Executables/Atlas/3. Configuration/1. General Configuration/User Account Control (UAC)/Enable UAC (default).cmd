@@ -46,4 +46,4 @@ echo]
 echo         [1m[33mPress any key to enable UAC...      [?25l
 pause > nul
 call "%~f0"
-exit
+exit /b 1

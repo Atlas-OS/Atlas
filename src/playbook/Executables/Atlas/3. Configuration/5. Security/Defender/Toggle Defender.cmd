@@ -15,7 +15,7 @@ if "%*"=="" (
 			echo You must run this script as admin.
 			pause & exit /b 1
 		)
-		exit /b 0
+		exit /b
 	)
 )
 
