@@ -9,10 +9,10 @@ if "%LOGICAL_CORES%" GTR "%PHYSICAL_CORES%" (
 	goto :hyperThreading
 )
 
-echo This forces your CPU to work at its hardest always, ensure you have good cooling.
+echo This forces your CPU to work at its maximum speed always, ensure you have a good cooling.
 echo]
-echo Task Manager will display CPU usage as 100%% always, due to how Task Manager calculates CPU percentage.
-echo It does not occur in Process Explorer, System Informer or Process Hacker.
+echo Task Manager will display CPU usage as 100% always, due to how Task Manager calculates CPU percentage.
+echo It does not occur in other tools such as Process Explorer, System Informer or Process Hacker.
 echo]
 pause
 cls
