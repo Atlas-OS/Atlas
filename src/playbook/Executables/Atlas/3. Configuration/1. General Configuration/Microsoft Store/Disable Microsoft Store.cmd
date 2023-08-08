@@ -10,7 +10,7 @@ echo This will break a majority of UWP apps and their deployment.
 echo Extra note: This breaks the "About" page in Immersive Control Panel. If you require it, enable the AppX service.
 pause
 
-:: Detect if user is using a Microsoft account
+:: Detect if a Microsoft account is used
 PowerShell -NoP -C "Get-LocalUser | Select-Object Name,PrincipalSource" | findstr /C:"MicrosoftAccount" > nul 2>&1 && set MSACCOUNT=yes || set MSACCOUNT=no
 if "!MSACCOUNT!" == "no" (call setSvc.cmd wlidsvc 4) else (echo "Microsoft Account detected, not disabling wlidsvc...")
 
