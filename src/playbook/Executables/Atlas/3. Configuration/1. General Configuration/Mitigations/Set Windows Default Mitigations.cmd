@@ -19,7 +19,7 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Mi
 
 :: Set Virtualization Based Protection Of Code Integrity to default
 :: https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v "Enabled" /f > nul 2>&1
+reg delete "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /f > nul 2>&1
 
 :: Set Data Execution Prevention (DEP) only for operating system components
 :: https://docs.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
