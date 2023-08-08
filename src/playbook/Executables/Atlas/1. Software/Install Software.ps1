@@ -184,9 +184,6 @@ foreach($item in $global:items){
     $global:index ++
 }
 
-# https://community.chocolatey.org/packages/lightshot
-$Form.Controls.Add((generate_checkbox "Lightshot" "lightshot"))
-
 if ($global:column -ne 0) {
     $global:lastPos += $separate
 }
