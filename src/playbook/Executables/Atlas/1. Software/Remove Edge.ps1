@@ -59,7 +59,9 @@ function RemoveEdgeChromium {
 	}
 	
 	# remove Edge shortcuts
-	Get-ChildItem -Path C:\ -Recurse -Filter *edge.lnk* | ForEach-Object { Remove-Item $_.FullName -Force } | Out-Null
+	Get-ChildItem -Path C:\ -Recurse -Filter *edge.lnk* -ErrorAction SilentlyContinue | ForEach-Object {
+		Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+	} 2>$null
 
 	# remove user data
 	if ($removeData) {
