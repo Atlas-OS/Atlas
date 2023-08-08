@@ -11,7 +11,6 @@ on:
 env:
   PACKAGE_PATH: '..\Atlas\src\playbook\Executables\AtlasModules\Packages'
   SXSC_REPO: 'https://github.com/Atlas-OS/sxsc'
-  ZIP_PASSWORD: 'malte'
 
 jobs:
   package-build:
@@ -40,7 +39,7 @@ jobs:
                 Copy-Item $file $configs -Force
             }
           } else {$changes = 'false'}
-          echo "CBS_CHANGES=$changes" | Out-File -FilePath $Env:GITHUB_ENV -Encoding UTF8 -Append
+          echo "CBS_CHANGES=$changes" | Out-File -FilePath $env:GITHUB_ENV -Encoding UTF8 -Append
 
       - name: Clone the sxsc repository
         id: clone_repo
@@ -55,7 +54,7 @@ jobs:
           Write-Host "Installing dependencies..."
           pip install -r requirements.txt | Out-Null
 
-          $packagePath = ${{ env.PACKAGE_PATH }}
+          $packagePath = "${{ env.PACKAGE_PATH }}"
           mkdir $packagePath -EA SilentlyContinue | Out-Null
           Get-ChildItem -Recurse "configs" -Filter *.yaml | ForEach-Object {
               Write-Host "`nProcessing $($_.Name)`n------------------------------------------------------"
@@ -117,7 +116,7 @@ jobs:
         run: |
           cd src/playbook
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
-          zip -r -P ${{ env.ZIP_PASSWORD }} "Atlas Playbook ${GITHUB_SHA::8}.apbx" . -x "local-build.cmd"
+          zip -r -P malte "Atlas Playbook ${GITHUB_SHA::8}.apbx" . -x "local-build.cmd"
           echo "Move the .abpx playbook into the 'Release ZIP' to be released as an artifact with the additional files..."
           mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "../release-zip"
 
