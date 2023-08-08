@@ -12,6 +12,13 @@ if ($Exit -and (-not $UninstallAll)) {
     $Exit = $false
 }
 
+# Check if Edge is present
+if (!(Test-Path -Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")) {
+    Write-Host "Edge is not present in the system. Exiting..." -ForegroundColor Green
+	Start-Sleep -Seconds 5
+    Exit
+}
+
 function PauseNul ($message = "Press any key to continue... ") {
 	Write-Host $message -NoNewLine
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
