@@ -155,6 +155,7 @@ features:
   - tweaks\qol\disable-settings-tips.yml
   - tweaks\qol\disable-spell-checking.yml
   - tweaks\qol\disable-store-auto-updates.yml
+  - tweaks\qol\disable-touch-keyboard-features.yml
   - tweaks\qol\disable-touch-visual-feedback.yml
   - tweaks\qol\disable-usb-issues-notifications.yml
   - tweaks\qol\disable-windows-feedback.yml
