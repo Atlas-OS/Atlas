@@ -1,0 +1,14 @@
+---
+title: Enable Global Timer Resolution requests
+description: Starting from Windows 10 version 2004 Microsoft changed the timer resolution implementation so that the calling process does not affect the system on a global level but can be restored on Windows Server and Windows 11+ with the registry key applied below
+privilege: TrustedInstaller
+actions:
+    # https://github.com/amitxv/PC-Tuning/blob/main/docs/post-install.md#raise-the-clock-interrupt-frequency-timer-resolution
+    # https://github.com/amitxv/PC-Tuning/blob/main/docs/research.md#fixing-timing-precision-in-windows-after-the-great-rule-change
+    # https://randomascii.wordpress.com/2020/10/04/windows-timer-resolution-the-great-rule-change/
+
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
+    value: 'GlobalTimerResolutionRequests'
+    data: '1'
+    type: REG_DWORD
