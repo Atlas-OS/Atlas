@@ -20,14 +20,18 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoUseStoreOpenWi
 :: Block access to Microsoft Store
 reg add "HKLM\SOFTWARE\Policies\Microsoft\WindowsStore" /v "RemoveWindowsStore" /t REG_DWORD /d "1" /f > nul 2>&1
 
-call setSvc.cmd AppXSvc 4
-call setSvc.cmd ClipSVC 4
-call setSvc.cmd FileCrypt 4
-call setSvc.cmd FileInfo 4
-call setSvc.cmd InstallService 4
-call setSvc.cmd LicenseManager 4
-call setSvc.cmd TokenBroker 4
-call setSvc.cmd WinHttpAutoProxySvc 4
+for %%a in (
+	"AppXSvc"
+	"ClipSVC"
+	"FileCrypt"
+	"FileInfo"
+	"InstallService"
+	"LicenseManager"
+	"TokenBroker"
+	"WinHttpAutoProxySvc"
+) do (
+	call setSvc.cmd %%~a 4
+)
 
 echo Finished, please reboot your device for changes to apply.
 pause
