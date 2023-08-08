@@ -270,7 +270,7 @@ updates:
     version: 38655.38527.65535.65535
 
     # Sync Center - mobsync
-    # Remove it in components to prevent it from running completely and remove page in control panel
+    # Remove it with components to prevent it from running completely and remove page in control panel
   - target_component: Microsoft-Windows-mobsync
     target_arch: amd64
     version: 38655.38527.65535.65535
