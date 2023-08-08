@@ -4,14 +4,11 @@ setlocal EnableDelayedExpansion
 :: Check if hyper threading is enabled
 for /f "tokens=2 delims==" %%a in ('wmic cpu get NumberOfCores /value') do set PHYSICAL_CORES=%%a
 for /f "tokens=2 delims==" %%a in ('wmic cpu get NumberOfLogicalProcessors /value') do set LOGICAL_CORES=%%a
+if "%LOGICAL_CORES%" GTR "%PHYSICAL_CORES%" goto :hyperThreading
 
-if "%LOGICAL_CORES%" GTR "%PHYSICAL_CORES%" (
-	goto :hyperThreading
-)
-
-echo This forces your CPU to work at its maximum speed always, ensure you have a good cooling.
+echo This forces your CPU to work at its maximum speed always, ensure you have good cooling.
 echo]
-echo Task Manager will display CPU usage as 100% always, due to how Task Manager calculates CPU percentage.
+echo Task Manager will display CPU usage as 100%% always, due to how Task Manager calculates CPU percentage.
 echo It does not occur in other tools such as Process Explorer, System Informer or Process Hacker.
 echo]
 pause
