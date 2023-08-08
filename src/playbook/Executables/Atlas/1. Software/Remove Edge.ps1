@@ -58,18 +58,8 @@ function RemoveEdgeChromium {
 		Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden
 	}
 	
-	# remove edge shortcuts
-	$systemProfilePath = "$env:SystemDrive\Windows\System32\config\systemprofile\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\Microsoft Edge.lnk"
-	$userPinnedTaskBarPath = "$env:SystemDrive\Users\$user\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Tombstones\Microsoft Edge.lnk"
-	$userQuickLaunchPath = "$env:SystemDrive\Users\$user\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\Microsoft Edge.lnk"
-
-	$files = @($systemProfilePath, $userPinnedTaskBarPath, $userQuickLaunchPath)
-
-	foreach ($file in $files) {
-		if (Test-Path $file) {
-			Remove-Item -Path $file -Force -Recurse
-		}
-	}
+	# remove Edge shortcuts
+	Get-ChildItem -Path C:\ -Recurse -Filter *edge.lnk* | ForEach-Object { Remove-Item $_.FullName -Force } | Out-Null
 
 	# remove user data
 	if ($removeData) {
