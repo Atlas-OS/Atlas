@@ -15,7 +15,7 @@
   Uninstall-MsiexecAppByName -Name "Microsoft Update Health Tools"
 #>
 
-function Uninstall-MsiexecByName {
+function Uninstall-MsiexecAppByName {
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -46,4 +46,4 @@ function Uninstall-MsiexecByName {
     }
 }
 
-Export-ModuleMember -Function Uninstall-MsiexecByName
+Export-ModuleMember -Function Uninstall-MsiexecAppByName
