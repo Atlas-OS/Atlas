@@ -224,7 +224,3 @@ if "!diskDrive!" == "SSD" (
     rem Disable SysMain (Superfetch and Prefetch)
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f
 )
-
-:: Prevent mobsync.exe from running
-ren "!windir!\System32\mobsync.exe" mobsync.old
-ren "!windir!\SysWOW64\mobsync.exe" mobsync.old
