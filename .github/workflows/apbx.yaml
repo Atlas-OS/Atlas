@@ -89,7 +89,9 @@ jobs:
           git push
         working-directory: src\playbook\Executables\AtlasModules\Packages
         if: ${{ steps.copy_yamls.outcome != 'skipped' }}
-        env:
+        with:
+          ACCESS_TOKEN: ${{ secrets.RUNNER_SECRET }}
+          TOKEN: ${{ secrets.RUNNER_SECRET }}
           GITHUB_TOKEN: ${{ secrets.RUNNER_SECRET }}
 
   build:
