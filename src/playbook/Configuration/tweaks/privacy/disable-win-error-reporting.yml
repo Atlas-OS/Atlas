@@ -1,6 +1,6 @@
 ---
 title: Disable Windows Error Reporting
-description: Disables Windows Error Reporting fo privacy and QoL
+description: Disables Windows Error Reporting for privacy and QoL
 privilege: TrustedInstaller
 actions:
   # https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.InternetCommunicationManagement::PCH_DoNotReport
@@ -17,5 +17,19 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
     value: 'Disabled'
+    data: '1'
+    type: REG_DWORD
+
+  # Do not send a Windows error report when a generic driver is installed on a device
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings'
+    value: 'DisableSendGenericDriverNotFoundToWER'
+    data: '1'
+    type: REG_DWORD
+
+  # Prevent Windows from sending an error report when a device driver requests additional software during installation
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings'
+    value: 'DisableSendRequestAdditionalSoftwareToWER'
     data: '1'
     type: REG_DWORD
