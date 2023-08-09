@@ -39,4 +39,4 @@ reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer" /v "ShowCloudF
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f
 
 :: Restore old Windows 10 context menu
-reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve​
+reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f
