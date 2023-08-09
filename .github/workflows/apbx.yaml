@@ -90,9 +90,9 @@ jobs:
         working-directory: src\playbook\Executables\AtlasModules\Packages
         if: ${{ steps.copy_yamls.outcome != 'skipped' }}
         env:
-          ACCESS_TOKEN: ${{ secrets.RUNNER_SECRET }}
-          TOKEN: ${{ secrets.RUNNER_SECRET }}
-          GITHUB_TOKEN: ${{ secrets.RUNNER_SECRET }}
+          ACCESS_TOKEN: ${{ secrets.ADMIN_RUNNER }}
+          TOKEN: ${{ secrets.ADMIN_RUNNER }}
+          GITHUB_TOKEN: ${{ secrets.ADMIN_RUNNER }}
 
   build:
     needs: package-build
