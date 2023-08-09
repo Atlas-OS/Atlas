@@ -5,6 +5,7 @@ taskkill /f /im OneDriveSetup.exe > nul 2>&1
 taskkill /f /im OneDrive.exe > nul 2>&1
 taskkill /f /im OneDriveStandaloneUpdater.exe > nul 2>&1
 
+"%windir%\System32\OneDriveSetup.exe" /uninstall
 "%windir%\SysWOW64\OneDriveSetup.exe" /uninstall
 
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
