@@ -13,3 +13,5 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
 :: https://randomascii.wordpress.com/2020/10/04/windows-timer-resolution-the-great-rule-change
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "GlobalTimerResolutionRequests" /t REG_DWORD /d "1" /f
 
+:: Disable recommendations for tips, shortcuts, new apps, and more on start menu
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Start_IrisRecommendations" /t REG_DWORD /d "0" /f
