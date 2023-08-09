@@ -95,7 +95,7 @@ for %%a in (
     "WdfDirectedPowerTransitionEnable"
 ) do (
     for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%~a" ^| findstr "HKEY"') do (
-        reg delete "%%b" /v "%%~a" /f > nul
+        reg add "%%b" /v "%%~a" /t REG_DWORD /d "0" /f > nul
     )
 )
 
