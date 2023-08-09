@@ -4,7 +4,7 @@ target_arch: amd64
 version: 3.0.0.0
 updates:
     # Windows Error Reporting - used for reporting crash dumps to Microsoft
-    # Commented components are to prevent an 'Automatic Repair' loop 
+    # Commented components are to prevent an 'Automatic Repair' loop
   - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
     target_arch: amd64
     version: 38655.38527.65535.65535
