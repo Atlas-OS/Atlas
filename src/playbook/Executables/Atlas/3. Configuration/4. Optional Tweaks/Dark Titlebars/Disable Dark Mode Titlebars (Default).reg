@@ -1,4 +1,5 @@
 Windows Registry Editor Version 5.00
+
 ; Source: https://github.com/Aetopia/Dark-Mode-Titlebars
 
 [HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\DWM]

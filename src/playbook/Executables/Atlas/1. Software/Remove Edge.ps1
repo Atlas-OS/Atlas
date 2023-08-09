@@ -57,7 +57,7 @@ function RemoveEdgeChromium {
 		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString + " --force-uninstall"
 		Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden
 	}
-	
+
 	# remove user data
 	if ($removeData) {
 		$path = "$env:SystemDrive\Users\$user\AppData\Local\Microsoft\Edge"

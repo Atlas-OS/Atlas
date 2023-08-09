@@ -37,7 +37,7 @@ for /f "tokens=3 skip=2" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Contr
 
 :: Set all bits to 1 (enable all mitigations)
 for /l %%a in (0,1,9) do (
-    set "mitigation_mask=!mitigation_mask:%%a=1!""
+    set "mitigation_mask=!mitigation_mask:%%a=1!"
 )
 
 :: Apply mask to kernel

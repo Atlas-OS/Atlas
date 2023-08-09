@@ -1,0 +1,20 @@
+---
+title: Disable Unnecessary Touch Keyboard Settings
+description: Disable unnecessary touch keyboard settings for QoL
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
+    value: 'EnableAutoShiftEngage'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
+    value: 'EnableKeyAudioFeedback'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
+    value: 'EnableShiftLock'
+    data: '0'
+    type: REG_DWORD

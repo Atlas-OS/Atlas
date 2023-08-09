@@ -4,7 +4,7 @@ target_arch: amd64
 version: 3.0.0.0
 updates:
     # Windows Error Reporting - used for reporting crash dumps to Microsoft
-    # Comments are to prevent an Automatic Repair loop
+    # Commented components are to prevent an 'Automatic Repair' loop 
   - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -225,6 +225,9 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
   - target_component: Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient
     target_arch: wow64
     version: 38655.38527.65535.65535
 
@@ -264,4 +267,22 @@ updates:
     version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-UsbCeip.Resources
     target_arch: amd64
+    version: 38655.38527.65535.65535
+
+    # Sync Center - mobsync
+    # Remove it with components to prevent it from running completely and remove page in control panel
+  - target_component: Microsoft-Windows-mobsync
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-mobsync
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-mobsync.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-mobsyncexe
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-mobsyncexe
+    target_arch: wow64
     version: 38655.38527.65535.65535

@@ -1,0 +1,44 @@
+Windows Registry Editor Version 5.00
+
+; Configure Fullscreen Exclusive (FSE)
+
+[HKEY_CURRENT_USER\System\GameConfigStore]
+"GameDVR_DSEBehavior"=dword:00000002
+"GameDVR_DXGIHonorFSEWindowsCompatible"=dword:00000001
+"GameDVR_EFSEFeatureFlags"=dword:00000000
+"GameDVR_FSEBehavior"=dword:00000002
+"GameDVR_FSEBehaviorMode"=dword:00000002
+"GameDVR_HonorUserFSEBehaviorMode"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment]
+"__COMPAT_LAYER"="~ DISABLEDXMAXIMIZEDWINDOWEDMODE"
+
+; Disable Game Bar
+
+[HKEY_CURRENT_USER\System\GameConfigStore]
+"GameDVR_Enabled"=dword:00000000
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR]
+"AppCaptureEnabled"=dword:00000000
+
+; Disable Game Bar tips
+; Disable 'Open Xbox Game Bar using this button on a controller'
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\GameBar]
+"GamePanelStartupTipIndex"=dword:00000003
+"ShowStartupPanel"=dword:00000000
+"UseNexusForGameBarEnabled"=dword:00000000
+
+; Disable Game Bar Presence Writer
+
+[HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter]
+"ActivationType"=dword:00000000
+
+; Disable Windows Game Recording and Broadcasting
+; It automatically disables Game Bar
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR]
+"AllowGameDVR"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR]
+"value"=dword:00000000

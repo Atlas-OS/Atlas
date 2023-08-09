@@ -10,7 +10,7 @@ ping -n 1 -4 www.example.com | find "time=" > nul 2>&1
 if !errorlevel! == 1 (
 	echo You must have an internet connection to use this script.
 	pause
-	exit /b
+	exit /b 1
 )
 
 if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto existOS
