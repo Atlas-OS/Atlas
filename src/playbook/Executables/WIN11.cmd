@@ -13,7 +13,7 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
 )
 
 :: Set current user variable to apply HKCU
-set "current_user=%windir%\AtlasModules\Tools\NsudoLG.exe -U:C -P:E -Wait"
+set "current_user=%windir%\AtlasModules\Tools\NsudoLC.exe -U:E -P:E -Wait -ShowWindowMode:Hide"
 
 :: Enable Global Timer Resolution requests
 :: https://github.com/amitxv/PC-Tuning/blob/main/docs/research.md#fixing-timing-precision-in-windows-after-the-great-rule-change

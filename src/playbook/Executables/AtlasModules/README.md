@@ -8,7 +8,7 @@ To verify the legitmacy of these binaries (executables), there is information pr
 - Repository: https://github.com/Atlas-OS/Atlas-Utilities
 - Version: v0.1
 - License: [GNU General Public License v3.0](https://github.com/Atlas-OS/utilities/blob/main/LICENSE)
-- Last Verified: 29/07/23 by he3als
+- Last Verified: 8/9/2023 by Xyueta
 
 ### Multi-Choice
 - Directory: `\AtlasModules\Tools\multichoice.exe`
@@ -18,13 +18,13 @@ To verify the legitmacy of these binaries (executables), there is information pr
 - Version: v0.4
 - Renamed to `multichoice.exe`
 - License: [GNU General Public License v3.0](https://github.com/Atlas-OS/utilities/blob/main/LICENSE)
-- Last Verified: 29/07/23 by he3als
+- Last Verified: 8/9/2023 by Xyueta
 
 ## NSudo
-- Directory: `\AtlasModules\Tools\nsudo.exe`
-- SHA256 Hash: `BDD9286EAEFC70E313748693A0372EAA18DE535FFEBFAE0EF658F88F53073E6F`
+- Directory: `\AtlasModules\Tools\NSudoLC.exe`
+- SHA256 Hash: `9E166D334ECC9814E42ECCE759C3FA30F350D0AAEF68A67CC77E04258BE69722`
 - Source: https://github.com/M2TeamArchived/NSudo/releases/download/9.0-Preview1/NSudo_9.0_Preview1_9.0.2676.0.zip
 - Repository: https://github.com/M2TeamArchived/NSudo
 - Version: 9.0 Preview 1 (9.0.2676.0)
 - License: [The MIT License](https://github.com/M2TeamArchived/NSudo/blob/master/License.md)
-- Last Verified: 04/08/23 by he3als
+- Last Verified: 8/9/2023 by Xyueta
