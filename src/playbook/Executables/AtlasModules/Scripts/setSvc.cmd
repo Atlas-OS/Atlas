@@ -2,11 +2,9 @@
 setlocal EnableDelayedExpansion
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	set system=false
 	call RunAsTI.cmd "%~f0" "%*"
 	exit /b
 )
-set system=true
 
 goto script
 
@@ -33,17 +31,11 @@ if %~2 LSS 0 echo Invalid start value ^(%~2^) for %~1.
 if %~2 GTR 4 echo Invalid start value ^(%~2^) for %~1.
 
 reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" > nul 2>&1 || (
-	echo The specified service/driver ^(%~1^) is not found.
+	echo The specified service/driver ^(%~1^) was not found.
 	exit /b 1
 )
 
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f > nul 2>&1
-if not "%errorlevel%"=="0" (
-	if "!system!" == "false" (
-		echo Failed to set service %~1 with start value %~2^^! Not running as System, access denied?
-		exit /b 1
-	) else (
-		echo Failed to set service %~1 with start value %~2^^! Unknown error.
-		exit /b 1
-	)
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f > nul 2>&1 || (
+	echo Failed to set service %~1 with start value %~2^^! Unknown error.
+	exit /b 1
 )
