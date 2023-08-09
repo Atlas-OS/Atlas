@@ -12,15 +12,14 @@ goto script
 
 [CREDITS]
 - Made by he3als & Xyueta
-- Repo: https://github.com/he3als/setSvc
+- Repo forked from: https://github.com/he3als/setSvc
 
 [FEATURES]
-- An interactive option, where it will prompt the user about configuring a service
-- Automatic elevation to TrustedInstaller (if avaliable) or regular admin (/q argument only)
-- Checking whether the service/driver exists or not, and other error detection
-- Option to attempt to stop the service/driver being configured
-- Ability to use it as a function in scripts (use call (setSvc.cmd path here) "(service)" "(start)" /f)
-- Help menu
+- Checking whether the service/driver exists or not, and error detection
+- Can configure more services than sc.exe, sometimes there might be 'Access denied' otherwise
+
+[USAGE]
+call setSvc.cmd (service) (start)
 
 ----------------------------------------
 
