@@ -92,9 +92,11 @@ actions:
   # https://www.mdsec.co.uk/2021/03/phishing-users-to-take-a-test
   - !appx: {name: '*Microsoft.Windows.SecureAssessmentBrowser*', type: family}
 
+  # Widgets
+  - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
+
   - !appx: {name: '*MicrosoftCorporationII.MicrosoftFamily*', type: family}
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
-  - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
 
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
   - !appx: {name: '*Microsoft.BingNews*', type: family}
