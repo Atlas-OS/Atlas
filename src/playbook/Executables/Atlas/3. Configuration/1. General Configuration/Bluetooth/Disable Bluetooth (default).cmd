@@ -32,7 +32,7 @@ for %%a in (
 )
 
 :: Disable Bluetooth devices
-toggleDev.cmd -Silent '*Bluetooth*'
+call toggleDev.cmd -Silent '*Bluetooth*'
 
 attrib +h "!appdata!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 

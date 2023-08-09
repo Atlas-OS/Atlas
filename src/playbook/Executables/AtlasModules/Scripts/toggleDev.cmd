@@ -4,7 +4,7 @@ goto main
 
 ----------------------------------------------------------------------------
 [USAGE]
-toggleDev.cmd [-Enable] [-Silent] [-Devices @("Device1", "Device2")] ...
+call toggleDev.cmd [-Enable] [-Silent] [-Devices @("Device1", "Device2")] ...
 
 You can use wildcards, like '*Device*'
 If -Enable is not specified, device is disabled
@@ -26,7 +26,7 @@ for %%a in (
 )
 
 set "__devices=!__devices!)"
-toggleDev.cmd !__devices!
+call toggleDev.cmd !__devices!
 
 ----------------------------------------------------------------------------
 

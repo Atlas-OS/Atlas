@@ -11,7 +11,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 powercfg /restoredefaultschemes
 
 :: Enable Advanced Configuration and Power Interface (ACPI) devices
-call !windir!\AtlasModules\Scripts\toggleDev.cmd /e "ACPI Processor Aggregator" "Microsoft Windows Management Interface for ACPI" > nul
+call toggleDev.cmd -Enable @("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI") > nul
 
 :: Disable driver/device power saving
 PowerShell -NoP -C "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $True; $power_device.psbase.put()}}}}" > nul
