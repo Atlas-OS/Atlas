@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ github.ref }}
+          token: ${{ secrets.RUNNER_SECRET }}
 
       - name: Get changed files
         id: changed-files
@@ -84,7 +85,6 @@ jobs:
         run: |
           git config --local user.email "141822421+atlasos-admin@users.noreply.github.com"
           git config --local user.name "atlasos-admin"
-          git config --global user.password "${{ secrets.ADMIN_RUNNER }}"
           git add -A
           git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
           git push
