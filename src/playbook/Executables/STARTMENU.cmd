@@ -13,6 +13,14 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 			copy /y "Layout.xml" "%%c\Microsoft\Windows\Shell\LayoutModification.xml"
 			del /q /f "%%c\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\LocalState\DeviceSearchCache\SettingsCache.txt"
 			copy /y "SettingsCache.txt" "%%c\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\LocalState\DeviceSearchCache\SettingsCache.txt"
+
+			rem Clear start menu pinned items
+			for /f "usebackq delims=" %%d in (`dir /b "%%c\Packages" /a:d ^| findstr /c:"Microsoft.Windows.StartMenuExperienceHost"`) do (
+				for /f "usebackq delims=" %%e in (`dir /b "%%c\Packages\%%d\LocalState" /a:-d ^| findstr /R /c:"start.\.bin" /c:"start\.bin"`) do (
+					del /q /f "%%c\Packages\%%d\LocalState\%%e"
+				)
+			)
+
 		)
 		reg add "HKU\%%a\SOFTWARE\Policies\Microsoft\Windows\Explorer" /f
 		reg add "HKU\%%a\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "LockedStartLayout" /t REG_DWORD /d "0" /f
