@@ -82,13 +82,15 @@ jobs:
 
       - name: Commit and push changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "141822421+atlasos-admin@users.noreply.github.com"
+          git config --local user.name "atlasos-admin"
           git add -A
           git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
           git push
         working-directory: src\playbook\Executables\AtlasModules\Packages
         if: ${{ steps.copy_yamls.outcome != 'skipped' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.RUNNER_SECRET }}
 
   build:
     needs: package-build
