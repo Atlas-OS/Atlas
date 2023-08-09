@@ -4,6 +4,7 @@ description: Executes script to configure power settings for the best performanc
 privilege: TrustedInstaller
 actions:
   - !run:
-    exeDir: true
-    exe: 'POWER.cmd'
+    exe: '"C:\Users\Default\Desktop\Atlas\3. Configuration\1. General Configuration\Power\Power Saving\Disable Power Saving.cmd"'
+    args: '/setup'
     weight: 20
+    option: 'disable-power-saving'

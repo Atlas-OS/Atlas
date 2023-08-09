@@ -1,26 +1,40 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+if "%~1"=="/setup" goto main
+
+whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
+	call RunAsTI.cmd "%~f0" "%*"
+	exit /b
+)
+
 :: Detect if user uses laptop device or personal computer
 for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"
 set "DEVICE_TYPE=PC"
 for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "DEVICE_TYPE=LAPTOP")
 
-:: Disable Hibernation and Fast Startup
-:: Disabling makes NTFS accessable outside of Windows
-powercfg /hibernate off
-
-:: Disable SleepStudy (UserNotPresentSession.etl)
-for %%a in (
-    "SleepStudy"
-    "Kernel-Processor-Power"
-    "UserModePowerService"
-) do (
-    wevtutil set-log "Microsoft-Windows-%%~a/Diagnostic" /e:false
+if "%DEVICE_TYPE"=="LAPTOP" (
+    echo WARNING: You are on a laptop, disabling power saving features will cause faster battery drainage and increased heat output.
+    echo          If you use your laptop on battery, certain power saving features will enable, but not all.
+    echo          It's NOT recommended to disable power saving on laptops in general.
+    echo]
+    timeout /t 2 /nobreak > nul
+    echo Press any key to continue anyways...
+    pause > nul
+) else (
+    echo This script will disable many power saving features in Windows for reduced latency and increased performance.
+    echo Ensure that you have adequate cooling.
+    echo]
+    pause
 )
 
+cls
+
+:main
 :: Duplicate Ultimate Performance power scheme, customize it and make it the Atlas power scheme
-powercfg /duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 11111111-1111-1111-1111-111111111111
+powercfg /l | find "Power Scheme GUID: 11111111-1111-1111-1111-111111111111  (Atlas Power Scheme)" > nul || (
+    powercfg /duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 11111111-1111-1111-1111-111111111111 > nul
+)
 powercfg /setactive 11111111-1111-1111-1111-111111111111
 
 :: Set current power scheme to Atlas
@@ -60,41 +74,45 @@ powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 3c
 
 :: Set the active scheme as the current scheme
 powercfg /setactive scheme_current
-    
-if "!DEVICE_TYPE!" == "PC" (
-    rem Disable Advanced Configuration and Power Interface (ACPI) devices
-    call !windir!\AtlasModules\Scripts\toggleDev.cmd "ACPI Processor Aggregator" "Microsoft Windows Management Interface for ACPI"
 
-    rem Disable driver power saving
-    PowerShell -NoP -C "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}"
+:: Disable Advanced Configuration and Power Interface (ACPI) devices
+call !windir!\AtlasModules\Scripts\toggleDev.cmd "ACPI Processor Aggregator" "Microsoft Windows Management Interface for ACPI" > nul
 
-    for %%a in (
-        "AllowIdleIrpInD3"
-        "D3ColdSupported"
-        "DeviceSelectiveSuspended"
-        "EnableIdlePowerManagement"
-        "EnableSelectiveSuspend"
-        "EnhancedPowerManagementEnabled"
-        "IdleInWorkingState"
-        "SelectiveSuspendEnabled"
-        "SelectiveSuspendOn"
-        "WaitWakeEnabled"
-        "WakeEnabled"
-        "WdfDirectedPowerTransitionEnable"
-    ) do (
-        for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%~a" ^| findstr "HKEY"') do (
-            reg add "%%b" /v "%%~a" /t REG_DWORD /d "0" /f
-        )
+:: Disable driver/device power saving
+PowerShell -NoP -C "$usb_devices = @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub'); $power_device_enable = Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi; foreach ($power_device in $power_device_enable){$instance_name = $power_device.InstanceName.ToUpper(); foreach ($device in $usb_devices){foreach ($hub in Get-WmiObject $device){$pnp_id = $hub.PNPDeviceID; if ($instance_name -like \"*$pnp_id*\"){$power_device.enable = $False; $power_device.psbase.put()}}}}" > nul
+for %%a in (
+    "AllowIdleIrpInD3"
+    "D3ColdSupported"
+    "DeviceSelectiveSuspended"
+    "EnableIdlePowerManagement"
+    "EnableSelectiveSuspend"
+    "EnhancedPowerManagementEnabled"
+    "IdleInWorkingState"
+    "SelectiveSuspendEnabled"
+    "SelectiveSuspendOn"
+    "WaitWakeEnabled"
+    "WakeEnabled"
+    "WdfDirectedPowerTransitionEnable"
+) do (
+    for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%~a" ^| findstr "HKEY"') do (
+        reg delete "%%b" /v "%%~a" /f > nul
     )
-
-    rem Disable D3 support on SATA/NVMEs while using Modern Standby
-    rem https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/power-management-for-storage-hardware-devices-intro#d3-support
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Storage" /v "StorageD3InModernStandby" /t REG_DWORD /d "0" /f
-
-    rem Disable IdlePowerMode for stornvme.sys (storage devices) - the device will never enter a low-power state
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" /v "IdlePowerMode" /t REG_DWORD /d "0" /f
-
-    rem Disable power throttling
-    rem https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f
 )
+
+:: Disable D3 support on SATA/NVMEs while using Modern Standby
+:: https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/power-management-for-storage-hardware-devices-intro#d3-support
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Storage" /v "StorageD3InModernStandby" /t REG_DWORD /d "0" /f > nul
+
+:: Disable IdlePowerMode for stornvme.sys (storage devices) - the device will never enter a low-power state
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" /v "IdlePowerMode" /t REG_DWORD /d "0" /f > nul
+
+:: Disable power throttling
+:: https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f > nul
+
+if "%~1"=="/setup" exit
+
+echo Completed.
+pause > nul
+echo Press any key to exit...
+exit /b
