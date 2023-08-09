@@ -12,6 +12,9 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     )
 )
 
+:: Re-enable Action Center on Win11, as it breaks calendar
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f
+
 :: Enable Global Timer Resolution requests
 :: https://github.com/amitxv/PC-Tuning/blob/main/docs/research.md#fixing-timing-precision-in-windows-after-the-great-rule-change
 :: https://randomascii.wordpress.com/2020/10/04/windows-timer-resolution-the-great-rule-change
@@ -21,14 +24,11 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 	REM If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
 	reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_"
 	if not !errorlevel! == 1 (
-		call :registry "%%a"
+		call :USERREG "%%a"
 	)
 )
 
-:registry
-:: Re-enable Action Center on Win11, as it breaks calendar
-reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f
-
+:USERREG
 :: Do not show recommendations for tips, shortcuts, new apps, and more in start menu
 reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Start_IrisRecommendations" /t REG_DWORD /d "0" /f
 
