@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-call toggleDev.cmd "NDIS Virtual Network Adapter Enumerator" "Microsoft RRAS Root Enumerator" "WAN Miniport*"
+toggleDev.cmd -Silent @("NDIS Virtual Network Adapter Enumerator" "Microsoft RRAS Root Enumerator" "WAN Miniport*")
 
 for %%a in (
 	"Eaphost"

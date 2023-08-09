@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-call toggleDev.cmd /e "NDIS Virtual Network Adapter Enumerator" "Microsoft RRAS Root Enumerator" "WAN Miniport*"
+toggleDev.cmd -Silent -Enable @("NDIS Virtual Network Adapter Enumerator", "Microsoft RRAS Root Enumerator", "WAN Miniport*")
 
 call setSvc.cmd BFE 2
 call setSvc.cmd Eaphost 3

@@ -1,29 +1,17 @@
+<# : batch portion
 @echo off
-setlocal EnableDelayedExpansion
-
-:: Detect whether the script is run with cmd or the external script
-if not defined run_by (
-	set "cmdcmdline=!cmdcmdline:"=!"
-	set "cmdcmdline=!cmdcmdline:~0,-1!"
-	if /i "!cmdcmdline!" == "C:\Windows\System32\cmd.exe" (
-		set "run_by=cmd"
-	) else (
-		set "run_by=external"
-	)
-)
-
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" "%*"
-	if "!run_by!" == "cmd" (exit) else (exit /b)
-)
 goto main
 
 ----------------------------------------------------------------------------
+[USAGE]
+toggleDev.cmd [-Enable] [-Silent] [-Devices @("Device1", "Device2")] ...
+
+You can use wildcards, like '*Device*'
+If -Enable is not specified, device is disabled
+
 [USAGE IN A SCRIPT]
 - Made by he3als & Xyueta
-- Below shows how to use it for mass disabling devices in a script
-- For more simple tasks, use: call toggleDev.cmd [/e] "Device1" "Device2" ...
-----------------------------------------------------------------------------
+- Below shows how to use it for mass disabling devices in a batch script
 
 setlocal EnableDelayedExpansion
 for %%a in (
@@ -31,43 +19,67 @@ for %%a in (
 	"*SmBus*"
 ) do (
 	if defined __devices (
-		set "__devices=!__devices! "%%~a""
+		set "__devices=!__devices!, "%%~a""
 	) else (
-		set "__devices="%%~a""
+		set "__devices=@("%%~a""
 	)
 )
 
-call toggleDev.cmd !__devices!
+set "__devices=!__devices!)"
+toggleDev.cmd !__devices!
 
 ----------------------------------------------------------------------------
 
 :main
-set "__arguments=%*"
-if not defined __arguments (
-	echo toggleDev.cmd [/e] "Device1" "Device2" ...
-	echo]
-	echo You can use wildcards, like '*Device*'
-	echo If /e is not specified, device is disabled
-	echo]
-	if "!run_by!" == "cmd" (pause & exit) else (exit /b)
+fltmc >nul 2>&1 || (
+	echo Administrator privileges are required.
+	PowerShell Start -Verb RunAs '%0' 2> nul || (
+		echo You must run this script as admin.
+		exit /b 1
+	)
+	exit /b
 )
 
-if "%~1" == "/e" (set __state=enable) else (set __state=disable)
+set args= & set "args1=%*"
+if defined args1 set "args=%args1:"='%"
+powershell -noni -nop "& ([Scriptblock]::Create((Get-Content '%~f0' -Raw))) %args%"
+exit /b %errorlevel%
+: end batch / begin PowerShell #>
 
-:: Remove /e from arguments
-set __arguments=!__arguments:/e =!
+param (
+    [switch]$Enable,
+	[switch]$Silent,
+	[string]$Devices
+)
 
-call :dequote __arguments
+if ((($Devices -eq [array]) -and ($Devices.count -gt 0)) -or (!$Devices)) {
+	throw "Devices not passed."
+	exit 1
+}
 
-:: Make a comma seperated
-set __list=!__arguments:" "=,!
+if (!($Enable)) {$State = 'Disabl'} else {$State = 'Enabl'}
 
-:: Disable/enable PnP device(s)
-PowerShell -NonI -NoP $devices = """!__list!""" -split ""","""; Get-PnpDevice -FriendlyName $devices -ErrorAction Ignore ^| !__state!-PnpDevice -Confirm:$false -ErrorAction Ignore
+try {
+	$foundDevices = Get-PnpDevice -FriendlyName $devices -ErrorAction Ignore
+} catch {
+	Write-Host "`nSomething went wrong getting the devices! Error:" -ForegroundColor Red
+	Write-Host "$_`n" -ForegroundColor Red
+	exit 1
+}
 
-echo Attempted to !__state! specified devices.
-if "!run_by!" == "cmd" (pause & exit) else (exit /b)
+foreach ($device in $foundDevices) {
+	try {
+		$device | & $State`e-PnpDevice -Confirm:$false -ErrorAction Ignore
+	} catch {
+		Write-Host "`nSomething went wrong $State`ing the device: $device" -ForegroundColor Red
+		Write-Host "$_`n" -ForegroundColor Red
+	}
+}
 
-:dequote
-for /f "delims=" %%a in ('echo %%%1%%') do set %1=%%~a
-exit /b
+if (!($Silent)) {
+	Write-Host "$State`ed the matched specified devices:" -ForegroundColor Yellow
+	foreach ($device in $foundDevices.FriendlyName) {
+		Write-Host " - " -NoNewLine -ForegroundColor Blue
+		Write-Host "$device"
+	}
+}

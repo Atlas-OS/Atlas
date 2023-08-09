@@ -29,7 +29,7 @@ for %%a in (
 )
 
 :: Enable Bluetooth devices
-call toggleDev.cmd /e "*Bluetooth*"
+toggleDev.cmd -Silent -Enable '*Bluetooth*'
 
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
 if !errorlevel! == 1 attrib -h "!appdata!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
