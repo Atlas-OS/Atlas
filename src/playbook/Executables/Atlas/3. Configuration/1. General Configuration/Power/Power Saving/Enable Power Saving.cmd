@@ -46,6 +46,6 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" /
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /f > nul
 
 echo Completed.
-pause > nul
 echo Press any key to exit...
+pause > nul
 exit /b

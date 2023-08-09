@@ -113,6 +113,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerT
 if "%~1"=="/setup" exit
 
 echo Completed.
-pause > nul
 echo Press any key to exit...
+pause > nul
 exit /b
