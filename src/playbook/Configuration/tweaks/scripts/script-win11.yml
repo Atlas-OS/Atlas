@@ -4,6 +4,6 @@ description: Configures Windows 11 registry and settings
 privilege: TrustedInstaller
 actions:
   - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLG.exe'
-    args: '-U:C -P:E -Wait -ShowWindowMode:Hide WIN11.cmd'
+    exeDir: true
+    exe: 'WIN11.cmd'
     weight: 20
