@@ -4,6 +4,10 @@ setlocal EnableDelayedExpansion
 :: Check for a Windows build and make changes
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     if %%a LSS 22621 (
+        rem Hide Win11 Context Menu folder
+        for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
+            attrib +s +h "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Win11 Context Menu"
+        )
         exit /b
     )
 )
