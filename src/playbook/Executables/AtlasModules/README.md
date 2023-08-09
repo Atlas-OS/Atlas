@@ -1,5 +1,5 @@
 # Sources
-To verify the legitmacy of these binaries (executables), there is information provided here for each binary for hashes, sources and when each was last verified/checked with the SHA256 hash. Verified using `Get-FileHash` in PowerShell.
+To verify the legitimacy of these binaries (executables), there is information provided here for each binary for hashes, sources and when each was last verified/checked with the SHA256 hash. Verified using `Get-FileHash` in PowerShell.
 
 ### File Picker
 - Directory: `\AtlasModules\Tools\filepicker.exe`
