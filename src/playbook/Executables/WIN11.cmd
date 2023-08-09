@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 :: Check for a Windows build and exit if Windows 11 is not installed
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (
-    if %%a lss 22000 (
+    if %%a lss 22621 (
         exit /b
     )
 )
@@ -12,3 +12,4 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
 :: https://github.com/amitxv/PC-Tuning/blob/main/docs/research.md#fixing-timing-precision-in-windows-after-the-great-rule-change
 :: https://randomascii.wordpress.com/2020/10/04/windows-timer-resolution-the-great-rule-change
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "GlobalTimerResolutionRequests" /t REG_DWORD /d "1" /f
+
