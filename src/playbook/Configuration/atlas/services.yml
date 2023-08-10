@@ -34,7 +34,7 @@ actions:
   # ------------------------ Services ------------------------
 
   - !run:
-    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\1. General Configuration\Bluetooth\Disable Bluetooth (default).cmd'
+    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\1. General Configuration\Bluetooth\Disable Bluetooth.cmd'
     args: '/silent'
     option: 'disable-bluetooth'
 

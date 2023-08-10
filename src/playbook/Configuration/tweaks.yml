@@ -62,6 +62,7 @@ features:
   - tweaks\performance\extend-cache.yml
   - tweaks\performance\no-search-invalid-shortcuts.yml
   - tweaks\performance\disable-fth.yml
+  - tweaks\performance\disable-sleep-study.yml
 
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
@@ -70,7 +71,6 @@ features:
   - tweaks\performance\system\config-paging.yml
   - tweaks\performance\system\disable-reserved-storage.yml
   - tweaks\performance\system\optimize-ntfs.yml
-  - tweaks\performance\system\script-power.yml
   - tweaks\performance\system\service-host-split.yml
   # Windows Default is Programs - 26/38 
   # - tweaks\performance\system\win32-priority-seperation.yml
@@ -335,6 +335,7 @@ features:
   - tweaks\scripts\script-wallpaper.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
+  - tweaks\scripts\script-power.yml
 
   # -----------------------------------------------------
   #                         Misc                         

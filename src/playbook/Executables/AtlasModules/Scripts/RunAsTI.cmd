@@ -2,17 +2,6 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-:: Detect whether the script is run with cmd or the external script
-if not defined run_by (
-	set "cmdcmdline=!cmdcmdline:"=!"
-	set "cmdcmdline=!cmdcmdline:~0,-1!"
-	if /i "!cmdcmdline!" == "C:\Windows\System32\cmd.exe" (
-		set "run_by=cmd"
-	) else (
-		set "run_by=external"
-	)
-)
-
 goto RunAsTI-Elevate
 
 ----------------------------------------
@@ -39,21 +28,15 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 :RunAsTI-Elevate
 if "%~1" == "" (
 	set /P program_path="Enter the valid path of the program or drag it here: "
-	if "!program_path!" == "" echo error: failed && timeout /t 3 > nul & if "!run_by!" == "cmd" (pause & exit) else (exit /b 1)
-	if exist "!program_path!\*" echo error: !program_path! is a folder & if "!run_by!" == "cmd" (pause & exit) else (exit /b 1)
-
-	if exist !program_path! (
-		call :RunAsTI !program_path!
-		if "!run_by!" == "cmd" (exit) else (exit /b)
-	) else (
-		where !program_path! > nul 2>&1
-		if !errorlevel! == 0 (
-			call :RunAsTI !program_path!
-			if "!run_by!" == "cmd" (exit) else (exit /b)
-		)
+	if "!program_path!" == "" (
+		echo error: no input
+		timeout /t 1 > nul
+		cls
+		goto RunAsTI-Elevate
 	)
-	echo error: failed
-	if "!run_by!" == "cmd" (pause & exit) else (exit /b 1)
+
+	call :RunAsTI !program_path!
+	exit /b 1
 )
 
 call :RunAsTI %*
