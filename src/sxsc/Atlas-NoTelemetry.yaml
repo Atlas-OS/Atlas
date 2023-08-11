@@ -23,9 +23,9 @@ updates:
   # - target_component: Microsoft-Windows-ErrorReportingCompatibility
   #   target_arch: amd64
   #   version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-ErrorReportingCompatibility
-    target_arch: wow64
-    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-ErrorReportingCompatibility
+  #   target_arch: wow64
+  #   version: 38655.38527.65535.65535
   # - target_component: Microsoft-Windows-ErrorReportingCompatibility.Resources
   #   target_arch: amd64
   #   version: 38655.38527.65535.65535
@@ -200,9 +200,9 @@ updates:
   - target_component: Microsoft-Windows-TelemetryClient
     target_arch: wow64
     version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-Unified-Telemetry-Client
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-Unified-Telemetry-Client
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-Unified-Telemetry-Client.resources
     target_arch: amd64
     version: 38655.38527.65535.65535
