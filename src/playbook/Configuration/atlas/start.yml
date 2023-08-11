@@ -82,6 +82,8 @@ actions:
   - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"OpenSSH.Client~~~~0.0.1.0" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Print.Fax.Scan~~~~0.0.1.0" /NoRestart', weight: 30}
 
+  ################ NO LOCAL BUILD ################
+
   - !writeStatus: {status: 'Installing Chocolatey'}
   - !powerShell:
     command: 'Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://community.chocolatey.org/install.ps1''))'
@@ -442,6 +444,8 @@ actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Classes\7-Zip.zip', value: '', data: 'zip Archive', type: REG_SZ}
   - !registryValue: {path: 'HKLM\SOFTWARE\Classes\7-Zip.zip\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,1', type: REG_SZ}
   - !registryValue: {path: 'HKLM\SOFTWARE\Classes\7-Zip.zip\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+
+  ################ END NO LOCAL BUILD ################
 
   - !file:
     path: 'C:\Windows\SoftwareDistribution'

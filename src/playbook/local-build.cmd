@@ -9,6 +9,8 @@ $fileName = "Atlas Test"
 # if not, it will make something like "Atlas Test (1).apbx"
 $replaceOldPlaybook = $true
 
+# choose to get Atlas dependencies or not to speed up installation
+$removeDependencies = $false
 # choose not to modify certain aspects from playbook.conf
 $removeRequirements = $false
 $removeBuildRequirement = $true
@@ -80,9 +82,33 @@ if ($removeProductCode) {$patterns += "<ProductCode>"}
 $newContent = Get-Content "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') }
 $newContent | Set-Content "$tempPlaybook" -Force
 
+if ($removeDependencies) {
+	$startYML = "$PWD\Configuration\atlas\start.yml"
+	$tempPath = "$env:TEMP\start.yml"
+	if (Test-Path $startYML -PathType Leaf) {
+		Copy-Item -Path $startYML -Destination $tempPath -Force
+
+		$content = Get-Content -Path $tempPath -Raw
+
+		$startMarker = "  ################ NO LOCAL BUILD ################"
+		$endMarker = "  ################ END NO LOCAL BUILD ################"
+
+		$startIndex = $content.IndexOf($startMarker)
+		$endIndex = $content.IndexOf($endMarker)
+
+		if ($startIndex -ge 0 -and $endIndex -ge 0) {
+			$newContent = $content.Substring(0, $startIndex) + $content.Substring($endIndex + $endMarker.Length)
+			Set-Content -Path $startYML -Value $newContent
+		}
+	}
+}
+
 # make playbook
 Compress-Archive -Path $filteredItems -DestinationPath $zipFileName
 Rename-Item -Path $zipFileName -NewName $apbxFileName
+
+# add back unmodified start.yml
+Copy-Item -Path $tempPath -Destination $startYML -Force
 
 Write-Host "Completed." -ForegroundColor Green
 Start-Sleep 1
