@@ -100,14 +100,15 @@ if ($removeDependencies) {
 			$newContent = $content.Substring(0, $startIndex) + $content.Substring($endIndex + $endMarker.Length)
 			Set-Content -Path $startYML -Value $newContent
 		}
-
-		Copy-Item -Path $tempPath -Destination $startYML -Force
 	}
 }
 
 # make playbook
 Compress-Archive -Path $filteredItems -DestinationPath $zipFileName
 Rename-Item -Path $zipFileName -NewName $apbxFileName
+
+# add back unmodified start.yml
+Copy-Item -Path $tempPath -Destination $startYML -Force
 
 Write-Host "Completed." -ForegroundColor Green
 Start-Sleep 1
