@@ -1,15 +1,5 @@
 @echo off
 
-for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
-	if "%%a" == "AME_UserHive_Default" (
-		call :ALLUSERS "%%a" "%SystemDrive%\Users\Default\AppData\Roaming"
-	) else (
-		for /f "usebackq tokens=2* delims= " %%b in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "AppData" ^| findstr /r /x /c:".*AppData[ ]*REG_SZ[ ].*"`) do (
-			call :ALLUSERS "%%a" "%%c"
-		)
-	)
-)
-
 :: copy themes
 copy "Themes\Atlas Dark.theme" "%windir%\Resources\Themes\aero.theme"
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (
@@ -18,6 +8,16 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     ) else (
 		copy "Themes\Atlas Light.theme" "%windir%\Resources\Themes\spotlight.theme"
 		set win11=true
+	)
+)
+
+for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
+	if "%%a" == "AME_UserHive_Default" (
+		call :ALLUSERS "%%a" "%SystemDrive%\Users\Default\AppData\Roaming"
+	) else (
+		for /f "usebackq tokens=2* delims= " %%b in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "AppData" ^| findstr /r /x /c:".*AppData[ ]*REG_SZ[ ].*"`) do (
+			call :ALLUSERS "%%a" "%%c"
+		)
 	)
 )
 
