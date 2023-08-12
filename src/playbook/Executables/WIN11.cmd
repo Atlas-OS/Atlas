@@ -4,9 +4,11 @@ setlocal EnableDelayedExpansion
 :: Check for a Windows build and make changes
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     if %%a LSS 22621 (
-        rem Hide Win11 Context Menu folder
         for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
-            attrib +s +h "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Win11 Context Menu"
+            rem Delete Windows 11 only tweaks
+            del /s /f /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu"
+            del /s /f /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\1. General Configuration\Timer Resolution"
+            del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe"
         )
         exit /b
     )
@@ -14,11 +16,6 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
 
 :: Re-enable Action Center on Win11, as it breaks calendar
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f
-
-:: Enable Global Timer Resolution requests
-:: https://github.com/amitxv/PC-Tuning/blob/main/docs/research.md#fixing-timing-precision-in-windows-after-the-great-rule-change
-:: https://randomascii.wordpress.com/2020/10/04/windows-timer-resolution-the-great-rule-change
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "GlobalTimerResolutionRequests" /t REG_DWORD /d "1" /f
 
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
 	REM If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
