@@ -81,17 +81,17 @@ actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
     value: 'ColorizationAfterglow'
-    data: '3289523299'
+    data: '3292615103'
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
     value: 'AccentColor'
-    data: '4284687378'
+    data: '4290728257'
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
     value: 'ColorizationColor'
-    data: '3289523299'
+    data: '3292615103'
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
