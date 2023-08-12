@@ -10,7 +10,7 @@ $fileName = "Atlas Test"
 $replaceOldPlaybook = $true
 
 # choose to get Atlas dependencies or not to speed up installation
-$removeDependencies = $false
+$removeDependencies = $true
 # choose not to modify certain aspects from playbook.conf
 $removeRequirements = $false
 $removeBuildRequirement = $true
@@ -88,7 +88,7 @@ if ($removeDependencies) {
 	if (Test-Path $startYML -PathType Leaf) {
 		Copy-Item -Path $startYML -Destination $tempPath -Force
 
-		$content = Get-Content -Path $tempPath -Raw
+		$content = Get-Content -Path $startYML -Raw
 
 		$startMarker = "  ################ NO LOCAL BUILD ################"
 		$endMarker = "  ################ END NO LOCAL BUILD ################"
@@ -108,7 +108,7 @@ Compress-Archive -Path $filteredItems -DestinationPath $zipFileName
 Rename-Item -Path $zipFileName -NewName $apbxFileName
 
 # add back unmodified start.yml
-Copy-Item -Path $tempPath -Destination $startYML -Force
+if ($removeDependencies) {Copy-Item -Path $tempPath -Destination $startYML -Force}
 
 Write-Host "Completed." -ForegroundColor Green
 Start-Sleep 1
