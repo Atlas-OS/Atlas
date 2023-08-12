@@ -9,7 +9,7 @@ actions:
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
     exeDir: true
-    command: 'robocopy "Web" "C:\Windows\Web" /E /IM /IT /NP'
+    command: 'robocopy "Screen" "C:\Windows\Web\Screen" /E /PURGE /IM /IT /NP'
     weight: 10
   - !cmd:
     exeDir: true
