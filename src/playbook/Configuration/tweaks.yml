@@ -169,8 +169,8 @@ features:
   #  qol\appearance                                                            #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\appearance\blue-tooltips.yml
-  - tweaks\qol\appearance\dark-mode-disable-transparency.yml
   - tweaks\qol\appearance\disable-blur-login.yml
+  - tweaks\qol\appearance\atlas-theme.yml
   - tweaks\qol\appearance\disallow-theme-changes.yml
 
   # -------------------------------------------------------------------------- #
@@ -331,7 +331,6 @@ features:
   - tweaks\scripts\script-cleanup.yml
   - tweaks\scripts\script-startmenu.yml
   - tweaks\scripts\script-pfp.yml
-  - tweaks\scripts\script-wallpaper.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
   - tweaks\scripts\script-power.yml

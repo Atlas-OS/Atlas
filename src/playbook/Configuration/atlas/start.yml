@@ -9,7 +9,7 @@ actions:
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
     exeDir: true
-    command: 'robocopy "Web" "C:\Windows\Web" /E /PURGE /IM /IT /NP'
+    command: 'robocopy "Web" "C:\Windows\Web" /E /IM /IT /NP'
     weight: 10
   - !cmd:
     exeDir: true
@@ -451,3 +451,4 @@ actions:
     path: 'C:\Windows\SoftwareDistribution'
     weight: 20
     ignoreErrors: true
+
