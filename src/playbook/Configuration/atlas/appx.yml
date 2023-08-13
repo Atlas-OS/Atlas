@@ -14,11 +14,17 @@ actions:
 
   #####################################################################################################
 
+  # Clipchamp
+  - !appx: {name: '*Clipchamp*', type: family}
+
   # Disney
   - !appx: {name: '*Disney*', type: family}
 
   # Spotify
   - !appx: {name: '*Spotify*', type: family}
+
+  # Microsoft Teams
+  - !appx: {name: '*MicrosoftTeams*', type: family}
 
   # Cortana
   - !appx: {name: '*Microsoft.549981C3F5F10*', type: family}
@@ -42,7 +48,14 @@ actions:
   # https://www.mdsec.co.uk/2021/03/phishing-users-to-take-a-test
   - !appx: {name: '*Microsoft.Windows.SecureAssessmentBrowser*', type: family}
 
+  # Widgets
+  - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
+
+  - !appx: {name: '*MicrosoftCorporationII.MicrosoftFamily*', type: family}
+  - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
+
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
+  - !appx: {name: '*Microsoft.BingNews*', type: family}
   - !appx: {name: '*Microsoft.BingWeather*', type: family}
   - !appx: {name: '*Microsoft.GetHelp*', type: family}
   - !appx: {name: '*Microsoft.Getstarted*', type: family}
@@ -55,9 +68,11 @@ actions:
   - !appx: {name: '*Microsoft.MSPaint*', type: family}
   - !appx: {name: '*Microsoft.Office.OneNote*', type: family}
   - !appx: {name: '*Microsoft.People*', type: family}
+  - !appx: {name: '*Microsoft.PowerAutomateDesktop*', type: family}
   - !appx: {name: '*Microsoft.Windows.PeopleExperienceHost*', type: family}
   - !appx: {name: '*Microsoft.ScreenSketch*', type: family}
   - !appx: {name: '*Microsoft.SkypeApp*', type: family}
+  - !appx: {name: '*Microsoft.Todos*', type: family}
   - !appx: {name: '*Microsoft.Wallet*', type: family}
   - !appx: {name: '*Microsoft.Windows.AssignedAccessLockApp*', type: family}
   - !appx: {name: '*Microsoft.Windows.ParentalControls*', type: family}

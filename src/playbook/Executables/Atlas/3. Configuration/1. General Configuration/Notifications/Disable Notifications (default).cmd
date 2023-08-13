@@ -13,6 +13,13 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "T
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" /v "NoCloudApplicationNotification" /t REG_DWORD /d "1" /f > nul 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f > nul 2>&1
 
+:: Re-enable action center on Windows 11 as it breaks calendar
+for /f "tokens=6 delims=[.] " %%a in ('ver') do (
+    if %%a GEQ 22621 (
+        reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f > nul 2>&1
+    )
+)
+
 echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

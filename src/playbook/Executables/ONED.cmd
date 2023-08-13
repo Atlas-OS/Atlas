@@ -5,6 +5,7 @@ taskkill /f /im OneDriveSetup.exe > nul 2>&1
 taskkill /f /im OneDrive.exe > nul 2>&1
 taskkill /f /im OneDriveStandaloneUpdater.exe > nul 2>&1
 
+"%windir%\System32\OneDriveSetup.exe" /uninstall
 "%windir%\SysWOW64\OneDriveSetup.exe" /uninstall
 
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
@@ -16,6 +17,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 )
 
 rmdir /q /s "C:\ProgramData\Microsoft OneDrive"
+rmdir /q /s "%localappdata%\Microsoft\OneDrive"
 
 for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
 	rmdir /q /s "C:\Users\%%a\AppData\Local\Microsoft\OneDrive"
