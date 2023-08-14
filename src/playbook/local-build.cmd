@@ -10,7 +10,7 @@ $fileName = "Atlas Test"
 $replaceOldPlaybook = $true
 
 # choose to get Atlas dependencies or not to speed up installation
-$removeDependencies = $true
+$removeDependencies = $false
 # choose not to modify certain aspects from playbook.conf
 $removeRequirements = $false
 $removeBuildRequirement = $true

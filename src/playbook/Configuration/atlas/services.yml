@@ -45,7 +45,7 @@ actions:
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
   # DisplayEnhancementService 4 < breaks brightness slider on laptops
-  - !service: {name: 'DoSvc', operation: change, startup: 3}
+  # DoSvc 3 < Seems to just enable its self, probably needed in Windows 11
   - !service: {name: 'DPS', operation: change, startup: 4}
   # DsSvc 4 < can cause issues with Snip & Sketch
   - !service: {name: 'fdPHost', operation: change, startup: 4}

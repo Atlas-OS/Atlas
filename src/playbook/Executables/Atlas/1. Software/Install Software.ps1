@@ -5,10 +5,11 @@ function PauseNul ($message = "Press any key to exit... ") {
 
 # Credit to spddl for part of the code 
 # Require admin privileges if User Account Control (UAC) is enabled
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-    Start-Process PowerShell "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    exit
-}
+# Some applications like Spotify require a non-admin context
+# if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
+#     Start-Process PowerShell "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+#     exit
+# }
 
 if ($null -eq $(cmd /c where winget)) {
     Write-Host "WinGet is not installed, please update or install App Installer from Microsoft Store." -ForegroundColor Red
@@ -178,7 +179,7 @@ init_item "HWiNFO" "REALiX.HWiNFO"
 init_item "Lightshot" "Skillbrains.Lightshot"
 
 # https://winget.run/pkg/ShareX/ShareX
-init_item "Sharex" "ShareX.ShareX"
+init_item "ShareX" "ShareX.ShareX"
 
 $global:item_count = $global:items.Length
 
@@ -222,11 +223,11 @@ function dark_mode {
     }
 }
 function light_mode {
-    $Form.BackColor = [System.Drawing.Color]::White
+    $Form.BackColor = [System.Drawing.Color]::FromArgb(240, 240, 240)
     $Form.ForeColor = [System.Drawing.Color]::Black
     foreach ($control in $Form.Controls) {
         if ($control.GetType().Name -eq "Checkbox") {
-            $control.BackColor = [System.Drawing.Color]::White
+            $control.BackColor = [System.Drawing.Color]::FromArgb(240, 240, 240)
             $control.ForeColor = [System.Drawing.Color]::Black
         }
     }
@@ -274,11 +275,9 @@ if ($global:install) {
     $installPackages = [System.Collections.ArrayList]::new()
     $Form.Controls | Where-Object { $_ -is [System.Windows.Forms.Checkbox] } | ForEach-Object {
         if ($_.Checked) {
-             [void]$installPackages.Add($_.Name)
+            [void]$installPackages.Add($_.Name)
         }
     }
-
-    $wingetArguments = '--accept-package-agreements --accept-source-agreements --disable-interactivity --force -h' 
 
     if ($installPackages.count -ne 0) {
         Write-Host "Installing: " -ForegroundColor Yellow
@@ -286,9 +285,12 @@ if ($global:install) {
             Write-Host "- " -NoNewline -ForegroundColor Blue
             Write-Host "$a"
         }
-        Start-Sleep 2
+        Write-Host ""
+        Start-Sleep 1
         foreach ($package in $installPackages) {
-            winget install -e --id $package $wingetArguments
+            & winget install -e --id $package --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h
         }
+        Write-Host ""
+        pause
     }
 }
