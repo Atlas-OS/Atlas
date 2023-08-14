@@ -10,8 +10,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
-$wingetPath = cmd /c where winget
-if ($null -eq $wingetPath) {
+if ($null -eq $(cmd /c where winget)) {
     Write-Host "WinGet is not installed, please update or install App Installer from Microsoft Store." -ForegroundColor Red
     PauseNul
 }
@@ -273,35 +272,23 @@ $Form.Add_Shown({ $Form.Activate() })
 
 if ($global:install) {
     $installPackages = [System.Collections.ArrayList]::new()
-    $installSeparatedPackages = [System.Collections.ArrayList]::new()
     $Form.Controls | Where-Object { $_ -is [System.Windows.Forms.Checkbox] } | ForEach-Object {
         if ($_.Checked) {
-            if ($_.Name.contains("--")) {
-                [void]$installSeparatedPackages.Add($_.Name)
-            }
-            else {
-                [void]$installPackages.Add($_.Name)
-            }
+             [void]$installPackages.Add($_.Name)
         }
     }
 
     $wingetArguments = '--accept-package-agreements --accept-source-agreements --disable-interactivity --force -h' 
 
     if ($installPackages.count -ne 0) {
-        foreach ($package in $installPackages) {
-            Write-Host "Installing: " -ForegroundColor Yellow -NoNewline
-            Write-Host "$package"
-            Start-Process -FilePath "$wingetPath" -ArgumentList "install -e --id $package $wingetArguments" -Wait
+        Write-Host "Installing: " -ForegroundColor Yellow
+        foreach ($a in $installPackages) {
+            Write-Host "- " -NoNewline -ForegroundColor Blue
+            Write-Host "$a"
         }
-    }
-    if ($installSeparatedPackages.count -ne 0) {
-        foreach ($paket in $installSeparatedPackages) {
-            Write-Host "$Env:ProgramData\chocolatey\choco.exe install $paket -y"
-            Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install $paket -y --ignore-checksums" -Wait
-            if ($paket.contains("--version")) {
-                Write-Host "$Env:ProgramData\chocolatey\choco.exe pin add -n $($paket.split(' ')[0])"
-                Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "pin add -n $($paket.split(' ')[0])" -Wait
-            }
+        Start-Sleep 2
+        foreach ($package in $installPackages) {
+            winget install -e --id $package $wingetArguments
         }
     }
 }
