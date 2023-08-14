@@ -22,7 +22,7 @@ actions:
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
   - !run:
     exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -P:E -Wait -ShowWindowMode:Hide powershell.exe -NoP -EP Unrestricted -File "C:\Users\Default\Desktop\Atlas\1. Software\Remove Edge.ps1" -AMEWizard'
+    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -File "C:\Users\Default\Desktop\Atlas\1. Software\Remove Edge.ps1" -AMEWizard'
     wait: true
     option: 'uninstall-edge'
     # AppX uninstallation in the script seems to fail with NSudo, therefore it's not used and AME Wizard is used instead
