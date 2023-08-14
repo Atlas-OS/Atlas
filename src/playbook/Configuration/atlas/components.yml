@@ -27,7 +27,9 @@ actions:
     option: 'uninstall-edge'
     # AppX uninstallation in the script seems to fail with NSudo, therefore it's not used and AME Wizard is used instead
   - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge'}
-
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
+  
     # NoTelemetry Package
   - !run:
     exe: 'C:\Windows\AtlasModules\Scripts\online-sxs.cmd'
