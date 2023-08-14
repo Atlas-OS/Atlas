@@ -16,6 +16,12 @@ actions:
     type: REG_DWORD
     operation: add
   - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Dsh'
+    value: 'AllowNewsAndInterests'
+    data: '0'
+    type: REG_DWORD
+    operation: add
+  - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\default\NewsAndInterests\AllowNewsAndInterests'
     value: 'value'
     data: '0'
