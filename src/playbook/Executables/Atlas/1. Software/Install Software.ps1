@@ -1,3 +1,8 @@
+function PauseNul ($message = "Press any key to exit... ") {
+	Write-Host $message -NoNewLine
+	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
+}
+
 # Credit to spddl for part of the code 
 # Require admin privileges if User Account Control (UAC) is enabled
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
@@ -5,8 +10,13 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
-$ErrorActionPreference = 'SilentlyContinue'
+$wingetPath = cmd /c where winget
+if ($null -eq $wingetPath) {
+    Write-Host "WinGet is not installed, please update or install App Installer from Microsoft Store." -ForegroundColor Red
+    PauseNul
+}
 
+$ErrorActionPreference = 'SilentlyContinue'
 
 [int] $global:column = 0
 [int] $separate = 30
@@ -15,7 +25,6 @@ $ErrorActionPreference = 'SilentlyContinue'
 [int] $global:index = 0
 [array] $global:items = @()
 [bool] $global:install = $false
-
 
 function init_item{
     param(
@@ -73,105 +82,104 @@ $Label.Text = "Download and install software using Chocolatey:"
 $Form.Controls.Add($Label)
 
 
-# https://community.chocolatey.org/packages/ungoogled-chromium
-init_item "ungoogled-chromium" "ungoogled-chromium"
+# https://winget.run/pkg/eloston/ungoogled-chromium
+init_item "ungoogled-chromium" "eloston.ungoogled-chromium"
 
-# https://community.chocolatey.org/packages/Firefox
-init_item "Mozilla Firefox" "firefox"
+# https://winget.run/pkg/Mozilla/Firefox
+init_item "Mozilla Firefox" "Mozilla.Firefox"
 
-# https://community.chocolatey.org/packages/brave
-init_item "Brave Browser" "brave"
+# https://winget.run/pkg/Brave/brave
+init_item "Brave Browser" "Brave.Brave"
 
-# https://community.chocolatey.org/packages/GoogleChrome
-init_item "Google Chrome" "googlechrome"
+# https://winget.run/pkg/Google/Chrome
+init_item "Google Chrome" "Google.Chrome"
 
-# https://community.chocolatey.org/packages/librewolf
-init_item "LibreWolf" "librewolf"
+# https://winget.run/pkg/Librewolf/Librewolf
+init_item "LibreWolf" "Librewolf.Librewolf"
 
-# https://community.chocolatey.org/packages/tor-browser
-init_item "Tor Browser" "tor-browser"
+# https://winget.run/pkg/TorProject/TorBrowser
+init_item "Tor Browser" "TorProject.TorBrowser"
 
-# https://community.chocolatey.org/packages/discord
-init_item "Discord" "discord"
+# https://winget.run/pkg/Discord.Discord
+init_item "Discord" "Discord.Discord"
 
-# https://community.chocolatey.org/packages/discord-canary
-init_item "Discord Canary" "discord-canary"
+# https://winget.run/pkg/Discord/Discord.Canary
+init_item "Discord Canary" "Discord.Discord.Canary"
 
-# https://community.chocolatey.org/packages/steam
-init_item "Steam" "steam"
+# https://winget.run/pkg/Valve/Steam
+init_item "Steam" "Valve.Steam"
 
-# https://community.chocolatey.org/packages/playnite
-init_item "Playnite" "playnite"
+# https://winget.run/pkg/Playnite/Playnite
+init_item "Playnite" "Playnite.Playnite"
 
-# https://community.chocolatey.org/packages/legendary
-init_item "legendary" "legendary"
+# https://winget.run/pkg/HeroicGamesLauncher/HeroicGamesLauncher
+init_item "Heroic" "HeroicGamesLauncher.HeroicGamesLauncher"
 
-# https://community.chocolatey.org/packages/Everything
-init_item "Everything" "everything"
+# https://winget.run/pkg/voidtools/Everything
+init_item "Everything" "voidtools.Everything"
 
-# https://community.chocolatey.org/packages/thunderbird
-init_item "Mozilla Thunderbird" "thunderbird"
+# https://winget.run/pkg/Mozilla/Thunderbird
+init_item "Mozilla Thunderbird" "Mozilla.Thunderbird"
 
-# https://community.chocolatey.org/packages/foobar2000
-init_item "foobar2000" "foobar2000"
+# https://winget.run/pkg/PeterPawlowski/foobar2000
+init_item "foobar2000" "PeterPawlowski.foobar2000"
 
-# https://community.chocolatey.org/packages/irfanview
-init_item "IrfanView" "irfanview"
+# https://winget.run/pkg/IrfanSkiljan/IrfanView
+init_item "IrfanView" "IrfanSkiljan.IrfanView"
 
-# https://community.chocolatey.org/packages/git
-init_item "Git" "git"
+# https://winget.run/pkg/Git/Git
+init_item "Git" "Git.Git"
 
-# https://community.chocolatey.org/packages/mpv
-init_item "mpv" "mpv"
+# https://winget.run/pkg/VideoLAN/VLC
+init_item "VLC" "VideoLAN.VLC"
 
-# https://community.chocolatey.org/packages/vlc
-init_item "VLC" "vlc"
+# https://winget.run/pkg/PuTTY/PuTTY
+init_item "PuTTY" "PuTTY.PuTTY"
 
-# https://community.chocolatey.org/packages/putty
-init_item "PuTTY" "putty"
+# https://winget.run/pkg/Ditto/Ditto
+init_item "Ditto" "Ditto.Ditto"
 
-# https://community.chocolatey.org/packages/ditto
-init_item "Ditto" "ditto"
+# https://winget.run/pkg/7zip/7zip
+init_item "7-Zip" "7zip.7zip"
 
-# https://community.chocolatey.org/packages/7zip
-init_item "7-Zip" "7zip"
+# https://winget.run/pkg/TeamSpeakSystems/TeamSpeakClient
+init_item "Teamspeak" "TeamSpeakSystems.TeamSpeakClient"
 
-# https://community.chocolatey.org/packages/teamspeak
-init_item "Teamspeak" "teamspeak"
+# https://winget.run/pkg/Spotify/Spotify
+init_item "Spotify" "Spotify.Spotify"
 
-# https://community.chocolatey.org/packages/spotify
-init_item "Spotify" "spotify"
+# https://winget.run/pkg/OBSProject/OBSStudio
+init_item "OBS Studio" "OBSProject.OBSStudio"
 
-# https://community.chocolatey.org/packages/obs-studio
-init_item "OBS Studio" "obs-studio"
+# https://winget.run/pkg/Guru3D/Afterburner
+init_item "MSI Afterburner" "Guru3D.Afterburner"
 
-# https://community.chocolatey.org/packages/msiafterburner
-init_item "MSI Afterburner" "msiafterburner"
+# https://winget.run/pkg/CPUID/CPU-Z
+init_item "CPU-Z" "CPUID.CPU-Z"
 
-# https://community.chocolatey.org/packages/cpu-z
-init_item "CPU-Z" "cpu-z"
+# https://winget.run/pkg/TechPowerUp/GPU-Z
+init_item "GPU-Z" "TechPowerUp.GPU-Z"
 
-# https://community.chocolatey.org/packages/gpu-z
-init_item "GPU-Z" "gpu-z"
+# https://winget.run/pkg/Notepad++/Notepad++
+init_item "Notepad++" "Notepad++.Notepad++"
 
-# https://community.chocolatey.org/packages/notepadplusplus
-init_item "Notepad++" "notepadplusplus"
+# https://winget.run/pkg/Microsoft/VisualStudioCode
+init_item "VSCode" "Microsoft.VisualStudioCode"
 
-# https://community.chocolatey.org/packages/vscode
-init_item "VSCode" "vscode"
+# https://winget.run/pkg/VSCodium/VSCodium
+init_item "VSCodium" "VSCodium.VSCodium"
 
-# https://community.chocolatey.org/packages/bulk-crap-uninstaller
-init_item "Bulk Crap Uninstaller" "bulk-crap-uninstaller"
+# https://winget.run/pkg/Klocman/BulkCrapUninstaller
+init_item "BCUninstaller" "Klocman.BulkCrapUninstaller"
 
-# https://community.chocolatey.org/packages/hwinfo
-init_item "HWiNFO" "hwinfo"
+# https://winget.run/pkg/REALiX/HWiNFO
+init_item "HWiNFO" "REALiX.HWiNFO"
 
-# https://community.chocolatey.org/packages/lightshot
-init_item "Lightshot" "lightshot"
+# https://winget.run/pkg/Skillbrains/Lightshot
+init_item "Lightshot" "Skillbrains.Lightshot"
 
-# https://community.chocolatey.org/packages/sharex
-init_item "Sharex" "sharex"
-
+# https://winget.run/pkg/ShareX/ShareX
+init_item "Sharex" "ShareX.ShareX"
 
 $global:item_count = $global:items.Length
 
@@ -277,9 +285,14 @@ if ($global:install) {
         }
     }
 
+    $wingetArguments = '--accept-package-agreements --accept-source-agreements --disable-interactivity --force -h' 
+
     if ($installPackages.count -ne 0) {
-        Write-Host "$Env:ProgramData\chocolatey\choco.exe install $($installPackages -join ' ') -y"
-        Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install $($installPackages -join ' ') -y --ignore-checksums" -Wait
+        foreach ($package in $installPackages) {
+            Write-Host "Installing: " -ForegroundColor Yellow -NoNewline
+            Write-Host "$package"
+            Start-Process -FilePath "$wingetPath" -ArgumentList "install -e --id $package $wingetArguments" -Wait
+        }
     }
     if ($installSeparatedPackages.count -ne 0) {
         foreach ($paket in $installSeparatedPackages) {
