@@ -58,28 +58,23 @@ actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'BranchReadinessLevel', data: '1', type: REG_DWORD}
 
   - !writeStatus: {status: 'Configuring Optional Features'}
+    # Enabled for compatibility purposes
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"LegacyComponents" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"NetFx3" /NoRestart', weight: 30}
-
+    
+    # Disabled for security purposes
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2Root" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"WCF-TCP-PortSharing45" /NoRestart', weight: 30}
+    # Disabled by default? https://learn.microsoft.com/en-us/dotnet/framework/wcf/feature-details/how-to-enable-the-net-tcp-port-sharing-service
+  # - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"WCF-TCP-PortSharing45" /NoRestart', weight: 30}
+    # Printing is disalbed by default 
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart', weight: 30}
   - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"MSRDC-Infrastructure" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Windows-Defender-Default-Definitions" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"WorkFolders-Client" /NoRestart', weight: 30}
-
-  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"App.StepsRecorder~~~~0.0.1.0" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"App.Support.QuickAssist~~~~0.0.1.0" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Browser.InternetExplorer~~~~0.0.11.0" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Hello.Face.18967~~~~0.0.1.0" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"MathRecognizer~~~~0.0.1.0" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"OpenSSH.Client~~~~0.0.1.0" /NoRestart', weight: 30}
-  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Print.Fax.Scan~~~~0.0.1.0" /NoRestart', weight: 30}
+    # Seems pointless to disable, unused by default https://learn.microsoft.com/en-us/windows-server/storage/work-folders/work-folders-overview
+  # - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"WorkFolders-Client" /NoRestart', weight: 30}
 
   ################ NO LOCAL BUILD ################
 

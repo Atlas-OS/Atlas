@@ -33,6 +33,10 @@ for %%a in (
 
 call setSvc.cmd Spooler 2
 
+DISM /Online /Enable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart > nul
+DISM /Online /Enable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart > nul
+DISM /Online /Enable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart > nul
+
 echo Finished, please reboot your device for changes to apply.
 pause
 exit /b
