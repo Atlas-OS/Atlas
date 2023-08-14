@@ -1,7 +1,7 @@
 # Credit: https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget-on-windows-sandbox
 
 $progressPreference = 'silentlyContinue'
-Push-Location "C:\Windows\Temp"
+Set-Location "C:\Windows\Temp"
 
 Write-Information "Downloading WinGet and its dependencies..."
 Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle -UseBasicParsing
@@ -12,7 +12,6 @@ Write-Information "Installing WinGet and its dependencies..."
 Add-AppxPackage Microsoft.VCLibs.x64.14.00.Desktop.appx
 Add-AppxPackage Microsoft.UI.Xaml.2.7.x64.appx
 Add-AppxPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
-Pop-Location
 
 Write-Information "Configuring WinGet..."
 # This is only temporary to ensure reliability, it's reverted after all WinGet actions

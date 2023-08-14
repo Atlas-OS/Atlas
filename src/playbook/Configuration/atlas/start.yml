@@ -81,11 +81,12 @@ actions:
   ################ NO LOCAL BUILD ################
 
   - !writeStatus: {status: 'Installing dependencies'}
+    # NSudo will start PowerShell in AtlasModules, so the exeDir option doesn't work
+  - !cmd: {exeDir: true, command: 'copy /y "WINGET.PS1" "C:\Windows\Temp\WINGET.ps1"'}
   - !run:
     exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File WINGET.ps1'
+    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File "C:\Windows\Temp\WINGET.ps1"'
     wait: true
-    exeDir: true
     weight: 150
 
   - !writeStatus: {status: 'Installing LibreWolf', option: 'browser-librewolf'}

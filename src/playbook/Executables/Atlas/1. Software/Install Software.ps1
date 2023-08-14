@@ -3,14 +3,6 @@ function PauseNul ($message = "Press any key to exit... ") {
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
 }
 
-# Credit to spddl for part of the code 
-# Require admin privileges if User Account Control (UAC) is enabled
-# Some applications like Spotify require a non-admin context
-# if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-#     Start-Process PowerShell "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-#     exit
-# }
-
 if ($null -eq $(cmd /c where winget)) {
     Write-Host "WinGet is not installed, please update or install App Installer from Microsoft Store." -ForegroundColor Red
     PauseNul
