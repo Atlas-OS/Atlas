@@ -19,7 +19,6 @@ winget settings --enable InstallerHashOverride
 winget settings --enable LocalArchiveMalwareScanOverride
 
 Write-Information "Installing dependencies with WinGet..."
-$installArgs = "--accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash"
 $installList = @(
 	# Visual C++ Redistributables
 	"Microsoft.VCRedist.2005.x64",
@@ -35,5 +34,5 @@ $installList = @(
 )
 
 foreach ($app in $installList) {
-	winget install -e --id $app $installArgs
+	& winget install -e --id $app --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash
 }
