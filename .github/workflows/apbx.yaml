@@ -4,9 +4,6 @@ on:
   push:
     paths:
       - 'src/**'
-  pull_request:
-    paths:
-      - 'src/**'
 
 env:
   PACKAGE_PATH: '..\Atlas\src\playbook\Executables\AtlasModules\Packages'
