@@ -6,9 +6,11 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     if %%a LSS 22000 (
         for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
             rem Delete Windows 11 only tweaks
-            del /s /f /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu"
-            del /s /f /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\1. General Configuration\Timer Resolution"
-            del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe"
+            del /s /f /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul 2>&1
+            del /s /f /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\1. General Configuration\Timer Resolution" > nul 2>&1
+            del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul 2>&1
+        ) else (
+            del /f /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul 2>&1
         )
         exit /b
     )
