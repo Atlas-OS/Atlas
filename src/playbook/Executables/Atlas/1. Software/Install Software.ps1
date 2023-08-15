@@ -75,7 +75,7 @@ $Form.Controls.Add($Label)
 
 
 # https://winget.run/pkg/eloston/ungoogled-chromium
-init_item "ungoogled-chromium" "eloston.ungoogled-chromium"
+init_item "Ungoogled Chromium" "eloston.ungoogled-chromium"
 
 # https://winget.run/pkg/Mozilla/Firefox
 init_item "Mozilla Firefox" "Mozilla.Firefox"
