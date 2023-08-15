@@ -2,7 +2,11 @@
 
 $progressPreference = 'silentlyContinue'
 
-if ($null -eq $(cmd /c where winget)) {
+if ($null -eq $(cmd /c where winget)) {$getLatest = $true}
+$latestVersion = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest" | Select-Object -ExpandProperty tag_name
+if ($latestVersion -ne $(winget -v)) {$getLatest = $true}
+
+if ($getLatest) {
 	Set-Location "C:\Windows\Temp"
 	
 	Write-Information "Downloading WinGet and its dependencies..."
