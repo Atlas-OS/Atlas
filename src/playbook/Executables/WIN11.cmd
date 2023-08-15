@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 :: Check for a Windows build and make changes
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (
-    if %%a LSS 22621 (
+    if %%a LSS 22000 (
         for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
             rem Delete Windows 11 only tweaks
             del /s /f /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu"

@@ -48,8 +48,6 @@ actions:
   # DoSvc 3 < Seems to just enable its self, probably needed in Windows 11
   - !service: {name: 'DPS', operation: change, startup: 4}
   # DsSvc 4 < can cause issues with Snip & Sketch
-  - !service: {name: 'fdPHost', operation: change, startup: 4}
-  - !service: {name: 'FDResPub', operation: change, startup: 4}
   # icssvc 4 < breaks mobile/Wi-Fi hotspot
   # IKEEXT 4 < causes Teredo not to work
   - !service: {name: 'InstallService', operation: change, startup: 3}
@@ -57,7 +55,6 @@ actions:
   - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
   # KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
   - !service: {name: 'KtmRm', operation: change, startup: 4}
-  - !service: {name: 'lmhosts', operation: change, startup: 4}
   - !service: {name: 'luafv', operation: change, startup: 4}
   - !service: {name: 'MSDTC', operation: change, startup: 4}
   - !service: {name: 'NetTcpPortSharing', operation: change, startup: 4}
@@ -68,7 +65,6 @@ actions:
   # ShellHWDetection 4 < breaks bitlocker
   - !service: {name: 'SmsRouter', operation: change, startup: 4}
   - !service: {name: 'Spooler', operation: change, startup: 4}
-  - !service: {name: 'SSDPSRV', operation: change, startup: 4}
   - !service: {name: 'sppsvc', operation: change, startup: 3}
   - !service: {name: 'SstpSvc', operation: change, startup: 4}
   - !service: {name: 'TabletInputService', operation: change, startup: 4}
