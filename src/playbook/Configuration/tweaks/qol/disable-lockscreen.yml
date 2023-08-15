@@ -4,7 +4,7 @@ description: Disables the lockscreen for QoL, as it is faster to go straight to 
 privilege: TrustedInstaller
 actions:
   - !registryValue:
-    path: 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData'
-    value: 'AllowLockScreen'
-    data: '0'
+    path: 'HKLM\Software\Policies\Microsoft\Windows\Personalization'
+    value: 'NoLockScreen'
+    data: '1'
     type: REG_DWORD
