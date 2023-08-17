@@ -1,4 +1,4 @@
-Get-Process -Name "ProcessHacker" -EA SilentlyContinue | Stop-Process -Force
+Get-Process -Name "ProcessHacker" -EA SilentlyContinue | Stop-Process -Force -EA SilentlyContinue
 Stop-Service -Name "kprocesshacker2" -Force -EA SilentlyContinue
 sc.exe delete "kprocesshacker2" *>$null
 
