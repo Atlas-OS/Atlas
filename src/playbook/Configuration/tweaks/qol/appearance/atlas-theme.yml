@@ -71,12 +71,12 @@ actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent'
     value: 'AccentColorMenu'
-    data: '4284687378'
+    data: '4290728257'
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent'
     value: 'StartColorMenu'
-    data: '4283834127'
+    data: '4291969335'
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
