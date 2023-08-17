@@ -21,16 +21,9 @@ actions:
   - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
-  # DisplayEnhancementService 4 < breaks brightness slider on laptops
-  # DoSvc 3 < Seems to just enable its self, probably needed in Windows 11
   - !service: {name: 'DPS', operation: change, startup: 4}
-  # DsSvc 4 < can cause issues with Snip & Sketch
-  # icssvc 4 < breaks mobile/Wi-Fi hotspot
-  # IKEEXT 4 < causes Teredo not to work
   - !service: {name: 'InstallService', operation: change, startup: 3}
-  # iphlpsvc 4 < causes Teredo not to work
   - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
-  # KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
   - !service: {name: 'KtmRm', operation: change, startup: 4}
   - !service: {name: 'luafv', operation: change, startup: 4}
   - !service: {name: 'MSDTC', operation: change, startup: 4}
@@ -38,8 +31,6 @@ actions:
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
   - !service: {name: 'PhoneSvc', operation: change, startup: 4}
   - !service: {name: 'RasMan', operation: change, startup: 4}
-  # SharedAccess 4 < breaks mobile/Wi-Fi hotspot
-  # ShellHWDetection 4 < breaks bitlocker
   - !service: {name: 'SmsRouter', operation: change, startup: 4}
   - !service: {name: 'Spooler', operation: change, startup: 4}
   - !service: {name: 'sppsvc', operation: change, startup: 3}
@@ -80,6 +71,15 @@ actions:
   - !service: {name: 'fhsvc', operation: change, startup: 4}
   - !service: {name: 'wlpasvc', operation: change, startup: 4}
   - !service: {name: 'AppVClient', operation: change, startup: 4}
+  # DsSvc 4 < can cause issues with Snip & Sketch
+  # icssvc 4 < breaks mobile/Wi-Fi hotspot
+  # IKEEXT 4 < causes Teredo not to work
+  # DisplayEnhancementService 4 < breaks brightness slider on laptops
+  # DoSvc 3 < Seems to just enable its self, probably needed in Windows 11
+  # iphlpsvc 4 < causes Teredo not to work
+  # KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
+  # SharedAccess 4 < breaks mobile/Wi-Fi hotspot
+  # ShellHWDetection 4 < breaks bitlocker
 
   # ---------------------- Services END ----------------------
 
@@ -104,28 +104,26 @@ actions:
   - !service: {name: 'ErrDev', operation: change, startup: 4}
   - !service: {name: 'fdc', operation: change, startup: 4}
   - !service: {name: 'flpydisk', operation: change, startup: 4}
-  # FileInfo 4 < breaks installing Microsoft Store applications to different disk (now disabled via store script)
-  # FileCrypt 4 < Breaks installing Microsoft Store applications to different disk (now disabled via store script)
   - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
-  # NdisVirtualBus 4 < breaks network bridges
   - !service: {name: 'nvraid', operation: change, startup: 4}
-  # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
-  # Set rdbss to manual instead of disabling (fixes WSL), thanks Phlegm
-  # Commented as we're not sure if it functions normally set to manual
-  # - !service: {name: 'rdbss', operation: change, startup: 3}
   - !service: {name: 'sfloppy', operation: change, startup: 4}
   - !service: {name: 'SiSRaid2', operation: change, startup: 4}
   - !service: {name: 'SiSRaid4', operation: change, startup: 4}
   - !service: {name: 'tcpipreg', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
   - !service: {name: 'udfs', operation: change, startup: 4}
-  # umbus 4 < breaks Hyper-V Enhanced Session
   - !service: {name: 'VerifierExt', operation: change, startup: 4}
-  # volmgrx 4 < breaks dynamic disks
   - !service: {name: 'vsmraid', operation: change, startup: 4}
   - !service: {name: 'VSTXRAID', operation: change, startup: 4}
-  # wcifs 4 < breaks various Microsoft Store games, erroring with "filter not found"
   - !service: {name: 'wcnfs', operation: change, startup: 4}
   - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
-
+  # rdbss 3 < Commented as we're not sure if it functions normally set to manual
+  # FileInfo 4 < Breaks installing Microsoft Store applications to different disk
+  # FileCrypt 4 < Breaks installing Microsoft Store applications to different disk
+  # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
+  # NdisVirtualBus 4 < breaks network bridges
+  # umbus 4 < breaks Hyper-V Enhanced Session
+  # volmgrx 4 < breaks dynamic disks
+  # wcifs 4 < breaks various Microsoft Store games, erroring with "filter not found"
+  
   # ----------------------- Drivers END ----------------------
