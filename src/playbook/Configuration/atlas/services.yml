@@ -5,29 +5,6 @@ privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Configuring services'}
 
-  # Stop
-  - !service: {name: 'iphlpsvc', operation: stop}
-  - !service: {name: 'Winmgmt', operation: stop}
-  - !service: {name: 'ClipSVC', operation: stop}
-  - !service: {name: 'diagnosticshub.standardcollector.service', operation: stop}
-  - !service: {name: 'dmwappushservice', operation: stop}
-  - !service: {name: 'LicenseManager', operation: stop}
-  # - !service: {name: 'NetTcpPortSharing', operation: stop}
-  - !service: {name: 'SharedAccess', operation: stop}
-  - !service: {name: 'StorSvc', operation: stop}
-  # - !service: {name: 'WMPNetworkSvc', operation: stop}
-  - !service: {name: 'XblAuthManager', operation: stop}
-  - !service: {name: 'XblGameSave', operation: stop}
-  - !service: {name: 'XboxNetApiSvc', operation: stop}
-  - !service: {name: 'appidsvc', operation: stop}
-  - !service: {name: 'bits', operation: stop}
-  - !service: {name: 'cryptsvc', operation: stop}
-  - !service: {name: 'wuauserv', operation: stop}
-
-  # Delete
-  - !service: {name: 'AssignedAccessManagerSvc', operation: delete}
-  - !service: {name: 'RetailDemo', operation: delete}
-
   # Backup default Windows serivces & drivers
   - !run: {exe: 'BACKUP1.cmd', exeDir: true}
 
