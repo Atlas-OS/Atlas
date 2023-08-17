@@ -1,0 +1,11 @@
+---
+title: Disable WU Auto-Reboot
+description: Disables Windows Update from automatically restarting your computer when there's pending updates.
+privilege: TrustedInstaller
+actions:
+    # Make WU not wake up your computer to install updates
+    # Seems to be legacy on Windows 11
+    # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.WindowsUpdate::AUPowerManagement_Title
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'AUPowerManagement', data: '0', type: REG_DWORD}
+    # Don't reboot with logged in users
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'NoAutoRebootWithLoggedOnUsers', data: '1', type: REG_DWORD}

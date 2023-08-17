@@ -92,7 +92,6 @@ features:
   - tweaks\privacy\disable-activity-feed.yml
   - tweaks\privacy\disable-app-launch-tracking.yml
   - tweaks\privacy\disable-experimentation.yml
-  - tweaks\privacy\disable-insider.yml
   - tweaks\privacy\disable-location-tracking.yml
   - tweaks\privacy\disable-lockscreen-camera.yml
   - tweaks\privacy\disable-online-speech-recognition.yml
@@ -171,6 +170,16 @@ features:
   - tweaks\qol\appearance\blue-tooltips.yml
   - tweaks\qol\appearance\atlas-theme.yml
   - tweaks\qol\appearance\disallow-theme-changes.yml
+
+  # -------------------------------------------------------------------------- #
+  #  qol\windows-update                                                        #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\windows-update\disable-nagging.yml
+  - tweaks\qol\windows-update\disable-insider.yml
+  - tweaks\qol\windows-update\disable-feature-updates.yml
+  - tweaks\qol\windows-update\disable-auto-updates.yml
+  - tweaks\qol\windows-update\disable-auto-reboot.yml
+  - tweaks\qol\windows-update\defer-updates.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\ease-of-access                                                        #

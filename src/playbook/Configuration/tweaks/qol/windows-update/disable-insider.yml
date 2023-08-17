@@ -1,0 +1,30 @@
+---
+title: Restrict Windows Insider
+description: Forcefully restricts Windows Insider from being enabled to prevent extra data collection, tweaks being reverted and general instability.
+privilege: TrustedInstaller
+actions:
+    # Disable Windows Insider https://admx.help/?Category=Windows_10_2016&Policy=Microsoft.Policies.WindowsUpdate::ManagePreviewBuilds
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'ManagePreviewBuilds', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'ManagePreviewBuildsPolicyValue', data: '0', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'BranchReadinessLevel', data: '1', type: REG_DWORD}
+  
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds'
+    value: 'AllowBuildPreview'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds'
+    value: 'EnableConfigFlighting'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds'
+    value: 'EnableExperimentation'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\WindowsSelfHost\UI\Visibility'
+    value: 'HideInsiderPage'
+    data: '1'
+    type: REG_DWORD
