@@ -36,12 +36,12 @@ if defined win11 (
 	reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Themes" /v "ThemeMRU" /t REG_SZ /d "C:\Windows\Resources\Themes\aero.theme;C:\Windows\resources\Themes\spotlight.theme;" /f
 )
 
-reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "AccentColor" /t REG_DWORD /d "4284687378" /f
-reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "StartColor" /t REG_DWORD /d "4283834127" /f
+reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "AccentColor" /t REG_DWORD /d "4290728257" /f
+reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "StartColor" /t REG_DWORD /d "4291969335" /f
 
 del /q /f "%~2\Microsoft\Windows\Themes\TranscodedWallpaper"
 rmdir /q /s "%~2\Microsoft\Windows\Themes\CachedFiles"
 
-if not "%~1" == "AME_UserHive_Default" (
+if not "%~1"=="AME_UserHive_Default" (
 	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative\%~1" /v "RotatingLockScreenEnabled" /t REG_DWORD /d "0" /f
 )
