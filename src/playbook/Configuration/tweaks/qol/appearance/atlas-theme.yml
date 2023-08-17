@@ -113,5 +113,5 @@ actions:
 
   - !run:
     exeDir: true
-    exe: 'WALLPAPER.cmd'
+    exe: 'THEME.cmd'
     weight: 20
