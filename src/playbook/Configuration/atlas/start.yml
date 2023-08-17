@@ -32,7 +32,6 @@ actions:
     command: 'setx path "%PATH%;C:\Windows\AtlasModules;C:\Windows\AtlasModules\Apps;C:\Windows\AtlasModules\Other;C:\Windows\AtlasModules\Tools;C:\Windows\AtlasModules\Scripts" -m'
     # Set path for Atlas PowerShell modules
   - !cmd:
-    exeDir: true
     command: 'setx psmodulepath "%psmodulepath%;C:\Windows\AtlasModules\Scripts\Modules" -m'
 
   - !writeStatus: {status: 'Cleaning the component store'}
