@@ -38,6 +38,15 @@ actions:
     value: 'ProgId'
     data: 'Applications\powershell.exe'
     type: REG_SZ
+
     # Set PowerShell execution policy to Unrestricted
     # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
-  - !powerShell: {command: 'Set-ExecutionPolicy -ExecutionPolicy Unrestricted'}
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+    value: 'ExecutionPolicy'
+    operation: delete
+  - !registryValue:
+    path: 'HKLM\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+    value: 'ExecutionPolicy'
+    data: 'Unrestricted'
+    type: REG_SZ
