@@ -1,9 +1,0 @@
----
-title: Clean Component Store
-description: Cleans up the component store (WinSxS folder) for reduced disk space
-privilege: TrustedInstaller
-actions:
-  - !cmd:
-    exeDir: true
-    command: 'DISM /Online /Cleanup-Image /StartComponentCleanup'
-    weight: 30

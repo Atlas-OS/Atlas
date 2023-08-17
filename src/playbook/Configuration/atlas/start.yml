@@ -35,6 +35,12 @@ actions:
     exeDir: true
     command: 'setx psmodulepath "%psmodulepath%;C:\Windows\AtlasModules\Scripts\Modules" -m'
 
+  - !writeStatus: {status: 'Cleaning the component store'}
+  - !cmd:
+    exeDir: true
+    command: 'DISM /Online /Cleanup-Image /StartComponentCleanup'
+    weight: 150
+
   - !writeStatus: {status: 'Configuring Optional Features'}
     # Enabled for compatibility purposes
   - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"LegacyComponents" /NoRestart', weight: 30}
