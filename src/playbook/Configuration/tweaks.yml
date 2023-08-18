@@ -311,9 +311,6 @@ features:
   # Tweaks for debloating Windows, which could be for
   # storage space or convienience.
   # -----------------------------------------------------
-  - tweaks\statuses\status-clean-winsxs.yml
-  # Has its own status as it is a long operation in comparison
-  - tweaks\debloat\clean-winsxs.yml
   - tweaks\statuses\status-debloat.yml
   - tweaks\debloat\autologgers.yml
   - tweaks\debloat\config-content-delivery.yml
