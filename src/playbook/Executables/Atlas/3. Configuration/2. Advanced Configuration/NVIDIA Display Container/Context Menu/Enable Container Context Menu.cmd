@@ -6,13 +6,14 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-sc query NVDisplay.ContainerLocalSystem > nul 2>&1
-if !errorlevel! == 1 (
-    echo The NVIDIA Display Container LS service does not exist, thus you cannot continue.
+:: check if the service exists
+reg query "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" > nul 2>&1 || (
+    echo The NVIDIA Display Container LS service does not exist, you cannot continue.
 	echo You may not have NVIDIA drivers installed.
     pause
     exit /b 1
 )
+
 echo Explorer will be restarted to ensure that the context menu works.
 pause
 
