@@ -18,7 +18,7 @@ if /I "!c!" == "N" exit /b
 if /I "!c!" == "" echo No option selected - launch the script again. & pause & exit /b 1
 :continSS
 :: Rename start menu
-chdir /d !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+cd !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 
 :restartStart
 taskkill /f /im StartMenuExperienceHost* > nul 2>&1
@@ -28,7 +28,7 @@ ren StartMenuExperienceHost.exe StartMenuExperienceHost.exee
 if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto restartStart
 
 :: Rename search
-chdir /d !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+cd !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
 :restartSearch
 taskkill /f /im SearchApp* > nul 2>&1

@@ -30,7 +30,7 @@ if /I "!c!" == "N" goto skipRM
 
 :rmSSOS
 :: Rename start menu
-chdir /d !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+cd !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 
 :OSrestartStart
 taskkill /f /im StartMenuExperienceHost* > nul 2>&1
@@ -40,7 +40,7 @@ ren StartMenuExperienceHost.exe StartMenuExperienceHost.exee
 if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto OSrestartStart
 
 :: Rename search
-chdir /d !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+cd !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
 :OSrestartSearch
 taskkill /f /im SearchApp* > nul 2>&1
