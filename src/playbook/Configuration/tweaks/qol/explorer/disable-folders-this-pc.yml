@@ -73,6 +73,3 @@ actions:
     value: 'ThisPCPolicy'
     data: Hide
     type: REG_SZ
-
-    # Add Music and Videos folders to Quick Access
-  - !powerShell: {command: '$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb("""pintohome"""); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb("""pintohome""")'}

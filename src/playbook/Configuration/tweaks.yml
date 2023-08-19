@@ -209,6 +209,7 @@ features:
   - tweaks\qol\explorer\remove-shortcut-icon.yml
   - tweaks\qol\explorer\remove-shortcut-text.yml
   - tweaks\qol\explorer\show-files.yml
+  - tweaks\qol\explorer\add-music-vids-to-home.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
