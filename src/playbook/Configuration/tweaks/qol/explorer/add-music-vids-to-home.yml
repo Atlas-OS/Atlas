@@ -5,5 +5,5 @@ privilege: TrustedInstaller
 actions:
   - !run:
     exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -C "$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb('pintohome'); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb('pintohome')"'
+    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -C "$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb(''pintohome''); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb(''pintohome'')"'
     wait: true
