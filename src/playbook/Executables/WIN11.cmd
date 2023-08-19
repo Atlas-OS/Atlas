@@ -14,6 +14,7 @@ for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
     if defined win11 (
         rd /s /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul
     ) else (
+        rd /s /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\File Explorer Customization\Compact View" > nul
         rd /s /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul
         rd /s /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\1. General Configuration\Timer Resolution" > nul
     )
