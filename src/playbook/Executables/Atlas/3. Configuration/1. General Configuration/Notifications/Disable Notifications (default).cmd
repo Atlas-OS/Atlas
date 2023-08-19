@@ -15,7 +15,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificat
 
 :: Re-enable action center on Windows 11 as it breaks calendar
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (
-    if %%a GEQ 22621 (
+    if %%a GEQ 22000 (
         reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f > nul 2>&1
     )
 )
