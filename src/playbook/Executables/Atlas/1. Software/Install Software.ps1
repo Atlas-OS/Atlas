@@ -70,7 +70,7 @@ $Form.SizeGripStyle = 2
 $Label = New-Object System.Windows.Forms.label
 $Label.Location = New-Object System.Drawing.Size(11, 15)
 $Label.Size = New-Object System.Drawing.Size(255, 15)
-$Label.Text = "Download and install software using Chocolatey:"
+$Label.Text = "Download and install software using WinGet:"
 $Form.Controls.Add($Label)
 
 
