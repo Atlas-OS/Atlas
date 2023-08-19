@@ -11,10 +11,6 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 :: Enable EventLog as a dependency
 call setSvc.cmd eventlog 2
 
-:: Pin 'Network' to Explorer sidebar
-reg add "HKCU\Software\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /v "System.IsPinnedToNameSpaceTree" /t REG_DWORD /d "1" /f
-reg add "HKCU\Software\Classes\WOW6432Node\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /v "System.IsPinnedToNameSpaceTree" /t REG_DWORD /d "1" /f
-
 call setSvc.cmd fdPHost 3
 call setSvc.cmd FDResPub 3
 call setSvc.cmd lmhosts 3
