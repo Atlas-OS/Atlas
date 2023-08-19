@@ -5,6 +5,6 @@ privilege: TrustedInstaller
 actions:
   - !run:
     exeDir: true
-    exe: 'C:\Users\Default\Desktop\Atlas\4. Troubleshooting\Fix Slow Application Launches.cmd'
+    exe: 'C:\Windows\AtlasDesktop\4. Troubleshooting\Fix Slow Application Launches.cmd'
     args: '-Setup'
     weight: 100

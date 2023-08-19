@@ -2,22 +2,15 @@
 setlocal EnableDelayedExpansion
 
 :: Check if user is on Windows 11 and if so, make Windows 11 only changes
-for /f "tokens=6 delims=[.] " %%a in ('ver') do (
-    if %%a GEQ 22000 (
-        set win11=true
-    ) else (
-        del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul
-    )
-)
+for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 (set win11=true))
 
-for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
-    if defined win11 (
-        rd /s /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul
-    ) else (
-        rd /s /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\File Explorer Customization\Compact View" > nul
-        rd /s /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul
-        rd /s /q "C:\Users\%%a\Desktop\Atlas\3. Configuration\1. General Configuration\Timer Resolution" > nul
-    )
+if defined win11 (
+    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul
+) else (
+    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\File Explorer Customization\Compact View" > nul
+    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul
+    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Timer Resolution" > nul
+    del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul
 )
 
 

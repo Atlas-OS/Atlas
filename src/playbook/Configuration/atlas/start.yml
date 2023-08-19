@@ -19,10 +19,15 @@ actions:
     exeDir: true
     command: 'robocopy "AtlasModules" "C:\Windows\AtlasModules" /E /PURGE /IM /IT /NP > nul'
     weight: 10
-  - !run:
+  - !cmd:
     exeDir: true
-    exe: "COPYDESKTOP.cmd"
-    weight: 20
+    command: 'robocopy "AtlasDesktop" "C:\Windows\AtlasDesktop" /E /PURGE /IM /IT /NP > nul'
+    weight: 10
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -EP Unrestricted -File "DESKTOPSHORTCUTS.ps1"'
+    wait: true
+    exeDir: true
 
   - !writeStatus: {status: 'Setting the environment'}
     # Set path variable for AtlasModules
@@ -31,8 +36,7 @@ actions:
     exeDir: true
     command: 'setx path "%PATH%;C:\Windows\AtlasModules;C:\Windows\AtlasModules\Apps;C:\Windows\AtlasModules\Other;C:\Windows\AtlasModules\Tools;C:\Windows\AtlasModules\Scripts" -m'
     # Set path for Atlas PowerShell modules
-  - !cmd:
-    command: 'setx psmodulepath "%psmodulepath%;C:\Windows\AtlasModules\Scripts\Modules" -m'
+  - !cmd: {command: 'setx psmodulepath "%psmodulepath%;C:\Windows\AtlasModules\Scripts\Modules" -m'}
 
   - !writeStatus: {status: 'Cleaning the component store'}
   - !cmd:

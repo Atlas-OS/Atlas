@@ -6,7 +6,7 @@ actions:
     # Windows Defender
   - !writeStatus: {status: 'Removing Windows Defender', option: 'defender-disable'}
   - !run:
-    exe: 'C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Defender\Toggle Defender.cmd'
+    exe: 'C:\Windows\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd'
     args: '-Disable'
     wait: true
     option: 'defender-disable'
@@ -17,7 +17,7 @@ actions:
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
   - !run:
     exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -File "C:\Users\Default\Desktop\Atlas\1. Software\Remove Edge.ps1" -AMEWizard'
+    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -File "C:\Windows\AtlasDesktop\1. Software\Remove Edge.ps1" -AMEWizard'
     wait: true
     option: 'uninstall-edge'
     # AppX uninstallation in the script seems to fail with NSudo, therefore it's not used and AME Wizard is used instead
