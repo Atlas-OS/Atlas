@@ -34,7 +34,7 @@ actions:
   - !cmd: {command: 'setx psmodulepath "%psmodulepath%;C:\Windows\AtlasModules\Scripts\Modules" -m'}
 
   - !writeStatus: {status: 'Refreshing environment variables'}
-  - !run: {exe: 'REFRESHENV.ps1', exeDir: true}
+  - !run: {exe: 'REFRESHENV.cmd', exeDir: true}
 
   - !writeStatus: {status: 'Cleaning the component store'}
   - !run: {exe: 'DISM.exe', args: '/Online /Cleanup-Image /StartComponentCleanup', weight: 150}
