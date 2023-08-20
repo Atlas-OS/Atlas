@@ -43,7 +43,6 @@ echo %ESC%[2A%ESC%[?25l
 :runCommands
 set regCommands=reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t REG_DWORD /d 1 /f ^^^> nul 2^^^>^^^&1 ^^^& ^
                 reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t REG_DWORD /d 1 /f ^^^> nul 2^^^>^^^&1 ^^^& ^
-                reg add HKLM\SYSTEM\Setup\LabConfig /v BypassCPUCheck /t REG_DWORD /d 1 /f ^^^> nul 2^^^>^^^&1 ^^^& ^
                 reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t REG_DWORD /d 1 /f ^^^> nul 2^^^>^^^&1
 
 fltmc >nul 2>&1
