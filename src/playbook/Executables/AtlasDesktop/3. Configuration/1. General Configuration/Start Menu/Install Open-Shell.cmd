@@ -33,7 +33,7 @@ if /I "!c!" == "Y" goto rmSSOS
 if /I "!c!" == "N" goto skipRM
 
 :rmSSOS
-call "%windir%\3. Configuration\1. General Configuration\Start Menu\Disable Start Menu and Search.cmd" /silent
+call "%windir%\AtlasDesktop\3. Configuration\1. General Configuration\Start Menu\Disable Start Menu and Search.cmd" /silent
 
 :skipRM
 echo]
