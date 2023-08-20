@@ -17,7 +17,7 @@ echo %ESC%[31m   Are you sure you want to bypass requirements?
 echo   ───────────────────────────────────────────────%ESC%[0m
 echo   Bypassing Windows 11 requirements %ESC%[4misn't%ESC%[0m
 echo   %ESC%[4mrecommended%ESC%[0m, and you could encounter issues in
-echo   the future, e.g. with updates or anticheats.
+echo   the future, e.g. anticheats or other features.
 echo]
 echo   %ESC%[7mSoftware that needs the requirements:%ESC%[0m
 echo   %bullet% Vanguard/VALORANT
@@ -43,6 +43,7 @@ echo %ESC%[2A%ESC%[?25l
 :runCommands
 set regCommands=reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t REG_DWORD /d 1 /f ^^^> nul 2^^^>^^^&1 ^^^& ^
                 reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t REG_DWORD /d 1 /f ^^^> nul 2^^^>^^^&1 ^^^& ^
+                reg add HKLM\SYSTEM\Setup\LabConfig /v BypassCPUCheck /t REG_DWORD /d 1 /f ^^^> nul 2^^^>^^^&1 ^^^& ^
                 reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t REG_DWORD /d 1 /f ^^^> nul 2^^^>^^^&1
 
 fltmc >nul 2>&1
