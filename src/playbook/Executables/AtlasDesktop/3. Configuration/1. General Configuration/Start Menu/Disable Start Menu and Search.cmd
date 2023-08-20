@@ -22,23 +22,21 @@ set /P c="This will disable SearchApp and StartMenuExperienceHost, are you sure 
 if /I "!c!" == "Y" goto continSS
 if /I "!c!" == "N" exit /b
 if /I "!c!" == "" echo No option selected - launch the script again. & pause & exit /b 1
+
 :continSS
-:: Rename start menu
 cd !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 
-:restartStart
 taskkill /f /im StartMenuExperienceHost* > nul 2>&1
-ren StartMenuExperienceHost.exe StartMenuExperienceHost.exee
+ren StartMenuExperienceHost.exe StartMenuExperienceHost.exee > nul 2>&1
 
 :: Loop if it fails to rename the first time
 if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto restartStart
 
-:: Rename search
+:restartSearch
 cd !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 
-:restartSearch
 taskkill /f /im SearchApp* > nul 2>&1
-ren SearchApp.exe SearchApp.exee
+ren SearchApp.exe SearchApp.exee > nul 2>&1
 
 :: Loop if it fails to rename the first time
 if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto restartSearch
