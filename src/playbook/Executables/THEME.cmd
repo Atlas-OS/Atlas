@@ -4,9 +4,9 @@
 copy "Themes\Atlas Dark.theme" "%windir%\Resources\Themes\aero.theme"
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     if %%a LSS 22621 (
-		copy "Themes\Atlas Light.theme" "%windir%\Resources\Themes\Light.theme" > nul
+		copy /y "Themes\atlas-light.theme" "%windir%\Resources\Themes" > nul
     ) else (
-		copy "Themes\Atlas Light.theme" "%windir%\Resources\Themes\spotlight.theme" > nul
+		copy /y "Themes\atlas-dark.theme" "%windir%\Resources\Themes" > nul
 		set win11=true
 	)
 )
