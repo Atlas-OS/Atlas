@@ -7,7 +7,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :: Enable Lanman Workstation (SMB) as a dependency
-call "C:\Users\Default\Desktop\3. Configuration\1. General Configuration\Lanman Workstation (SMB)\Enable Lanman Workstation (default).cmd" /silent
+call "%windir%\AtlasDesktop\3. Configuration\1. General Configuration\Lanman Workstation (SMB)\Enable Lanman Workstation (default).cmd" /silent
 :: Enable EventLog as a dependency
 call setSvc.cmd eventlog 2
 
