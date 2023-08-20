@@ -72,8 +72,7 @@ features:
   - tweaks\performance\system\disable-reserved-storage.yml
   - tweaks\performance\system\optimize-ntfs.yml
   - tweaks\performance\system\service-host-split.yml
-  # Windows Default is Programs - 26/38 
-  # - tweaks\performance\system\win32-priority-seperation.yml
+  - tweaks\performance\system\win32-priority-seperation.yml
   
   # -----------------------------------------------------
   #                        Privacy                       
