@@ -59,12 +59,12 @@ actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
     value: 'CurrentTheme'
-    data: 'C:\Windows\Resources\Themes\aero.theme'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
     type: REG_SZ
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\HighContrast'
     value: 'Pre-High Contrast Scheme'
-    data: 'C:\Windows\Resources\Themes\aero.theme'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
     type: REG_SZ
 
     # Accent color

@@ -33,7 +33,7 @@ exit /b
 
 :ALLUSERS
 if defined win11 (
-	reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Themes" /v "ThemeMRU" /t REG_SZ /d "C:\Windows\Resources\Themes\aero.theme;C:\Windows\resources\Themes\spotlight.theme;" /f > nul
+	reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Themes" /v "ThemeMRU" /t REG_SZ /d "C:\Windows\Resources\Themes\atlas-dark.theme;C:\Windows\resources\Themes\atlas-light.theme;" /f > nul
 )
 
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "AccentColor" /t REG_DWORD /d "4290728257" /f > nul
