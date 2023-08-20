@@ -1,9 +1,6 @@
 ---
 title: Add Music and Videos folders to Quick Access
-description: Adds the 'Music' and 'Videos' folders to Quick Access/Home, as they're unpinned by default with recent files being disabled.
+description: Adds the 'Music' and 'Videos' folders to Quick Access/Home by resetting the pins, as they're unpinned by default with recent files being disabled.
 privilege: TrustedInstaller
 actions:
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -C "$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb(''pintohome''); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb(''pintohome'')"'
-    wait: true
+  - !file: {path: '%AppData%\Microsoft\Windows\Recent\AutomaticDestinations\f01b4d95cf55d32a.automaticDestinations-ms'}

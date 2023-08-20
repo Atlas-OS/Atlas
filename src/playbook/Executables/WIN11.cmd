@@ -11,8 +11,8 @@ if defined win11 (
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Timer Resolution" > nul
     del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul
+    exit /b
 )
-
 
 :: Re-enable Action Center on Win11, as it breaks calendar
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f
