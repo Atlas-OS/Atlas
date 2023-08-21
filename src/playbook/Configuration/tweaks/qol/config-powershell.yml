@@ -26,7 +26,7 @@ actions:
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
     value: 'MRUList'
-    data: 'ab'
+    data: 'a'
     type: REG_SZ
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithProgids'
@@ -36,7 +36,7 @@ actions:
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\UserChoice'
     value: 'ProgId'
-    data: 'Applications\powershell.exe'
+    data: 'ps1_auto_file'
     type: REG_SZ
 
     # Set PowerShell execution policy to Unrestricted
