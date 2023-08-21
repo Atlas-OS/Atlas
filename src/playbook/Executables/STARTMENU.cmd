@@ -22,6 +22,3 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 		)
 	)
 )
-
-:: Remove 'Get Started' item from Start Menu
-PowerShell -NonInteractive -NoLogo -NoP -C "& { $Cbs = \"$env:SystemRoot\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\"; $Manifest = Join-Path $Cbs 'appxmanifest.xml'; takeown /a /f $Manifest; icacls $Manifest /grant Administrators:F; $AtlasManifest = Join-Path $Cbs \"appxmanifest.xml.atlas\"; if (!(Test-Path $AtlasManifest)) { Copy-Item -Path $Manifest -Destination $AtlasManifest -Force; Remove-Item $Manifest -Force }; [xml]$xml = Get-Content -Path \"$Cbs\\appxmanifest.xml.atlas\" -Raw; $applicationNode = $xml.Package.Applications.Application | Where-Object { $_.Id -eq 'WebExperienceHost' }; if ($applicationNode -ne $null) { $xml.Package.Applications.RemoveChild($applicationNode) } $xml.Save($Manifest) }"

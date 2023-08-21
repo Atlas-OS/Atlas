@@ -14,6 +14,9 @@ if defined win11 (
     exit /b
 )
 
+:: Remove Get Started from Start Menu
+PowerShell -NonInteractive -NoLogo -NoP -C "& { $Cbs = \"$env:SystemRoot\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\"; $Manifest = Join-Path $Cbs 'appxmanifest.xml'; takeown /a /f $Manifest; icacls $Manifest /grant Administrators:F; $ReviManifest = Join-Path $Cbs \"appxmanifest.xml.revi\"; if (!(Test-Path $ReviManifest)) { Copy-Item -Path $Manifest -Destination $ReviManifest -Force; Remove-Item $Manifest -Force }; [xml]$xml = Get-Content -Path \"$Cbs\\appxmanifest.xml.revi\" -Raw; $applicationNode = $xml.Package.Applications.Application | Where-Object { $_.Id -eq 'WebExperienceHost' }; if ($applicationNode -ne $null) { $xml.Package.Applications.RemoveChild($applicationNode) } $xml.Save($Manifest) }"
+
 :: Re-enable Action Center on Win11, as it breaks calendar
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f
 
