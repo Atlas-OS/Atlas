@@ -38,7 +38,6 @@ actions:
     # Enabled for compatibility purposes
   - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"LegacyComponents" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart', weight: 30}
-  - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"NetFx3" /NoRestart', weight: 30}
     # Disabled for security purposes
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2" /NoRestart', weight: 30}
@@ -51,6 +50,9 @@ actions:
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart', weight: 30}
     # Seems pointless to disable, unused by default https://learn.microsoft.com/en-us/windows-server/storage/work-folders/work-folders-overview
   # - !run: {command: 'DISM /Online /Disable-Feature /FeatureName:"WorkFolders-Client" /NoRestart', weight: 30}
+  
+    # For an unknown reason, .NET 3.5 has to be enabled last or DISM breaks
+  - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"NetFx3" /NoRestart', weight: 30}
 
   ################ NO LOCAL BUILD ################
 
