@@ -26,7 +26,7 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
     value: 'Model'
-    data: 'AtlasOS 22H2'
+    data: 'AtlasOS'
     type: REG_SZ
   - !registryValue: 
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
