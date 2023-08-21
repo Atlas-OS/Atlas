@@ -45,6 +45,10 @@ reg delete "HKLM\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" /
 :: https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /f > nul
 
+:: Enable the kernel being tickless
+:: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
+bcdedit /deletevalue disabledynamictick > nul
+
 echo Completed.
 echo Press any key to exit...
 pause > nul

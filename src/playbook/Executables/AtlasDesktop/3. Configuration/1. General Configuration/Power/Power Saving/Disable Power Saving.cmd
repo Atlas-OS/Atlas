@@ -110,6 +110,11 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" /v "
 :: https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f > nul
 
+:: Disable the kernel from being tickless
+:: It's power saving
+:: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
+bcdedit /set disabledynamictick yes > nul
+
 if "%~1"=="/setup" exit
 
 echo Completed.

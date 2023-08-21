@@ -11,10 +11,5 @@ actions:
     # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/--timeout#parameters
   - !run: {exe: 'bcdedit', args: '/timeout 10'}
 
-    # Disable dynamic tick
-    # It was implemented as a power saving feature
-    # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
-  - !run: {exe: 'bcdedit', args: '/set disabledynamictick yes'}
-
     # Use legacy boot menu
   - !run: {exe: 'bcdedit', args: '/set bootmenupolicy Legacy'}
