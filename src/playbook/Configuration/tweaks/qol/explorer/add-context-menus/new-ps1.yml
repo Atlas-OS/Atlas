@@ -5,7 +5,7 @@ privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCR\ps1_auto_file'
-    value: '(Default)'
+    value: ''
     data: 'Windows PowerShell Script'
     type: REG_SZ
   - !registryValue:
@@ -15,7 +15,7 @@ actions:
     type: REG_SZ
   - !registryValue:
     path: 'HKCR\.ps1'
-    value: '(Default)'
+    value: ''
     data: 'ps1_auto_file'
     type: REG_SZ
   - !registryValue:
