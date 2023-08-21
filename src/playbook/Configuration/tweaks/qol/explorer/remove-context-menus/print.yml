@@ -4,36 +4,6 @@ description: Removes the 'Print' context menu by default
 privilege: TrustedInstaller
 actions:
   - !registryValue:
-    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\Print'
-    value: 'LegacyDisable'
-    data: ''
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\Print'
-    value: 'ProgrammaticAccessOnly'
-    data: ''
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\Print'
-    value: 'HideBasedOnVelocityId'
-    data: '639bc8'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\PrintTo'
-    value: 'LegacyDisable'
-    data: ''
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\PrintTo'
-    value: 'ProgrammaticAccessOnly'
-    data: ''
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\PrintTo'
-    value: 'HideBasedOnVelocityId'
-    data: '639bc8'
-    type: REG_DWORD
-  - !registryValue:
     path: 'HKCR\SystemFileAssociations\image\shell\print'
     value: 'ProgrammaticAccessOnly'
     data: ''
@@ -128,3 +98,35 @@ actions:
     value: 'ProgrammaticAccessOnly'
     data: ''
     type: REG_SZ
+
+    # Windows 11 Changes
+  - !registryValue:
+    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\Print'
+    value: 'LegacyDisable'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\Print'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\Print'
+    value: 'HideBasedOnVelocityId'
+    data: '6527944'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\PrintTo'
+    value: 'LegacyDisable'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\PrintTo'
+    value: 'ProgrammaticAccessOnly'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\PrintTo'
+    value: 'HideBasedOnVelocityId'
+    data: '6527944'
+    type: REG_DWORD
