@@ -9,12 +9,12 @@ actions:
     # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
   - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'}
   - !registryValue:
-    path: 'HKCU\Software\Classes\Applications\powershell.exe\shell\open\command'
+    path: 'HKCR\Applications\powershell.exe\shell\open\command'
     value: ''
     data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
     type: REG_SZ
   - !registryValue:
-    path: 'HKCU\Software\Classes\ps1_auto_file\shell\open\command'
+    path: 'HKCR\ps1_auto_file\shell\open\command'
     value: ''
     data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
     type: REG_SZ

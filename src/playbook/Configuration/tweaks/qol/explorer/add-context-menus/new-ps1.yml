@@ -4,22 +4,22 @@ description: Adds PowerShell script (.ps1) to 'New' context menu
 privilege: TrustedInstaller
 actions:
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\ps1_auto_file'
-    value: 'FriendlyTypeName'
-    data: 'PowerShell Script'
+    path: 'HKCR\ps1_auto_file'
+    value: '(Default)'
+    data: 'Windows PowerShell Script'
     type: REG_SZ
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\.ps1'
+    path: 'HKCR\ps1_auto_file'
+    value: 'FriendlyTypeName'
+    data: 'Windows PowerShell Script'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\.ps1'
     value: '(Default)'
     data: 'ps1_auto_file'
     type: REG_SZ
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\.ps1\ShellNew'
-    value: 'ItemName'
-    data: 'New file'
-    type: REG_EXPAND_SZ
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\.ps1\ShellNew'
+    path: 'HKCR\.ps1\ShellNew'
     value: 'NullFile'
     data: ''
     type: REG_SZ

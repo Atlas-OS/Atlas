@@ -107,158 +107,158 @@ actions:
   - !registryValue: {path: 'HKCU\SOFTWARE\7-Zip\FM\Columns', value: 'RootFolder', data: '0100000000000000010000000400000001000000A0000000', type: REG_BINARY}
   - !registryValue: {path: 'HKCU\SOFTWARE\7-Zip\Options', value: 'ContextMenu', data: '548', type: REG_DWORD}
   - !registryValue: {path: 'HKCU\SOFTWARE\7-Zip\Options', value: 'ElimDupExtract', data: '0', type: REG_DWORD}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.001', value: '', data: '7-Zip.001', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.7z', value: '', data: '7-Zip.7z', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.apfs', value: '', data: '7-Zip.apfs', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.arj', value: '', data: '7-Zip.arj', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.bz2', value: '', data: '7-Zip.bz2', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.bzip2', value: '', data: '7-Zip.bzip2', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.cab', value: '', data: '7-Zip.cab', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.cpio', value: '', data: '7-Zip.cpio', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.deb', value: '', data: '7-Zip.deb', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.dmg', value: '', data: '7-Zip.dmg', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.esd', value: '', data: '7-Zip.esd', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.fat', value: '', data: '7-Zip.fat', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.gz', value: '', data: '7-Zip.gz', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.gzip', value: '', data: '7-Zip.gzip', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.hfs', value: '', data: '7-Zip.hfs', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.iso', value: '', data: '7-Zip.iso', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.lha', value: '', data: '7-Zip.lha', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.lzh', value: '', data: '7-Zip.lzh', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.lzma', value: '', data: '7-Zip.lzma', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.ntfs', value: '', data: '7-Zip.ntfs', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.rar', value: '', data: '7-Zip.rar', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.rpm', value: '', data: '7-Zip.rpm', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.squashfs', value: '', data: '7-Zip.squashfs', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.swm', value: '', data: '7-Zip.swm', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.tar', value: '', data: '7-Zip.tar', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.taz', value: '', data: '7-Zip.taz', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.tbz', value: '', data: '7-Zip.tbz', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.tbz2', value: '', data: '7-Zip.tbz2', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.tgz', value: '', data: '7-Zip.tgz', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.tpz', value: '', data: '7-Zip.tpz', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.txz', value: '', data: '7-Zip.txz', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.vhd', value: '', data: '7-Zip.vhd', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.vhdx', value: '', data: '7-Zip.vhdx', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.wim', value: '', data: '7-Zip.wim', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.xar', value: '', data: '7-Zip.xar', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.xz', value: '', data: '7-Zip.xz', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.z', value: '', data: '7-Zip.z', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\.zip', value: '', data: '7-Zip.zip', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.001', value: '', data: '001 Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.001\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,9', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.001\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.7z', value: '', data: '7z Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.7z\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,0', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.7z\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.apfs', value: '', data: 'apfs Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.apfs\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,25', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.apfs\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.arj', value: '', data: 'arj Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.arj\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,4', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.arj\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.bz2', value: '', data: 'bz2 Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.bz2\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,2', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.bz2\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.bzip2', value: '', data: 'bzip2 Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.bzip2\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,2', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.bzip2\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.cab', value: '', data: 'cab Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.cab\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,7', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.cab\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.cpio', value: '', data: 'cpio Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.cpio\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,12', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.cpio\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.deb', value: '', data: 'deb Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.deb\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,11', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.deb\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.dmg', value: '', data: 'dmg Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.dmg\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,17', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.dmg\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.esd', value: '', data: 'esd Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.esd\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,15', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.esd\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.fat', value: '', data: 'fat Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.fat\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,21', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.fat\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.gz', value: '', data: 'gz Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.gz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,14', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.gz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.gzip', value: '', data: 'gzip Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.gzip\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,14', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.gzip\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.hfs', value: '', data: 'hfs Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.hfs\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,18', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.hfs\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.iso', value: '', data: 'iso Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.iso\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,8', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.iso\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.lha', value: '', data: 'lha Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.lha\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,6', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.lha\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.lzh', value: '', data: 'lzh Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.lzh\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,6', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.lzh\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.lzma', value: '', data: 'lzma Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.lzma\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,16', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.lzma\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.ntfs', value: '', data: 'ntfs Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.ntfs\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,22', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.ntfs\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.rar', value: '', data: 'rar Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.rar\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,3', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.rar\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.rpm', value: '', data: 'rpm Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.rpm\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,10', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.rpm\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.squashfs', value: '', data: 'squashfs Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.squashfs\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,24', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.squashfs\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.swm', value: '', data: 'swm Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.swm\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,15', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.swm\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tar', value: '', data: 'tar Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tar\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,13', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tar\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.taz', value: '', data: 'taz Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.taz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,5', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.taz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tbz', value: '', data: 'tbz Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tbz2', value: '', data: 'tbz2 Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tbz2\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,2', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tbz2\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tbz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,2', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tbz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tgz', value: '', data: 'tgz Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tgz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,14', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tgz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tpz', value: '', data: 'tpz Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tpz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,14', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.tpz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.txz', value: '', data: 'txz Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.txz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,23', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.txz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.vhd', value: '', data: 'vhd Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.vhd\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,20', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.vhd\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.vhdx', value: '', data: 'vhdx Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.vhdx\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,20', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.vhdx\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.wim', value: '', data: 'wim Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.wim\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,15', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.wim\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.xar', value: '', data: 'xar Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.xar\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,19', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.xar\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.xz', value: '', data: 'xz Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.xz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,23', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.xz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.z', value: '', data: 'z Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.z\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,5', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.z\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.zip', value: '', data: 'zip Archive', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.zip\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,1', type: REG_SZ}
-  - !registryValue: {path: 'HKCU\SOFTWARE\Classes\7-Zip.zip\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.001', value: '', data: '7-Zip.001', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.7z', value: '', data: '7-Zip.7z', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.apfs', value: '', data: '7-Zip.apfs', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.arj', value: '', data: '7-Zip.arj', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.bz2', value: '', data: '7-Zip.bz2', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.bzip2', value: '', data: '7-Zip.bzip2', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.cab', value: '', data: '7-Zip.cab', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.cpio', value: '', data: '7-Zip.cpio', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.deb', value: '', data: '7-Zip.deb', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.dmg', value: '', data: '7-Zip.dmg', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.esd', value: '', data: '7-Zip.esd', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.fat', value: '', data: '7-Zip.fat', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.gz', value: '', data: '7-Zip.gz', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.gzip', value: '', data: '7-Zip.gzip', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.hfs', value: '', data: '7-Zip.hfs', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.iso', value: '', data: '7-Zip.iso', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.lha', value: '', data: '7-Zip.lha', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.lzh', value: '', data: '7-Zip.lzh', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.lzma', value: '', data: '7-Zip.lzma', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.ntfs', value: '', data: '7-Zip.ntfs', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.rar', value: '', data: '7-Zip.rar', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.rpm', value: '', data: '7-Zip.rpm', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.squashfs', value: '', data: '7-Zip.squashfs', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.swm', value: '', data: '7-Zip.swm', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.tar', value: '', data: '7-Zip.tar', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.taz', value: '', data: '7-Zip.taz', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.tbz', value: '', data: '7-Zip.tbz', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.tbz2', value: '', data: '7-Zip.tbz2', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.tgz', value: '', data: '7-Zip.tgz', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.tpz', value: '', data: '7-Zip.tpz', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.txz', value: '', data: '7-Zip.txz', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.vhd', value: '', data: '7-Zip.vhd', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.vhdx', value: '', data: '7-Zip.vhdx', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.wim', value: '', data: '7-Zip.wim', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.xar', value: '', data: '7-Zip.xar', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.xz', value: '', data: '7-Zip.xz', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.z', value: '', data: '7-Zip.z', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\.zip', value: '', data: '7-Zip.zip', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.001', value: '', data: '001 Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.001\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,9', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.001\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.7z', value: '', data: '7z Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.7z\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,0', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.7z\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.apfs', value: '', data: 'apfs Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.apfs\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,25', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.apfs\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.arj', value: '', data: 'arj Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.arj\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,4', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.arj\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.bz2', value: '', data: 'bz2 Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.bz2\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,2', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.bz2\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.bzip2', value: '', data: 'bzip2 Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.bzip2\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,2', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.bzip2\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.cab', value: '', data: 'cab Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.cab\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,7', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.cab\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.cpio', value: '', data: 'cpio Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.cpio\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,12', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.cpio\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.deb', value: '', data: 'deb Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.deb\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,11', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.deb\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.dmg', value: '', data: 'dmg Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.dmg\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,17', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.dmg\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.esd', value: '', data: 'esd Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.esd\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,15', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.esd\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.fat', value: '', data: 'fat Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.fat\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,21', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.fat\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.gz', value: '', data: 'gz Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.gz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,14', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.gz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.gzip', value: '', data: 'gzip Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.gzip\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,14', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.gzip\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.hfs', value: '', data: 'hfs Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.hfs\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,18', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.hfs\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.iso', value: '', data: 'iso Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.iso\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,8', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.iso\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.lha', value: '', data: 'lha Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.lha\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,6', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.lha\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.lzh', value: '', data: 'lzh Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.lzh\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,6', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.lzh\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.lzma', value: '', data: 'lzma Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.lzma\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,16', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.lzma\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.ntfs', value: '', data: 'ntfs Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.ntfs\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,22', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.ntfs\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.rar', value: '', data: 'rar Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.rar\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,3', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.rar\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.rpm', value: '', data: 'rpm Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.rpm\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,10', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.rpm\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.squashfs', value: '', data: 'squashfs Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.squashfs\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,24', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.squashfs\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.swm', value: '', data: 'swm Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.swm\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,15', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.swm\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tar', value: '', data: 'tar Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tar\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,13', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tar\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.taz', value: '', data: 'taz Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.taz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,5', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.taz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tbz', value: '', data: 'tbz Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tbz2', value: '', data: 'tbz2 Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tbz2\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,2', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tbz2\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tbz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,2', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tbz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tgz', value: '', data: 'tgz Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tgz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,14', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tgz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tpz', value: '', data: 'tpz Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tpz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,14', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.tpz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.txz', value: '', data: 'txz Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.txz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,23', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.txz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.vhd', value: '', data: 'vhd Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.vhd\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,20', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.vhd\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.vhdx', value: '', data: 'vhdx Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.vhdx\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,20', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.vhdx\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.wim', value: '', data: 'wim Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.wim\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,15', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.wim\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.xar', value: '', data: 'xar Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.xar\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,19', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.xar\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.xz', value: '', data: 'xz Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.xz\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,23', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.xz\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.z', value: '', data: 'z Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.z\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,5', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.z\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.zip', value: '', data: 'zip Archive', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.zip\DefaultIcon', value: '', data: 'C:\Program Files\7-Zip\7z.dll,1', type: REG_SZ}
+  - !registryValue: {path: 'HKCR\7-Zip.zip\shell\open\command', value: '', data: '"C:\Program Files\7-Zip\7zFM.exe" "%1"', type: REG_SZ}
   - !registryValue: {path: 'HKLM\SOFTWARE\Classes\.001', value: '', data: '7-Zip.001', type: REG_SZ}
   - !registryValue: {path: 'HKLM\SOFTWARE\Classes\.7z', value: '', data: '7-Zip.7z', type: REG_SZ}
   - !registryValue: {path: 'HKLM\SOFTWARE\Classes\.apfs', value: '', data: '7-Zip.apfs', type: REG_SZ}

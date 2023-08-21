@@ -4,12 +4,12 @@ description: Disables the network navigation pane/item in the Explorer sidebar f
 privilege: TrustedInstaller
 actions:
   - !registryValue:
-    path: 'HKCU\Software\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}'
+    path: 'HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}'
     value: 'System.IsPinnedToNameSpaceTree'
     data: '0'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKCU\Software\Classes\WOW6432Node\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}'
+    path: 'HKCR\WOW6432Node\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}'
     value: 'System.IsPinnedToNameSpaceTree'
     data: '0'
     type: REG_DWORD
