@@ -1,5 +1,5 @@
 @echo off
-for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a LSS 22000 set win11=true)
+for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 set win11=true)
 
 :: copy themes
 copy /y "Themes\atlas-light.theme" "%windir%\Resources\Themes" > nul
