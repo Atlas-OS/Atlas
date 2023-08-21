@@ -2,7 +2,6 @@
 :: A batch script to refresh environment variables from the registry
 :: Source: Chocolatey
 :: https://raw.githubusercontent.com/chocolatey-archive/chocolatey/master/src/redirects/RefreshEnv.cmd
-echo | set /p dummy="Refreshing environment variables. Please wait..."
 goto main
 
 :SetFromReg
@@ -36,4 +35,4 @@ call "%TEMP%\_env.cmd"
 del /f /q "%TEMP%\_env.cmd" 2>nul
 SET "USERNAME=%OriginalUserName%"
 SET "PROCESSOR_ARCHITECTURE=%OriginalArchitecture%"
-goto :EOF
+exit /b
