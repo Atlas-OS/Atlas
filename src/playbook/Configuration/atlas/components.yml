@@ -37,11 +37,11 @@ actions:
   
     # Update Health Tools
   - !writeStatus: {status: 'Removing Update Health Tools'}
-  - !powerShell: {command: 'Uninstall-MsiexecAppByName "Microsoft Update Health Tools"'}
+  - !powerShell: {command: 'Uninstall-MsiexecAppByName -Name "Microsoft Update Health Tools"'}
 
     # PC Health Check
   - !writeStatus: {status: 'Removing PC Health Check'}
-  - !powerShell: {command: 'Uninstall-MsiexecAppByName "Windows PC Health Check"'}
+  - !powerShell: {command: 'Uninstall-MsiexecAppByName -Name "Windows PC Health Check"'}
 
     # Converts all Microsoft user accounts to local accounts
   - !run:
