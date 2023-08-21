@@ -9,7 +9,7 @@ if defined win11 (
 ) else (
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\File Explorer Customization\Compact View" > nul
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul
-    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Timer Resolution" > nul
+    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Power\Timer Resolution" > nul
     del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul
     exit /b
 )
