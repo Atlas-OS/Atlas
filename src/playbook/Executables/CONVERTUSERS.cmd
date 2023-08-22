@@ -1,9 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-:: make it so the user isn't locked out
-net accounts /lockoutthreshold:0
-
 :: make passwords never expire
 net accounts /maxpwage:unlimited
 
@@ -25,7 +22,12 @@ reg add "HKU\!userSID!\SOFTWARE\Microsoft\Windows\CurrentVersion\AccountState" /
 reg delete "HKU\!userSID!\SOFTWARE\Microsoft\IdentityCRL" /f > nul
 for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers" /s /f "!userSID!" ^| findstr /c:"!userSID!"`) do reg delete "%%a" /f > nul
 
+:: make it so the user isn't locked out
+net accounts /lockoutthreshold:0
+
 net user "%~1" /fullname:"" > nul
 net user "%~1" "" > nul
 wmic UserAccount where name='%~1' set Passwordexpires=true > nul
 net user "%~1" /logonpasswordchg:yes > nul
+
+net accounts /lockoutthreshold:10
