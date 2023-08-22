@@ -31,6 +31,12 @@ actions:
     args: '"C:\Windows\AtlasModules\Packages\Z-Atlas-NoTelemetry-Package31bf3856ad364e35amd643.0.0.0.cab"'
     wait: true
 
+    # Misc Package
+  - !run:
+    exe: 'C:\Windows\AtlasModules\Scripts\online-sxs.cmd'
+    args: '"C:\Windows\AtlasModules\Packages\Z-Atlas-Misc-Remover-Package31bf3856ad364e35amd643.0.0.0.cab"'
+    wait: true
+
     # OneDrive
   - !writeStatus: {status: 'Removing OneDrive'}
   - !run: {exeDir: true, exe: "ONED.cmd"}
