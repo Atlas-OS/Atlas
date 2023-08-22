@@ -42,7 +42,7 @@ ren SearchApp.exe SearchApp.exee > nul 2>&1
 if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto restartSearch
 
 :: Search icon
-reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f > nul 2>&1
+reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f > nul
 taskkill /f /im explorer.exe > nul 2>&1
 start explorer.exe > nul 2>&1
 

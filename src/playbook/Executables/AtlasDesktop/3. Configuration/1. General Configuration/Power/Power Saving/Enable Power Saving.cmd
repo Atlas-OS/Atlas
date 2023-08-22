@@ -30,24 +30,24 @@ for %%a in (
     "WdfDirectedPowerTransitionEnable"
 ) do (
     for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%~a" ^| findstr "HKEY"') do (
-        reg delete "%%b" /v "%%~a" /f > nul
+        reg delete "%%b" /v "%%~a" /f > nul 2>&1
     )
 )
 
 :: Disable D3 support on SATA/NVMEs while using Modern Standby
 :: https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/power-management-for-storage-hardware-devices-intro#d3-support
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Storage" /v "StorageD3InModernStandby" /f > nul
+reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Storage" /v "StorageD3InModernStandby" /f > nul 2>&1
 
 :: Disable IdlePowerMode for stornvme.sys (storage devices) - the device will never enter a low-power state
-reg delete "HKLM\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" /v "IdlePowerMode" /f > nul
+reg delete "HKLM\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" /v "IdlePowerMode" /f > nul 2>&1
 
 :: Reset power throttling to default
 :: https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /f > nul
+reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /f > nul 2>&1
 
 :: Enable the kernel being tickless
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
-bcdedit /deletevalue disabledynamictick > nul
+bcdedit /deletevalue disabledynamictick > nul 2>&1
 
 echo Completed.
 echo Press any key to exit...

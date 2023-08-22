@@ -24,7 +24,7 @@ if !errorlevel! == 1 (
 
 :disable
 echo]
-bcdedit /set {default} bootmenupolicy legacy > nul 2>&1
+bcdedit /set {default} bootmenupolicy legacy > nul
 goto finish
 
 :enable

@@ -23,12 +23,12 @@ if !errorlevel! == 1 (
 
 :disable
 echo]
-bcdedit /set {current} bootstatuspolicy IgnoreAllFailures > nul 2>&1
+bcdedit /set {current} bootstatuspolicy IgnoreAllFailures > nul
 goto finish
 
 :enable
 echo]
-bcdedit /set {current} bootstatuspolicy DisplayAllFailures > nul 2>&1
+bcdedit /set {current} bootstatuspolicy DisplayAllFailures > nul
 goto finish
 
 :finish

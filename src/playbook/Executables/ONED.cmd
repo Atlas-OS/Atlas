@@ -16,35 +16,35 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 	)
 )
 
-rmdir /q /s "C:\ProgramData\Microsoft OneDrive" > nul
-rmdir /q /s "%localappdata%\Microsoft\OneDrive" > nul
+rmdir /q /s "C:\ProgramData\Microsoft OneDrive" > nul 2>&1
+rmdir /q /s "%localappdata%\Microsoft\OneDrive" > nul 2>&1
 
 for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
-	rmdir /q /s "C:\Users\%%a\AppData\Local\Microsoft\OneDrive" > nul
-	rmdir /q /s "C:\Users\%%a\OneDrive" > nul
-	del /q /f "C:\Users\%%a\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk" > nul
+	rmdir /q /s "C:\Users\%%a\AppData\Local\Microsoft\OneDrive" > nul 2>&1
+	rmdir /q /s "C:\Users\%%a\OneDrive" > nul 2>&1
+	del /q /f "C:\Users\%%a\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk" > nul 2>&1
 )
 
-for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager" ^| findstr /i /c:"OneDrive"`) do reg delete "%%a" /f
+for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager" ^| findstr /i /c:"OneDrive"`) do reg delete "%%a" /f > nul 2>&1
 
 for /f "tokens=2 delims=\" %%a in ('schtasks /query /fo list /v ^| findstr /c:"\OneDrive Reporting Task" /c:"\OneDrive Standalone Update Task"') do (
-	schtasks /delete /tn "%%a" /f > nul
+	schtasks /delete /tn "%%a" /f > nul 2>&1
 )
 
 exit /b
 
 :USERREG
 for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\BannerStore" ^| findstr /i /c:"OneDrive"`) do (
-	reg delete "%%a" /f > nul
+	reg delete "%%a" /f > nul 2>&1
 )
 for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\Handlers" ^| findstr /i /c:"OneDrive"`) do (
-	reg delete "%%a" /f > nul
+	reg delete "%%a" /f > nul 2>&1
 )
 for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths" ^| findstr /i /c:"OneDrive"`) do (
-	reg delete "%%a" /f > nul
+	reg delete "%%a" /f > nul 2>&1
 )
 for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" ^| findstr /i /c:"OneDrive"`) do (
-	reg delete "%%a" /f > nul
+	reg delete "%%a" /f > nul 2>&1
 )
 
-reg delete "HKU\%~1\Environment" /v "OneDrive" /f > nul
+reg delete "HKU\%~1\Environment" /v "OneDrive" /f > nul 2>&1
