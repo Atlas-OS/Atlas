@@ -70,6 +70,8 @@ actions:
   - !service: {name: 'fhsvc', operation: change, startup: 4}
   - !service: {name: 'wlpasvc', operation: change, startup: 4}
   - !service: {name: 'AppVClient', operation: change, startup: 4}
+    # Offline Files
+  - !service: {name: 'CscService', operation: change, startup: 4}
   # DsSvc 4 < can cause issues with Snip & Sketch
   # icssvc 4 < breaks mobile/Wi-Fi hotspot
   # IKEEXT 4 < causes Teredo not to work
@@ -116,6 +118,8 @@ actions:
   - !service: {name: 'VSTXRAID', operation: change, startup: 4}
   - !service: {name: 'wcnfs', operation: change, startup: 4}
   - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
+    # Offline Files
+  - !service: {name: 'CSC', operation: change, startup: 4}
   # rdbss 3 < Commented as we're not sure if it functions normally set to manual
   # FileInfo 4 < Breaks installing Microsoft Store applications to different disk
   # FileCrypt 4 < Breaks installing Microsoft Store applications to different disk
