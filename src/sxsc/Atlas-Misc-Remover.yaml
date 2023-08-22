@@ -43,3 +43,12 @@ updates:
   - target_component: Microsoft-Windows-ContentDeliveryManager-Utilities
     target_arch: wow64
     version: 38655.38527.65535.65535
+
+    # Sync Center - mobsync
+    # Remove it with components to prevent it from running completely
+  - target_component: Microsoft-Windows-mobsyncexe
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-mobsyncexe
+    target_arch: wow64
+    version: 38655.38527.65535.65535
