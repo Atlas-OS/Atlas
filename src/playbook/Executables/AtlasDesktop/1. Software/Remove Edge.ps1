@@ -63,6 +63,13 @@ function RemoveEdgeChromium {
 		$path = "$env:SystemDrive\Users\$user\AppData\Local\Microsoft\Edge"
 		if (Test-Path $path) {Remove-Item $path -Force -Recurse}
 	}
+	
+	# remove shortcut on desktop
+	# may exist for some people after a proper uninstallation
+	$shortcutPath = "$env:USERPROFILE\Desktop\Microsoft Edge.lnk"
+	if (Test-Path $shortcutPath) {
+		Remove-Item $shortcutPath -Force
+	}
 }
 
 function RemoveEdgeAppX {
