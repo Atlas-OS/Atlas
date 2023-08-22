@@ -27,7 +27,8 @@ exit /b %errorlevel%
 
 param (
     [switch]$Enable,
-    [switch]$Disable
+    [switch]$Disable,
+    [switch]$SafeMode
 )
 
 $AtlasPackageName = 'Z-Atlas-NoDefender-Package'
@@ -36,6 +37,7 @@ $AtlasModules = "$env:windir\AtlasModules"
 $onlineSxS = "$AtlasModules\Scripts\online-sxs.cmd"
 $packagesPath = "$AtlasModules\Packages"
 $ProgressPreference = 'SilentlyContinue'
+$winlogon = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
 
 if ($Enable -or $Disable) {$Silent = $true}
 
@@ -66,27 +68,79 @@ function UninstallPackage {
 	}
 }
 
+function ExitSafeMode {
+	Start-Process -File "bcdedit" -ArgumentList "/deletevalue {current} safeboot" -WindowStyle Hidden
+	Set-ItemProperty -Path $winlogon -Name Shell -Value 'explorer.exe'
+	shutdown /f /r /t 0
+	exit
+}
+
 function InstallPackage {
 	$latestCabPath = (Get-ChildItem -Path $packagesPath -Filter "*$AtlasPackageName*.cab" | Sort-Object | Select-Object -Last 1).FullName
 	Write-Warning "Installing package to remove Defender..."
-	try {
-		& $onlineSxS "$latestCabPath" -Silent
-	} catch {
-		Write-Host "`nSomething went wrong whilst adding the Defender package.`nPlease report the error above to the Atlas team." -ForegroundColor Yellow
-		if (!($Silent)) {PauseNul}; exit 1
+	
+	$output = & $onlineSxS "$latestCabPath" -Silent
+	if ($LASTEXITCODE -ne 0) {
+		if ((Get-WmiObject -Class Win32_ComputerSystem).BootupState -ne 'Normal boot') {
+			Clear-Host
+			Write-Host $($output -join "`r`n") -ForegroundColor Red
+
+			Write-Host "`nSomething went wrong whilst adding the Defender package.`nPlease report the error above to the Atlas team.`n" -ForegroundColor Yellow
+			PauseNul "Press any key to exit safe mode..."
+			ExitSafeMode
+		}
+
+		if ($Silent) {
+			Add-Type -AssemblyName System.Windows.Forms
+			$balloon = New-Object System.Windows.Forms.NotifyIcon
+			$balloon.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon("$env:WinDir\System32\SecurityHealthSystray.exe")
+			$balloon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Error
+			$balloon.BalloonTipText = 'Run the ''Toggle Defender'' script in the Atlas folder after installation.'
+			$balloon.BalloonTipTitle = "Failed disabling Windows Defender" 
+			$balloon.Visible = $true
+			$balloon.ShowBalloonTip(999999999)
+			
+			# sleep to ensure notification is shown properly
+			Start-Sleep 2
+			exit 1
+		} else {
+			Write-Host "`nSomething went wrong whilst adding the Defender package." -ForegroundColor Yellow
+			choice /c yn /n /m "Would you like to try rebooting into 'Safe mode' to apply the changes? [Y/N] "
+			if ($lastexitcode -eq 1) {
+				Start-Process -File "bcdedit" -ArgumentList "/set {current} safeboot minimal" -WindowStyle Hidden
+
+				Set-ItemProperty -Path $winlogon -Name Shell -Value "$env:WinDir\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd -SafeMode"
+
+				Restart-Computer
+				exit
+			} else {
+				exit 1
+			}
+		}
 	}
 }
 
 function Finish {
 	Write-Host "`nCompleted!" -ForegroundColor Green
 	choice /c yn /n /m "Would you like to restart now to apply the changes? [Y/N] "
-	if ($lastexitcode -eq 1) {Restart-Computer} else {
+	if ($lastexitcode -eq 1) {
+		if ($SafeMode) {ExitSafeMode}
+		Restart-Computer
+	} else {
 		Write-Host "`nChanges will apply after next restart." -ForegroundColor Yellow
 		Start-Sleep 2; exit
 	}
+	exit
 }
 
 if ($Disable) {InstallPackage; exit} elseif ($Enable) {UninstallPackage; exit}
+if ($SafeMode) {
+	InstallPackage
+	Write-Host "`nCompleted!" -ForegroundColor Green
+	Write-Host "Restarting in 3 seconds..."
+	Start-Sleep 3
+	ExitSafeMode
+}
 
 function Menu {
 	Clear-Host

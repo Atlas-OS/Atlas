@@ -29,7 +29,7 @@ exit /b %errorlevel%
 : end batch / begin PowerShell #>
 
 param (
-    [string]$CabPath, 
+    [string]$CabPath,
     [switch]$Silent
 )
 
@@ -84,8 +84,8 @@ try {
 		$cert = (Get-AuthenticodeSignature $cabPath).SignerCertificate
 		foreach ($usage in $cert.Extensions.EnhancedKeyUsages) { if ($usage.Value -eq "1.3.6.1.4.1.311.10.3.6") { $correctUsage = $true } }
 		if (!($correctUsage)) {
-			if (!($silent)) {Write-Host 'The certificate inside of the CAB selected does not have the "Windows System Component Verification" enhanced key usage.' -ForegroundColor Red}
-			if (!($cabArg)) {PauseNul}; exit 1
+			Write-Host 'The certificate inside of the CAB selected does not have the "Windows System Component Verification" enhanced key usage.' -ForegroundColor Red
+			if (!($cabArg)) {PauseNul}; exit 2
 		}
 		$certPath = [System.IO.Path]::GetTempFileName()
 		[System.IO.File]::WriteAllBytes($certPath, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
@@ -94,7 +94,7 @@ try {
 	} catch {
 		Write-Host "`nSomething went wrong importing and checking the certificate of: $cabPath" -ForegroundColor Red
 		Write-Host "$_`n" -ForegroundColor Red
-		if (!($cabArg)) {PauseNul}; exit 1
+		if (!($cabArg)) {PauseNul}; exit 3
 	}
 
 	if (!($silent)) {Write-Warning "Adding package..."}
@@ -103,12 +103,12 @@ try {
 	} catch {
 		Write-Host "Something went wrong adding the package: $cabPath" -ForegroundColor Red
 		Write-Host "$_`n" -ForegroundColor Red
-		if (!($cabArg)) {PauseNul}; exit 1
+		if (!($cabArg)) {PauseNul}; exit 4
 	}
 } finally {
 	if (!($silent)) {Write-Warning "Cleaning up certificates..."}
-	Get-ChildItem "Cert:\LocalMachine\Root\$($cert.Thumbprint)" | Remove-Item -Force | Out-Null
-	Remove-Item "$certRegPath\8A334AA8052DD244A647306A76B8178FA215F344" -Force -Recurse | Out-Null
+	Get-ChildItem "Cert:\LocalMachine\Root\$($cert.Thumbprint)" -EA SilentlyContinue | Remove-Item -Force -EA SilentlyContinue | Out-Null
+	Remove-Item "$certRegPath\8A334AA8052DD244A647306A76B8178FA215F344" -Force -Recurse -EA SilentlyContinue | Out-Null
 }
 
 if (!($silent)) {Write-Host "`nCompleted!" -ForegroundColor Green}
