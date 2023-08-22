@@ -25,7 +25,7 @@ for %%a in (
     )
 )
 
-:: If e.g. VMWare is used, set network adapter to normal priority as undefined on some virtual machines may break internet connection
+:: If a virtual machine is used, set network adapter to normal priority as Undefined may break internet connection
 wmic computersystem get manufacturer /format:value | findstr /i /c:VMWare && (
     for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /l "PCI\VEN_"') do (
         reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2" /f > nul
