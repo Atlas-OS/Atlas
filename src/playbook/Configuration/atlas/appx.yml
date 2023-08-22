@@ -53,6 +53,10 @@ actions:
 
   # Widgets
   - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
+  
+  # Get Started
+  - !appx: {name: '*Microsoft.Getstarted*', type: family}
+  - !appx: {name: '*WebExperienceHost*', type: app}
 
   - !appx: {name: '*MicrosoftCorporationII.MicrosoftFamily*', type: family}
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
@@ -60,7 +64,6 @@ actions:
   - !appx: {name: '*Microsoft.BingNews*', type: family}
   - !appx: {name: '*Microsoft.BingWeather*', type: family}
   - !appx: {name: '*Microsoft.GetHelp*', type: family}
-  - !appx: {name: '*Microsoft.Getstarted*', type: family}
   - !appx: {name: '*Microsoft.Microsoft3DViewer*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftOfficeHub*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftSolitaireCollection*', type: family}

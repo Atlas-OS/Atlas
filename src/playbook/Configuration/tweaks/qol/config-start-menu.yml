@@ -1,15 +1,8 @@
 ---
 title: Configure Start Menu
-description: Configures the Start Menu's layout and settings
+description: Configures the Start Menu's settings
 privilege: TrustedInstaller
 actions:
-    # Lock start menu layout and disable tiles
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
-    value: 'StartLayoutFile'
-    data: 'C:\Windows\layout.xml'
-    type: REG_EXPAND_SZ
-
     # Configure start menu settings
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
