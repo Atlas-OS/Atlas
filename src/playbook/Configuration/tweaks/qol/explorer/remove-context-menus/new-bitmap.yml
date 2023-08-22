@@ -6,4 +6,4 @@ actions:
   - !registryKey: {path: 'HKCR\.bmp\ShellNew'}
   - !run:
     exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait for /f "tokens=*" %a in ('reg query "HKCR\Local Settings\MrtCache" /s ^| find "HKEY_CLASSES_ROOT\Local Settings\MrtCache"') do @(for /f "tokens=1-2" %b in ('reg query "%a" /v * ^| find "ShellNewDisplayName_Bmp"') do @(reg add "%a" /v "%b %c" /t REG_SZ /d "" /f))"'
+    args: '-U:E -UseCurrentConsole -Wait for /f "tokens=*" %a in (''reg query "HKCR\Local Settings\MrtCache" /s ^| find "HKEY_CLASSES_ROOT\Local Settings\MrtCache"'') do @(for /f "tokens=1-2" %b in (''reg query "%a" /v * ^| find "ShellNewDisplayName_Bmp"'') do @(reg add "%a" /v "%b %c" /t REG_SZ /d "" /f))"'
