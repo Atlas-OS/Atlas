@@ -44,7 +44,7 @@ updates:
     target_arch: wow64
     version: 38655.38527.65535.65535
 
-    # mbsync
+    # mobsync
     # Remove it in a package to prevent it from running completely
   - target_component: Microsoft-Windows-mobsyncexe
     target_arch: amd64
