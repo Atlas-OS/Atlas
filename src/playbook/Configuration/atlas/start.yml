@@ -28,7 +28,7 @@ actions:
   - !cmd: {command: 'setx path "%PATH%;C:\Windows\AtlasModules;C:\Windows\AtlasModules\Apps;C:\Windows\AtlasModules\Other;C:\Windows\AtlasModules\Tools;C:\Windows\AtlasModules\Scripts" -m'}
   - !cmd: {command: 'setx psmodulepath "%psmodulepath%;C:\Windows\AtlasModules\Scripts\Modules" -m'}
 
-  - !writeStatus: {status: 'Refreshing env variables'}
+  - !writeStatus: {status: 'Refreshing variables'}
   - !run: {exe: 'REFRESHENV.cmd', exeDir: true}
 
   - !writeStatus: {status: 'Cleaning the component store'}
