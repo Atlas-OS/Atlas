@@ -24,7 +24,7 @@ if !errorlevel! == 1 (
 
 :disable
 echo]
-bcdedit /set {globalsettings} custom:16000068 true > nul 2>&1
+bcdedit /set {globalsettings} custom:16000068 true > nul
 goto finish
 
 :enable

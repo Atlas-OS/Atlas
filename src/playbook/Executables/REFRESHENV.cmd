@@ -29,12 +29,12 @@ call :GetRegEnv "HKCU\Environment">>"%temp%\_env.cmd" >> "%temp%\_env.cmd"
 call :SetFromReg "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" Path Path_HKLM >> "%temp%\_env.cmd"
 call :SetFromReg "HKCU\Environment" Path Path_HKCU >> "%temp%\_env.cmd"
 echo/set "Path=%%Path_HKLM%%;%%Path_HKCU%%" >> "%temp%\_env.cmd"
-del /f /q "%temp%\_envset.tmp" 2>nul
-del /f /q "%temp%\_envget.tmp" 2>nul
+del /f /q "%temp%\_envset.tmp" > nul 2>&1
+del /f /q "%temp%\_envget.tmp" > nul 2>&1
 set "OriginalUserName=%USERNAME%"
 set "OriginalArchitecture=%PROCESSOR_ARCHITECTURE%"
 call "%temp%\_env.cmd"
-del /f /q "%temp%\_env.cmd" 2>nul
+del /f /q "%temp%\_env.cmd" > nul 2>&1
 set "USERNAME=%OriginalUserName%"
 set "PROCESSOR_ARCHITECTURE=%OriginalArchitecture%"
 exit /b

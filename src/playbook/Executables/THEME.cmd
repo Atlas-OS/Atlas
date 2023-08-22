@@ -18,11 +18,11 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 :: clear lockscreen cache
 for /d %%a in ("%ProgramData%\Microsoft\Windows\SystemData\*") do (
 	for /d %%c in ("%%a\ReadOnly\LockScreen_*") do (
-		rd /s /q "%%c" > nul
+		rd /s /q "%%c" > nul 2>&1
 	)
 )
 
-taskkill /F /IM sihost.exe > nul
+taskkill /F /IM sihost.exe > nul 2>&1
 exit /b
 
 :ALLUSERS
@@ -31,8 +31,8 @@ if defined win11 reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Them
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "AccentColor" /t REG_DWORD /d "4290728257" /f > nul
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "StartColor" /t REG_DWORD /d "4291969335" /f > nul
 
-del /q /f "%~2\Microsoft\Windows\Themes\TranscodedWallpaper" > nul
-rmdir /q /s "%~2\Microsoft\Windows\Themes\CachedFiles" > nul
+del /q /f "%~2\Microsoft\Windows\Themes\TranscodedWallpaper" > nul 2>&1
+rmdir /q /s "%~2\Microsoft\Windows\Themes\CachedFiles" > nul 2>&1
 
 if not "%~1"=="AME_UserHive_Default" (
 	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative\%~1" /v "RotatingLockScreenEnabled" /t REG_DWORD /d "0" /f > nul

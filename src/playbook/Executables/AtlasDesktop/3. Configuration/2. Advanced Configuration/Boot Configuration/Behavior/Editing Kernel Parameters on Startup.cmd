@@ -28,7 +28,7 @@ goto finish
 
 :enable
 echo]
-bcdedit /set {globalsettings} optionsedit true > nul 2>&1
+bcdedit /set {globalsettings} optionsedit true > nul
 goto finish
 
 :finish

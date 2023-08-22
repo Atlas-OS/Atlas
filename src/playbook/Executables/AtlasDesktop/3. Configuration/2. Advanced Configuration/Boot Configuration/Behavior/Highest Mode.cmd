@@ -29,7 +29,7 @@ goto finish
 
 :enable
 echo]
-bcdedit /set {globalsettings} highestmode true > nul 2>&1
+bcdedit /set {globalsettings} highestmode true > nul
 goto finish
 
 :finish

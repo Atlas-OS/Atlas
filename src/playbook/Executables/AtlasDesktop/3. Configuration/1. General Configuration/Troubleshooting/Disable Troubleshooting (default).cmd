@@ -15,7 +15,7 @@ for %%a in (
 )
 
 :: Disable DiagLog autologger
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "0" /f > nul 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "0" /f > nul
 
 echo Finished, please reboot your device for changes to apply.
 pause
