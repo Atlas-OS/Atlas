@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-:: Unpin 'Network' to Explorer sidebar
+:: Unpin 'Network' from Explorer sidebar
 reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /v "System.IsPinnedToNameSpaceTree" /t REG_DWORD /d "0" /f
 reg add "HKCR\WOW6432Node\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /v "System.IsPinnedToNameSpaceTree" /t REG_DWORD /d "0" /f
 
