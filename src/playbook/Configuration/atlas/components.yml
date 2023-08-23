@@ -4,7 +4,7 @@ description: Removes certain Windows components
 privilege: TrustedInstaller
 actions:
     # Windows Defender
-  - !writeStatus: {status: 'Removing Windows Defender', option: 'defender-disable'}
+  - !writeStatus: {status: 'Disabling Windows Defender', option: 'defender-disable'}
   - !run:
     exe: 'C:\Windows\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd'
     args: '-Disable'
