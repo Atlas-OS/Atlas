@@ -4,6 +4,16 @@ description: Prevents Microsoft Edge updates so that it cannot reinstall itself 
 privilege: TrustedInstaller
 actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'DoNotUpdateToEdgeWithChromium', type: REG_DWORD, data: '1'}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'Install{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}', type: REG_DWORD, data: '0'}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', type: REG_DWORD, data: '1'}
+    # Don't automatically install WebView
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', type: REG_DWORD, data: '0'}
+    # Blocks installation of Edge on domain joined machines
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\EdgeUpdate', value: 'InstallDefault', type: REG_DWORD, data: '0'}
+
+    # Delete Edge Update - it can't be uninstalled
+  - !taskKill: {name: 'MicrosoftEdgeUpdate'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update'}
+  - !scheduledTask: {path: '\MicrosoftEdgeUpdateTaskMachineCore', operation: delete}
+  - !scheduledTask: {path: '\MicrosoftEdgeUpdateTaskMachineUA', operation: delete}
+  - !service: {name: 'edgeupdate'}
+  - !service: {name: 'edgeupdatem'}
+  - !file: {path: 'C:\Program Files (x86)\Microsoft\EdgeUpdate'}
