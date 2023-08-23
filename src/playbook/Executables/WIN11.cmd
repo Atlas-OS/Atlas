@@ -7,12 +7,16 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 (set win11=tru
 if defined win11 (
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul 2>&1
 ) else (
+    bcdedit /set description "AtlasOS 10"
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\File Explorer Customization\Compact View" > nul 2>&1
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul 2>&1
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Power\Timer Resolution" > nul 2>&1
     del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul 2>&1
     exit /b
 )
+
+:: Set dual boot menu description to AtlasOS 11
+bcdedit /set description "AtlasOS 11"
 
 :: Remove Get Started from Start Menu
 PowerShell -NonInteractive -NoLogo -NoP -C "& { $Cbs = \"$env:SystemRoot\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\"; $Manifest = Join-Path $Cbs 'appxmanifest.xml'; takeown /a /f $Manifest; icacls $Manifest /grant Administrators:F; $AtlasManifest = Join-Path $Cbs \"appxmanifest.xml.atlas\"; if (!(Test-Path $AtlasManifest)) { Copy-Item -Path $Manifest -Destination $AtlasManifest -Force; Remove-Item $Manifest -Force }; [xml]$xml = Get-Content -Path \"$Cbs\\appxmanifest.xml.atlas\" -Raw; $applicationNode = $xml.Package.Applications.Application | Where-Object { $_.Id -eq 'WebExperienceHost' }; if ($applicationNode -ne $null) { $xml.Package.Applications.RemoveChild($applicationNode) } $xml.Save($Manifest) }"
