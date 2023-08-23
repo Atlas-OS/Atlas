@@ -19,22 +19,22 @@ actions:
     data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
     type: REG_SZ
   - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
     value: 'a'
     data: 'powershell.exe'
     type: REG_SZ
   - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
     value: 'MRUList'
     data: 'a'
     type: REG_SZ
   - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithProgids'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithProgids'
     value: 'ps1_auto_file'
     data: ''
     type: REG_BINARY
   - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\UserChoice'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\UserChoice'
     value: 'ProgId'
     data: 'ps1_auto_file'
     type: REG_SZ
@@ -42,11 +42,11 @@ actions:
     # Set PowerShell execution policy to Unrestricted
     # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
   - !registryValue:
-    path: 'HKCU\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+    path: 'HKCU\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
     value: 'ExecutionPolicy'
     operation: delete
   - !registryValue:
-    path: 'HKLM\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+    path: 'HKLM\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
     value: 'ExecutionPolicy'
     data: 'Unrestricted'
     type: REG_SZ

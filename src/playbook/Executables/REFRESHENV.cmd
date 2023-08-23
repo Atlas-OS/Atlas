@@ -24,9 +24,9 @@ goto :eof
 
 :main
 echo/@echo off >"%temp%\_env.cmd"
-call :GetRegEnv "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" >> "%temp%\_env.cmd"
+call :GetRegEnv "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" >> "%temp%\_env.cmd"
 call :GetRegEnv "HKCU\Environment">>"%temp%\_env.cmd" >> "%temp%\_env.cmd"
-call :SetFromReg "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" Path Path_HKLM >> "%temp%\_env.cmd"
+call :SetFromReg "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" Path Path_HKLM >> "%temp%\_env.cmd"
 call :SetFromReg "HKCU\Environment" Path Path_HKCU >> "%temp%\_env.cmd"
 echo/set "Path=%%Path_HKLM%%;%%Path_HKCU%%" >> "%temp%\_env.cmd"
 del /f /q "%temp%\_envset.tmp" > nul 2>&1
