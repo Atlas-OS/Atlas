@@ -3,25 +3,6 @@
 :: source: https://raw.githubusercontent.com/chocolatey-archive/chocolatey/master/src/redirects/RefreshEnv.cmd
 :: modified by Xyueta
 
-echo | set /p info="Refreshing environment variables. Please wait..."
-goto main
-
-:SetFromReg
-reg query "%~1" /v "%~2" > "%temp%\_envset.tmp" 2>NUL
-for /f "usebackq skip=2 tokens=2,*" %%a in ("%temp%\_envset.tmp") do (
-    echo/set "%~3=%%b"
-)
-goto :eof
-
-:GetRegEnv
-reg query "%~1" > "%temp%\_envget.tmp"
-for /f "usebackq skip=2" %%a in ("%temp%\_envget.tmp") do (
-    if /I not "%%~a"=="Path" (
-        call :SetFromReg "%~1" "%%~a" "%%~a"
-    )
-)
-goto :eof
-
 :main
 echo/@echo off >"%temp%\_env.cmd"
 call :GetRegEnv "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" >> "%temp%\_env.cmd"
@@ -38,3 +19,19 @@ del /f /q "%temp%\_env.cmd" > nul 2>&1
 set "USERNAME=%OriginalUserName%"
 set "PROCESSOR_ARCHITECTURE=%OriginalArchitecture%"
 exit /b
+
+:SetFromReg
+reg query "%~1" /v "%~2" > "%temp%\_envset.tmp" 2>NUL
+for /f "usebackq skip=2 tokens=2,*" %%a in ("%temp%\_envset.tmp") do (
+    echo/set "%~3=%%b"
+)
+goto :eof
+
+:GetRegEnv
+reg query "%~1" > "%temp%\_envget.tmp"
+for /f "usebackq skip=2" %%a in ("%temp%\_envget.tmp") do (
+    if /I not "%%~a"=="Path" (
+        call :SetFromReg "%~1" "%%~a" "%%~a"
+    )
+)
+goto :eof

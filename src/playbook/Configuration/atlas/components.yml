@@ -39,7 +39,7 @@ actions:
 
     # OneDrive
   - !writeStatus: {status: 'Removing OneDrive'}
-  - !run: {exeDir: true, exe: "ONED.cmd"}
+  - !run: {exeDir: true, exe: 'ONED.cmd'}
   
     # Update Health Tools
   - !writeStatus: {status: 'Removing Update Health Tools'}
