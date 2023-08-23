@@ -1,6 +1,6 @@
 ---
 title: Configure Start Menu
-description: Configures the Start Menu's settings
+description: Configures the Start Menu's settings for QoL
 privilege: TrustedInstaller
 actions:
     # Configure start menu settings
@@ -14,3 +14,8 @@ actions:
     value: 'HideRecentlyAddedApps'
     data: '1'
     type: REG_DWORD
+
+  - !run:
+    exeDir: true
+    exe: 'STARTMENU.cmd'
+    weight: 20
