@@ -26,3 +26,8 @@ actions:
   - !registryValue: {path: 'HKCR\.jpg', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
   - !registryValue: {path: 'HKCR\.jxr', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
   - !registryValue: {path: 'HKCR\.png', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
+
+  - !run:
+    exeDir: true
+    exe: 'FILEASSOC.cmd'
+    weight: 20
