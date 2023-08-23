@@ -47,7 +47,7 @@ if ($LASTEXITCODE -eq 1) {
 }
 
 choice /c:yn /n /m "Would you like to add the Network Navigation Pane to the Explorer sidebar? [Y/N] "
-if ($LASTEXITCODE -eq 1) {reg import "$networkDiscoveryConfigPath\Network Navigation Pane\Enable Network Navigation Pane.reg" | Out-Null}
+if ($LASTEXITCODE -eq 1) {reg import "$networkDiscoveryConfigPath\Network Navigation Pane\User Network Navigation Pane choice.reg" | Out-Null}
 
 Clear-Host
 Write-Host "Completed!" -ForegroundColor Green
