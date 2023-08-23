@@ -1,12 +1,14 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-:: Check if user is on Windows 11 and if so, make Windows 11 only changes
+:: Check if user is on Windows 11
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 (set win11=true))
 
+:: Make changes dependant on Windows version
 if defined win11 (
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul 2>&1
 ) else (
+    rem Set dual boot menu description to AtlasOS 10
     bcdedit /set description "AtlasOS 10"
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\File Explorer Customization\Compact View" > nul 2>&1
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul 2>&1
@@ -17,9 +19,6 @@ if defined win11 (
 
 :: Set dual boot menu description to AtlasOS 11
 bcdedit /set description "AtlasOS 11"
-
-:: Remove Get Started from Start Menu
-PowerShell -NonInteractive -NoLogo -NoP -C "& { $Cbs = \"$env:SystemRoot\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\"; $Manifest = Join-Path $Cbs 'appxmanifest.xml'; takeown /a /f $Manifest; icacls $Manifest /grant Administrators:F; $AtlasManifest = Join-Path $Cbs \"appxmanifest.xml.atlas\"; if (!(Test-Path $AtlasManifest)) { Copy-Item -Path $Manifest -Destination $AtlasManifest -Force; Remove-Item $Manifest -Force }; [xml]$xml = Get-Content -Path \"$Cbs\\appxmanifest.xml.atlas\" -Raw; $applicationNode = $xml.Package.Applications.Application | Where-Object { $_.Id -eq 'WebExperienceHost' }; if ($applicationNode -ne $null) { $xml.Package.Applications.RemoveChild($applicationNode) } $xml.Save($Manifest) }"
 
 :: Re-enable Action Center on Win11, as it breaks calendar
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f > nul 2>&1
@@ -63,8 +62,10 @@ reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Explorer" /v "ShowClo
 :: Restore old Windows 10 context menu
 reg add "HKU\%~1\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve > nul
 
-:: Remove new 'Bitmap File' from modern context menu
+:: Remove 'Bitmap File' from 'New' context menu
 set "mrtCache=HKEY_USERS\%~1\Local Settings\MrtCache"
 for /f "tokens=*" %%a in ('reg query "%mrtCache%" /s ^| find /i "%mrtCache%"') do (
-    for /f "tokens=1-2" %%b in ('reg query "%%a" /v * ^| find /i "ShellNewDisplayName_Bmp"') do reg add "%%a" /v "%%b %%c" /t REG_SZ /d "" /f
+    for /f "tokens=1-2" %%b in ('reg query "%%a" /v * ^| find /i "ShellNewDisplayName_Bmp"') do (
+        reg add "%%a" /v "%%b %%c" /t REG_SZ /d "" /f
+    )
 )

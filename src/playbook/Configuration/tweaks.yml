@@ -332,6 +332,7 @@ features:
   - tweaks\scripts\script-win11.yml
   - tweaks\scripts\script-devices.yml
   - tweaks\scripts\script-cleanup.yml
+  - tweaks\scripts\script-clientcbs.yml
   - tweaks\scripts\script-pfp.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
