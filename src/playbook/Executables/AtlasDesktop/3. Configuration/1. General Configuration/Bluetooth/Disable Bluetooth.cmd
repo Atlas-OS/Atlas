@@ -28,7 +28,8 @@ for %%a in (
 	"Microsoft_Bluetooth_AvrcpTransport"
 	"RFCOMM"
 ) do (
-	call setSvc.cmd %%~a 4
+	rem A full path is required for AME Wizard configuration as of now
+	call %windir%\AtlasModules\Scripts\setSvc.cmd %%~a 4
 )
 
 :: Disable Bluetooth devices
