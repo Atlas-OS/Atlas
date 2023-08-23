@@ -15,6 +15,7 @@ actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.jxr', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations', value: '.png', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
   
+  - !registryKey: {path: 'HKCR\PhotoViewer.FileAssoc.Tiff', operation: add}
   - !registryValue: {path: 'HKCR\.tif', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
   - !registryValue: {path: 'HKCR\.tiff', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
   - !registryValue: {path: 'HKCR\.bmp', value: '', data: 'PhotoViewer.FileAssoc.Tiff', type: REG_SZ}
@@ -30,4 +31,4 @@ actions:
   - !run:
     exeDir: true
     exe: 'FILEASSOC.cmd'
-    weight: 20
+    weight: 30
