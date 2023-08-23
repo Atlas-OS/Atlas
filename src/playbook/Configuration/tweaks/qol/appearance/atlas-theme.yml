@@ -67,6 +67,38 @@ actions:
     data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
     type: REG_SZ
 
+    # Set Atlas theme as default
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallTheme'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallThemeDark'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallThemeLight'
+    data: 'C:\Windows\Resources\Themes\atlas-light.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallTheme'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallThemeDark'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallThemeLight'
+    data: 'C:\Windows\Resources\Themes\atlas-light.theme'
+    type: REG_SZ
+
     # Accent color
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent'
