@@ -30,11 +30,6 @@ actions:
     data: 'C:\Windows\AtlasModules\Wallpapers\atlas-dark.png'
     type: REG_SZ
   - !registryValue:
-    path: 'HKCU\Control Panel\Desktop'
-    value: 'WallPaper'
-    data: 'C:\Windows\AtlasModules\Wallpapers\atlas-dark.png'
-    type: REG_SZ
-  - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
     value: 'BackgroundHistoryPath0'
     data: 'C:\Windows\AtlasModules\Wallpapers\atlas-dark.png'
@@ -147,3 +142,4 @@ actions:
     exeDir: true
     exe: 'THEME.cmd'
     weight: 20
+  - !run: {exe: 'rundll32.exe', args: 'user32.dll,UpdatePerUserSystemParameters'}
