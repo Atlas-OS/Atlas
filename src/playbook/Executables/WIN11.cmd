@@ -23,6 +23,9 @@ bcdedit /set description "AtlasOS 11"
 :: Re-enable Action Center on Win11, as it breaks calendar
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f > nul 2>&1
 
+:: Restore Music and Videos folders by clearing up Quick Access' cache
+del /f /q "%appdata%\Microsoft\Windows\Recent\AutomaticDestinations\f01b4d95cf55d32a.automaticDestinations-ms" > nul 2>&1
+
 :: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul
