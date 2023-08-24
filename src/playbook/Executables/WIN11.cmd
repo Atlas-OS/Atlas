@@ -1,3 +1,6 @@
+@echo off
+setlocal EnableDelayedExpansion
+
 :: Check if user is on Windows 11
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 (set win11=true))
 
@@ -63,9 +66,12 @@ reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Explorer" /v "ShowClo
 reg add "HKU\%~1\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve > nul
 
 :: Remove 'Bitmap File' from 'New' context menu
-set "mrtCache=HKEY_USERS\%~1\Local Settings\MrtCache"
-for /f "tokens=*" %%a in ('reg query "%mrtCache%" /s ^| find /i "%mrtCache%"') do (
-    for /f "tokens=1-2" %%b in ('reg query "%%a" /v * ^| find /i "ShellNewDisplayName_Bmp"') do (
-        reg add "%%a" /v "%%b %%c" /t REG_SZ /d "" /f
+echo %~1 | find "_Classes" > nul
+if errorlevel 0 (
+    set "mrtCache=HKEY_USERS\%~1\Local Settings\MrtCache"
+    for /f "tokens=*" %%a in ('reg query "%mrtCache%" /s ^| find /i "%mrtCache%"') do (
+        for /f "tokens=1-2" %%b in ('reg query "%%a" /v * ^| find /i "ShellNewDisplayName_Bmp"') do (
+            reg add "%%a" /v "%%b %%c" /t REG_SZ /d "" /f
+        )
     )
 )
