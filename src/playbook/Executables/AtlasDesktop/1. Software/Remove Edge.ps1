@@ -17,6 +17,36 @@ function PauseNul ($message = "Press any key to continue... ") {
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
 }
 
+function DeleteEdgeUpdate {
+	# surpress errors as some Edge Update components may not exist
+	$ErrorActionPreference = 'SilentlyContinue'
+
+	# disable automatic installation of Edge-related applications
+	$edgeupdatePath = "HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate" | Out-Null
+	New-Item -Path $edgeupdatePath -Force | Out-Null
+	New-ItemProperty -Path "$edgeupdatePath" -Name "DoNotUpdateToEdgeWithChromium" -Type DWORD -Value 1 | Out-Null
+	New-ItemProperty -Path "$edgeupdatePath" -Name "Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -Type DWORD -Value 0 | Out-Null
+	New-ItemProperty -Path "$edgeupdatePath" -Name "InstallDefault" -Type DWORD -Value 0 | Out-Null
+
+	# remove scheduled tasks
+	Stop-Process -Name "MicrosoftEdgeUpdate" -Force | Out-Null
+	Remove-Item -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update" -Force | Out-Null
+	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineCore" -Confirm:$false | Out-Null
+	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineUA" -Confirm:$false | Out-Null
+
+	# remove services
+	Stop-Service -Name "edgeupdate" -Force | Out-Null
+	Stop-Service -Name "edgeupdatem" -Force | Out-Null
+	sc.exe delete edgeupdate | Out-Null
+	sc.exe delete edgeupdatem | Out-Null
+
+	# delete the Edge Update folder
+	Remove-Item -Path "C:\Program Files (x86)\Microsoft\EdgeUpdate" -Force | Out-Null
+
+	# revert error action preference
+	$ErrorActionPreference = 'Continue'
+}
+
 function RemoveEdgeChromium {
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
 	
@@ -64,28 +94,6 @@ function RemoveEdgeChromium {
 		if (Test-Path $path) {Remove-Item $path -Force -Recurse}
 	}
 
-	# disable automatic updates of Edge-related applications
-	$edgeupdatePath = "HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate"
-	New-Item -Path $edgeupdatePath -Force
-	New-ItemProperty -Path "$edgeupdatePath" -Name "DoNotUpdateToEdgeWithChromium" -Type DWORD -Value 1
-	New-ItemProperty -Path "$edgeupdatePath" -Name "Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -Type DWORD -Value 0
-	New-ItemProperty -Path "$edgeupdatePath" -Name "InstallDefault" -Type DWORD -Value 0
-
-	# remove scheduled tasks
-	Stop-Process -Name "MicrosoftEdgeUpdate" -Force
-	Remove-Item -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update" -Force
-	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineCore" -Confirm:$false
-	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineUA" -Confirm:$false
-
-	# remove services
-	Stop-Service -Name "edgeupdate" -Force
-	Stop-Service -Name "edgeupdatem" -Force
-	sc.exe delete edgeupdate
-	sc.exe delete edgeupdatem
-
-	# delete the Edge Update folder
-	Remove-Item -Path "C:\Program Files (x86)\Microsoft\EdgeUpdate" -Force
-
 	# remove Edge shortcut on desktop
 	# may exist for some people after a proper uninstallation
 	$shortcutPath = "$env:USERPROFILE\Desktop\Microsoft Edge.lnk"
@@ -129,6 +137,7 @@ function UninstallAll {
 	if ($removeWebView) {
 		Write-Warning "Uninstalling Edge WebView..."
 		RemoveWebView
+		DeleteEdgeUpdate
 	}
 }
 
