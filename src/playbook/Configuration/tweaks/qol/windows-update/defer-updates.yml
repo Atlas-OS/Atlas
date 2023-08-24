@@ -1,0 +1,8 @@
+---
+title: Defer Non-Critical Windows Updates
+description: Defers/delays non-critical Windows Updates that are most likely for new features for QoL and increased stability.
+privilege: TrustedInstaller
+actions:
+    # Defer updates
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferQualityUpdates', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferQualityUpdatesPeriodInDays', data: '6', type: REG_DWORD}

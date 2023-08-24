@@ -1,0 +1,18 @@
+---
+title: Configure Power Settings
+description: Executes script to configure power settings for the best performance, especially focusing on the lowest latency e.g. by reducing any potential jitter
+privilege: TrustedInstaller
+actions:
+    # Disable Power Saving features
+  - !run:
+    exe: 'C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Power\Power Saving\Disable Power Saving.cmd'
+    args: '/setup'
+    weight: 20
+    option: 'disable-power-saving'
+
+    # Disable Hibernation & Fast Startup
+    # Disabling makes NTFS accessible outside of Windows
+  - !run:
+    exe: 'C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Power\Hibernation\Disable Hibernation (default).cmd'
+    args: '/setup'
+    weight: 20

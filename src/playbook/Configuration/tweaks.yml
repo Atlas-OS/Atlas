@@ -55,13 +55,14 @@ features:
   # Placebo, mostly protects old vulnerable default Windows processes
   # Clearing could cause potential issues and only worsens security with no gains
   # - tweaks\performance\clear-ifeo.yml
-  - tweaks\performance\config-fse-gamebar.yml
   - tweaks\performance\config-mmcss.yml
+  - tweaks\performance\config-presentation-mode.yml
   - tweaks\performance\disable-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
   - tweaks\performance\extend-cache.yml
   - tweaks\performance\no-search-invalid-shortcuts.yml
   - tweaks\performance\disable-fth.yml
+  - tweaks\performance\disable-sleep-study.yml
 
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
@@ -70,10 +71,8 @@ features:
   - tweaks\performance\system\config-paging.yml
   - tweaks\performance\system\disable-reserved-storage.yml
   - tweaks\performance\system\optimize-ntfs.yml
-  - tweaks\performance\system\script-power.yml
   - tweaks\performance\system\service-host-split.yml
-  # Windows Default is Programs - 26/38 
-  # - tweaks\performance\system\win32-priority-seperation.yml
+  - tweaks\performance\system\win32-priority-seperation.yml
   
   # -----------------------------------------------------
   #                        Privacy                       
@@ -92,7 +91,6 @@ features:
   - tweaks\privacy\disable-activity-feed.yml
   - tweaks\privacy\disable-app-launch-tracking.yml
   - tweaks\privacy\disable-experimentation.yml
-  - tweaks\privacy\disable-insider.yml
   - tweaks\privacy\disable-location-tracking.yml
   - tweaks\privacy\disable-lockscreen-camera.yml
   - tweaks\privacy\disable-online-speech-recognition.yml
@@ -155,6 +153,7 @@ features:
   - tweaks\qol\disable-settings-tips.yml
   - tweaks\qol\disable-spell-checking.yml
   - tweaks\qol\disable-store-auto-updates.yml
+  - tweaks\qol\disable-touch-keyboard-features.yml
   - tweaks\qol\disable-touch-visual-feedback.yml
   - tweaks\qol\disable-usb-issues-notifications.yml
   - tweaks\qol\disable-windows-feedback.yml
@@ -168,9 +167,19 @@ features:
   #  qol\appearance                                                            #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\appearance\blue-tooltips.yml
-  - tweaks\qol\appearance\dark-mode-disable-transparency.yml
-  - tweaks\qol\appearance\disable-blur-login.yml
+  - tweaks\qol\appearance\atlas-theme.yml
   - tweaks\qol\appearance\disallow-theme-changes.yml
+
+  # -------------------------------------------------------------------------- #
+  #  qol\windows-update                                                        #
+  # -------------------------------------------------------------------------- #
+  - tweaks\qol\windows-update\disable-nagging.yml
+  - tweaks\qol\windows-update\disable-insider.yml
+  - tweaks\qol\windows-update\disable-feature-updates.yml
+  - tweaks\qol\windows-update\disable-auto-updates.yml
+  - tweaks\qol\windows-update\disable-auto-reboot.yml
+  - tweaks\qol\windows-update\defer-updates.yml
+  - tweaks\qol\windows-update\disable-delivery-optimization.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\ease-of-access                                                        #
@@ -200,6 +209,7 @@ features:
   - tweaks\qol\explorer\remove-shortcut-icon.yml
   - tweaks\qol\explorer\remove-shortcut-text.yml
   - tweaks\qol\explorer\show-files.yml
+  - tweaks\qol\explorer\add-music-vids-to-home.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
@@ -242,11 +252,8 @@ features:
   - tweaks\qol\shell\disable-low-disk-warning.yml
   - tweaks\qol\shell\disable-menu-delay.yml
   - tweaks\qol\shell\disable-network-location-wizard.yml
-  - tweaks\qol\shell\disable-notifications.yml
   - tweaks\qol\shell\disable-shared-experiences.yml
-  # This is easier for some people to use shortcuts
-  # instead of searching through Settings
-  # - tweaks\qol\shell\notification-quick-settings.yml
+  - tweaks\qol\shell\notification-quick-settings.yml
   - tweaks\qol\shell\old-alt-tab.yml
   
   # -------------------------------------------------------------------------- #
@@ -302,15 +309,11 @@ features:
   # Tweaks for debloating Windows, which could be for
   # storage space or convienience.
   # -----------------------------------------------------
-  - tweaks\statuses\status-clean-winsxs.yml
-  # Has its own status as it is a long operation in comparison
-  - tweaks\debloat\clean-winsxs.yml
   - tweaks\statuses\status-debloat.yml
   - tweaks\debloat\autologgers.yml
   - tweaks\debloat\config-content-delivery.yml
   - tweaks\debloat\disable-settings-pages.yml
   - tweaks\debloat\legacy-photo-viewer.yml
-  - tweaks\debloat\prevent-edge-update.yml
   - tweaks\debloat\scheduled-tasks.yml
   - tweaks\debloat\hide-unused-security-pages.yml
   - tweaks\debloat\config-storage-sense.yml
@@ -326,13 +329,14 @@ features:
   - tweaks\statuses\status-scripts.yml
   - tweaks\scripts\script-core-isolation.yml
   - tweaks\scripts\script-mitigations.yml
+  - tweaks\scripts\script-win11.yml
   - tweaks\scripts\script-devices.yml
   - tweaks\scripts\script-cleanup.yml
-  - tweaks\scripts\script-startmenu.yml
+  - tweaks\scripts\script-clientcbs.yml
   - tweaks\scripts\script-pfp.yml
-  - tweaks\scripts\script-wallpaper.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
+  - tweaks\scripts\script-power.yml
 
   # -----------------------------------------------------
   #                         Misc                         
@@ -350,3 +354,4 @@ features:
   - tweaks\misc\oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
   - tweaks\misc\delete-nsudo.yml
+  - tweaks\misc\atlas-desktop-shortcuts.yml

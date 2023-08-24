@@ -4,12 +4,12 @@ description: Adds registry entries (.reg) to 'New' context menu
 privilege: TrustedInstaller
 actions:
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\.reg\ShellNew'
+    path: 'HKCR\.reg\ShellNew'
     value: 'NullFile'
     data: ''
     type: REG_SZ
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\.reg\ShellNew'
+    path: 'HKCR\.reg\ShellNew'
     value: 'ItemName'
     data: '@C:\Windows\regedit.exe,-309'
     type: REG_EXPAND_SZ

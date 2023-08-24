@@ -5,7 +5,7 @@ privilege: TrustedInstaller
 actions:
   - !run:
     exe: 'powershell.exe'
-    args: '-NoP -File "C:\Users\Default\Desktop\Atlas\3. Configuration\5. Security\Core Isolation (VBS)\Current Configuration.ps1" -DisableAllVBS'
+    args: '-NoP -File "C:\Windows\AtlasDesktop\3. Configuration\5. Security\Core Isolation (VBS)\Current Configuration.ps1" -DisableAllVBS'
     exeDir: true
     wait: true
     option: 'vbs-disable'

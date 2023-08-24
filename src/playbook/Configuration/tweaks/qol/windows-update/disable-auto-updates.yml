@@ -1,0 +1,8 @@
+---
+title: Disable WU Auto-Updates
+description: Disables Windows Update from automatically updating Windows for QoL, at the cost of security.
+privilege: TrustedInstaller
+actions:
+    # Disable auto-updates
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'AUOptions', data: '2', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'NoAutoUpdate', data: '1', type: REG_DWORD}

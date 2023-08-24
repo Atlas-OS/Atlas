@@ -1,0 +1,10 @@
+---
+title: Configure Client CBS
+description: Configures Client CBS settings responsible for advertisements for QoL
+privilege: TrustedInstaller
+actions:
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File CLIENTCBS.ps1'
+    exeDir: true
+    wait: true

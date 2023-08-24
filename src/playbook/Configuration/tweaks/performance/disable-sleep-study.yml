@@ -1,0 +1,14 @@
+---
+title: Disable Modern Standby SleepStudy
+description: Disable's Modern standby SleepStudy, as it's unnecessary logging that isn't needed on boot
+privilege: TrustedInstaller
+actions:
+  - !run:
+    exe: 'wevtutil.exe'
+    args: 'set-log "Microsoft-Windows-SleepStudy/Diagnostic" /e:false'
+  - !run:
+    exe: 'wevtutil.exe'
+    args: 'set-log "Microsoft-Windows-Kernel-Processor-Power/Diagnostic" /e:false'
+  - !run:
+    exe: 'wevtutil.exe'
+    args: 'set-log "Microsoft-Windows-UserModePowerService/Diagnostic" /e:false'

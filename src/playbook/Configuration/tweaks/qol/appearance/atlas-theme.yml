@@ -1,0 +1,145 @@
+---
+title: Add Theme
+description: Adds and sets the Atlas themes by default
+privilege: TrustedInstaller
+actions:
+  - !taskKill: {name: 'SystemSettings'}
+  - !taskKill: {name: 'control'}
+  - !taskKill: {name: 'explorer'}
+
+    # Windows theme
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+    value: 'SystemUsesLightTheme'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+    value: 'AppsUseLightTheme'
+    data: '0'
+    type: REG_DWORD
+
+    # Set background
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'TranscodedImageCache'
+    operation: delete
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'WallPaper'
+    data: 'C:\Windows\AtlasModules\Wallpapers\atlas-dark.png'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
+    value: 'BackgroundHistoryPath0'
+    data: 'C:\Windows\AtlasModules\Wallpapers\atlas-dark.png'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
+    value: 'BackgroundHistoryPath1'
+    data: 'C:\Windows\AtlasModules\Wallpapers\atlas-light.png'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
+    value: 'BackgroundType'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
+    value: 'WallpaperStyle'
+    data: '10'
+    type: REG_SZ
+
+    # Set current theme
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'CurrentTheme'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\HighContrast'
+    value: 'Pre-High Contrast Scheme'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+
+    # Set Atlas theme as default
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallTheme'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallThemeDark'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallThemeLight'
+    data: 'C:\Windows\Resources\Themes\atlas-light.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallTheme'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallThemeDark'
+    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
+    value: 'InstallThemeLight'
+    data: 'C:\Windows\Resources\Themes\atlas-light.theme'
+    type: REG_SZ
+
+    # Accent color
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent'
+    value: 'AccentColorMenu'
+    data: '4290728257'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent'
+    value: 'StartColorMenu'
+    data: '4291969335'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
+    value: 'ColorizationAfterglow'
+    data: '3292615103'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
+    value: 'AccentColor'
+    data: '4290728257'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\DWM'
+    value: 'ColorizationColor'
+    data: '3292615103'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'AutoColorization'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\History'
+    value: 'AutoColor'
+    data: '0'
+    type: REG_DWORD
+
+    # Lockscreen
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'RotatingLockScreenEnabled'
+    data: '0'
+    type: REG_DWORD
+
+  - !run:
+    exeDir: true
+    exe: 'THEME.cmd'
+    weight: 20
+  - !run: {exe: 'rundll32.exe', args: 'user32.dll,UpdatePerUserSystemParameters'}

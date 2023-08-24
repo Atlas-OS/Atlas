@@ -4,22 +4,22 @@ description: Adds a file assocation for .pow files, so you can simply double cli
 privilege: TrustedInstaller
 actions:
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\powerscheme\DefaultIcon'
+    path: 'HKCR\powerscheme\DefaultIcon'
     value: ''
     data: 'C:\Windows\System32\powercpl.dll,1'
     type: REG_SZ
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\powerscheme\Shell\open\command'
+    path: 'HKCR\powerscheme\Shell\open\command'
     value: ''
     data: 'powercfg /import "%1"'
     type: REG_SZ
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\.pow'
+    path: 'HKCR\.pow'
     value: ''
     data: 'powerscheme'
     type: REG_SZ
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\.pow'
+    path: 'HKCR\.pow'
     value: 'FriendlyTypeName'
     data: 'Power Scheme'
     type: REG_SZ

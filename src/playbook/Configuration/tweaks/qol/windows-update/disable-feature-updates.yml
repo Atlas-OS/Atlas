@@ -1,0 +1,13 @@
+---
+title: Disable Feature Updates
+description: Disables feature updates as they will almost definetly reset tweaks, bring back bloatware and potentially break the system.
+privilege: TrustedInstaller
+actions:
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferFeatureUpdates', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferFeatureUpdatesPeriodInDays', data: '365', type: REG_DWORD}
+    # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.WindowsUpdate::TargetReleaseVersion
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'TargetReleaseVersion', data: '1', type: REG_DWORD}
+  - !powerShell:
+    command: 'if ((Get-WmiObject Win32_OperatingSystem).Caption -Match 11) {$a = ''Windows 11''} else {$a = ''Windows 10''}; New-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'' -Name ''ProductVersion'' -Value $a -PropertyType String -Force'
+  - !powerShell:
+    command: '$ver = (Get-ItemProperty ''HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'').DisplayVersion; New-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'' -Name ''TargetReleaseVersion'' -Value $ver -PropertyType String -Force'

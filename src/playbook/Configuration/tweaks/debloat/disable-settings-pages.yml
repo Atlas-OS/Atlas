@@ -6,5 +6,5 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'SettingsPageVisibility'
-    data: 'hide:quiethours;tabletmode;project;crossdevice;remotedesktop;mobile-devices;network-cellular;network-wificalling;network-airplanemode;nfctransactions;maps;sync;speech;easeofaccess-magnifier;easeofaccess-narrator;easeofaccess-speechrecognition;easeofaccess-eyecontrol;privacy-speech;privacy-general;privacy-speechtyping;privacy-feedback;privacy-activityhistory;privacy-location;privacy-callhistory;privacy-eyetracker;privacy-messaging;privacy-automaticfiledownloads;windowsupdate;delivery-optimization;windowsdefender;backup;recovery;findmydevice;windowsinsider'
+    data: 'hide:crossdevice;recovery;autoplay;usb;deviceusage;maps;family-group;backup;findmydevice;privacy;privacy-speech;privacy-feedback;privacy-activityhistory;search-permissions;privacy-location;privacy-general;'
     type: REG_SZ

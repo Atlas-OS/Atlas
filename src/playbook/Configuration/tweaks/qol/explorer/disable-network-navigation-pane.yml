@@ -1,10 +1,11 @@
 ---
 title: Disable Network Navigation Pane in Explorer
-description: Disables the network navigation pane/item in the Explorer sidebar for QoL, as it is mostly unused
+description: Disables the network navigation pane/item in the Explorer sidebar for QoL by default, as it is mostly unused
 privilege: TrustedInstaller
 actions:
+  - !registryKey: {path: 'HKCU\Software\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}', operation: add}
   - !registryValue:
-    path: 'HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\ShellFolder'
-    value: 'Attributes'
-    data: '2962489444'
+    path: 'HKCU\Software\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}'
+    value: 'System.IsPinnedToNameSpaceTree'
+    data: '0'
     type: REG_DWORD
