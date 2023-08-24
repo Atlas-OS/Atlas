@@ -33,7 +33,8 @@ for %%a in (
 )
 
 :: Disable Bluetooth devices
-call toggleDev.cmd -Silent '*Bluetooth*'
+:: A full path is required for AME Wizard configuration as of now
+call %windir%\AtlasModules\Scripts\toggleDev.cmd -Silent '*Bluetooth*'
 
 attrib +h "!appdata!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 
