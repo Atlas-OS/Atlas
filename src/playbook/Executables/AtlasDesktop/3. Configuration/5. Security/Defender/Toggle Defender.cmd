@@ -28,7 +28,8 @@ exit /b %errorlevel%
 param (
     [switch]$Enable,
     [switch]$Disable,
-    [switch]$SafeMode
+    [switch]$SafeMode,
+	[switch]$DisableFailedMessage
 )
 
 $AtlasPackageName = 'Z-Atlas-NoDefender-Package'
@@ -38,8 +39,7 @@ $onlineSxS = "$AtlasModules\Scripts\online-sxs.cmd"
 $packagesPath = "$AtlasModules\Packages"
 $ProgressPreference = 'SilentlyContinue'
 $winlogon = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
-
-if ($Enable -or $Disable) {$Silent = $true}
+$taskName = 'RemoveDefenderFailedAtlas'
 
 function PauseNul ($message = "Press any key to exit... ") {
 	Write-Host $message -NoNewLine
@@ -52,6 +52,25 @@ if (!($?)) {
 	if (!($Silent)) {PauseNul}; exit 1
 }
 if ($null -eq $packages) {$DefenderEnabled = '(current)'} else {$DefenderDisabled = '(current)'}
+
+
+function SetSafeMode {
+	Start-Process -File 'bcdedit' -ArgumentList '/set {current} safeboot minimal' -WindowStyle Hidden
+	Set-ItemProperty -Path $winlogon -Name Shell -Value "$env:WinDir\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd -SafeMode"
+	Restart-Computer
+	exit
+}
+
+function ExitSafeMode {
+	Start-Process -File "bcdedit" -ArgumentList "/deletevalue {current} safeboot" -WindowStyle Hidden
+	Set-ItemProperty -Path $winlogon -Name Shell -Value 'explorer.exe'
+	shutdown /f /r /t 0
+	exit
+}
+
+function RemoveFailureTask {
+	Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+}
 
 function UninstallPackage {
 	param (
@@ -66,13 +85,6 @@ function UninstallPackage {
 			if (!($Silent)) {PauseNul}; exit 1
 		}
 	}
-}
-
-function ExitSafeMode {
-	Start-Process -File "bcdedit" -ArgumentList "/deletevalue {current} safeboot" -WindowStyle Hidden
-	Set-ItemProperty -Path $winlogon -Name Shell -Value 'explorer.exe'
-	shutdown /f /r /t 0
-	exit
 }
 
 function InstallPackage {
@@ -91,28 +103,17 @@ function InstallPackage {
 		}
 
 		if ($Silent) {
-			Add-Type -AssemblyName System.Windows.Forms
-			$balloon = New-Object System.Windows.Forms.NotifyIcon
-			$balloon.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon("$env:WinDir\System32\SecurityHealthSystray.exe")
-			$balloon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Error
-			$balloon.BalloonTipText = 'Run the ''Toggle Defender'' script in the Atlas folder after installation.'
-			$balloon.BalloonTipTitle = "Failed disabling Windows Defender" 
-			$balloon.Visible = $true
-			$balloon.ShowBalloonTip(999999999)
-			
-			# sleep to ensure notification is shown properly
-			Start-Sleep 2
+			Write-Warning "Registring scheduled task to prompt user to disable Defender next reboot, as it has failed..."
+			$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument '/c "C:\Windows\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd" -DisableFailedMessage'
+			$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+			$trigger = New-ScheduledTaskTrigger -AtLogon
+			Register-ScheduledTask -TaskName $taskName -Trigger $trigger -Action $action -Settings $settings -User $env:USERNAME -RunLevel Highest -Force | Out-Null
 			exit 1
 		} else {
 			Write-Host "`nSomething went wrong whilst adding the Defender package." -ForegroundColor Yellow
 			choice /c yn /n /m "Would you like to try rebooting into 'Safe mode' to apply the changes? [Y/N] "
 			if ($lastexitcode -eq 1) {
-				Start-Process -File "bcdedit" -ArgumentList "/set {current} safeboot minimal" -WindowStyle Hidden
-
-				Set-ItemProperty -Path $winlogon -Name Shell -Value "$env:WinDir\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd -SafeMode"
-
-				Restart-Computer
-				exit
+				SetSafeMode
 			} else {
 				exit 1
 			}
@@ -124,7 +125,6 @@ function Finish {
 	Write-Host "`nCompleted!" -ForegroundColor Green
 	choice /c yn /n /m "Would you like to restart now to apply the changes? [Y/N] "
 	if ($lastexitcode -eq 1) {
-		if ($SafeMode) {ExitSafeMode}
 		Restart-Computer
 	} else {
 		Write-Host "`nChanges will apply after next restart." -ForegroundColor Yellow
@@ -132,6 +132,25 @@ function Finish {
 	}
 	exit
 }
+
+if ($DisableFailedMessage) {
+	$WindowTitle = 'Failed disabling Defender - Atlas'
+
+	$Message = @'
+Disabling Defender failed, this might be due to using an ISO made from UUPDump or having a potentially broken or non-fresh Windows installation.
+
+Would you like to attempt to disable Defender in Safe Mode and restart now?
+'@
+
+	$sh = New-Object -ComObject "Wscript.Shell"
+	$intButton = $sh.Popup($Message,0,$WindowTitle,4+16+4096)
+
+	RemoveFailureTask
+	if ($intButton -eq '6') { SetSafeMode }
+	exit
+}
+
+if ($Enable -or $Disable) {$Silent = $true}
 
 if ($Disable) {InstallPackage; exit} elseif ($Enable) {UninstallPackage; exit}
 if ($SafeMode) {
