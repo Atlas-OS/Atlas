@@ -12,6 +12,12 @@ actions:
     option: 'defender-disable'
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
+    # Causes slow app loading issues, and sends data to Microsoft
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy'
+    value: 'VerifiedAndReputablePolicyState'
+    data: '0'
+    type: REG_DWORD
 
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}

@@ -337,7 +337,6 @@ features:
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
   - tweaks\scripts\script-power.yml
-  - tweaks\scripts\script-fix-app-loading.yml
 
   # -----------------------------------------------------
   #                         Misc                         
