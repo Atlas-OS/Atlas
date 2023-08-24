@@ -314,7 +314,6 @@ features:
   - tweaks\debloat\config-content-delivery.yml
   - tweaks\debloat\disable-settings-pages.yml
   - tweaks\debloat\legacy-photo-viewer.yml
-  - tweaks\debloat\prevent-edge-update.yml
   - tweaks\debloat\scheduled-tasks.yml
   - tweaks\debloat\hide-unused-security-pages.yml
   - tweaks\debloat\config-storage-sense.yml
