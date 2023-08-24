@@ -19,7 +19,7 @@ function PauseNul ($message = "Press any key to continue... ") {
 
 function DeleteEdgeUpdate {
 	# surpress errors as some Edge Update components may not exist
-	$ErrorActionPreference = 'SilentlyContinue'
+	$global:ErrorActionPreference = 'SilentlyContinue'
 
 	# disable automatic installation of Edge-related applications
 	$edgeupdatePath = "HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate" | Out-Null
@@ -44,7 +44,7 @@ function DeleteEdgeUpdate {
 	Remove-Item -Path "C:\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
 
 	# revert error action preference
-	$ErrorActionPreference = 'Continue'
+	$global:ErrorActionPreference = 'Continue'
 }
 
 function RemoveEdgeChromium {
