@@ -179,6 +179,7 @@ features:
   - tweaks\qol\windows-update\disable-auto-updates.yml
   - tweaks\qol\windows-update\disable-auto-reboot.yml
   - tweaks\qol\windows-update\defer-updates.yml
+  - tweaks\qol\windows-update\disable-delivery-optimization.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\ease-of-access                                                        #
