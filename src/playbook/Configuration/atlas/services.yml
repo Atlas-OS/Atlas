@@ -21,7 +21,6 @@ actions:
   - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
-  - !service: {name: 'DPS', operation: change, startup: 4}
   - !service: {name: 'InstallService', operation: change, startup: 3}
   - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
   - !service: {name: 'KtmRm', operation: change, startup: 4}
@@ -70,6 +69,7 @@ actions:
   - !service: {name: 'fhsvc', operation: change, startup: 4}
   - !service: {name: 'wlpasvc', operation: change, startup: 4}
   - !service: {name: 'AppVClient', operation: change, startup: 4}
+  # DPS 4 < breaks Data Usage
   # DsSvc 4 < can cause issues with Snip & Sketch
   # icssvc 4 < breaks mobile/Wi-Fi hotspot
   # IKEEXT 4 < causes Teredo not to work
