@@ -10,9 +10,10 @@ if defined win11 (
 ) else (
     rem Set dual boot menu description to AtlasOS 10
     bcdedit /set description "AtlasOS 10"
+    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Background Apps" > nul 2>&1
+    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Power\Timer Resolution" > nul 2>&1
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\File Explorer Customization\Compact View" > nul 2>&1
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul 2>&1
-    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Power\Timer Resolution" > nul 2>&1
     del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul 2>&1
     exit /b
 )
