@@ -110,6 +110,9 @@ jobs:
           sed -i '/<ProductCode>/d' playbook.conf
           echo "Change description of playbook..."
           sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas Playbook, built with GitHub Actions from commit ${{ github.sha }}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
+          cd src/playbook/Configuration/atlas
+          echo "Enabling AME Wizard Live Log..."
+          sed -i "6i \    # AME Wizard Live Log For Development Playbooks\n  \- \!run: {exe: \'cmd.exe\', args: \'/c start \"AME Wizard Live Log\" powershell.exe \-NoProfile \-Command \"Get\-Content \-wait Logs\AdminOutput.txt \-ErrorAction SilentlyContinue | Write\-Output; pause\"\', baseDir: true, wait: false, showError: true}\n" start.yml
 
       - name: Create playbook (ZIP/APBX password is malte)
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
