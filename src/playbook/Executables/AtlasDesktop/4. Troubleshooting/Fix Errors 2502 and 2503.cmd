@@ -1,6 +1,6 @@
 @echo off
 
-:: permissions taken from stock and functional Windows 11 for reference
+:: Permissions taken from stock and functional Windows 11 for reference
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" "%*"
@@ -9,8 +9,8 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 set "folder=%windir%\Temp"
 
-echo This script will fix error 2502 and 2503 with Windows installers by resetting the Windows TEMP folder permissions.
-echo This issue is not be related to Atlas.
+echo This script will fix errors 2502 and 2503 with Windows installers by resetting the Windows TEMP folder permissions.
+echo This issue is not related to Atlas.
 echo]
 pause
 cls
