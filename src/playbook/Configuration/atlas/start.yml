@@ -57,52 +57,52 @@ actions:
 
   ################ NO LOCAL BUILD ################
 
-  - !writeStatus: {status: 'Installing dependencies'}
-    # NSudo will start PowerShell in AtlasModules, so the exeDir option doesn't work
-  - !cmd: {exeDir: true, command: 'copy /y "WINGET.PS1" "C:\Windows\Temp\WINGET.ps1"'}
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File "C:\Windows\Temp\WINGET.ps1"'
-    wait: true
+  - !writeStatus: {status: 'Installing Chocolatey'}
+  - !powerShell:
+    command: 'Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://community.chocolatey.org/install.ps1''))'
+    weight: 30
+  - !cmd:
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" feature enable -n allowGlobalConfirmation'
+    weight: 30
+
+  - !writeStatus: {status: 'Installing DirectX'}
+  - !cmd:
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums directx'
+    weight: 150
+
+  - !writeStatus: {status: 'Installing C++ runtimes'}
+  - !cmd:
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums vcredist-all'
+    weight: 150
+
+  - !writeStatus: {status: 'Installing 7-Zip'}
+  - !cmd:
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums 7zip'
     weight: 150
 
   - !writeStatus: {status: 'Installing LibreWolf', option: 'browser-librewolf'}
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait winget install -e --id LibreWolf.LibreWolf --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
-    wait: true
-    option: 'librewolf-winget'
+  - !cmd:
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums librewolf'
     weight: 150
+    option: 'librewolf-choco'
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File LIBREWOLF.ps1'
     exeDir: true
     wait: true
     option: 'librewolf-winupdater'
-
+    
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait winget install -e --id Google.Chrome --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
-    wait: true
+  - !cmd:
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums googlechrome'
+    weight: 150
     option: 'browser-chrome'
-    weight: 150
-
+    
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait winget install -e --id Brave.Brave --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
-    wait: true
-    option: 'browser-brave'
+  - !cmd:
+    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums brave'
     weight: 150
-
-    # Revert temporary WinGet configuration
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait winget settings --disable InstallerHashOverride'
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait winget settings --disable LocalArchiveMalwareScanOverride'
+    option: 'browser-brave'
 
   - !writeStatus: {status: 'Configuring 7-Zip'}
   - !registryValue: {path: 'HKCU\SOFTWARE\7-Zip\FM\Columns', value: 'RootFolder', data: '0100000000000000010000000400000001000000A0000000', type: REG_BINARY}
