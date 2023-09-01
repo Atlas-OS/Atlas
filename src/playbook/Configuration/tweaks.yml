@@ -5,22 +5,22 @@ privilege: TrustedInstaller
 actions: []
 features:
   # ------------------------- NOTES ------------------------- #
-  
+
   # - Each root folder has its own AME Wizard status
   # - You can disable a certain YAML file by commenting it out
   # - The playbook files are ran in order
   # - Each root category is a root folder name
   # - Comments for the individual playbook files have no text
   #   length limit, although keep it reasonable
-  
+
   # ----------------------- END NOTES ----------------------- #
-  
+
   # NGEN - PowerShell optimization
   - tweaks\statuses\status-ngen.yml
   - tweaks\scripts\script-ngen.yml
 
   # -----------------------------------------------------
-  #                      Networking                        
+  #                      Networking
   # -----------------------------------------------------
   # >>> Description <<<
   #
@@ -44,7 +44,7 @@ features:
   - tweaks\networking\shares\smb-bandwidth-throttling.yml
 
   # -----------------------------------------------------
-  #                      Performance                     
+  #                      Performance
   # -----------------------------------------------------
   # >>> Description <<<
   #
@@ -73,9 +73,9 @@ features:
   - tweaks\performance\system\optimize-ntfs.yml
   - tweaks\performance\system\service-host-split.yml
   - tweaks\performance\system\win32-priority-seperation.yml
-  
+
   # -----------------------------------------------------
-  #                        Privacy                       
+  #                        Privacy
   # -----------------------------------------------------
   # >>> Description <<<
   #
@@ -130,17 +130,17 @@ features:
   - tweaks\privacy\telemetry\disable-dotnet-cli-telemetry.yml
   - tweaks\privacy\telemetry\disable-input-telemetry.yml
   - tweaks\privacy\telemetry\disallow-data-collection.yml
-  
+
   # -----------------------------------------------------
-  #                          QOL                         
+  #                          QOL
   # -----------------------------------------------------
   # >>> Description <<<
   #
-  # QoL stands for Quality of Life, and are general      
-  # modifications designed for making Windows easier and 
+  # QoL stands for Quality of Life, and are general
+  # modifications designed for making Windows easier and
   # more pleasent to use for more advanced general users.
   #
-  # QoL tweaks can be anything, but they are mostly to do 
+  # QoL tweaks can be anything, but they are mostly to do
   # with modifying the graphical user interface (GUI).
   # -----------------------------------------------------
   - tweaks\statuses\status-qol.yml
@@ -239,7 +239,7 @@ features:
   #  qol\security                                                              #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\security\disable-uac-secure-desktop.yml
- 
+
   # -------------------------------------------------------------------------- #
   #  qol\shell                                                                 #
   # -------------------------------------------------------------------------- #
@@ -255,20 +255,20 @@ features:
   - tweaks\qol\shell\disable-shared-experiences.yml
   - tweaks\qol\shell\notification-quick-settings.yml
   - tweaks\qol\shell\old-alt-tab.yml
-  
+
   # -------------------------------------------------------------------------- #
   #  qol\startup-shutdown                                                      #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\startup-shutdown\decrease-shutdown-time.yml
   - tweaks\qol\startup-shutdown\disable-startup-delay.yml
   - tweaks\qol\startup-shutdown\force-end-shutdown-apps.yml
-  
+
   # -------------------------------------------------------------------------- #
   #  qol\system                                                                #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\system\crash-control-qol.yml
   - tweaks\qol\system\disable-wpbt.yml
-  
+
   # -------------------------------------------------------------------------- #
   #  qol\taskbar                                                               #
   # -------------------------------------------------------------------------- #
@@ -283,9 +283,9 @@ features:
   - tweaks\qol\taskbar\hide-task-view.yml
   - tweaks\qol\taskbar\no-store-taskbar-pin.yml
   - tweaks\qol\taskbar\config-pins.yml
-  
+
   # -----------------------------------------------------
-  #                       Security                       
+  #                       Security
   # -----------------------------------------------------
   # >>> Description <<<
   #
@@ -302,7 +302,7 @@ features:
   # - tweaks\security\strong-dotnet-crypto.yml
 
   # -----------------------------------------------------
-  #                        Debloat                        
+  #                        Debloat
   # -----------------------------------------------------
   # >>> Description <<<
   #
@@ -319,7 +319,7 @@ features:
   - tweaks\debloat\config-storage-sense.yml
 
   # -----------------------------------------------------
-  #                        Scripts                       
+  #                        Scripts
   # -----------------------------------------------------
   # >>> Description <<<
   #
@@ -339,7 +339,7 @@ features:
   - tweaks\scripts\script-power.yml
 
   # -----------------------------------------------------
-  #                         Misc                         
+  #                         Misc
   # -----------------------------------------------------
   # >>> Description <<<
   #

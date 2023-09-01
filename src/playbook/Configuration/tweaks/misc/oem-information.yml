@@ -28,7 +28,7 @@ actions:
     value: 'Model'
     data: 'AtlasOS'
     type: REG_SZ
-  - !registryValue: 
+  - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
     value: 'SupportURL'
     data: 'https://discord.atlasos.net'

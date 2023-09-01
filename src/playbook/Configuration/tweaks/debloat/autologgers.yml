@@ -7,7 +7,7 @@ actions:
   # and tracking of different applications/components in Windows and prevent them from running at startup
   # as well as in the background. We only disable Windows-related autologgers, not needed for any
   # external applications for logging (such as xperf). They can be viewed in Performance Monitor.
-  
+
   # https://docs.microsoft.com/en-us/windows/win32/etw/configuring-and-starting-an-autologger-session
 
   #####################################################################################################

@@ -5,7 +5,7 @@ privilege: TrustedInstaller
 actions:
     # Prevent annoying notifications during deployment
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance', value: 'Enabled', type: REG_DWORD, data: '0'}
- 
+
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
     exeDir: true
@@ -45,13 +45,13 @@ actions:
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2Root" /NoRestart', weight: 30}
     # Disabled by default? https://learn.microsoft.com/en-us/dotnet/framework/wcf/feature-details/how-to-enable-the-net-tcp-port-sharing-service
   # - !run: {command: 'DISM /Online /Disable-Feature /FeatureName:"WCF-TCP-PortSharing45" /NoRestart', weight: 30}
-    # Printing is disalbed by default 
+    # Printing is disalbed by default
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart', weight: 30}
     # Seems pointless to disable, unused by default https://learn.microsoft.com/en-us/windows-server/storage/work-folders/work-folders-overview
   # - !run: {command: 'DISM /Online /Disable-Feature /FeatureName:"WorkFolders-Client" /NoRestart', weight: 30}
-  
+
     # For an unknown reason, .NET 3.5 has to be enabled last or DISM breaks
   - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"NetFx3" /NoRestart', weight: 30}
 
@@ -91,13 +91,13 @@ actions:
     exeDir: true
     wait: true
     option: 'librewolf-winupdater'
-    
+
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !cmd:
     command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums googlechrome'
     weight: 150
     option: 'browser-chrome'
-    
+
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
   - !cmd:
     command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums brave'

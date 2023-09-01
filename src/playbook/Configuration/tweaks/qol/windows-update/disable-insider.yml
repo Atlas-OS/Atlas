@@ -7,7 +7,7 @@ actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'ManagePreviewBuilds', data: '1', type: REG_DWORD}
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'ManagePreviewBuildsPolicyValue', data: '0', type: REG_DWORD}
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'BranchReadinessLevel', data: '1', type: REG_DWORD}
-  
+
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds'
     value: 'AllowBuildPreview'

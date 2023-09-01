@@ -1,6 +1,6 @@
 ---
 title: Kill & Disable KProcessHacker2
-description: Kills, removes and disables ProcessHacker using its kernel mode driver to prevent conflicts with Memory Integrity and the Microsoft Vulnerable Driver Blocklist 
+description: Kills, removes and disables ProcessHacker using its kernel mode driver to prevent conflicts with Memory Integrity and the Microsoft Vulnerable Driver Blocklist
 privilege: TrustedInstaller
 actions:
   - !run:
