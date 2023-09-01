@@ -287,15 +287,12 @@ if ($global:install) {
     }
 
     if ($installPackages.count -ne 0) {
-        Write-Host "$Env:ProgramData\chocolatey\choco.exe install $($installPackages -join ' ') -y"
-        Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install $($installPackages -join ' ') -y --ignore-checksums" -Wait
+        Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install -y --force --allow-empty-checksums $($installPackages -join ' ')" -Wait
     }
     if ($installSeparatedPackages.count -ne 0) {
-        foreach ($paket in $installSeparatedPackages) {
-            Write-Host "$Env:ProgramData\chocolatey\choco.exe install $paket -y"
-            Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install $paket -y --ignore-checksums" -Wait
-            if ($paket.contains("--version")) {
-                Write-Host "$Env:ProgramData\chocolatey\choco.exe pin add -n $($paket.split(' ')[0])"
+        foreach ($packet in $installSeparatedPackages) {
+            Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "install -y --force --allow-empty-checksums $packet" -Wait
+            if ($packet.contains("--version")) {
                 Start-Process -FilePath "$Env:ProgramData\chocolatey\choco.exe" -ArgumentList "pin add -n $($paket.split(' ')[0])" -Wait
             }
         }
