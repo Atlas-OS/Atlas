@@ -114,15 +114,9 @@ for %%a in (
 )
 
 :: Configure netsh settings
-netsh int tcp set heuristics disabled
 netsh int tcp set supplemental Internet congestionprovider=ctcp
-netsh int tcp set global rsc=disabled
 netsh interface Teredo set state type=enterpriseclient
 netsh interface Teredo set state servername=default
-  
-for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
-    netsh int ip set interface %%a routerdiscovery=disabled store=persistent
-)
 
 echo Finished, please reboot your device for changes to apply.
 pause

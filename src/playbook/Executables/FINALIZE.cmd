@@ -142,10 +142,6 @@ for %%a in (
     )
 )
 
-for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
-    netsh int ip set interface %%a routerdiscovery=disabled store=persistent > nul
-)
-
 :: Set correct username variable of the currently logged in user
 for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
 
