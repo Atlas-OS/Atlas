@@ -33,9 +33,9 @@ if "!desktop!" == "true" (attrib +h "!appdata!\Microsoft\Windows\SendTo\Desktop 
 if "!mail!" == "true" (attrib +h "!appdata!\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail") else (attrib -h "!appdata!\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail")
 if "!documents!" == "true" (attrib +h "!appdata!\Microsoft\Windows\SendTo\Documents.mydocs") else (attrib -h "!appdata!\Microsoft\Windows\SendTo\Documents.mydocs")
 if "!removableDrive!" == "true" (
-	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /t REG_DWORD /d "1" /f > nul 2>&1
+	reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /t REG_DWORD /d "1" /f > nul 2>&1
 ) else (
-	reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /f f > nul 2>&1
+	reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /f > nul 2>&1
 )
 for /f "usebackq tokens=*" %%a in (`multichoice "Explorer Restart" "You need to restart File Explorer to fully apply the changes." "Restart now"`) do (
 	if "%%a" == "Restart now" (
