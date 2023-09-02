@@ -8,3 +8,5 @@ $Shortcut.Save()
 foreach ($user in $(Get-ChildItem -Path "$env:SystemDrive\Users" -Directory | Where-Object { 'Public' -notcontains $_.Name })) {
     Copy-Item $defaultShortcut -Destination "$($user.FullName)\Desktop" -Force
 }
+
+Copy-Item $defaultShortcut -Destination "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Force
