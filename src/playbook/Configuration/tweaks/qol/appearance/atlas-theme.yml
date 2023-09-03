@@ -142,4 +142,10 @@ actions:
     exeDir: true
     exe: 'THEME.cmd'
     weight: 20
+    # Sometimes the theme doesn't apply, so this will ensure that it is
+  - !run:
+    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait "%WinDir\Resources\Themes\atlas-dark.theme"'
+    wait: true
+    option: 'uninstall-edge'
   - !run: {exe: 'rundll32.exe', args: 'user32.dll,UpdatePerUserSystemParameters'}
