@@ -17,7 +17,7 @@ actions:
     # Apply theme to current user
   - !run:
     exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait "%WinDir\Resources\Themes\atlas-dark.theme"'
+    args: '-U:E -UseCurrentConsole -Wait "%WinDir%\Resources\Themes\atlas-dark.theme"'
     wait: true
     exeDir: true
   - !taskKill: {name: 'SystemSettings'}
