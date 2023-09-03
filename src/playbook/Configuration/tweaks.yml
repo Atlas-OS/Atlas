@@ -353,5 +353,4 @@ features:
   - tweaks\misc\fix-no-downloads-bug.yml
   - tweaks\misc\oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
-  - tweaks\misc\delete-nsudo.yml
   - tweaks\misc\atlas-desktop-shortcuts.yml

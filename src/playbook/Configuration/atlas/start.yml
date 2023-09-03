@@ -9,10 +9,6 @@ actions:
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
     exeDir: true
-    command: 'robocopy "Screen" "%windir%\Web\Screen" /E /PURGE /IM /IT /NP > nul'
-    weight: 10
-  - !cmd:
-    exeDir: true
     command: 'robocopy "User Account Pictures" "%programdata%\Microsoft\User Account Pictures" /E /PURGE /IM /IT /NP > nul'
     weight: 10
   - !cmd:
