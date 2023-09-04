@@ -312,7 +312,6 @@ features:
   - tweaks\statuses\status-debloat.yml
   - tweaks\debloat\autologgers.yml
   - tweaks\debloat\config-content-delivery.yml
-  - tweaks\debloat\disable-settings-pages.yml
   - tweaks\debloat\legacy-photo-viewer.yml
   - tweaks\debloat\scheduled-tasks.yml
   - tweaks\debloat\hide-unused-security-pages.yml
@@ -348,7 +347,6 @@ features:
   # -----------------------------------------------------
   - tweaks\statuses\status-misc.yml
   - tweaks\misc\config-time.yml
-  - tweaks\misc\disable-fast-user-switching.yml
   - tweaks\misc\disable-game-mode.yml
   - tweaks\misc\fix-no-downloads-bug.yml
   - tweaks\misc\oem-information.yml

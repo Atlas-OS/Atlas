@@ -2,12 +2,33 @@
 setlocal EnableDelayedExpansion
 
 :: Check if user is on Windows 11
-for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 (set win11=true))
+for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a LSS 22000 set win10=true)
 
-:: Make changes dependant on Windows version
-if defined win11 (
-    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul 2>&1
-) else (
+:: Set hidden Windows Settings pages
+:: There's some specific Windows 11/10 additions or removals
+:: https://learn.microsoft.com/en-us/windows/uwp/launch-resume/launch-settings-app#ms-settings-uri-scheme-reference
+
+set hiddenPages=hide:^
+crossdevice;^
+recovery;^
+autoplay;^
+usb;^
+deviceusage;^
+maps;^
+family-group;^
+findmydevice;^
+privacy;^
+privacy-speech;^
+privacy-feedback;^
+privacy-activityhistory;^
+search-permissions;^
+privacy-location;^
+privacy-general;^
+sync;^
+assignedaccess;
+
+:: Set Windows 10 only changes
+if defined win10 (
     rem Set dual boot menu description to AtlasOS 10
     bcdedit /set description "AtlasOS 10"
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Background Apps" > nul 2>&1
@@ -15,8 +36,18 @@ if defined win11 (
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\File Explorer Customization\Compact View" > nul 2>&1
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul 2>&1
     del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul 2>&1
+
+    rem Set hidden Settings pages
+    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "%hiddenPages%;backup;" /f > nul
+    
     exit /b
 )
+
+:: Remove volume flyout
+rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul 2>&1
+
+:: Set hidden Settings pages
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "%hiddenPages%;" /f > nul
 
 :: Set dual boot menu description to AtlasOS 11
 bcdedit /set description "AtlasOS 11"
