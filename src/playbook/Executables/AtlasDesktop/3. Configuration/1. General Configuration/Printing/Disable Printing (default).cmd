@@ -44,6 +44,17 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
 
 call setSvc.cmd Spooler 4
 
+:: Hide Settings page
+set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
+reg query "%pageKey%" /v "SettingsPageVisibility" > nul 2>&1
+if "%errorlevel%"=="0" (
+    for /f "usebackq tokens=3" %%a in (`reg query "%pageKey%" /v "SettingsPageVisibility"`) do (
+        reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "%%a;printers;" /f > nul
+    )
+) else (
+    reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "hide:printers;" /f > nul
+)
+
 DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart > nul
 DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart > nul
 DISM /Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart > nul
