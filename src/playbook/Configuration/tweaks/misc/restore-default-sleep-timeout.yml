@@ -1,0 +1,7 @@
+---
+title: Restore Default Sleep Timeout
+description: If the power saving option is disabled, this restores the default automatic sleep timeout
+privilege: TrustedInstaller
+actions:
+  - !run: {exe: 'powercfg.exe', args: '/setacvalueindex scheme_current sub_sleep standbyidle 900', option: '!disable-power-saving'}
+  - !run: {exe: 'powercfg.exe', args: '/setdcvalueindex scheme_current sub_sleep standbyidle 600', option: '!disable-power-saving'}
