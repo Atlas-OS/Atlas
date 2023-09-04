@@ -37,6 +37,7 @@ for %%a in (
 call %windir%\AtlasModules\Scripts\toggleDev.cmd -Silent '*Bluetooth*'
 
 attrib +h "!appdata!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth" /v "value" /t REG_DWORD /d "0" /f > nul
 
 if "%~1"=="/silent" exit
 

@@ -13,9 +13,8 @@ crossdevice;^
 recovery;^
 autoplay;^
 usb;^
-deviceusage;^
 maps;^
-family-group;^
+maps-downloadmaps;^
 findmydevice;^
 privacy;^
 privacy-speech;^
@@ -24,8 +23,7 @@ privacy-activityhistory;^
 search-permissions;^
 privacy-location;^
 privacy-general;^
-sync;^
-assignedaccess;
+sync;
 
 :: Set Windows 10 only changes
 if defined win10 (
@@ -47,7 +45,7 @@ if defined win10 (
 rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul 2>&1
 
 :: Set hidden Settings pages
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "%hiddenPages%;" /f > nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "%hiddenPages%;family-group;deviceusage" /f > nul
 
 :: Set dual boot menu description to AtlasOS 11
 bcdedit /set description "AtlasOS 11"
