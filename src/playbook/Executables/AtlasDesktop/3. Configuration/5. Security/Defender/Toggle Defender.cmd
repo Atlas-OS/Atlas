@@ -135,7 +135,7 @@ function Finish {
 
 if ($DisableFailedMessage) {
 	# hide window
-	powershell -WindowStyle Hidden
+	powershell -WindowStyle Hidden exit
 
 	$WindowTitle = 'Failed disabling Defender - Atlas'
 
