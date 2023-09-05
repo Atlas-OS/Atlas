@@ -58,6 +58,9 @@ actions:
   - !appx: {name: '*Microsoft.Getstarted*', type: family}
   - !appx: {name: '*WebExperienceHost*', type: app}
 
+  # Windows Backup
+  - !appx: {name: '*WindowsBackup*', type: app}
+
   - !appx: {name: '*MicrosoftCorporationII.MicrosoftFamily*', type: family}
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}

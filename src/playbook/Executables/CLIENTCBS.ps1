@@ -4,7 +4,7 @@
 ## Set the Client CBS path
 $Cbs = "$env:SystemRoot\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy"
 
-## Remove Get started from Start Menu
+## Remove 'Get started' and 'Windows Backup' from Start Menu
 $Manifest = Join-Path $Cbs 'appxmanifest.xml'
 takeown /a /f $Manifest
 icacls $Manifest /grant Administrators:F
@@ -14,10 +14,8 @@ if (!(Test-Path $AtlasManifest)) {
     Remove-Item $Manifest -Force
 }
 [xml]$xml = Get-Content -Path "$Cbs\appxmanifest.xml.atlas" -Raw
-$applicationNode = $xml.Package.Applications.Application | Where-Object { $_.Id -eq 'WebExperienceHost' }
-if ($applicationNode -ne $null) {
-    $xml.Package.Applications.RemoveChild($applicationNode)
-}
+$applicationNodes = $xml.Package.Applications.Application | Where-Object { $_.Id -eq 'WebExperienceHost' -or $_.Id -eq 'WindowsBackup' }
+foreach ($applicationNode in $applicationNodes) { $xml.Package.Applications.RemoveChild($applicationNode) }
 $xml.Save($Manifest)
 
 ## Remove ads from the 'Accounts' page in Immersive Control Panel
