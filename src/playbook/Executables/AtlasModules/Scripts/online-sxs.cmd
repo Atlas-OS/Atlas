@@ -11,43 +11,47 @@ echo Usage = online-sxs.cmd [-Help] [[-Silent] -CabPath ""]
 exit /b
 
 :main
-if "%*"=="" (
-	fltmc >nul 2>&1 || (
-		echo Administrator privileges are required.
-		PowerShell Start -Verb RunAs '%0' 2> nul || (
-			echo You must run this script as admin.
-			pause & exit /b 1
-		)
-		exit /b
+fltmc >nul 2>&1 || (
+	echo Administrator privileges are required.
+	if "%*"=="" (
+		PowerShell Start -Verb RunAs '%0' 2> nul || goto error
+	) else (
+		PowerShell Start -Verb RunAs '%0' -ArgumentList '%*' 2> nul || goto error
 	)
+	exit /b 0
 )
 
 set args= & set "args1=%*"
 if defined args1 set "args=%args1:"='%"
 powershell -nop "& ([Scriptblock]::Create((Get-Content '%~f0' -Raw))) %args%"
 exit /b %errorlevel%
+
+:error
+echo You must run this script as admin.
+pause & exit /b 1
+
 : end batch / begin PowerShell #>
 
 param (
-    [string]$CabPath,
+    [string]$CabPaths, 
     [switch]$Silent
 )
 
 # You can automate this script with variables as well:
-# $CabPath = "C:\Package.cab"
-# Note: only works if $CabPath is defined
+# $CabPaths = "C:\Package.cab"
+# Note: only works if $cabPath is defined
 # $Silent = $true
 
-if ($CabPath) {
+if ($CabPaths) {
 	$cabArg = $true
 
-    if (!(Test-Path $CabPath -PathType Leaf)) {
-        Write-Host "The specified .cab file does not exist or isn't a file." -ForegroundColor Red
+    if (!(Test-Path $CabPaths -PathType Leaf)) {
+        Write-Host "The specified files do not exist or aren't files." -ForegroundColor Red
         exit 1
     }
 
-    if (!((Get-Item $CabPath).Extension -eq '.cab')) {
-        Write-Host "The specified file is not a .cab file." -ForegroundColor Red
+    if (!((Get-Item $CabPaths).Extension -eq '.cab')) {
+        Write-Host "The specified files are not .cab files." -ForegroundColor Red
         exit 1
     }
 } else {$Silent = $false}
@@ -70,45 +74,61 @@ if (!($cabArg)) {
 	Write-Warning "Opening file dialog to select CBS package CAB..."
 	Add-Type -AssemblyName System.Windows.Forms
 	$openFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+	$openFileDialog.Multiselect = $true
 	$openFileDialog.Filter = "CBS Package Files (*.cab)|*.cab"
 	$openFileDialog.Title = "Select a CBS Package File"
 	if ($openFileDialog.ShowDialog() -eq 'OK') {
-		$cabPath = $openFileDialog.FileName
-		cls
+		Clear-Host
 	} else {exit}
 }
 
-try {
-	if (!($silent)) {Write-Warning "Importing and checking certificate..."}
+function ProcessCab($cabPath) {
 	try {
-		$cert = (Get-AuthenticodeSignature $cabPath).SignerCertificate
-		foreach ($usage in $cert.Extensions.EnhancedKeyUsages) { if ($usage.Value -eq "1.3.6.1.4.1.311.10.3.6") { $correctUsage = $true } }
-		if (!($correctUsage)) {
-			Write-Host 'The certificate inside of the CAB selected does not have the "Windows System Component Verification" enhanced key usage.' -ForegroundColor Red
-			if (!($cabArg)) {PauseNul}; exit 2
+		if (!($Silent)) {
+			$filePath = Split-Path $cabPath -Leaf
+			if ($global:notFirstCab) {Write-Host ""}
+			Write-Host "Installing $filePath..." -ForegroundColor Green
+			Write-Host "----------------------------------------------------------------------------------------" -ForegroundColor Blue
+			$global:notFirstCab = $true
 		}
-		$certPath = [System.IO.Path]::GetTempFileName()
-		[System.IO.File]::WriteAllBytes($certPath, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
-		Import-Certificate $certPath -CertStoreLocation "Cert:\LocalMachine\Root" | Out-Null
-		Copy-Item -Path "$certRegPath\$($cert.Thumbprint)" "$certRegPath\8A334AA8052DD244A647306A76B8178FA215F344" -Force | Out-Null
-	} catch {
-		Write-Host "`nSomething went wrong importing and checking the certificate of: $cabPath" -ForegroundColor Red
-		Write-Host "$_`n" -ForegroundColor Red
-		if (!($cabArg)) {PauseNul}; exit 3
-	}
 
-	if (!($silent)) {Write-Warning "Adding package..."}
-	try {
-		Add-WindowsPackage -Online -PackagePath $cabPath -NoRestart -IgnoreCheck -LogLevel 1 *>$null
-	} catch {
-		Write-Host "Something went wrong adding the package: $cabPath" -ForegroundColor Red
-		Write-Host "$_`n" -ForegroundColor Red
-		if (!($cabArg)) {PauseNul}; exit 4
+		if (!($silent)) {Write-Warning "Importing and checking certificate..."}
+		try {
+			$cert = (Get-AuthenticodeSignature $cabPath).SignerCertificate
+			foreach ($usage in $cert.Extensions.EnhancedKeyUsages) { if ($usage.Value -eq "1.3.6.1.4.1.311.10.3.6") { $correctUsage = $true } }
+			if (!($correctUsage)) {
+				Write-Host 'The certificate inside of the CAB selected does not have the "Windows System Component Verification" enhanced key usage.' -ForegroundColor Red
+				if (!($cabArg)) {PauseNul}; exit 1
+			}
+			$certPath = [System.IO.Path]::GetTempFileName()
+			[System.IO.File]::WriteAllBytes($certPath, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+			Import-Certificate $certPath -CertStoreLocation "Cert:\LocalMachine\Root" | Out-Null
+			Copy-Item -Path "$certRegPath\$($cert.Thumbprint)" "$certRegPath\8A334AA8052DD244A647306A76B8178FA215F344" -Force | Out-Null
+		} catch {
+			Write-Host "`nSomething went wrong importing and checking the certificate of: $cabPath" -ForegroundColor Red
+			Write-Host "$_`n" -ForegroundColor Red
+			if (!($cabArg)) {PauseNul}; exit 1
+		}
+
+		if (!($silent)) {Write-Warning "Adding package..."}
+		try {
+			Add-WindowsPackage -Online -PackagePath $cabPath -NoRestart -IgnoreCheck -LogLevel 1 *>$null
+		} catch {
+			Write-Host "Something went wrong adding the package: $cabPath" -ForegroundColor Red
+			Write-Host "$_`n" -ForegroundColor Red
+			if (!($cabArg)) {PauseNul}; exit 1
+		}
+	} finally {
+		if (!($silent)) {Write-Warning "Cleaning up certificates..."}
+		Get-ChildItem "Cert:\LocalMachine\Root\$($cert.Thumbprint)" | Remove-Item -Force | Out-Null
+		Remove-Item "$certRegPath\8A334AA8052DD244A647306A76B8178FA215F344" -Force -Recurse | Out-Null
 	}
-} finally {
-	if (!($silent)) {Write-Warning "Cleaning up certificates..."}
-	Get-ChildItem "Cert:\LocalMachine\Root\$($cert.Thumbprint)" -EA SilentlyContinue | Remove-Item -Force -EA SilentlyContinue | Out-Null
-	Remove-Item "$certRegPath\8A334AA8052DD244A647306A76B8178FA215F344" -Force -Recurse -EA SilentlyContinue | Out-Null
+}
+
+if ($cabArg) {
+	foreach ($cabPath in $CabPaths) {ProcessCab $cabPath}
+} else {
+	foreach ($cabPath in $openFileDialog.FileNames) {ProcessCab $cabPath}
 }
 
 if (!($silent)) {Write-Host "`nCompleted!" -ForegroundColor Green}
