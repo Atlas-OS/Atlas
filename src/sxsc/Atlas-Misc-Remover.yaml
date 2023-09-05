@@ -43,3 +43,32 @@ updates:
   - target_component: Microsoft-Windows-ContentDeliveryManager-Utilities
     target_arch: wow64
     version: 38655.38527.65535.65535
+
+    # Remove OneDrive setup
+  - target_component: Microsoft-Windows-OneDrive-Setup
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-OneDrive-Setup-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-OneDrive-Setup-Deployment-LanguagePack
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-OneDrive-SetupRegistry
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-OneDrive-SetupRegistry
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-OneDrive-Setup-WOW64-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-OneDrive-Setup-WOW64-Deployment-LanguagePack
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SystemSettings-SettingsHandlers-OneDriveBackup
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SystemSettings-SettingsHandlers-OneDriveBackup.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
