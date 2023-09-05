@@ -11,17 +11,26 @@ actions:
 
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
-    exeDir: true
     command: 'robocopy "User Account Pictures" "%programdata%\Microsoft\User Account Pictures" /E /PURGE /IM /IT /NP > nul'
     weight: 10
-  - !cmd:
+    wait: true
     exeDir: true
+  - !cmd:
     command: 'robocopy "AtlasModules" "%windir%\AtlasModules" /E /PURGE /IM /IT /NP > nul'
     weight: 10
-  - !cmd:
+    wait: true
     exeDir: true
+  - !cmd:
     command: 'robocopy "AtlasDesktop" "%windir%\AtlasDesktop" /E /PURGE /IM /IT /NP > nul'
     weight: 10
+    wait: true
+    exeDir: true
+    # Create desktop shortcuts
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -EP Unrestricted -File "DESKTOPSHORTCUTS.ps1"'
+    wait: true
+    exeDir: true
 
   - !writeStatus: {status: 'Setting the environment'}
   - !cmd: {command: 'setx path "%PATH%;%windir%\AtlasModules;%windir%\AtlasModules\Apps;%windir%\AtlasModules\Other;%windir%\AtlasModules\Tools;%windir%\AtlasModules\Scripts" -m'}

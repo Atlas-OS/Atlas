@@ -350,5 +350,4 @@ features:
   - tweaks\misc\fix-no-downloads-bug.yml
   - tweaks\misc\oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
-  - tweaks\misc\atlas-desktop-shortcuts.yml
   - tweaks\misc\restore-default-sleep-timeout.yml
