@@ -122,6 +122,13 @@ actions:
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.Office.OneNote_8wekyb3d8bbwe', operation: add}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MixedReality.Portal_8wekyb3d8bbwe', operation: add}
 
+  # Edit Client.CBS package to remove ads and debloat annoying apps
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File CLIENTCBS.ps1'
+    exeDir: true
+    wait: true
+
   # Clear caches of Start menu and more
   - !appx: {operation: clearCache, name: '*Client.CBS*'}
   - !appx: {operation: clearCache, name: '*StartMenuExperienceHost*'}
