@@ -23,7 +23,7 @@ privacy-activityhistory;^
 search-permissions;^
 privacy-location;^
 privacy-general;^
-sync;
+sync
 
 :: Set Windows 10 only changes
 if defined win10 (
