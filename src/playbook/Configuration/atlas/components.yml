@@ -45,6 +45,7 @@ actions:
     wait: true
 
     # OneDrive
+    # The actual OneDrive setup in Windows is stripped at a component-level in the miscellaneous package
   - !writeStatus: {status: 'Removing OneDrive'}
   - !run: {exeDir: true, exe: 'ONED.cmd'}
 
