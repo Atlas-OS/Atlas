@@ -1,0 +1,10 @@
+---
+title: Revert to Classic Search
+description: Reverts to the much faster and stable old search box in Windows Explorer
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKCU\Software\Classes\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs'
+    value: ''
+    data: '{64bc32b5-4eec-4de7-972d-bd8bd0324537}'
+    type: REG_SZ
