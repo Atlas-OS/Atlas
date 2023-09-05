@@ -43,6 +43,7 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
 )
 
 call setSvc.cmd Spooler 4
+sc start WSearch > nul 2>&1
 
 :: Hide Settings page
 set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
@@ -59,6 +60,6 @@ DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRes
 DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart > nul
 DISM /Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart > nul
 
-echo Finished, please reboot your device for changes to apply.
+echo Finished.
 pause
 exit /b

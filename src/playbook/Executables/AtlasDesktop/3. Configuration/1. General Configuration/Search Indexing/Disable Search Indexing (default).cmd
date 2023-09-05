@@ -7,6 +7,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 call setSvc.cmd WSearch 4
+sc stop WSearch > nul 2>&1
 
 :: Hide Settings page
 set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
@@ -19,7 +20,6 @@ if "%errorlevel%"=="0" (
     reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "hide:cortana-windowssearch;" /f > nul
 )
 
-echo Finished, please reboot your device for changes to apply.
+echo Finished.
 pause
 exit /b
-
