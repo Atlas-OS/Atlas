@@ -98,6 +98,7 @@ actions:
     args: '-NoP -File LIBREWOLF.ps1'
     exeDir: true
     wait: true
+    weight: 150
     option: 'librewolf-winupdater'
 
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
@@ -107,8 +108,13 @@ actions:
     option: 'browser-chrome'
 
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
-  - !cmd:
-    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums brave'
+    # Can't be installed system-wide with Chocolatey or other package managers
+    # https://github.com/brave/brave-browser/issues/25571
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File BRAVE.ps1'
+    exeDir: true
+    wait: true
     weight: 150
     option: 'browser-brave'
 
