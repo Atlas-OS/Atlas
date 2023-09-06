@@ -1,11 +1,14 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+if "%~1"=="/setup" goto main
+
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" "%*"
 	exit /b
 )
 
+:main
 :: Remove print from context menu
 reg add "HKCR\SystemFileAssociations\image\shell\print" /v "ProgrammaticAccessOnly" /t REG_SZ /d "" /f > nul
 for %%a in (
@@ -42,23 +45,27 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     )
 )
 
-call setSvc.cmd Spooler 4
+call %windir%\AtlasModules\Scripts\setSvc.cmd Spooler 4
 sc start WSearch > nul 2>&1
 
 :: Hide Settings page
-set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
-reg query "%pageKey%" /v "SettingsPageVisibility" > nul 2>&1
-if "%errorlevel%"=="0" (
-    for /f "usebackq tokens=3" %%a in (`reg query "%pageKey%" /v "SettingsPageVisibility"`) do (
-        reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "%%a;printers;" /f > nul
+if not "%~1"=="/setup" (
+    set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
+    reg query "%pageKey%" /v "SettingsPageVisibility" > nul 2>&1
+    if "%errorlevel%"=="0" (
+        for /f "usebackq tokens=3" %%a in (`reg query "%pageKey%" /v "SettingsPageVisibility"`) do (
+            reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "%%a;printers;" /f > nul
+        )
+    ) else (
+        reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "hide:printers;" /f > nul
     )
-) else (
-    reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "hide:printers;" /f > nul
 )
 
 DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart > nul
 DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart > nul
 DISM /Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart > nul
+
+if "%~1"=="/setup" exit /b
 
 echo Finished.
 pause

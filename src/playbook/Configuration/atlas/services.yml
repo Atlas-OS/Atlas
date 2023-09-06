@@ -14,6 +14,9 @@ actions:
     exe: 'C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Bluetooth\Disable Bluetooth.cmd'
     args: '/silent'
     option: 'disable-bluetooth'
+  - !run:
+    exe: 'C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Printing\Disable Printing (default).cmd'
+    args: '/silent'
 
   - !service: {name: 'AppIDSvc', operation: change, startup: 4}
   - !service: {name: 'CryptSvc', operation: change, startup: 3}
@@ -31,7 +34,6 @@ actions:
   - !service: {name: 'PhoneSvc', operation: change, startup: 4}
   - !service: {name: 'RasMan', operation: change, startup: 4}
   - !service: {name: 'SmsRouter', operation: change, startup: 4}
-  - !service: {name: 'Spooler', operation: change, startup: 4}
   - !service: {name: 'sppsvc', operation: change, startup: 3}
   - !service: {name: 'SstpSvc', operation: change, startup: 4}
   - !service: {name: 'TabletInputService', operation: change, startup: 4}

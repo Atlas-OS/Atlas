@@ -23,7 +23,9 @@ privacy-activityhistory;^
 search-permissions;^
 privacy-location;^
 privacy-general;^
-sync
+sync;^
+printers;^
+cortana-windowssearch
 
 :: Set Windows 10 only changes
 if defined win10 (
@@ -61,6 +63,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul
 	if errorlevel 0 call :USERREG "%%a"
 )
+:: call :USERREG ".DEFAULT"
 
 exit /b
 
