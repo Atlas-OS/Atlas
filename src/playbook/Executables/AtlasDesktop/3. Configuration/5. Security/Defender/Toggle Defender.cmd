@@ -140,13 +140,13 @@ if ($DisableFailedMessage) {
 	$WindowTitle = 'Failed disabling Defender - Atlas'
 
 	$Message = @'
-Disabling Defender failed, this might be due to using an ISO made from UUPDump or having a potentially broken or non-fresh Windows installation.
+Disabling Defender failed, this is most likely due to Windows somehow preventing it from happening.
 
 Would you like to attempt to disable Defender in Safe Mode and restart now?
 '@
 
 	$sh = New-Object -ComObject "Wscript.Shell"
-	$intButton = $sh.Popup($Message,0,$WindowTitle,4+16+4096)
+	$intButton = $sh.Popup($Message,0,$WindowTitle,4+48+4096)
 
 	RemoveFailureTask
 	if ($intButton -eq '6') { SetSafeMode }
