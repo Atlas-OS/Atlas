@@ -65,17 +65,16 @@ actions:
   ################ NO LOCAL BUILD ################
 
   - !writeStatus: {status: 'Installing dependencies'}
-    # NSudo will start PowerShell in AtlasModules, so the exeDir option doesn't work
-  - !cmd: {exeDir: true, command: 'copy /y "WINGET.PS1" "C:\Windows\Temp\WINGET.ps1"'}
   - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File "C:\Windows\Temp\WINGET.ps1"'
+    exe: 'NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File "WINGET.ps1"'
     wait: true
+    exeDir: true
     weight: 150
 
   - !writeStatus: {status: 'Installing LibreWolf', option: 'browser-librewolf'}
   - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    exe: 'NSudoLC.exe'
     args: '-U:E -UseCurrentConsole -Wait winget install -e --id LibreWolf.LibreWolf --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
     wait: true
     option: 'librewolf-winget'
@@ -91,7 +90,7 @@ actions:
 
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    exe: 'NSudoLC.exe'
     args: '-U:E -UseCurrentConsole -Wait winget install -e --id Google.Chrome --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
     wait: true
     option: 'browser-chrome'
@@ -108,7 +107,7 @@ actions:
 
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
   - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    exe: 'NSudoLC.exe'
     args: '-U:E -UseCurrentConsole -Wait winget install -e --id Brave.Brave --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
     wait: true
     option: 'browser-brave'
@@ -116,10 +115,10 @@ actions:
 
     # Revert temporary WinGet configuration
   - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    exe: 'NSudoLC.exe'
     args: '-U:E -UseCurrentConsole -Wait winget settings --disable InstallerHashOverride'
   - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    exe: 'NSudoLC.exe'
     args: '-U:E -UseCurrentConsole -Wait winget settings --disable LocalArchiveMalwareScanOverride'
 
   - !writeStatus: {status: 'Configuring 7-Zip'}
