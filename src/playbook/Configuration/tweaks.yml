@@ -325,6 +325,7 @@ features:
   # or batch scripts for more advanced operations.
   # -----------------------------------------------------
   - tweaks\statuses\status-scripts.yml
+  - tweaks\scripts\script-file-associations.yml
   - tweaks\scripts\script-core-isolation.yml
   - tweaks\scripts\script-mitigations.yml
   - tweaks\scripts\script-win11.yml
