@@ -96,8 +96,8 @@ init_item "Google Chrome" "Google.Chrome"
 # https://winget.run/pkg/Microsoft/Edge
 init_item "Microsoft Edge" "Microsoft.Edge"
 
-# https://winget.run/pkg/Librewolf/Librewolf
-init_item "LibreWolf" "Librewolf.Librewolf"
+# https://winget.run/pkg/LibreWolf/LibreWolf
+init_item "LibreWolf" "LibreWolf.LibreWolf"
 
 # https://winget.run/pkg/TorProject/TorBrowser
 init_item "Tor Browser" "TorProject.TorBrowser"
