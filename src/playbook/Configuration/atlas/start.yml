@@ -108,7 +108,7 @@ actions:
     wait: true
     option: 'browser-brave'
     weight: 150
-  - !taskKill {name: 'brave'}
+  - !taskKill {name: 'brave', option: 'browser-brave'}
 
     # Revert temporary WinGet configuration
   - !run:
