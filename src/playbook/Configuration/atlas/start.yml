@@ -59,40 +59,27 @@ actions:
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart', weight: 30}
     # Seems pointless to disable, unused by default https://learn.microsoft.com/en-us/windows-server/storage/work-folders/work-folders-overview
   # - !run: {command: 'DISM /Online /Disable-Feature /FeatureName:"WorkFolders-Client" /NoRestart', weight: 30}
-
     # For an unknown reason, .NET 3.5 has to be enabled last or DISM breaks
   - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"NetFx3" /NoRestart', weight: 30}
 
   ################ NO LOCAL BUILD ################
 
-  - !writeStatus: {status: 'Installing Chocolatey'}
-  - !powerShell:
-    command: 'Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://community.chocolatey.org/install.ps1''))'
-    weight: 30
-  - !cmd:
-    command: '"%ProgramData%\chocolatey\bin\choco.exe" feature enable -n allowGlobalConfirmation'
-    weight: 30
-
-  - !writeStatus: {status: 'Installing DirectX'}
-  - !cmd:
-    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums directx'
-    weight: 150
-
-  - !writeStatus: {status: 'Installing C++ runtimes'}
-  - !cmd:
-    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums vcredist-all'
-    weight: 150
-
-  - !writeStatus: {status: 'Installing 7-Zip'}
-  - !cmd:
-    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums 7zip'
+  - !writeStatus: {status: 'Installing dependencies'}
+    # NSudo will start PowerShell in AtlasModules, so the exeDir option doesn't work
+  - !cmd: {exeDir: true, command: 'copy /y "WINGET.PS1" "C:\Windows\Temp\WINGET.ps1"'}
+  - !run:
+    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File "C:\Windows\Temp\WINGET.ps1"'
+    wait: true
     weight: 150
 
   - !writeStatus: {status: 'Installing LibreWolf', option: 'browser-librewolf'}
-  - !cmd:
-    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums librewolf'
+  - !run:
+    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait winget install -e --id LibreWolf.LibreWolf --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
+    wait: true
+    option: 'librewolf-winget'
     weight: 150
-    option: 'librewolf-choco'
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File LIBREWOLF.ps1'
@@ -101,10 +88,12 @@ actions:
     weight: 150
     option: 'librewolf-winupdater'
 
+
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
-  - !cmd:
-    command: '"%ProgramData%\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums googlechrome'
-    weight: 150
+  - !run:
+    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait winget install -e --id Google.Chrome --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
+    wait: true
     option: 'browser-chrome'
 
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
@@ -116,7 +105,22 @@ actions:
     exeDir: true
     wait: true
     weight: 150
+
+  - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
+  - !run:
+    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait winget install -e --id Brave.Brave --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
+    wait: true
     option: 'browser-brave'
+    weight: 150
+
+    # Revert temporary WinGet configuration
+  - !run:
+    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait winget settings --disable InstallerHashOverride'
+  - !run:
+    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait winget settings --disable LocalArchiveMalwareScanOverride'
 
   - !writeStatus: {status: 'Configuring 7-Zip'}
   - !registryValue: {path: 'HKCU\SOFTWARE\7-Zip\FM\Columns', value: 'RootFolder', data: '0100000000000000010000000400000001000000A0000000', type: REG_BINARY}

@@ -17,8 +17,8 @@ if !errorlevel! == 1 (
 	exit /b 1
 )
 
-where choco > nul 2>&1 || (
-	echo You must have Chocolatey updated and installed to use this script.
+where winget > nul 2>&1 || (
+	echo You must have WinGet updated and installed to use this script.
 	echo Press any key to exit...
 	exit /b 1
 )
@@ -39,7 +39,7 @@ call "%windir%\AtlasDesktop\3. Configuration\1. General Configuration\Start Menu
 echo]
 
 :: Download and install Open-Shell
-choco install open-shell -y --force --allow-empty-checksums --params="'/StartMenu'"
+winget install -e --id Open-Shell.Open-Shell-Menu -h --accept-source-agreements --accept-package-agreements --force
 
 :: Download Fluent Metro theme
 for /f "delims=" %%a in ('PowerShell "(Invoke-RestMethod -Uri "https://api.github.com/repos/bonzibudd/Fluent-Metro/releases/latest").assets.browser_download_url"') do (

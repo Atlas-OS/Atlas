@@ -10,13 +10,13 @@ fltmc >nul 2>&1 || (
 	exit /b
 )
 
-where choco > nul 2>&1 || (
-	echo You must have Chocolatey updated and installed to use this script.
+where winget > nul 2>&1 || (
+	echo You must have WinGet updated and installed to use this script.
 	echo Press any key to exit...
 	exit /b 1
 )
 
-choco uninstall procexp
+winget uninstall -e --id Microsoft.Sysinternals.ProcessExplorer --force --purge --disable-interactivity --accept-source-agreements -h > nul
 
 sc config pcw start=boot > nul
 sc start pcw > nul 2>&1
