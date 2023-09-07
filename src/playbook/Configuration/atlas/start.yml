@@ -101,14 +101,6 @@ actions:
     wait: true
     weight: 150
     option: 'browser-brave'
-
-  - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
-  - !run:
-    exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait winget install -e --id Brave.Brave --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h --ignore-local-archive-malware-scan --ignore-security-hash'
-    wait: true
-    option: 'browser-brave'
-    weight: 150
   - !taskKill {name: 'brave', option: 'browser-brave'}
 
     # Revert temporary WinGet configuration
