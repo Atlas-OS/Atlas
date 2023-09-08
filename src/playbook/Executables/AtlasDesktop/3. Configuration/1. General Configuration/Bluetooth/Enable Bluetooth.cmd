@@ -30,7 +30,9 @@ for %%a in (
 
 :: Enable Bluetooth devices
 call toggleDev.cmd -Silent -Enable '*Bluetooth*'
-reg delete "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth" /v "value" /f > nul
+
+:: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-connectivity
+reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth" /v "value" /t REG_DWORD /d "2" /f > nul
 
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
 if !errorlevel! == 1 attrib -h "!appdata!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
