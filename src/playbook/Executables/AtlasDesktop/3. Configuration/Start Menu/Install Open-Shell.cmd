@@ -40,6 +40,11 @@ echo]
 
 :: Download and install Open-Shell
 winget install -e --id Open-Shell.Open-Shell-Menu -h --accept-source-agreements --accept-package-agreements --force
+if !errorlevel! NEQ 0 (
+    echo Error: Open-Shell installation failed.
+    pause
+    exit /b 1
+)
 
 :: Download Fluent Metro theme
 for /f "delims=" %%a in ('PowerShell "(Invoke-RestMethod -Uri "https://api.github.com/repos/bonzibudd/Fluent-Metro/releases/latest").assets.browser_download_url"') do (
