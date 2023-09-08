@@ -37,7 +37,6 @@ actions:
   - !service: {name: 'sppsvc', operation: change, startup: 3}
   - !service: {name: 'SstpSvc', operation: change, startup: 4}
   - !service: {name: 'TabletInputService', operation: change, startup: 4}
-  - !service: {name: 'Themes', operation: change, startup: 4}
   - !service: {name: 'TrkWks', operation: change, startup: 4}
   - !service: {name: 'W32Time', operation: change, startup: 4}
   - !service: {name: 'WarpJITSvc', operation: change, startup: 4}
