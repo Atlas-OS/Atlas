@@ -7,7 +7,7 @@ $settingsXml = @"
   <setting name="EnableKph">0</setting>
 </settings>
 "@
-$settingsFilePath = "C:\Windows\System32\config\systemprofile\AppData\Roaming\Process Hacker 2\settings.xml"
+$settingsFilePath = "$env:windir\System32\config\systemprofile\AppData\Roaming\Process Hacker 2\settings.xml"
 $settingsDirectory = Split-Path -Path $settingsFilePath -Parent
 Remove-Item -Path $settingsDirectory -Recurse -Force -EA SilentlyContinue
 New-Item -Path $settingsDirectory -ItemType Directory -Force | Out-Null
