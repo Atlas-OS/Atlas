@@ -39,7 +39,7 @@ call "%windir%\AtlasDesktop\3. Configuration\Start Menu\Disable Start Menu and S
 echo]
 
 :: Download and install Open-Shell
-winget install -e --id Open-Shell.Open-Shell-Menu -h --accept-source-agreements --accept-package-agreements --force
+winget install -e --id Open-Shell.Open-Shell-Menu -h --accept-source-agreements --accept-package-agreements --force > nul
 if !errorlevel! NEQ 0 (
     echo Error: Open-Shell installation failed.
     pause
