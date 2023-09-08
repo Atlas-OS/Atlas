@@ -18,23 +18,31 @@ actions:
     exe: 'C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Printing\Disable Printing (default).cmd'
     args: '/silent'
 
-  - !service: {name: 'AppIDSvc', operation: change, startup: 4}
+    # These services are commented as they're manual
+    # They will only be uncommented once there's a proven benefit
+  # - !service: {name: 'PhoneSvc', operation: change, startup: 4}
+  # - !service: {name: 'AppIDSvc', operation: change, startup: 4}
+  # - !service: {name: 'Smartcard', operation: change, startup: 4}
+
+    # Set to manual from automatic
+    # Might not be all too beneficial, as services starting and always being ready is probably ideal
+  - !service: {name: 'wuauserv', operation: change, startup: 3}
   - !service: {name: 'CryptSvc', operation: change, startup: 3}
+  - !service: {name: 'sppsvc', operation: change, startup: 3}
+  - !service: {name: 'InstallService', operation: change, startup: 3}
+
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
   - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
-  - !service: {name: 'InstallService', operation: change, startup: 3}
   - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
   - !service: {name: 'KtmRm', operation: change, startup: 4}
   - !service: {name: 'luafv', operation: change, startup: 4}
   - !service: {name: 'MSDTC', operation: change, startup: 4}
   - !service: {name: 'NetTcpPortSharing', operation: change, startup: 4}
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
-  - !service: {name: 'PhoneSvc', operation: change, startup: 4}
   - !service: {name: 'RasMan', operation: change, startup: 4}
   - !service: {name: 'SmsRouter', operation: change, startup: 4}
-  - !service: {name: 'sppsvc', operation: change, startup: 3}
   - !service: {name: 'SstpSvc', operation: change, startup: 4}
   - !service: {name: 'TrkWks', operation: change, startup: 4}
   - !service: {name: 'W32Time', operation: change, startup: 4}
@@ -48,7 +56,6 @@ actions:
   - !service: {name: 'WMPNetworkSvc', operation: change, startup: 4}
   - !service: {name: 'WPDBusEnum', operation: change, startup: 4}
   - !service: {name: 'WSearch', operation: change, startup: 4}
-  - !service: {name: 'wuauserv', operation: change, startup: 3}
   - !service: {name: 'SEMgrSvc', operation: change, startup: 4}
   - !service: {name: 'OneSyncSvc', operation: change, startup: 4}
   # Previously deleted
@@ -61,7 +68,6 @@ actions:
   - !service: {name: 'MessagingService', operation: change, startup: 4}
   - !service: {name: 'GraphicsPerfSvc', operation: change, startup: 4}
   - !service: {name: 'autotimesvc', operation: change, startup: 4}
-  - !service: {name: 'Smartcard', operation: change, startup: 4}
   - !service: {name: 'AarSvc', operation: change, startup: 4}
   - !service: {name: 'tzautoupdate', operation: change, startup: 4}
   - !service: {name: 'PeerDistSvc', operation: change, startup: 4}
