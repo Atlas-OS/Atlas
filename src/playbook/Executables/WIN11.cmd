@@ -39,7 +39,7 @@ if defined win10 (
 
     rem Set hidden Settings pages
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "%hiddenPages%;backup;" /f > nul
-    
+
     exit /b
 )
 

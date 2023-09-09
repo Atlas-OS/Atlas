@@ -13,7 +13,7 @@ for /f "delims=" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services"') d
 				echo. >> !filename!
 				echo [%%~a] >> !filename!
 				echo "Start"=dword:0000000%%c >> !filename!
-			) 
-		) 
-	) 
+			)
+		)
+	)
 )

@@ -56,7 +56,7 @@ for /f %%a in ('wmic path Win32_NetworkAdapter get GUID ^| findstr "{"') do (
 
 :: Set network adapter driver registry key
 for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
-	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver"') do ( 
+	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver"') do (
         set "netKey=HKLM\SYSTEM\CurrentControlSet\Control\Class\%%b"
     )
 )

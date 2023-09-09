@@ -11,12 +11,12 @@ function Get-Hash {
       [CmdletBinding()]
       param (
         [Parameter( Position = 0, Mandatory = $true)]
-        [long] $iValue, 
-            
+        [long] $iValue,
+
         [Parameter( Position = 1, Mandatory = $true)]
-        [int] $iCount 
+        [int] $iCount
       )
-    
+
       if ($iValue -band 0x80000000) {
         Write-Output (( $iValue -shr $iCount) -bxor 0xFFFF0000)
       }
@@ -24,18 +24,18 @@ function Get-Hash {
         Write-Output  ($iValue -shr $iCount)
       }
     }
-    
+
 
     function local:Get-Long {
       [CmdletBinding()]
       param (
         [Parameter( Position = 0, Mandatory = $true)]
         [byte[]] $Bytes,
-    
+
         [Parameter( Position = 1)]
         [int] $Index = 0
       )
-    
+
       Write-Output ([BitConverter]::ToInt32($Bytes, $Index))
     }
 
@@ -44,27 +44,27 @@ function Get-Hash {
         [Parameter( Position = 0, Mandatory = $true)]
         $Value
       )
-    
+
       [byte[]] $bytes = [BitConverter]::GetBytes($Value)
-      return [BitConverter]::ToInt32( $bytes, 0) 
+      return [BitConverter]::ToInt32( $bytes, 0)
     }
 
-    [Byte[]] $bytesBaseInfo = [System.Text.Encoding]::Unicode.GetBytes($baseInfo) 
-    $bytesBaseInfo += 0x00, 0x00  
-    
+    [Byte[]] $bytesBaseInfo = [System.Text.Encoding]::Unicode.GetBytes($baseInfo)
+    $bytesBaseInfo += 0x00, 0x00
+
     $MD5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
     [Byte[]] $bytesMD5 = $MD5.ComputeHash($bytesBaseInfo)
-    
-    $lengthBase = ($baseInfo.Length * 2) + 2 
+
+    $lengthBase = ($baseInfo.Length * 2) + 2
     $length = (($lengthBase -band 4) -le 1) + (Get-ShiftRight $lengthBase  2) - 1
     $base64Hash = ""
 
     if ($length -gt 1) {
-    
+
       $map = @{PDATA = 0; CACHE = 0; COUNTER = 0 ; INDEX = 0; MD51 = 0; MD52 = 0; OUTHASH1 = 0; OUTHASH2 = 0;
         R0 = 0; R1 = @(0, 0); R2 = @(0, 0); R3 = 0; R4 = @(0, 0); R5 = @(0, 0); R6 = @(0, 0); R7 = @(0, 0)
       }
-    
+
       $map.CACHE = 0
       $map.OUTHASH1 = 0
       $map.PDATA = 0
@@ -72,7 +72,7 @@ function Get-Hash {
       $map.MD52 = ((Get-Long $bytesMD5 4) -bor 1) + 0x13DB0000L
       $map.INDEX = Get-ShiftRight ($length - 2) 1
       $map.COUNTER = $map.INDEX + 1
-    
+
       while ($map.COUNTER) {
         $map.R0 = Convert-Int32 ((Get-Long $bytesBaseInfo $map.PDATA) + [long]$map.OUTHASH1)
         $map.R1[0] = Convert-Int32 (Get-Long $bytesBaseInfo ($map.PDATA + 4))
@@ -95,11 +95,11 @@ function Get-Hash {
       $buffer.CopyTo($outHash, 0)
       $buffer = [BitConverter]::GetBytes($map.OUTHASH2)
       $buffer.CopyTo($outHash, 4)
-    
+
       $map = @{PDATA = 0; CACHE = 0; COUNTER = 0 ; INDEX = 0; MD51 = 0; MD52 = 0; OUTHASH1 = 0; OUTHASH2 = 0;
         R0 = 0; R1 = @(0, 0); R2 = @(0, 0); R3 = 0; R4 = @(0, 0); R5 = @(0, 0); R6 = @(0, 0); R7 = @(0, 0)
       }
-    
+
       $map.CACHE = 0
       $map.OUTHASH1 = 0
       $map.PDATA = 0
@@ -121,25 +121,25 @@ function Get-Hash {
         $map.R5[0] = Convert-Int32 ((0x96FF0000L * $map.R4[1]) - (0x2C7C6901L * (Get-ShiftRight $map.R4[1] 16)))
         $map.R5[1] = Convert-Int32 ((0x2B890000L * $map.R5[0]) + (0x7C932B89L * (Get-ShiftRight $map.R5[0] 16)))
         $map.OUTHASH1 = Convert-Int32 ((0x9F690000L * $map.R5[1]) - (0x405B6097L * (Get-ShiftRight ($map.R5[1]) 16)))
-        $map.OUTHASH2 = Convert-Int32 ([long]$map.OUTHASH1 + $map.CACHE + $map.R3) 
+        $map.OUTHASH2 = Convert-Int32 ([long]$map.OUTHASH1 + $map.CACHE + $map.R3)
         $map.CACHE = ([long]$map.OUTHASH2)
         $map.COUNTER = $map.COUNTER - 1
       }
-    
+
       $buffer = [BitConverter]::GetBytes($map.OUTHASH1)
       $buffer.CopyTo($outHash, 8)
       $buffer = [BitConverter]::GetBytes($map.OUTHASH2)
       $buffer.CopyTo($outHash, 12)
-    
+
       [Byte[]] $outHashBase = @(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
       $hashValue1 = ((Get-Long $outHash 8) -bxor (Get-Long $outHash))
       $hashValue2 = ((Get-Long $outHash 12) -bxor (Get-Long $outHash 4))
-    
+
       $buffer = [BitConverter]::GetBytes($hashValue1)
       $buffer.CopyTo($outHashBase, 0)
       $buffer = [BitConverter]::GetBytes($hashValue2)
       $buffer.CopyTo($outHashBase, 4)
-      $base64Hash = [Convert]::ToBase64String($outHashBase) 
+      $base64Hash = [Convert]::ToBase64String($outHashBase)
     }
 
     Write-Output $base64Hash
@@ -166,15 +166,15 @@ function Delete-UserChoiceKey {
   using System;
   using System.Runtime.InteropServices;
   using Microsoft.Win32;
-  
+
   namespace Registry {
     public class Utils {
       [DllImport("advapi32.dll", SetLastError = true)]
       private static extern int RegOpenKeyEx(UIntPtr hKey, string subKey, int ulOptions, int samDesired, out UIntPtr hkResult);
-  
+
       [DllImport("advapi32.dll", SetLastError=true, CharSet = CharSet.Unicode)]
       private static extern uint RegDeleteKey(UIntPtr hKey, string subKey);
-  
+
       public static void DeleteKey(string key) {
         UIntPtr hKey = UIntPtr.Zero;
         RegOpenKeyEx((UIntPtr)0x80000003u, key, 0, 0x20019, out hKey);
@@ -191,7 +191,7 @@ function Delete-UserChoiceKey {
 $Hive = $args[1]
 
 $userExperience = ""
-if ($Hive.StartsWith("S-")) 
+if ($Hive.StartsWith("S-"))
 {
   $userExperienceSearch = "User Choice set via Windows User Experience"
   $user32Path = [Environment]::GetFolderPath([Environment+SpecialFolder]::SystemX86) + "\Shell32.dll"
@@ -244,7 +244,7 @@ for ($i = 2; $i -lt $args.Length; $i++) {
   } else {
     If (-NOT (Test-Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$($splitArg[0])")) {
     New-Item -Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$($splitArg[0])" -Force | Out-Null
-    } 
+    }
     If (Test-Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$($splitArg[0])\UserChoice") {
     Delete-UserChoiceKey "$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$($splitArg[0])\UserChoice"
     }
