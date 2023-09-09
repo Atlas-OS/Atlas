@@ -5,6 +5,7 @@ privilege: TrustedInstaller
 actions:
     # Prevent annoying notifications during deployment
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance', value: 'Enabled', type: REG_DWORD, data: '0'}
+
     # Prevent computer from going to sleep
   - !run: {exe: 'powercfg.exe', args: '/setacvalueindex scheme_current sub_sleep standbyidle 0'}
   - !run: {exe: 'powercfg.exe', args: '/setdcvalueindex scheme_current sub_sleep standbyidle 0'}
@@ -82,7 +83,6 @@ actions:
     wait: true
     weight: 150
     option: 'librewolf-winupdater'
-
 
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !run:

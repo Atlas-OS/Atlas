@@ -4,7 +4,17 @@ description: Reverts to the much faster and stable old search box in Windows Exp
 privilege: TrustedInstaller
 actions:
   - !registryValue:
-    path: 'HKCU\Software\Classes\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs'
+    path: 'HKLM\SOFTWARE\Classes\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs'
+    value: ''
+    data: '{64bc32b5-4eec-4de7-972d-bd8bd0324537}'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Classes\WOW6432Node\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs'
+    value: ''
+    data: '{64bc32b5-4eec-4de7-972d-bd8bd0324537}'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Classes\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs'
     value: ''
     data: '{64bc32b5-4eec-4de7-972d-bd8bd0324537}'
     type: REG_SZ
