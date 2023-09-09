@@ -19,7 +19,7 @@ goto script
 - Can configure more services than sc.exe, sometimes there might be 'Access denied' otherwise
 
 [USAGE]
-call setSvc.cmd (service) (start)
+call setSvc.cmd [service] [start]
 
 ----------------------------------------
 

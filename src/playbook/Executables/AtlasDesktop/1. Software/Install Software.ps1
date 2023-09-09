@@ -55,7 +55,7 @@ function generate_checkbox {
     $checkbox.Text = $checkboxText
     $checkbox.Name = $package
     $checkbox.Enabled = $enabled
-    
+
     $checkbox
 }
 
@@ -213,7 +213,7 @@ if ($this.Text -eq "Dark Mode") {
     light_mode
 }
 })
-# Changed into functions 
+# Changed into functions
 function dark_mode {
     $Form.BackColor = [System.Drawing.Color]::FromArgb(26, 26, 26)
     $Form.ForeColor = [System.Drawing.Color]::White

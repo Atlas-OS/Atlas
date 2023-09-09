@@ -49,7 +49,7 @@ function DeleteEdgeUpdate {
 
 function RemoveEdgeChromium {
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
-	
+
 	# kill Edge
 	$ErrorActionPreference = 'SilentlyContinue'
 
@@ -63,7 +63,7 @@ function RemoveEdgeChromium {
 	)
 
 	foreach ($service in $services) {Stop-Service -Name $service -Force}
-	
+
 	$ErrorActionPreference = 'Continue'
 
 	# check if 'experiment_control_labels' value exists and delete it if found
@@ -168,16 +168,16 @@ Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99
 
 		if ($removeWebView) {$colourWeb = "Green"; $textWeb = "Selected"} else {$colourWeb = "Red"; $textWeb = "Unselected"}
 		if ($removeData) {$colourData = "Green"; $textData = "Selected"} else {$colourData = "Red"; $textData = "Unselected"}
-		
+
 		Write-Host "Options:"
 		Write-Host "[1] Remove Edge WebView ($textWeb)" -ForegroundColor $colourWeb
 		Write-Host "[2] Remove Edge User Data ($textData)`n" -ForegroundColor $colourData
 		Write-Host "Press enter to continue or use numbers to select options... " -NoNewLine
-		
+
 		$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-		
+
 		write-host "$input.VirtualKeyCode"
-		
+
 		switch ($userInput.VirtualKeyCode) {
 			49 { # num 1
 				$removeWebView = !$removeWebView
