@@ -1,6 +1,6 @@
 ---
 title: Revert to Classic Search
-description: Reverts to the much faster and stable old search box in Windows Explorer
+description: Reverts to the much faster and stable old search box in File Explorer
 privilege: TrustedInstaller
 actions:
   - !registryValue:
