@@ -23,6 +23,10 @@ actions:
   # - !service: {name: 'PhoneSvc', operation: change, startup: 4}
   # - !service: {name: 'AppIDSvc', operation: change, startup: 4}
   # - !service: {name: 'Smartcard', operation: change, startup: 4}
+  # - !service: {name: 'W32Time', operation: change, startup: 4}
+  # - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
+    # Specifically says in the description that it will never be started unless needed
+  # - !service: {name: 'KtmRm', operation: change, startup: 4}
 
     # Set to manual from automatic
     # Might not be all too beneficial, as services starting and always being ready is probably ideal
@@ -30,13 +34,13 @@ actions:
   - !service: {name: 'CryptSvc', operation: change, startup: 3}
   - !service: {name: 'sppsvc', operation: change, startup: 3}
   - !service: {name: 'InstallService', operation: change, startup: 3}
+    # Seems to set its self back to auto, probably needed in Windows 11
+  # - !service: {name: 'DoSvc', operation: change, startup: 3}
 
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
   - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
-  - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
-  - !service: {name: 'KtmRm', operation: change, startup: 4}
   - !service: {name: 'luafv', operation: change, startup: 4}
   - !service: {name: 'MSDTC', operation: change, startup: 4}
   - !service: {name: 'NetTcpPortSharing', operation: change, startup: 4}
@@ -45,7 +49,6 @@ actions:
   - !service: {name: 'SmsRouter', operation: change, startup: 4}
   - !service: {name: 'SstpSvc', operation: change, startup: 4}
   - !service: {name: 'TrkWks', operation: change, startup: 4}
-  - !service: {name: 'W32Time', operation: change, startup: 4}
   - !service: {name: 'WarpJITSvc', operation: change, startup: 4}
   - !service: {name: 'WdiServiceHost', operation: change, startup: 4}
   - !service: {name: 'WdiSystemHost', operation: change, startup: 4}
@@ -80,7 +83,6 @@ actions:
   # icssvc 4 < breaks mobile/Wi-Fi hotspot
   # IKEEXT 4 < causes Teredo not to work
   # DisplayEnhancementService 4 < breaks brightness slider on laptops
-  # DoSvc 3 < Seems to just enable its self, probably needed in Windows 11
   # iphlpsvc 4 < causes Teredo not to work
   # KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
   # SharedAccess 4 < breaks mobile/Wi-Fi hotspot
