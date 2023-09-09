@@ -41,7 +41,6 @@ actions:
   - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
-  - !service: {name: 'luafv', operation: change, startup: 4}
   - !service: {name: 'MSDTC', operation: change, startup: 4}
   - !service: {name: 'NetTcpPortSharing', operation: change, startup: 4}
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
