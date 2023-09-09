@@ -95,6 +95,7 @@ actions:
   - !service: {name: 'circlass', operation: change, startup: 4}
   - !service: {name: 'cnghwassist', operation: change, startup: 4}
   - !service: {name: 'CompositeBus', operation: change, startup: 4}
+  - !service: {name: 'dam', operation: change, startup: 4}
   - !service: {name: 'Dfsc', operation: change, startup: 4}
   - !service: {name: 'ErrDev', operation: change, startup: 4}
   - !service: {name: 'fdc', operation: change, startup: 4}
