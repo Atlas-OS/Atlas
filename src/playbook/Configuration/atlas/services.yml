@@ -111,7 +111,8 @@ actions:
   - !service: {name: 'udfs', operation: change, startup: 4}
   - !service: {name: 'VerifierExt', operation: change, startup: 4}
   - !service: {name: 'vsmraid', operation: change, startup: 4}
-  - !service: {name: 'VSTXRAID', operation: change, startup: 4}
+  - !service: {name: 'VSTXRAID', operation: change, startup: 4
+  - !service: {name: 'wisvc', operation: change, startup: 4}
   - !service: {name: 'wcnfs', operation: change, startup: 4}
   - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
 
