@@ -101,6 +101,7 @@ actions:
   - !service: {name: 'fdc', operation: change, startup: 4}
   - !service: {name: 'flpydisk', operation: change, startup: 4}
   - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
+  - !service: {name: 'NetBT', operation: change, startup: 4}
   - !service: {name: 'nvraid', operation: change, startup: 4}
   - !service: {name: 'sfloppy', operation: change, startup: 4}
   - !service: {name: 'SiSRaid2', operation: change, startup: 4}
