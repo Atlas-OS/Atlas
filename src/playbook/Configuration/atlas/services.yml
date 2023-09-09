@@ -22,6 +22,9 @@ actions:
   - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
+  - !service: {name: 'lfsvc', operation: change, startup: 4}
+  - !service: {name: 'MapsBroker', operation: change, startup: 4}
+  - !service: {name: 'OneSyncSvc', operation: change, startup: 4}
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
   - !service: {name: 'TrkWks', operation: change, startup: 4}
   - !service: {name: 'WdiServiceHost', operation: change, startup: 4}
@@ -29,16 +32,39 @@ actions:
   - !service: {name: 'wercplsupport', operation: change, startup: 4}
   - !service: {name: 'WerSvc', operation: change, startup: 4}
   - !service: {name: 'WSearch', operation: change, startup: 4}
-  - !service: {name: 'OneSyncSvc', operation: change, startup: 4}
-  - !service: {name: 'MapsBroker', operation: change, startup: 4}
-  - !service: {name: 'lfsvc', operation: change, startup: 4}
 
     # Set to manual from automatic
     # Might not be all too beneficial, as services starting and always being ready is probably ideal
-  - !service: {name: 'wuauserv', operation: change, startup: 3}
   - !service: {name: 'CryptSvc', operation: change, startup: 3}
   - !service: {name: 'sppsvc', operation: change, startup: 3}
-  - !service: {name: 'InstallService', operation: change, startup: 3}
+
+    # These services are commented as they're manual
+    # They will only be uncommented once there's a proven benefit
+  # - !service: {name: 'AarSvc', operation: change, startup: 4}
+  # - !service: {name: 'AJRouter', operation: change, startup: 4}
+  # - !service: {name: 'AppIDSvc', operation: change, startup: 4}
+  # - !service: {name: 'autotimesvc', operation: change, startup: 4}
+  # - !service: {name: 'embeddedmode', operation: change, startup: 4}
+  # - !service: {name: 'fhsvc', operation: change, startup: 4}
+  # - !service: {name: 'GraphicsPerfSvc', operation: change, startup: 4}
+  # - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
+  # - !service: {name: 'KtmRm', operation: change, startup: 4}
+  # - !service: {name: 'MessagingService', operation: change, startup: 4}
+  # - !service: {name: 'MSDTC', operation: change, startup: 4}
+  # - !service: {name: 'PeerDistSvc', operation: change, startup: 4}
+  # - !service: {name: 'PhoneSvc', operation: change, startup: 4}
+  # - !service: {name: 'RasMan', operation: change, startup: 4}
+  # - !service: {name: 'SEMgrSvc', operation: change, startup: 4}
+  # - !service: {name: 'Smartcard', operation: change, startup: 4}
+  # - !service: {name: 'SmsRouter', operation: change, startup: 4}
+  # - !service: {name: 'SstpSvc', operation: change, startup: 4}
+  # - !service: {name: 'W32Time', operation: change, startup: 4}
+  # - !service: {name: 'WarpJITSvc', operation: change, startup: 4}
+  # - !service: {name: 'wbengine', operation: change, startup: 4}
+  # - !service: {name: 'WEPHOSTSVC', operation: change, startup: 4}
+  # - !service: {name: 'wlpasvc', operation: change, startup: 4}
+  # - !service: {name: 'WMPNetworkSvc', operation: change, startup: 4}
+  # - !service: {name: 'WPDBusEnum', operation: change, startup: 4}
 
   # DPS 4 < breaks Data Usage
   # DsSvc 4 < can cause issues with Snip & Sketch
@@ -49,37 +75,6 @@ actions:
   # KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
   # SharedAccess 4 < breaks mobile/Wi-Fi hotspot
   # ShellHWDetection 4 < breaks bitlocker
-
-    # These services are commented as they're manual
-    # They will only be uncommented once there's a proven benefit
-  # - !service: {name: 'PhoneSvc', operation: change, startup: 4}
-  # - !service: {name: 'AppIDSvc', operation: change, startup: 4}
-  # - !service: {name: 'Smartcard', operation: change, startup: 4}
-  # - !service: {name: 'W32Time', operation: change, startup: 4}
-  # - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
-    # Specifically says in the description that it will never be started unless needed
-  # - !service: {name: 'KtmRm', operation: change, startup: 4}
-  # - !service: {name: 'MSDTC', operation: change, startup: 4}
-  # - !service: {name: 'WarpJITSvc', operation: change, startup: 4}
-  # - !service: {name: 'SmsRouter', operation: change, startup: 4}
-  # - !service: {name: 'RasMan', operation: change, startup: 4}
-  # - !service: {name: 'SstpSvc', operation: change, startup: 4}
-  # - !service: {name: 'Wecsvc', operation: change, startup: 4}
-  # - !service: {name: 'SEMgrSvc', operation: change, startup: 4}
-  # - !service: {name: 'WPDBusEnum', operation: change, startup: 4}
-  # - !service: {name: 'WMPNetworkSvc', operation: change, startup: 4}
-  # - !service: {name: 'WEPHOSTSVC', operation: change, startup: 4}
-  # - !service: {name: 'wlpasvc', operation: change, startup: 4}
-  # - !service: {name: 'fhsvc', operation: change, startup: 4}
-  # - !service: {name: 'embeddedmode', operation: change, startup: 4}
-  # - !service: {name: 'PeerDistSvc', operation: change, startup: 4}
-  # - !service: {name: 'AarSvc', operation: change, startup: 4}
-  # - !service: {name: 'autotimesvc', operation: change, startup: 4}
-  # - !service: {name: 'MessagingService', operation: change, startup: 4}
-  # - !service: {name: 'RemoteRegistry', operation: change, startup: 4}
-  # - !service: {name: 'AJRouter', operation: change, startup: 4}
-  # - !service: {name: 'wbengine', operation: change, startup: 4}
-  # - !service: {name: 'GraphicsPerfSvc', operation: change, startup: 4}
 
   # ---------------------- Services END ----------------------
 
@@ -117,6 +112,7 @@ actions:
   - !service: {name: 'VSTXRAID', operation: change, startup: 4}
   - !service: {name: 'wcnfs', operation: change, startup: 4}
   - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
+
   # rdbss 3 < Commented as we're not sure if it functions normally set to manual
   # FileInfo 4 < Breaks installing Microsoft Store applications to different disk
   # FileCrypt 4 < Breaks installing Microsoft Store applications to different disk

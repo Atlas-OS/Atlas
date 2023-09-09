@@ -13,7 +13,7 @@ call setSvc.cmd Eaphost 3
 call setSvc.cmd IKEEXT 3
 call setSvc.cmd iphlpsvc 3
 call setSvc.cmd NdisVirtualBus 3
-call setSvc.cmd RasMan 3
+call setSvc.cmd RasMan 2
 call setSvc.cmd SstpSvc 3
 call setSvc.cmd WinHttpAutoProxySvc 3
 
