@@ -27,6 +27,9 @@ foreach ($interface in $interfaces) {
     Set-ItemProperty -Path $interface.PSPath -Name "NetbiosOptions" -Value 2 | Out-Null
 }
 
+# Enable Net Bios service
+cmd /c "call setSvc.cmd NetBT 1"
+
 choice /c:yn /n /m "Would you like to change your network profile to 'Private'? [Y/N] "
 if ($LASTEXITCODE -eq 1) {
     # Set network profile to 'Private Network'

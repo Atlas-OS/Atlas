@@ -4,7 +4,7 @@ setlocal EnableDelayedExpansion
 if "%~1"=="/setup" goto main
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" "%*"
+	call %windir%\AtlasModules\Scripts\RunAsTI.cmd "%~f0" "%*"
 	exit /b
 )
 
@@ -76,7 +76,6 @@ powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 3c
 powercfg /setactive scheme_current
 
 :: Disable Advanced Configuration and Power Interface (ACPI) devices
-:: A full path is required for AME Wizard configuration as of now
 call %windir%\AtlasModules\Scripts\toggleDev.cmd @("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI") > nul
 
 :: Disable driver/device power saving

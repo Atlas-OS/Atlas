@@ -24,6 +24,9 @@ foreach ($interface in $interfaces) {
     Set-ItemProperty -Path $interface.PSPath -Name "NetbiosOptions" -Value 2 | Out-Null
 }
 
+# Disable Net Bios service
+cmd /c "call setSvc.cmd NetBT 4"
+
 # Set network profile to 'Public Network'
 $profiles = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles" -Recurse | Where-Object { $_.GetValue("Category") -ne $null }
 foreach ($profile in $profiles) {
