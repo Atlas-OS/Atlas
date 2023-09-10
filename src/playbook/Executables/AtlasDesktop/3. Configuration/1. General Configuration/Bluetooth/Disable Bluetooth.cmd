@@ -20,7 +20,6 @@ for %%a in (
 	"BthLEEnum"
 	"BthMini"
 	"BTHMODEM"
-	"BthPan"
 	"BTHPORT"
 	"bthserv"
 	"BTHUSB"
@@ -30,6 +29,9 @@ for %%a in (
 ) do (
 	call %windir%\AtlasModules\Scripts\setSvc.cmd %%~a 4
 )
+
+:: Seems to not exist sometimes
+call setSvc.cmd BthPan 4 > nul 2>&1
 
 :: Disable Bluetooth devices
 call %windir%\AtlasModules\Scripts\toggleDev.cmd -Silent '*Bluetooth*'

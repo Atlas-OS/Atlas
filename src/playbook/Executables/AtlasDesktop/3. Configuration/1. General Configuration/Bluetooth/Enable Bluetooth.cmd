@@ -17,7 +17,6 @@ for %%a in (
 	"BthLEEnum"
 	"BthMini"
 	"BTHMODEM"
-	"BthPan"
 	"BTHPORT"
 	"bthserv"
 	"BTHUSB"
@@ -27,6 +26,9 @@ for %%a in (
 ) do (
 	call setSvc.cmd %%~a 3
 )
+
+:: Seems to not exist sometimes
+call setSvc.cmd BthPan 3 > nul 2>&1
 
 :: Enable Bluetooth devices
 call toggleDev.cmd -Silent -Enable '*Bluetooth*'
