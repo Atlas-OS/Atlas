@@ -5,7 +5,7 @@ privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
-    value: 'Microsoft.QuickAction.ProjectL2'
+    value: 'Microsoft.QuickAction.Cast'
     data: ''
     type: REG_NONE
   - !registryValue:
@@ -16,5 +16,5 @@ actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture'
     value: 'Toggles'
-    data: 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.Cast:true'
+    data: 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false'
     type: REG_SZ
