@@ -21,10 +21,8 @@ $removeProductCode = $true
 # script #
 # ------ #
 
-$excludeFiles = @("local-build.cmd", "playbook.conf")
 $apbxFileName = "$fileName.apbx"
-# playbook that is modified for removing requirements
-$tempPlaybook = "$env:temp\playbook.conf"
+$apbxPath = "$PWD\$fileName.apbx"
 
 if (!(Test-Path -Path "playbook.conf")) {
 	Write-Host "playbook.conf file not found in the current directory." -ForegroundColor Red
@@ -48,11 +46,11 @@ if (($replaceOldPlaybook) -and (Test-Path -Path $apbxFileName)) {
 	if (Test-Path -Path $apbxFileName) {
 		$num = 1
 		while(Test-Path -Path "$fileName ($num).apbx") {$num++}
-		$apbxFileName = "$fileName ($num).apbx"
+		$apbxFileName = "$PWD\$fileName ($num).apbx"
 	}
 }
 
-$zipFileName = [System.IO.Path]::ChangeExtension($apbxFileName, "zip")
+$zipFileName = Join-Path -Path $PWD -ChildPath $([System.IO.Path]::ChangeExtension($apbxFileName, "zip"))
 
 # remove old temp files
 Remove-Item -Path $zipFileName -Force -EA 0
@@ -61,54 +59,86 @@ if (!($?) -and (Test-Path -Path "$zipFileName")) {
 	Start-Sleep 2
 	exit 1
 }
-Remove-Item -Path "playbook.conf.old" -Force -EA 0
-if (!($?) -and (Test-Path -Path "playbook.conf.old")) {
-	Write-Host "Failed to delete temporary 'playbook.conf.old' file!" -ForegroundColor Red
+
+# make temp directories
+$rootTemp = Join-Path -Path $env:temp -ChildPath $([System.IO.Path]::GetRandomFileName())
+New-Item $rootTemp -ItemType Directory -Force | Out-Null
+if (!(Test-Path -Path "$rootTemp")) {
+	Write-Host "Failed to create temporary directory!" -ForegroundColor Red
 	Start-Sleep 2
 	exit 1
 }
+$configDir = "$rootTemp\playbook\Configuration\atlas"
+New-Item $configDir -ItemType Directory -Force | Out-Null
 
-$filteredItems = @()
-$filteredItems = $filteredItems + (Get-ChildItem | Where-Object { $excludeFiles -notcontains $_.Name -and $_.Name -notlike "*.apbx" }).FullName + "$tempPlaybook"
+try {
+	$tempPlaybookConf = "$rootTemp\playbook\playbook.conf"
+	$ymlPath = "Configuration\atlas\start.yml"
+	$tempStartYML = "$rootTemp\playbook\$ymlPath"
 
-# remove entries in playbook config that make it awkward for testing
-$patterns = @()
-# 0.6.5 has a bug where it will crash without the 'Requirements' field, but all of the requirements are removed
-# "<Requirements>" and # "</Requirements>"
-if ($removeRequirements) {$patterns += "<Requirement>"}
-if ($removeBuildRequirement) {$patterns += "<string>", "</SupportedBuilds>", "<SupportedBuilds>"}
-if ($removeProductCode) {$patterns += "<ProductCode>"}
+	# remove entries in playbook config that make it awkward for testing
+	$patterns = @()
+	# 0.6.5 has a bug where it will crash without the 'Requirements' field, but all of the requirements are removed
+	# "<Requirements>" and # "</Requirements>"
+	if ($removeRequirements) {$patterns += "<Requirement>"}
+	if ($removeBuildRequirement) {$patterns += "<string>", "</SupportedBuilds>", "<SupportedBuilds>"}
+	if ($removeProductCode) {$patterns += "<ProductCode>"}
 
-$newContent = Get-Content "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') }
-$newContent | Set-Content "$tempPlaybook" -Force
+	$newContent = Get-Content "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') }
+	$newContent | Set-Content "$tempPlaybookConf" -Force
 
-if ($removeDependencies) {
-	$startYML = "$PWD\Configuration\atlas\start.yml"
-	$tempPath = "$env:TEMP\start.yml"
-	if (Test-Path $startYML -PathType Leaf) {
-		Copy-Item -Path $startYML -Destination $tempPath -Force
+	if ($removeDependencies) {
+		$startYML = "$PWD\$ymlPath"
+		if (Test-Path $startYML -PathType Leaf) {
+			Copy-Item -Path $startYML -Destination $tempStartYML -Force
 
-		$content = Get-Content -Path $startYML -Raw
+			$content = Get-Content -Path $tempStartYML -Raw
 
-		$startMarker = "  ################ NO LOCAL BUILD ################"
-		$endMarker = "  ################ END NO LOCAL BUILD ################"
+			$startMarker = "  ################ NO LOCAL BUILD ################"
+			$endMarker = "  ################ END NO LOCAL BUILD ################"
 
-		$startIndex = $content.IndexOf($startMarker)
-		$endIndex = $content.IndexOf($endMarker)
+			$startIndex = $content.IndexOf($startMarker)
+			$endIndex = $content.IndexOf($endMarker)
 
-		if ($startIndex -ge 0 -and $endIndex -ge 0) {
-			$newContent = $content.Substring(0, $startIndex) + $content.Substring($endIndex + $endMarker.Length)
-			Set-Content -Path $startYML -Value $newContent
+			if ($startIndex -ge 0 -and $endIndex -ge 0) {
+				$newContent = $content.Substring(0, $startIndex) + $content.Substring($endIndex + $endMarker.Length)
+				Set-Content -Path $tempStartYML -Value $newContent
+			}
 		}
 	}
+
+	$excludeFiles = @(
+		"local-build.cmd",
+		"playbook.conf",
+		"*.apbx"
+	); if (Test-Path $tempStartYML) { $excludeFiles += "start.yml" }
+
+	# make playbook, 7z is faster
+	$filteredItems = @()
+	if (Get-Command '7z.exe' -EA SilentlyContinue) {
+		$7zPath = '7z.exe'
+	} elseif (Test-Path "$env:ProgramFiles\7-Zip\7z.exe") {
+		$7zPath = "$env:ProgramFiles\7-Zip\7z.exe"
+	}
+
+	if ($7zPath) {
+		(Get-ChildItem -Recurse -File | Where-Object { $excludeFiles -notcontains $_.Name }).FullName `
+		| Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File "$rootTemp\7zFiles.txt" -Encoding utf8
+
+		& $7zPath a -spf -y -mx1 -tzip "$apbxPath" `@"$rootTemp\7zFiles.txt" | Out-Null
+		# add edited files
+		Push-Location "$rootTemp\playbook"
+		& $7zPath u "$apbxPath" * | Out-Null
+		Pop-Location
+	} else {
+		$filteredItems += (Get-ChildItem | Where-Object { $excludeFiles -notcontains $_.Name }).FullName + "$tempPlaybookConf"
+		if (Test-Path $tempStartYML) { $filteredItems = $filteredItems + "$tempStartYML" }
+
+		Compress-Archive -Path $filteredItems -DestinationPath $zipFileName
+		Rename-Item -Path $zipFileName -NewName $apbxFileName
+	}
+
+	Write-Host "Completed." -ForegroundColor Green
+} finally { 
+	Remove-Item $rootTemp -Force -EA 0 -Recurse | Out-Null
 }
-
-# make playbook
-Compress-Archive -Path $filteredItems -DestinationPath $zipFileName
-Rename-Item -Path $zipFileName -NewName $apbxFileName
-
-# add back unmodified start.yml
-if ($removeDependencies) {Copy-Item -Path $tempPath -Destination $startYML -Force}
-
-Write-Host "Completed." -ForegroundColor Green
-Start-Sleep 1
