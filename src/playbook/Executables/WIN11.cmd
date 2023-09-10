@@ -27,10 +27,14 @@ sync;^
 printers;^
 cortana-windowssearch
 
-:: Set Windows 10 only changes
+:: Set 10-only changes
 if defined win10 (
+    set regVariable=USERREG10
+
     rem Set dual boot menu description to AtlasOS 10
     bcdedit /set description "AtlasOS 10"
+
+    rem Delete 11-only tweaks
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\Background Apps" > nul 2>&1
     rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\Power\Timer Resolution" > nul 2>&1
     rd /s /q "C:\Windows\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Compact View" > nul 2>&1
@@ -39,9 +43,18 @@ if defined win10 (
 
     rem Set hidden Settings pages
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "%hiddenPages%;backup;" /f > nul
-
-    exit /b
+) else (
+    set regVariable=USERREG
 )
+
+:: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
+for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
+    reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul
+	if errorlevel 0 call :%regVariable% "%%a"
+)
+:: call :USERREG ".DEFAULT"
+
+if defined win10 exit /b
 
 :: Remove volume flyout
 rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul 2>&1
@@ -57,13 +70,6 @@ reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotifi
 
 :: Restore Music and Videos folders by clearing up Quick Access' cache
 del /f /q "%appdata%\Microsoft\Windows\Recent\AutomaticDestinations\f01b4d95cf55d32a.automaticDestinations-ms" > nul 2>&1
-
-:: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
-for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
-    reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul
-	if errorlevel 0 call :USERREG "%%a"
-)
-:: call :USERREG ".DEFAULT"
 
 exit /b
 
@@ -98,6 +104,11 @@ reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Explorer" /v "ShowClo
 :: Restore old Windows 10 context menu
 reg add "HKU\%~1\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve > nul
 
+:: Set unpinned Notification Center items
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Cast" /t REG_NONE /d "" /f > nul
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.NearShare" /t REG_NONE /d "" /f > nul
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false" /f > nul
+
 :: Remove 'Bitmap File' from 'New' context menu
 echo %~1 | find "_Classes" > nul
 if errorlevel 0 (
@@ -108,3 +119,14 @@ if errorlevel 0 (
         )
     )
 )
+
+exit /b
+
+:USERREG10
+:: Set unpinned Notification Center items
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Connect" /t REG_NONE /d "" /f > nul
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Location" /t REG_NONE /d "" /f > nul
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f > nul
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false" /f > nul
+
+exit /b

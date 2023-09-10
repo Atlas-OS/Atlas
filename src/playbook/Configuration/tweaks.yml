@@ -253,7 +253,6 @@ features:
   - tweaks\qol\shell\disable-menu-delay.yml
   - tweaks\qol\shell\disable-network-location-wizard.yml
   - tweaks\qol\shell\disable-shared-experiences.yml
-  - tweaks\qol\shell\notification-quick-settings.yml
   - tweaks\qol\shell\old-alt-tab.yml
 
   # -------------------------------------------------------------------------- #
