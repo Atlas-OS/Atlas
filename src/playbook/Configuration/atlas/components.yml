@@ -6,7 +6,7 @@ actions:
     # Windows Defender
   - !writeStatus: {status: 'Disabling Windows Defender', option: 'defender-disable'}
   - !run:
-    exe: 'C:\Windows\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd'
+    exe: 'C:\Windows\AtlasDesktop\7. Security\Defender\Toggle Defender.cmd'
     args: '-Disable'
     wait: true
     option: 'defender-disable'

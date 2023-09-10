@@ -11,11 +11,11 @@ actions:
   # ------------------------ Services ------------------------
 
   - !run:
-    exe: 'C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Bluetooth\Disable Bluetooth.cmd'
+    exe: 'C:\Windows\AtlasDesktop\3. Configuration\Bluetooth\Disable Bluetooth.cmd'
     args: '/silent'
     option: 'disable-bluetooth'
   - !run:
-    exe: 'C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Printing\Disable Printing (default).cmd'
+    exe: 'C:\Windows\AtlasDesktop\3. Configuration\Printing\Disable Printing (default).cmd'
     args: '/silent'
 
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}

@@ -31,10 +31,10 @@ cortana-windowssearch
 if defined win10 (
     rem Set dual boot menu description to AtlasOS 10
     bcdedit /set description "AtlasOS 10"
-    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Background Apps" > nul 2>&1
-    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Power\Timer Resolution" > nul 2>&1
-    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\File Explorer Customization\Compact View" > nul 2>&1
-    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Windows 11 Context Menu" > nul 2>&1
+    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\Background Apps" > nul 2>&1
+    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\Power\Timer Resolution" > nul 2>&1
+    rd /s /q "C:\Windows\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Compact View" > nul 2>&1
+    rd /s /q "C:\Windows\AtlasDesktop\4. Optional Tweaks\Windows 11 Context Menu" > nul 2>&1
     del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul 2>&1
 
     rem Set hidden Settings pages

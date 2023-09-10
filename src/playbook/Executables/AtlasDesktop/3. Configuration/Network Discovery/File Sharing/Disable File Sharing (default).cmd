@@ -13,7 +13,7 @@ powershell -nop "& ([Scriptblock]::Create((Get-Content '%~f0' -Raw))) %args%"
 exit /b %errorlevel%
 : end batch / begin PowerShell #>
 
-$networkDiscoveryConfigPath = "$env:windir\AtlasDesktop\3. Configuration\1. General Configuration\Network Discovery"
+$networkDiscoveryConfigPath = "$env:windir\AtlasDesktop\3. Configuration\Network Discovery"
 
 # Disable network items
 Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr | Out-Null

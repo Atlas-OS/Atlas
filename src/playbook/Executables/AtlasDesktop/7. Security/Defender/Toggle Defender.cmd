@@ -56,7 +56,7 @@ if ($null -eq $packages) {$DefenderEnabled = '(current)'} else {$DefenderDisable
 
 function SetSafeMode {
 	Start-Process -File 'bcdedit' -ArgumentList '/set {current} safeboot minimal' -WindowStyle Hidden
-	Set-ItemProperty -Path $winlogon -Name Shell -Value "$env:WinDir\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd -SafeMode"
+	Set-ItemProperty -Path $winlogon -Name Shell -Value "$env:WinDir\AtlasDesktop\7. Security\Defender\Toggle Defender.cmd -SafeMode"
 	Restart-Computer
 	exit
 }
@@ -104,7 +104,7 @@ function InstallPackage {
 
 		if ($Silent) {
 			Write-Warning "Registring scheduled task to prompt user to disable Defender next reboot, as it has failed..."
-			$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument '/c "C:\Windows\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd" -DisableFailedMessage'
+			$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument '/c "C:\Windows\AtlasDesktop\7. Security\Defender\Toggle Defender.cmd" -DisableFailedMessage'
 			$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 			$trigger = New-ScheduledTaskTrigger -AtLogon
 			Register-ScheduledTask -TaskName $taskName -Trigger $trigger -Action $action -Settings $settings -User $env:USERNAME -RunLevel Highest -Force | Out-Null
