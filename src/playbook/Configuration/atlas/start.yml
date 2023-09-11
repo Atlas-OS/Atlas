@@ -12,11 +12,6 @@ actions:
 
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
-    command: 'robocopy "User Account Pictures" "%programdata%\Microsoft\User Account Pictures" /E /PURGE /IM /IT /NP > nul'
-    weight: 10
-    wait: true
-    exeDir: true
-  - !cmd:
     command: 'robocopy "AtlasModules" "%windir%\AtlasModules" /E /PURGE /IM /IT /NP > nul'
     weight: 10
     wait: true
