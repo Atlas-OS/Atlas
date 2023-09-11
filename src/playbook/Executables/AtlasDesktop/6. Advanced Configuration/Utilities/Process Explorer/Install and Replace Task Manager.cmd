@@ -25,6 +25,11 @@ where winget > nul 2>&1 || (
 
 echo Installing Process Explorer...
 winget install -e --id Microsoft.Sysinternals.ProcessExplorer --uninstall-previous -l "%windir%\AtlasModules\Apps\ProcessExplorer" -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
+if !errorlevel! NEQ 0 (
+    echo Error: Process Explorer installation failed.
+    pause
+    exit /b 1
+)
 
 echo Creating the Start menu shortcut...
 PowerShell -NoP -C "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\ProcessExplorer\procexp.exe"""; $Shortcut.Save()" > nul
