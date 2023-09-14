@@ -1,9 +1,3 @@
-# Require admin privileges if User Account Control (UAC) is enabled
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-    Start-Process PowerShell "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    exit
-}
-
 function PauseNul ($message = "Press any key to exit... ") {
 	Write-Host $message -NoNewLine
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
@@ -290,7 +284,7 @@ if ($global:install) {
         Write-Host ""
         Start-Sleep 1
         foreach ($package in $installPackages) {
-            & winget install -e --id $package --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h
+& winget install -e --id $package --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h
         }
         Write-Host ""
         pause
