@@ -284,7 +284,7 @@ if ($global:install) {
         Write-Host ""
         Start-Sleep 1
         foreach ($package in $installPackages) {
-& winget install -e --id $package --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h
+            & winget install -e --id $package --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h
         }
         Write-Host ""
         pause
