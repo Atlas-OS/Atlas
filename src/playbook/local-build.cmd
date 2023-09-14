@@ -9,11 +9,14 @@ $fileName = "Atlas Test"
 # if not, it will make something like "Atlas Test (1).apbx"
 $replaceOldPlaybook = $true
 
+# add AME Wizard Live Log window
+$liveLog = $true
+
 # choose to get Atlas dependencies or not to speed up installation
 $removeDependencies = $false
 # choose not to modify certain aspects from playbook.conf
 $removeRequirements = $false
-$removeBuildRequirement = $true
+$removeWinverRequirement = $true
 # not recommended to disable as it will show malicious
 $removeProductCode = $true
 
@@ -81,29 +84,42 @@ try {
 	# 0.6.5 has a bug where it will crash without the 'Requirements' field, but all of the requirements are removed
 	# "<Requirements>" and # "</Requirements>"
 	if ($removeRequirements) {$patterns += "<Requirement>"}
-	if ($removeBuildRequirement) {$patterns += "<string>", "</SupportedBuilds>", "<SupportedBuilds>"}
+	if ($removeWinverRequirement) {$patterns += "<string>", "</SupportedBuilds>", "<SupportedBuilds>"}
 	if ($removeProductCode) {$patterns += "<ProductCode>"}
 
 	$newContent = Get-Content "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') }
 	$newContent | Set-Content "$tempPlaybookConf" -Force
 
-	if ($removeDependencies) {
+	if ($removeDependencies -or $liveLog) {
 		$startYML = "$PWD\$ymlPath"
 		if (Test-Path $startYML -PathType Leaf) {
 			Copy-Item -Path $startYML -Destination $tempStartYML -Force
 
-			$content = Get-Content -Path $tempStartYML -Raw
+			$content = Get-Content -Path $tempStartYML
 
-			$startMarker = "  ################ NO LOCAL BUILD ################"
-			$endMarker = "  ################ END NO LOCAL BUILD ################"
-
-			$startIndex = $content.IndexOf($startMarker)
-			$endIndex = $content.IndexOf($endMarker)
-
-			if ($startIndex -ge 0 -and $endIndex -ge 0) {
-				$newContent = $content.Substring(0, $startIndex) + $content.Substring($endIndex + $endMarker.Length)
-				Set-Content -Path $tempStartYML -Value $newContent
+			if ($liveLog) {
+				# uncomment the 8th line (7 in PowerShell because arrays are zero-based)
+				if ($content.Count -gt 7) {
+					$content[7] = $content[7] -replace ' #', ''
+				}
 			}
+
+			if ($removeDependencies) {
+				# has to be raw for removing dependencies
+				$content = $content -join "`n"
+
+				$startMarker = "  ################ NO LOCAL BUILD ################"
+				$endMarker = "  ################ END NO LOCAL BUILD ################"
+
+				$startIndex = $content.IndexOf($startMarker)
+				$endIndex = $content.IndexOf($endMarker)
+
+				if ($startIndex -ge 0 -and $endIndex -ge 0) {
+					$content = $content.Substring(0, $startIndex) + $content.Substring($endIndex + $endMarker.Length)
+				}
+			}
+
+			Set-Content -Path $tempStartYML -Value $content
 		}
 	}
 
