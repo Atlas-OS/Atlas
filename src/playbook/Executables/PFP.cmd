@@ -6,7 +6,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\AME_UserHive_Default" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Setting profile picture for "%%a"...
         call :SETPFP "%%a"
-	)
+    )
 )
 
 exit /b

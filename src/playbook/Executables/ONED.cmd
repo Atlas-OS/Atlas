@@ -13,7 +13,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\AME_UserHive_Default" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Making changes for "%%a"...
         call :USERREG "%%a"
-	)
+    )
 )
 
 rmdir /q /s "C:\ProgramData\Microsoft OneDrive" > nul 2>&1

@@ -45,5 +45,5 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\AME_UserHive_Default" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Setting associations for "%%a"...
         powershell -NoP -EP Unrestricted -File assoc.ps1 "Placeholder" "%%a" %associations%
-	)
+    )
 )
