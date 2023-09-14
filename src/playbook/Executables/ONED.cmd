@@ -8,11 +8,11 @@ taskkill /f /im OneDriveStandaloneUpdater.exe > nul 2>&1
 "%windir%\System32\OneDriveSetup.exe" /uninstall
 "%windir%\SysWOW64\OneDriveSetup.exe" /uninstall
 
-for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
-	REM If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
-	reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul
-	if not !errorlevel! == 1 (
-		call :USERREG "%%a"
+:: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs don't have this key.
+for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
+    reg query "HKU\AME_UserHive_Default" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
+        echo Making changes for "%%a"...
+        call :USERREG "%%a"
 	)
 )
 

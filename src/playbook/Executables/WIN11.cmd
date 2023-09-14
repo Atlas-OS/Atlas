@@ -49,12 +49,16 @@ if defined win10 (
 
 :: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
-    reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul
-	if errorlevel 0 call :%regVariable% "%%a"
+    reg query "HKU\AME_UserHive_Default" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
+        echo Applying %regVariable% changes to "%%a"...
+        call :%regVariable% "%%a"
+    )
 )
-:: call :USERREG ".DEFAULT"
-
 if defined win10 exit /b
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:: WINDOWS 11-ONLY CHANGES                                     ::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :: Remove volume flyout
 rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul 2>&1
@@ -72,6 +76,23 @@ reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotifi
 del /f /q "%appdata%\Microsoft\Windows\Recent\AutomaticDestinations\f01b4d95cf55d32a.automaticDestinations-ms" > nul 2>&1
 
 exit /b
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:: WINDOWS 10-ONLY USER REGISTRY CHANGES                       ::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+:USERREG10
+:: Set unpinned Notification Center items
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Connect" /t REG_NONE /d "" /f > nul
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Location" /t REG_NONE /d "" /f > nul
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f > nul
+reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false" /f > nul
+
+exit /b
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:: WINDOWS 11-ONLY USER REGISTRY CHANGES                       ::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :USERREG
 :: Do not show recommendations for tips, shortcuts, new apps, and more in start menu
@@ -119,14 +140,5 @@ if errorlevel 0 (
         )
     )
 )
-
-exit /b
-
-:USERREG10
-:: Set unpinned Notification Center items
-reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Connect" /t REG_NONE /d "" /f > nul
-reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Location" /t REG_NONE /d "" /f > nul
-reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f > nul
-reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false" /f > nul
 
 exit /b
