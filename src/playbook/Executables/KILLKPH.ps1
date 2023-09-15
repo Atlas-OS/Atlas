@@ -1,5 +1,6 @@
 Get-Process -Name "ProcessHacker" -EA SilentlyContinue | Stop-Process -Force -EA SilentlyContinue
-Stop-Service -Name "kprocesshacker2" -Force -EA SilentlyContinue
+Stop-Service -Name "kprocesshacker2" -Force -EA SilentlyContinue -NoWait
+Start-Sleep 10
 sc.exe delete "kprocesshacker2" *>$null
 
 $settingsXml = @"
