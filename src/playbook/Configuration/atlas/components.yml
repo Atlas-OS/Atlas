@@ -32,12 +32,12 @@ actions:
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
 
+  - !writeStatus: {status: 'Removing components'}
     # NoTelemetry Package
   - !run:
     exe: 'C:\Windows\AtlasModules\Scripts\online-sxs.cmd'
     args: '"C:\Windows\AtlasModules\Packages\Z-Atlas-NoTelemetry-Package31bf3856ad364e35amd643.0.0.0.cab"'
     wait: true
-
     # Misc Package
   - !run:
     exe: 'C:\Windows\AtlasModules\Scripts\online-sxs.cmd'
