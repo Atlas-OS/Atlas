@@ -28,6 +28,17 @@ if ($getLatest) {
 	Add-AppxProvisionedPackage -Online -PackagePath .\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle -LicensePath .\license.xml
 }
 
+$attempts = 0
+while(!(Test-Path "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe")) {
+	Start-Sleep 2
+	$attempts =+ 1
+
+	# if after 5 mins it's still not there, fail
+	if ($attempts -gt 250) {
+		exit
+	}
+}
+
 Write-Information "Configuring WinGet..."
 # This is only temporary to ensure reliability, it's reverted after all WinGet actions
 winget settings --enable InstallerHashOverride
