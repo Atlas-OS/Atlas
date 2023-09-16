@@ -54,11 +54,16 @@ if (!(Test-Path $configPath)) {
 	choice /c:yn /n /m "Would you like to add a shortcut to %PATH% for the configuration file? [Y/N]"
 	if ($LASTEXITCODE -eq 1) { New-ConfigPathShortcut}
 
-	Write-Host ""
 	choice /c:yn /n /m "Would you like to open the config file now? [Y/N]"
 	CreateConfig $defaultConfig
 	if ($LASTEXITCODE -eq 1) {
 		Start-Process -FilePath "notepad.exe" -ArgumentList $configPath -Wait
+	}
+	Write-Host ""
+
+	3..1 | ForEach-Object {
+		Write-Host "`rCompleted, building playbook in $_..." -NoNewLine -ForegroundColor Yellow
+		Start-Sleep 1
 	}
 }
 
