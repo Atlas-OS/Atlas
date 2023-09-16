@@ -350,3 +350,4 @@ features:
   - tweaks\misc\oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
   - tweaks\misc\restore-default-sleep-timeout.yml
+  - tweaks\misc\make-shortcuts.yml

@@ -1,0 +1,10 @@
+---
+title: Create Shortcuts
+description: Creates shortcuts for the desktop and more
+privilege: TrustedInstaller
+actions:
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -EP Unrestricted -File "SHORTCUTS.ps1"'
+    wait: true
+    exeDir: true

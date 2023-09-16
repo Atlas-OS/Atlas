@@ -25,12 +25,6 @@ actions:
     weight: 10
     wait: true
     exeDir: true
-    # Create desktop shortcuts
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -EP Unrestricted -File "DESKTOPSHORTCUTS.ps1"'
-    wait: true
-    exeDir: true
 
   - !writeStatus: {status: 'Setting the environment'}
   - !cmd: {command: 'setx path "%PATH%;%windir%\AtlasModules;%windir%\AtlasModules\Apps;%windir%\AtlasModules\Other;%windir%\AtlasModules\Tools;%windir%\AtlasModules\Scripts" -m'}
