@@ -24,6 +24,5 @@ Copy-Item $defaultShortcut -Destination "$env:ProgramData\Microsoft\Windows\Star
 
 $runAsTI = "$env:WinDir\AtlasModules\Scripts\RunAsTI.cmd"
 $default = "$env:WinDir\AtlasDesktop\8. Troubleshooting\Default"
-C:\Windows\AtlasModules\Scripts\RunAsTI.cmd C:\Windows\AtlasModules\Other\winServices.reg
 New-Shortcut -ShortcutPath "$default Windows Services and Drivers.lnk" -Target "$runAsTI" -Arguments "$env:WinDir\AtlasModules\Other\winServices.reg" -Icon "$env:WinDir\regedit.exe,1"
 New-Shortcut -ShortcutPath "$default Atlas Services and Drivers.lnk" -Target "$runAsTI" -Arguments "$env:WinDir\AtlasModules\Other\atlasServices.reg" -Icon "$env:WinDir\regedit.exe,1"
