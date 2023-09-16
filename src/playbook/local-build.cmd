@@ -62,7 +62,7 @@ if (!(Test-Path $configPath)) {
 	Write-Host ""
 
 	3..1 | ForEach-Object {
-		Write-Host "`rCompleted, building playbook in $_..." -NoNewLine -ForegroundColor Yellow
+		Write-Host "`rCompleted, building playbook in $_... " -NoNewLine -ForegroundColor Yellow
 		Start-Sleep 1
 	}
 }
