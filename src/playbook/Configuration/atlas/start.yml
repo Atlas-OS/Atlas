@@ -40,6 +40,8 @@ actions:
   # - !writeStatus: {status: 'Refreshing variables'}
   # - !run: {exeDir: true, exe: 'REFRESHENV.cmd'}
 
+  ################ NO LOCAL BUILD ################
+
   - !writeStatus: {status: 'Cleaning the component store'}
   - !run: {exe: 'DISM.exe', args: '/Online /Cleanup-Image /StartComponentCleanup', weight: 150}
 
@@ -57,8 +59,6 @@ actions:
   # - !run: {command: 'DISM /Online /Disable-Feature /FeatureName:"WorkFolders-Client" /NoRestart', weight: 30}
     # For an unknown reason, .NET 3.5 has to be enabled last or DISM breaks
   - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"NetFx3" /NoRestart', weight: 30}
-
-  ################ NO LOCAL BUILD ################
 
   - !writeStatus: {status: 'Installing dependencies'}
   - !run:
