@@ -181,7 +181,7 @@ try {
 	}
 
 	if ($7zPath) {
-		(Get-ChildItem -Recurse -File | Where-Object { $excludeFiles -notcontains $_.Name }).FullName `
+		(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName `
 		| Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File "$rootTemp\7zFiles.txt" -Encoding utf8
 
 		& $7zPath a -spf -y -mx1 -tzip "$apbxPath" `@"$rootTemp\7zFiles.txt" | Out-Null
@@ -190,7 +190,7 @@ try {
 		& $7zPath u "$apbxPath" * | Out-Null
 		Pop-Location
 	} else {
-		$filteredItems += (Get-ChildItem | Where-Object { $excludeFiles -notcontains $_.Name }).FullName + "$tempPlaybookConf"
+		$filteredItems += (Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName + "$tempPlaybookConf"
 		if (Test-Path $tempStartYML) { $filteredItems = $filteredItems + "$tempStartYML" }
 
 		Compress-Archive -Path $filteredItems -DestinationPath $zipFileName
