@@ -2,27 +2,70 @@
 @echo off & powershell -nop Get-Content """%~f0""" -Raw ^| iex & exit /b
 : end batch / begin PowerShell #>
 
-# name of resulting apbx
-$fileName = "Atlas Test"
+# Do not change anything here, this is simply for reference
+$defaultConfig = @{
+	# Name of resulting APBX
+	fileName = "Atlas Test"
 
-# if the script should delete any playbook that already exists with the same name or not
-# if not, it will make something like "Atlas Test (1).apbx"
-$replaceOldPlaybook = $true
+	# If the script should delete any playbook that already exists with the same name or not
+	# If not, it will make something like "Atlas Test (1).apbx"
+	replaceOldPlaybook = $true
 
-# add AME Wizard Live Log window
-$liveLog = $true
+	# Add AME Wizard Live Log window
+	liveLog = $true
 
-# choose to get Atlas dependencies or not to speed up installation
-$removeDependencies = $false
-# choose not to modify certain aspects from playbook.conf
-$removeRequirements = $false
-$removeWinverRequirement = $true
-# not recommended to disable as it will show malicious
-$removeProductCode = $true
+	# Choose to get Atlas dependencies or not to speed up installation
+	removeDependencies = $true
 
-# ------ #
-# script #
-# ------ #
+	# Choose not to modify certain aspects from playbook.conf
+	removeRequirements = $false
+	removeWinverRequirement = $true
+
+	# Not recommended to disable as it will show malicious
+	removeProductCode = $true
+}
+
+$configPath = "$env:appdata\local-build\config.json"
+
+# ------------- #
+# config system #
+# ------------- #
+
+function CreateConfig($conf) {
+	New-Item -Type Directory -Force -Path $(Split-Path $configPath) -ErrorAction SilentlyContinue | Out-Null
+	$conf | ConvertTo-Json -Depth 100 | Out-File $configPath
+}
+if (!(Test-Path $configPath)) { CreateConfig $defaultConfig }
+
+try {
+	$configNotHashtable = Get-Content $configPath | ConvertFrom-Json
+	# convert JSON config to hashtable 
+	$config = @{}; foreach ($property in $configNotHashtable.PSObject.Properties) { $config[$property.Name] = $property.Value }
+} catch {
+	Write-Host "Your configuration is corrupted." -ForegroundColor Yellow
+	choice /c:yn /n /m "Would you like to reset it? [Y/N]"
+	if ($LASTEXITCODE -eq 1) {
+		CreateConfig $defaultConfig
+	} else {exit 1}
+}
+
+# update config
+$defaultConfig.Keys | ForEach-Object {
+	if ($config.Keys -notcontains $_) {
+		$config = $config + @{
+			$_ = $defaultConfig.$_
+		}; $updateConfig = $true
+	}
+}
+if ($updateConfig) {CreateConfig $config}
+
+foreach ($a in $config.Keys) {
+	New-Variable -Name $a -Value $config.$a
+}
+
+# ----------- #
+# main script #
+# ----------- #
 
 $apbxFileName = "$fileName.apbx"
 $apbxPath = "$PWD\$fileName.apbx"
