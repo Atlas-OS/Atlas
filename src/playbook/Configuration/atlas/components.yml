@@ -32,6 +32,11 @@ actions:
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
 
+    # OneDrive
+    # The actual OneDrive setup in Windows is stripped at a component-level in the miscellaneous package
+  - !writeStatus: {status: 'Removing OneDrive'}
+  - !run: {exeDir: true, exe: 'ONED.cmd'}
+
   - !writeStatus: {status: 'Removing components'}
     # NoTelemetry Package
   - !run:
@@ -43,11 +48,6 @@ actions:
     exe: 'C:\Windows\AtlasModules\Scripts\online-sxs.cmd'
     args: '"C:\Windows\AtlasModules\Packages\Z-Atlas-Misc-Remover-Package31bf3856ad364e35amd643.0.0.0.cab"'
     wait: true
-
-    # OneDrive
-    # The actual OneDrive setup in Windows is stripped at a component-level in the miscellaneous package
-  - !writeStatus: {status: 'Removing OneDrive'}
-  - !run: {exeDir: true, exe: 'ONED.cmd'}
 
     # Update Health Tools
   - !writeStatus: {status: 'Removing Update Health Tools'}
