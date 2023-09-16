@@ -31,11 +31,41 @@ $configPath = "$env:appdata\local-build\config.json"
 # config system #
 # ------------- #
 
+$shortcut = "$env:LOCALAPPDATA\Microsoft\WindowsApps\ame-lb-conf.lnk"
+
+function New-ConfigPathShortcut {
+	$WshShell = New-Object -comObject WScript.Shell
+	$Shortcut = $WshShell.CreateShortcut($shortcut)
+	$Shortcut.TargetPath = $configPath
+	$Shortcut.Save()
+}
+
 function CreateConfig($conf) {
 	New-Item -Type Directory -Force -Path $(Split-Path $configPath) -ErrorAction SilentlyContinue | Out-Null
 	$conf | ConvertTo-Json -Depth 100 | Out-File $configPath
 }
-if (!(Test-Path $configPath)) { CreateConfig $defaultConfig }
+
+if (!(Test-Path $configPath)) {
+	Remove-Item -Force -Path $shortcut -EA SilentlyContinue
+
+	Write-Host "It seems like this is your first time using AME Local Build.`n" -ForegroundColor Yellow
+	Write-Host "Setup`n---------------------------------" -ForegroundColor Green
+	Write-Host "Adding config to path would allow you to type 'ame-lb-conf' into Run (Win + R) or any other shell and open the config." -ForegroundColor Blue
+	choice /c:yn /n /m "Would you like to add a shortcut to %PATH% for the configuration file? [Y/N]"
+	if ($LASTEXITCODE -eq 1) { New-ConfigPathShortcut}
+
+	Write-Host ""
+	choice /c:yn /n /m "Would you like to open the config file now? [Y/N]"
+	CreateConfig $defaultConfig
+	if ($LASTEXITCODE -eq 1) {
+		Start-Process -FilePath "notepad.exe" -ArgumentList $configPath -Wait
+	}
+}
+
+# check if path shortcut matches config path
+if (Test-Path $shortcut) {
+	if ($configPath -ne $(New-Object -ComObject WScript.Shell).CreateShortcut($shortcut).TargetPath) { New-ConfigPathShortcut }
+}
 
 try {
 	$configNotHashtable = Get-Content $configPath | ConvertFrom-Json
