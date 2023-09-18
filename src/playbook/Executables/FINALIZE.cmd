@@ -191,7 +191,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
 )
 
 :: Detect hard drive - Solid State Drive (SSD) or Hard Disk Drive (HDD)
-for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -Number (Get-Partition -DriveLetter C:.Substring(0, 1)).DiskNumber).SerialNumber.TrimStart()).MediaType"') do (
+for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -Number (Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1)).DiskNumber).SerialNumber.TrimStart()).MediaType"') do (
   set "diskDrive=%%a"
 )
 
