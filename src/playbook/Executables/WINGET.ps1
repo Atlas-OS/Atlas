@@ -1,6 +1,7 @@
 # Credit: https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget-on-windows-sandbox
 
 $progressPreference = 'SilentlyContinue'
+$wingetPath = "$env:localappdata\Microsoft\WindowsApps\winget.exe"
 
 # Make temporary directory
 $tempDir = Join-Path -Path $env:temp -ChildPath $([System.IO.Path]::GetRandomFileName())
@@ -13,6 +14,7 @@ if (!(Get-Command winget -ErrorAction SilentlyContinue)) {$getLatest = $true} el
 
 if ($getLatest) {
 	Set-Location $tempDir
+	$oldTimeUpdated = (Get-Item $wingetPath).LastWriteTime
 
 	Write-Information "Downloading WinGet and its dependencies..."
 	Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle -UseBasicParsing
@@ -29,7 +31,7 @@ if ($getLatest) {
 }
 
 $attempts = 0
-while(!(Test-Path "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe")) {
+while(!(Test-Path $wingetPath) -or ($oldTimeUpdated -eq (Get-Item $wingetPath).LastWriteTime)) {
 	Start-Sleep 2
 	$attempts =+ 1
 
@@ -38,6 +40,7 @@ while(!(Test-Path "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe")) {
 		exit
 	}
 }
+winget -v
 
 Write-Information "Configuring WinGet..."
 # This is only temporary to ensure reliability, it's reverted after all WinGet actions
