@@ -176,6 +176,9 @@ updates:
   - target_component: Microsoft-Windows-DataCollection-Adm.Resources
     target_arch: amd64
     version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DeviceCensus
+    target_arch: amd64
+    version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-DeviceCensus-Schedule-ClientServer
     target_arch: amd64
     version: 38655.38527.65535.65535
