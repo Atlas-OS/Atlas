@@ -142,7 +142,7 @@ if (!($?) -and (Test-Path -Path "$zipFileName")) {
 }
 
 # make temp directories
-$rootTemp = Join-Path -Path $env:temp -ChildPath $([System.IO.Path]::GetRandomFileName())
+$rootTemp = Join-Path -Path $env:TEMP -ChildPath $([System.IO.Path]::GetRandomFileName())
 New-Item $rootTemp -ItemType Directory -Force | Out-Null
 if (!(Test-Path -Path "$rootTemp")) {
 	Write-Host "Failed to create temporary directory!" -ForegroundColor Red

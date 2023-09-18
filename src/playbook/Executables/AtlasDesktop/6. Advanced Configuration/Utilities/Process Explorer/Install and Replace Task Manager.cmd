@@ -32,7 +32,7 @@ if !errorlevel! NEQ 0 (
 )
 
 echo Creating the Start menu shortcut...
-PowerShell -NoP -C "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:WinDir\AtlasModules\Apps\ProcessExplorer\procexp.exe"""; $Shortcut.Save()" > nul
+PowerShell -NoP -C "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:windir\AtlasModules\Apps\ProcessExplorer\procexp.exe"""; $Shortcut.Save()" > nul
 if not errorlevel 0 (
 	echo Process Explorer shortcut could not be created in the start menu^^!
 )

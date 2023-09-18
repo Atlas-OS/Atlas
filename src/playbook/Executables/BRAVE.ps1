@@ -1,4 +1,4 @@
-$tempDir = "$env:WinDir\Temp\$([System.IO.Path]::GetRandomFileName())"
+$tempDir = "$env:windir\Temp\$([System.IO.Path]::GetRandomFileName())"
 New-Item $tempDir -ItemType Directory -Force
 
 Invoke-WebRequest "https://laptop-updates.brave.com/latest/winx64" -OutFile "$tempDir\BraveSetup.exe" -UseBasicParsing

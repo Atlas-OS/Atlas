@@ -4,7 +4,7 @@ $progressPreference = 'SilentlyContinue'
 $wingetPath = "$env:localappdata\Microsoft\WindowsApps\winget.exe"
 
 # Make temporary directory
-$tempDir = Join-Path -Path $env:temp -ChildPath $([System.IO.Path]::GetRandomFileName())
+$tempDir = Join-Path -Path $env:TEMP -ChildPath $([System.IO.Path]::GetRandomFileName())
 New-Item $tempDir -ItemType Directory -Force | Out-Null
 
 if (!(Get-Command winget -ErrorAction SilentlyContinue)) {$getLatest = $true} else {

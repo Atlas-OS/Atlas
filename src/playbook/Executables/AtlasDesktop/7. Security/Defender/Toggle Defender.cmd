@@ -56,7 +56,7 @@ if ($null -eq $packages) {$DefenderEnabled = '(current)'} else {$DefenderDisable
 
 function SetSafeMode {
 	Start-Process -File 'bcdedit' -ArgumentList '/set {current} safeboot minimal' -WindowStyle Hidden
-	Set-ItemProperty -Path $winlogon -Name Shell -Value "$env:WinDir\AtlasDesktop\7. Security\Defender\Toggle Defender.cmd -SafeMode"
+	Set-ItemProperty -Path $winlogon -Name Shell -Value "$env:windir\AtlasDesktop\7. Security\Defender\Toggle Defender.cmd -SafeMode"
 	Restart-Computer
 	exit
 }

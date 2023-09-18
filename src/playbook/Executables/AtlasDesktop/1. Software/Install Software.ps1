@@ -229,7 +229,7 @@ function light_mode {
     }
 }
 # Checks the system "app" color (light or dark)
-$registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\"
+$registryPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize\"
 $keyName = "AppsUseLightTheme"
 function check_system_theme{
     if(((Get-ItemProperty -Path $registryPath -Name $keyName).$keyName) -eq 0){
