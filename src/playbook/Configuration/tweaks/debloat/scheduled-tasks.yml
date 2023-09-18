@@ -5,9 +5,9 @@ privilege: TrustedInstaller
 actions:
   # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
 
-- !scheduledTask:
-  path: '\Microsoft\Windows\Location'
-  operation: deleteFolder
+  - !scheduledTask:
+    path: '\Microsoft\Windows\Location'
+    operation: deleteFolder
 
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask', operation: delete}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask', operation: delete}
@@ -37,7 +37,8 @@ actions:
   # - !scheduledTask: {path: '\Microsoft\Windows\AppID\EDP Policy Manager', operation: delete}
   # - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily', operation: delete}
   # - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierinstall', operation: delete}
-  # - !scheduledTask: {path: '\Microsoft\Windows\BrokerInfrastructure\BgTaskRegistrationMaintenanceTask', operation: delete}  # - !scheduledTask: {path: '\Microsoft\Windows\Defrag\ScheduledDefrag', operation: delete}
+  # - !scheduledTask: {path: '\Microsoft\Windows\BrokerInfrastructure\BgTaskRegistrationMaintenanceTask', operation: delete}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Defrag\ScheduledDefrag', operation: delete}
   # - !scheduledTask: {path: '\Microsoft\Windows\Device Setup\Metadata Refresh', operation: delete}
   # - !scheduledTask: {path: '\Microsoft\Windows\InstallService\SmartRetry', operation: delete}
   # - !scheduledTask: {path: '\Microsoft\Windows\Maintenance\WinSAT', operation: delete}
