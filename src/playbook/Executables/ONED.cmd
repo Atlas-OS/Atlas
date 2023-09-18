@@ -1,10 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-taskkill /f /im OneDriveSetup.exe > nul 2>&1
-taskkill /f /im OneDrive.exe > nul 2>&1
-taskkill /f /im OneDriveStandaloneUpdater.exe > nul 2>&1
-
+taskkill /f /im OneDrive*.exe > nul 2>&1
 "%windir%\System32\OneDriveSetup.exe" /uninstall
 "%windir%\SysWOW64\OneDriveSetup.exe" /uninstall
 
