@@ -2,7 +2,7 @@
 # Made by Xyueta
 
 ## Set the Client CBS path
-$Cbs = "$env:SystemRoot\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy"
+$Cbs = "$env:windir\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy"
 
 ## Remove 'Get started' and 'Windows Backup' from Start Menu
 $Manifest = Join-Path $Cbs 'appxmanifest.xml'

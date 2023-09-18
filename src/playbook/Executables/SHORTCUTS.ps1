@@ -22,9 +22,9 @@ function New-Shortcut {
     $Shortcut.Save()
 }
 
-$defaultShortcut = "$env:SystemDrive\Users\Default\Desktop\Atlas.lnk"
-New-Shortcut -Icon "$env:WinDir\AtlasModules\Other\atlas-folder.ico,0" -Target "$env:WinDir\AtlasDesktop" -ShortcutPath $defaultShortcut
-foreach ($user in $(Get-ChildItem -Path "$env:SystemDrive\Users" -Directory | Where-Object { 'Public' -notcontains $_.Name })) {
+$defaultShortcut = "C:\Users\Default\Desktop\Atlas.lnk"
+New-Shortcut -Icon "$env:windir\AtlasModules\Other\atlas-folder.ico,0" -Target "$env:windir\AtlasDesktop" -ShortcutPath $defaultShortcut
+foreach ($user in $(Get-ChildItem -Path "C:\Users" -Directory | Where-Object { 'Public' -notcontains $_.Name })) {
     Copy-Item $defaultShortcut -Destination "$($user.FullName)\Desktop" -Force
 }
 Copy-Item $defaultShortcut -Destination "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Force

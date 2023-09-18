@@ -6,9 +6,9 @@ param (
 
 # https://learn.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity#validate-enabled-vbs-and-memory-integrity-features
 
-$memIntegrity = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
-$kernelShadowStacks = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\KernelShadowStacks"
-$credentialGuard = "HKLM:\System\CurrentControlSet\Control\DeviceGuard\Scenarios\CredentialGuard"
+$memIntegrity = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
+$kernelShadowStacks = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\KernelShadowStacks"
+$credentialGuard = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\CredentialGuard"
 
 if ($DisableAllVBS) {
 	Write-Warning "Disabling VBS features..."

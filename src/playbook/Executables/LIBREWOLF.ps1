@@ -25,8 +25,8 @@ $librewolfUpdaterDownload = (Invoke-RestMethod -Uri "$librewolfUpdaterURI" -Head
 	Select-Object -ExpandProperty browser_download_url
 
 # output paths
-$outputLibrewolf = "$env:systemdrive\$librewolfFileName"
-$outputLibrewolfUpdater = "$env:systemdrive\librewolf-winupdater.zip"
+$outputLibrewolf = "C:\$librewolfFileName"
+$outputLibrewolfUpdater = "C:\librewolf-winupdater.zip"
 
 Write-Warning "Downloading the latest LibreWolf setup"
 Invoke-WebRequest -Uri $librewolfDownload -OutFile $outputLibrewolf

@@ -14,7 +14,7 @@ function Invoke-AtlasDiskCleanup {
 	# Disk Cleanup preset
 	# 2 = enabled
 	# 0 = disabled
-	$baseKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches'
+	$baseKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches'
 	$regValues = @{
 		"Active Setup Temp Folders" = 2
 		"BranchCache" = 2

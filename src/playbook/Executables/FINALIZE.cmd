@@ -142,9 +142,6 @@ for %%a in (
     )
 )
 
-:: Set correct username variable of the currently logged in user
-for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
-
 :: Hide unnecessary items from the 'Send To' context menu
 for %%a in (
     "Documents.mydocs"
@@ -194,7 +191,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
 )
 
 :: Detect hard drive - Solid State Drive (SSD) or Hard Disk Drive (HDD)
-for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -Number (Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1)).DiskNumber).SerialNumber.TrimStart()).MediaType"') do (
+for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -Number (Get-Partition -DriveLetter C:.Substring(0, 1)).DiskNumber).SerialNumber.TrimStart()).MediaType"') do (
   set "diskDrive=%%a"
 )
 

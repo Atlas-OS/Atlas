@@ -56,7 +56,7 @@ if ($CabPaths) {
     }
 } else {$Silent = $false}
 
-$certRegPath = "HKLM:\Software\Microsoft\SystemCertificates\ROOT\Certificates"
+$certRegPath = "HKLM:\SOFTWARE\Microsoft\SystemCertificates\ROOT\Certificates"
 
 function PauseNul ($message = "Press any key to exit... ") {
 	Write-Host $message -NoNewLine
