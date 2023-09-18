@@ -7,7 +7,7 @@ $defaultConfig = @{
 	# Name of resulting APBX
 	fileName = "Atlas Test"
 
-	# If the script should delete any playbook that already exists with the same name or not
+	# Should the script delete any playbook that already exists with the same name or not
 	# If not, it will make something like "Atlas Test (1).apbx"
 	replaceOldPlaybook = $true
 
@@ -74,7 +74,7 @@ if (Test-Path $shortcut) {
 
 try {
 	$configNotHashtable = Get-Content $configPath | ConvertFrom-Json
-	# convert JSON config to hashtable 
+	# convert JSON config to hashtable
 	$config = @{}; foreach ($property in $configNotHashtable.PSObject.Properties) { $config[$property.Name] = $property.Value }
 } catch {
 	Write-Host "Your configuration is corrupted." -ForegroundColor Yellow
@@ -233,6 +233,6 @@ try {
 	}
 
 	Write-Host "Completed." -ForegroundColor Green
-} finally { 
+} finally {
 	Remove-Item $rootTemp -Force -EA 0 -Recurse | Out-Null
 }
