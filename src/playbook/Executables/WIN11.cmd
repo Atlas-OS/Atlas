@@ -35,10 +35,10 @@ if defined win10 (
     bcdedit /set description "AtlasOS 10" > nul
 
     rem Delete 11-only tweaks
-    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\Background Apps" > nul
-    rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\Power\Timer Resolution" > nul
-    rd /s /q "C:\Windows\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Compact View" > nul
-    rd /s /q "C:\Windows\AtlasDesktop\4. Optional Tweaks\Windows 11 Context Menu" > nul
+    rd /s /q "%windir%\AtlasDesktop\3. Configuration\Background Apps" > nul
+    rd /s /q "%windir%\AtlasDesktop\3. Configuration\Power\Timer Resolution" > nul
+    rd /s /q "%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Compact View" > nul
+    rd /s /q "%windir%\AtlasDesktop\4. Optional Tweaks\Windows 11 Context Menu" > nul
     del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul
 
     rem Set hidden Settings pages
@@ -61,7 +61,7 @@ if defined win10 exit /b
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :: Remove volume flyout
-rd /s /q "C:\Windows\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul
+rd /s /q "%windir%\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout" > nul
 
 :: Set hidden Settings pages
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "%hiddenPages%;family-group;deviceusage;" /f > nul
@@ -73,7 +73,7 @@ bcdedit /set description "AtlasOS 11" > nul
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f > nul 2>&1
 
 :: Restore Music and Videos folders by clearing up Quick Access' cache
-del /f /q "%appdata%\Microsoft\Windows\Recent\AutomaticDestinations\f01b4d95cf55d32a.automaticDestinations-ms" > nul 2>&1
+del /f /q "%APPDATA%\Microsoft\Windows\Recent\AutomaticDestinations\f01b4d95cf55d32a.automaticDestinations-ms" > nul 2>&1
 
 exit /b
 

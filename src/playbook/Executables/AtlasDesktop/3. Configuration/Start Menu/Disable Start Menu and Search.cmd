@@ -12,8 +12,8 @@ if exist "!windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.e
 if exist "!windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto existS
 
 :existS
-if exist "C:\Program Files\Open-Shell" goto main
-if exist "C:\Program Files (x86)\StartIsBack" goto main
+if exist "%ProgramFiles%\Open-Shell" goto main
+if exist "%ProgramFiles(x86)%\StartIsBack" goto main
 echo It seems neither Open-Shell nor StartIsBack are not installed. It is HIGHLY recommended to install one of these before running this due to the Start Menu being removed.
 pause
 

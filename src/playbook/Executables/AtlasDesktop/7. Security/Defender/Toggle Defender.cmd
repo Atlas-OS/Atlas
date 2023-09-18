@@ -104,7 +104,7 @@ function InstallPackage {
 
 		if ($Silent) {
 			Write-Warning "Registring scheduled task to prompt user to disable Defender next reboot, as it has failed..."
-			$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument '/c "C:\Windows\AtlasDesktop\7. Security\Defender\Toggle Defender.cmd" -DisableFailedMessage'
+			$action = New-ScheduledTaskAction -Execute "$env:windir\System32\cmd.exe" -Argument '/c "%windir%\AtlasDesktop\7. Security\Defender\Toggle Defender.cmd" -DisableFailedMessage'
 			$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 			$trigger = New-ScheduledTaskTrigger -AtLogon
 			Register-ScheduledTask -TaskName $taskName -Trigger $trigger -Action $action -Settings $settings -User $env:USERNAME -RunLevel Highest -Force | Out-Null

@@ -24,7 +24,7 @@ taskkill /F /IM sihost.exe > nul 2>&1
 exit /b
 
 :ALLUSERS
-if defined win11 reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Themes" /v "ThemeMRU" /t REG_SZ /d "C:\Windows\Resources\Themes\atlas-dark.theme;C:\Windows\resources\Themes\atlas-light.theme;" /f > nul
+if defined win11 reg add "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Themes" /v "ThemeMRU" /t REG_SZ /d "%windir%\Resources\Themes\atlas-dark.theme;%windir%\resources\Themes\atlas-light.theme;" /f > nul
 
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "AccentColor" /t REG_DWORD /d "4290728257" /f > nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "StartColor" /t REG_DWORD /d "4291969335" /f > nul

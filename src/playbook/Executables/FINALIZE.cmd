@@ -150,11 +150,11 @@ for %%a in (
     "Documents.mydocs"
     "Mail Recipient.MAPIMail"
 ) do (
-    attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\%%~a" > nul
+    attrib +h "!APPDATA!\Microsoft\Windows\SendTo\%%~a" > nul
 )
 
 :: Remove Fax Recipient from the 'Send to' context menu as Fax feature is removed
-del /f /q "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1
+del /f /q "!APPDATA!\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1
 
 :: Disable audio exclusive mode on all devices
 for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture", "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render") do (

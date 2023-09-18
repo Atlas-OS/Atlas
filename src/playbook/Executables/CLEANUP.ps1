@@ -2,7 +2,7 @@
 Get-ChildItem -Path "$env:TEMP" -File | Remove-Item -Force -EA SilentlyContinue
 
 # Clearing the Windows Temp folder
-Remove-Item -Path 'C:\Windows\Temp\*' -Force -Recurse -EA SilentlyContinue
+Remove-Item -Path '$env:windir\Temp\*' -Force -Recurse -EA SilentlyContinue
 
 # Exclude the AME folder while deleting directories in the temporary folder
 Get-ChildItem -Path "$env:TEMP" -Directory | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse -EA SilentlyContinue

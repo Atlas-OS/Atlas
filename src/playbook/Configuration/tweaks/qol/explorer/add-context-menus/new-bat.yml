@@ -6,7 +6,7 @@ actions:
   - !registryValue:
     path: 'HKCR\.bat\ShellNew'
     value: 'ItemName'
-    data: '@C:\Windows\System32\acppage.dll,-6002'
+    data: '%windir%\System32\acppage.dll,-6002'
     type: REG_EXPAND_SZ
   - !registryValue:
     path: 'HKCR\.bat\ShellNew'

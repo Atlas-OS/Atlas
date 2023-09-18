@@ -51,7 +51,7 @@ for /f "delims=" %%a in ('PowerShell "(Invoke-RestMethod -Uri "https://api.githu
 	curl -L --output !TEMP!\skin.zip %%a
 )
 
-PowerShell -NoP -C "Expand-Archive '!TEMP!\skin.zip' -DestinationPath 'C:\Program Files\Open-Shell\Skins'"
+PowerShell -NoP -C "Expand-Archive '!TEMP!\skin.zip' -DestinationPath '$env:ProgramFiles\Open-Shell\Skins'"
 
 del /f /q !TEMP!\Open-Shell.exe > nul 2>&1
 del /f /q !TEMP!\skin.zip > nul 2>&1

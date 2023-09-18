@@ -5,6 +5,6 @@ privilege: TrustedInstaller
 actions:
   - !run:
     exe: 'powershell.exe'
-    args: '-NoP -EP Unrestricted -File "BACKUP.ps1" "C:\Windows\AtlasModules\Other\winServices.reg"'
+    args: '-NoP -EP Unrestricted -File "BACKUP.ps1" "$env:windir\AtlasModules\Other\winServices.reg"'
     wait: true
     exeDir: true

@@ -36,7 +36,7 @@ call setSvc.cmd BthPan 4 > nul 2>&1
 :: Disable Bluetooth devices
 call %windir%\AtlasModules\Scripts\toggleDev.cmd -Silent '*Bluetooth*'
 
-attrib +h "!appdata!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+attrib +h "!APPDATA!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
 
 :: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-connectivity
 reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth" /v "value" /t REG_DWORD /d "0" /f > nul

@@ -19,7 +19,7 @@ actions:
     type: REG_SZ
   - !registryValue:
     path: 'HKCR\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\DefaultIcon'
-    data: 'C:\Windows\System32\imageres.dll,-27'
+    data: '%windir%\System32\imageres.dll,-27'
     type: REG_SZ
   - !registryValue:
     path: 'HKCR\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}\Shell\Open\Command'

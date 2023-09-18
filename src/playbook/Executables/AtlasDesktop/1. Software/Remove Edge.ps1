@@ -90,7 +90,7 @@ function RemoveEdgeChromium {
 
 	# remove user data
 	if ($removeData) {
-		$path = "$env:SystemDrive\Users\$user\AppData\Local\Microsoft\Edge"
+		$path = "$env:LOCALAPPDATA\Microsoft\Edge"
 		if (Test-Path $path) {Remove-Item $path -Force -Recurse}
 	}
 

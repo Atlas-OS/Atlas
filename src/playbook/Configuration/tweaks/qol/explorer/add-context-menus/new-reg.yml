@@ -11,5 +11,5 @@ actions:
   - !registryValue:
     path: 'HKCR\.reg\ShellNew'
     value: 'ItemName'
-    data: '@C:\Windows\regedit.exe,-309'
+    data: '%windir%\regedit.exe,-309'
     type: REG_EXPAND_SZ

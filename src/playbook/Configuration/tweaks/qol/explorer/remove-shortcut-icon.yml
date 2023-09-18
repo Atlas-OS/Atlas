@@ -6,5 +6,5 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Icons'
     value: '29'
-    data: 'C:\Windows\AtlasModules\Other\Blank.ico,0'
+    data: '%windir%\AtlasModules\Other\Blank.ico,0'
     type: REG_SZ

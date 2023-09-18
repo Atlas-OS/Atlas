@@ -13,8 +13,8 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     )
 )
 
-rmdir /q /s "C:\ProgramData\Microsoft OneDrive" > nul 2>&1
-rmdir /q /s "%localappdata%\Microsoft\OneDrive" > nul 2>&1
+rmdir /q /s "%ProgramData%\Microsoft OneDrive" > nul 2>&1
+rmdir /q /s "%LOCALAPPDATA%\Microsoft\OneDrive" > nul 2>&1
 
 for /f "usebackq delims=" %%a in (`dir /b /a:d "C:\Users"`) do (
 	rmdir /q /s "C:\Users\%%a\AppData\Local\Microsoft\OneDrive" > nul 2>&1

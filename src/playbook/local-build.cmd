@@ -25,7 +25,7 @@ $defaultConfig = @{
 	removeProductCode = $true
 }
 
-$configPath = "$env:appdata\local-build\config.json"
+$configPath = "$env:APPDATA\local-build\config.json"
 
 # ------------- #
 # config system #

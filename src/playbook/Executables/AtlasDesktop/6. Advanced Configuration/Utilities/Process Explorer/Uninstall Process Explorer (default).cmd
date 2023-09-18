@@ -23,6 +23,6 @@ sc start pcw > nul 2>&1
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /f > nul 2>&1
 del /f /q "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk" > nul
 
-echo Finished, all changes have been applied. 
+echo Finished, all changes have been applied.
 pause
 exit /b

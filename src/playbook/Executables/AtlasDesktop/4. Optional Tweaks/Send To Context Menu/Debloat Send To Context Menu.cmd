@@ -27,11 +27,11 @@ for %%a in ("%items:;=" "%") do (
 	if "%%~a" == "Documents" (set documents=true)
 	if "%%~a" == "Removable Drives" (set removableDrives=true)
 )
-if "!bluetooth!" == "true" (attrib +h "!appdata!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK") else (attrib -h "!appdata!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK")
-if "!zipfolder!" == "true" (attrib +h "!appdata!\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget") else (attrib -h "!appdata!\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget")
-if "!desktop!" == "true" (attrib +h "!appdata!\Microsoft\Windows\SendTo\Desktop (create shortcut).DeskLink") else (attrib -h "!appdata!\Microsoft\Windows\SendTo\Desktop (create shortcut).DeskLink")
-if "!mail!" == "true" (attrib +h "!appdata!\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail") else (attrib -h "!appdata!\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail")
-if "!documents!" == "true" (attrib +h "!appdata!\Microsoft\Windows\SendTo\Documents.mydocs") else (attrib -h "!appdata!\Microsoft\Windows\SendTo\Documents.mydocs")
+if "!bluetooth!" == "true" (attrib +h "!APPDATA!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK") else (attrib -h "!APPDATA!\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK")
+if "!zipfolder!" == "true" (attrib +h "!APPDATA!\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget") else (attrib -h "!APPDATA!\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget")
+if "!desktop!" == "true" (attrib +h "!APPDATA!\Microsoft\Windows\SendTo\Desktop (create shortcut).DeskLink") else (attrib -h "!APPDATA!\Microsoft\Windows\SendTo\Desktop (create shortcut).DeskLink")
+if "!mail!" == "true" (attrib +h "!APPDATA!\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail") else (attrib -h "!APPDATA!\Microsoft\Windows\SendTo\Mail Recipient.MAPIMail")
+if "!documents!" == "true" (attrib +h "!APPDATA!\Microsoft\Windows\SendTo\Documents.mydocs") else (attrib -h "!APPDATA!\Microsoft\Windows\SendTo\Documents.mydocs")
 if "!removableDrive!" == "true" (
 	reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDrivesInSendToMenu" /t REG_DWORD /d "1" /f > nul 2>&1
 ) else (

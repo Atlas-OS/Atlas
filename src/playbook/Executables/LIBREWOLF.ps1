@@ -3,8 +3,8 @@ $ProgressPreference = "SilentlyContinue"
 # stop on errors, as each command is vital
 $ErrorActionPreference = "Stop"
 
-$updaterPath = "$env:programfiles\LibreWolf\librewolf-winupdater"
-$librewolfPath = "$env:programfiles\LibreWolf"
+$updaterPath = "$env:ProgramFiles\LibreWolf\librewolf-winupdater"
+$librewolfPath = "$env:ProgramFiles\LibreWolf"
 $desktop = [Environment]::GetFolderPath("Desktop")
 $startMenu = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs"
 
@@ -40,7 +40,7 @@ if (!(Test-Path $librewolfPath)) {
 	exit 1
 }
 Write-Warning "Installing/extracting Librewolf-WinUpdater"
-Expand-Archive -Path $outputLibrewolfUpdater -DestinationPath "$env:programfiles\LibreWolf\librewolf-winupdater" -Force
+Expand-Archive -Path $outputLibrewolfUpdater -DestinationPath "$env:ProgramFiles\LibreWolf\librewolf-winupdater" -Force
 
 Write-Warning "Adding automatic updater task"
 $Title = "LibreWolf WinUpdater"
