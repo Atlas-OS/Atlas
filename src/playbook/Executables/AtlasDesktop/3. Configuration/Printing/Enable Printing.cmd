@@ -43,6 +43,7 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
 )
 
 call setSvc.cmd Spooler 2
+call setSvc.cmd PrintWorkFlowUserSvc 3
 
 :: Hide Settings pages
 set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"

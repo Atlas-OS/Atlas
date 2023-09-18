@@ -46,7 +46,7 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
 )
 
 call %windir%\AtlasModules\Scripts\setSvc.cmd Spooler 4
-sc start WSearch > nul 2>&1
+call %windir%\AtlasModules\Scripts\setSvc.cmd PrintWorkFlowUserSvc 4
 
 :: Hide Settings page
 if not "%~1"=="/silent" (
@@ -67,6 +67,6 @@ DISM /Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRe
 
 if "%~1"=="/silent" exit /b
 
-echo Finished.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b
