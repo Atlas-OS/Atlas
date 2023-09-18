@@ -243,6 +243,13 @@ updates:
           - key: SaveZoneInformation
             type: REG_DWORD
             value: 1
+      - key_name: >-
+          HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3
+        perUserVirtualization: false
+        values:
+          - key: 1806
+            type: REG_DWORD
+            value: 0
   - target_component: Microsoft-Windows-SmartScreen
     target_arch: wow64
     version: 38655.38527.65535.65535
