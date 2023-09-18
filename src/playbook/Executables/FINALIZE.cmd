@@ -220,3 +220,13 @@ if "!diskDrive!" == "SSD" (
     rem Disable SysMain (Superfetch and Prefetch)
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f > nul
 )
+
+:: Detect if user uses laptop device or personal computer
+for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"]
+set "DEVICE_TYPE=PC"
+for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "DEVICE_TYPE=LAPTOP")
+
+:: Disable laptop-related services on PC
+if "!DEVICE_TYPE!"=="PC" (
+    call %windir%\AtlasModules\Scripts\setSvc.cmd DisplayEnhancementService 4
+)

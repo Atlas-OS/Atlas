@@ -75,7 +75,6 @@ actions:
   # DsSvc 4 < can cause issues with Snip & Sketch
   # icssvc 4 < breaks mobile/Wi-Fi hotspot
   # IKEEXT 4 < causes Teredo not to work
-  # DisplayEnhancementService 4 < breaks brightness slider on laptops
   # iphlpsvc 4 < causes Teredo not to work
   # KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
   # SharedAccess 4 < breaks mobile/Wi-Fi hotspot
