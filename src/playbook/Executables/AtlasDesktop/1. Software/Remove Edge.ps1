@@ -41,7 +41,7 @@ function DeleteEdgeUpdate {
 	sc.exe delete edgeupdatem | Out-Null
 
 	# delete the Edge Update folder
-	Remove-Item -Path "C:\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
+	Remove-Item -Path "$env:SystemDrive\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
 
 	# revert error action preference
 	$global:ErrorActionPreference = 'Continue'

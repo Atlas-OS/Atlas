@@ -14,7 +14,7 @@ Remove-Item -Path $settingsDirectory -Recurse -Force -EA SilentlyContinue
 New-Item -Path $settingsDirectory -ItemType Directory -Force | Out-Null
 $settingsXml | Set-Content -Path $settingsFilePath -Force
 
-$userDirectories = Get-ChildItem -Path "C:\Users" -Directory -Exclude "Public", "Default", "Default User", "All Users"
+$userDirectories = Get-ChildItem -Path "$env:SystemDrive\Users" -Directory -Exclude "Public", "Default", "Default User", "All Users"
 foreach ($userDir in $userDirectories) {
     $destinationPath = Join-Path $userDir.FullName "AppData\Roaming\Process Hacker 2\settings.xml"
     $destinationDirectory = Split-Path -Path $destinationPath -Parent

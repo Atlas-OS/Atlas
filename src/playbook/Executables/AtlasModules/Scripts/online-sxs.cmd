@@ -38,7 +38,7 @@ param (
 )
 
 # You can automate this script with variables as well:
-# $CabPaths = "C:\Package.cab"
+# $CabPaths = "$env:SystemDrive\Package.cab"
 # Note: only works if $cabPath is defined
 # $Silent = $true
 

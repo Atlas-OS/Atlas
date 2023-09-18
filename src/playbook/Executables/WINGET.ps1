@@ -1,7 +1,7 @@
 # Credit: https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget-on-windows-sandbox
 
 $progressPreference = 'SilentlyContinue'
-$wingetPath = "$env:localappdata\Microsoft\WindowsApps\winget.exe"
+$wingetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"
 
 # Make temporary directory
 $tempDir = Join-Path -Path $env:TEMP -ChildPath $([System.IO.Path]::GetRandomFileName())
