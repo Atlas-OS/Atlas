@@ -6,11 +6,10 @@ $Cbs = "$env:SystemRoot\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy"
 
 ## Remove 'Get started' and 'Windows Backup' from Start Menu
 $Manifest = Join-Path $Cbs 'appxmanifest.xml'
-takeown /a /f $Manifest
-icacls $Manifest /grant Administrators:F
 $AtlasManifest = Join-Path $Cbs "appxmanifest.xml.atlas"
 if (!(Test-Path $AtlasManifest)) {
     Copy-Item -Path $Manifest -Destination $AtlasManifest -Force
+    Get-Acl -Path $Manifest | Set-Acl -Path $AtlasManifest
     Remove-Item $Manifest -Force
 }
 [xml]$xml = Get-Content -Path "$Cbs\appxmanifest.xml.atlas" -Raw
