@@ -3,8 +3,8 @@ package: Z-Atlas-NoTelemetry-Package
 target_arch: amd64
 version: 3.0.0.0
 updates:
-    # Windows Error Reporting - used for reporting crash dumps to Microsoft
-    # Commented components are to prevent an 'Automatic Repair' loop 
+    # Windows Error Reporting - reporting crash dumps to Microsoft
+    # Commented components are to prevent an 'Automatic Repair' loop
   - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -93,7 +93,7 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
 
-    # Telemetry Client - collects and reports diagnostic info to Microsoft
+    # Telemetry - collecting/reporting diagnostic info to Microsoft
   - target_component: Microsoft-OneCore-SystemSettings-InputCloudStore
     target_arch: amd64
     version: 38655.38527.65535.65535
