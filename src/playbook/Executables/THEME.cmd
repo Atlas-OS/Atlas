@@ -4,7 +4,7 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 set win11=true
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
 	reg query "HKEY_USERS\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
 		if "%%a" == "AME_UserHive_Default" (
-			call :ALLUSERS "%%a" "C:\Users\Default\AppData\Roaming"
+			call :ALLUSERS "%%a" "%SystemRoot%\Users\Default\AppData\Roaming"
 		) else (
 			for /f "usebackq tokens=2* delims= " %%b in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "AppData" ^| findstr /r /x /c:".*AppData[ ]*REG_SZ[ ].*"`) do (
 				call :ALLUSERS "%%a" "%%c"
