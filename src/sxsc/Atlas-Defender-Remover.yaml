@@ -250,14 +250,6 @@ updates:
           - key: 1806
             type: REG_DWORD
             value: 0
-        # Prevent notifying antivirus programs of downloaded files
-      - key_name: >-
-          HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Attachments
-        perUserVirtualization: false
-        values:
-          - key: ScanWithAntiVirus
-            type: REG_DWORD
-            value: 1
   - target_component: Microsoft-Windows-SmartScreen
     target_arch: wow64
     version: 38655.38527.65535.65535
