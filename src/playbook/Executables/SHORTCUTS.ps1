@@ -1,16 +1,23 @@
 function New-Shortcut {
     [CmdletBinding()]
     param (
-        [Parameter( Mandatory = $True )][string]$ShortcutPath,
-        [Parameter( Mandatory = $True )][string]$Target,
+        [Parameter(Mandatory = $True)][string]$ShortcutPath,
+        [Parameter(Mandatory = $True)][string]$Target,
         [string]$Arguments,
+        [string]$IfExist,
         [string]$Icon
     )
+
+    if ($null -ne $IfExist -and $IfExist -ne "") {
+        if (-not (Test-Path -Path $ShortcutPath -PathType Leaf)) {
+            exit 1
+        }
+    }
 
     $WshShell = New-Object -comObject WScript.Shell
     $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
     $Shortcut.TargetPath = $Target
-    if ($null -ne $Icon) { $Shortcut.IconLocation = $Icon }
+    if ($Icon -ne $null -and $Icon -ne "") {$Shortcut.IconLocation = $Icon}
     if ($null -ne $Arguments) { $Shortcut.Arguments = $Arguments }
     $Shortcut.Save()
 }
@@ -22,7 +29,13 @@ foreach ($user in $(Get-ChildItem -Path "$env:SystemDrive\Users" -Directory | Wh
 }
 Copy-Item $defaultShortcut -Destination "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Force
 
-$runAsTI = "$env:WinDir\AtlasModules\Scripts\RunAsTI.cmd"
-$default = "$env:WinDir\AtlasDesktop\8. Troubleshooting\Default"
-New-Shortcut -ShortcutPath "$default Windows Services and Drivers.lnk" -Target "$runAsTI" -Arguments "$env:WinDir\AtlasModules\Other\winServices.reg" -Icon "$env:WinDir\regedit.exe,1"
-New-Shortcut -ShortcutPath "$default Atlas Services and Drivers.lnk" -Target "$runAsTI" -Arguments "$env:WinDir\AtlasModules\Other\atlasServices.reg" -Icon "$env:WinDir\regedit.exe,1"
+$runAsTI = "$env:windir\AtlasModules\Scripts\RunAsTI.cmd"
+$default = "$env:windir\AtlasDesktop\8. Troubleshooting\Default"
+New-Shortcut -ShortcutPath "$default Windows Services and Drivers.lnk" -Target "$runAsTI" -Arguments "$env:windir\AtlasModules\Other\winServices.reg" -Icon "$env:windir\regedit.exe,1"
+New-Shortcut -ShortcutPath "$default Atlas Services and Drivers.lnk" -Target "$runAsTI" -Arguments "$env:windir\AtlasModules\Other\atlasServices.reg" -Icon "$env:windir\regedit.exe,1"
+
+# Fix Windows Tools shortcut in Windows 11
+$shortcutPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Administrative Tools.lnk"
+$newTargetPath = "explorer.exe"
+$newArgs = "shell:::{D20EA4E1-3957-11d2-A40B-0C5020524153}"
+New-Shortcut -ShortcutPath $shortcutPath -Target $newTargetPath -Arguments $newArgs -IfExist "True"
