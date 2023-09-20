@@ -1,9 +1,9 @@
 [Theme]
-DisplayName=Atlas Light
-ThemeId={9F1AEB0B-4DD7-44EF-8734-D4F82A341818}
+DisplayName=Atlas Legacy
+ThemeId={1545A5F7-3E0C-4670-8A21-99FDEEA37AA5}
 
 [Control Panel\Desktop]
-Wallpaper=%windir%\AtlasModules\Wallpapers\atlas-light.png
+Wallpaper=%windir%\AtlasModules\Wallpapers\atlas-legacy.png
 Pattern=
 MultimonBackgrounds=0
 PicturePosition=4
@@ -29,13 +29,13 @@ DefaultValue=Windows Default
 SchemeName=No Sounds
 
 [VisualStyles]
-Path=%windir%\resources\themes\Aero\Aero.msstyles
+Path=%SystemRoot%\resources\themes\Aero\Aero.msstyles
 ColorStyle=NormalColor
 Size=NormalSize
 AutoColorization=0
-ColorizationColor=0XC47568FF
+ColorizationColor=0XC42D7D9A
 SystemMode=Dark
-AppMode=Light
+AppMode=Dark
 VisualStyleVersion=10
 
 [MasterThemeSelector]

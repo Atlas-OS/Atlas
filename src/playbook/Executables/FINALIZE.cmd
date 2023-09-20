@@ -180,16 +180,6 @@ for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capt
     )
 )
 
-:: Set sound scheme to 'No Sounds'
-:: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
-for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
-    reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
-        echo Disabling sounds for "%%a"...
-        PowerShell -NoP -C "New-PSDrive HKU Registry HKEY_USERS; New-ItemProperty -Path 'HKU:\%%a\AppEvents\Schemes' -Name '(Default)' -Value '.None' -Force | Out-Null" > nul
-        PowerShell -NoP -C "New-PSDrive HKU Registry HKEY_USERS; Get-ChildItem -Path 'HKU:\%%a\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''" > nul
-    )
-)
-
 :: Detect hard drive - Solid State Drive (SSD) or Hard Disk Drive (HDD)
 for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -Number (Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1)).DiskNumber).SerialNumber.TrimStart()).MediaType"') do (
   set "diskDrive=%%a"

@@ -5,15 +5,7 @@ privilege: TrustedInstaller
 actions:
     # Copy files
   - !cmd:
-    command: 'robocopy "Screen" "%windir%\Web\Screen" /E /PURGE /IM /IT /NP > nul'
-    exeDir: true
-    wait: true
-  - !cmd:
-    command: 'copy /y "Themes\atlas-light.theme" "%windir%\Resources\Themes" > nul'
-    exeDir: true
-    wait: true
-  - !cmd:
-    command: 'copy /y "Themes\atlas-dark.theme" "%windir%\Resources\Themes" > nul'
+    command: 'copy /y "Themes" "%windir%\Resources\Themes" > nul'
     exeDir: true
     wait: true
 
