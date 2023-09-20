@@ -5,7 +5,8 @@ privilege: TrustedInstaller
 actions:
     # Disable Power Saving features
   - !run:
-    exe: '%windir%\AtlasDesktop\3. Configuration\Power\Power Saving\Disable Power Saving.cmd'
+    exe: 'Disable Power Saving.cmd'
+    path: '%windir%\AtlasDesktop\3. Configuration\Power\Power Saving'
     args: '/setup'
     weight: 20
     option: 'disable-power-saving'
@@ -13,6 +14,7 @@ actions:
     # Disable Hibernation & Fast Startup
     # Disabling makes NTFS accessible outside of Windows
   - !run:
-    exe: '%windir%\AtlasDesktop\3. Configuration\Power\Hibernation\Disable Hibernation (default).cmd'
+    exe: 'Disable Hibernation (default).cmd'
+    path: '%windir%\AtlasDesktop\3. Configuration\Power\Hibernation'
     args: '/setup'
     weight: 20

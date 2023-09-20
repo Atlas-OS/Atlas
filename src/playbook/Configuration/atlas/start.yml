@@ -419,3 +419,4 @@ actions:
     path: '%windir%\SoftwareDistribution'
     weight: 20
     ignoreErrors: true
+

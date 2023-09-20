@@ -6,13 +6,16 @@ actions:
     # Windows Defender
   - !writeStatus: {status: 'Disabling Windows Defender', option: 'defender-disable'}
   - !run:
-    exe: '%windir%\AtlasDesktop\7. Security\Defender\Toggle Defender.cmd'
+    exe: 'Toggle Defender.cmd'
+    path: '%windir%\AtlasDesktop\7. Security\Defender'
     args: '-Disable'
     wait: true
     option: 'defender-disable'
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
+
     # Causes slow app loading issues, and sends data to Microsoft
+    # Disable Smart App Control
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy'
     value: 'VerifiedAndReputablePolicyState'
@@ -21,9 +24,8 @@ actions:
 
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
-  - !run:
-    exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -File "$env:windir\AtlasDesktop\1. Software\Remove Edge.ps1" -AMEWizard'
+  - !cmd:
+    command: 'NSudoLC.exe -U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -File "%windir%\AtlasDesktop\1. Software\Remove Edge.ps1" -AMEWizard'
     wait: true
     exeDir: true
     option: 'uninstall-edge'
@@ -40,12 +42,14 @@ actions:
   - !writeStatus: {status: 'Removing components'}
     # NoTelemetry Package
   - !run:
-    exe: '%windir%\AtlasModules\Scripts\online-sxs.cmd'
+    exe: 'online-sxs.cmd'
+    path: '%windir%\AtlasModules\Scripts'
     args: '"%windir%\AtlasModules\Packages\Z-Atlas-NoTelemetry-Package31bf3856ad364e35amd643.0.0.0.cab"'
     wait: true
     # Misc Package
   - !run:
-    exe: '%windir%\AtlasModules\Scripts\online-sxs.cmd'
+    exe: 'online-sxs.cmd'
+    path: '%windir%\AtlasModules\Scripts'
     args: '"%windir%\AtlasModules\Packages\Z-Atlas-Misc-Remover-Package31bf3856ad364e35amd643.0.0.0.cab"'
     wait: true
 

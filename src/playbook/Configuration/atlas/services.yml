@@ -6,20 +6,21 @@ actions:
   - !writeStatus: {status: 'Configuring services'}
 
   # Backup default Windows serivces & drivers
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -EP Unrestricted -File "BACKUP.ps1" "$env:windir\AtlasModules\Other\atlasServices.reg"'
+  - !cmd:
+    command: 'powershell -NoP -EP Unrestricted -File "BACKUP.ps1" "%windir%\AtlasModules\Other\atlasServices.reg"'
     wait: true
     exeDir: true
 
   # ------------------------ Services ------------------------
 
   - !run:
-    exe: '%windir%\AtlasDesktop\3. Configuration\Bluetooth\Disable Bluetooth.cmd'
+    exe: 'Disable Bluetooth.cmd'
+    path: '%windir%\AtlasDesktop\3. Configuration\Bluetooth'
     args: '/silent'
     option: 'disable-bluetooth'
   - !run:
-    exe: '%windir%\AtlasDesktop\3. Configuration\Printing\Disable Printing (default).cmd'
+    exe: 'Disable Printing (default).cmd'
+    path: '%windir%\AtlasDesktop\3. Configuration\Printing'
     args: '/silent'
 
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
