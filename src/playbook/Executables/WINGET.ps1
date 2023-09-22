@@ -15,7 +15,7 @@ if ($getLatest) {
 	New-Item $tempDir -ItemType Directory -Force | Out-Null
 	Set-Location $tempDir
 
-	Write-Host "Installing WinGet..." -ForegroundColor 
+	Write-Host "Installing WinGet..."
 	# Download WinGet
 	Invoke-WebRequest -Uri 'https://aka.ms/getwinget' -OutFile '.\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle' -UseBasicParsing
 
