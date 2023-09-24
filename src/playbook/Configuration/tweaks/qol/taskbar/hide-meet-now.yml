@@ -8,3 +8,6 @@ actions:
     value: 'HideSCAMeetNow'
     data: '1'
     type: REG_DWORD
+  
+  # Hide 'Chat' icon from Settings
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat', value: 'ChatIcon', type: REG_DWORD, data: '3'}
