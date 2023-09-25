@@ -11,12 +11,12 @@ actions:
   - !registryValue:
     path: 'HKCR\Applications\powershell.exe\shell\open\command'
     value: ''
-    data: '"%windir%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
+    data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
     type: REG_SZ
   - !registryValue:
     path: 'HKCR\ps1_auto_file\shell\open\command'
     value: ''
-    data: '"%windir%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
+    data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
     type: REG_SZ
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
