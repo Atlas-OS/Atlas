@@ -131,9 +131,9 @@ reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Micros
 reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false" /f > nul
 
 :: Remove 'Bitmap File' from 'New' context menu
+set "mrtCache=HKEY_USERS\%~1\Software\Classes\Local Settings\MrtCache"
 echo %~1 | find "_Classes" > nul
 if errorlevel 0 (
-    set "mrtCache=HKEY_USERS\%~1\Local Settings\MrtCache"
     for /f "tokens=*" %%a in ('reg query "%mrtCache%" /s ^| find /i "%mrtCache%"') do (
         for /f "tokens=1-2" %%b in ('reg query "%%a" /v * ^| find /i "ShellNewDisplayName_Bmp"') do (
             reg add "%%a" /v "%%b %%c" /t REG_SZ /d "" /f
