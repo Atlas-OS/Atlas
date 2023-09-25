@@ -25,4 +25,4 @@ foreach ($userDir in $userDirectories) {
 }
 
 # Kill the window informing about process hacker
-taskkill.exe /f /im pcaui.exe
+Stop-Process -name pcaui -Force
