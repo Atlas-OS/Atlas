@@ -49,7 +49,6 @@ actions:
     wait: true
     exeDir: true
     weight: 150
-    option: '!uninstall-edge'
   - !run:
     exe: 'NSudoLC.exe'
     args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File "WINGET.ps1" LibreWolf.LibreWolf'
