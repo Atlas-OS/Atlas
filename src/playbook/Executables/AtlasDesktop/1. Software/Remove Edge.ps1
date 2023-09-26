@@ -1,14 +1,49 @@
-[CmdletBinding()]
+<#
+	.SYNOPSIS
+	Uninstalls Edge and Edge-related components.
+
+	.Description
+	Uninstalls Edge and Edge-related components in a non-forceful manner, based upon the switches or user choices.
+
+	.PARAMETER UninstallAll
+	Uninstalls everything, including WebView, Update, etc... without interaction, including Edge user data.
+
+	.PARAMETER UninstallEdge
+	Uninstalls Edge-only, leaving the Edgeuser data, without interaction.
+
+	.PARAMETER Exit
+	When combined with other parameters, this exits the script (even if there's errors) on completion.
+
+	.PARAMETER KeepAppX
+	Keeps the AppX, in case you want to use alternative AppX removal methods.
+
+	.LINK
+	https://github.com/he3als/EdgeRemover
+
+	.LINK
+	https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6
+#>
+
 param (
-	[Switch]$UninstallAll,
-	[Switch]$AMEWizard
+	[switch]$UninstallAll,
+	[switch]$UninstallEdge,
+	[switch]$Exit,
+	[switch]$KeepAppX
 )
+
+# credit to ave9858 for Edge removal method: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6
 
 $ProgressPreference = "SilentlyContinue"
 $user = $env:USERNAME
 $SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
 
-if ($Exit -and (-not $UninstallAll)) {
+$services = @(
+	'edgeupdate',
+	'edgeupdatem',
+	'MicrosoftEdgeElevationService'
+)
+
+if ($Exit -and ((-not $UninstallAll) -and (-not $UninstallEdge))) {
     $Exit = $false
 }
 
@@ -34,11 +69,11 @@ function DeleteEdgeUpdate {
 	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineCore" -Confirm:$false | Out-Null
 	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineUA" -Confirm:$false | Out-Null
 
-	# remove services
-	Stop-Service -Name "edgeupdate" -Force | Out-Null
-	Stop-Service -Name "edgeupdatem" -Force | Out-Null
-	sc.exe delete edgeupdate | Out-Null
-	sc.exe delete edgeupdatem | Out-Null
+	# remove all Edge services
+	foreach ($service in $services) {
+		Stop-Service -Name $service -Force
+		sc.exe delete $service | Out-Null
+	}
 
 	# delete the Edge Update folder
 	Remove-Item -Path "$env:SystemDrive\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
@@ -55,13 +90,6 @@ function RemoveEdgeChromium {
 
 	Get-Process -Name MicrosoftEdgeUpdate | Stop-Process -Force
 	Get-Process -Name msedge | Stop-Process -Force
-
-	$services = @(
-		'edgeupdate',
-		'edgeupdatem',
-		'MicrosoftEdgeElevationService'
-	)
-
 	foreach ($service in $services) {Stop-Service -Name $service -Force}
 
 	$ErrorActionPreference = 'Continue'
@@ -130,10 +158,10 @@ function RemoveWebView {
 function UninstallAll {
 	Write-Warning "Uninstalling Edge Chromium..."
 	RemoveEdgeChromium
-	if (!($AMEWizard)) {
+	if (!($KeepAppX)) {
 		Write-Warning "Uninstalling AppX Edge..."
 		RemoveEdgeAppx
-	} else {Write-Warning "AME Wizard should uninstall AppX Edge..."}
+	} else {Write-Warning "AppX Edge is being left, there might be a stub..."}
 	if ($removeWebView) {
 		Write-Warning "Uninstalling Edge WebView..."
 		RemoveWebView
@@ -142,9 +170,17 @@ function UninstallAll {
 	}
 }
 
+function Completed {
+	Write-Host "`nCompleted." -ForegroundColor Green
+	if (!$Exit) {
+		PauseNul "Press any key to exit... "
+	}
+	exit
+}
+
 if ($null -ne $(whoami /user | Select-String "S-1-5-18")) {
-	Write-Host "This script can't be ran as TrustedInstaller or SYSTEM."
-	Write-Host "Please relaunch this script under a regular admin account.`n"
+	Write-Host "This script can't be ran as TrustedInstaller or SYSTEM. -ForegroundColor Yellow
+Please relaunch this script under a regular admin account.`n" -ForegroundColor Yellow
 	if (!($Exit)) {PauseNul "Press any key to exit... "}
 	exit 1
 } else {
@@ -153,48 +189,50 @@ if ($null -ne $(whoami /user | Select-String "S-1-5-18")) {
 	}
 }
 
-$removeWebView = $true
-$removeData = $true
-
-if ($AMEWizard) {
+if ($UninstallAll) {
+	$removeWebView = $true
+	$removeData = $true
 	UninstallAll
-	exit
+	Completed
 }
 
-if (!($UninstallAll)) {
-	while (!($continue)) {
-		Clear-Host; Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.
-Major credit to ave9858: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6`n" -ForegroundColor Yellow
+if ($UninstallEdge) {
+	$removeWebView = $false
+	$removeData = $false
+	UninstallAll
+	Completed
+}
 
-		if ($removeWebView) {$colourWeb = "Green"; $textWeb = "Selected"} else {$colourWeb = "Red"; $textWeb = "Unselected"}
-		if ($removeData) {$colourData = "Green"; $textData = "Selected"} else {$colourData = "Red"; $textData = "Unselected"}
+# set defaults
+$removeWebView = $false
+$removeData = $false
 
-		Write-Host "Options:"
-		Write-Host "[1] Remove Edge WebView ($textWeb)" -ForegroundColor $colourWeb
-		Write-Host "[2] Remove Edge User Data ($textData)`n" -ForegroundColor $colourData
-		Write-Host "Press enter to continue or use numbers to select options... " -NoNewLine
+while (!($continue)) {
+	Clear-Host; Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.`n" -ForegroundColor Yellow
 
-		$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+	if ($removeWebView) {$colourWeb = "Green"; $textWeb = "Selected"} else {$colourWeb = "Red"; $textWeb = "Unselected"}
+	if ($removeData) {$colourData = "Green"; $textData = "Selected"} else {$colourData = "Red"; $textData = "Unselected"}
 
-		write-host "$input.VirtualKeyCode"
+	Write-Host "Options:"
+	Write-Host "[1] Remove Edge WebView ($textWeb)" -ForegroundColor $colourWeb
+	Write-Host "[2] Remove Edge User Data ($textData)`n" -ForegroundColor $colourData
+	Write-Host "Press enter to continue or use numbers to select options... " -NoNewLine
 
-		switch ($userInput.VirtualKeyCode) {
-			49 { # num 1
-				$removeWebView = !$removeWebView
-			}
-			50 { # num 2
-				$removeData = !$removeData
-			}
-			13 { # enter
-				$continue = $true
-			}
+	$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+
+	switch ($userInput.VirtualKeyCode) {
+		49 { # num 1
+			$removeWebView = !$removeWebView
+		}
+		50 { # num 2
+			$removeData = !$removeData
+		}
+		13 { # enter
+			$continue = $true
 		}
 	}
 }
 
 Clear-Host
 UninstallAll
-
-Write-Host "`nCompleted." -ForegroundColor Green
-PauseNul "Press any key to exit... "
-exit
+Completed
