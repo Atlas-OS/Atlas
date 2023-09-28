@@ -66,6 +66,12 @@ rd /s /q "%windir%\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyou
 :: Set hidden Settings pages
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "%hiddenPages%;family-group;deviceusage;" /f > nul
 
+:: Disable Windows Chat in the taskbar
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat" /v "ChatIcon" /t REG_DWORD /d "3" /f > nul
+
+:: Disable Copilot
+reg add "HKLM\Software\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /t REG_DWORD /d "1" /f > nul
+
 :: Set dual boot menu description to AtlasOS 11
 bcdedit /set description "AtlasOS 11" > nul
 
