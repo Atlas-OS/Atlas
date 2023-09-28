@@ -26,9 +26,9 @@ exit /b %errorlevel%
 : end batch / begin PowerShell #>
 
 param (
-    [switch]$Enable,
-    [switch]$Disable,
-    [switch]$SafeMode,
+	[switch]$Enable,
+	[switch]$Disable,
+	[switch]$SafeMode,
 	[switch]$DisableFailedMessage
 )
 

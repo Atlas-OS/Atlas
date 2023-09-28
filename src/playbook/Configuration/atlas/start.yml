@@ -44,28 +44,29 @@ actions:
 
   - !writeStatus: {status: 'Installing software'}
   - !run:
-    exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File "WINGET.ps1"'
+    exe: 'powershell.exe'
+    args: '-NoP -File "SOFTWARE.ps1"'
     wait: true
     exeDir: true
     weight: 150
+  - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !run:
-    exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File "WINGET.ps1" LibreWolf.LibreWolf'
-    wait: true
-    exeDir: true
-    weight: 150
-    option: 'librewolf-winget'
-  - !run:
-    exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -File "WINGET.ps1" Google.Chrome'
+    exe: 'powershell.exe'
+    args: '-NoP -File "SOFTWARE.ps1" -Chrome'
     wait: true
     exeDir: true
     weight: 150
     option: 'browser-chrome'
-    ################
-    ## Non-WinGet ##
-    ################
+  - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File "SOFTWARE.ps1" -Brave'
+    wait: true
+    exeDir: true
+    weight: 150
+    option: 'browser-brave'
+
+  - !writeStatus: {status: 'Installing LibreWolf', option: 'browser-librewolf'}
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File LIBREWOLF.ps1'
@@ -73,22 +74,12 @@ actions:
     wait: true
     weight: 150
     option: 'librewolf-winupdater'
-    # Can't be installed system-wide with Chocolatey or other package managers
-    # https://github.com/brave/brave-browser/issues/25571
   - !run:
     exe: 'powershell.exe'
-    args: '-NoP -File BRAVE.ps1'
+    args: '-NoP -File "LIBREWOLF.ps1" noupdater'
     exeDir: true
     wait: true
     weight: 150
-    option: 'browser-brave'
-  - !taskKill {name: 'brave', option: 'browser-brave'}
+    option: 'librewolf-winget'
 
   ################ END NO LOCAL BUILD ################
-
-  # Should be cleaned up by cleanmgr, fails most of the time anyways
-
-  # - !file:
-  #   path: '%windir%\SoftwareDistribution'
-  #   weight: 20
-  #   ignoreErrors: true
