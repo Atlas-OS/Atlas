@@ -109,12 +109,12 @@ updates:
   - target_component: Microsoft-Windows-Application-Experience-Core-Inventory-Service.Resources
     target_arch: amd64
     version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-Application-Experience-Infrastructure
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-Application-Experience-Infrastructure
-    target_arch: wow64
-    version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-Application-Experience-Infrastructure
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-Application-Experience-Infrastructure
+  #   target_arch: wow64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-Application-Experience-Inventory-Data-Sources
     target_arch: amd64
     version: 38655.38527.65535.65535

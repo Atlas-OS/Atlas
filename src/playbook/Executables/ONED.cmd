@@ -2,8 +2,14 @@
 setlocal EnableDelayedExpansion
 
 taskkill /f /im OneDrive*.exe > nul 2>&1
-"%windir%\System32\OneDriveSetup.exe" /uninstall
-"%windir%\SysWOW64\OneDriveSetup.exe" /uninstall
+for %%a in (
+	"%windir%\System32\OneDriveSetup.exe"
+	"%windir%\SysWOW64\OneDriveSetup.exe"
+) do (
+	if exist "%%a" (
+		"%%a" /uninstall
+	)
+)
 
 :: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs don't have this key.
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (

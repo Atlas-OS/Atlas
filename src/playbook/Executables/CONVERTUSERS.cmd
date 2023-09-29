@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 :: make passwords never expire
-net accounts /maxpwage:unlimited
+net accounts /maxpwage:unlimited > nul
 
 for /f "usebackq delims=" %%a in (`PowerShell -NoP -C "(Get-LocalUser | Where {$_.PrincipalSource -eq 'MicrosoftAccount'}).Name"`) do call :CONVERTUSER "%%a"
 for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentityStore\LogonCache\Name2Sid" ^| findstr /i /c:"Name2Sid"`) do reg delete "%%a" /f > nul 2>&1
@@ -30,4 +30,4 @@ net user "%~1" "" > nul
 wmic UserAccount where name='%~1' set Passwordexpires=true > nul
 net user "%~1" /logonpasswordchg:yes > nul
 
-net accounts /lockoutthreshold:10
+net accounts /lockoutthreshold:10 > nul
