@@ -18,7 +18,7 @@ if !errorlevel! == 1 (
 )
 
 where winget > nul 2>&1 || (
-	echo You must have WinGet updated and installed to use this script.
+	echo WinGet is not installed, please update or install App Installer from Microsoft Store.
 	echo Press any key to exit...
 	exit /b 1
 )
