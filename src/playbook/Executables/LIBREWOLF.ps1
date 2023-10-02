@@ -1,9 +1,13 @@
+param (
+	[switch]$NoUpdater
+)
+
 # disable progress bars
 $ProgressPreference = "SilentlyContinue"
 # stop on errors, as each command is vital
 $ErrorActionPreference = "Stop"
 
-if ($args -ne 'noupdater') { $updaterPath = "$env:ProgramFiles\LibreWolf\librewolf-winupdater" }
+if ($NoUpdater) { $updaterPath = "$env:ProgramFiles\LibreWolf\librewolf-winupdater" }
 $librewolfPath = "$env:ProgramFiles\LibreWolf"
 $desktop = [Environment]::GetFolderPath("Desktop")
 $startMenu = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs"
@@ -18,7 +22,7 @@ Write-Warning "Getting the latest LibreWolf download link"
 $librewolfVersion = Invoke-RestMethod -Uri "https://gitlab.com/api/v4/projects/44042130/releases" | ForEach-Object { $_.name } | Select-Object -First 1
 $librewolfFileName = "librewolf-$librewolfVersion-windows-x86_64-setup.exe"
 $librewolfDownload = "https://gitlab.com/api/v4/projects/44042130/packages/generic/librewolf/$librewolfVersion/$librewolfFileName"
-if ($args -ne 'noupdater') {
+if ($NoUpdater) {
 	Write-Warning "Getting the latest LibreWolf-WinUpdater download link"
 	$librewolfUpdaterURI = "https://codeberg.org/api/v1/repos/ltguillaume/librewolf-winupdater/releases?draft=false&pre-release=false&page=1&limit=1"
 	$librewolfUpdaterDownload = (Invoke-RestMethod -Uri "$librewolfUpdaterURI" -Headers @{ "accept" = "application/json" }).Assets |
@@ -27,11 +31,11 @@ if ($args -ne 'noupdater') {
 }
 # output paths
 $outputLibrewolf = "$env:SystemDrive\$librewolfFileName"
-if ($args -ne 'noupdater') { $outputLibrewolfUpdater = "$env:SystemDrive\librewolf-winupdater.zip" }
+if ($NoUpdater) { $outputLibrewolfUpdater = "$env:SystemDrive\librewolf-winupdater.zip" }
 
 Write-Warning "Downloading the latest LibreWolf setup"
 & curl.exe -LSs "$librewolfDownload" -o "$outputLibrewolf"
-if ($args -ne 'noupdater') {
+if ($NoUpdater) {
 	Write-Warning "Downloading the latest LibreWolf WinUpdater ZIP"
 	& curl.exe -LSs "$librewolfUpdaterDownload" -o "$outputLibrewolfUpdater"
 }
@@ -42,12 +46,12 @@ if (!(Test-Path $librewolfPath)) {
 	Write-Host "Installing LibreWolf silently failed."
 	exit 1
 }
-if ($args -ne 'noupdater') {
+if ($NoUpdater) {
 	Write-Warning "Installing/extracting Librewolf-WinUpdater"
 	Expand-Archive -Path $outputLibrewolfUpdater -DestinationPath "$env:ProgramFiles\LibreWolf\librewolf-winupdater" -Force
 }
 
-if ($args -ne 'noupdater') {
+if ($NoUpdater) {
 	Write-Warning "Adding automatic updater task"
 	$Title = "LibreWolf WinUpdater"
 	$Action   = New-ScheduledTaskAction -Execute "$updaterPath\LibreWolf-WinUpdater.exe" -Argument "/Scheduled"
@@ -69,8 +73,8 @@ function Create-Shortcut {
 	$Shortcut.Save()
 }
 Create-Shortcut -Source "$librewolfPath\librewolf.exe" -Destination "$desktop\LibreWolf.lnk" -WorkingDir $librewolfPath
-if ($args -ne 'noupdater') { Create-Shortcut -Source "$updaterPath\Librewolf-WinUpdater.exe" -Destination "$startMenu\LibreWolf\LibreWolf WinUpdater.lnk" -WorkingDir $librewolfPath }
+if ($NoUpdater) { Create-Shortcut -Source "$updaterPath\Librewolf-WinUpdater.exe" -Destination "$startMenu\LibreWolf\LibreWolf WinUpdater.lnk" -WorkingDir $librewolfPath }
 
 Write-Warning "Removing temporary installer files"
 Remove-Item "$outputLibrewolf" -Force
-if ($args -ne 'noupdater') { Remove-Item "$outputLibrewolfUpdater" -Force }
+if ($NoUpdater) { Remove-Item "$outputLibrewolfUpdater" -Force }

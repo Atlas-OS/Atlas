@@ -76,7 +76,7 @@ actions:
     option: 'librewolf-winupdater'
   - !run:
     exe: 'powershell.exe'
-    args: '-NoP -File "LIBREWOLF.ps1" noupdater'
+    args: '-NoP -File "LIBREWOLF.ps1" -NoUpdater'
     exeDir: true
     wait: true
     weight: 150
