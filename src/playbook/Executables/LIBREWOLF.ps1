@@ -30,10 +30,10 @@ $outputLibrewolf = "$env:SystemDrive\$librewolfFileName"
 if ($args -ne 'noupdater') { $outputLibrewolfUpdater = "$env:SystemDrive\librewolf-winupdater.zip" }
 
 Write-Warning "Downloading the latest LibreWolf setup"
-Invoke-WebRequest -Uri $librewolfDownload -OutFile $outputLibrewolf
+& curl.exe -LSs "$librewolfDownload" -o "$outputLibrewolf"
 if ($args -ne 'noupdater') {
 	Write-Warning "Downloading the latest LibreWolf WinUpdater ZIP"
-	Invoke-WebRequest -Uri $librewolfUpdaterDownload -OutFile $outputLibrewolfUpdater
+	& curl.exe -LSs "$librewolfUpdaterDownload" -o "$outputLibrewolfUpdater"
 }
 
 Write-Warning "Installing LibreWolf silently"
