@@ -206,7 +206,6 @@ features:
   - tweaks\qol\explorer\open-to-this-pc.yml
   - tweaks\qol\explorer\removable-drives-only-this-pc.yml
   - tweaks\qol\explorer\remove-previous-versions.yml
-  - tweaks\qol\explorer\remove-shortcut-icon.yml
   - tweaks\qol\explorer\remove-shortcut-text.yml
   - tweaks\qol\explorer\show-files.yml
   - tweaks\qol\explorer\add-music-vids-to-home.yml
