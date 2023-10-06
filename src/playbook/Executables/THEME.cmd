@@ -13,7 +13,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 	)
 )
 
-:: clear lockscreen cache
+:: Clear lockscreen cache
 for /d %%a in ("%ProgramData%\Microsoft\Windows\SystemData\*") do (
 	for /d %%c in ("%%a\ReadOnly\LockScreen_*") do (
 		rd /s /q "%%c" > nul 2>&1

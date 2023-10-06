@@ -148,7 +148,6 @@ features:
   - tweaks\qol\config-start-menu.yml
   - tweaks\qol\config-windows-ink-workspace.yml
   - tweaks\qol\disable-background-auto-login.yml
-  - tweaks\qol\disable-lockscreen.yml
   - tweaks\qol\disable-mouse-accel.yml
   - tweaks\qol\disable-settings-tips.yml
   - tweaks\qol\disable-spell-checking.yml
