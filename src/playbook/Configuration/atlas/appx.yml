@@ -62,6 +62,9 @@ actions:
   # Windows Backup
   - !appx: {name: '*WindowsBackup*', type: app}
 
+  # Quick Assist
+  - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
+
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
   - !appx: {name: '*Microsoft.BingNews*', type: family}
   - !appx: {name: '*Microsoft.BingSearch*', type: family}
