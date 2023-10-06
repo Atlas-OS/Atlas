@@ -78,9 +78,8 @@ $num = 0; foreach ($a in $vcredists.GetEnumerator()) {
 }
 
 # 7-Zip
-if ($env:PROCESSOR_ARCHITECTURE -eq 'amd64') {$arch = 'x64'} else {$arch = 'arm64'}
-$website = 'https://7-zip.org/'
-$download = $website + ((Invoke-WebRequest $website -UseBasicParsing).Links.href | Where-Object { $_ -like "a/7z2301-$arch.exe" })
+$website = 'https://7-zip.org'
+$download = $website + ((Invoke-WebRequest $website -UseBasicParsing).Links.href | Where-Object { $_ -like "a/7z2301-x64.exe" })
 & curl.exe -LSs $download -o "$tempDir\7zip.exe"
 Start-Process -FilePath "$tempDir\7zip.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait
 
