@@ -3,14 +3,14 @@ title: Initial Configuration
 description: Copies Atlas folders/files, installs dependencies and performs the preliminary configuration
 privilege: TrustedInstaller
 actions:
-    # AME Wizard Live Log for development Playbooks
+    # AME Wizard Live Log for development playbooks
     # Do not change the line position of this, otherwise things will break
   # - !run: {exe: 'cmd.exe', args: '/c start "AME Wizard Live Log" PowerShell -NoP -C "gc -Wait Logs\TIOutput.txt -EA SilentlyContinue | Write-Output; pause"', baseDir: true, wait: false}
 
     # Prevent annoying notifications during deployment
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance', value: 'Enabled', type: REG_DWORD, data: '0'}
 
-    # Prevent computer from going to sleep
+    # Prevent computer from going to sleep during deployment
   - !run: {exe: 'powercfg.exe', args: '/setacvalueindex scheme_current sub_sleep standbyidle 0'}
   - !run: {exe: 'powercfg.exe', args: '/setdcvalueindex scheme_current sub_sleep standbyidle 0'}
 
