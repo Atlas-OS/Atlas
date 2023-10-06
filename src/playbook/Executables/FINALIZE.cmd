@@ -56,7 +56,7 @@ for /f %%a in ('wmic path Win32_NetworkAdapter get GUID ^| findstr "{"') do (
 
 :: Set network adapter driver registry key
 for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
-	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver"') do (
+	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver" 2^>nul') do (
         set "netKey=HKLM\SYSTEM\CurrentControlSet\Control\Class\%%b"
     )
 )
@@ -133,11 +133,11 @@ for %%a in (
     "WoWLANS5Support"
 ) do (
     rem Check without '*'
-    for /f %%b in ('reg query "!netKey!" /v "%%~a" ^| findstr "HKEY"') do (
+    for /f %%b in ('reg query "!netKey!" /v "%%~a" 2^>nul ^| findstr "HKEY" 2^>nul') do (
         reg add "!netKey!" /v "%%~a" /t REG_SZ /d "0" /f > nul
     )
     rem Check with '*'
-    for /f %%b in ('reg query "!netKey!" /v "*%%~a" ^| findstr "HKEY"') do (
+    for /f %%b in ('reg query "!netKey!" /v "*%%~a" 2^>nul ^| findstr "HKEY" 2^>nul') do (
         reg add "!netKey!" /v "*%%~a" /t REG_SZ /d "0" /f > nul
     )
 )
@@ -209,7 +209,7 @@ if "!diskDrive!" == "SSD" (
 )
 
 :: Detect if user uses laptop device or personal computer
-for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"]
+for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"
 set "DEVICE_TYPE=PC"
 for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "DEVICE_TYPE=LAPTOP")
 

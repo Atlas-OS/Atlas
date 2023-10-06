@@ -5,7 +5,7 @@ copy /y "Layout.xml" "%SystemDrive%\Users\Default\AppData\Local\Microsoft\Window
 :: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs don't have this key.
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
 	reg query "HKEY_USERS\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
-		for /f "usebackq tokens=4* delims= " %%c in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "Local AppData" ^| findstr /r /x /c:".*Local AppData[ ]*REG_SZ[ ].*"`) do (
+		for /f "usebackq tokens=4* delims= " %%c in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "Local AppData" 2^>nul ^| findstr /r /x /c:".*Local AppData[ ]*REG_SZ[ ].*" 2^>nul`) do (
 			copy /y "Layout.xml" "%%c\Microsoft\Windows\Shell\LayoutModification.xml" > nul
 
 			rem Clear Start Menu pinned items
@@ -15,7 +15,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 				)
 			)
 		)
-		for /f "usebackq delims=" %%c in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\CloudStore\Store\Cache\DefaultAccount" ^| findstr /c:"start.tilegrid"`) do (
+		for /f "usebackq delims=" %%c in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\CloudStore\Store\Cache\DefaultAccount" 2^>nul ^| findstr /c:"start.tilegrid" 2^>nul`) do (
 			reg delete "%%c" /f > nul 2>&1
 		)
 	)
