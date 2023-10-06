@@ -14,8 +14,8 @@ actions:
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
-    # Causes slow app loading issues, and sends data to Microsoft
     # Disable Smart App Control
+    # Causes slow app loading issues, and sends data to Microsoft
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy'
     value: 'VerifiedAndReputablePolicyState'
