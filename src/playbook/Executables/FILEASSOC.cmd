@@ -51,6 +51,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
         powershell -NoP -EP Unrestricted -File assoc.ps1 "Placeholder" "%%a" %associations%
     )
 )
+exit /b
 
 :7ZIPUSER
 (
@@ -284,6 +285,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg add "HKU\%~1\Software\Classes\7-Zip.zip\shell\open" /ve /t REG_SZ /d "" /f
     reg add "HKU\%~1\Software\Classes\7-Zip.zip\shell\open\command" /ve /t REG_SZ /d "\"%ProgramFiles%\7-Zip\7zFM.exe\" \"%%1\"" /f
 ) > nul
+
 exit /b
 
 :7ZIPSYSTEM
@@ -517,4 +519,5 @@ exit /b
     reg add "HKLM\Software\Classes\7-Zip.zip\shell\open" /ve /t REG_SZ /d "" /f
     reg add "HKLM\Software\Classes\7-Zip.zip\shell\open\command" /ve /t REG_SZ /d "\"%ProgramFiles%\7-Zip\7zFM.exe\" \"%%1\"" /f
 ) > nul
+
 exit /b
