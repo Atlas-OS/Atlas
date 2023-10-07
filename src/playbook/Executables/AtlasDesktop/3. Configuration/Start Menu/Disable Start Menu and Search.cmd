@@ -7,8 +7,14 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-if exist "%windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto existS
-if exist "%windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto existS
+if exist "%windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy" goto existS
+if exist "%windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existS
+
+:error
+echo error: Start Menu and Search are already disabled.
+echo Press any key to exit...
+pause > nul
+exit /b 1
 
 :existS
 if exist "%ProgramFiles%\Open-Shell" goto main
@@ -18,32 +24,30 @@ pause
 
 :main
 set /P c="This will disable SearchApp and StartMenuExperienceHost, are you sure you want to continue [Y/N]? "
-if /I "%c%" == "Y" goto continSS
+if /I "%c%" == "Y" cd %windir%\SystemApps & goto start
 if /I "%c%" == "N" exit /b
 if /I "%c%" == "" echo No option selected - launch the script again. & pause & exit /b 1
 
-:continSS
-cd %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
-
+:start
+set "startName=Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy"
 taskkill /f /im StartMenuExperienceHost* > nul 2>&1
-ren StartMenuExperienceHost.exe StartMenuExperienceHost.exee > nul 2>&1
+ren %startName% %startName%.old > nul 2>&1
 
 :: Loop if it fails to rename the first time
-if exist "%windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto restartStart
+if exist "%windir%\SystemApps\%startName%" goto start
 
-:restartSearch
-cd %windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
-
+:search
+set "searchName=Microsoft.Windows.Search_cw5n1h2txyewy"
 taskkill /f /im SearchApp* > nul 2>&1
-ren SearchApp.exe SearchApp.exee > nul 2>&1
+ren %searchName% %searchName%.old > nul 2>&1
 
 :: Loop if it fails to rename the first time
-if exist "%windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto restartSearch
+if exist "%windir%\SystemApps\%searchName%" goto search
 
 :: Search icon
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f > nul
 taskkill /f /im explorer.exe > nul 2>&1
-start explorer.exe > nul 2>&1
+start explorer.exe
 
 if "%~1" == "/silent" exit
 

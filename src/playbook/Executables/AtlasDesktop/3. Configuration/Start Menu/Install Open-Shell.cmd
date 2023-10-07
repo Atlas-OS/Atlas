@@ -12,18 +12,21 @@ fltmc > nul 2>&1 || (
 ping -n 1 -4 www.example.com | find "time=" > nul 2>&1
 if %errorlevel% == 1 (
 	echo You must have an internet connection to use this script.
-	pause
+	echo Press any key to exit...
+	pause > nul
 	exit /b 1
 )
 
 where winget > nul 2>&1 || (
 	echo WinGet is not installed, please update or install App Installer from Microsoft Store.
 	echo Press any key to exit...
+	pause > nul
 	exit /b 1
 )
 
-if exist "%windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe" goto existOS
-if exist "%windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe" goto existOS
+cd %windir%\SystemApps
+if exist "Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
+if exist "Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy" goto existOS
 goto skipRM
 
 :existOS
