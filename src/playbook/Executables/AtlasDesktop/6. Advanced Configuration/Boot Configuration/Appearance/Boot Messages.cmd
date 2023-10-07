@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-:: https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings/
+:: https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings
 
 echo This will disable boot messages during boot, such as "Please wait", "Updating registry - 10%" and so on.
 echo Generally not recommended as they only show when they need to tell you something.

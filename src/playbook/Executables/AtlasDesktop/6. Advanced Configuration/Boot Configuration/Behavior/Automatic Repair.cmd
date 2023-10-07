@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-:: https://winaero.com/how-to-disable-automatic-repair-at-windows-10-boot/
+:: https://winaero.com/how-to-disable-automatic-repair-at-windows-10-boot
 
 echo Automatic repair mostly does not do anything to help, and could cause issues.
 echo]

@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-:: https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings/
+:: https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings
 
 echo Enables boot applications to use the highest graphical mode exposed by the firmware.
 echo Makes safe mode and booting use the highest resolution.
