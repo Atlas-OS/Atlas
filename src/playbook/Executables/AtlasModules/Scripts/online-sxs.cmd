@@ -4,7 +4,7 @@
 :: he3als 2023
 :: https://github.com/he3als/online-sxs
 
-if "%~1"=="-Help" (goto help) else (if "%~1"=="-help" (goto help) else (if "%~1"=="/h" (goto help) else (goto main)))
+if "%~1" == "-Help" (goto help) else (if "%~1" == "-help" (goto help) else (if "%~1" == "/h" (goto help) else (goto main)))
 
 :help
 echo Usage = online-sxs.cmd [-Help] [[-Silent] -CabPath ""]
@@ -13,7 +13,7 @@ exit /b
 :main
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
-	if "%*"=="" (
+	if "%*" == "" (
 		PowerShell Start -Verb RunAs '%0' 2> nul || goto error
 	) else (
 		PowerShell Start -Verb RunAs '%0' -ArgumentList '%*' 2> nul || goto error

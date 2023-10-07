@@ -17,14 +17,14 @@ for %%a in (
 
 for /f "usebackq tokens=*" %%a in (
 	`multichoice.exe "Send To Debloat" "Tick the default 'Send To' context menu items that you want to disable here (un-checked items are enabled)" "Bluetooth device;Compressed (zipped) folder;Desktop (create shortcut);Mail recipient;Documents;Removable Drives"`
-) do (set items=%%a)
+) do (set "items=%%a")
 for %%a in ("%items:;=" "%") do (
-	if "%%~a" == "Bluetooth device" (set bluetooth=true)
-	if "%%~a" == "Compressed (zipped) folder" (set zipfolder=true)
-	if "%%~a" == "Desktop (create shortcut)" (set desktop=true)
-	if "%%~a" == "Mail recipient" (set mail=true)
-	if "%%~a" == "Documents" (set documents=true)
-	if "%%~a" == "Removable Drives" (set removableDrives=true)
+	if "%%~a" == "Bluetooth device" (set "bluetooth=true")
+	if "%%~a" == "Compressed (zipped) folder" (set "zipfolder=true")
+	if "%%~a" == "Desktop (create shortcut)" (set "desktop=true")
+	if "%%~a" == "Mail recipient" (set "mail=true")
+	if "%%~a" == "Documents" (set "documents=true")
+	if "%%~a" == "Removable Drives" (set "removableDrives=true")
 )
 if "%bluetooth%" == "true" (attrib +h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK") else (attrib -h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK")
 if "%zipfolder%" == "true" (attrib +h "%APPDATA%\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget") else (attrib -h "%APPDATA%\Microsoft\Windows\SendTo\Compressed (zipped) Folder.ZFSendToTarget")

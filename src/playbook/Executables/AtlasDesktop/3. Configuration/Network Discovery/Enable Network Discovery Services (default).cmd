@@ -1,6 +1,6 @@
 @echo off
 
-if "%~1"=="/silent" goto main
+if "%~1" == "/silent" goto main
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" %*
@@ -22,7 +22,7 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
 )
 call setSvc.cmd SSDPSRV 3
 
-if "%~1"=="/silent" exit /b
+if "%~1" == "/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause

@@ -30,7 +30,7 @@ goto :eof
 :GetRegEnv
 reg query "%~1" > "%TEMP%\_envget.tmp"
 for /f "usebackq skip=2" %%a in ("%TEMP%\_envget.tmp") do (
-    if /I not "%%~a"=="Path" (
+    if /I not "%%~a" == "Path" (
         call :SetFromReg "%~1" "%%~a" "%%~a"
     )
 )

@@ -5,7 +5,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-for /f "tokens=4" %%a in ('netsh int show interface ^| find "Connected"') do set DeviceName=%%a
+for /f "tokens=4" %%a in ('netsh int show interface ^| find "Connected"') do set "DeviceName=%%a"
 
 :: Set DHCP instead of Static IP
 netsh int ipv4 set address name="%DeviceName%" dhcp

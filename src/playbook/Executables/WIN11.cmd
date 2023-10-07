@@ -1,7 +1,7 @@
 @echo off
 
 :: Check if user is on Windows 11
-for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a LSS 22000 set win10=true)
+for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a LSS 22000 set "win10=true")
 
 :: Set hidden Windows Settings pages
 :: There's some specific Windows 11/10 additions or removals
@@ -28,7 +28,7 @@ cortana-windowssearch
 
 :: Set 10-only changes
 if defined win10 (
-    set regVariable=USERREG10
+    set "regVariable=USERREG10"
 
     rem Set dual boot menu description to AtlasOS 10
     bcdedit /set description "AtlasOS 10" > nul
@@ -43,7 +43,7 @@ if defined win10 (
     rem Set hidden Settings pages
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "%hiddenPages%;backup;" /f > nul
 ) else (
-    set regVariable=USERREG
+    set "regVariable=USERREG"
 )
 
 :: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.

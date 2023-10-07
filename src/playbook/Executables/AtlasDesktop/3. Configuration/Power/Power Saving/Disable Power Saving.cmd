@@ -1,6 +1,6 @@
 @echo off
 
-if "%~1"=="/setup" goto main
+if "%~1" == "/setup" goto main
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call %windir%\AtlasModules\Scripts\RunAsTI.cmd "%~f0" %*
@@ -12,7 +12,7 @@ for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^|
 set "DEVICE_TYPE=PC"
 for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "%CHASSIS%" == "%%a" (set "DEVICE_TYPE=LAPTOP")
 
-if "%DEVICE_TYPE%"=="LAPTOP" (
+if "%DEVICE_TYPE%" == "LAPTOP" (
     echo WARNING: You are on a laptop, disabling power saving features will cause faster battery drainage and increased heat output.
     echo          If you use your laptop on battery, certain power saving features will enable, but not all.
     echo          It's NOT recommended to disable power saving on laptops in general.
@@ -114,7 +114,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerT
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
 bcdedit /set disabledynamictick yes > nul
 
-if "%~1"=="/setup" exit
+if "%~1" == "/setup" exit
 
 echo Completed.
 echo Press any key to exit...

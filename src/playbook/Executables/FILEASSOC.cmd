@@ -34,11 +34,11 @@ set chromeAssociations="Proto:https:ChromeHTML"^
  ".pdf:ChromeHTML"^
  ".shtml:ChromeHTML"
 
-if "%~1"=="" set associations=%baseAssociations%
-if "%~1"=="Microsoft Edge" set associations=%baseAssociations%
-if "%~1"=="Brave" set associations=%baseAssociations% %braveAssociations%
-if "%~1"=="LibreWolf" set associations=%baseAssociations% %libreWolfAssociations%
-if "%~1"=="Google Chrome" set associations=%baseAssociations% %chromeAssociations%
+if "%~1" == "" set "associations=%baseAssociations%"
+if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
+if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
+if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
+if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 
 :: Set 7-Zip assocations
 call :7ZIPSYSTEM

@@ -188,10 +188,10 @@ for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -N
 if "%diskDrive%" == "SSD" (
     rem Remove lower filters for rdyboost driver
     set "key=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
-    for /f "skip=1 tokens=3*" %%a in ('reg query %key% /v "LowerFilters"') do (set val=%%a)
-    set val=!val:rdyboost\0=!
-    set val=!val:\0rdyboost=!
-    set val=!val:rdyboost=!
+    for /f "skip=1 tokens=3*" %%a in ('reg query %key% /v "LowerFilters"') do (set "val=%%a")
+    set "val=!val:rdyboost\0=!"
+    set "val=!val:\0rdyboost=!"
+    set "val=!val:rdyboost=!"
     reg add "%key%" /v "LowerFilters" /t REG_MULTI_SZ /d "%val%" /f > nul
 
     rem Disable ReadyBoost
@@ -214,6 +214,6 @@ set "DEVICE_TYPE=PC"
 for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "%CHASSIS%" == "%%a" (set "DEVICE_TYPE=LAPTOP")
 
 :: Disable laptop-related services on PC
-if "%DEVICE_TYPE%"=="PC" (
+if "%DEVICE_TYPE%" == "PC" (
     call %windir%\AtlasModules\Scripts\setSvc.cmd DisplayEnhancementService 4
 )

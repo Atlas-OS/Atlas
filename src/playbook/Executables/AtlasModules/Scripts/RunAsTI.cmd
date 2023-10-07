@@ -63,11 +63,11 @@ goto RunAsTI-Elevate
 set "0=%~f0"
 set "1=%*"
 powershell -nop -c iex(gc """$env:0""" -Raw)
-set RunAsTI_Errorlevel=%errorlevel%
-if %RunAsTI_Errorlevel%==1 (
+set "RunAsTI_Errorlevel=%errorlevel%"
+if "%RunAsTI_Errorlevel%" == "1" (
 	goto RunAsTI-Fail
 ) else (
-	if %RunAsTI_Errorlevel%==2 (
+	if "%RunAsTI_Errorlevel%" == "2" (
 		goto RunAsTI-Declined
 	) else (
 		exit /b

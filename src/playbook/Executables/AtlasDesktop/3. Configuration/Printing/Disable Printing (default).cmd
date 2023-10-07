@@ -1,6 +1,6 @@
 @echo off
 
-if "%~1"=="/silent" goto main
+if "%~1" == "/silent" goto main
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" %*
@@ -48,10 +48,10 @@ call %windir%\AtlasModules\Scripts\setSvc.cmd Spooler 4
 call %windir%\AtlasModules\Scripts\setSvc.cmd PrintWorkFlowUserSvc 4
 
 :: Hide Settings page
-if not "%~1"=="/silent" (
+if not "%~1" == "/silent" (
     set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
     reg query "%pageKey%" /v "SettingsPageVisibility" > nul 2>&1
-    if "%errorlevel%"=="0" (
+    if "%errorlevel%" == "0" (
         for /f "usebackq tokens=3" %%a in (`reg query "%pageKey%" /v "SettingsPageVisibility"`) do (
             reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "%%a;printers;" /f > nul
         )
@@ -64,7 +64,7 @@ DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRes
 DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart > nul
 DISM /Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart > nul
 
-if "%~1"=="/silent" exit /b
+if "%~1" == "/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause

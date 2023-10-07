@@ -1,8 +1,8 @@
 @echo off
 
 :: Check if hyper threading is enabled
-for /f "tokens=2 delims==" %%a in ('wmic cpu get NumberOfCores /value') do set PHYSICAL_CORES=%%a
-for /f "tokens=2 delims==" %%a in ('wmic cpu get NumberOfLogicalProcessors /value') do set LOGICAL_CORES=%%a
+for /f "tokens=2 delims==" %%a in ('wmic cpu get NumberOfCores /value') do set "PHYSICAL_CORES=%%a"
+for /f "tokens=2 delims==" %%a in ('wmic cpu get NumberOfLogicalProcessors /value') do set "LOGICAL_CORES=%%a"
 if "%LOGICAL_CORES%" GTR "%PHYSICAL_CORES%" goto :hyperThreading
 
 echo This forces your CPU to work at its maximum speed always, ensure you have good cooling.

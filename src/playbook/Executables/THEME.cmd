@@ -1,5 +1,5 @@
 @echo off
-for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 set win11=true)
+for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 set "win11=true")
 
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
 	reg query "HKEY_USERS\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
@@ -36,4 +36,4 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\
 del /q /f "%~2\Microsoft\Windows\Themes\TranscodedWallpaper" > nul 2>&1
 rmdir /q /s "%~2\Microsoft\Windows\Themes\CachedFiles" > nul 2>&1
 
-if not "%~1"=="AME_UserHive_Default" reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative\%~1" /v "RotatingLockScreenEnabled" /t REG_DWORD /d "0" /f > nul
+if not "%~1" == "AME_UserHive_Default" reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative\%~1" /v "RotatingLockScreenEnabled" /t REG_DWORD /d "0" /f > nul

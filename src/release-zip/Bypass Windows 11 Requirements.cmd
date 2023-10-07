@@ -33,7 +33,7 @@ echo]
 :: This forces the user to type 'I understand' on the same line
 set "str=I understand"
 for /l %%a in (0 1 12) do (
-    if not "!str:~%%a,1!"=="" call :xcopyInput "!str:~%%a,1!"
+    if not "!str:~%%a,1!" == "" call :xcopyInput "!str:~%%a,1!"
 )
 echo]
 echo %ESC%[2A%ESC%[?25l
@@ -44,9 +44,9 @@ set regCommands=reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG
                 reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1
 
 fltmc > nul 2>&1
-if not "%errorlevel%"=="0" (
+if not "%errorlevel%" == "0" (
     powershell -NoP Start -WindowStyle Hidden -Verb RunAs 'cmd.exe' -ArgumentList '/c %regCommands%' > nul 2>&1 || (
-        set retry=true
+        set "retry=true"
         call :errorText retry
         pause > nul
         goto runCommands
