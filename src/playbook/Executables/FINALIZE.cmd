@@ -201,7 +201,7 @@ if "%diskDrive%" == "SSD" (
     reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}" /f > nul 2>&1
 
     rem Disable Memory Compression
-    rem SysMain should already disable it, but make sure it is disabled by executing this command.
+    rem If SysMain is disabled, MC should be too, but ensure its state by executing this command.
     PowerShell -NoP -C "Disable-MMAGent -MemoryCompression" > nul
 
     rem Disable SysMain (Superfetch and Prefetch)

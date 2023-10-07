@@ -19,8 +19,6 @@ $devices = @(
 	"PCI Memory Controller",
 	"PCI Simple Communications Controller",
 	"PCI standard RAM Controller",
-	# Commented as Remote Desktop is meant to be supported
-	# "Remote Desktop Device Redirector Bus",
 	"SM Bus Controller",
 	"System CMOS/real time clock",
 	"System Speaker",

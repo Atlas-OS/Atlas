@@ -24,7 +24,7 @@ function Invoke-AtlasDiskCleanup {
 		"Downloaded Program Files" = 2
 		"Internet Cache Files" = 2
 		"Language Pack" = 0
-		"Old ChkDsk Files" = 0
+		"Old ChkDsk Files" = 2
 		"Recycle Bin" = 0
 		"RetailDemo Offline Content" = 2
 		"Setup Log Files" = 2
