@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 :: Check if user is on Windows 11
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a LSS 22000 set win10=true)

@@ -1,7 +1,6 @@
 @echo off
-setlocal EnableDelayedExpansion
 
-fltmc >nul 2>&1 || (
+fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
 	PowerShell Start -Verb RunAs '%0' 2> nul || (
 		echo You must run this script as admin.

@@ -11,7 +11,7 @@ echo Usage = online-sxs.cmd [-Help] [[-Silent] -CabPath ""]
 exit /b
 
 :main
-fltmc >nul 2>&1 || (
+fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
 	if "%*"=="" (
 		PowerShell Start -Verb RunAs '%0' 2> nul || goto error

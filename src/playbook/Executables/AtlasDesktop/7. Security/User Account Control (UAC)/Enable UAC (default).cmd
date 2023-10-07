@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 if /i "%~1" == "/uacSettings" goto uacSettings
 
@@ -15,7 +14,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "Ena
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableVirtualization" /t REG_DWORD /d "1" /f > nul
 
 choice /c:yn /n /m "Would you like to have UAC not dim your desktop? You can change this in the UAC settings. [Y/N] "
-if !errorlevel! == 1 (
+if %errorlevel% == 1 (
 	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f > nul
 )
 

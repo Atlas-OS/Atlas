@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" %*
@@ -104,12 +103,12 @@ for %%a in (
     "WoWLANS5Support"
 ) do (
     rem Check without '*'
-    for /f %%b in ('reg query "!netKey!" /v "%%~a" ^| findstr "HKEY"') do (
-        reg add "!netKey!" /v "%%~a" /t REG_SZ /d "0" /f > nul
+    for /f %%b in ('reg query "%netKey%" /v "%%~a" ^| findstr "HKEY"') do (
+        reg add "%netKey%" /v "%%~a" /t REG_SZ /d "0" /f > nul
     )
     rem Check with '*'
-    for /f %%b in ('reg query "!netKey!" /v "*%%~a" ^| findstr "HKEY"') do (
-        reg add "!netKey!" /v "*%%~a" /t REG_SZ /d "0" /f > nul
+    for /f %%b in ('reg query "%netKey%" /v "*%%~a" ^| findstr "HKEY"') do (
+        reg add "%netKey%" /v "*%%~a" /t REG_SZ /d "0" /f > nul
     )
 )
 

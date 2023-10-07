@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 :: Check if hyper threading is enabled
 for /f "tokens=2 delims==" %%a in ('wmic cpu get NumberOfCores /value') do set PHYSICAL_CORES=%%a

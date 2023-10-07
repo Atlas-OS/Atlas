@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" %*
@@ -34,6 +33,6 @@ reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" > nul 2>&1 || (
 )
 
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v "Start" /t REG_DWORD /d "%~2" /f > nul || (
-	echo error: failed to set service %~1 with start value %~2^^! Unknown error.
+	echo error: failed to set service %~1 with start value %~2! Unknown error.
 	exit /b 1
 )

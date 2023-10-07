@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 if "%~1"=="/setup" goto main
 
@@ -11,9 +10,9 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 :: Detect if user uses laptop device or personal computer
 for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"
 set "DEVICE_TYPE=PC"
-for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "DEVICE_TYPE=LAPTOP")
+for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "%CHASSIS%" == "%%a" (set "DEVICE_TYPE=LAPTOP")
 
-if "!DEVICE_TYPE!"=="LAPTOP" (
+if "%DEVICE_TYPE%"=="LAPTOP" (
     echo WARNING: You are on a laptop, disabling power saving features will cause faster battery drainage and increased heat output.
     echo          If you use your laptop on battery, certain power saving features will enable, but not all.
     echo          It's NOT recommended to disable power saving on laptops in general.

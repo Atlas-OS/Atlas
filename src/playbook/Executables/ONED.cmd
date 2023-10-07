@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 taskkill /f /im OneDrive*.exe > nul 2>&1
 for %%a in (

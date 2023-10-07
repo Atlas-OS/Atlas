@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" %*
@@ -7,11 +6,11 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :: Rename start menu
-cd !windir!\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
+cd %windir%\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy
 ren StartMenuExperienceHost.exee StartMenuExperienceHost.exe
 
 :: Rename search
-cd !windir!\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
+cd %windir%\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy
 ren SearchApp.exee SearchApp.exe
 
 :: Search icon

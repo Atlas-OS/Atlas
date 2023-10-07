@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" %*
@@ -12,7 +11,7 @@ echo [1] Disable the spinning animation
 echo [2] Enable the spinning animation (default)
 echo]
 choice /c 12 /n /m "Type 1 or 2: "
-if !errorlevel! == 1 (
+if %errorlevel% == 1 (
 	goto disable
 ) else (
 	goto enable

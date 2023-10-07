@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 if "%~1"=="/silent" goto main
 

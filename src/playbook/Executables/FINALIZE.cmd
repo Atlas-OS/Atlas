@@ -133,12 +133,12 @@ for %%a in (
     "WoWLANS5Support"
 ) do (
     rem Check without '*'
-    for /f %%b in ('reg query "!netKey!" /v "%%~a" 2^>nul ^| findstr "HKEY" 2^>nul') do (
-        reg add "!netKey!" /v "%%~a" /t REG_SZ /d "0" /f > nul
+    for /f %%b in ('reg query "%netKey%" /v "%%~a" 2^>nul ^| findstr "HKEY" 2^>nul') do (
+        reg add "%netKey%" /v "%%~a" /t REG_SZ /d "0" /f > nul
     )
     rem Check with '*'
-    for /f %%b in ('reg query "!netKey!" /v "*%%~a" 2^>nul ^| findstr "HKEY" 2^>nul') do (
-        reg add "!netKey!" /v "*%%~a" /t REG_SZ /d "0" /f > nul
+    for /f %%b in ('reg query "%netKey%" /v "*%%~a" 2^>nul ^| findstr "HKEY" 2^>nul') do (
+        reg add "%netKey%" /v "*%%~a" /t REG_SZ /d "0" /f > nul
     )
 )
 
@@ -147,11 +147,11 @@ for %%a in (
     "Documents.mydocs"
     "Mail Recipient.MAPIMail"
 ) do (
-    attrib +h "!APPDATA!\Microsoft\Windows\SendTo\%%~a" > nul
+    attrib +h "%APPDATA%\Microsoft\Windows\SendTo\%%~a" > nul
 )
 
 :: Remove Fax Recipient from the 'Send to' context menu as Fax feature is removed
-del /f /q "!APPDATA!\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1
+del /f /q "%APPDATA%\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1
 
 :: Disable audio exclusive mode on all devices
 for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture", "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render") do (
@@ -185,14 +185,14 @@ for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -N
   set "diskDrive=%%a"
 )
 
-if "!diskDrive!" == "SSD" (
+if "%diskDrive%" == "SSD" (
     rem Remove lower filters for rdyboost driver
     set "key=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
-    for /f "skip=1 tokens=3*" %%a in ('reg query !key! /v "LowerFilters"') do (set val=%%a)
+    for /f "skip=1 tokens=3*" %%a in ('reg query %key% /v "LowerFilters"') do (set val=%%a)
     set val=!val:rdyboost\0=!
     set val=!val:\0rdyboost=!
     set val=!val:rdyboost=!
-    reg add "!key!" /v "LowerFilters" /t REG_MULTI_SZ /d "!val!" /f > nul
+    reg add "%key%" /v "LowerFilters" /t REG_MULTI_SZ /d "%val%" /f > nul
 
     rem Disable ReadyBoost
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "Start" /t REG_DWORD /d "4" /f > nul
@@ -211,9 +211,9 @@ if "!diskDrive!" == "SSD" (
 :: Detect if user uses laptop device or personal computer
 for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"
 set "DEVICE_TYPE=PC"
-for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "!CHASSIS!" == "%%a" (set "DEVICE_TYPE=LAPTOP")
+for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "%CHASSIS%" == "%%a" (set "DEVICE_TYPE=LAPTOP")
 
 :: Disable laptop-related services on PC
-if "!DEVICE_TYPE!"=="PC" (
+if "%DEVICE_TYPE%"=="PC" (
     call %windir%\AtlasModules\Scripts\setSvc.cmd DisplayEnhancementService 4
 )
