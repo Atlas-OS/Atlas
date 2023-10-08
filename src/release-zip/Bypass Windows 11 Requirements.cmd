@@ -39,9 +39,9 @@ echo]
 echo %ESC%[2A%ESC%[?25l
 
 :runCommands
-set regCommands=reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1 ^^^& ^
-                reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassSecureBootCheck" /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1 ^^^& ^
-                reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1
+set regCommands=reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1 ^^^& ^
+                reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1 ^^^& ^
+                reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1
 
 fltmc > nul 2>&1
 if not "%errorlevel%" == "0" (
@@ -58,7 +58,7 @@ if not "%errorlevel%" == "0" (
         cls & exit /b 1
     )
 )
-echo %ESC%[32m  Completed! %ESC%[0mPress any key to exit...                 %ESC%[1A
+echo %ESC%[32m  Completed^^! %ESC%[0mPress any key to exit...                 %ESC%[1A
 pause > nul
 exit /b
 
@@ -67,7 +67,7 @@ exit /b
 :::::::::::::::::::::::::::::::::::::::::::::
 
 :errorText <"action">
-echo %ESC%[31m  Error! %ESC%[0mPress any key to %~1...                 %ESC%[1A
+echo %ESC%[31m  Error^^! %ESC%[0mPress any key to %~1...                 %ESC%[1A
 exit /b 1
 
 :xcopyInput <"key">
