@@ -188,12 +188,12 @@ for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -N
 
 if "%diskDrive%" == "SSD" (
     rem Remove lower filters for rdyboost driver
-    set "key=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
-    for /f "skip=1 tokens=3*" %%a in ('reg query %key% /v "LowerFilters"') do (set "val=%%a")
+    set "reg_path=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
+    for /f "skip=1 tokens=3*" %%a in ('reg query "!reg_path!" /v "LowerFilters"') do (set "val=%%a")
     set "val=!val:rdyboost\0=!"
     set "val=!val:\0rdyboost=!"
     set "val=!val:rdyboost=!"
-    reg add "%key%" /v "LowerFilters" /t REG_MULTI_SZ /d "%val%" /f > nul
+    reg add "!reg_path!" /v "LowerFilters" /t REG_MULTI_SZ /d "!val!" /f > nul
 
     rem Disable ReadyBoost
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "Start" /t REG_DWORD /d "4" /f > nul
