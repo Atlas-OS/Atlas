@@ -43,7 +43,7 @@ echo]
 :: Download and install Open-Shell
 winget install -e --id Open-Shell.Open-Shell-Menu -h --accept-source-agreements --accept-package-agreements --force > nul
 if %errorlevel% NEQ 0 (
-    echo eror: Open-Shell installation failed.
+    echo error: Open-Shell installation failed.
     pause
     exit /b 1
 )
