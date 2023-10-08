@@ -3,9 +3,10 @@ setlocal EnableDelayedExpansion
 
 :: MSI Mode
 
-:: Enable MSI mode on USB, GPU, Audio, SATA controllers and network adapters
+:: Enable MSI mode on USB, GPU, Audio, SATA controllers, disk drives and network adapters
 :: Deleting DevicePriority sets the priority to undefined
 for %%a in (
+    Win32_IDEController,
     Win32_NetworkAdapter,
     Win32_PnPEntity,
     Win32_SoundDevice,
@@ -13,7 +14,7 @@ for %%a in (
     Win32_VideoController,
 ) do (
     if "%%a" == "Win32_PnPEntity" (
-        for /f "tokens=*" %%b in ('PowerShell -NoP -C "Get-WmiObject -Class Win32_PnPEntity | Where-Object {$_.PNPClass -eq 'SCSIAdapter'} | Where-Object { $_.PNPDeviceID -like 'PCI\VEN_*' } | Select-Object -ExpandProperty DeviceID"') do (
+        for /f "tokens=*" %%b in ('PowerShell -NoP -C "Get-WmiObject -Class Win32_PnPEntity | Where-Object {($_.PNPClass -eq 'SCSIAdapter') -or ($_.Caption -like '*High Definition Audio*')} | Where-Object { $_.PNPDeviceID -like 'PCI\VEN_*' } | Select-Object -ExpandProperty DeviceID"') do (
             reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%b\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f > nul
             reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%b\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>&1
         )
