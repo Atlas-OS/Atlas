@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 
 title Bypass Windows 11 Requirements
 cd /d "%~dp0"
@@ -31,17 +30,19 @@ echo]
 <nul set /p=%right:<x>=2%%ESC%[1m%ESC%[33mType 'I understand' to continue: %ESC%[0m
 
 :: This forces the user to type 'I understand' on the same line
+setlocal EnableDelayedExpansion
 set "str=I understand"
 for /l %%a in (0 1 12) do (
     if not "!str:~%%a,1!" == "" call :xcopyInput "!str:~%%a,1!"
 )
+endlocal
 echo]
 echo %ESC%[2A%ESC%[?25l
 
 :runCommands
-set regCommands=reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1 ^^^& ^
-                reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1 ^^^& ^
-                reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t REG_DWORD /d "1" /f ^^^> nul 2^^^>^^^&1
+set regCommands=reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG_DWORD /d "1" /f ^> nul ^& ^
+                reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassSecureBootCheck" /t REG_DWORD /d "1" /f ^> nul ^& ^
+                reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d "1" /f ^> nul
 
 fltmc > nul 2>&1
 if not "%errorlevel%" == "0" (
@@ -58,7 +59,7 @@ if not "%errorlevel%" == "0" (
         cls & exit /b 1
     )
 )
-echo %ESC%[32m  Completed^^! %ESC%[0mPress any key to exit...                 %ESC%[1A
+echo %ESC%[32m  Completed! %ESC%[0mPress any key to exit...                 %ESC%[1A
 pause > nul
 exit /b
 
@@ -67,13 +68,13 @@ exit /b
 :::::::::::::::::::::::::::::::::::::::::::::
 
 :errorText <"action">
-echo %ESC%[31m  Error^^! %ESC%[0mPress any key to %~1...                 %ESC%[1A
+echo %ESC%[31m  Error! %ESC%[0mPress any key to %~1...                 %ESC%[1A
 exit /b 1
 
 :xcopyInput <"key">
 set "key="
 for /f "delims=" %%a in ('2^>nul xcopy.exe /w /l "%~f0" "%~f0"') do if not defined key set "key=%%a"
-set "key=!key:~-1!"
+set "key=%key:~-1%"
 if /i "%key%" == "%~1" (
     if "%~1" == " " (
         <nul set /p=%right:<x>=1%
