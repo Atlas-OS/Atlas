@@ -1,0 +1,282 @@
+body,
+html {
+    margin: 0;
+    color: #fff;
+    overflow: hidden;
+    user-select: none
+}
+
+.container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    height: calc(100% - 104px);
+    max-width: 1200px;
+    max-height: 760px
+}
+
+/* .fadeIn {
+    animation: ContentFadeIn .6s linear
+} */
+
+.content {
+    width: 100%;
+    margin-bottom: 4px;
+    height: 100%;
+    background: rgba(27, 27, 27, .8);
+    display: flex;
+    flex-flow: row;
+    border-radius: 8px;
+    box-shadow: 0 7.2px 21.6px rgba(0, 0, 0, .09), 0 38.4px 86.4px rgba(0, 0, 0, .11)
+}
+
+.halfSection {
+    width: calc(50% - 1px);
+    height: 100%;
+    position: relative;
+    display: inline-block;
+    margin: 0
+}
+
+.graphic {
+    display: flex
+}
+
+.graphic>div {
+    align-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    margin: 0 4%
+}
+
+@media only screen and (max-width:1440px) and (orientation:landscape) {
+    .container {
+        max-width: 1048px;
+        max-height: 664px
+    }
+}
+
+@media only screen and (min-width:2560px) and (orientation:landscape) {
+    .container {
+        max-width: 1600px;
+        max-height: 1024px
+    }
+}
+
+@media only screen and (min-width:2560px) and (min-height:1354px) and (orientation:landscape) {
+    .container {
+        max-width: 1600px;
+        max-height: 1024px;
+        transform: translate(-50%, -50%) scale(1.2)
+    }
+}
+
+@media only screen and (min-width:1921px) and (max-width:2559px) and (orientation:landscape) {
+    .container {
+        max-width: 1440px;
+        max-height: 912px
+    }
+}
+
+@media only screen and (orientation:portrait) {
+    .halfSection {
+        width: 100%
+    }
+
+    .halfSection.graphic {
+        height: 35%
+    }
+
+    .halfSection.controls {
+        height: 65%;
+        padding: 6% 10%
+    }
+
+    .halfSection:nth-child(1) {
+        margin-top: -4px
+    }
+
+    .container {
+        max-height: 1440px;
+        max-width: 912px
+    }
+
+    .content {
+        flex-flow: column
+    }
+}
+
+@keyframes ContentFadeIn {
+    0% {
+        opacity: 0
+    }
+
+    66% {
+        opacity: 0
+    }
+
+    100% {
+        opacity: 1
+    }
+}
+
+.control-app {
+    min-height: 100vh;
+    background: 0 0
+}
+
+.control-app .app-content {
+    height: 100%;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    margin: auto
+}
+
+.control-app .app-content>div {
+    width: 100%
+}
+
+.container-content {
+    padding: 0 24px 24px 24px
+}
+
+.container-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow-y: auto;
+    overflow-x: hidden
+}
+
+#_progressControl {
+    transform: rotate(270deg)
+}
+
+.radialSize {
+    width: 64px;
+    height: 64px
+}
+
+.radial {
+    fill: none;
+    stroke: #0067c0;
+    stroke-width: 2px;
+    stroke-linecap: round;
+    transform-origin: 50% 50%;
+    transform: rotate(-90deg)
+}
+
+.radial-bg {
+    fill: none;
+    stroke: rgba(172, 172, 172, .18);
+    stroke-width: 2px;
+    stroke-linecap: round
+}
+
+.control-app {
+    height: 100%
+}
+
+.control-progress {
+    top: calc(50% + 2.25rem);
+    left: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    align-self: center;
+    text-align: center;
+    width: 80%
+}
+
+#_progressText,
+.control-progress h4 {
+    height: 1.5rem;
+    font-size: 1.25rem;
+    line-height: 1.5rem;
+    margin: 1.5rem 0;
+    font-weight: 400
+}
+
+.errorText {
+    color: #ff5151;
+    display: none;
+    line-height: 1px
+}
+
+.invisible {
+    opacity: 0 !important;
+}
+
+.facts {
+    color: rgb(87, 87, 87);
+    font-size: 1rem !important;
+    width: 17rem;
+    display: inline-block;
+    margin: 0 !important;
+    /* transition: opacity 0.5s; */
+    opacity: 1;
+}
+
+body {
+    font-family: "Segoe UI Variable", "Segoe UI", Selawik, Tahoma, Verdana, Arial, sans-serif;
+    font-size: 87.5%;
+    background: 0 0
+}
+
+.background-image-container {
+    position: absolute;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh
+}
+
+.background-image-container::after {
+    content: "";
+    width: 100%;
+    height: 100vh;
+    position: absolute;
+    background-color: #000;
+    opacity: .4
+}
+
+.SVGBackdropImage {
+    height: 100vh;
+    width: 100vw;
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    left: 0;
+    transform: scale(1.2)
+}
+
+@media only screen and (orientation:portrait) {
+    .SVGBackdropImage {
+        width: 150vh;
+        transform: translate3d(-25vh, 0, 0) scale(1.2)
+    }
+}
+
+@media only screen and (max-aspect-ratio:4 / 3) and (orientation:landscape) {
+    .SVGBackdropImage {
+        width: 150vw;
+        transform: translate3d(-25vw, 0, 0) scale(1.2)
+    }
+}
+
+@media only screen and (min-aspect-ratio:1601 / 900) and (max-aspect-ratio:2200 / 1000) and (orientation:landscape) {
+    .SVGBackdropImage {
+        height: 150vh;
+        transform: translate3d(0, -25vh, 0) scale(1.2)
+    }
+}
+
+@media only screen and (min-aspect-ratio:2201 / 1000) and (orientation:landscape) {
+    .SVGBackdropImage {
+        height: 200vh;
+        transform: translate3d(0, -50vh, 0) scale(1.2)
+    }
+}
