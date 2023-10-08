@@ -26,7 +26,7 @@ net accounts /lockoutthreshold:0
 
 net user "%~1" /fullname:"" > nul
 net user "%~1" "" > nul
-wmic UserAccount where name='%~1' set "Passwordexpires=true" > nul
+wmic UserAccount where name='%~1' set Passwordexpires=true > nul
 net user "%~1" /logonpasswordchg:yes > nul
 
 net accounts /lockoutthreshold:10 > nul
