@@ -4,8 +4,8 @@
 net accounts /maxpwage:unlimited > nul
 
 for /f "usebackq delims=" %%a in (`PowerShell -NoP -C "(Get-LocalUser | Where {$_.PrincipalSource -eq 'MicrosoftAccount'}).Name"`) do call :CONVERTUSER "%%a"
-for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentityStore\LogonCache\Name2Sid" ^| findstr /i /c:"Name2Sid"`) do reg delete "%%a" /f > nul 2>&1
-for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentityStore\LogonCache\Sid2Name" ^| findstr /i /c:"Sid2Name"`) do reg delete "%%a" /f > nul 2>&1
+for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentityStore\LogonCache\Name2Sid" 2^>nul ^| findstr /i /c:"Name2Sid" 2^>nul`) do reg delete "%%a" /f > nul 2>&1
+for /f "usebackq delims=" %%a in (`reg query "HKLM\SOFTWARE\Microsoft\IdentityStore\LogonCache\Sid2Name" 2^>nul ^| findstr /i /c:"Sid2Name" 2^>nul`) do reg delete "%%a" /f > nul 2>&1
 
 rmdir /q /s "%windir%\System32\config\systemprofile\AppData\Local\Microsoft\Windows\CloudAPCache" > nul 2>&1
 

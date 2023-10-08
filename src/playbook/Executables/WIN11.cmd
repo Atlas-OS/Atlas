@@ -139,7 +139,7 @@ reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\QuickActionsStateCap
 set "mrtCache=HKEY_USERS\%~1\Software\Classes\Local Settings\MrtCache"
 echo %~1 | find "_Classes" > nul
 if errorlevel 1 (
-    for /f "tokens=*" %%a in ('reg query "%mrtCache%" /s ^| find /i "%mrtCache%"') do (
+    for /f "tokens=*" %%a in ('reg query "%mrtCache%" /s 2^>nul ^| find /i "%mrtCache%" 2^>nul') do (
         for /f "tokens=1-2" %%b in ('reg query "%%a" /v * ^| find /i "ShellNewDisplayName_Bmp"') do (
             reg add "%%a" /v "%%b %%c" /t REG_SZ /d "" /f > nul
         )
