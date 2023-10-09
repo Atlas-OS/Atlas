@@ -8,16 +8,14 @@ actions:
     # Set .ps1 file types to open with PowerShell by default
     # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
   - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="%windir%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'}
-  - !registryValue:
-    path: 'HKCR\Applications\powershell.exe\shell\open\command'
-    value: ''
-    data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKCR\ps1_auto_file\shell\open\command'
-    value: ''
-    data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
-    type: REG_SZ
+  - !cmd:
+    command: 'echo New-Item -Force -Path "Registry::HKEY_CLASSES_ROOT\Applications\powershell.exe\shell\open\command";New-ItemProperty -Path "Registry::HKEY_CLASSES_ROOT\Applications\powershell.exe\shell\open\command" -Name "(default)" -PropertyType String -Value ''"%windir%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'' > script.ps1 & powershell -NoP -NoLogo -EP Unrestricted -File script.ps1'
+    wait: true
+    exeDir: true
+  - !cmd:
+    command: 'echo New-Item -Force -Path "Registry::HKEY_CLASSES_ROOT\ps1_auto_file\shell\open\command";New-ItemProperty -Path "Registry::HKEY_CLASSES_ROOT\ps1_auto_file\shell\open\command" -Name "(default)" -PropertyType String -Value ''"%windir%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'' > script.ps1 & powershell -NoP -NoLogo -EP Unrestricted -File script.ps1'
+    wait: true
+    exeDir: true
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
     value: 'a'
