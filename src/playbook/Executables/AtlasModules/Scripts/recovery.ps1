@@ -36,7 +36,7 @@ $deviceDrive = ($bcdeditRecoveryOutput -split '\]' -split '\[')[1]
 $winrePath = ($bcdeditRecoveryOutput -split '\]' -split ',')[1]
 
 # If WinRE is on Recovery partition, mount it
-if ($deviceDrive -notcontains ':') {
+if ($deviceDrive -notlike '*:*') {
     $Kernel32 = Add-Type -Name 'Kernel32' -Namespace '' -PassThru -MemberDefinition @"
         [DllImport("kernel32")]
         public static extern int QueryDosDevice(string name, System.Text.StringBuilder path, int pathMaxLength);
@@ -71,12 +71,12 @@ Mount-WindowsImage -ImagePath $fullWimPath -Index 1 -Path $atlasWinRE | Out-Null
 # Set startup application
 # https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/winpeshlini-reference-launching-an-app-when-winpe-starts
 [IO.File]::WriteAllLines("$atlasWinRE\Windows\System32\winpeshl.ini", @"
-[LaunchApp]
-AppPath = %SYSTEMDRIVE%\atlas\packages.cmd
+[LaunchApps]
+%WINDIR%\System32\wscript.exe, %SYSTEMDRIVE%\atlas\startup.vbs //B
 "@)
 
 # Copy Atlas Package Installation Environment items
-Copy-Item "$env:windir\AtlasModules\Other\recovery\*" -Destination "$atlasWinRe\atlas" -Recurse -Force
+Copy-Item "$atlasEnvironmentItems\*" -Destination "$atlasWinRe\atlas" -Recurse -Force
 
 # Cleanup
 Dismount-WindowsImage -Path $atlasWinRE -Save
@@ -86,8 +86,18 @@ if ($mountPoint) {
     if (!$?) { Remove-Item $mountPoint -Force }
 }
 
-# Boot into Windows Recovery next boot
+# Boot into Windows Recovery
 reagentc /boottore | Out-Null
+Restart-Computer
+
+# ===================================================================== #
+## This was my attempt at making the modified Atlas WinRE a seperate WIM.
+
+## This should be done as it means you don't have to modify system files,
+## meaning Windows Updates won't ever overwrite it.
+
+## We should find a solution to do this before v0.3.0 ideally.
+# ===================================================================== #
 
 # Load the Recovery Registry hive
 # do { $atlasRegistryPath = "HKLM\atlaswinre$($count; $count++)" } until (!(Test-Path "Registry::$atlasRegistryPath"))

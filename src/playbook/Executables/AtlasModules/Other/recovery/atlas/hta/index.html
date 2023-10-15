@@ -37,7 +37,7 @@ You can use MSHTA like (only with a full path): mshta "%userprofile%\Downloads\a
                                     <circle class="radial-bg" cx="8px" cy="8px" r="7px"></circle>
                                     <circle class="radial radial-infinite" cx="8px" cy="8px" r="7px"></circle>
                                 </svg>
-                                <h4 id="_progressText" class="errorText">An error has occurred.</h4>
+                                <!-- <h4 id="_progressText" class="errorText">An error has occurred.</h4> -->
                                 <h4 id="_progressText" class="normalText">Updating components...</h4>
                                 <h4 id="_progressText" class="facts">Factual information!</h4>
                             </div>
@@ -54,7 +54,7 @@ You can use MSHTA like (only with a full path): mshta "%userprofile%\Downloads\a
 
 const progressText = document.querySelector('.normalText');
 const circle = document.querySelector('.radial-infinite');
-const errorText = document.querySelector('.errorText');
+// const errorText = document.querySelector('.errorText');
 const factsElement = document.querySelector('.facts');
 const element = document.querySelector('.data');
 
@@ -73,13 +73,14 @@ function setProgress(percentage, text) {
     circle.style.strokeDasharray = cssPx + 'px 42.97px';
 }
 
-function showFatalError(error) {
-    errorText.textContent = 'An error has occured: ' + error;
-    errorText.style.display = 'block';
-    factsElement.style.display = 'none';
-    updateProgressText('Your computer will restart shortly, with more details next startup.')
-}
-
+// It's probably a better user experience to show the error next reboot.
+//
+// function showFatalError(error) {
+//     errorText.textContent = 'An error has occured: ' + error;
+//     errorText.style.display = 'block';
+//     factsElement.style.display = 'none';
+//     updateProgressText('No worries. Your computer will restart shortly, with more details next startup.')
+// }
 
 function setNewFact(first) {
     if (factCount == 7) {factCount = 0} else {factCount++}
@@ -118,15 +119,15 @@ function getData() {
     const items = data.split(';').map(function(item) {
         return item.replace(/"/g, "");
     });
-    if (items[0] === 'INFO') {
+    // if (items[0] === 'INFO') {
         setProgress(items[2], items[1]);
         setTimeout(function () {
-            count++; if (count % 3 === 0) { setNewFact(false); }
+            count++; if (count % 45 === 0) { setNewFact(false); }
             getData();
-        }, 3000);
-    } else if (items[0] === 'ERROR') {
-        showFatalError(items[1]);
-    }
+        }, 200);
+    // } else if (items[0] === 'ERROR') {
+    //     showFatalError(items[1]);
+    // }
 }
 
 setProgress(1);
