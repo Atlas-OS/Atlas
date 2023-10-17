@@ -305,7 +305,8 @@ features:
   # storage space or convienience.
   # -----------------------------------------------------
   - tweaks\statuses\status-debloat.yml
-  - tweaks\debloat\autologgers.yml
+    # Problematic generally
+  # - tweaks\debloat\autologgers.yml
   - tweaks\debloat\config-content-delivery.yml
   - tweaks\debloat\legacy-photo-viewer.yml
   - tweaks\debloat\scheduled-tasks.yml
