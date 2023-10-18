@@ -8,7 +8,7 @@ actions:
   # The reason of removing those applications is that there is a potential of them sending user data,
   # showing unwanted content including advertisements and using hardware resources. They can also
   # simply be annoyances that are never used. However, most of these applications can be reinstalled
-  # via Microsoft Store in case user need them.
+  # via Microsoft Store in case u.ser need them.
 
   # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
 
@@ -24,6 +24,7 @@ actions:
   - !appx: {name: '*Spotify*', type: family}
 
   # Microsoft Teams
+  - !taskKill: {name: "*teams*"}
   - !appx: {name: '*MicrosoftTeams*', type: family}
 
   # Cortana
