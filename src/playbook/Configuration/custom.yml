@@ -3,7 +3,7 @@ title: Root Playbook File
 description: Runs all of the playbook files
 privilege: TrustedInstaller
 actions: []
-features:
+tasks:
   # Remove KProcessHacker2 to prevent conflicts with the Microsoft Vulnerable Driver Blocklist and Memory Integrity
   - atlas\kill-kph.yml
   # Configure PowerShell first so that other PowerShell scripts work

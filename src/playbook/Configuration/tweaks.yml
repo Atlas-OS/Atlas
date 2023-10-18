@@ -3,7 +3,7 @@ title: Tweaks Root Playbook File
 description: Runs all of the Atlas playbook tweaks
 privilege: TrustedInstaller
 actions: []
-features:
+tasks:
   # ------------------------- NOTES ------------------------- #
 
   # - Each root folder has its own AME Wizard status
