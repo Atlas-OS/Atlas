@@ -63,7 +63,7 @@ Get-ChildItem -Path "$env:TEMP" -Directory | Where-Object { $_.Name -ne 'AME' } 
 # Clear the temporary system folder
 Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse -EA SilentlyContinue
 
-# Disable Reserved Storage to have more storage space
+# Disable Reserved Storage for updates
 Set-WindowsReservedStorageState -State Disabled
 
 # Clear Windows WinSxS folder
