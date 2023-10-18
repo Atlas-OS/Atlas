@@ -46,7 +46,7 @@ function Invoke-AtlasDiskCleanup {
 		Set-ItemProperty -Path $path -Name 'StateFlags0064' -Value $value -Type DWORD
 	}
 	# Run preset 64 (0-65535)
-	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64"
+	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64" | Out-Null 2> $null
 }
 
 # Check for other installations of Windows

@@ -113,7 +113,7 @@ function RemoveEdgeChromium {
 	$uninstallKeyPath = Join-Path -Path $baseKey -ChildPath "Windows\CurrentVersion\Uninstall\Microsoft Edge"
 	if (Test-Path $uninstallKeyPath) {
 		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString + " --force-uninstall"
-		Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden
+		Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden | Out-Null 2> $null
 	}
 
 	# remove user data
@@ -151,7 +151,7 @@ function RemoveWebView {
 	if (Test-Path $webviewHKLM) {$webviewUninstallKey += $webviewHKLM}
 	foreach ($key in $webviewUninstallKey) {
 		$webviewUninstallString = (Get-ItemProperty -Path $key).UninstallString + " --force-uninstall"
-		Start-Process cmd.exe "/c $webviewUninstallString" -WindowStyle Hidden
+		Start-Process cmd.exe "/c $webviewUninstallString" -WindowStyle Hidden | Out-Null 2> $null
 	}
 }
 

@@ -6,7 +6,7 @@ for %%a in (
 	"%windir%\SysWOW64\OneDriveSetup.exe"
 ) do (
 	if exist "%%a" (
-		"%%a" /uninstall
+		"%%a" /uninstall > nul 2>nul
 	)
 )
 
