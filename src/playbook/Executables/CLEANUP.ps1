@@ -84,7 +84,7 @@ $foldersToRemove = @(
     "CbsTemp",
     "Logs",
     "SoftwareDistribution",
-	"System32\catroot2"
+	"System32\catroot2",
     "System32\LogFiles",
     "System32\sru",
     "WinSxS\Backup"
