@@ -81,7 +81,7 @@ Stop-Service -Name "cryptsvc" -Force
 
 # Clean up leftovers
 $foldersToRemove = @(
-    "CbsTemp",
+	"CbsTemp",
     "Logs",
     "SoftwareDistribution",
 	"System32\catroot2",
