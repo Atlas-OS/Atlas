@@ -130,7 +130,7 @@ actions:
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftTeams_8wekyb3d8bbwe', operation: add}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftWindows.Client.WebExperience_cw5n1h2txyewy', operation: add}
 
-  # Edit Client.CBS package to remove ads and debloat annoying apps
+  # Edit Client.CBS package to remove annoying ads from apps
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File CLIENTCBS.ps1'
