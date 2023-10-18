@@ -6,9 +6,9 @@ actions:
   - !writeStatus: {status: 'Removing APPX packages'}
 
   # The reason of removing those applications is that there is a potential of them sending user data,
-  # showing unwanted content including advertisements and using hardware resources. They can also
-  # simply be annoyances that are never used. However, most of these applications can be reinstalled
-  # via Microsoft Store in case u.ser need them.
+  # showing unwanted content (advertisements) and using hardware resources. They can also simply be
+  # annoyances that are never used. However, most of these applications can be reinstalled via the
+  # Microsoft Store in case the user needs them.
 
   # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
 
