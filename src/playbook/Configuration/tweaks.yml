@@ -327,11 +327,11 @@ features:
   - tweaks\scripts\script-mitigations.yml
   - tweaks\scripts\script-win11.yml
   - tweaks\scripts\script-devices.yml
-  - tweaks\scripts\script-cleanup.yml
   - tweaks\scripts\script-pfp.yml
+  - tweaks\scripts\script-power.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
-  - tweaks\scripts\script-power.yml
+  - tweaks\scripts\script-cleanup.yml
 
   # -----------------------------------------------------
   #                         Misc
