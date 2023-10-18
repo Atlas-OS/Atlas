@@ -1,11 +1,4 @@
-# Clearing the user's temporary folder
-Get-ChildItem -Path "$env:TEMP" -File | Remove-Item -Force -EA SilentlyContinue
-
-# Clearing the Windows Temp folder
-Remove-Item -Path '$env:windir\Temp\*' -Force -Recurse -EA SilentlyContinue
-
-# Exclude the AME folder while deleting directories in the temporary folder
-Get-ChildItem -Path "$env:TEMP" -Directory | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse -EA SilentlyContinue
+# AtlasOS Post-Installation Cleanup Utility
 
 # As cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
 function Invoke-AtlasDiskCleanup {
@@ -60,3 +53,46 @@ foreach ($drive in $drives) {
 }
 
 if (!($otherInstalls)) { Invoke-AtlasDiskCleanup }
+
+# Clear the temporary user folder
+Get-ChildItem -Path "$env:TEMP" -File | Remove-Item -Force -EA SilentlyContinue
+
+# Exclude the AME folder while deleting directories in the temporary user folder
+Get-ChildItem -Path "$env:TEMP" -Directory | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse -EA SilentlyContinue
+
+# Clear the temporary system folder
+Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse -EA SilentlyContinue
+
+# Disable Reserved Storage to have more storage space
+Set-WindowsReservedStorageState -State Disabled
+
+# Clear Windows WinSxS folder
+DISM /Online /Cleanup-Image /StartComponentCleanup
+
+# Clear Event Logs
+wevtutil el 2>$null | ForEach-Object {wevtutil cl "$_"} 2>$null
+
+# Remove any .log files
+Get-ChildItem -Path "$env:SystemRoot" -Filter *.log -File -Recurse -Force 2>$null | Remove-Item -Recurse -Force 2>$null
+
+Stop-Service -Name "dps" -Force
+Stop-Service -Name "wuauserv" -Force
+Stop-Service -Name "cryptsvc" -Force
+
+# Clean up leftovers
+$foldersToRemove = @(
+    "CbsTemp",
+    "Logs",
+    "SoftwareDistribution",
+	"System32\catroot2"
+    "System32\LogFiles",
+    "System32\sru",
+    "WinSxS\Backup"
+)
+
+foreach ($folderName in $foldersToRemove) {
+    $folderPath = Join-Path $env:SystemRoot $folderName
+    if (Test-Path $folderPath) {
+        Remove-Item -Path "$folderPath\*" -Force -Recurse -Verbose
+    }
+}
