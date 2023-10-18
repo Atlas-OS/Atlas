@@ -15,7 +15,7 @@
       <img alt="Release Downloads" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
     </a>
   </p>
-<h4 align="center">An open and transparent modification to Windows, designed to optimize performance, privacy and stability.</h4>
+<h4 align="center">An open and lightweight modification to Windows, designed to optimize performance, privacy and security.</h4>
 
 <p align="center">
   <a href="https://atlasos.net">Website</a>
