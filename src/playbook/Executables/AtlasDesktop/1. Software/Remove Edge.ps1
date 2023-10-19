@@ -57,26 +57,26 @@ function DeleteEdgeUpdate {
 	$global:ErrorActionPreference = 'SilentlyContinue'
 
 	# disable automatic installation of Edge-related applications
-	$edgeupdatePath = "HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate" | Out-Null
-	New-Item -Path $edgeupdatePath -Force | Out-Null
-	New-ItemProperty -Path "$edgeupdatePath" -Name "DoNotUpdateToEdgeWithChromium" -Type DWORD -Value 1 | Out-Null
-	New-ItemProperty -Path "$edgeupdatePath" -Name "Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -Type DWORD -Value 0 | Out-Null
-	New-ItemProperty -Path "$edgeupdatePath" -Name "InstallDefault" -Type DWORD -Value 0 | Out-Null
+	$edgeupdatePath = "HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate" | 
+	New-Item -Path $edgeupdatePath -Force | 
+	New-ItemProperty -Path "$edgeupdatePath" -Name "DoNotUpdateToEdgeWithChromium" -Type DWORD -Value 1 | 
+	New-ItemProperty -Path "$edgeupdatePath" -Name "Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -Type DWORD -Value 0 | 
+	New-ItemProperty -Path "$edgeupdatePath" -Name "InstallDefault" -Type DWORD -Value 0 | 
 
 	# remove scheduled tasks
-	Stop-Process -Name "MicrosoftEdgeUpdate" -Force | Out-Null
-	Remove-Item -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update" -Force | Out-Null
-	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineCore" -Confirm:$false | Out-Null
-	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineUA" -Confirm:$false | Out-Null
+	Stop-Process -Name "MicrosoftEdgeUpdate" -Force | 
+	Remove-Item -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update" -Force | 
+	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineCore" -Confirm:$false | 
+	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineUA" -Confirm:$false | 
 
 	# remove all Edge services
 	foreach ($service in $services) {
 		Stop-Service -Name $service -Force
-		sc.exe delete $service | Out-Null
+		sc.exe delete $service | 
 	}
 
 	# delete the Edge Update folder
-	Remove-Item -Path "$env:SystemDrive\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
+	Remove-Item -Path "$env:SystemDrive\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | 
 
 	# revert error action preference
 	$global:ErrorActionPreference = 'Continue'
@@ -100,20 +100,20 @@ function RemoveEdgeChromium {
 	if (Test-Path $keyPath) {
 		$valueExists = Get-ItemProperty -Path $keyPath -Name $valueName -ErrorAction SilentlyContinue
 		if ($null -ne $valueExists) {
-			Remove-ItemProperty -Path $keyPath -Name $valueName -Force | Out-Null
+			Remove-ItemProperty -Path $keyPath -Name $valueName -Force | 
 		}
 	}
 
 	# allow Edge uninstall
 	$devKeyPath = Join-Path -Path $baseKey -ChildPath "EdgeUpdateDev"
-	if (-not (Test-Path $devKeyPath)) { New-Item -Path $devKeyPath -ItemType "Key" -Force | Out-Null }
-	Set-ItemProperty -Path $devKeyPath -Name "AllowUninstall" -Value "" -Type String -Force | Out-Null
+	if (-not (Test-Path $devKeyPath)) { New-Item -Path $devKeyPath -ItemType "Key" -Force |  }
+	Set-ItemProperty -Path $devKeyPath -Name "AllowUninstall" -Value "" -Type String -Force | 
 
 	# uninstall Edge
 	$uninstallKeyPath = Join-Path -Path $baseKey -ChildPath "Windows\CurrentVersion\Uninstall\Microsoft Edge"
 	if (Test-Path $uninstallKeyPath) {
 		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString + " --force-uninstall"
-		Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden | Out-Null 2> $null
+		Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden 2>&1 | out-null
 	}
 
 	# remove user data
@@ -151,7 +151,7 @@ function RemoveWebView {
 	if (Test-Path $webviewHKLM) {$webviewUninstallKey += $webviewHKLM}
 	foreach ($key in $webviewUninstallKey) {
 		$webviewUninstallString = (Get-ItemProperty -Path $key).UninstallString + " --force-uninstall"
-		Start-Process cmd.exe "/c $webviewUninstallString" -WindowStyle Hidden | Out-Null 2> $null
+		Start-Process cmd.exe "/c $webviewUninstallString" -WindowStyle Hidden 2>&1 | out-null
 	}
 }
 
