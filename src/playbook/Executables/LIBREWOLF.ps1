@@ -41,7 +41,7 @@ if ($NoUpdater) {
 }
 
 Write-Warning "Installing LibreWolf silently"
-Start-Process -Wait -FilePath $outputLibrewolf -ArgumentList "/S" | Out-Null 2> $null
+Start-Process -Wait -FilePath $outputLibrewolf -ArgumentList "/S" 2>&1 | Out-Null
 if (!(Test-Path $librewolfPath)) {
 	Write-Host "Installing LibreWolf silently failed."
 	exit 1
