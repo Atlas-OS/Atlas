@@ -160,6 +160,8 @@ tasks:
   - tweaks\qol\hide-disabled-disconnected-sounds.yml
   - tweaks\qol\show-all-tasks-control-panel.yml
   - tweaks\qol\visual-effects.yml
+  - tweaks\qol\disable-tips.yml
+  - tweaks\qol\disable-consumer-expierences.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\appearance                                                            #
