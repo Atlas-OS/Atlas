@@ -16,7 +16,7 @@ Set-Location $tempDir
 if ($Chrome) {
 	Write-Host "Installing Google Chrome..."
 	& curl.exe -LSs "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi" -o "$tempDir\chrome.msi"
-	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait | Out-Null 2> $null
+	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait 2>&1 | Out-Null
 	exit
 }
 
@@ -29,7 +29,7 @@ if ($Brave) {
 		exit 1
 	}
 
-	& "$tempDir\BraveSetup.exe" /silent /install | Out-Null 2> $null
+	& "$tempDir\BraveSetup.exe" /silent /install 2>&1 | Out-Null
 
 	do {
 		$processesFound = Get-Process | Where-Object { "BraveSetup" -contains $_.Name } | Select-Object -ExpandProperty Name
@@ -74,21 +74,21 @@ $num = 0; foreach ($a in $vcredists.GetEnumerator()) {
 	# curl is faster than Invoke-WebRequest
 	Write-Host "Installing Visual C++ Runtime $num..."
 	& curl.exe -LSs "$($a.Name)" -o "$vcredist"
-	Start-Process -FilePath $vcredist -WindowStyle Hidden -ArgumentList $a.Value -Wait | Out-Null 2> $null
+	Start-Process -FilePath $vcredist -WindowStyle Hidden -ArgumentList $a.Value -Wait 2>&1 | Out-Null
 }
 
 # 7-Zip
 $website = 'https://7-zip.org/'
 $download = $website + ((Invoke-WebRequest $website -UseBasicParsing).Links.href | Where-Object { $_ -like "a/7z2301-x64.exe" })
 & curl.exe -LSs $download -o "$tempDir\7zip.exe"
-Start-Process -FilePath "$tempDir\7zip.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait | Out-Null 2> $null
+Start-Process -FilePath "$tempDir\7zip.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait 2>&1 | Out-Null
 
 # Legacy DirectX runtimes
 & curl.exe -LSs "https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe" -o "$tempDir\directx.exe"
 Write-Host "Extracting legacy DirectX runtimes..."
-Start-Process -FilePath "$tempDir\directx.exe" -WindowStyle Hidden -ArgumentList "/q /c /t:`"$tempDir\directx`"" -Wait | Out-Null 2> $null
+Start-Process -FilePath "$tempDir\directx.exe" -WindowStyle Hidden -ArgumentList "/q /c /t:`"$tempDir\directx`"" -Wait 2>&1 | Out-Null
 Write-Host "Installing legacy DirectX runtimes..."
-Start-Process -FilePath "$tempDir\directx\dxsetup.exe" -WindowStyle Hidden -ArgumentList '/silent' -Wait | Out-Null 2> $null
+Start-Process -FilePath "$tempDir\directx\dxsetup.exe" -WindowStyle Hidden -ArgumentList '/silent' -Wait 2>&1 | Out-Null
 
 # Remove temporary directory
 Remove-Item -Path $tempDir -Force -Recurse *>$null
