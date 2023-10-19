@@ -70,6 +70,7 @@ tasks:
   - tweaks\performance\system\config-boot-config.yml
   - tweaks\performance\system\config-paging.yml
   - tweaks\performance\system\optimize-ntfs.yml
+  - tweaks\performance\system\service-host-split.yml
   - tweaks\performance\system\win32-priority-seperation.yml
 
   # -----------------------------------------------------
