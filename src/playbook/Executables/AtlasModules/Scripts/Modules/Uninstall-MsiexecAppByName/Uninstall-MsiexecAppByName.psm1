@@ -36,7 +36,7 @@ function Uninstall-MsiexecAppByName {
             if ($uninstallString -like "*MsiExec.exe*") {
                 $foundKey = $key | Split-Path -Leaf
                 Write-Warning "Uninstalling $displayName..."
-                Start-Process -FilePath "msiexec.exe" -ArgumentList "/qn /X$foundKey REBOOT=ReallySuppress /norestart" | Out-Null 2> $null
+                Start-Process -FilePath "msiexec.exe" -ArgumentList "/qn /X$foundKey REBOOT=ReallySuppress /norestart" 2>&1 | Out-Null
             }
         }
     }
