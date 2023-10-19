@@ -30,7 +30,8 @@ actions:
   - !cmd: {command: 'setx PATH "%PATH%;%windir%\AtlasModules;%windir%\AtlasModules\Apps;%windir%\AtlasModules\Other;%windir%\AtlasModules\Tools;%windir%\AtlasModules\Scripts" -m'}
   - !cmd: {command: 'setx PSModulePath "%PSModulePath%;%windir%\AtlasModules\Scripts\Modules" -m'}
 
-    # Does not supported in AME as of now
+    # Doesn't refresh the environment variables of TrustedUninstaller
+    # An alternative should be found, for now, exact paths are used
   # - !writeStatus: {status: 'Refreshing variables'}
   # - !run: {exeDir: true, exe: 'REFRESHENV.cmd'}
 
