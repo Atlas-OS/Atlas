@@ -25,7 +25,7 @@ actions:
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
   - !cmd:
-    command: 'NSudoLC.exe -U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -File "%windir%\AtlasDesktop\1. Software\Remove Edge.ps1" -UninstallAll -KeepAppX -Exit'
+    command: 'NSudoLC.exe -U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -File "%windir%\AtlasDesktop\1. Software\Remove Edge.ps1" -UninstallEdge -KeepAppX -Exit'
     wait: true
     exeDir: true
     option: 'uninstall-edge'
