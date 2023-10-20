@@ -3,7 +3,7 @@
   Sets a certain user Registry value for all users. 
  
  .Example
-  Atlas-AllUserRegistry -Action AddValue -Path "\Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers" -Name "BackgroundType" -Value 0
+  Atlas-AllUserRegistry -Action AddValue -Path "\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers" -Name "BackgroundType" -Value 0
 #>
 
 function Atlas-AllUserRegistry {

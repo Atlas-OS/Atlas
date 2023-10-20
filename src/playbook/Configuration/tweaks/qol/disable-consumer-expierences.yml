@@ -5,7 +5,7 @@ privilege: TrustedInstaller
 actions:
   # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.CloudContent::DisableWindowsConsumerFeatures
   - !registryValue:
-    path: 'HKLM\Software\Policies\Microsoft\Windows\CloudContent'
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableWindowsConsumerFeatures'
     data: '1'
     type: REG_DWORD
