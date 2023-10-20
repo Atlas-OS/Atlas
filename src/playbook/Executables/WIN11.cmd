@@ -37,6 +37,7 @@ if defined win10 (
     rd /s /q "%windir%\AtlasDesktop\3. Configuration\Background Apps" > nul 2>&1
     rd /s /q "%windir%\AtlasDesktop\3. Configuration\Power\Timer Resolution" > nul 2>&1
     rd /s /q "%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Compact View" > nul 2>&1
+    rd /s /q "%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Gallery" > nul 2>&1
     rd /s /q "%windir%\AtlasDesktop\4. Optional Tweaks\Windows 11 Context Menu" > nul 2>&1
     del /f /q "%windir%\AtlasModules\Tools\TimerResolution.exe" > nul 2>&1
 
@@ -73,6 +74,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWin
 
 :: Set dual boot menu description to AtlasOS 11
 bcdedit /set description "AtlasOS 11" > nul
+
+:: Remove Gallery from Explorer
+reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace_41040327\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}" /f > nul
 
 :: Re-enable Action Center on Win11, as it breaks calendar
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f > nul 2>&1
