@@ -130,6 +130,9 @@ reg add "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "ShowClo
 :: Restore old Windows 10 context menu
 reg add "HKU\%~1\SOFTWARE\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve > nul
 
+:: Add 'End task' option to the taskbar context menu
+reg add "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\DeveloperSettings" /v "TaskbarEndTask" /t REG_DWORD /d "1" /f > nul
+
 :: Set unpinned Notification Center items
 reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Cast" /t REG_NONE /d "" /f > nul
 reg add "HKU\%~1\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.NearShare" /t REG_NONE /d "" /f > nul
