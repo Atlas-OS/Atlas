@@ -66,6 +66,9 @@ Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse -EA SilentlyContinue
 # Disable Reserved Storage for updates
 Set-WindowsReservedStorageState -State Disabled
 
+# Delete all system restore points
+vssadmin delete shadows /all /quiet
+
 # Clear Event Logs
 wevtutil el 2>$null | ForEach-Object {wevtutil cl "$_"} 2>$null
 
