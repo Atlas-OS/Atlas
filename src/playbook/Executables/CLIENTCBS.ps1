@@ -25,4 +25,4 @@ $modifiedContent = ($modifiedContent | Where-Object { $_.Trim() -ne "" }) -join 
 Set-Content -Path "$Cbs\Public\wsxpacks.json" -Value $modifiedContent
 
 ## Remove banner from Immersive Control Panel
-Remove-Item -Path "$Cbs\SystemSettingsExtensions.dll" -Force
+Rename-Item "$Cbs\SystemSettingsExtensions.dll" -NewName "SystemSettingsExtensions.dll.old" -Force
