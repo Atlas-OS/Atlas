@@ -37,6 +37,9 @@ actions:
   # Installs unwanted content such as apps like Disney+ and advertisements
   - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
 
+  # Dev Home
+  - !appx: {name: '*Microsoft.Windows.DevHome*', type: family}
+  
   # Network connection should not be needed in OOBE
   # Could force users to have to login to a Microsoft account in OOBE
   # Would not be a dependency of anything
