@@ -33,10 +33,7 @@ function Invoke-AtlasDiskCleanup {
 		"Device Driver Packages" = 2
 	}
 	foreach ($entry in $regValues.GetEnumerator()) {
-		$key = $entry.Key
-		$value = $entry.Value
-		$path = "$baseKey\$key"
-		Set-ItemProperty -Path $path -Name 'StateFlags0064' -Value $value -Type DWORD
+		Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
 	}
 	# Run preset 64 (0-65535)
 	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64" 2>&1 | Out-Null
@@ -71,9 +68,6 @@ vssadmin delete shadows /all /quiet
 
 # Clear Event Logs
 wevtutil el 2>$null | ForEach-Object {wevtutil cl "$_"} 2>$null
-
-# Remove any .log files
-Get-ChildItem -Path "$env:SystemRoot" -Filter *.log -File -Recurse -Force 2>$null | Remove-Item -Recurse -Force 2>$null
 
 Stop-Service -Name "dps" -Force
 Stop-Service -Name "wuauserv" -Force
