@@ -35,6 +35,7 @@ actions:
 
   # Content Delivery Manager
   # Installs unwanted content such as apps like Disney+ and advertisements
+  # Removed at a component level as well
   - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
 
   # Network connection should not be needed in OOBE
@@ -58,10 +59,10 @@ actions:
 
   # Get Started
   - !appx: {name: '*Microsoft.Getstarted*', type: family}
-  - !appx: {name: '*WebExperienceHost*', type: app}
+  - !appx: {name: '*WebExperienceHost*', type: app, unregister: true}
 
   # Windows Backup
-  - !appx: {name: '*WindowsBackup*', type: app}
+  - !appx: {name: '*WindowsBackup*', type: app, unregister: true}
 
   # Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
