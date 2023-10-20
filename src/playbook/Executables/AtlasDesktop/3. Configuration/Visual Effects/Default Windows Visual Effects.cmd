@@ -17,8 +17,6 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d "0" /f
 	reg add "HKCU\SOFTWARE\Microsoft\Windows\DWM" /v "EnableAeroPeek" /t REG_DWORD /d "1" /f
 	reg add "HKCU\SOFTWARE\Microsoft\Windows\DWM" /v "AlwaysHibernateThumbnails" /t REG_DWORD /d "1" /f
-	taskkill /f /im explorer.exe
-	taskkill /f /im sihost.exe
 ) > nul
 
 choice /c:yn /n /m "Finished, would you like to logout to apply the changes? [Y/N] "
