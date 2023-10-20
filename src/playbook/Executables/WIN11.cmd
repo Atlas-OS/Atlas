@@ -52,6 +52,9 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Applying %regVariable% changes to "%%a"...
         call :%regVariable% "%%a"
+
+        rem Disable archive apps
+        reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\InstallService\Stubification\%~1" /v "EnableAppOffloading" /t REG_DWORD /d "0" /f > nul
     )
 )
 if defined win10 exit /b
