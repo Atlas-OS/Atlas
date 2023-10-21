@@ -88,7 +88,7 @@ actions:
   - !appx: {name: '*Microsoft.MicrosoftSolitaireCollection*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftStickyNotes*', type: family}
   - !appx: {name: '*Microsoft.Office.OneNote*', type: family}
-  - !appx: {name: '*Microsoft.Outlook*', type: family}
+  - !appx: {name: '*Microsoft.OutlookForWindows*', type: family}
   - !appx: {name: '*Microsoft.People*', type: family}
   - !appx: {name: '*Microsoft.PowerAutomateDesktop*', type: family}
   - !appx: {name: '*Microsoft.Windows.PeopleExperienceHost*', type: family}
