@@ -330,6 +330,8 @@ tasks:
   - tweaks\scripts\script-power.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
+  # Cleanup script takes longer to finish so it has its own status
+  - tweaks\statuses\status-cleanup.yml
   - tweaks\scripts\script-cleanup.yml
 
   # -----------------------------------------------------
