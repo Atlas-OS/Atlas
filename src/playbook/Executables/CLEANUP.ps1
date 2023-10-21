@@ -61,9 +61,6 @@ Get-ChildItem -Path "$env:TEMP" -Directory | Where-Object { $_.Name -ne 'AME' } 
 # Clear the temporary system folder
 Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse
 
-# Disable Reserved Storage for updates
-Set-WindowsReservedStorageState -State Disabled
-
 # Delete all system restore points
 vssadmin delete shadows /all /quiet
 
