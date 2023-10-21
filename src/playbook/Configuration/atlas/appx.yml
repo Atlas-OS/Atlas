@@ -68,10 +68,10 @@ actions:
   - !appx: {name: '*WindowsBackup*', type: app, unregister: true}
 
   # Advertisements/Telemetry
-  - !appx: {name: '*Global.Accounts*', type: app}
-  - !appx: {name: '*Global.BackupBanner*', type: app}
-  - !appx: {name: '*Global.IrisService*', type: app}
-  - !appx: {name: '*Global.ValueBanner*', type: app}
+  - !appx: {name: '*Global.Accounts*', type: app, unregister: true}
+  - !appx: {name: '*Global.BackupBanner*', type: app, unregister: true}
+  - !appx: {name: '*Global.IrisService*', type: app, unregister: true}
+  - !appx: {name: '*Global.ValueBanner*', type: app, unregister: true}
 
   - !run:
     exe: 'powershell.exe'
