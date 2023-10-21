@@ -66,6 +66,15 @@ actions:
   # Windows Backup
   - !appx: {name: '*WindowsBackup*', type: app}
 
+  # Advertisements in Settings
+  - !appx: {name: '*Global.ValueBanner*', type: app}
+  - !appx: {name: '*Global.BackupBanner*', type: app}
+
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File CLIENTCBS.ps1'
+    exeDir: true
+
   # Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
 
@@ -132,12 +141,6 @@ actions:
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe', operation: add}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftTeams_8wekyb3d8bbwe', operation: add}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftWindows.Client.WebExperience_cw5n1h2txyewy', operation: add}
-
-  # Edit Client.CBS package to remove annoying ads from apps
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File CLIENTCBS.ps1'
-    exeDir: true
 
   # Clear caches of Start menu and more
   - !appx: {operation: clearCache, name: '*Client.CBS*'}

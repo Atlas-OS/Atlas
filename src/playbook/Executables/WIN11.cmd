@@ -52,9 +52,6 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Applying %regVariable% changes to "%%a"...
         call :%regVariable% "%%a"
-
-        rem Disable archive apps
-        reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\InstallService\Stubification\%~1" /v "EnableAppOffloading" /t REG_DWORD /d "0" /f > nul
     )
 )
 if defined win10 exit /b
@@ -79,7 +76,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWin
 bcdedit /set description "AtlasOS 11" > nul
 
 :: Remove Gallery from Explorer
-reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace_41040327\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}" /f > nul
+reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace_41040327\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}" /f > nul 2>&1
 
 :: Re-enable Action Center on Win11, as it breaks calendar
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /f > nul 2>&1
