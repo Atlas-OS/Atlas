@@ -37,7 +37,7 @@ $ProgressPreference = "SilentlyContinue"
 $user = $env:USERNAME
 $SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
 
-$services = (Get-Service -Name "*CDP*" | Where-Object {$_.Status -eq "Running"}).Name
+$services = (Get-Service -Name "*edge*" | Where-Object {$_.Status -eq "Running"}).Name
 $processes = (Get-Process | Where-Object {($_.Path -like "$env:SystemDrive\Program Files (x86)\Microsoft\*") -or ($_.Name -like "*edge*")}).Id
 
 if ($Exit -and ((-not $UninstallAll) -and (-not $UninstallEdge))) {
