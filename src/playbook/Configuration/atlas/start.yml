@@ -7,6 +7,11 @@ actions:
     # Do not change the line position of this, otherwise things will break
   # - !run: {exe: 'cmd.exe', args: '/c start "AME Wizard Live Log" PowerShell -NoP -C "gc -Wait Logs\TIOutput.txt -EA SilentlyContinue | Write-Output; pause"', baseDir: true, wait: false}
 
+    # Update Microsoft Store applications
+  - !run:
+    exe: 'NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -C "Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod"'
+
     # Prevent annoying notifications during deployment
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance', value: 'Enabled', type: REG_DWORD, data: '0'}
 
@@ -42,12 +47,6 @@ actions:
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2Root" /NoRestart', weight: 30}
-
-    # Update Microsoft Store applications
-  - !writeStatus: {status: 'Updating dependencies'}
-  - !run:
-    exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -C "Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod"'
 
   - !writeStatus: {status: 'Installing software'}
   - !run:
