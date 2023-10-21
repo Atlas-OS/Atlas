@@ -290,6 +290,7 @@ tasks:
   - tweaks\qol\taskbar\disable-copilot.yml
   - tweaks\qol\taskbar\disable-windows-chat.yml
   - tweaks\qol\taskbar\set-to-left.yml
+  - tweaks\qol\taskbar\end-task.yml
 
   # -----------------------------------------------------
   #                       Security

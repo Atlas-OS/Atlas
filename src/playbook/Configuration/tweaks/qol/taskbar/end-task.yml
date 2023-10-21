@@ -1,0 +1,11 @@
+---
+title: Add 'End task' to the taskbar
+description: Adds 'End task' as a right-click option on taskbar for QoL
+privilege: TrustedInstaller
+builds: [ '>22621' ]
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\DeveloperSettings'
+    value: 'TaskbarEndTask'
+    data: '1'
+    type: REG_DWORD
