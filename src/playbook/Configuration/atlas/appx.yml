@@ -152,6 +152,6 @@ actions:
   - !appx: {operation: clearCache, name: '*Microsoft.Windows.SecHealthUI'}
 
   # Update Microsoft Store applications
-  - !run:
-    exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -C "Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod"'
+  - !powerShell:
+    command: 'Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod"'
+    runas: currentUserElevated
