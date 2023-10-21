@@ -37,11 +37,8 @@ $ProgressPreference = "SilentlyContinue"
 $user = $env:USERNAME
 $SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
 
-$services = @(
-	'edgeupdate',
-	'edgeupdatem',
-	'MicrosoftEdgeElevationService'
-)
+$services = (Get-Service -Name "*edge*" | Where-Object {$_.Status -eq "Running"}).Name
+$processes = (Get-Process | Where-Object {($_.Path -like "$env:SystemDrive\Program Files (x86)\Microsoft\*") -or ($_.Name -like "*edge*")}).Id
 
 if ($Exit -and ((-not $UninstallAll) -and (-not $UninstallEdge))) {
     $Exit = $false
@@ -69,10 +66,9 @@ function DeleteEdgeUpdate {
 	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineCore" -Confirm:$false | Out-Null
 	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineUA" -Confirm:$false | Out-Null
 
-	# remove all Edge services
+	# delete edge services
 	foreach ($service in $services) {
-		Stop-Service -Name $service -Force
-		sc.exe delete $service | Out-Null
+		sc.exe delete $service
 	}
 
 	# delete the Edge Update folder
@@ -84,13 +80,15 @@ function DeleteEdgeUpdate {
 
 function RemoveEdgeChromium {
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
-
-	# kill Edge
 	$ErrorActionPreference = 'SilentlyContinue'
 
-	Get-Process -Name MicrosoftEdgeUpdate | Stop-Process -Force
-	Get-Process -Name msedge | Stop-Process -Force
-	foreach ($service in $services) {Stop-Service -Name $service -Force}
+	# terminate Edge processes
+	foreach ($process in $processes) {
+		Stop-Process -Id $process -Force
+	}
+	foreach ($service in $services) {
+		Stop-Service -Name $service -Force
+	}
 
 	$ErrorActionPreference = 'Continue'
 
@@ -165,9 +163,9 @@ function UninstallAll {
 	if ($removeWebView) {
 		Write-Warning "Uninstalling Edge WebView..."
 		RemoveWebView
-		Write-Warning "Uninstalling Edge Update..."
-		DeleteEdgeUpdate
 	}
+	Write-Warning "Uninstalling Edge Update..."
+	DeleteEdgeUpdate
 }
 
 function Completed {
