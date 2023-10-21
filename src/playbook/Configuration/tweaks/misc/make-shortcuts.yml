@@ -6,5 +6,4 @@ actions:
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -EP Unrestricted -File "SHORTCUTS.ps1"'
-    wait: true
     exeDir: true

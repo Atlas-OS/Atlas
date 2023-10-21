@@ -7,4 +7,3 @@ actions:
     exe: 'powershell.exe'
     args: '-NoP -File NGEN.ps1'
     exeDir: true
-    wait: true

@@ -138,7 +138,6 @@ actions:
     exe: 'powershell.exe'
     args: '-NoP -File CLIENTCBS.ps1'
     exeDir: true
-    wait: true
 
   # Clear caches of Start menu and more
   - !appx: {operation: clearCache, name: '*Client.CBS*'}

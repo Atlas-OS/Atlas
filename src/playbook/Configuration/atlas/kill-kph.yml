@@ -7,4 +7,3 @@ actions:
     exe: 'powershell.exe'
     args: '-NoP -Ex Unrestricted -File KILLKPH.ps1'
     exeDir: true
-    wait: true
