@@ -4,5 +4,5 @@ description: Disables Service Host splitting much for lower RAM usage and proces
 privilege: TrustedInstaller
 actions:
   - !powerShell:
-    command: 'Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | ? { $_.Name -notmatch 'Xbl|Xbox' } | % { $a = Get-ItemProperty -Path "REGISTRY::$_" -EA SilentlyContinue; if ($null -ne $a.Start) { Set-ItemProperty -Path "Registry::$_" -Name "SvcHostSplitDisable" -Type DWORD -Value 1 -Force -EA SilentlyContinue } }'
+    command: 'Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | ? { $_.Name -notmatch ''Xbl|Xbox'' } | % { $a = Get-ItemProperty -Path "REGISTRY::$_" -EA SilentlyContinue; if ($null -ne $a.Start) { Set-ItemProperty -Path "Registry::$_" -Name "SvcHostSplitDisable" -Type DWORD -Value 1 -Force -EA SilentlyContinue } }'
     wait: true
