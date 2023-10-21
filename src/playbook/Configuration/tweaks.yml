@@ -213,6 +213,7 @@ tasks:
   - tweaks\qol\explorer\classic-search.yml
   - tweaks\qol\explorer\dont-show-office-files.yml
   - tweaks\qol\explorer\use-compact-mode.yml
+  - tweaks\qol\explorer\disable-gallery.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
