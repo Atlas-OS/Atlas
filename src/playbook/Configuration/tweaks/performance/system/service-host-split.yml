@@ -3,6 +3,7 @@ title: Disable Service Host Splitting
 description: Disables Service Host splitting much for lower RAM usage and process count, excluding XBOX services to fix issues with Game Bar
 privilege: TrustedInstaller
 actions:
+  # https://learn.microsoft.com/en-us/windows/application-management/svchost-service-refactoring
   - !powerShell:
     command: 'Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | ? { $_.Name -notmatch ''Xbl|Xbox'' } | % { $a = Get-ItemProperty -Path "REGISTRY::$_" -EA SilentlyContinue; if ($null -ne $a.Start) { Set-ItemProperty -Path "Registry::$_" -Name "SvcHostSplitDisable" -Type DWORD -Value 1 -Force -EA SilentlyContinue } }'
     wait: true
