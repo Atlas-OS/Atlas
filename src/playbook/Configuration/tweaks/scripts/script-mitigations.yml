@@ -8,4 +8,3 @@ actions:
     exe: 'Disable All Mitigations.cmd'
     path: '%windir%\AtlasDesktop\7. Security\Mitigations'
     args: '/silent'
-    option: 'mitigations-disable'
