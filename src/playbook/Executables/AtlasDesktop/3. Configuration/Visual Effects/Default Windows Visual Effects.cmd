@@ -1,10 +1,5 @@
 @echo off
 
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" %*
-	exit /b
-)
-
 (
 	reg add "HKCU\Control Panel\Desktop" /v "FontSmoothing" /t REG_SZ /d "2" /f
 	reg add "HKCU\Control Panel\Desktop" /v "UserPreferencesMask" /t REG_BINARY /d "9E1E078012000000" /f
@@ -18,6 +13,8 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	reg add "HKCU\SOFTWARE\Microsoft\Windows\DWM" /v "EnableAeroPeek" /t REG_DWORD /d "1" /f
 	reg add "HKCU\SOFTWARE\Microsoft\Windows\DWM" /v "AlwaysHibernateThumbnails" /t REG_DWORD /d "1" /f
 ) > nul
+
+if "%~1"=="/silent" exit /b
 
 choice /c:yn /n /m "Finished, would you like to logout to apply the changes? [Y/N] "
 if %errorlevel%==1 logoff
