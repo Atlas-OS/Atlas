@@ -6,5 +6,4 @@ actions:
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File "PFP.ps1"'
-    wait: true
     exeDir: true

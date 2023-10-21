@@ -47,14 +47,12 @@ actions:
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File "SOFTWARE.ps1"'
-    wait: true
     exeDir: true
     weight: 150
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File "SOFTWARE.ps1" -Chrome'
-    wait: true
     exeDir: true
     weight: 150
     option: 'browser-chrome'
@@ -62,7 +60,6 @@ actions:
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File "SOFTWARE.ps1" -Brave'
-    wait: true
     exeDir: true
     weight: 150
     option: 'browser-brave'
@@ -72,14 +69,12 @@ actions:
     exe: 'powershell.exe'
     args: '-NoP -File LIBREWOLF.ps1'
     exeDir: true
-    wait: true
     weight: 150
     option: 'librewolf-winupdater'
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File "LIBREWOLF.ps1" -NoUpdater'
     exeDir: true
-    wait: true
     weight: 150
     option: 'librewolf-winget'
 

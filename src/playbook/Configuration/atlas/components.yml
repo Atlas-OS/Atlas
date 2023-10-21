@@ -9,7 +9,6 @@ actions:
     exe: 'Toggle Defender.cmd'
     path: '%windir%\AtlasDesktop\7. Security\Defender'
     args: '-Disable'
-    wait: true
     option: 'defender-disable'
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
@@ -25,7 +24,7 @@ actions:
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
   - !cmd:
-    command: 'powershell.exe -NoP -EP Unrestricted -File "%windir%\AtlasDesktop\1. Software\Remove Edge.ps1" -UninstallAll -KeepAppX -Exit'
+    command: 'powershell.exe -NoP -EP Unrestricted -File "%windir%\AtlasDesktop\1. Software\Remove Edge.ps1" -UninstallEdge -KeepAppX -Exit'
     wait: true
     exeDir: true
     runas: currentUserElevated
@@ -49,13 +48,11 @@ actions:
     exe: 'online-sxs.cmd'
     path: '%windir%\AtlasModules\Scripts'
     args: '"%windir%\AtlasModules\Packages\Z-Atlas-NoTelemetry-Package31bf3856ad364e35amd643.0.0.0.cab"'
-    wait: true
     # Misc Package
   - !run:
     exe: 'online-sxs.cmd'
     path: '%windir%\AtlasModules\Scripts'
     args: '"%windir%\AtlasModules\Packages\Z-Atlas-Misc-Remover-Package31bf3856ad364e35amd643.0.0.0.cab"'
-    wait: true
 
     # Update Health Tools
   - !writeStatus: {status: 'Removing Update Health Tools'}

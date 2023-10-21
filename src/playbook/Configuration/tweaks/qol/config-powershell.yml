@@ -8,16 +8,8 @@ actions:
     # Set .ps1 file types to open with PowerShell by default
     # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
   - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="%windir%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'}
-  - !registryValue:
-    path: 'HKCR\Applications\powershell.exe\shell\open\command'
-    value: ''
-    data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKCR\ps1_auto_file\shell\open\command'
-    value: ''
-    data: '"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'
-    type: REG_SZ
+  - !cmd: {command: 'reg add "HKCR\Applications\powershell.exe\shell\open\command" /v "" /t REG_SZ /d "\"%windir%\System32\WindowsPowerShell\v1.0\powershell.exe\" -NoLogo -EP Unrestricted -File \"%1\" %*"'}
+  - !cmd: {command: 'reg add "HKCR\ps1_auto_file\shell\open\command" /v "" /t REG_SZ /d "\"%windir%\System32\WindowsPowerShell\v1.0\powershell.exe\" -NoLogo -EP Unrestricted -File \"%1\" %*"'}
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ps1\OpenWithList'
     value: 'a'
@@ -41,10 +33,6 @@ actions:
 
     # Set PowerShell execution policy to Unrestricted
     # Batch scripts are not restricted and this measure can easily be bypassed by calling PowerShell within a batch script
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
-    value: 'ExecutionPolicy'
-    operation: delete
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
     value: 'ExecutionPolicy'

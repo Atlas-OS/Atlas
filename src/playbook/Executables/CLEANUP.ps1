@@ -1,4 +1,5 @@
 # AtlasOS Post-Installation Cleanup Utility
+$ErrorActionPreference = 'SilentlyContinue'
 
 # As cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
 function Invoke-AtlasDiskCleanup {
@@ -33,10 +34,7 @@ function Invoke-AtlasDiskCleanup {
 		"Device Driver Packages" = 2
 	}
 	foreach ($entry in $regValues.GetEnumerator()) {
-		$key = $entry.Key
-		$value = $entry.Value
-		$path = "$baseKey\$key"
-		Set-ItemProperty -Path $path -Name 'StateFlags0064' -Value $value -Type DWORD
+		Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
 	}
 	# Run preset 64 (0-65535)
 	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64" 2>&1 | Out-Null
@@ -55,22 +53,19 @@ foreach ($drive in $drives) {
 if (!($otherInstalls)) { Invoke-AtlasDiskCleanup }
 
 # Clear the temporary user folder
-Get-ChildItem -Path "$env:TEMP" -File | Remove-Item -Force -EA SilentlyContinue
+Get-ChildItem -Path "$env:TEMP" -File | Remove-Item -Force
 
 # Exclude the AME folder while deleting directories in the temporary user folder
-Get-ChildItem -Path "$env:TEMP" -Directory | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse -EA SilentlyContinue
+Get-ChildItem -Path "$env:TEMP" -Directory | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse
 
 # Clear the temporary system folder
-Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse -EA SilentlyContinue
+Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse
 
-# Disable Reserved Storage for updates
-Set-WindowsReservedStorageState -State Disabled
+# Delete all system restore points
+vssadmin delete shadows /all /quiet
 
 # Clear Event Logs
-wevtutil el 2>$null | ForEach-Object {wevtutil cl "$_"} 2>$null
-
-# Remove any .log files
-Get-ChildItem -Path "$env:SystemRoot" -Filter *.log -File -Recurse -Force 2>$null | Remove-Item -Recurse -Force 2>$null
+wevtutil el | ForEach-Object {wevtutil cl "$_"} 2>&1 | Out-Null
 
 Stop-Service -Name "dps" -Force
 Stop-Service -Name "wuauserv" -Force
@@ -89,6 +84,6 @@ $foldersToRemove = @(
 foreach ($folderName in $foldersToRemove) {
     $folderPath = Join-Path $env:SystemRoot $folderName
     if (Test-Path $folderPath) {
-        Remove-Item -Path "$folderPath\*" -Force -Recurse -Verbose
+        Remove-Item -Path "$folderPath\*" -Force -Recurse 2>&1 | Out-Null
     }
 }

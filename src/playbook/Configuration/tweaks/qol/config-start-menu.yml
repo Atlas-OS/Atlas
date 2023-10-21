@@ -21,6 +21,11 @@ actions:
     value: 'HideRecentlyAddedApps'
     data: '1'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'HideRecommendedPersonalizedSites'
+    data: '1'
+    type: REG_DWORD
 
   - !run:
     exeDir: true

@@ -300,8 +300,7 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-security.yml
   - tweaks\security\block-anonymous-enum-sam.yml
-  # This account should be deleted after OOBE
-  # - tweaks\security\delete-defaultuser0.yml
+  - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
   # Not needed on modern versions of Windows
   # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
@@ -318,6 +317,7 @@ tasks:
   - tweaks\statuses\status-debloat.yml
   # - tweaks\debloat\autologgers.yml
   - tweaks\debloat\config-content-delivery.yml
+  - tweaks\debloat\disable-reserved-storage.yml
   - tweaks\debloat\legacy-photo-viewer.yml
   - tweaks\debloat\scheduled-tasks.yml
   - tweaks\debloat\hide-unused-security-pages.yml
@@ -340,6 +340,8 @@ tasks:
   - tweaks\scripts\script-power.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
+  # Cleanup script takes longer to finish so it has its own status
+  - tweaks\statuses\status-cleanup.yml
   - tweaks\scripts\script-cleanup.yml
 
   # -----------------------------------------------------

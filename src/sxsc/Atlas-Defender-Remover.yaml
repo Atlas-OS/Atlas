@@ -228,6 +228,12 @@ updates:
   - target_component: Microsoft-Windows-AppRep-ChxApp.appxmain
     target_arch: amd64
     version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-AppRep-ChxApp.appxmain.resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-AppRep-ChxApp.appxsetup
+    target_arch: amd64
+    version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-DeviceManagement-PolicyDefinition-SmartScreen
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -253,5 +259,8 @@ updates:
     target_arch: wow64
     version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-SmartScreen-Adm
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SmartScreen-Adm.Resources
     target_arch: amd64
     version: 38655.38527.65535.65535

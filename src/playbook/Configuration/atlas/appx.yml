@@ -38,6 +38,9 @@ actions:
   # Removed at a component level as well
   - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
 
+  # Dev Home
+  - !appx: {name: '*Microsoft.Windows.DevHome*', type: family}
+  
   # Network connection should not be needed in OOBE
   # Could force users to have to login to a Microsoft account in OOBE
   # Would not be a dependency of anything
@@ -64,6 +67,17 @@ actions:
   # Windows Backup
   - !appx: {name: '*WindowsBackup*', type: app, unregister: true}
 
+  # Advertisements/Telemetry
+  - !appx: {name: '*Global.Accounts*', type: app}
+  - !appx: {name: '*Global.BackupBanner*', type: app}
+  - !appx: {name: '*Global.IrisService*', type: app}
+  - !appx: {name: '*Global.ValueBanner*', type: app}
+
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File CLIENTCBS.ps1'
+    exeDir: true
+
   # Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
 
@@ -77,7 +91,7 @@ actions:
   - !appx: {name: '*Microsoft.MicrosoftSolitaireCollection*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftStickyNotes*', type: family}
   - !appx: {name: '*Microsoft.Office.OneNote*', type: family}
-  - !appx: {name: '*Microsoft.Outlook*', type: family}
+  - !appx: {name: '*Microsoft.OutlookForWindows*', type: family}
   - !appx: {name: '*Microsoft.People*', type: family}
   - !appx: {name: '*Microsoft.PowerAutomateDesktop*', type: family}
   - !appx: {name: '*Microsoft.Windows.PeopleExperienceHost*', type: family}
@@ -131,15 +145,13 @@ actions:
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftTeams_8wekyb3d8bbwe', operation: add}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftWindows.Client.WebExperience_cw5n1h2txyewy', operation: add}
 
-  # Edit Client.CBS package to remove annoying ads from apps
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File CLIENTCBS.ps1'
-    exeDir: true
-    wait: true
-
   # Clear caches of Start menu and more
   - !appx: {operation: clearCache, name: '*Client.CBS*'}
   - !appx: {operation: clearCache, name: '*StartMenuExperienceHost*'}
   - !appx: {operation: clearCache, name: '*Windows.Search*'}
   - !appx: {operation: clearCache, name: '*Microsoft.Windows.SecHealthUI'}
+
+  # Update Microsoft Store applications
+  - !run:
+    exe: 'NSudoLC.exe'
+    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -C "Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod"'
