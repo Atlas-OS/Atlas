@@ -66,9 +66,11 @@ actions:
   # Windows Backup
   - !appx: {name: '*WindowsBackup*', type: app}
 
-  # Advertisements in Settings
-  - !appx: {name: '*Global.ValueBanner*', type: app}
+  # Advertisements/Telemetry
+  - !appx: {name: '*Global.Accounts*', type: app}
   - !appx: {name: '*Global.BackupBanner*', type: app}
+  - !appx: {name: '*Global.IrisService*', type: app}
+  - !appx: {name: '*Global.ValueBanner*', type: app}
 
   - !run:
     exe: 'powershell.exe'
