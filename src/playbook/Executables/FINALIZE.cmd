@@ -148,8 +148,7 @@ for %%a in (
 
 :: Set RunOnce login script
 :: This is the script that will be ran on login for new users
-set "runOnceScriptLocation=%windir%\AtlasModules\Scripts\newUsers.cmd"
-reg add HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce /v RunScript /t REG_SZ /d "\"%runOnceScriptLocation:\=\\%\"" /f
+reg add HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce /v RunScript /t REG_SZ /d "\"%windir%\AtlasModules\Scripts\newUsers.cmd\"" /f
 
 :: Remove Fax Recipient from the 'Send to' context menu as Fax feature is removed
 del /f /q "%APPDATA%\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1
