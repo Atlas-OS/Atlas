@@ -162,6 +162,7 @@ tasks:
   - tweaks\qol\visual-effects.yml
   - tweaks\qol\disable-tips.yml
   - tweaks\qol\disable-consumer-expierences.yml
+  - tweaks\qol\set-hidden-settings-pages.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\appearance                                                            #
@@ -210,6 +211,8 @@ tasks:
   - tweaks\qol\explorer\show-files.yml
   - tweaks\qol\explorer\add-music-vids-to-home.yml
   - tweaks\qol\explorer\classic-search.yml
+  - tweaks\qol\explorer\dont-show-office-files.yml
+  - tweaks\qol\explorer\use-compact-mode.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
@@ -253,6 +256,10 @@ tasks:
   - tweaks\qol\shell\disable-network-location-wizard.yml
   - tweaks\qol\shell\disable-shared-experiences.yml
   - tweaks\qol\shell\legacy-alt-tab.yml
+  - tweaks\qol\shell\set-unpinned-notification-items.yml
+  - tweaks\qol\shell\restore-old-context-menu.yml
+  - tweaks\qol\shell\show-more-pins.yml
+  - tweaks\qol\shell\no-recommendations-start-menu.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\startup-shutdown                                                      #
@@ -279,6 +286,9 @@ tasks:
   - tweaks\qol\taskbar\hide-meet-now.yml
   - tweaks\qol\taskbar\hide-task-view.yml
   - tweaks\qol\taskbar\config-pins.yml
+  - tweaks\qol\taskbar\disable-copilot.yml
+  - tweaks\qol\taskbar\disable-windows-chat.yml
+  - tweaks\qol\taskbar\set-to-left.yml
 
   # -----------------------------------------------------
   #                       Security
@@ -325,7 +335,6 @@ tasks:
   - tweaks\scripts\script-file-associations.yml
   - tweaks\scripts\script-core-isolation.yml
   - tweaks\scripts\script-mitigations.yml
-  - tweaks\scripts\script-win11.yml
   - tweaks\scripts\script-devices.yml
   - tweaks\scripts\script-pfp.yml
   - tweaks\scripts\script-power.yml
@@ -349,3 +358,4 @@ tasks:
   - tweaks\misc\rebuild-perf-counters.yml
   - tweaks\misc\restore-default-sleep-timeout.yml
   - tweaks\misc\make-shortcuts.yml
+  - tweaks\misc\delete-version-specific-files.yml

@@ -1,0 +1,16 @@
+---
+title: Disable Windows Chat
+description: Disables Windows Chat as it's not commonly used
+privilege: TrustedInstaller
+builds: [ '>=22000' ]
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat'
+    value: 'ChatIcon'
+    data: '3'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'TaskbarMn'
+    data: '0'
+    type: REG_DWORD

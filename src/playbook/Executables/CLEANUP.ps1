@@ -66,9 +66,6 @@ Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse -EA SilentlyContinue
 # Disable Reserved Storage for updates
 Set-WindowsReservedStorageState -State Disabled
 
-# Clear Windows WinSxS folder
-DISM /Online /Cleanup-Image /StartComponentCleanup
-
 # Clear Event Logs
 wevtutil el 2>$null | ForEach-Object {wevtutil cl "$_"} 2>$null
 
@@ -86,8 +83,7 @@ $foldersToRemove = @(
     "SoftwareDistribution",
     "System32\catroot2",
     "System32\LogFiles",
-    "System32\sru",
-    "WinSxS\Backup"
+    "System32\sru"
 )
 
 foreach ($folderName in $foldersToRemove) {
