@@ -80,7 +80,7 @@ function DeleteEdgeUpdate {
 
 function RemoveEdgeChromium {
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
-	$ErrorActionPreference = 'SilentlyContinue')
+	$ErrorActionPreference = 'SilentlyContinue'
 
 	# terminate Edge processes
 	foreach ($process in $processes) {
