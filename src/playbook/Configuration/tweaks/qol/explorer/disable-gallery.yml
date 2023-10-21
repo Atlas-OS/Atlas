@@ -4,7 +4,6 @@ description: Hides the new 23H2 'Gallery' in File Explorer for viewing pictures
 privilege: TrustedInstaller
 builds: [ '>=22000' ]
 actions:
-  - !registryKey: {path: 'HKCU\SOFTWARE\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}', operation: add}
   - !registryValue:
     path: 'HKCU\SOFTWARE\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}'
     value: 'System.IsPinnedToNameSpaceTree'
