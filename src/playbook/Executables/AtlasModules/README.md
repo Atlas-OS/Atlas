@@ -22,15 +22,6 @@ The root of the file paths listed here starts in `src\playbook\Executables`.
 - License: [GNU General Public License v3.0](https://github.com/Atlas-OS/utilities/blob/main/LICENSE)
 - Last Verified: 8/9/2023 by Xyueta
 
-## NSudo
-- Path: `NSudoLC.exe`
-- SHA256 Hash: `9E166D334ECC9814E42ECCE759C3FA30F350D0AAEF68A67CC77E04258BE69722`
-- Source: https://github.com/M2TeamArchived/NSudo/releases/download/9.0-Preview1/NSudo_9.0_Preview1_9.0.2676.0.zip
-- Repository: https://github.com/M2TeamArchived/NSudo
-- Version: 9.0 Preview 1 (9.0.2676.0)
-- License: [The MIT License](https://github.com/M2TeamArchived/NSudo/blob/master/License.md)
-- Last Verified: 8/9/2023 by Xyueta
-
 ## SetTimerResolution & MeasureSleep
 - Path: `\AtlasModules\Tools\SetTimerResolution.exe`
     - SHA256 Hash: `FE3CDBE2E332E48921FFA2A9697A66F71472D878154BA331D12ADC7E7C767A2B`

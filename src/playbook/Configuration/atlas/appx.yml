@@ -35,6 +35,7 @@ actions:
 
   # Content Delivery Manager
   # Installs unwanted content such as apps like Disney+ and advertisements
+  # Removed at a component level as well
   - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
 
   # Dev Home
@@ -61,16 +62,16 @@ actions:
 
   # Get Started
   - !appx: {name: '*Microsoft.Getstarted*', type: family}
-  - !appx: {name: '*WebExperienceHost*', type: app}
+  - !appx: {name: '*WebExperienceHost*', type: app, unregister: true}
 
   # Windows Backup
-  - !appx: {name: '*WindowsBackup*', type: app}
+  - !appx: {name: '*WindowsBackup*', type: app, unregister: true}
 
   # Advertisements/Telemetry
-  - !appx: {name: '*Global.Accounts*', type: app}
-  - !appx: {name: '*Global.BackupBanner*', type: app}
-  - !appx: {name: '*Global.IrisService*', type: app}
-  - !appx: {name: '*Global.ValueBanner*', type: app}
+  - !appx: {name: '*Global.Accounts*', type: app, unregister: true}
+  - !appx: {name: '*Global.BackupBanner*', type: app, unregister: true}
+  - !appx: {name: '*Global.IrisService*', type: app, unregister: true}
+  - !appx: {name: '*Global.ValueBanner*', type: app, unregister: true}
 
   - !run:
     exe: 'powershell.exe'

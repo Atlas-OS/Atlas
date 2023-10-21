@@ -1,0 +1,11 @@
+---
+title: Show More Pins in Start
+description: Shows more pins in the Start Menu, meaning less recommendations
+privilege: TrustedInstaller
+builds: [ '>=22000' ]
+actions:
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'Start_Layout'
+    data: '1'
+    type: REG_DWORD

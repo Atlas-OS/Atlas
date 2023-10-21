@@ -1,0 +1,13 @@
+---
+title: Configure Boot Description
+description: Configures the boot description that you see in the Windows Boot Manager to say Atlas
+privilege: TrustedInstaller
+actions:
+  - !run:
+    exe: 'bcdedit'
+    args: '/set description "AtlasOS 10"'
+    builds: [ '!>=22000' ]
+  - !run:
+    exe: 'bcdedit'
+    args: '/set description "AtlasOS 11"'
+    builds: [ '>=22000' ]

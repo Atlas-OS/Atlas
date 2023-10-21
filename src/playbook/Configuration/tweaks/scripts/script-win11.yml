@@ -1,9 +1,0 @@
----
-title: Run Windows 11 Configuration
-description: Configures Windows 11 registry and settings
-privilege: TrustedInstaller
-actions:
-  - !run:
-    exeDir: true
-    exe: 'WIN11.cmd'
-    weight: 20
