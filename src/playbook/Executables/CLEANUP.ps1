@@ -68,7 +68,7 @@ Set-WindowsReservedStorageState -State Disabled
 vssadmin delete shadows /all /quiet
 
 # Clear Event Logs
-wevtutil el | ForEach-Object {wevtutil cl "$_"}
+wevtutil el | ForEach-Object {wevtutil cl "$_"} 2>&1 | Out-Null
 
 Stop-Service -Name "dps" -Force
 Stop-Service -Name "wuauserv" -Force
@@ -88,6 +88,6 @@ $foldersToRemove = @(
 foreach ($folderName in $foldersToRemove) {
     $folderPath = Join-Path $env:SystemRoot $folderName
     if (Test-Path $folderPath) {
-        Remove-Item -Path "$folderPath\*" -Force -Recurse -Verbose
+        Remove-Item -Path "$folderPath\*" -Force -Recurse 2>&1 | Out-Null
     }
 }
