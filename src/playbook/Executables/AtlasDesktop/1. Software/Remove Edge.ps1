@@ -87,7 +87,7 @@ function RemoveEdgeChromium {
 		Stop-Process -Id $process -Force
 	}
 	foreach ($service in $services) {
-			Stop-Service -Name $service -Force
+		Stop-Service -Name $service -Force
 	}
 
 	$ErrorActionPreference = 'Continue'
