@@ -290,8 +290,7 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-security.yml
   - tweaks\security\block-anonymous-enum-sam.yml
-  # This account should be deleted after OOBE
-  # - tweaks\security\delete-defaultuser0.yml
+  - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
   # Not needed on modern versions of Windows
   # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
