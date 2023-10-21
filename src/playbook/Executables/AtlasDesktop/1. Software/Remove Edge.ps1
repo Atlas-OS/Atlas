@@ -37,12 +37,6 @@ $ProgressPreference = "SilentlyContinue"
 $user = $env:USERNAME
 $SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
 
-$services = @(
-	'edgeupdate',
-	'edgeupdatem',
-	'MicrosoftEdgeElevationService'
-)
-
 if ($Exit -and ((-not $UninstallAll) -and (-not $UninstallEdge))) {
     $Exit = $false
 }
@@ -84,13 +78,12 @@ function DeleteEdgeUpdate {
 
 function RemoveEdgeChromium {
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
+	$ErrorActionPreference = 'SilentlyContinue')
 
-	# kill Edge
-	$ErrorActionPreference = 'SilentlyContinue'
-
-	Get-Process -Name MicrosoftEdgeUpdate | Stop-Process -Force
-	Get-Process -Name msedge | Stop-Process -Force
-	foreach ($service in $services) {Stop-Service -Name $service -Force}
+	# Terminate Edge processes
+	Get-Process | Where-Object {$_.Path -like "$env:SystemDrive\Program Files (x86)\Microsoft\*"} | ForEach-Object {Stop-Process -Id $_.Id -Force}
+	Get-Process -Name "*edge*" | Stop-Process -Force
+	Get-Service -Name "*edge*" | Stop-Service -Force
 
 	$ErrorActionPreference = 'Continue'
 
