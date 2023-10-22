@@ -55,7 +55,7 @@ actions:
     args: '"%windir%\AtlasModules\Packages\Z-Atlas-Misc-Remover-Package31bf3856ad364e35amd643.0.0.0.cab"'
 
     # Update Health Tools
-  - !writeStatus: {status: 'Removing Update Health Tools'}
+  - !writeStatus: {status: 'Removing Update Health'}
   - !powerShell: {command: 'Import-Module -Name """$env:windir\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Microsoft Update Health Tools'''}
 
     # PC Health Check
