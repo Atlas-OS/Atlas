@@ -6,7 +6,6 @@ actions:
   - !run:
     exe: 'FILEASSOC.cmd'
     exeDir: true
-    option: '!uninstall-edge'
   - !run:
     exe: 'FILEASSOC.cmd'
     args: '"Brave"'
