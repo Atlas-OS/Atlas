@@ -110,7 +110,7 @@ function InstallPackage {
 			Register-ScheduledTask -TaskName $taskName -Trigger $trigger -Action $action -Settings $settings -User $env:USERNAME -RunLevel Highest -Force | Out-Null
 			exit 1
 		} else {
-			Write-Host "`nSomething went wrong whilst adding the Defender package." -ForegroundColor Yellow
+			Write-Host "`nWindows most likely blocked disabling Defender." -ForegroundColor Yellow
 			choice /c yn /n /m "Would you like to try rebooting into 'Safe mode' to apply the changes? [Y/N] "
 			if ($lastexitcode -eq 1) {
 				SetSafeMode
@@ -140,13 +140,13 @@ if ($DisableFailedMessage) {
 	$WindowTitle = 'Failed disabling Defender - Atlas'
 
 	$Message = @'
-Disabling Defender failed, this is most likely due to Windows somehow preventing it from happening.
+Disabling Defender failed, this is most likely due to Windows blocking it from happening.
 
 Would you like to attempt to disable Defender in Safe Mode and restart now?
 '@
 
 	$sh = New-Object -ComObject "Wscript.Shell"
-	$intButton = $sh.Popup($Message,0,$WindowTitle,4+48+4096)
+	$intButton = $sh.Popup($Message,0,$WindowTitle,4+64+4096)
 
 	RemoveFailureTask
 	if ($intButton -eq '6') { SetSafeMode }
