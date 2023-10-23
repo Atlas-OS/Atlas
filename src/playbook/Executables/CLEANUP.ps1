@@ -78,7 +78,8 @@ $foldersToRemove = @(
     "SoftwareDistribution",
     "System32\catroot2",
     "System32\LogFiles",
-    "System32\sru"
+    "System32\sru",
+    "WinSxS\Backup"
 )
 
 foreach ($folderName in $foldersToRemove) {

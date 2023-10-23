@@ -39,7 +39,7 @@ actions:
 
   - !writeStatus: {status: 'Configuring Optional Features'}
     # Disabled for security purposes
-  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30, builds: [ '!>=22000' ]}
+  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2Root" /NoRestart', weight: 30}
 
