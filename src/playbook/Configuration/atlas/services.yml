@@ -38,8 +38,6 @@ actions:
   - !service: {name: 'WerSvc', operation: change, startup: 4}
   - !service: {name: 'wisvc', operation: change, startup: 4}
   - !service: {name: 'WSearch', operation: change, startup: 4}
-  - !service: {name: 'webthreatdefsvc', operation: change, startup: 4}
-  - !service: {name: 'webthreatdefusersvc', operation: change, startup: 4}
 
     # Set to manual from automatic
     # Might not be all too beneficial, as services starting and always being ready is probably ideal
