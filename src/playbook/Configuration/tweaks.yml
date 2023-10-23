@@ -32,7 +32,7 @@ tasks:
   # Network Bandwidth is not limited in Windows
   # - tweaks\networking\disable-reserved-bandwidth.yml
   - tweaks\networking\disable-smart-name-resolution.yml
-  - tweaks\networking\netsh.yml
+  - tweaks\networking\ .yml
   - tweaks\networking\network-power-saving.yml
   - tweaks\networking\packet-sched-timer-res.yml
 
@@ -279,6 +279,10 @@ tasks:
   - tweaks\qol\taskbar\hide-meet-now.yml
   - tweaks\qol\taskbar\hide-task-view.yml
   - tweaks\qol\taskbar\config-pins.yml
+  - tweaks\qol\taskbar\disable-copilot.yml
+  - tweaks\qol\taskbar\disable-windows-chat.yml
+  - tweaks\qol\taskbar\set-to-left.yml
+  - tweaks\qol\taskbar\end-task.yml
 
   # -----------------------------------------------------
   #                       Security

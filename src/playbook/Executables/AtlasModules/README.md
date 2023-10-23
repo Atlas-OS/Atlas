@@ -41,5 +41,5 @@ The root of the file paths listed here starts in `src\playbook\Executables`.
     - Source: https://github.com/amitxv/TimerResolution/releases/download/MeasureSleep-v0.1.6/MeasureSleep.exe
     - Version: v0.1.6
 - Repository: https://github.com/amitxv/TimerResolution
-- License: [GNU General Public License v3.0](https://github.com/M2TeamArchived/NSudo/blob/master/License.md)
+- License: [GNU General Public License v3.0](https://github.com/amitxv/TimerResolution/blob/main/LICENSE)
 - Last Verified: 8/12/2023 by he3als

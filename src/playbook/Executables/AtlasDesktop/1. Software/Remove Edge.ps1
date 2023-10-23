@@ -163,9 +163,9 @@ function UninstallAll {
 	if ($removeWebView) {
 		Write-Warning "Uninstalling Edge WebView..."
 		RemoveWebView
+		Write-Warning "Uninstalling Edge Update..."
+		DeleteEdgeUpdate
 	}
-	Write-Warning "Uninstalling Edge Update..."
-	DeleteEdgeUpdate
 }
 
 function Completed {
