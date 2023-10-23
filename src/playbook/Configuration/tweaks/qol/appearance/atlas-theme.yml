@@ -9,13 +9,6 @@ actions:
     exeDir: true
     wait: true
 
-    # Apply theme to current user
-  - !cmd:
-    command: 'start "" "%windir%\Resources\Themes\atlas-dark.theme"'
-    wait: true
-    runas: currentUser
-  - !cmd: {command: 'timeout /t 3 /nobreak', wait: true}
-
   - !taskKill: {name: 'SystemSettings'}
   - !taskKill: {name: 'control'}
   - !taskKill: {name: 'explorer'}
@@ -157,3 +150,12 @@ actions:
     exe: 'THEME.cmd'
     weight: 20
   - !run: {exe: 'rundll32.exe', args: 'user32.dll,UpdatePerUserSystemParameters'}
+
+    # Apply theme file to finish up changes
+  - !cmd:
+    command: 'start "" "%windir%\Resources\Themes\atlas-dark.theme"'
+    wait: true
+    runas: currentUser
+  - !cmd: {command: 'timeout /t 3 /nobreak', wait: true}
+  - !taskKill: {name: 'SystemSettings'}
+  - !taskKill: {name: 'control'}
