@@ -8,11 +8,9 @@ $devices = @(
 	"High precision event timer",
 	"Intel Management Engine",
 	"Intel SMBus",
-	"Legacy device"
+	"Legacy device",
 	"Microsoft Kernel Debug Network Adapter",
-	"Microsoft RRAS Root Enumerator",
 	"Motherboard resources",
-	"NDIS Virtual Network Adapter Enumerator",
 	"Numeric Data Processor",
 	"PCI Data Acquisition and Signal Processing Controller",
 	"PCI Encryption/Decryption Controller",
@@ -22,11 +20,7 @@ $devices = @(
 	"SM Bus Controller",
 	"System CMOS/real time clock",
 	"System Speaker",
-	"System Timer",
-	# Breaks Hyper-V Enhanced Session
-	# "UMBus Root Bus Enumerator",
-	"Unknown Device",
-	"WAN Miniport*"
+	"System Timer"
 )
 
 # No errors as some devices may not have an option to be disabled
