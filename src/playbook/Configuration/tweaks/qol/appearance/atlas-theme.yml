@@ -10,10 +10,9 @@ actions:
     wait: true
 
     # Apply theme to current user
-  - !run:
-    exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait cmd /c start "" "%windir%\Resources\Themes\atlas-dark.theme"'
-    exeDir: true
+  - !cmd:
+    command: 'start "" "%windir%\Resources\Themes\atlas-dark.theme"'
+    runas: currentUserElevated
   - !cmd: {command: 'timeout /t 3 /nobreak', wait: true}
 
   - !taskKill: {name: 'SystemSettings'}

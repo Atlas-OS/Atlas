@@ -329,7 +329,6 @@ tasks:
   - tweaks\scripts\script-file-associations.yml
   - tweaks\scripts\script-core-isolation.yml
   - tweaks\scripts\script-mitigations.yml
-  - tweaks\scripts\script-win11.yml
   - tweaks\scripts\script-devices.yml
   - tweaks\scripts\script-pfp.yml
   - tweaks\scripts\script-power.yml
