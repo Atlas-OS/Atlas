@@ -29,7 +29,6 @@ actions:
     exeDir: true
     runas: currentUserElevated
     option: 'uninstall-edge'
-    runas: 'currentUserElevated'
     # AppX uninstallation in the script seems to fail, therefore it's not used and AME Wizard is used instead
   - !appx: {name: '*Microsoft.MicrosoftEdge.Stable*', type: family, option: 'uninstall-edge'}
   - !appx: {name: '*Microsoft.MicrosoftEdge*', type: family, option: 'uninstall-edge'}
