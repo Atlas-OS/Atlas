@@ -12,4 +12,4 @@ actions:
   - !file: {path: '%windir%\AtlasModules\Tools\TimerResolution.exe', builds: [ '!>=22000' ]}
 
     # Delete Windows 10-only tweaks
-  - !file: {path: '%windir%\AtlasDesktop\3. Configuration\4. Optional Tweaks\Volume Flyout', builds: [ '>=22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\Volume Flyout', builds: [ '>=22000' ]}
