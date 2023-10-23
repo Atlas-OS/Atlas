@@ -12,7 +12,8 @@ actions:
     # Apply theme to current user
   - !cmd:
     command: 'start "" "%windir%\Resources\Themes\atlas-dark.theme"'
-    runas: currentUserElevated
+    wait: true
+    runas: currentUser
   - !cmd: {command: 'timeout /t 3 /nobreak', wait: true}
 
   - !taskKill: {name: 'SystemSettings'}
