@@ -24,7 +24,7 @@ taskkill /f /im sihost.exe > nul 2>&1
 exit /b
 
 :ALLUSERS
-if defined win11 reg add "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes" /v "ThemeMRU" /t REG_SZ /d "%windir%\Resources\Themes\atlas-dark.theme;%windir%\resources\Themes\atlas-light.theme;%windir%\resources\Themes\atlas-legacy.theme;" /f > nul
+if defined win11 reg add "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes" /v "ThemeMRU" /t REG_SZ /d "%windir%\resources\Themes\atlas-light.theme;%windir%\resources\Themes\atlas-dark.theme;%windir%\resources\Themes\atlas-legacy.theme;" /f > nul
 
 :: Set sound scheme to 'No Sounds'
 reg add "HKU\%~1\AppEvents\Schemes" /ve /d ".None" /f > nul
