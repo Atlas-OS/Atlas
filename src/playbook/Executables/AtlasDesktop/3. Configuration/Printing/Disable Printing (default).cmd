@@ -1,4 +1,5 @@
 @echo off
+setlocal EnableDelayedExpansion
 
 if "%~1" == "/silent" goto main
 
@@ -50,13 +51,13 @@ call %windir%\AtlasModules\Scripts\setSvc.cmd PrintWorkFlowUserSvc 4
 :: Hide Settings page
 if not "%~1" == "/silent" (
     set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
-    reg query "%pageKey%" /v "SettingsPageVisibility" > nul 2>&1
+    reg query "!pageKey!" /v "SettingsPageVisibility" > nul 2>&1
     if "%errorlevel%" == "0" (
-        for /f "usebackq tokens=3" %%a in (`reg query "%pageKey%" /v "SettingsPageVisibility"`) do (
-            reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "%%a;printers;" /f > nul
+        for /f "usebackq tokens=3" %%a in (`reg query "!pageKey!" /v "SettingsPageVisibility"`) do (
+            reg add "!pageKey!" /v "SettingsPageVisibility" /t REG_SZ /d "%%a;printers;" /f > nul
         )
     ) else (
-        reg add "%pageKey%" /v "SettingsPageVisibility" /t REG_SZ /d "hide:printers;" /f > nul
+        reg add "!pageKey!" /v "SettingsPageVisibility" /t REG_SZ /d "hide:printers;" /f > nul
     )
 )
 
