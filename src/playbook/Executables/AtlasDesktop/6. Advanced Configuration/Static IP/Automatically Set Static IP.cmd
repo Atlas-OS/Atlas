@@ -5,7 +5,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-ping -n 1 -4 www.example.com | find "time=" > nul 2>&1
+ping -n 1 -4 www.example.com > nul 2>&1
 if %errorlevel% == 1 (
 	echo You must have an internet connection to use this script.
 	pause

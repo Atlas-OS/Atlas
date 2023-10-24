@@ -20,7 +20,7 @@ for %%a in ("CIM_NetworkAdapter", "CIM_USBController", "CIM_VideoController" "Wi
 )
 
 :: If a virtual machine is used, set network adapter to normal priority as Undefined may break internet connection
-for %%a in ("hvm" "hyper" "innotek" "kvm" "parallel" "qemu" "virtual" "xen" "vmware") do (
+for %%a in ("hvm", "hyper", "innotek", "kvm", "parallel", "qemu", "virtual", "xen", "vmware") do (
     wmic computersystem get manufacturer /format:value | findstr /i /c:%%~a && (
         for /f %%b in ('wmic path CIM_NetworkAdapter get PNPDeviceID ^| findstr /l "PCI\VEN_"') do (
             reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%b\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2" /f > nul
