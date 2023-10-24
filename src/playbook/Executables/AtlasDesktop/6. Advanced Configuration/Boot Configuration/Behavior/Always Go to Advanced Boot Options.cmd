@@ -22,7 +22,7 @@ if %errorlevel% == 1 (
 
 :disable
 echo]
-bcdedit /deletevalue advancedoptions > nul 2>&1
+bcdedit /deletevalue {globalsettings} advancedoptions > nul 2>&1
 goto finish
 
 :enable

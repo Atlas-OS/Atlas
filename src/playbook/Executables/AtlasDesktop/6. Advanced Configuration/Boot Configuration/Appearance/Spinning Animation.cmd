@@ -24,7 +24,7 @@ goto finish
 
 :enable
 echo]
-bcdedit /set {globalsettings} custom:16000069 true > nul 2>&1
+bcdedit /deletevalue {globalsettings} custom:16000069 > nul 2>&1
 goto finish
 
 :finish
