@@ -19,7 +19,8 @@ exit /b 1
 :existS
 if exist "%ProgramFiles%\Open-Shell" goto main
 if exist "%ProgramFiles(x86)%\StartIsBack" goto main
-echo It seems neither Open-Shell nor StartIsBack are not installed. It is HIGHLY recommended to install one of these before running this due to the Start Menu being removed.
+if exist "%LOCALAPPDATA%\StartAllBack" goto main
+echo It seems that no Start Menu replacement has been installed. It is recommended to install one of these before running this due to the Start Menu being removed.
 pause
 
 :main
