@@ -36,7 +36,6 @@ actions:
   - !service: {name: 'WdiSystemHost', operation: change, startup: 4}
   - !service: {name: 'wercplsupport', operation: change, startup: 4}
   - !service: {name: 'WerSvc', operation: change, startup: 4}
-  - !service: {name: 'wisvc', operation: change, startup: 4}
   - !service: {name: 'WSearch', operation: change, startup: 4}
 
     # Set to manual from automatic
@@ -71,6 +70,7 @@ actions:
   # - !service: {name: 'wlpasvc', operation: change, startup: 4}
   # - !service: {name: 'WMPNetworkSvc', operation: change, startup: 4}
   # - !service: {name: 'WPDBusEnum', operation: change, startup: 4}
+  # - !service: {name: 'wisvc', operation: change, startup: 4}
 
   # DPS 4 < breaks Data Usage
   # DsSvc 4 < can cause issues with Snip & Sketch
