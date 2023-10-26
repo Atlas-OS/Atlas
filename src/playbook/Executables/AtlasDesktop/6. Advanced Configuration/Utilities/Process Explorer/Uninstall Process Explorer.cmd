@@ -12,7 +12,7 @@ fltmc > nul 2>&1 || (
 :: Check if WinGet is functional or not
 call "%windir%\AtlasModules\Scripts\wingetCheck.cmd" /silent
 if %errorlevel% NEQ 0 (
-	echo info: WinGet is not functional, can't uninstall Process Explorer, reverting other changes anyways...
+	echo info: WinGet is not functional, can't uninstall Process Hacker, reverting other changes anyways...
 	goto otherChanges
 )
 

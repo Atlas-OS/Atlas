@@ -17,5 +17,5 @@
 if "%~1"=="/silent" exit /b
 
 choice /c:yn /n /m "Finished, would you like to logout to apply the changes? [Y/N] "
-if "%errorlevel%" == "1" logoff
+if %errorlevel%==1 logoff
 exit /b
