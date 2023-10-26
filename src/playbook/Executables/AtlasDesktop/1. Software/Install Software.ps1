@@ -5,7 +5,7 @@ function PauseNul ($message = "Press any key to exit... ") {
 }
 
 & "$env:windir\AtlasModules\Scripts\wingetCheck.cmd"
-if ($LASTEXITCODE -eq '1') {exit 1}
+if ($LASTEXITCODE -ne '0') {exit 1}
 
 $ErrorActionPreference = 'SilentlyContinue'
 
