@@ -9,9 +9,17 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
+ping -n 1 -4 www.example.com > nul 2>&1
+if %errorlevel% == 1 (
+	echo You must have an internet connection to use this script.
+	echo Press any key to exit...
+	pause > nul
+	exit /b 1
+)
+
 :: Check if WinGet is functional or not
 call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
-if %errorlevel%==1 exit /b 1
+if "%errorlevel%" == "1" exit /b 1
 
 cd %windir%\SystemApps
 if exist "Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS

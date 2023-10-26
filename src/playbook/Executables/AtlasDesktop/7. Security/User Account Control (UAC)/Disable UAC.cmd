@@ -12,7 +12,7 @@ echo]
 echo With UAC disabled, everything runs as admin, and you cannot change that without enabling UAC.
 echo]
 choice /c:yn /n /m "Do you want to continue? [Y/N] "
-if %errorlevel% == 1 goto uacDconfirm
+if "%errorlevel%" == "1" goto uacDconfirm
 if %errorlevel% == 2 exit /b
 
 :uacDconfirm

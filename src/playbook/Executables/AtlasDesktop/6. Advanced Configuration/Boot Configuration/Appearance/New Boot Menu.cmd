@@ -15,7 +15,7 @@ echo [1] Disable the new boot menu (default)
 echo [2] Enable the new boot menu
 echo]
 choice /c 12 /n /m "Type 1 or 2: "
-if %errorlevel% == 1 (
+if "%errorlevel%" == "1" (
 	goto disable
 ) else (
 	goto enable

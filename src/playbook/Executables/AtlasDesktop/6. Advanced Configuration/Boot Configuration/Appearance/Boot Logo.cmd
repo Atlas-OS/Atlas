@@ -12,7 +12,7 @@ echo [1] Disable the boot logo
 echo [2] Enable the boot logo (default)
 echo]
 choice /c 12 /n /m "Type 1 or 2: "
-if %errorlevel% == 1 (
+if "%errorlevel%" == "1" (
 	goto disable
 ) else (
 	goto enable
