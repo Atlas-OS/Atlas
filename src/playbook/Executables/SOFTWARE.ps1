@@ -56,18 +56,24 @@ $legacyArgs2 = '/q /norestart'
 $modernArgs = "/install /quiet /norestart"
 
 $vcredists = @{
-	# 2005 - version 8.0.50727.6195 (MSI 8.0.61000/8.0.61001)
-	"https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x64.EXE" = $legacyArgs1
+	# 2005 - version 8.0.50727.6195 (MSI 8.0.61000/8.0.61001) SP1
+	"https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x64.exe" = $legacyArgs1
+	"https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x86.exe" = $legacyArgs1
 	# 2008 - version 9.0.30729.6161 (EXE 9.0.30729.5677) SP1
 	"https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe" = $legacyArgs1
+	"https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe" = $legacyArgs1
 	# 2010 - version 10.0.40219.325 SP1
 	"https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe" = $legacyArgs2
+	"https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe" = $legacyArgs2
 	# 2012 - version 11.0.61030.0
 	"https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe" = $modernArgs
+	"https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe" = $modernArgs
 	# 2013 - version 12.0.40664.0
 	"https://aka.ms/highdpimfc2013x64enu" = $modernArgs
+	"https://aka.ms/highdpimfc2013x86enu" = $modernArgs
 	# 2015-2022 (2015+) - latest version
 	"https://aka.ms/vs/17/release/vc_redist.x64.exe" = $modernArgs
+	"https://aka.ms/vs/17/release/vc_redist.x86.exe" = $modernArgs
 }
 $num = 0; foreach ($a in $vcredists.GetEnumerator()) {
 	$num++; $vcredist = "$tempDir\vcredist$num.exe"
