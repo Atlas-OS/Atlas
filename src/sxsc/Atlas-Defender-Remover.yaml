@@ -309,7 +309,7 @@ updates:
         values:
           - key: SmartScreenEnabled
             type: REG_SZ
-            value: Off
+            value: 'Off'
         # Disable SmartScreen for Edge
       - key_name: >-
           HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter
@@ -325,7 +325,14 @@ updates:
           - key: SmartScreenEnabled
             type: REG_DWORD
             value: 0
-
+        # Disable 'Open file - Security Warning' Message
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Associations
+        perUserVirtualization: false
+        values:
+          - key: ModRiskFileTypes
+            type: REG_SZ
+            value: '.bat;.exe;.reg;.vbs;.chm;.msi;.js;.cmd'
   - target_component: Microsoft-Windows-SmartScreen
     target_arch: wow64
     version: 38655.38527.65535.65535
