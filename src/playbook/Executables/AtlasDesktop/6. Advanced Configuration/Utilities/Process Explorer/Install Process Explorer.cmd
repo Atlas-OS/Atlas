@@ -11,7 +11,7 @@ fltmc > nul 2>&1 || (
 
 :: Check if WinGet is functional or not
 call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
-if %errorlevel%==1 exit /b 1
+if %errorlevel% NEQ 0 exit /b 1
 
 echo Installing Process Explorer...
 winget install -e --id Microsoft.Sysinternals.ProcessExplorer --uninstall-previous -l "%windir%\AtlasModules\Apps\ProcessExplorer" -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul

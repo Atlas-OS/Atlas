@@ -11,7 +11,7 @@ fltmc > nul 2>&1 || (
 
 :: Check if WinGet is functional or not
 call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
-if %errorlevel%==1 exit /b 1
+if %errorlevel% NEQ 0 exit /b 1
 
 cd %windir%\SystemApps
 if exist "Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
