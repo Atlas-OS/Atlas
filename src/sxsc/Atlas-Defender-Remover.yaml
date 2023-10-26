@@ -326,6 +326,7 @@ updates:
             type: REG_DWORD
             value: 0
         # Disable 'Open file - Security Warning' Message
+        # Using SaveZoneInformation breaks Edge downloads using 'Save as'
       - key_name: >-
           HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Associations
         perUserVirtualization: false
