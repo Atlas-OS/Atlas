@@ -4,7 +4,10 @@ description: Removes APPX packages and prevents them from being reinstalled
 privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Removing APPX packages'}
-
+  - !service: {name: 'wuauserv', operation: stop}
+  - !service: {name: 'WaaSMedicSvc', operation: stop}
+  - !service: {name: 'UsoSvc', operation: stop}
+  
   # The reason of removing those applications is that there is a potential of them sending user data,
   # showing unwanted content (advertisements) and using hardware resources. They can also simply be
   # annoyances that are never used. However, most of these applications can be reinstalled via the
@@ -150,8 +153,3 @@ actions:
   - !appx: {operation: clearCache, name: '*StartMenuExperienceHost*'}
   - !appx: {operation: clearCache, name: '*Windows.Search*'}
   - !appx: {operation: clearCache, name: '*Microsoft.Windows.SecHealthUI'}
-
-  # Update Microsoft Store applications
-  - !powerShell:
-    command: 'Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod'
-    runas: currentUserElevated
