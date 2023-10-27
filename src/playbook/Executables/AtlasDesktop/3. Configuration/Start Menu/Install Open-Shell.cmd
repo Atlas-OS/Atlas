@@ -30,7 +30,7 @@ call "%windir%\AtlasDesktop\3. Configuration\Start Menu\Disable Start Menu and S
 echo]
 
 :: Download and install Open-Shell
-winget install -e --id Open-Shell.Open-Shell-Menu -h --accept-source-agreements --accept-package-agreements --force > nul
+winget install -e --id Open-Shell.Open-Shell-Menu --override "/qn ADDLOCAL=StartMenu" -h --accept-source-agreements --accept-package-agreements --force > nul
 if %errorlevel% NEQ 0 (
     echo error: Open-Shell installation with WinGet failed.
     pause
