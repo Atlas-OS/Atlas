@@ -32,6 +32,8 @@ exit /b
 cd /d "%~dp0"
 for /f %%A in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%A"
 
+title Enable UAC - Atlas
+
 mode con: cols=46 lines=14
 chcp 65001 > nul
 echo]
