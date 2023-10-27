@@ -22,7 +22,7 @@ if "%*" == "" (
 set args= & set "args1=%*"
 if defined args1 set "args=%args1:"='%"
 powershell -nop "& ([Scriptblock]::Create((Get-Content '%~f0' -Raw))) %args%"
-exit /b %errorlevel%
+exit /b %ERRORLEVEL%
 : end batch / begin PowerShell #>
 
 param (

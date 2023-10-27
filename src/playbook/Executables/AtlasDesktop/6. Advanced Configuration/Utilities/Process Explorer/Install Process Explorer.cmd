@@ -11,11 +11,11 @@ fltmc > nul 2>&1 || (
 
 :: Check if WinGet is functional or not
 call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
-if %errorlevel% NEQ 0 exit /b 1
+if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo Installing Process Explorer...
 winget install -e --id Microsoft.Sysinternals.ProcessExplorer --uninstall-previous -l "%windir%\AtlasModules\Apps\ProcessExplorer" -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
-if %errorlevel% NEQ 0 (
+if %ERRORLEVEL% NEQ 0 (
     echo error: Process Explorer installation with WinGet failed.
     pause
     exit /b 1
@@ -23,7 +23,7 @@ if %errorlevel% NEQ 0 (
 
 echo Creating the Start menu shortcut...
 PowerShell -NoP -C "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:windir\AtlasModules\Apps\ProcessExplorer\process-explorer.exe"""; $Shortcut.Save()" > nul
-if %errorlevel% NEQ 0 (
+if %ERRORLEVEL% NEQ 0 (
 	echo Process Explorer shortcut could not be created in the start menu!
 )
 

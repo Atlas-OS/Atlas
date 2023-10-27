@@ -45,7 +45,7 @@ set regCommands=reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG
                 reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d "1" /f ^> nul
 
 fltmc > nul 2>&1
-if not "%errorlevel%" == "0" (
+if %ERRORLEVEL% NEQ 0 (
     powershell -NoP Start -WindowStyle Hidden -Verb RunAs 'cmd.exe' -ArgumentList '/c %regCommands%' > nul 2>&1 || (
         set "retry=true"
         call :errorText retry

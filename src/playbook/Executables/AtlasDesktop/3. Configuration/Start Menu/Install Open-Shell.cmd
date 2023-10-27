@@ -11,7 +11,7 @@ fltmc > nul 2>&1 || (
 
 :: Check if WinGet is functional or not
 call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
-if %errorlevel% NEQ 0 exit /b 1
+if %ERRORLEVEL% NEQ 0 exit /b 1
 
 cd %windir%\SystemApps
 if exist "Microsoft.Windows.Search_cw5n1h2txyewy" goto existOS
@@ -31,7 +31,7 @@ echo]
 
 :: Download and install Open-Shell
 winget install -e --id Open-Shell.Open-Shell-Menu --override "/qn ADDLOCAL=StartMenu" -h --accept-source-agreements --accept-package-agreements --force > nul
-if %errorlevel% NEQ 0 (
+if %ERRORLEVEL% NEQ 0 (
     echo error: Open-Shell installation with WinGet failed.
     pause
     exit /b 1

@@ -13,7 +13,7 @@ for %%a in (
 )
 
 choice /c:yn /n /m "Would you like to disable Diagnostic Policy Service (DPS)? Note: It breaks Data Usage page in Settings [Y/N] "
-if %errorlevel% == 1 call setSvc.cmd DPS 4
+if %ERRORLEVEL% == 1 call setSvc.cmd DPS 4
 
 echo Finished, please reboot your device for changes to apply.
 pause

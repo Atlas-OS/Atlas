@@ -10,7 +10,7 @@ call setSvc.cmd WSearch 2
 :: Hide Settings pages
 set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
 reg query "%pageKey%" /v "SettingsPageVisibility" > nul 2>&1
-if "%errorlevel%" == "0" call :enableSettingsPage
+if %ERRORLEVEL% == 0 call :enableSettingsPage
 
 echo Finished, please reboot your device for changes to apply.
 pause

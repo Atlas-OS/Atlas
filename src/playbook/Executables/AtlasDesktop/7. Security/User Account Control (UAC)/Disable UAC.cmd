@@ -12,8 +12,8 @@ echo]
 echo With UAC disabled, everything runs as admin, and you cannot change that without enabling UAC.
 echo]
 choice /c:yn /n /m "Do you want to continue? [Y/N] "
-if %errorlevel% == 1 goto uacDconfirm
-if %errorlevel% == 2 exit /b
+if %ERRORLEVEL% == 1 goto uacDconfirm
+if %ERRORLEVEL% == 2 exit /b
 
 :uacDconfirm
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "0" /f > nul
