@@ -14,7 +14,7 @@ echo [1] Disable editing of kernel parameters on startup (default)
 echo [2] Enable editing of kernel parameters on startup
 echo]
 choice /c 12 /n /m "Type 1 or 2: "
-if "%errorlevel%" == "1" (
+if %errorlevel% == 1 (
 	goto disable
 ) else (
 	goto enable

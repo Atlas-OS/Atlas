@@ -14,6 +14,11 @@ actions:
 
   #####################################################################################################
 
+  # Get current AppX packages to deprovision removed ones later
+  - !powerShell:
+    command: '(Get-AppxPackage).PackageFamilyName | Out-File "$env:windir\AtlasModules\AtlasPackagesOld.txt"'
+    wait: true
+
   # Clipchamp
   - !appx: {name: '*Clipchamp*', type: family}
 
@@ -113,7 +118,7 @@ actions:
   # Prevent provisioned applications from being reinstalled
   # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
   - !powerShell:
-    command: 'Get-AppxPackage | ForEach-Object {New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\$($_.PackageFamilyName)" -Force | Out-Null }'
+    command: '$a = "$env:windir\AtlasModules\AtlasPackagesOld.txt"; (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force }; Remove-Item $a -Force'
     wait: true
 
   # Clear caches of Start menu and more
