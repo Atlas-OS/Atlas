@@ -40,8 +40,6 @@ actions:
 
     # Set to manual from automatic
     # Might not be all too beneficial, as services starting and always being ready is probably ideal
-  - !service: {name: 'edgeupdate', operation: change, startup: 3}
-  - !service: {name: 'edgeupdatem', operation: change, startup: 3}
   - !service: {name: 'CryptSvc', operation: change, startup: 3}
   - !service: {name: 'sppsvc', operation: change, startup: 3}
 

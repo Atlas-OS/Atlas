@@ -20,13 +20,18 @@ pause
 exit /b
 
 :hyperThreading
-title Hyper Threading/SMT Detected
+:: set ANSI escape characters
+cd /d "%~dp0"
+for /f %%A in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%A"
+
+title HT/SMT Detected - Atlas
+
 mode con: cols=46 lines=13
 chcp 65001 > nul
 echo]
-echo [32m         Hyper Threading/SMT Detected
-echo   ──────────────────────────────────────────[0m
-echo   You [1mshould not disable idle states [0mwhen
+echo %ESC%[32m         Hyper Threading/SMT Detected
+echo   ──────────────────────────────────────────%ESC%[0m
+echo   You %ESC%[1mshould not disable idle states %ESC%[0mwhen
 echo   this feature is enabled as it makes the
 echo   overall CPU performance much worse.
 echo]
@@ -34,6 +39,6 @@ echo   It can be disabled by using BIOS.
 echo   Instead of disabling idle, consider 
 echo   disabling C-states.
 echo]
-echo            [1m[33mPress any key to exit...      [?25l
+echo            %ESC%[1m%ESC%[33mPress any key to exit...      %ESC%[?25l
 pause > nul
 exit /b 1
