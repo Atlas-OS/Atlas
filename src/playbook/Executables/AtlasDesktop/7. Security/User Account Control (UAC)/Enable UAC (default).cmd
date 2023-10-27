@@ -28,22 +28,24 @@ pause
 exit /b
 
 :uacSettings
-title Enabling UAC
+:: set ANSI escape characters
+for /f %%A in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%A"
+
 mode con: cols=46 lines=14
 chcp 65001 > nul
 echo]
-echo [32m                 Enabling UAC
-echo   ──────────────────────────────────────────[0m
+echo %ESC%[32m                 Enabling UAC
+echo   ──────────────────────────────────────────%ESC%[0m
 echo   Atlas disables some services that are
 echo   needed for UAC to work, and enabling UAC
 echo   through the typical UAC settings will
 echo   cause issues.
 echo]
-echo   You [1mneed to enable UAC using the Atlas
-echo   script[0m to unlock the typical UAC
+echo   You %ESC%[1mneed to enable UAC using the Atlas
+echo   script%ESC%[0m to unlock the typical UAC
 echo   configuration panel.
 echo]
-echo         [1m[33mPress any key to enable UAC...      [?25l
+echo         %ESC%[1m%ESC%[33mPress any key to enable UAC...      %ESC%[?25l
 pause > nul
 call "%~f0"
 exit /b 1
