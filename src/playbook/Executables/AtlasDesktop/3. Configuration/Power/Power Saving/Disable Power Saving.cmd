@@ -46,8 +46,6 @@ powercfg /setacvalueindex scheme_current 0012ee47-9041-4b5d-9b77-535fba8b1442 d6
 powercfg /setacvalueindex scheme_current 0012ee47-9041-4b5d-9b77-535fba8b1442 fc7372b6-ab2d-43ee-8797-15e9841f2cca 0
 :: Slide show - Paused
 powercfg /setacvalueindex scheme_current 0d7dbae2-4294-402a-ba8e-26777e8488cd 309dce9b-bef4-4119-9921-a851fb12f0f4 1
-:: Allow wake timers - Important Only
-powercfg /setacvalueindex SCHEME_CURRENT 238c9fa8-0aad-41ed-83f4-97be242c8f20 bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d 2
 :: Hub Selective Suspend Timeout - 0 miliseconds
 powercfg /setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 0853a681-27c8-4100-a2fd-82013e970683 0
 :: USB selective suspend - Disabled
@@ -63,8 +61,7 @@ powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 3c
 :: Increase processor performance time check interval
 :: Reduces DPCs, can be set all the way to 5000ms for statically clocked systems
 powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 4d2b0152-7d5c-498b-88e2-34345392a2c5 200
-
-:: Disable Standby States
+:: Sleep/Standby States - Disabled
 call "%windir%\AtlasDesktop\3. Configuration\Power\Standby States\Disable Standby States (default).cmd" /silent
 
 :: Set the active scheme as the current scheme
