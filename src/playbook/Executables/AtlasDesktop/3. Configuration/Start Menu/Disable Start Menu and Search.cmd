@@ -1,6 +1,6 @@
 @echo off
 
-if "%~1" == "/silent" goto main
+if "%~1" == "/silent" goto start
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" %*
@@ -50,7 +50,7 @@ reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTas
 taskkill /f /im explorer.exe > nul 2>&1
 start explorer.exe
 
-if "%~1" == "/silent" exit
+if "%~1" == "/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause
