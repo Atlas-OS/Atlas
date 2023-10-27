@@ -11,7 +11,8 @@ set baseAssociations=".bmp:PhotoViewer.FileAssoc.Tiff"^
  ".tif:PhotoViewer.FileAssoc.Tiff"^
  ".tiff:PhotoViewer.FileAssoc.Tiff"^
  ".wdp:PhotoViewer.FileAssoc.Tiff"^
- ".url:IE.AssocFile.URL"
+ ".url:IE.AssocFile.URL"^
+ ".ps1:Microsoft.PowerShellScript.1"
 
 set braveAssociations="Proto:https:BraveHTML"^
  "Proto:http:BraveHTML"^
