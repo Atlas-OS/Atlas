@@ -1,0 +1,10 @@
+---
+title: Disable Hardware Accelerated GPU Scheduling
+description: Disables Hardware Accelerated GPU Scheduling, which is not benefical for latency and overall performance, should be default, but here as a safety measure
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers'
+    value: 'HwSchMode'
+    data: '1'
+    type: REG_DWORD

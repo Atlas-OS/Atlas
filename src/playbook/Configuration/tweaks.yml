@@ -62,6 +62,7 @@ tasks:
   - tweaks\performance\extend-cache.yml
   - tweaks\performance\no-search-invalid-shortcuts.yml
   - tweaks\performance\disable-fth.yml
+  - tweaks\performance\disable-hags.yml
   - tweaks\performance\disable-sleep-study.yml
 
   # -------------------------------------------------------------------------- #
