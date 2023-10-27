@@ -29,6 +29,7 @@ exit /b
 
 :uacSettings
 :: set ANSI escape characters
+cd /d "%~dp0"
 for /f %%A in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%A"
 
 mode con: cols=46 lines=14

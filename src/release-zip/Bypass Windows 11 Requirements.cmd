@@ -3,7 +3,8 @@
 title Bypass Windows 11 Requirements
 cd /d "%~dp0"
 
-:: Set ANSI escape characters
+:: set ANSI escape characters
+cd /d "%~dp0"
 for /f %%a in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%a"
 set "right=%ESC%[<x>C"
 set "bullet= %ESC%[34m-%ESC%[0m"
