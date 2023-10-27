@@ -5,6 +5,4 @@ privilege: TrustedInstaller
 actions:
   - !powerShell:
     command: '$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb(''pintohome''); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb(''pintohome'')'
-    wait: true
-    exeDir: true
     runas: currentUserElevated
