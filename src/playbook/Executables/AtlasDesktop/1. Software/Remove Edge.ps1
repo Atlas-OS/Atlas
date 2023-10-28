@@ -34,6 +34,11 @@ param (
 # credit to ave9858 for Edge removal method: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6
 
 $ProgressPreference = "SilentlyContinue"
+
+# configure environemnt
+$UID = '{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}'
+$SOFTWARE = 'SOFTWARE', 'SOFTWARE\WOW6432Node'
+$hives = $SOFTWARE | ForEach-Object { "HKCU:\$_", "HKCU:\$($_)\Policies", "HKLM:\$_", "HKLM:\$($_)\Policies" }
 $user = $env:USERNAME
 $SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
 
@@ -53,26 +58,33 @@ function DeleteEdgeUpdate {
 	# surpress errors as some Edge Update components may not exist
 	$global:ErrorActionPreference = 'SilentlyContinue'
 
-	# disable automatic installation of Edge-related applications
-	$edgeupdatePath = "HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate" | Out-Null
-	New-Item -Path $edgeupdatePath -Force | Out-Null
-	New-ItemProperty -Path "$edgeupdatePath" -Name "DoNotUpdateToEdgeWithChromium" -Type DWORD -Value 1 | Out-Null
-	New-ItemProperty -Path "$edgeupdatePath" -Name "Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -Type DWORD -Value 0 | Out-Null
-	New-ItemProperty -Path "$edgeupdatePath" -Name "InstallDefault" -Type DWORD -Value 0 | Out-Null
+	foreach ($hive in $hives) {
+		sp "$hive\Microsoft\EdgeUpdate" 'DoNotUpdateToEdgeWithChromium' 1 -Type Dword -Force
+		sp "$hive\Microsoft\EdgeUpdate" 'InstallDefault' 0 -Type Dword -Force
+		sp "$hive\Microsoft\EdgeUpdate" 'UpdateDefault' 0 -Type Dword -Force
+		sp "$hive\Microsoft\EdgeUpdate" "Install$UID" 0 -Type Dword -Force
+		sp "$hive\Microsoft\EdgeUpdate" "Update$UID" 2 -Type Dword -Force
+	}
 
 	# remove scheduled tasks
-	Stop-Process -Name "MicrosoftEdgeUpdate" -Force | Out-Null
 	Remove-Item -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update" -Force | Out-Null
 	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineCore" -Confirm:$false | Out-Null
 	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineUA" -Confirm:$false | Out-Null
 
-	# delete edge services
+	# set edge services to manual
 	foreach ($service in $services) {
-		sc.exe delete $service
+		Set-Service -Name $service -StartupType Manual
 	}
-
-	# delete the Edge Update folder
-	Remove-Item -Path "$env:SystemDrive\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
+	
+	if (!($removeWebView)) {
+		# delete edge services
+		foreach ($service in $services) {
+			sc.exe delete $service
+		}
+			
+		# delete the edgeupdate folder
+		Remove-Item -Path "$env:SystemDrive\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
+	}
 
 	# revert error action preference
 	$global:ErrorActionPreference = 'Continue'
@@ -163,9 +175,9 @@ function UninstallAll {
 	if ($removeWebView) {
 		Write-Warning "Uninstalling Edge WebView..."
 		RemoveWebView
-		Write-Warning "Uninstalling Edge Update..."
-		DeleteEdgeUpdate
 	}
+	Write-Warning "Uninstalling Edge Update..."
+	DeleteEdgeUpdate
 }
 
 function Completed {
