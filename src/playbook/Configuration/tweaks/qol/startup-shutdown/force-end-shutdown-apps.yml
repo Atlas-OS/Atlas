@@ -6,5 +6,5 @@ actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'AutoEndTasks'
-    data: '1'
+    data: '0'
     type: REG_SZ
