@@ -2,10 +2,9 @@
 title: Disable Core Isolation
 description: Disables Core Isolation (VBS) based on the user's options
 privilege: TrustedInstaller
+option: 'vbs-disable'
 actions:
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "$env:windir\AtlasDesktop\7. Security\Core Isolation (VBS)\Current Configuration.ps1" -DisableAllVBS'
+  - !powerShell:
+    command: '& """$env:windir\AtlasDesktop\7. Security\Core Isolation (VBS)\Current Configuration.ps1""" -DisableAllVBS'
     exeDir: true
     wait: true
-    option: 'vbs-disable'

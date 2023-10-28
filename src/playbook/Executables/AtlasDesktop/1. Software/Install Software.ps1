@@ -4,10 +4,8 @@ function PauseNul ($message = "Press any key to exit... ") {
     exit
 }
 
-if ($null -eq $(cmd /c where winget)) {
-    Write-Host "WinGet is not installed, please update or install App Installer from Microsoft Store." -ForegroundColor Red
-    PauseNul
-}
+& "$env:windir\AtlasModules\Scripts\wingetCheck.cmd"
+if ($LASTEXITCODE -ne '0') {exit 1}
 
 $ErrorActionPreference = 'SilentlyContinue'
 

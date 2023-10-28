@@ -1,10 +1,8 @@
 ---
 title: Add Music and Videos folders to Quick Access
-description: Adds the 'Music' and 'Videos' folders to Quick Access/Home as they're unpinned by default with recent files being disabled. Win11 fix is available in WIN11.cmd.
+description: Adds the 'Music' and 'Videos' folders to Quick Access/Home as they're unpinned by default with recent files being disabled.
 privilege: TrustedInstaller
 actions:
-  - !run:
-    exe: 'NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -C "$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb(''pintohome''); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb(''pintohome'')"'
-    wait: true
-    exeDir: true
+  - !powerShell:
+    command: '$Pin = @("""$env:USERPROFILE\Videos""","""$env:USERPROFILE\Music"""); $qa = New-Object -ComObject shell.application; ForEach ($dir in $pin) {$qa.Namespace($dir).Self.InvokeVerb(''pintohome'')}'
+    runas: currentUserElevated

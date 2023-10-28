@@ -5,15 +5,8 @@ setlocal EnableDelayedExpansion
 
 :: Enable MSI mode on USB, GPU, Audio, SATA controllers, disk drives and network adapters
 :: Deleting DevicePriority sets the priority to undefined
-for %%a in (
-    Win32_IDEController,
-    Win32_NetworkAdapter,
-    Win32_PnPEntity,
-    Win32_SoundDevice,
-    Win32_USBController,
-    Win32_VideoController,
-) do (
-    if "%%a" == "Win32_PnPEntity" (
+for %%a in ("CIM_NetworkAdapter", "CIM_USBController", "CIM_VideoController" "Win32_IDEController", "Win32_PnPEntity", "Win32_SoundDevice") do (
+    if "%%~a" == "Win32_PnPEntity" (
         for /f "tokens=*" %%b in ('PowerShell -NoP -C "Get-WmiObject -Class Win32_PnPEntity | Where-Object {($_.PNPClass -eq 'SCSIAdapter') -or ($_.Caption -like '*High Definition Audio*')} | Where-Object { $_.PNPDeviceID -like 'PCI\VEN_*' } | Select-Object -ExpandProperty DeviceID"') do (
             reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%b\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f > nul
             reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%b\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>&1
@@ -27,19 +20,15 @@ for %%a in (
 )
 
 :: If a virtual machine is used, set network adapter to normal priority as Undefined may break internet connection
-wmic computersystem get manufacturer /format:value | findstr /i /c:VMWare && (
-    for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /l "PCI\VEN_"') do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2" /f > nul
+for %%a in ("hvm", "hyper", "innotek", "kvm", "parallel", "qemu", "virtual", "xen", "vmware") do (
+    wmic computersystem get manufacturer /format:value | findstr /i /c:%%~a && (
+        for /f %%b in ('wmic path CIM_NetworkAdapter get PNPDeviceID ^| findstr /l "PCI\VEN_"') do (
+            reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%b\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2" /f > nul
+        )
     )
 )
 
-:: Miscellaneous
-
-:: Disable DMA remapping
-:: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
-for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRemappingCompatible" ^| find /i "Services\" ') do (
-    reg add "%%a" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f > nul
-)
+:: Network Configuration
 
 :: Disable NetBios over tcp/ip
 :: Works only when services are enabled
@@ -109,8 +98,6 @@ for %%a in (
     "Node"
     "NSOffloadEnable"
     "PacketCoalescing"
-    rem Offload "PMARPOffload"
-    rem Offload "PMNSOffload"
     "PMWiFiRekeyOffload"
     "PowerDownPll"
     "PowerSaveMode"
@@ -143,6 +130,14 @@ for %%a in (
     )
 )
 
+:: Miscellaneous
+
+:: Disable Direct Memory Access remapping
+:: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
+for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRemappingCompatible" ^| find /i "Services\" ') do (
+    reg add "%%a" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f > nul
+)
+
 :: Hide unnecessary items from the 'Send To' context menu
 for %%a in (
     "Documents.mydocs"
@@ -150,6 +145,10 @@ for %%a in (
 ) do (
     attrib +h "%APPDATA%\Microsoft\Windows\SendTo\%%~a" > nul
 )
+
+:: Set RunOnce login script
+:: This is the script that will be ran on login for new users
+reg add "HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "RunScript" /t REG_SZ /d "powershell -EP Unrestricted -NoP & \"$env:windir\AtlasModules\Scripts\newUsers.ps1\"" /f
 
 :: Remove Fax Recipient from the 'Send to' context menu as Fax feature is removed
 del /f /q "%APPDATA%\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1

@@ -4,7 +4,7 @@ description: Configures time servers to be more reliable and accurate than the d
 privilege: TrustedInstaller
 actions:
     # https://www.pool.ntp.org/en/use.html
-  - !service: {name: "w32time", operation: start, ignoreErrors: true}
+  - !service: {name: 'w32time', operation: start, ignoreErrors: true}
   - !run: {exe: 'w32tm', args: '/config /syncfromflags:manual /manualpeerlist:"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org"'}
   - !run: {exe: 'w32tm', args: '/config /update'}
   - !run: {exe: 'w32tm', args: '/resync'}

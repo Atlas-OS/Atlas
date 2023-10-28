@@ -3,7 +3,7 @@ title: Tweaks Root Playbook File
 description: Runs all of the Atlas playbook tweaks
 privilege: TrustedInstaller
 actions: []
-features:
+tasks:
   # ------------------------- NOTES ------------------------- #
 
   # - Each root folder has its own AME Wizard status
@@ -69,7 +69,6 @@ features:
   # -------------------------------------------------------------------------- #
   - tweaks\performance\system\config-boot-config.yml
   - tweaks\performance\system\config-paging.yml
-  - tweaks\performance\system\disable-reserved-storage.yml
   - tweaks\performance\system\optimize-ntfs.yml
   - tweaks\performance\system\service-host-split.yml
   - tweaks\performance\system\win32-priority-seperation.yml
@@ -161,6 +160,9 @@ features:
   - tweaks\qol\hide-disabled-disconnected-sounds.yml
   - tweaks\qol\show-all-tasks-control-panel.yml
   - tweaks\qol\visual-effects.yml
+  - tweaks\qol\disable-tips.yml
+  - tweaks\qol\disable-consumer-expierences.yml
+  - tweaks\qol\set-hidden-settings-pages.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\appearance                                                            #
@@ -209,6 +211,9 @@ features:
   - tweaks\qol\explorer\show-files.yml
   - tweaks\qol\explorer\add-music-vids-to-home.yml
   - tweaks\qol\explorer\classic-search.yml
+  - tweaks\qol\explorer\dont-show-office-files.yml
+  - tweaks\qol\explorer\use-compact-mode.yml
+  - tweaks\qol\explorer\disable-gallery.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
@@ -251,7 +256,10 @@ features:
   - tweaks\qol\shell\disable-menu-delay.yml
   - tweaks\qol\shell\disable-network-location-wizard.yml
   - tweaks\qol\shell\disable-shared-experiences.yml
-  - tweaks\qol\shell\legacy-alt-tab.yml
+  - tweaks\qol\shell\set-unpinned-notification-items.yml
+  - tweaks\qol\shell\restore-old-context-menu.yml
+  - tweaks\qol\shell\show-more-pins.yml
+  - tweaks\qol\shell\no-recommendations-start-menu.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\startup-shutdown                                                      #
@@ -278,6 +286,10 @@ features:
   - tweaks\qol\taskbar\hide-meet-now.yml
   - tweaks\qol\taskbar\hide-task-view.yml
   - tweaks\qol\taskbar\config-pins.yml
+  - tweaks\qol\taskbar\disable-copilot.yml
+  - tweaks\qol\taskbar\disable-windows-chat.yml
+  - tweaks\qol\taskbar\set-to-left.yml
+  - tweaks\qol\taskbar\end-task.yml
 
   # -----------------------------------------------------
   #                       Security
@@ -289,8 +301,7 @@ features:
   # -----------------------------------------------------
   - tweaks\statuses\status-security.yml
   - tweaks\security\block-anonymous-enum-sam.yml
-  # This account should be deleted after OOBE
-  # - tweaks\security\delete-defaultuser0.yml
+  - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
   # Not needed on modern versions of Windows
   # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
@@ -305,8 +316,9 @@ features:
   # storage space or convienience.
   # -----------------------------------------------------
   - tweaks\statuses\status-debloat.yml
-  - tweaks\debloat\autologgers.yml
+  # - tweaks\debloat\autologgers.yml
   - tweaks\debloat\config-content-delivery.yml
+  - tweaks\debloat\disable-reserved-storage.yml
   - tweaks\debloat\legacy-photo-viewer.yml
   - tweaks\debloat\scheduled-tasks.yml
   - tweaks\debloat\hide-unused-security-pages.yml
@@ -324,13 +336,14 @@ features:
   - tweaks\scripts\script-file-associations.yml
   - tweaks\scripts\script-core-isolation.yml
   - tweaks\scripts\script-mitigations.yml
-  - tweaks\scripts\script-win11.yml
   - tweaks\scripts\script-devices.yml
-  - tweaks\scripts\script-cleanup.yml
   - tweaks\scripts\script-pfp.yml
+  - tweaks\scripts\script-power.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
-  - tweaks\scripts\script-power.yml
+  # Cleanup script takes longer to finish so it has its own status
+  - tweaks\statuses\status-cleanup.yml
+  - tweaks\scripts\script-cleanup.yml
 
   # -----------------------------------------------------
   #                         Misc
@@ -348,3 +361,4 @@ features:
   - tweaks\misc\rebuild-perf-counters.yml
   - tweaks\misc\restore-default-sleep-timeout.yml
   - tweaks\misc\make-shortcuts.yml
+  - tweaks\misc\delete-version-specific-files.yml

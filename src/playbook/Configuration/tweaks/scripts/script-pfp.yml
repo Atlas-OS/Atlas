@@ -4,6 +4,6 @@ description: Sets the default Atlas profile pictures
 privilege: TrustedInstaller
 actions:
   - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File "PFP.ps1"'
     exeDir: true
-    exe: 'PFP.cmd'
-    weight: 20

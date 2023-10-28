@@ -7,6 +7,11 @@ actions:
     # Do not change the line position of this, otherwise things will break
   # - !run: {exe: 'cmd.exe', args: '/c start "AME Wizard Live Log" PowerShell -NoP -C "gc -Wait Logs\TIOutput.txt -EA SilentlyContinue | Write-Output; pause"', baseDir: true, wait: false}
 
+    # Stop Windows Update services to prevent any apps from downloading in the background
+  - !service: {name: 'wuauserv', operation: stop}
+  - !service: {name: 'WaaSMedicSvc', operation: stop}
+  - !service: {name: 'UsoSvc', operation: stop}
+
     # Prevent annoying notifications during deployment
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance', value: 'Enabled', type: REG_DWORD, data: '0'}
 
@@ -30,7 +35,8 @@ actions:
   - !cmd: {command: 'setx PATH "%PATH%;%windir%\AtlasModules;%windir%\AtlasModules\Apps;%windir%\AtlasModules\Other;%windir%\AtlasModules\Tools;%windir%\AtlasModules\Scripts" -m'}
   - !cmd: {command: 'setx PSModulePath "%PSModulePath%;%windir%\AtlasModules\Scripts\Modules" -m'}
 
-    # Does not supported in AME as of now
+    # Doesn't refresh the environment variables of TrustedUninstaller
+    # An alternative should be found, for now, exact paths are used
   # - !writeStatus: {status: 'Refreshing variables'}
   # - !run: {exeDir: true, exe: 'REFRESHENV.cmd'}
 
@@ -38,7 +44,7 @@ actions:
 
   - !writeStatus: {status: 'Configuring Optional Features'}
     # Disabled for security purposes
-  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30}
+  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30, builds: [ '!>=22000' ]}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2Root" /NoRestart', weight: 30}
 
@@ -46,14 +52,12 @@ actions:
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File "SOFTWARE.ps1"'
-    wait: true
     exeDir: true
     weight: 150
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File "SOFTWARE.ps1" -Chrome'
-    wait: true
     exeDir: true
     weight: 150
     option: 'browser-chrome'
@@ -61,7 +65,6 @@ actions:
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File "SOFTWARE.ps1" -Brave'
-    wait: true
     exeDir: true
     weight: 150
     option: 'browser-brave'
@@ -71,14 +74,12 @@ actions:
     exe: 'powershell.exe'
     args: '-NoP -File LIBREWOLF.ps1'
     exeDir: true
-    wait: true
     weight: 150
     option: 'librewolf-winupdater'
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File "LIBREWOLF.ps1" -NoUpdater'
     exeDir: true
-    wait: true
     weight: 150
     option: 'librewolf-winget'
 

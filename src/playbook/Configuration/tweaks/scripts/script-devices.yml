@@ -8,4 +8,3 @@ actions:
     exe: 'powershell.exe'
     args: '-NoP -File DISABLEPNP.ps1'
     exeDir: true
-    wait: true

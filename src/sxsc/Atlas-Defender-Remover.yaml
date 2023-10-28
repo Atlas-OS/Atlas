@@ -214,10 +214,64 @@ updates:
   - target_component: Microsoft-OneCore-WebThreatDefense-Adm
     target_arch: amd64
     version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-Adm.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-DeviceManagement-PolicyDefinition-WebThreatDefense
     target_arch: amd64
     version: 38655.38527.65535.65535
-
+  - target_component: Microsoft-OneCore-WebThreatDefense-ClipboardMonitor
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-ClipboardMonitor
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-Driver
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-Driver.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-Driver-Client-Host
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-Driver-Client-Sensor
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-Driver-Client-Sensor
+    target_arch: wow64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-SecretFilterAP
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-Service
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-Service.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-ThreatAssessment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-ThreatExperienceManager
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-ThreatExperienceManager.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-ThreatIntelligence
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Onecore-WebThreatDefense-ThreatResponseEngine
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-User-Service
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-OneCore-WebThreatDefense-User-Service.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+    
     # SmartScreen
   - target_component: Microsoft-Windows-AppRep
     target_arch: amd64
@@ -228,6 +282,12 @@ updates:
   - target_component: Microsoft-Windows-AppRep-ChxApp.appxmain
     target_arch: amd64
     version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-AppRep-ChxApp.appxmain.resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-AppRep-ChxApp.appxsetup
+    target_arch: amd64
+    version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-DeviceManagement-PolicyDefinition-SmartScreen
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -235,14 +295,45 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
     registry_keys:
-        # Disable 'Open file - Security Warning' Message
+        # Disable SmartScreen
       - key_name: >-
-          HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Attachments
+          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\System
         perUserVirtualization: false
         values:
-          - key: SaveZoneInformation
+          - key: EnableSmartScreen
             type: REG_DWORD
-            value: 1
+            value: 0
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer
+        perUserVirtualization: false
+        values:
+          - key: SmartScreenEnabled
+            type: REG_SZ
+            value: 'Off'
+        # Disable SmartScreen for Edge
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter
+        perUserVirtualization: false
+        values:
+          - key: EnabledV9
+            type: REG_DWORD
+            value: 0
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge
+        perUserVirtualization: false
+        values:
+          - key: SmartScreenEnabled
+            type: REG_DWORD
+            value: 0
+        # Disable 'Open file - Security Warning' Message
+        # Using SaveZoneInformation breaks Edge downloads using 'Save as'
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Associations
+        perUserVirtualization: false
+        values:
+          - key: ModRiskFileTypes
+            type: REG_SZ
+            value: '.bat;.exe;.reg;.vbs;.chm;.msi;.js;.cmd'
   - target_component: Microsoft-Windows-SmartScreen
     target_arch: wow64
     version: 38655.38527.65535.65535
@@ -253,5 +344,8 @@ updates:
     target_arch: wow64
     version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-SmartScreen-Adm
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SmartScreen-Adm.Resources
     target_arch: amd64
     version: 38655.38527.65535.65535

@@ -1,11 +1,5 @@
-# Clearing the user's temporary folder
-Get-ChildItem -Path "$env:TEMP" -File | Remove-Item -Force -EA SilentlyContinue
-
-# Clearing the Windows Temp folder
-Remove-Item -Path '$env:windir\Temp\*' -Force -Recurse -EA SilentlyContinue
-
-# Exclude the AME folder while deleting directories in the temporary folder
-Get-ChildItem -Path "$env:TEMP" -Directory | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse -EA SilentlyContinue
+# AtlasOS Post-Installation Cleanup Utility
+$ErrorActionPreference = 'SilentlyContinue'
 
 # As cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
 function Invoke-AtlasDiskCleanup {
@@ -40,13 +34,10 @@ function Invoke-AtlasDiskCleanup {
 		"Device Driver Packages" = 2
 	}
 	foreach ($entry in $regValues.GetEnumerator()) {
-		$key = $entry.Key
-		$value = $entry.Value
-		$path = "$baseKey\$key"
-		Set-ItemProperty -Path $path -Name 'StateFlags0064' -Value $value -Type DWORD
+		Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
 	}
 	# Run preset 64 (0-65535)
-	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64"
+	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64" 2>&1 | Out-Null
 }
 
 # Check for other installations of Windows
@@ -60,3 +51,15 @@ foreach ($drive in $drives) {
 }
 
 if (!($otherInstalls)) { Invoke-AtlasDiskCleanup }
+
+# Exclude the AME folder while deleting directories in the temporary user folder
+Get-ChildItem -Path "$env:TEMP" | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse
+
+# Clear the temporary system folder
+Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse
+
+# Delete all system restore points
+vssadmin delete shadows /all /quiet
+
+# Clear Event Logs
+wevtutil el | ForEach-Object {wevtutil cl "$_"} 2>&1 | Out-Null

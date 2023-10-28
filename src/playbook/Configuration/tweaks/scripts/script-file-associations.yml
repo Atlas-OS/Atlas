@@ -6,22 +6,19 @@ actions:
   - !run:
     exe: 'FILEASSOC.cmd'
     exeDir: true
-    wait: true
+    option: '!uninstall-edge'
   - !run:
     exe: 'FILEASSOC.cmd'
     args: '"Brave"'
     option: 'browser-brave'
     exeDir: true
-    wait: true
   - !run:
     exe: 'FILEASSOC.cmd'
     args: '"LibreWolf"'
     option: 'browser-librewolf'
     exeDir: true
-    wait: true
   - !run:
     exe: 'FILEASSOC.cmd'
     args: '"Google Chrome"'
     option: 'browser-chrome'
     exeDir: true
-    wait: true

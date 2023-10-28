@@ -6,7 +6,7 @@ for %%a in (
 	"%windir%\SysWOW64\OneDriveSetup.exe"
 ) do (
 	if exist "%%a" (
-		"%%a" /uninstall
+		"%%a" /uninstall > nul 2>nul
 	)
 )
 
@@ -50,4 +50,4 @@ for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows
 )
 
 reg delete "HKU\%~1\Environment" /v "OneDrive" /f > nul 2>&1
-reg delete "HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f > nul 2>&1
+reg delete "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f > nul 2>&1

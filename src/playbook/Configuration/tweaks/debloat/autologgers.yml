@@ -13,52 +13,12 @@ actions:
   #####################################################################################################
 
   - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Circular Kernel Context Logger'
-    value: 'Start'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diaglog'
     value: 'Start'
     data: '0'
     type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diagtrack-Listener'
-    value: 'Start'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\LwtNetLog'
-    value: 'Start'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\NetCore'
-    value: 'Start'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\NtfsLog'
-    value: 'Start'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\RadioMgr'
-    value: 'Start'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\UBPM'
-    value: 'Start'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\WdiContextLog'
-    value: 'Start'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\WiFiSession'
     value: 'Start'
     data: '0'
     type: REG_DWORD

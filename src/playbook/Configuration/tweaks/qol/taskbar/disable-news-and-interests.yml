@@ -27,3 +27,10 @@ actions:
     data: '0'
     type: REG_DWORD
     operation: add
+    # Disable Widgets in taskbar
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'TaskbarDa'
+    data: '0'
+    type: REG_DWORD
+    builds: [ '>=22000' ]

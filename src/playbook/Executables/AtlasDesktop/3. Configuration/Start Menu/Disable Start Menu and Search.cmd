@@ -1,6 +1,6 @@
 @echo off
 
-if "%~1" == "/silent" goto main
+if "%~1" == "/silent" goto start
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" %*
@@ -19,7 +19,8 @@ exit /b 1
 :existS
 if exist "%ProgramFiles%\Open-Shell" goto main
 if exist "%ProgramFiles(x86)%\StartIsBack" goto main
-echo It seems neither Open-Shell nor StartIsBack are not installed. It is HIGHLY recommended to install one of these before running this due to the Start Menu being removed.
+if exist "%LOCALAPPDATA%\StartAllBack" goto main
+echo It seems that no Start Menu replacement has been installed. It is recommended to install one of these before running this due to the Start Menu being removed.
 pause
 
 :main
@@ -49,7 +50,7 @@ reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTas
 taskkill /f /im explorer.exe > nul 2>&1
 start explorer.exe
 
-if "%~1" == "/silent" exit
+if "%~1" == "/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause
