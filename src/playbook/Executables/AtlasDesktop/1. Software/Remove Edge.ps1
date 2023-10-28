@@ -76,7 +76,7 @@ function DeleteEdgeUpdate {
 		Set-Service -Name $service -StartupType Manual
 	}
 	
-	if (!($removeWebView)) {
+	if ($removeWebView) {
 		# delete edge services
 		foreach ($service in $services) {
 			sc.exe delete $service
