@@ -20,7 +20,7 @@ powercfg /setacvalueindex scheme_current 2e601130-5351-4d9d-8e04-252966bad054 d5
 
 powercfg /setactive scheme_current
 
-if "%~1" == "/setup" exit /b
+if "%~1" == "/silent" exit /b
 
 echo Finished, changes have been applied.
 pause
