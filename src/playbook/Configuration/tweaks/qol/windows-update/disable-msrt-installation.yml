@@ -9,4 +9,4 @@ actions:
     # Disable MSRT telemetry
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\MRT', value: 'DontReportInfectionInformation', type: REG_DWORD, data: '0'}
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears', value: 'HeartbeatTrackingIndex', type: REG_DWORD, data: '0'}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears', value: 'SpyNetReportingLocation', type: REG_DWORD, data: ''}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears', value: 'SpyNetReportingLocation', type: REG_MULTI_SZ, data: ''}
