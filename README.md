@@ -49,6 +49,20 @@
 <kbd>[<img title="中文" alt="中文" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/cn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_zh_CN.md)</kbd>
 #### _Do you want to help us by translating documents? If so, please follow these [instructions](https://github.com/Atlas-OS/Atlas/blob/main/translations/README.md)._
 
+## 📚 **Table of contents**
+
+- [Contribution Guidelines](https://docs.atlasos.net/contributions/)
+
+- [Installation](https://docs.atlasos.net/getting-started/installation/)
+
+- Post Installation
+  - [Atlas folder](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/configuration/)
+  - [Drivers](https://docs.atlasos.net/getting-started/post-installation/drivers/getting-started/)
+
+- Troubleshooting
+  - [FAQ & Common Issues](https://docs.atlasos.net/faq-and-troubleshooting/removed-features/)
+  - [Scripts](https://docs.atlasos.net/faq-and-troubleshooting/atlas-folder-scripts/)
+
 ## 🤔 **What is Atlas?**
 
 Atlas is a modification to Windows, which removes nearly all the drawbacks of Windows that negatively affect gaming performance.
