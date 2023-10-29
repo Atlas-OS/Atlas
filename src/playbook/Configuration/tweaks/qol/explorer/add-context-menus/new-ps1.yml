@@ -6,7 +6,7 @@ actions:
   - !registryValue:
     path: 'HKCR\.ps1'
     value: ''
-    data: 'ps1legacy'
+    data: 'Microsoft.PowerShellScript.1'
     type: REG_SZ
   - !registryValue:
     path: 'HKCR\.ps1\ShellNew'
@@ -14,12 +14,12 @@ actions:
     data: ''
     type: REG_SZ
   - !registryValue:
-    path: 'HKCR\ps1legacy'
+    path: 'HKCR\Microsoft.PowerShellScript.1'
     value: ''
     data: 'Windows PowerShell Script'
     type: REG_SZ
   - !registryValue:
-    path: 'HKCR\ps1legacy'
+    path: 'HKCR\Microsoft.PowerShellScript.1'
     value: 'FriendlyTypeName'
     data: 'Windows PowerShell Script'
     type: REG_SZ
