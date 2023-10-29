@@ -79,16 +79,16 @@ Note that Atlas cannot ensure the security for things outside the scope of Windo
 ### 🛡️ More Secure (over custom Windows ISOs)
 Downloading a modified Windows ISO from the internet is risky. Not only can people easily maliciously change one of the many binary/executable files included in Windows, but it also may not have the latest Windows security patches that can put your computer under serious security risks. 
 
-Atlas is different. We use [AME Wizard](https://ameliorated.io) to install Atlas, and all the scripts we use are open source here in our GitHub repository. You can view the packaged Atlas playbook (`.apbx` - AME Wizard script package) as an archive, with the password being `malte` (the standard for AME Wizard playbooks), which is only to bypass false flags from antiviruses.
-
-The only executables included in the playbook are open-sourced [here](https://github.com/Atlas-OS/utilities) under [GPLv3](https://github.com/Atlas-OS/utilities/blob/main/LICENSE), with the hashes being identical to the releases. Everything else is in plain text.
-
 Atlas also comes with the following optional security features, which other custom Windows OSs strip:
 - Windows Security
   - Windows Defender & SmartScreen (optional)
   - Core Isolation (optional)
   - CPU mitigations (optional)
 - Windows Updates (manual)
+
+Atlas is different. We use [AME Wizard](https://ameliorated.io) to install Atlas, and all the scripts we use are open source here in our GitHub repository. You can view the packaged Atlas playbook (`.apbx` - AME Wizard script package) as an archive, with the password being `malte` (the standard for AME Wizard playbooks), which is only to bypass false flags from antiviruses.
+
+The only executables included in the playbook are open-sourced [here](https://github.com/Atlas-OS/utilities) under [GPLv3](https://github.com/Atlas-OS/utilities/blob/main/LICENSE), with the hashes being identical to the releases. Everything else is in plain text.
 
 ### ✅ Improved Performance
 Some tweaked systems on the internet have tweaked Windows too much, breaking compatibility for main features such as Bluetooth, Wi-Fi, and so on.
