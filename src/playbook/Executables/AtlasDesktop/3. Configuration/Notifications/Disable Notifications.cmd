@@ -13,7 +13,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotificatio
 
 :: Re-enable action center on Windows 11 as it breaks calendar
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (
-    if %%a LSS 22000 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f > nul > nul
+    if %%a LSS 22000 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f > nul
 )
 
 echo Finished, please reboot your device for changes to apply.
