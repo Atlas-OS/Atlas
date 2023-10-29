@@ -1,0 +1,35 @@
+---
+title: Disable Downloads Grouping
+description: Disables automatic grouping by data modified in the downloads folder
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderTypes\{885a186e-a440-4ada-812b-db871b942259}\TopViews\{00000000-0000-0000-0000-000000000000}l'
+    value: 'GroupBy'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderTypes\{885a186e-a440-4ada-812b-db871b942259}\TopViews\{00000000-0000-0000-0000-000000000000}'
+    value: 'PrimaryProperty'
+    data: 'System.ItemNameDisplay'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderTypes\{885a186e-a440-4ada-812b-db871b942259}\TopViews\{00000000-0000-0000-0000-000000000000}'
+    value: 'SortByList'
+    data: 'NotSpecified'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderTypes\{885a186e-a440-4ada-812b-db871b942259}\TopViews\{00000000-0000-0000-0000-000000000000}'
+    value: 'GroupBy'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderTypes\{885a186e-a440-4ada-812b-db871b942259}\TopViews\{00000000-0000-0000-0000-000000000000}'
+    value: 'PrimaryProperty'
+    data: 'System.ItemNameDisplay'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderTypes\{885a186e-a440-4ada-812b-db871b942259}\TopViews\{00000000-0000-0000-0000-000000000000}'
+    value: 'SortByList'
+    data: 'prop:System.ItemNameDisplay'
+    type: REG_SZ
