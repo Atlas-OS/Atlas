@@ -175,6 +175,7 @@ tasks:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\windows-update\disable-nagging.yml
   - tweaks\qol\windows-update\disable-insider.yml
+  - tweaks\qol\windows-update\disable-msrt-installation.yml
   - tweaks\qol\windows-update\disable-feature-updates.yml
   - tweaks\qol\windows-update\disable-auto-updates.yml
   - tweaks\qol\windows-update\disable-auto-reboot.yml
@@ -315,7 +316,6 @@ tasks:
   # storage space or convienience.
   # -----------------------------------------------------
   - tweaks\statuses\status-debloat.yml
-  # - tweaks\debloat\autologgers.yml
   - tweaks\debloat\config-content-delivery.yml
   - tweaks\debloat\disable-reserved-storage.yml
   - tweaks\debloat\legacy-photo-viewer.yml

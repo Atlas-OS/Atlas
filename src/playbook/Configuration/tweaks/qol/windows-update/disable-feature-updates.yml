@@ -7,6 +7,7 @@ actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferFeatureUpdatesPeriodInDays', data: '365', type: REG_DWORD}
     # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.WindowsUpdate::TargetReleaseVersion
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'TargetReleaseVersion', data: '1', type: REG_DWORD}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'BranchReadinessLevel', data: '20', type: REG_DWORD}
   - !powerShell:
     command: 'if ((Get-WmiObject Win32_OperatingSystem).Caption -Match 11) {$a = ''Windows 11''} else {$a = ''Windows 10''}; New-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'' -Name ''ProductVersion'' -Value $a -PropertyType String -Force'
   - !powerShell:

@@ -1,0 +1,12 @@
+---
+title: Disable MSRT installation
+description: Disables MSRT installation in Windows Update and its telemetry features
+privilege: TrustedInstaller
+actions:
+    # Prevent Malicious Software Removal Tool from installing
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\MRT', value: 'DontOfferThroughWUAU', type: REG_DWORD, data: '1'}
+
+    # Disable MSRT telemetry
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\MRT', value: 'DontReportInfectionInformation', type: REG_DWORD, data: '0'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears', value: 'HeartbeatTrackingIndex', type: REG_DWORD, data: '0'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears', value: 'SpyNetReportingLocation', type: REG_DWORD, data: ''}
