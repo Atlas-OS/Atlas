@@ -1,0 +1,10 @@
+---
+title: Disable Automatic Teams Installations
+description: Disables automatic installation for Microsoft Teams
+privilege: TrustedInstaller
+actions:
+  - !registryValue: 
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications'
+    value: 'ConfigureChatAutoInstall'
+    type: REG_DWORD
+    data: '0'
