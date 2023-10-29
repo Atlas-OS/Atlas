@@ -7,11 +7,6 @@ actions:
     # Do not change the line position of this, otherwise things will break
   # - !run: {exe: 'cmd.exe', args: '/c start "AME Wizard Live Log" PowerShell -NoP -C "gc -Wait Logs\TIOutput.txt -EA SilentlyContinue | Write-Output; pause"', baseDir: true, wait: false}
 
-    # Stop Windows Update services to prevent any apps from downloading in the background
-  - !service: {name: 'wuauserv', operation: stop}
-  - !service: {name: 'WaaSMedicSvc', operation: stop}
-  - !service: {name: 'UsoSvc', operation: stop}
-
     # Prevent annoying notifications during deployment
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance', value: 'Enabled', type: REG_DWORD, data: '0'}
 

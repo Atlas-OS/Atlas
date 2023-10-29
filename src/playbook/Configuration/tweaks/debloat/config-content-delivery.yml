@@ -30,6 +30,11 @@ actions:
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'SubscribedContentEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SubscribedContent-310093Enabled'
     data: '0'
     type: REG_DWORD
@@ -78,3 +83,12 @@ actions:
     value: 'SoftLandingEnabled'
     data: '0'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'FeatureManagementEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryKey:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions'
+  - !registryKey:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps'

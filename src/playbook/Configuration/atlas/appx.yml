@@ -38,11 +38,6 @@ actions:
   # Mixed Reality
   - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
 
-  # Content Delivery Manager
-  # Installs unwanted content such as apps like Disney+ and advertisements
-  # Removed at a component level as well
-  - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
-
   # Dev Home
   - !appx: {name: '*Microsoft.Windows.DevHome*', type: family}
   
