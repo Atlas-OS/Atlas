@@ -56,7 +56,7 @@ tasks:
   # Clearing could cause potential issues and only worsens security with no gains
   # - tweaks\performance\clear-ifeo.yml
   - tweaks\performance\config-mmcss.yml
-  - tweaks\performance\config-presentation-mode.yml
+  - tweaks\performance\disable-game-bar.yml
   - tweaks\performance\disable-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
   - tweaks\performance\extend-cache.yml
