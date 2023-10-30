@@ -97,7 +97,7 @@ function InstallPackage {
 			Clear-Host
 			Write-Host $($output -join "`r`n") -ForegroundColor Red
 
-			Write-Host "`nSomething went wrong whilst adding the Defender package.`nPlease see the documentation: docs.atlasos.net/troubleshooting/common-issues/defender-disabling`n" -ForegroundColor Yellow
+			Write-Host "`nSomething went wrong whilst adding the Defender package.`nPlease see report this on GitHub: github.com/Atlas-OS/Atlas`n" -ForegroundColor Yellow
 			PauseNul "Press any key to exit safe mode... "
 			ExitSafeMode
 		}

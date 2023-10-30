@@ -17,8 +17,44 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 
     echo INFO: Setting variables...
 
-    :: Set target drive
-    set "targetDrive=C:"
+    :: Make Windows Recovery Registry key for variables
+    :: Also would mount the WinRE partition
+    start /min %SystemDrive%\sources\recovery\RecEnv.exe
+    :recEnvGetKey
+    reg query HKLM\SOFTWARE\Microsoft\RecoveryEnvironment > nul 2>&1
+    if %errorlevel% NEQ 0 goto recEnvGetKey
+    echo INFO: Killing RecEnv...
+    wmic process where "name='RecEnv.exe'" call terminate > nul
+
+    :: Set drive letters
+    for /f "usebackq tokens=3 delims=\ " %%a in (`reg query "HKLM\SOFTWARE\Microsoft\RecoveryEnvironment" /v "SourceDrive"`) do (
+        set "recoveryDrive=%%a"
+    )
+    for /f "usebackq tokens=3 delims=\ " %%a in (`reg query "HKLM\SOFTWARE\Microsoft\RecoveryEnvironment" /v "AssociatedOSDriveLetter"`) do (
+        set "targetDrive=%%a"
+    )
+    
+    :: Notify VBS on what to do
+    set "bitlockerKeyPath=%recoveryDrive%\bitlockerAtlas.txt"
+    if exist "%recoveryDrive%\AtlasComponentPackageInstallation" (
+        echo] > "%systemdrive%\AtlasComponentPackageInstallation"
+        del /f /q "%recoveryDrive%\AtlasComponentPackageInstallation"
+    ) else (
+        echo] > "%systemdrive%\AtlasNormalWindowsRecovery"
+        del /f /q %bitlockerKeyPath%
+        exit
+    )
+
+    :: BitLocker
+    if exist "%targetDrive%\Windows" goto afterBitLocker
+    if not exist "%bitlockerKeyPath%" goto :setError 1
+    for /f "tokens=*" %%a in (%bitlockerKeyPath%) do (set "bitlockerKey=%%a")
+    manage-bde -unlock %targetDrive% -RecoveryPassword %bitlockerKey%
+    if not exist "%targetDrive%\Windows" goto :setError 2
+
+    :afterBitLocker
+    :: Delete BitLocker key
+    set "bitlockerKey=nu-uh" & del /f /q "%bitlockerKeyPath%"
 
     :: HTA
     set "htaFolderPath=%cd%\hta"
@@ -68,7 +104,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     copy /y "%packagesList%" "%logDirPath%"
     del /f /q "%packagesList%"
 
-    %wait% 6
+    %wait% 6000
     wpeutil reboot
 
 :: ======================================================================================================================= ::
@@ -91,7 +127,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
         %log% "SUCCESS: Successfully deployed %~1..."
         type "%dismCurrentLog%" >> "%logPath%"
     ) else (
-        %log% "ERROR: Failed to deploy %~1! Exit code %dismErrorLevel%."
+        %log% "ERROR: Failed to deploy %~1. Exit code %dismErrorLevel%."
         set error=%dismErrorlevel%
     )
     del /f /q "%dismCurrentLog%"
@@ -115,11 +151,23 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     echo .dataButton::after{content:"INFO;%~1;%~2"} > "%dataPath%"
     exit /b
 
-    :: :setError [message]
-    :: echo .dataButton::after{content:"ERROR;%~1"} > "%dataPath%"
-    :: exit /b
+    :setError [message]
+    echo .dataButton::after{content:"ERROR;%~1"} > "%dataPath%"
+    exit /b
 
     :wait [seconds]
-    set /a timeInMs=%~1 * 1000
-    cscript %cd%\sleep.vbs %timeInMs% //B
+    cscript %cd%\sleep.vbs %~1 //B
+    exit /b
+
+    :strlen [strVar] [rtnVar]
+    setlocal EnableDelayedExpansion
+    set "s=#!%~1!"
+    set "len=0"
+    for %%N in (4096 2048 1024 512 256 128 64 32 16 8 4 2 1) do (
+        if "!s:~%%N,1!" neq "" (
+        set /a "len+=%%N"
+        set "s=!s:~%%N!"
+        )
+    )
+    endlocal&if "%~2" neq "" (set %~2=%len%) else echo %len%
     exit /b

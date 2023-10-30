@@ -37,7 +37,7 @@ You can use MSHTA like (only with a full path): mshta "%userprofile%\Downloads\a
                                     <circle class="radial-bg" cx="8px" cy="8px" r="7px"></circle>
                                     <circle class="radial radial-infinite" cx="8px" cy="8px" r="7px"></circle>
                                 </svg>
-                                <!-- <h4 id="_progressText" class="errorText">An error has occurred.</h4> -->
+                                <h4 id="_progressText" class="errorText">An error has occurred.</h4>
                                 <h4 id="_progressText" class="normalText">Updating components...</h4>
                                 <h4 id="_progressText" class="facts">Factual information!</h4>
                             </div>
@@ -54,7 +54,7 @@ You can use MSHTA like (only with a full path): mshta "%userprofile%\Downloads\a
 
 const progressText = document.querySelector('.normalText');
 const circle = document.querySelector('.radial-infinite');
-// const errorText = document.querySelector('.errorText');
+const errorText = document.querySelector('.errorText');
 const factsElement = document.querySelector('.facts');
 const element = document.querySelector('.data');
 
@@ -73,26 +73,24 @@ function setProgress(percentage, text) {
     circle.style.strokeDasharray = cssPx + 'px 42.97px';
 }
 
-// It's probably a better user experience to show the error next reboot.
-//
-// function showFatalError(error) {
-//     errorText.textContent = 'An error has occured: ' + error;
-//     errorText.style.display = 'block';
-//     factsElement.style.display = 'none';
-//     updateProgressText('No worries. Your computer will restart shortly, with more details next startup.')
-// }
+function showFatalError(error) {
+    errorText.textContent = 'An error has occured: ' + error;
+    errorText.style.display = 'block';
+    factsElement.style.display = 'none';
+    updateProgressText('No worries. Your computer will restart shortly, with more details next startup.')
+}
 
 function setNewFact(first) {
     if (factCount == 7) {factCount = 0} else {factCount++}
     var facts = [
-        'Did you know that Atlas\' internals are open source on GitHub?',
-        'Atlas has over 180+ seperated tweak files.',
-        'Atlas has a Discord server. https://discord.atlasos.net/',
+        'Did you know that Atlas\' code is open source on GitHub?',
+        'Atlas has 200+ seperate tweak files.',
+        'Atlas has a Discord with over 30k members. discord.atlasos.net',
         'All of the Atlas component removals persist through Windows Updates.',
-        'We have a forum! https://forum.atlasos.net/',
-        'We have donations on Ko-fi with rewards! https://ko-fi.com/atlasos/',
+        'We have a forum for help and more. forum.atlasos.net',
+        'We have donations on Ko-fi with rewards! ko-fi.com/atlasos',
         'Atlas is built by the community and anyone can contribute to the code.',
-        'See the Atlas documentation for help. https://docs.atlasos.net/'
+        'See the Atlas documentation for help. docs.atlasos.net'
     ]
 
     // Animations don't seem to work in Windows Recovery
@@ -119,15 +117,18 @@ function getData() {
     const items = data.split(';').map(function(item) {
         return item.replace(/"/g, "");
     });
-    // if (items[0] === 'INFO') {
+    if (items[0] === 'INFO') {
         setProgress(items[2], items[1]);
         setTimeout(function () {
-            count++; if (count % 45 === 0) { setNewFact(false); }
+            count++; if (count % 12 === 0) { setNewFact(false); }
             getData();
-        }, 200);
-    // } else if (items[0] === 'ERROR') {
-    //     showFatalError(items[1]);
-    // }
+        }, 750);
+    } else if (items[0] === 'ERROR') {
+        showFatalError(items[1]);
+        setTimeout(function () {
+            console.log('Infinite timeout');
+        }, 999999999);
+    }
 }
 
 setProgress(1);
