@@ -22,6 +22,10 @@ actions:
     exe: 'Disable Printing (default).cmd'
     path: '%windir%\AtlasDesktop\3. Configuration\Printing'
     args: '/silent'
+  - !run:
+    exe: 'Disable Notifications (default).cmd'
+    path: '%windir%\AtlasDesktop\3. Configuration\Notifications'
+    args: '/silent'
 
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
   - !service: {name: 'diagsvc', operation: change, startup: 4}
