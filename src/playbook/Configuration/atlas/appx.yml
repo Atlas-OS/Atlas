@@ -17,7 +17,7 @@ actions:
   # Get current AppX packages to deprovision removed ones later
   - !powerShell:
     command: '(Get-AppxPackage).PackageFamilyName | Out-File "$env:windir\AtlasModules\AtlasPackagesOld.txt"'
-    wait: true
+    runas: currentUserElevated
 
   # Clipchamp
   - !appx: {name: '*Clipchamp*', type: family}
@@ -72,6 +72,11 @@ actions:
   - !appx: {name: '*Global.BackupBanner*', type: app, unregister: true}
   - !appx: {name: '*Global.IrisService*', type: app, unregister: true}
   - !appx: {name: '*Global.ValueBanner*', type: app, unregister: true}
+  
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File CLIENTCBS.ps1'
+    exeDir: true
 
   # Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
@@ -105,11 +110,11 @@ actions:
   - !appx: {name: '*Microsoft.ZuneMusic*', type: family}
   - !appx: {name: '*Microsoft.ZuneVideo*', type: family}
 
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File APPX.ps1'
-    exeDir: true
-    wait: true
+  # Prevent provisioned applications from being reinstalled
+  # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
+  - !powerShell:
+    command: '$a = """$env:windir\AtlasModules\AtlasPackagesOld.txt"""; (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force }; Remove-Item $a -Force'
+    runas: currentUserElevated
 
   # Clear caches of Start menu and more
   - !appx: {operation: clearCache, name: '*Client.CBS*'}
