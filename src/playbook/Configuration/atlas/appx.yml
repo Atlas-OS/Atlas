@@ -73,11 +73,6 @@ actions:
   - !appx: {name: '*Global.IrisService*', type: app, unregister: true}
   - !appx: {name: '*Global.ValueBanner*', type: app, unregister: true}
 
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File CLIENTCBS.ps1'
-    exeDir: true
-
   # Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
 
@@ -110,10 +105,10 @@ actions:
   - !appx: {name: '*Microsoft.ZuneMusic*', type: family}
   - !appx: {name: '*Microsoft.ZuneVideo*', type: family}
 
-  # Prevent provisioned applications from being reinstalled
-  # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
-  - !powerShell:
-    command: '$a = """$env:windir\AtlasModules\AtlasPackagesOld.txt"""; (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force }; Remove-Item $a -Force'
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File APPX.ps1'
+    exeDir: true
     wait: true
 
   # Clear caches of Start menu and more
