@@ -4,4 +4,6 @@ description: Adds the 'Music' and 'Videos' folders to Quick Access/Home as they'
 privilege: TrustedInstaller
 actions:
   - !powerShell:
-    command: '$Pin = @("""$env:USERPROFILE\Videos""","""$env:USERPROFILE\Music"""); $qa = New-Object -ComObject shell.application; ForEach ($dir in $pin) {$qa.Namespace($dir).Self.InvokeVerb(''pintohome'')}'
+    command: '$pin = @(""""$env:USERPROFILE\Videos"""",""""$env:USERPROFILE\Music""""); $qa = New-Object -ComObject shell.application; ForEach ($dir in $pin) {$qa.Namespace($dir).Self.InvokeVerb(''pintohome'')}'
+    runas: currentUser
+    builds: [ '!>=22000' ]
