@@ -61,11 +61,11 @@ if not "%~1" == "/silent" (
     )
 )
 
+if "%~1" == "/silent" exit /b
+
 DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart > nul
 DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart > nul
 DISM /Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart > nul
-
-if "%~1" == "/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause

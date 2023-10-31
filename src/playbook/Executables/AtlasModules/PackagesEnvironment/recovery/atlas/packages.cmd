@@ -41,20 +41,20 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
         del /f /q "%recoveryDrive%\AtlasComponentPackageInstallation"
     ) else (
         echo] > "%systemdrive%\AtlasNormalWindowsRecovery"
-        del /f /q %bitlockerKeyPath%
+        call :deleteBitlockerInfo
         exit
     )
 
     :: BitLocker
     if exist "%targetDrive%\Windows" goto afterBitLocker
-    if not exist "%bitlockerKeyPath%" goto :setError 1
+    if not exist "%bitlockerKeyPath%" goto :setError "BitLocker" "error 1"
     for /f "tokens=*" %%a in (%bitlockerKeyPath%) do (set "bitlockerKey=%%a")
     manage-bde -unlock %targetDrive% -RecoveryPassword %bitlockerKey%
-    if not exist "%targetDrive%\Windows" goto :setError 2
+    if not exist "%targetDrive%\Windows" goto :setError "BitLocker" "error 2"
 
     :afterBitLocker
     :: Delete BitLocker key
-    set "bitlockerKey=nu-uh" & del /f /q "%bitlockerKeyPath%"
+    call :deleteBitlockerInfo
 
     :: HTA
     set "htaFolderPath=%cd%\hta"
@@ -71,9 +71,11 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     :: Set log file
     echo INFO: Setting log file...
     if not exist "%atlasLogDirectory%" mkdir "%atlasLogDirectory%" & echo Made Atlas log directory...
+    for /f "skip=1" %%a in ('wmic os get localdatetime') do if not defined unformattedDate set unformattedDate=%%a
+    set formattedDate=%unformattedDate:~6,2%-%unformattedDate:~4,2%-%unformattedDate:~0,4%
     :makeLogDirectoryAndFile
     set /a logNum += 1
-    set "logDirPath=%atlasLogDirectory%\%logNum%-AtlasPackageInstall-%date:/=-%"
+    set "logDirPath=%atlasLogDirectory%\%logNum%-AtlasPackageInstall-%formattedDate%"
     if exist "%logDirPath%" (goto makeLogDirectoryAndFile) else (
         mkdir "%logDirPath%"
         set "logPath=%logDirPath%\dism.log"
@@ -106,6 +108,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 
     %wait% 6000
     wpeutil reboot
+    exit
 
 :: ======================================================================================================================= ::
 :: FUNCTIONS                                                                                                               ::
@@ -113,27 +116,34 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     exit /b
 
     :addPackage [packagePath]
+    echo]
     set /a packageNum += 1
     set /a halfWayPercentage = %percentage% + ( %percentageSteps% / 2 )
     
     set "dismCurrentLog=%logDirPath%\dismTemp%random%.txt"
-    set "dismCommand=dism /image:%targetDrive%\ /add-package:"%targetDrive%\%~1" /logpath:"%dismCurrentLog%""
+    if "%~1"=="dismCleanup" (
+        set "dismCommand=dism /image:%targetDrive%\ /cleanup-image /startcomponentcleanup /logpath:"%dismCurrentLog%""
+        set "message=Cleaning up"
+    ) else (
+        set "dismCommand=dism /image:%targetDrive%\ /add-package:"%targetDrive%\%~1" /logpath:"%dismCurrentLog%""
+        set "message=Adding package %packageNum%"
+    )
+    %setInfo% "%message%" "%halfWayPercentage%"
     %log% "%dismCommand%"
-    %setInfo% "Adding package %packageNum%" "%halfWayPercentage%"
 
     %dismCommand%
     set dismErrorlevel=%errorlevel%
     if %dismErrorlevel%==0 (
         %log% "SUCCESS: Successfully deployed %~1..."
-        type "%dismCurrentLog%" >> "%logPath%"
     ) else (
         %log% "ERROR: Failed to deploy %~1. Exit code %dismErrorLevel%."
         set error=%dismErrorlevel%
     )
+    type "%dismCurrentLog%" >> "%logPath%"
     del /f /q "%dismCurrentLog%"
 
     set /a percentage=%percentage% + %percentageSteps%
-    %setInfo% "Adding package %packageNum%" "%percentage%"
+    %setInfo% "%message%" "%percentage%"
     exit /b
 
     :log [text]
@@ -151,12 +161,19 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     echo .dataButton::after{content:"INFO;%~1;%~2"} > "%dataPath%"
     exit /b
 
-    :setError [message]
-    echo .dataButton::after{content:"ERROR;%~1"} > "%dataPath%"
+    :setError [message] [error]
+    echo .dataButton::after{content:"ERROR;%~2"} > "%dataPath%"
+    call :deleteBitlockerInfo
+    %wait% 8000
+    wpeutil reboot
     exit /b
 
     :wait [seconds]
     cscript %cd%\sleep.vbs %~1 //B
+    exit /b
+
+    :deleteBitlockerInfo
+    set "bitlockerKey=nu-uh" & del /f /q "%bitlockerKeyPath%"
     exit /b
 
     :strlen [strVar] [rtnVar]
