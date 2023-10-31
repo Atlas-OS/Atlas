@@ -1,5 +1,6 @@
 @echo off
-cd /d "%~dp0"
+set "currentDirectory=%~dp0"
+cd /d "%currentDirectory%"
 for %%a in (
     log
     setInfo
@@ -67,6 +68,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 
     :: Other variables
     set "percentage=1"
+    set "dontRestartPath=%systemdrive%\AtlasDontRestart"
 
     :: Set log file
     echo INFO: Setting log file...
@@ -82,7 +84,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     )
 
     echo INFO: Starting debug console...
-    start /i /d "%targetDrive%\Windows" /min "Atlas Debug Console" cmd /k set "log=notepad %logPath%" ^& cls ^& echo Type %%log%% to open the log.
+    start /i /d "%targetDrive%\Windows" /min "Atlas Debug Console" cmd /k %currentDirectory%debug.cmd "%logPath%" "%dontRestartPath%"
 
 :: -------------------------------------------------------------------------------------------------------- ::
 :: Start looping through packages                                                                           ::
@@ -107,7 +109,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     del /f /q "%packagesList%"
 
     %wait% 6000
-    wpeutil reboot
+    if not exist "%dontRestartPath%" wpeutil reboot
     exit
 
 :: ======================================================================================================================= ::
@@ -120,7 +122,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     set /a packageNum += 1
     set /a halfWayPercentage = %percentage% + ( %percentageSteps% / 2 )
     
-    set "dismCurrentLog=%logDirPath%\dismTemp%random%.txt"
+    set "dismCurrentLog=%systemDrive%\dismTemp%random%.txt"
     if "%~1"=="dismCleanup" (
         set "dismCommand=dism /image:%targetDrive%\ /cleanup-image /startcomponentcleanup /logpath:"%dismCurrentLog%""
         set "message=Cleaning up"
@@ -165,7 +167,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     echo .dataButton::after{content:"ERROR;%~2"} > "%dataPath%"
     call :deleteBitlockerInfo
     %wait% 8000
-    wpeutil reboot
+    if not exist "%dontRestartPath%" wpeutil reboot
     exit /b
 
     :wait [seconds]

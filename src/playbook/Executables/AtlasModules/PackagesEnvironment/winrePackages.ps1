@@ -49,6 +49,7 @@ foreach ($path in $requiredPaths.Keys) {
 # Scheduled Tasks
 $user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
 $bitlockerTaskName = 'AtlasBitlockerRemovalTask'
+$failCheck = 'RecoveryFailureCheck'
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 $trigger = New-ScheduledTaskTrigger -AtLogon
 $taskArgs = @{
@@ -93,7 +94,11 @@ function MakePackageList {
     } else {
         Write-Warning "Making package list with everything...."
     }
-    $packageList = @($packageList, 'dismCleanup')
+    if ($packageList.GetType().IsArray) {
+        $packageList += 'dismCleanup'
+    } else {
+        $packageList = @($packageList, 'dismCleanup')
+    }
     [IO.File]::WriteAllLines($packageListPath, $packageList)
 }
 
@@ -137,7 +142,7 @@ function StartupTask ($RecoveryBroken, $SpaceFailure) {
         + $(if ($RecoveryBroken) {'-RecoveryBroken'} elseif ($SpaceFailure) {"-SpaceFailure $spaceFailure"}) `
         + $(if ($PlaybookInstall) {'-PlaybookInstall'}) + '"'
     $action = New-ScheduledTaskAction -Execute 'powershell' -Argument $arguments
-    Register-ScheduledTask -TaskName 'RecoveryFailureCheck' -Action $action @taskArgs | Out-Null
+    Register-ScheduledTask -TaskName $failCheck -Action $action @taskArgs | Out-Null
     if ($RecoveryBroken -or $SpaceFailure) { exit 1 }
 }
 
@@ -154,9 +159,11 @@ if ($NextStartup) {
         Start-Job -Name FinalizingPopup -ScriptBlock {
             (New-Object -ComObject "Wscript.Shell").Popup(`
             @'
-Atlas is finalizing the installation by enabling and disabling Windows features, once completed, your computer will automatically restart.
+Atlas is finalizing the installation by enabling and disabling Windows features. Once completed, your computer will automatically restart.
 
-This should take 2-15 minutes dependant on your internet connection and computer speed.
+This should take 2-15 minutes depending on your internet connection and computer speed.
+
+Ideally don't use your computer until it's completed.
 '@,0,'Finalizing Installation - Atlas',0+64)
         }
 
@@ -196,6 +203,7 @@ This should take 2-15 minutes dependant on your internet connection and computer
 
         if (!$RecoveryBroken) {
             Write-Warning "Running specific Windows Recovery failure message..."
+            Unregister-ScheduledTask -TaskName $failCheck -Confirm:$false | Out-Null
             $AtlasPackagesFailure = Get-Content $failurePath
             $logPath = ($AtlasPackagesFailure -split '"')[1] -replace [regex]::Escape($env:windir), '%windir%'
             $errorLevel = ($AtlasPackagesFailure -split '"')[3]
@@ -206,7 +214,7 @@ This should take 2-15 minutes dependant on your internet connection and computer
 Something went wrong while removing components using Windows Recovery.
 
 Log: $logPath
-Last exit code: $errorLevel
+Exit code: $errorLevel
 
 $failedRemovalLink
 "@
@@ -307,6 +315,7 @@ $failedRemovalLink
         Remove-Item $bitlockerRecoveryKeyTxt -Force
         Remove-Item $componentInstallationIndicator -Force
         $ErrorActionPreference = 'Continue'
+        Unregister-ScheduledTask -TaskName $bitlockerTaskName -Confirm:$false | Out-Null
         exit
     }
 
@@ -403,7 +412,7 @@ $failedRemovalLink
     if (!$PlaybookInstall) { $restart = $true }
 } finally {
     Write-Warning 'Cleaning up...'
-    if (Test-Path "$atlasWinreWim\*") {
+    if ((Test-Path "$atlasWinreWim\Windows") -and $atlasWinreWim) {
         Dismount-WindowsImage -Path $atlasWinreWim -Save
         if (!$? -and $PlaybookInstall) {
             Write-Warning 'Failed to save WinRE image, silently failing...'
@@ -414,7 +423,7 @@ $failedRemovalLink
 Failed to save the Windows Recovery image, see the documentation below.
 
 $failedRemovalLink
-"@,0,$WindowTitle,0+16)
+"@,0,'Component failure - Atlas',0+16)
             Start-Process $failedRemovalLink
             exit 1
         }

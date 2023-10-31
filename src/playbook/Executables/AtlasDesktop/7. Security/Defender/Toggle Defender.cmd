@@ -59,7 +59,7 @@ function Menu {
 			Write-Host "Your computer will restart automatically if you proceed.`n" -ForegroundColor Yellow
 			
 			Pause; Clear-Host
-			Write-Host "Disabling Defender... Your computer will auto-restart." -ForegroundColor Green
+			Write-Host "Disabling Defender... Your computer will auto-restart.`n" -ForegroundColor Green
 			& "$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1" -DefenderOnly
 			if ($lastexitcode -ne 1) {
 				Write-Host "Something went wrong disabling Defender." -ForegroundColor Red
@@ -72,6 +72,7 @@ function Menu {
 		2 {
 			if ($DefenderEnabled) {Menu}
 			Clear-Host
+			Write-Host "Enabling Defender...`n" -ForegroundColor Yellow
 			foreach ($package in $packages) {
 				try {
 					Remove-WindowsPackage -Online -PackageName $package -NoRestart -LogLevel 1 *>$null
