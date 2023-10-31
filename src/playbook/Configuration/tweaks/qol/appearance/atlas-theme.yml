@@ -11,7 +11,6 @@ actions:
 
   - !taskKill: {name: 'SystemSettings'}
   - !taskKill: {name: 'control'}
-  - !taskKill: {name: 'explorer'}
 
     # Windows theme
   - !registryValue:
@@ -155,7 +154,7 @@ actions:
   - !cmd:
     command: 'start "" "%windir%\Resources\Themes\atlas-dark.theme"'
     wait: true
-    runas: currentUser
-  - !cmd: {command: 'timeout /t 3 /nobreak', wait: true}
+    runas: currentUserElevated
+  - !run: {exe: 'timeout', args: '/t 4 /nobreak'}
   - !taskKill: {name: 'SystemSettings'}
   - !taskKill: {name: 'control'}

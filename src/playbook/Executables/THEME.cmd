@@ -20,7 +20,6 @@ for /d %%a in ("%ProgramData%\Microsoft\Windows\SystemData\*") do (
 	)
 )
 
-taskkill /f /im sihost.exe > nul 2>&1
 exit /b
 
 :ALLUSERS
