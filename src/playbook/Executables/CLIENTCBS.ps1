@@ -1,9 +1,13 @@
 # Remove ads from the 'Accounts' page in Immersive Control Panel
 # Made by Xyueta
 
-$Cbs = "$env:windir\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy"
-$content = Get-Content -Path "$Cbs\Public\wsxpacks.json"
+$file = "$env:windir\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\Public\wsxpacks.json"
+$content = Get-Content -Path "$file"
 $pattern = '^\s*"Windows\.Settings\.Account".*'
 $modifiedContent = $content -replace $pattern, ''
 $modifiedContent = ($modifiedContent | Where-Object { $_.Trim() -ne "" }) -join "`n"
-Set-Content -Path "$Cbs\Public\wsxpacks.json" -Value $modifiedContent
+
+takeown /f "$file"
+icacls "$file" /grant *S-1-3-4:F /t /c /l
+
+Set-Content -Path "$file" -Value "$modifiedContent"

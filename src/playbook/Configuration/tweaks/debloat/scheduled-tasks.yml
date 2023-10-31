@@ -9,6 +9,7 @@ actions:
     path: '\Microsoft\Windows\Location'
     operation: deleteFolder
 
+  - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily'}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask'}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask'}
   - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\DsSvcCleanup'}
@@ -18,7 +19,10 @@ actions:
   - !scheduledTask: {path: '\Microsoft\Windows\DiskFootprint\Diagnostics'}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdates'}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdatesAsUser'}
+  - !scheduledTask: {path: '\Microsoft\Windows\Maintenance\WinSAT'}
+  - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic'}
   - !scheduledTask: {path: '\Microsoft\Windows\PI\Sqm-Tasks'}
+  - !scheduledTask: {path: '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem'}
   - !scheduledTask: {path: '\Microsoft\Windows\Registry\RegIdleBackup'}
   - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyMonitor'}
   - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyRefresh'}
@@ -35,17 +39,13 @@ actions:
   #   operation: deleteFolder
 
   # - !scheduledTask: {path: '\Microsoft\Windows\AppID\EDP Policy Manager'}
-  # - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily'}
   # - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierinstall'}
   # - !scheduledTask: {path: '\Microsoft\Windows\BrokerInfrastructure\BgTaskRegistrationMaintenanceTask'}
   # - !scheduledTask: {path: '\Microsoft\Windows\Defrag\ScheduledDefrag'}
   # - !scheduledTask: {path: '\Microsoft\Windows\Device Setup\Metadata Refresh'}
   # - !scheduledTask: {path: '\Microsoft\Windows\InstallService\SmartRetry'}
-  # - !scheduledTask: {path: '\Microsoft\Windows\Maintenance\WinSAT'}
   # - !scheduledTask: {path: '\Microsoft\Windows\Management\Provisioning\Cellular'}
   # - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\ProcessMemoryDiagnosticEvents'}
-  # - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic'}
-  # - !scheduledTask: {path: '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem'}
   # - !scheduledTask: {path: '\Microsoft\Windows\Printing\EduPrintProv'}
   # - !scheduledTask: {path: '\Microsoft\Windows\PushToInstall\LoginCheck'}
   # - !scheduledTask: {path: '\Microsoft\Windows\Ras\MobilityManager'}

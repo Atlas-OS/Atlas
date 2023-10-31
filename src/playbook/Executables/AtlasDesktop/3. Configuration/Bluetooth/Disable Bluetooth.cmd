@@ -30,7 +30,7 @@ for %%a in (
 )
 
 :: Seems to not exist sometimes
-call setSvc.cmd BthPan 4 > nul 2>&1
+call %windir%\AtlasModules\Scripts\setSvc.cmd BthPan 4 > nul 2>&1
 
 :: Disable Bluetooth devices
 call %windir%\AtlasModules\Scripts\toggleDev.cmd -Silent '*Bluetooth*'

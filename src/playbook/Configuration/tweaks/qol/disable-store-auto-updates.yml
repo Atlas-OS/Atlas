@@ -4,7 +4,7 @@ description: Disables automatic updates for apps in Store so that the user has m
 privilege: TrustedInstaller
 actions:
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\WindowsStore'
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate'
     value: 'AutoDownload'
     data: '2'
     type: REG_DWORD

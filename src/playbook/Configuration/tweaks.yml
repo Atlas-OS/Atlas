@@ -56,7 +56,7 @@ tasks:
   # Clearing could cause potential issues and only worsens security with no gains
   # - tweaks\performance\clear-ifeo.yml
   - tweaks\performance\config-mmcss.yml
-  - tweaks\performance\config-presentation-mode.yml
+  - tweaks\performance\disable-game-bar.yml
   - tweaks\performance\disable-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
   - tweaks\performance\extend-cache.yml
@@ -161,7 +161,6 @@ tasks:
   - tweaks\qol\show-all-tasks-control-panel.yml
   - tweaks\qol\visual-effects.yml
   - tweaks\qol\disable-tips.yml
-  - tweaks\qol\disable-consumer-expierences.yml
   - tweaks\qol\set-hidden-settings-pages.yml
 
   # -------------------------------------------------------------------------- #
@@ -176,6 +175,7 @@ tasks:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\windows-update\disable-nagging.yml
   - tweaks\qol\windows-update\disable-insider.yml
+  - tweaks\qol\windows-update\disable-msrt-installation.yml
   - tweaks\qol\windows-update\disable-feature-updates.yml
   - tweaks\qol\windows-update\disable-auto-updates.yml
   - tweaks\qol\windows-update\disable-auto-reboot.yml
@@ -195,7 +195,6 @@ tasks:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\explorer\always-more-details-transfer.yml
   - tweaks\qol\explorer\disable-check-boxes.yml
-  - tweaks\qol\explorer\disable-folder-type-discovery.yml
   - tweaks\qol\explorer\disable-folders-this-pc.yml
   - tweaks\qol\explorer\disable-network-navigation-pane.yml
   - tweaks\qol\explorer\disable-sharing-wizard.yml
@@ -316,7 +315,6 @@ tasks:
   # storage space or convienience.
   # -----------------------------------------------------
   - tweaks\statuses\status-debloat.yml
-  # - tweaks\debloat\autologgers.yml
   - tweaks\debloat\config-content-delivery.yml
   - tweaks\debloat\disable-reserved-storage.yml
   - tweaks\debloat\legacy-photo-viewer.yml

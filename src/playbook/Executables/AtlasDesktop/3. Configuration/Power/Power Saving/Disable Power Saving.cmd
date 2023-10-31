@@ -58,9 +58,10 @@ powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b
 powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 17aaa29b-8b43-4b94-aafe-35f64daaf1ee 0
 :: Turn off display after - 0 seconds
 powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e 0
-:: Increase processor performance time check interval
+:: Processor performance time check interval - 200 miliseconds
 :: Reduces DPCs, can be set all the way to 5000ms for statically clocked systems
 powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 4d2b0152-7d5c-498b-88e2-34345392a2c5 200
+
 :: Sleep/Standby States - Disabled
 call "%windir%\AtlasDesktop\3. Configuration\Power\Standby States\Disable Standby States (default).cmd" /silent
 

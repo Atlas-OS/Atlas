@@ -17,7 +17,7 @@ actions:
   # Get current AppX packages to deprovision removed ones later
   - !powerShell:
     command: '(Get-AppxPackage).PackageFamilyName | Out-File "$env:windir\AtlasModules\AtlasPackagesOld.txt"'
-    wait: true
+    runas: currentUserElevated
 
   # Clipchamp
   - !appx: {name: '*Clipchamp*', type: family}
@@ -37,11 +37,6 @@ actions:
 
   # Mixed Reality
   - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
-
-  # Content Delivery Manager
-  # Installs unwanted content such as apps like Disney+ and advertisements
-  # Removed at a component level as well
-  - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
 
   # Dev Home
   - !appx: {name: '*Microsoft.Windows.DevHome*', type: family}
@@ -77,7 +72,7 @@ actions:
   - !appx: {name: '*Global.BackupBanner*', type: app, unregister: true}
   - !appx: {name: '*Global.IrisService*', type: app, unregister: true}
   - !appx: {name: '*Global.ValueBanner*', type: app, unregister: true}
-
+  
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File CLIENTCBS.ps1'
@@ -119,7 +114,7 @@ actions:
   # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
   - !powerShell:
     command: '$a = """$env:windir\AtlasModules\AtlasPackagesOld.txt"""; (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force }; Remove-Item $a -Force'
-    wait: true
+    runas: currentUserElevated
 
   # Clear caches of Start menu and more
   - !appx: {operation: clearCache, name: '*Client.CBS*'}

@@ -3,6 +3,8 @@ title: Disallow Telemetry and Data Collection
 description: Disallows telemetry and data collection to improve privacy
 privilege: TrustedInstaller
 actions:
+    # Stop DiagTrack service to add the changes
+  - !service: {name: 'DiagTrack', operation: stop}
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
     value: 'ShowedToastAtLevel'
@@ -23,3 +25,11 @@ actions:
     value: 'AllowTelemetry'
     data: '0'
     type: REG_DWORD
+  - !registryKey: 
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diagtrack-Listener'
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diagtrack-Listener'
+    value: 'Start'
+    data: '0'
+    type: REG_DWORD
+  - !cmd: {command: 'del "%ProgramData%\Microsoft\Diagnosis\ETLLogs\AutoLogger\DiagTrack*" "%ProgramData%\Microsoft\Diagnosis\ETLLogs\ShutdownLogger\DiagTrack*" > nul 2>&1'}
