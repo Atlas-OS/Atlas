@@ -292,6 +292,8 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-SmartScreen
+    target_arch: amd64
+    version: 38655.38527.65535.65535
     registry_keys:
         # Disable SmartScreen
       - key_name: >-
