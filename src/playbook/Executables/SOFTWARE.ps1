@@ -1,6 +1,7 @@
 param (
 	[switch]$Chrome,
-	[switch]$Brave
+	[switch]$Brave,
+	[switch]$Waterfox
 )
 
 # ----------------------------------------------------------------------------------------------------------- #
@@ -11,14 +12,6 @@ param (
 $tempDir = Join-Path -Path $env:TEMP -ChildPath $([System.IO.Path]::GetRandomFileName())
 New-Item $tempDir -ItemType Directory -Force | Out-Null
 Set-Location $tempDir
-
-# Chrome
-if ($Chrome) {
-	Write-Host "Installing Google Chrome..."
-	& curl.exe -LSs "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi" -o "$tempDir\chrome.msi"
-	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait 2>&1 | Out-Null
-	exit
-}
 
 # Brave
 if ($Brave) {
@@ -44,6 +37,23 @@ if ($Brave) {
 	Stop-Process -Name "brave" -Force -ErrorAction SilentlyContinue
 	exit
 }
+
+# Waterfox
+if ($Watefox) {
+	Write-Host "Installing Waterfox..."
+	& curl.exe -LSs "https://cdn1.waterfox.net/waterfox/releases/latest/windows" -o "$tempDir\watefox.exe"
+	Start-Process -FilePath "$tempDir\watefox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait 2>&1 | Out-Null
+	exit
+}
+
+# Chrome
+if ($Chrome) {
+	Write-Host "Installing Google Chrome..."
+	& curl.exe -LSs "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi" -o "$tempDir\chrome.msi"
+	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait 2>&1 | Out-Null
+	exit
+}
+
 
 ####################
 ##    Software    ##

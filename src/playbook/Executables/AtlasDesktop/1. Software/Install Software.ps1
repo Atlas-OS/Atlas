@@ -79,6 +79,9 @@ init_item "Ungoogled Chromium" "eloston.ungoogled-chromium"
 # https://winget.run/pkg/Mozilla/Firefox
 init_item "Mozilla Firefox" "Mozilla.Firefox"
 
+# https://winget.run/pkg/Waterfox/Waterfox
+init_item "Waterfox" "Waterfox.Waterfox"
+
 # https://winget.run/pkg/Brave/brave
 init_item "Brave Browser" "Brave.Brave"
 
