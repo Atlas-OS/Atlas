@@ -20,6 +20,10 @@ for /d %%a in ("%ProgramData%\Microsoft\Windows\SystemData\*") do (
 	)
 )
 
+:: set default lockscreen
+:: https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.ControlPanelDisplay::CPL_Personalization_ForceDefaultLockScreen
+reg add "HKLM\Software\Policies\Microsoft\Windows\Personalization" /v LockScreenImage /t REG_SZ /d "%windir%\AtlasModules\Wallpapers\lockscreen.png" /f
+
 exit /b
 
 :ALLUSERS
