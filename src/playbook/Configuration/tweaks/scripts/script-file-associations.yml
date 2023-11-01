@@ -14,8 +14,8 @@ actions:
     exeDir: true
   - !run:
     exe: 'FILEASSOC.cmd'
-    args: '"LibreWolf"'
-    option: 'browser-librewolf'
+    args: '"WaterFox"'
+    option: 'browser-waterfox'
     exeDir: true
   - !run:
     exe: 'FILEASSOC.cmd'

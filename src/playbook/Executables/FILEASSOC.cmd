@@ -21,12 +21,12 @@ set braveAssociations="Proto:https:BraveHTML"^
  ".pdf:BraveFile"^
  ".shtml:BraveHTML"
 
-set libreWolfAssociations="Proto:https:LibreWolfHTM"^
- "Proto:http:LibreWolfHTM"^
- ".htm:LibreWolfHTM"^
- ".html:LibreWolfHTM"^
- ".pdf:LibreWolfHTM"^
- ".shtml:LibreWolfHTM"
+set waterfoxAssociations="Proto:WaterfoxHTML-6F940AC27A98DD61"^
+ "Proto:http:WaterfoxHTML-6F940AC27A98DD61"^
+ ".htm:WaterfoxHTML-6F940AC27A98DD61"^
+ ".html:WaterfoxHTML-6F940AC27A98DD61"^
+ ".pdf:WaterfoxHTML-6F940AC27A98DD61"^
+ ".shtml:WaterfoxHTML-6F940AC27A98DD61"
 
 set chromeAssociations="Proto:https:ChromeHTML"^
  "Proto:http:ChromeHTML"^
@@ -38,7 +38,7 @@ set chromeAssociations="Proto:https:ChromeHTML"^
 if "%~1" == "" set "associations=%baseAssociations%"
 if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
 if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
-if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
+if "%~1" == "WaterFox" set "associations=%baseAssociations% %waterfoxAssociations%"
 if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 
 :: Set 7-Zip assocations
