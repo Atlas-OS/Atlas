@@ -138,10 +138,10 @@ $failedRemovalLink
 }
 
 function StartupTask ($RecoveryBroken, $SpaceFailure) {
-    $arguments = '-NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -NextStartup ' `
+    $arguments = '/c powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -NextStartup ' `
         + $(if ($RecoveryBroken) {'-RecoveryBroken'} elseif ($SpaceFailure) {"-SpaceFailure $spaceFailure"}) `
         + $(if ($PlaybookInstall) {'-PlaybookInstall'}) + '"'
-    $action = New-ScheduledTaskAction -Execute 'powershell' -Argument $arguments
+    $action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
     Register-ScheduledTask -TaskName $failCheck -Action $action @taskArgs | Out-Null
     if ($RecoveryBroken -or $SpaceFailure) { exit 1 }
 }
@@ -346,8 +346,8 @@ $failedRemovalLink
             if ($PlaybookInstall) {
                 New-Item $featureStatusIndicator -Force | Out-Null
             }
-            $action = New-ScheduledTaskAction -Execute 'powershell' `
-                    -Argument '-EP Unrestricted -WindowStyle Hidden -NP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
+            $action = New-ScheduledTaskAction -Execute 'cmd' `
+                    -Argument '/c powershell -EP Unrestricted -WindowStyle Hidden -NP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
             Register-ScheduledTask -TaskName $bitlockerTaskName -Action $action @taskArgs | Out-Null
         } else {
             if (!$? -and $PlaybookInstall) {
