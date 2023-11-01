@@ -32,7 +32,7 @@ if ($Brave) {
 		} else {
 			Remove-Item "$tempDir" -ErrorAction SilentlyContinue -Force -Recurse
 		}
-	} until (!$processesFound)
+	} while ($processesFound)
 
 	Stop-Process -Name "brave" -Force -ErrorAction SilentlyContinue
 	exit
