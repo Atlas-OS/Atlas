@@ -23,22 +23,21 @@ Do
             If Not bHTARunning Then
                 objShell.Run "mshta " & strHTAPath
             End If
-
-            WScript.Sleep 3000
+            
+            If objFSO.FileExists(systemDrive & "\atlas\FocusMSHTA") Then
+                objShell.AppActivate("Atlas Component Removal")
+                WScript.Sleep 500
+            Else
+                WScript.Sleep 3000
+            End If
         Loop
     ElseIf objFSO.FileExists(systemDrive & "\AtlasNormalWindowsRecovery") Then
-        objShell.Run systemDrive & "\sources\recovery\RecEnv.exe", 1
-        Do
-            WScript.Sleep 999999999
-        Loop
+        WScript.Quit
     End If
     
     WScript.Sleep 1000
     packagesCheck = packagesCheck + 1
     If packagesCheck >= 8 Then
-        objShell.Run systemDrive & "\sources\recovery\RecEnv.exe", 1
-        Do
-            WScript.Sleep 999999999
-        Loop
+        WScript.Quit
     End If
 Loop

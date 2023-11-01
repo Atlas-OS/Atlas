@@ -18,25 +18,24 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 
     echo INFO: Setting variables...
 
+    set "sourceDriveCommand=reg query "HKLM\SOFTWARE\Microsoft\RecoveryEnvironment" /v "SourceDrive""
+    set "associatedOSDriveLetterCommand=reg query "HKLM\SOFTWARE\Microsoft\RecoveryEnvironment" /v "AssociatedOSDriveLetter""
+
     :: Make Windows Recovery Registry key for variables
     :: Also would mount the WinRE partition
     start /min %SystemDrive%\sources\recovery\RecEnv.exe
     :recEnvGetKey
-    reg query HKLM\SOFTWARE\Microsoft\RecoveryEnvironment > nul 2>&1
-    if %errorlevel% NEQ 0 goto recEnvGetKey
-    echo INFO: Killing RecEnv...
-    wmic process where "name='RecEnv.exe'" call terminate > nul
-
+    %sourceDriveCommand% > nul 2>&1 || goto recEnvGetKey
+    %associatedOSDriveLetterCommand% > nul 2>&1 || goto recEnvGetKey
     :: Set drive letters
-    for /f "usebackq tokens=3 delims=\ " %%a in (`reg query "HKLM\SOFTWARE\Microsoft\RecoveryEnvironment" /v "SourceDrive"`) do (
+    for /f "usebackq tokens=3 delims=\ " %%a in (`%sourceDriveCommand%`) do (
         set "recoveryDrive=%%a"
     )
-    for /f "usebackq tokens=3 delims=\ " %%a in (`reg query "HKLM\SOFTWARE\Microsoft\RecoveryEnvironment" /v "AssociatedOSDriveLetter"`) do (
+    for /f "usebackq tokens=3 delims=\ " %%a in (`%associatedOSDriveLetterCommand%`) do (
         set "targetDrive=%%a"
     )
-    
     :: Notify VBS on what to do
-    set "bitlockerKeyPath=%recoveryDrive%\bitlockerAtlas.txt"
+    set "focusPath=%currentDirectory%\FocusMSHTA"
     if exist "%recoveryDrive%\AtlasComponentPackageInstallation" (
         echo] > "%systemdrive%\AtlasComponentPackageInstallation"
         del /f /q "%recoveryDrive%\AtlasComponentPackageInstallation"
@@ -45,6 +44,11 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
         call :deleteBitlockerInfo
         exit
     )
+    :: Allow enough time for RecEnv to properly initialize
+    %wait% 7000
+    del /f /q "%focusPath%"
+    echo INFO: Killing RecEnv...
+    wmic process where "name='RecEnv.exe'" call terminate > nul
 
     :: BitLocker
     if exist "%targetDrive%\Windows" goto afterBitLocker
@@ -84,7 +88,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     )
 
     echo INFO: Starting debug console...
-    start /i /d "%targetDrive%\Windows" /min "Atlas Debug Console" cmd /k %currentDirectory%debug.cmd "%logPath%" "%dontRestartPath%"
+    start /i /d "%targetDrive%\Windows" /min "Atlas Debug Console" cmd /k %currentDirectory%debug.cmd "%logPath%" "%dontRestartPath%" "%focusPath%"
 
 :: -------------------------------------------------------------------------------------------------------- ::
 :: Start looping through packages                                                                           ::
@@ -175,7 +179,8 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     exit /b
 
     :deleteBitlockerInfo
-    set "bitlockerKey=nu-uh" & del /f /q "%bitlockerKeyPath%"
+    set "bitlockerKey=nu-uh"
+    del /f /q "%recoveryDrive%\bitlockerAtlas.txt" > nul 2>&1
     exit /b
 
     :strlen [strVar] [rtnVar]

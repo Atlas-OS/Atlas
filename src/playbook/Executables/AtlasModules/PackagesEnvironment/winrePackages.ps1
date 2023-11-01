@@ -398,6 +398,10 @@ $failedRemovalLink
 [LaunchApps]
 %WINDIR%\System32\wscript.exe, %SYSTEMDRIVE%\atlas\startup.vbs //B
 "@)
+    # [IO.File]::WriteAllLines("$atlasWinreWim\Windows\System32\winpeshl.ini", @"
+# [LaunchApps]
+# %WINDIR%\System32\cmd.exe
+# "@)
 
     # Copy Atlas Package Installation Environment items
     Write-Warning 'Creating package list and copying files...'

@@ -58,18 +58,12 @@ actions:
     weight: 150
     option: 'browser-brave'
 
-  - !writeStatus: {status: 'Installing LibreWolf', option: 'browser-librewolf'}
+  - !writeStatus: {status: 'Installing Waterfox', option: 'browser-waterfox'}
   - !run:
     exe: 'powershell.exe'
-    args: '-NoP -File LIBREWOLF.ps1'
+    args: '-NoP -File "SOFTWARE.ps1" -Waterfox'
     exeDir: true
     weight: 150
-    option: 'librewolf-winupdater'
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "LIBREWOLF.ps1" -NoUpdater'
-    exeDir: true
-    weight: 150
-    option: 'librewolf-winget'
+    option: 'browser-waterfox'
 
   ################ END NO LOCAL BUILD ################
