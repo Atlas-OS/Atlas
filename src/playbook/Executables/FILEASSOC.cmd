@@ -1,7 +1,6 @@
 @echo off
 
-set baseAssociations=".bmp:PhotoViewer.FileAssoc.Tiff"^
- ".dib:PhotoViewer.FileAssoc.Tiff"^
+set baseAssociations=".dib:PhotoViewer.FileAssoc.Tiff"^
  ".jfif:PhotoViewer.FileAssoc.Tiff"^
  ".jpe:PhotoViewer.FileAssoc.Tiff"^
  ".jpeg:PhotoViewer.FileAssoc.Tiff"^
