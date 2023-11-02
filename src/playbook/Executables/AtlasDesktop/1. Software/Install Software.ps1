@@ -1,9 +1,3 @@
-function PauseNul ($message = "Press any key to exit... ") {
-	Write-Host $message -NoNewLine
-	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
-    exit
-}
-
 & "$env:windir\AtlasModules\Scripts\wingetCheck.cmd"
 if ($LASTEXITCODE -ne '0') {exit 1}
 
