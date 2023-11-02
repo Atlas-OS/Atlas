@@ -15,10 +15,6 @@ tasks:
 
   # ----------------------- END NOTES ----------------------- #
 
-  # NGEN - PowerShell optimization
-  - tweaks\statuses\status-ngen.yml
-  - tweaks\scripts\script-ngen.yml
-
   # -----------------------------------------------------
   #                      Networking
   # -----------------------------------------------------

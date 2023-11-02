@@ -5,6 +5,9 @@ privilege: TrustedInstaller
 actions: []
 tasks:
   # Configure PowerShell first so that other PowerShell scripts work
+  # NGEN - PowerShell optimization
+  - tweaks\statuses\status-ngen.yml
+  - tweaks\scripts\script-ngen.yml
   - tweaks\qol\config-powershell.yml
   - atlas\start.yml
   - atlas\services.yml
