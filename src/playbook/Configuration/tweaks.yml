@@ -255,11 +255,11 @@ tasks:
   - tweaks\qol\shell\disable-low-disk-warning.yml
   - tweaks\qol\shell\disable-menu-delay.yml
   - tweaks\qol\shell\disable-network-location-wizard.yml
-  - tweaks\qol\shell\disable-shared-experiences.yml
   - tweaks\qol\shell\set-unpinned-notification-items.yml
   - tweaks\qol\shell\restore-old-context-menu.yml
   - tweaks\qol\shell\show-more-pins.yml
   - tweaks\qol\shell\no-recommendations-start-menu.yml
+  - tweaks\qol\shell\disable-nearby-sharing.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\startup-shutdown                                                      #
