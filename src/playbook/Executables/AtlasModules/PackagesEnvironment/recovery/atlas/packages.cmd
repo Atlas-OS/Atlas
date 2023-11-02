@@ -76,7 +76,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 
     :: Set log file
     echo INFO: Setting log file...
-    if not exist "%atlasLogDirectory%" mkdir "%atlasLogDirectory%" & echo Made Atlas log directory...
+    if not exist "%atlasLogDirectory%" mkdir "%atlasLogDirectory%" & echo INFO: Made Atlas log directory...
     for /f "skip=1" %%a in ('wmic os get localdatetime') do if not defined unformattedDate set unformattedDate=%%a
     set formattedDate=%unformattedDate:~6,2%-%unformattedDate:~4,2%-%unformattedDate:~0,4%
     :makeLogDirectoryAndFile
@@ -94,9 +94,11 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 :: Start looping through packages                                                                           ::
 :: -------------------------------------------------------------------------------------------------------- ::
 
-    for /f "usebackq" %%a in (`type "%packagesList%" ^| find "" /v /c`) do set packageCount=%%a
-    %log% "INFO: Installing %packageCount% packages from %packagesList%..."
-    set /a percentageSteps=100/%packageCount%
+    for /f "usebackq" %%a in (`type "%packagesList%" ^| find "" /v /c`) do set totalCount=%%a
+    for /f "usebackq" %%a in (`type "%packagesList%" ^| find ".cab" ^| find "" /v /c`) do set packageCount=%%a
+    for /f "usebackq" %%a in (`type "%packagesList%" ^| find "disableFeature" ^| find "" /v /c`) do set disableFeatureCount=%%a
+    %log% "INFO: Installing %totalCount% packages from %packagesList%..."
+    set /a percentageSteps=100/%totalCount%
     for /f "tokens=* delims=" %%a in (%packagesList%) do (
         %addPackage% "%%a"
     )
@@ -114,7 +116,8 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 
     %wait% 6000
     if not exist "%dontRestartPath%" wpeutil reboot
-    exit
+    :infinitePause
+    pause & goto infinitePause
 
 :: ======================================================================================================================= ::
 :: FUNCTIONS                                                                                                               ::
@@ -123,10 +126,21 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 
     :addPackage [packagePath]
     echo]
-    set /a packageNum += 1
     set /a halfWayPercentage = %percentage% + ( %percentageSteps% / 2 )
-    
     set "dismCurrentLog=%systemDrive%\dismTemp%random%.txt"
+
+    :: check if it's a disabled feature
+    echo "%~1" | find "disableFeature" || goto makePackageCommand
+    set /a disableFeatureNum += 1
+    set "currentLine=%~1"
+    set "featureName=%currentLine:disableFeature =%"
+    set "dismCommand=dism /image:%targetDrive%\ /disable-feature /featurename:%featureName% /logpath:"%dismCurrentLog%""
+    set "message=Configuring feature %disableFeatureNum%"
+    goto runDismCommand
+
+    :makePackageCommand
+    :: check for either DISM cleanup or package addition
+    set /a packageNum += 1
     if "%~1"=="dismCleanup" (
         set "dismCommand=dism /image:%targetDrive%\ /cleanup-image /startcomponentcleanup /logpath:"%dismCurrentLog%""
         set "message=Cleaning up"
@@ -134,6 +148,8 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
         set "dismCommand=dism /image:%targetDrive%\ /add-package:"%targetDrive%\%~1" /logpath:"%dismCurrentLog%""
         set "message=Adding package %packageNum%"
     )
+
+    :runDismCommand
     %setInfo% "%message%" "%halfWayPercentage%"
     %log% "%dismCommand%"
 

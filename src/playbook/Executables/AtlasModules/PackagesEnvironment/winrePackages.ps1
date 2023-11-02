@@ -9,6 +9,17 @@ param (
     [switch]$PlaybookInstall
 )
 
+# Task Scheduler is needed for this script to function correctly
+if ((Get-Service -Name 'Schedule' -EA SilentlyContinue).Status -ne 'Running') {
+    Set-Service -Name 'Schedule' -StartupType Automatic
+    Start-Service -Name 'Schedule'
+}
+
+if ($NextStartup -or $DeleteBitLockerPassword) {
+    $host.UI.RawUI.WindowTitle = "Finalizing installation - Atlas"
+    Write-Host "Do not close this window, Atlas is finalizing installation." -ForegroundColor Yellow
+}
+
 function Test-PathOrCommand {
     param (
         [string]$Path,
@@ -62,14 +73,10 @@ $taskArgs = @{
 
 # Misc
 $packageListPath = "$env:windir\AtlasModules\packagesToInstall"
+$win10 = [System.Environment]::OSVersion.Version.Build -lt 22000
 $failurePath = "$env:windir\System32\AtlasPackagesFailure"
 # https://ss64.com/vb/popup.html
 $sh = New-Object -ComObject "Wscript.Shell"
-$featureStatusIndicator = "$env:windir\AtlasModules\AtlasHaventUpdatedFeaturesYet"
-if ($DeleteBitLockerPassword -and (Test-Path $featureStatusIndicator)) {
-    Remove-Item $featureStatusIndicator -Force -EA SilentlyContinue
-    exit
-}
 
 # Docs links and messages
 $failedRemovalLink = 'https://docs.atlasos.net/faq-and-troubleshooting/failed-component-removal'
@@ -85,6 +92,7 @@ $failedRemovalLink
 # ======================================================================================================================= #
 function MakePackageList {
     $packageList = (Get-ChildItem "$env:windir\AtlasModules\Packages\*.cab").FullName -replace "$env:systemdrive\\", ''
+
     if ($DefenderOnly) {
         Write-Warning "Making package list only with Defender...."
         $packageList = $packageList | Where-Object { $_ -like '*NoDefender*' }
@@ -94,11 +102,34 @@ function MakePackageList {
     } else {
         Write-Warning "Making package list with everything...."
     }
+
+    if ($PlaybookInstall) {
+        $featuresToDisable = @(
+            'MicrosoftWindowsPowerShellV2',
+            'MicrosoftWindowsPowerShellV2Root',
+            'Printing-Foundation-Features',
+            'Printing-Foundation-InternetPrinting-Client',
+            'Printing-XPSServices-Features',
+            'Printing-PrintToPDFServices-Features'
+        ); if ($win10) {
+            $featuresToDisable += 'Internet-Explorer-Optional-amd64'
+        }
+
+        if ($packageList.GetType().IsArray) {
+            $packageList += "disableFeature `"$($featuresToDisable[0])`""
+        } else {
+            $packageList = @($packageList, "disableFeature `"$($featuresToDisable[0])`"")
+        }; $featuresToDisable = $featuresToDisable | Select-Object -Skip 1
+
+        foreach ($feature in $featuresToDisable) { $packageList += "disableFeature `"$feature`"" }
+    }
+
     if ($packageList.GetType().IsArray) {
         $packageList += 'dismCleanup'
     } else {
         $packageList = @($packageList, 'dismCleanup')
     }
+
     [IO.File]::WriteAllLines($packageListPath, $packageList)
 }
 
@@ -138,7 +169,8 @@ $failedRemovalLink
 }
 
 function StartupTask ($RecoveryBroken, $SpaceFailure) {
-    $arguments = '/c powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -NextStartup ' `
+    $arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & ' `
+        + 'powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -NextStartup ' `
         + $(if ($RecoveryBroken) {'-RecoveryBroken'} elseif ($SpaceFailure) {"-SpaceFailure $spaceFailure"}) `
         + $(if ($PlaybookInstall) {'-PlaybookInstall'}) + '"'
     $action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
@@ -156,54 +188,17 @@ if ($NextStartup) {
     }
 
     if ($PlaybookInstall) {
-        Start-Job -Name FinalizingPopup -ScriptBlock {
-            (New-Object -ComObject "Wscript.Shell").Popup(`
-            @'
-Atlas is finalizing the installation by enabling and disabling Windows features. Once completed, your computer will automatically restart.
+        Start-Job -ScriptBlock {
+            # Enable DirectPlay for compatibility
+            Enable-WindowsOptionalFeature -Online -FeatureName "DirectPlay" -All -NoRestart
 
-This should take 2-15 minutes depending on your internet connection and computer speed.
-
-Don't use your computer until it's completed.
-'@,0,'Finalizing Installation - Atlas',0+64)
+            # Pin 'Videos' and 'Music' folders to Quick Acesss
+            if ($win10) {
+                $o = new-object -com shell.application
+                $o.Namespace("$env:USERPROFILE\Videos").Self.InvokeVerb('pintohome')
+                $o.Namespace("$env:USERPROFILE\Music").Self.InvokeVerb('pintohome')
+            }
         }
-        # Kill Explorer process
-        taskkill.exe /f /im explorer.exe
-
-        # Pin 'Videos' and 'Music' folders to Quick Acesss
-        if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
-            $o = new-object -com shell.application
-            $o.Namespace("$env:USERPROFILE\Videos").Self.InvokeVerb('pintohome')
-            $o.Namespace("$env:USERPROFILE\Music").Self.InvokeVerb('pintohome')
-        }
-
-        # Disable legacy software for security reasons and them mostly being bloat
-        if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
-            Disable-WindowsOptionalFeature -Online -FeatureName "Internet-Explorer-Optional-amd64" -NoRestart
-        }
-        Disable-WindowsOptionalFeature -Online -FeatureName "MicrosoftWindowsPowerShellV2" -NoRestart
-        Disable-WindowsOptionalFeature -Online -FeatureName "MicrosoftWindowsPowerShellV2Root" -NoRestart
-
-        # Disable printing features
-        Disable-WindowsOptionalFeature -Online -FeatureName "Printing-Foundation-Features" -NoRestart
-        Disable-WindowsOptionalFeature -Online -FeatureName "Printing-Foundation-InternetPrinting-Client" -NoRestart
-        Disable-WindowsOptionalFeature -Online -FeatureName "Printing-XPSServices-Features" -NoRestart
-
-        # Enable DirectPlay for compatibility
-        Enable-WindowsOptionalFeature -Online -FeatureName "DirectPlay" -All -NoRestart
-
-        # Indiciate to the BitLocker section that it should be ran 
-        Remove-Item $featureStatusIndicator -Force -EA SilentlyContinue
-
-        $PlaybookInstall = $false
-        if ($RecoveryBroken) {
-            StartupTask $true
-        } elseif ($SpaceFailure) {
-            StartupTask $false $true
-        } else {
-            StartupTask
-        }
-        Restart-Computer
-        exit
     }
 
     if ((Test-Path $failurePath) -or $RecoveryBroken) {
@@ -351,9 +346,6 @@ $failedRemovalLink
         if ($recoveryPartition) {
             Write-Warning 'Writing BitLocker key to WinRE partition...'
             [IO.File]::WriteAllLines($bitlockerRecoveryKeyTxt, $bitlockerRecoveryKey)
-            if ($PlaybookInstall) {
-                New-Item $featureStatusIndicator -Force | Out-Null
-            }
             $action = New-ScheduledTaskAction -Execute 'cmd' `
                     -Argument '/c powershell -EP Unrestricted -WindowStyle Hidden -NoP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
             Register-ScheduledTask -TaskName $bitlockerTaskName -Action $action @taskArgs | Out-Null
@@ -406,7 +398,7 @@ $failedRemovalLink
 [LaunchApps]
 %WINDIR%\System32\wscript.exe, %SYSTEMDRIVE%\atlas\startup.vbs //B
 "@)
-    # [IO.File]::WriteAllLines("$atlasWinreWim\Windows\System32\winpeshl.ini", @"
+#     [IO.File]::WriteAllLines("$atlasWinreWim\Windows\System32\winpeshl.ini", @"
 # [LaunchApps]
 # %WINDIR%\System32\cmd.exe
 # "@)
