@@ -28,7 +28,7 @@ tasks:
   - tweaks\networking\disable-smart-name-resolution.yml
   - tweaks\networking\config-netsh.yml
   - tweaks\networking\disable-network-power-saving.yml
-  - tweaks\networking\conf-packet-sched-timer-res.yml
+  - tweaks\networking\config-packet-sched-timer-res.yml
 
   # -------------------------------------------------------------------------- #
   #  networking\shares                                                         #
