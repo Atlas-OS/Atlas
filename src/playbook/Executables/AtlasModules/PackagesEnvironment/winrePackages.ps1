@@ -163,9 +163,11 @@ Atlas is finalizing the installation by enabling and disabling Windows features.
 
 This should take 2-15 minutes depending on your internet connection and computer speed.
 
-Ideally don't use your computer until it's completed.
+Don't use your computer until it's completed.
 '@,0,'Finalizing Installation - Atlas',0+64)
         }
+        # Kill Explorer process
+        taskkill.exe /f /im explorer.exe
 
         # Disable legacy software for security reasons and them mostly being bloat
         if ([System.Environment]::OSVersion.Version.Build -lt 20000) {
