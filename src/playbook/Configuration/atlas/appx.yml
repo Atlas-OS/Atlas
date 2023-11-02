@@ -58,7 +58,12 @@ actions:
   - !appx: {name: '*Microsoft.MSPaint*', type: family}
 
   # Widgets
+  # Uninstallation seems to fail with AME Wizard sometimes
+  - !taskKill: {name: '*widgets*', ignoreErrors: true}
   - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
+  - !powerShell:
+    command: 'Get-AppxPackage *Client.WebExperience* -AllUsers | Remove-AppxPackage -AllUsers'
+    runas: currentUserElevated
 
   # Get Started
   - !appx: {name: '*Microsoft.Getstarted*', type: family}
