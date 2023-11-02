@@ -63,7 +63,7 @@ powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 3c
 powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 4d2b0152-7d5c-498b-88e2-34345392a2c5 200
 
 :: Sleep/Standby States - Disabled
-call "%windir%\AtlasDesktop\3. Configuration\Power\Standby States\Disable Standby States (default).cmd" /silent
+call "%windir%\AtlasDesktop\3. Configuration\Power\Sleep\Disable Sleep (default).cmd" /silent
 
 :: Set the active scheme as the current scheme
 powercfg /setactive scheme_current

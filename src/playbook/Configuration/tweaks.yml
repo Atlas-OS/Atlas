@@ -28,16 +28,16 @@ tasks:
   # Network Bandwidth is not limited in Windows
   # - tweaks\networking\disable-reserved-bandwidth.yml
   - tweaks\networking\disable-smart-name-resolution.yml
-  - tweaks\networking\netsh.yml
-  - tweaks\networking\network-power-saving.yml
-  - tweaks\networking\packet-sched-timer-res.yml
+  - tweaks\networking\config-netsh.yml
+  - tweaks\networking\disable-network-power-saving.yml
+  - tweaks\networking\conf-packet-sched-timer-res.yml
 
   # -------------------------------------------------------------------------- #
   #  networking\shares                                                         #
   # -------------------------------------------------------------------------- #
   - tweaks\networking\shares\restrict-anonymous-access.yml
   - tweaks\networking\shares\restrict-anonymous-enumeration.yml
-  - tweaks\networking\shares\smb-bandwidth-throttling.yml
+  - tweaks\networking\shares\disable-smb-bandwidth-throttling.yml
 
   # -----------------------------------------------------
   #                      Performance
@@ -48,15 +48,10 @@ tasks:
   # responsiveness, latency, etc.
   # -----------------------------------------------------
   - tweaks\statuses\status-performance.yml
-  # Placebo, mostly protects old vulnerable default Windows processes
-  # Clearing could cause potential issues and only worsens security with no gains
-  # - tweaks\performance\clear-ifeo.yml
   - tweaks\performance\config-mmcss.yml
   - tweaks\performance\disable-game-bar.yml
   - tweaks\performance\disable-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
-  - tweaks\performance\extend-cache.yml
-  - tweaks\performance\no-search-invalid-shortcuts.yml
   - tweaks\performance\disable-fth.yml
   - tweaks\performance\disable-sleep-study.yml
 
@@ -64,9 +59,9 @@ tasks:
   #  performance\system                                                        #
   # -------------------------------------------------------------------------- #
   - tweaks\performance\system\config-boot-config.yml
-  - tweaks\performance\system\config-paging.yml
+  - tweaks\performance\system\disable-paging.yml
   - tweaks\performance\system\optimize-ntfs.yml
-  - tweaks\performance\system\service-host-split.yml
+  - tweaks\performance\system\disable-service-host-split.yml
   - tweaks\performance\system\win32-priority-seperation.yml
 
   # -----------------------------------------------------
@@ -191,6 +186,7 @@ tasks:
   #  qol\explorer                                                              #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\explorer\always-more-details-transfer.yml
+  - tweaks\qol\explorer\disable-invalid-shortcuts-search.yml
   - tweaks\qol\explorer\disable-check-boxes.yml
   - tweaks\qol\explorer\disable-folders-this-pc.yml
   - tweaks\qol\explorer\disable-network-navigation-pane.yml
@@ -198,6 +194,7 @@ tasks:
   - tweaks\qol\explorer\full-context-on-more-than-15-items.yml
   - tweaks\qol\explorer\hide-frequently-used-items.yml
   - tweaks\qol\explorer\import-power-plan.yml
+  - tweaks\qol\explorer\extend-cache.yml
   - tweaks\qol\explorer\minimize-mouse-hover-time.yml
   - tweaks\qol\explorer\no-internet-open-with.yml
   - tweaks\qol\explorer\open-to-this-pc.yml
@@ -314,8 +311,7 @@ tasks:
   - tweaks\statuses\status-debloat.yml
   - tweaks\debloat\config-content-delivery.yml
   - tweaks\debloat\disable-reserved-storage.yml
-  - tweaks\debloat\legacy-photo-viewer.yml
-  - tweaks\debloat\scheduled-tasks.yml
+  - tweaks\debloat\disable-scheduled-tasks.yml
   - tweaks\debloat\hide-unused-security-pages.yml
   - tweaks\debloat\config-storage-sense.yml
 
@@ -351,9 +347,8 @@ tasks:
   - tweaks\statuses\status-misc.yml
   - tweaks\misc\config-time.yml
   - tweaks\misc\disable-game-mode.yml
-  - tweaks\misc\fix-no-downloads-bug.yml
-  - tweaks\misc\oem-information.yml
+  - tweaks\misc\config-oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
   - tweaks\misc\restore-default-sleep-timeout.yml
-  - tweaks\misc\make-shortcuts.yml
+  - tweaks\misc\create-shortcuts.yml
   - tweaks\misc\delete-version-specific-files.yml
