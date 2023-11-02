@@ -35,9 +35,8 @@ This script will remove or add the package that removes telemetry components in 
 Enabling telemetry will damage user privacy, but also is a more supported configuration of Windows.
 
 Your computer will auto-restart if you disable it.`n
-"@ -ForegroundColor Yellow
+"@ -ForegroundColor Blue
 
-	Write-Host ""
 	Write-Host "1) Disable telemetry components $TelemetryDisabled" -ForegroundColor $ColourDisable
 	Write-Host "2) Enable telemetry components $TelemetryEnabled`n" -ForegroundColor $ColourEnable
 
