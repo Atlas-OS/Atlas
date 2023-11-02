@@ -350,7 +350,7 @@ $failedRemovalLink
                 New-Item $featureStatusIndicator -Force | Out-Null
             }
             $action = New-ScheduledTaskAction -Execute 'cmd' `
-                    -Argument '/c powershell -EP Unrestricted -WindowStyle Hidden -NP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
+                    -Argument '/c powershell -EP Unrestricted -WindowStyle Hidden -NoP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
             Register-ScheduledTask -TaskName $bitlockerTaskName -Action $action @taskArgs | Out-Null
         } else {
             if (!$? -and $PlaybookInstall) {
