@@ -181,7 +181,8 @@ Ideally don't use your computer until it's completed.
 
         # Enable features for compatibility
         Enable-WindowsOptionalFeature -Online -FeatureName "DirectPlay" -All -NoRestart
-        Enable-WindowsOptionalFeature -Online -FeatureName "NetFx3" -All -NoRestart
+        # Takes too long - also prompted to install if needed
+        # Enable-WindowsOptionalFeature -Online -FeatureName "NetFx3" -All -NoRestart
 
         # Indiciate to the BitLocker section that it should be ran 
         Remove-Item $featureStatusIndicator -Force -EA SilentlyContinue

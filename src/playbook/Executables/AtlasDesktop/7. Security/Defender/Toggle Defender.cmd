@@ -72,7 +72,7 @@ function Menu {
 		2 {
 			if ($DefenderEnabled) {Menu}
 			Clear-Host
-			Write-Host "Enabling Defender...`n" -ForegroundColor Yellow
+			Write-Host "Enabling Defender..." -ForegroundColor Yellow
 			foreach ($package in $packages) {
 				try {
 					Remove-WindowsPackage -Online -PackageName $package -NoRestart -LogLevel 1 *>$null

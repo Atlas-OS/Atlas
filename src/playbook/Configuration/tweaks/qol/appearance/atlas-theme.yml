@@ -9,8 +9,21 @@ actions:
     exeDir: true
     wait: true
 
+    # Set lockscreen
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -EP Unrestricted & "LOCKSCREEN.ps1"'
+    exeDir: true
+    runas: currentUserElevated
   - !taskKill: {name: 'SystemSettings'}
   - !taskKill: {name: 'control'}
+
+    # Disable fun facts, tips, tricks, and more on lockscreen
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
+    value: 'LockScreenOverlaysDisabled'
+    data: '1'
+    type: REG_DWORD
 
     # Windows theme
   - !registryValue:
