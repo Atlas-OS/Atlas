@@ -14,12 +14,12 @@ set baseAssociations=".bmp:PhotoViewer.FileAssoc.Tiff"^
  ".url:IE.AssocFile.URL"^
  ".ps1:Microsoft.PowerShellScript.1"
 
-set braveAssociations="Proto:https:BraveHTML.UZT2QGHETLKRJA33LZSSUGR6VU"^
- "Proto:http:BraveHTML.UZT2QGHETLKRJA33LZSSUGR6VU"^
- ".htm:BraveHTML.UZT2QGHETLKRJA33LZSSUGR6VU"^
- ".html:BraveHTML.UZT2QGHETLKRJA33LZSSUGR6VU"^
+set braveAssociations="Proto:https:BraveHTML"^
+ "Proto:http:BraveHTML"^
+ ".htm:BraveHTML"^
+ ".html:BraveHTML"^
  ".pdf:BraveFile"^
- ".shtml:BraveHTML.UZT2QGHETLKRJA33LZSSUGR6VU"
+ ".shtml:BraveHTML"
 
 set waterfoxAssociations="Proto:https:WaterfoxURL-6F940AC27A98DD61"^
  "Proto:http:WaterfoxURL-6F940AC27A98DD61"^
