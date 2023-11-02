@@ -169,8 +169,15 @@ Don't use your computer until it's completed.
         # Kill Explorer process
         taskkill.exe /f /im explorer.exe
 
+        # Pin 'Videos' and 'Music' folders to Quick Acesss
+        if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
+            $o = new-object -com shell.application
+            $o.Namespace("$env:USERPROFILE\Videos").Self.InvokeVerb('pintohome')
+            $o.Namespace("$env:USERPROFILE\Music").Self.InvokeVerb('pintohome')
+        }
+
         # Disable legacy software for security reasons and them mostly being bloat
-        if ([System.Environment]::OSVersion.Version.Build -lt 20000) {
+        if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
             Disable-WindowsOptionalFeature -Online -FeatureName "Internet-Explorer-Optional-amd64" -NoRestart
         }
         Disable-WindowsOptionalFeature -Online -FeatureName "MicrosoftWindowsPowerShellV2" -NoRestart
@@ -181,10 +188,8 @@ Don't use your computer until it's completed.
         Disable-WindowsOptionalFeature -Online -FeatureName "Printing-Foundation-InternetPrinting-Client" -NoRestart
         Disable-WindowsOptionalFeature -Online -FeatureName "Printing-XPSServices-Features" -NoRestart
 
-        # Enable features for compatibility
+        # Enable DirectPlay for compatibility
         Enable-WindowsOptionalFeature -Online -FeatureName "DirectPlay" -All -NoRestart
-        # Takes too long - also prompted to install if needed
-        # Enable-WindowsOptionalFeature -Online -FeatureName "NetFx3" -All -NoRestart
 
         # Indiciate to the BitLocker section that it should be ran 
         Remove-Item $featureStatusIndicator -Force -EA SilentlyContinue

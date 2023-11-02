@@ -202,7 +202,6 @@ tasks:
   - tweaks\qol\explorer\remove-previous-versions.yml
   - tweaks\qol\explorer\remove-shortcut-text.yml
   - tweaks\qol\explorer\show-files.yml
-  - tweaks\qol\explorer\add-music-vids-to-home.yml
   - tweaks\qol\explorer\classic-search.yml
   - tweaks\qol\explorer\dont-show-office-files.yml
   - tweaks\qol\explorer\use-compact-mode.yml
