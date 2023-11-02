@@ -31,23 +31,14 @@ param (
 	[switch]$KeepAppX
 )
 
+$version = '1.6'
+$host.UI.RawUI.WindowTitle = "EdgeRemover $version"
+
 # credit to ave9858 for Edge removal method: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6
-# credit to aveyo for setting up variables: https://github.com/AveYo/fox/blob/main/Edge_Removal.bat
 $ProgressPreference = "SilentlyContinue"
-
-# configure environemnt
-function sp_test_path { if (test-path $args[0]) {Microsoft.PowerShell.Management\Set-ItemProperty @args} else {
-  Microsoft.PowerShell.Management\New-Item $args[0] -force -ea 0 >''; Microsoft.PowerShell.Management\Set-ItemProperty @args} }
-foreach ($f in 'sp') {set-alias -Name $f -Value "${f}_test_path" -Scope Local -Option AllScope -force -ea 0}
-
-$UID = '{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}'
-$SOFTWARE = 'SOFTWARE', 'SOFTWARE\WOW6432Node'
-$hives = $SOFTWARE | ForEach-Object { "HKCU:\$_", "HKCU:\$($_)\Policies", "HKLM:\$_", "HKLM:\$($_)\Policies" }
 $user = $env:USERNAME
 $SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
-
-$services = (Get-Service -Name "*edge*").Name
-$processes = (Get-Process | Where-Object {($_.Path -like "$env:SystemDrive\Program Files (x86)\Microsoft\*") -or ($_.Name -like "*edge*")}).Id
+$EdgeRemoverReg = 'HKLM:\SOFTWARE\EdgeRemover'
 
 if ($Exit -and ((-not $UninstallAll) -and (-not $UninstallEdge))) {
     $Exit = $false
@@ -58,38 +49,76 @@ function PauseNul ($message = "Press any key to continue... ") {
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
 }
 
+function BlockEdgeInstallandUpdates {
+	# lots of these will only apply when domain joined and such
+	# further research is needed generally
+	# https://learn.microsoft.com/en-us/deployedge/microsoft-edge-update-policies
+
+	$EdgeInstallUID = '{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}'
+	$WebViewInstallUID = '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+	$EdgeUpdatePolicyKey = 'HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate'
+
+	# clear key
+	Remove-Item -Path $EdgeUpdatePolicyKey -Recurse -Force -EA SilentlyContinue
+	New-Item -Path $EdgeUpdatePolicyKey -Force | Out-Null
+
+	if ($removeEdge) {
+		# set misc options
+		Set-ItemProperty -Path $EdgeUpdatePolicyKey -Name 'CreateDesktopShortcutDefault' -Value 0 -Type Dword -Force
+
+		# block Edge install/update
+		Set-ItemProperty -Path $EdgeUpdatePolicyKey -Name "Install$EdgeInstallUID" -Value 0 -Type Dword -Force
+	}
+
+	$completeBlockPolicies = @{
+		# block Edge updates
+		"Update$EdgeInstallUID" = 2
+
+		# block WebView install/update
+		"Install$WebViewInstallUID" = 0
+		"Update$WebViewInstallUID" = 2
+
+		# block update checks
+		"AutoUpdateCheckPeriodMinutes" = 0
+		"UpdatesSuppressedStartMin" = 0
+		"UpdatesSuppressedStartHour" = 0
+		"UpdatesSuppressedDurationMin" = 1440
+	}
+
+	New-Item -Path $EdgeRemoverReg -Force -EA SilentlyContinue | Out-Null
+	$EdgeUpdateDisabled = 'HKLM:\SOFTWARE\EdgeRemover\EdgeUpdateDisabled'
+	$EdgeUpdateOrchestrator = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\EdgeUpdate'
+	if ($blockEdge) {
+		foreach ($a in $completeBlockPolicies.Keys) {
+			Set-ItemProperty -Path $EdgeUpdatePolicyKey -Name $a -Value $completeBlockPolicies.$a -Type Dword -Force
+		}
+
+		if ((Test-Path $EdgeUpdateOrchestrator) -and (Test-Path $EdgeUpdateDisabled)) {
+			Remove-Item -Path $EdgeUpdateDisabled -Force
+		}
+		if (Test-Path $EdgeUpdateOrchestrator) { Move-Item -Path $EdgeUpdateOrchestrator -Destination $EdgeUpdateDisabled -Force }
+	} else {
+		if (!(Test-Path $EdgeUpdateOrchestrator) -and (Test-Path $EdgeUpdateDisabled)) {
+			Move-Item -Path $EdgeUpdateDisabled -Destination $EdgeUpdateOrchestrator -Force
+		}
+	}
+}
+
 function DeleteEdgeUpdate {
 	# surpress errors as some Edge Update components may not exist
 	$global:ErrorActionPreference = 'SilentlyContinue'
-
-	foreach ($hive in $hives) {
-		sp "$hive\Microsoft\EdgeUpdate" 'DoNotUpdateToEdgeWithChromium' 1 -Type Dword -Force
-		sp "$hive\Microsoft\EdgeUpdate" 'InstallDefault' 0 -Type Dword -Force
-		sp "$hive\Microsoft\EdgeUpdate" 'UpdateDefault' 0 -Type Dword -Force
-		sp "$hive\Microsoft\EdgeUpdate" "Install$UID" 0 -Type Dword -Force
-		sp "$hive\Microsoft\EdgeUpdate" "Update$UID" 2 -Type Dword -Force
-	}
 
 	# remove scheduled tasks
 	Remove-Item -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update" -Force | Out-Null
 	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineCore" -Confirm:$false | Out-Null
 	Unregister-ScheduledTask -TaskName "MicrosoftEdgeUpdateTaskMachineUA" -Confirm:$false | Out-Null
 
-	# prevent edge update from checking
-	# similar mechanism to scheduled tasks
-	Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\EdgeUpdate" -Recurse -Force
-
-	# set edge services to manual
-	foreach ($service in $services) {
-		Set-Service -Name $service -StartupType Manual
-	}
-	
 	if ($removeWebView) {
 		# delete edge services
 		foreach ($service in $services) {
 			sc.exe delete $service
 		}
-			
+		
 		# delete the edgeupdate folder
 		Remove-Item -Path "$env:SystemDrive\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
 	}
@@ -103,6 +132,8 @@ function RemoveEdgeChromium {
 	$ErrorActionPreference = 'SilentlyContinue'
 
 	# terminate Edge processes
+	$services = (Get-Service -Name "*edge*" | Where-Object {$_.DisplayName -like "*Microsoft Edge*"}).Name
+	$processes = (Get-Process | Where-Object {($_.Path -like "$env:SystemDrive\Program Files (x86)\Microsoft\*") -or ($_.Name -like "*msedge*")}).Id	
 	foreach ($process in $processes) {
 		Stop-Process -Id $process -Force
 	}
@@ -174,18 +205,24 @@ function RemoveWebView {
 }
 
 function UninstallAll {
-	Write-Warning "Uninstalling Edge Chromium..."
-	RemoveEdgeChromium
-	if (!($KeepAppX)) {
-		Write-Warning "Uninstalling AppX Edge..."
-		RemoveEdgeAppx
-	} else {Write-Warning "AppX Edge is being left, there might be a stub..."}
+	if ($removeEdge) {
+		Write-Warning "Uninstalling Edge Chromium..."
+		RemoveEdgeChromium
+		if (!($KeepAppX)) {
+			Write-Warning "Uninstalling AppX Edge..."
+			RemoveEdgeAppx
+		} else {Write-Warning "AppX Edge is being left, there might be a stub..."}
+	}
 	if ($removeWebView) {
 		Write-Warning "Uninstalling Edge WebView..."
 		RemoveWebView
 	}
-	Write-Warning "Uninstalling Edge Update..."
-	DeleteEdgeUpdate
+	if ($removeEdge -and $removeWebView) {
+		Write-Warning "Uninstalling Edge Update..."
+		DeleteEdgeUpdate
+	}
+	Write-Warning "Applying EdgeUpdate policies..."
+	BlockEdgeInstallandUpdates
 }
 
 function Completed {
@@ -203,18 +240,21 @@ Please relaunch this script under a regular admin account.`n" -ForegroundColor Y
 	exit 1
 } else {
 	if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-		Start-Process PowerShell "-NoProfile -ExecutionPolicy Unrestricted -File `"$PSCommandPath`"" -Verb RunAs; exit
+		Start-Process cmd "/c powershell -NoP -EP Unrestricted -File `"$PSCommandPath`"" -Verb RunAs; exit
 	}
 }
 
 if ($UninstallAll) {
+	$removeEdge = $true
 	$removeWebView = $true
 	$removeData = $true
+	$blockEdge = $true
 	UninstallAll
 	Completed
 }
 
 if ($UninstallEdge) {
+	$removeEdge = $true
 	$removeWebView = $false
 	$removeData = $false
 	UninstallAll
@@ -222,28 +262,43 @@ if ($UninstallEdge) {
 }
 
 # set defaults
+$removeEdge = $true
 $removeWebView = $false
 $removeData = $false
+$blockEdge = $false
 
 while (!($continue)) {
-	Clear-Host; Write-Host "This script will remove Microsoft Edge, as once you install it, you can't normally uninstall it.`n" -ForegroundColor Yellow
+	Clear-Host; Write-Host "This script will remove Microsoft Edge, as once it's installed, you can't uninstall it.`n" -ForegroundColor Blue
 
+	Write-Host "Selecting nothing will clear all install and update blocks." -ForegroundColor Yellow
+	Write-Host "You can reinstall WebView and Edge from the internet in the future.`n" -ForegroundColor Yellow
+
+	if ($removeEdge) {$colourEdge = "Green"; $textEdge = "Selected"} else {$colourEdge = "Red"; $textEdge = "Unselected"}
 	if ($removeWebView) {$colourWeb = "Green"; $textWeb = "Selected"} else {$colourWeb = "Red"; $textWeb = "Unselected"}
 	if ($removeData) {$colourData = "Green"; $textData = "Selected"} else {$colourData = "Red"; $textData = "Unselected"}
+	if ($blockEdge) {$colourBlock = "Green"; $textBlock = "Selected"} else {$colourBlock = "Red"; $textBlock = "Unselected"}
 
 	Write-Host "Options:"
-	Write-Host "[1] Remove Edge WebView ($textWeb)" -ForegroundColor $colourWeb
-	Write-Host "[2] Remove Edge User Data ($textData)`n" -ForegroundColor $colourData
-	Write-Host "Press enter to continue or use numbers to select options... " -NoNewLine
+	Write-Host "[1] Remove Edge ($textEdge)" -ForegroundColor $colourEdge
+	Write-Host "[2] Remove Edge WebView ($textWeb)" -ForegroundColor $colourWeb
+	Write-Host "[3] Remove Edge User Data ($textData)" -ForegroundColor $colourData
+	Write-Host "[4] Block WebView install & Edge updates ($textBlock)" -ForegroundColor $colourBlock
+	Write-Host "`nPress enter to continue or use numbers to select options... " -NoNewLine
 
 	$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
 	switch ($userInput.VirtualKeyCode) {
 		49 { # num 1
-			$removeWebView = !$removeWebView
+			$removeEdge = !$removeEdge
 		}
 		50 { # num 2
+			$removeWebView = !$removeWebView
+		}
+		51 { # num 3
 			$removeData = !$removeData
+		}
+		52 { # num 4
+			$blockEdge = !$blockEdge
 		}
 		13 { # enter
 			$continue = $true
