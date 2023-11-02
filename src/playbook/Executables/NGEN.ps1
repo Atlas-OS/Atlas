@@ -4,7 +4,7 @@ $env:path = $env:path + ";" + $([Runtime.InteropServices.RuntimeEnvironment]::Ge
     if (! $_.location) {continue}
     $Name = Split-Path $_.location -leaf
     Write-Host -ForegroundColor Yellow "NGENing : $Name"
-    ngen install $_.location | % {"`t$_"}
+    ngen install $_.location | % {"`t$_"} | Out-Null
 }
 
 # run these tasks in the background to make sure that it is all ngened
