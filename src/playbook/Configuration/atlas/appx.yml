@@ -29,7 +29,7 @@ actions:
   - !appx: {name: '*Spotify*', type: family}
 
   # Microsoft Teams
-  - !taskKill: {name: "*teams*"}
+  - !taskKill: {name: '*teams*', ignoreErrors: true}
   - !appx: {name: '*MicrosoftTeams*', type: family}
 
   # Cortana

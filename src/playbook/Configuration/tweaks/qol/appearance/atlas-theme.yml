@@ -15,8 +15,8 @@ actions:
     args: '-NoP -EP Unrestricted & "LOCKSCREEN.ps1"'
     exeDir: true
     runas: currentUserElevated
-  - !taskKill: {name: 'SystemSettings'}
-  - !taskKill: {name: 'control'}
+  - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
+  - !taskKill: {name: 'control', ignoreErrors: true}
 
     # Disable fun facts, tips, tricks, and more on lockscreen
   - !registryValue:
@@ -169,5 +169,5 @@ actions:
     wait: true
     runas: currentUserElevated
   - !run: {exe: 'timeout', args: '/t 4 /nobreak'}
-  - !taskKill: {name: 'SystemSettings'}
-  - !taskKill: {name: 'control'}
+  - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
+  - !taskKill: {name: 'control', ignoreErrors: true}
