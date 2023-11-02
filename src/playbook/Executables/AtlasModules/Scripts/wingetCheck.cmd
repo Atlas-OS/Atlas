@@ -16,7 +16,7 @@ where winget > nul 2>&1 || (
     set "uri=ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1"
     goto :error
 )
-start /wait /min winget search "Microsoft Visual Studio Code" --accept-source-agreements > nul 2>&1 || (
+winget search "Microsoft Visual Studio Code" --accept-source-agreements > nul 2>&1 || (
     if "%~1"=="/silent" exit /b 1
     set "action=update"
     set "uri=ms-windows-store://downloadsandupdates"
