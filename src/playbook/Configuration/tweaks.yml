@@ -25,8 +25,6 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-networking.yml
   - tweaks\networking\disable-llmnr.yml
-  # Network Bandwidth is not limited in Windows
-  # - tweaks\networking\disable-reserved-bandwidth.yml
   - tweaks\networking\disable-smart-name-resolution.yml
   - tweaks\networking\config-netsh.yml
   - tweaks\networking\disable-network-power-saving.yml
@@ -241,9 +239,6 @@ tasks:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\shell\alt-tab-open-windows.yml
   - tweaks\qol\shell\config-autorun-autoplay.yml
-  # Most people would find this feature useful and it would not really get in the way
-  # However, as this removal is opinionated, it will still stay, commented
-  # - tweaks\qol\shell\config-snap-settings.yml
   - tweaks\qol\shell\disable-aero-shake.yml
   - tweaks\qol\shell\disable-low-disk-warning.yml
   - tweaks\qol\shell\disable-menu-delay.yml
@@ -296,9 +291,6 @@ tasks:
   - tweaks\security\block-anonymous-enum-sam.yml
   - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
-  # Not needed on modern versions of Windows
-  # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
-  # - tweaks\security\strong-dotnet-crypto.yml
 
   # -----------------------------------------------------
   #                        Debloat
