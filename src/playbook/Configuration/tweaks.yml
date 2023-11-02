@@ -85,6 +85,7 @@ tasks:
   - tweaks\privacy\disable-pca.yml
   - tweaks\privacy\disable-perf-track.yml
   - tweaks\privacy\disable-privacy-experience.yml
+  - tweaks\privacy\disable-device-monitoring.yml
   - tweaks\privacy\disable-rsop-logging.yml
   - tweaks\privacy\disable-speech-auto-updates.yml
   - tweaks\privacy\disable-tailored-experiences.yml
@@ -94,6 +95,7 @@ tasks:
   - tweaks\privacy\disallow-ms-accounts.yml
   - tweaks\privacy\disallow-user-activity-upload.yml
   - tweaks\privacy\search-settings.yml
+  
 
   # -------------------------------------------------------------------------- #
   #  privacy\advertising                                                       #
