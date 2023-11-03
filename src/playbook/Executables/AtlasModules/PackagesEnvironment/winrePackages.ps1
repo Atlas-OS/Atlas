@@ -180,7 +180,7 @@ $failedRemovalLink
 }
 
 function StartupTask ($RecoveryBroken, $SpaceFailure) {
-    $arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & ' `
+    $arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & schtasks /delete /tn "RecoveryFailureCheck" /f > nul & ' `
         + 'powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -NextStartup ' `
         + $(if ($RecoveryBroken) {'-RecoveryBroken'} elseif ($SpaceFailure) {"-SpaceFailure $spaceFailure"}) `
         + $(if ($PlaybookInstall) {'-PlaybookInstall'}) + '"'
