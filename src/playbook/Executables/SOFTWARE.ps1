@@ -41,8 +41,8 @@ if ($Brave) {
 # Waterfox
 if ($Waterfox) {
 	Write-Host "Installing Waterfox..."
-	& curl.exe -LSs "https://cdn1.waterfox.net/waterfox/releases/latest/windows" -o "$tempDir\watefox.exe"
-	Start-Process -FilePath "$tempDir\watefox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait 2>&1 | Out-Null
+	& curl.exe -LSs "https://cdn1.waterfox.net/waterfox/releases/latest/windows" -o "$tempDir\waterfox.exe"
+	Start-Process -FilePath "$tempDir\waterfox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait 2>&1 | Out-Null
 	exit
 }
 
