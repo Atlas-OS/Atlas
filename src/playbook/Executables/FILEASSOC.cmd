@@ -55,7 +55,7 @@ exit /b
 
 :7ZIPUSER
 (
-    reg add "HKU\%~1\SOFTWARE\7-Zip\Options" /v "ContextMenu" /t REG_DWORD /d "1073742374" /f
+    reg add "HKU\%~1\SOFTWARE\7-Zip\Options" /v "ContextMenu" /t REG_DWORD /d "1073746726" /f
     reg add "HKU\%~1\SOFTWARE\Classes\.001" /ve /t REG_SZ /d "7-Zip.001" /f
     reg add "HKU\%~1\SOFTWARE\Classes\.7z" /ve /t REG_SZ /d "7-Zip.7z" /f
     reg add "HKU\%~1\SOFTWARE\Classes\.apfs" /ve /t REG_SZ /d "7-Zip.apfs" /f
