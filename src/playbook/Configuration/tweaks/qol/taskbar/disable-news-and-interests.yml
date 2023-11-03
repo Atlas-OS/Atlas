@@ -8,25 +8,21 @@ actions:
     value: 'ShellFeedsTaskbarViewMode'
     data: '2'
     type: REG_DWORD
-    operation: add
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds'
     value: 'EnableFeeds'
     data: '0'
     type: REG_DWORD
-    operation: add
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Dsh'
     value: 'AllowNewsAndInterests'
     data: '0'
     type: REG_DWORD
-    operation: add
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\default\NewsAndInterests\AllowNewsAndInterests'
     value: 'value'
     data: '0'
     type: REG_DWORD
-    operation: add
     # Disable Widgets in taskbar
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'

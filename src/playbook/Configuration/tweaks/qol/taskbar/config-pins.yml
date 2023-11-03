@@ -17,8 +17,8 @@ actions:
     exeDir: true
   - !run:
     exe: 'TASKBARPINS.cmd'
-    args: '"LibreWolf"'
-    option: 'browser-librewolf'
+    args: '"Waterfox"'
+    option: 'browser-waterfox'
     exeDir: true
   - !run:
     exe: 'TASKBARPINS.cmd'

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <link class="data" href="data.css" rel="stylesheet" type="text/css" />
+    <title>Atlas Component Removal</title>
+</head>
+
+<!--
+This page is only intended and made to work under the latest MSHTML, which is Internet Explorer 11.
+If you want to contribute here, use Edge's IE compatibility mode or use the mshta executable.
+You can use MSHTA like (only with a full path): mshta "%userprofile%\Downloads\atlasHTML\index.html"
+-->
+
+<body>
+    <div class="background-image-container">
+        <svg xmlns="http://www.w3.org/2000/svg" class="SVGBackdropImage">
+            <filter id="background-blur" x="0" y="0" width="1" height="1">
+                <feGaussianBlur result="blurred" stdDeviation="45"></feGaussianBlur>
+            </filter>
+            <image filter="url(#background-blur)" width="100%" height="100%" style="width: 100%;" href="background.jpg"></image>
+        </svg>
+    </div>
+    <div class="control-app">
+        <div class="container fadeIn">
+            <div class="content">
+                <div class="halfSection">
+                    <img style="width: 100%; height: 100%; transform: translate3d(0px, 0px, 0px);" viewbox="0 0 552 552" preserveaspectratio="xMidYMid meet" width="552" height="552" src="atlas.svg" />
+                </div>
+                <div class="halfSection">
+                    <div class="app-content">
+                        <div class="app-content">
+                            <div class="control-progress" id="_progress">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="radialSize" id="_progressControl" viewBox="0 0 16 16">
+                                    <circle class="radial-bg" cx="8px" cy="8px" r="7px"></circle>
+                                    <circle class="radial radial-infinite" cx="8px" cy="8px" r="7px"></circle>
+                                </svg>
+                                <h4 id="_progressText" class="errorText">An error has occurred.</h4>
+                                <h4 id="_progressText" class="normalText">Updating components...</h4>
+                                <h4 id="_progressText" class="facts">Factual information!</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button style="visibility: hidden;" class="dataButton"></button>
+</body>
+
+<script>
+
+const progressText = document.querySelector('.normalText');
+const circle = document.querySelector('.radial-infinite');
+const errorText = document.querySelector('.errorText');
+const factsElement = document.querySelector('.facts');
+const element = document.querySelector('.data');
+
+var factCount = 0;
+
+function updateProgressText(text) {
+    progressText.textContent = text;
+}
+
+function setProgress(percentage, text) {
+    if (!text) {var text = "Updating components";}
+    updateProgressText(text + '... (' + percentage + '%)');
+
+    if (percentage == 0) {var percentage = percentage + 1}
+    const cssPx = (43/100) * percentage
+    circle.style.strokeDasharray = cssPx + 'px 42.97px';
+}
+
+function showFatalError(error) {
+    errorText.textContent = 'An error has occured: ' + error;
+    errorText.style.display = 'block';
+    factsElement.style.display = 'none';
+    updateProgressText('No worries. Your computer will restart shortly, with more details next startup.')
+}
+
+function setNewFact(first) {
+    if (factCount == 7) {factCount = 0} else {factCount++}
+    var facts = [
+        'Did you know that Atlas\' code is open source on GitHub?',
+        'Atlas has 200+ seperate tweak files.',
+        'Atlas has a Discord with over 30k members. discord.atlasos.net',
+        'All of the Atlas component removals persist through Windows Updates.',
+        'We have a forum for help and more. forum.atlasos.net',
+        'We have donations on Ko-fi with rewards! ko-fi.com/atlasos',
+        'Atlas is built by the community and anyone can contribute to the code.',
+        'See the Atlas documentation for help. docs.atlasos.net'
+    ]
+
+    // Animations don't seem to work in Windows Recovery
+    // factsElement.classList.add('invisible');
+    // setTimeout(function () {
+        factsElement.textContent = facts[factCount];
+        // factsElement.classList.remove('invisible');
+    // }, 500);
+}
+
+var count = 1
+function getData() {
+    // Refresh CSS
+    var currentHref = element.getAttribute('href');
+    element.setAttribute('href', (currentHref += '?'));
+
+    // Get dataButton content
+    var dataButtonStyle = window.getComputedStyle(
+        document.querySelector('.dataButton'), '::after'
+    );
+    var data = dataButtonStyle.getPropertyValue('content');
+
+    // Parse/apply content
+    const items = data.split(';').map(function(item) {
+        return item.replace(/"/g, "");
+    });
+    if (items[0] === 'INFO') {
+        setProgress(items[2], items[1]);
+        setTimeout(function () {
+            count++; if (count % 12 === 0) { setNewFact(false); }
+            getData();
+        }, 750);
+    } else if (items[0] === 'ERROR') {
+        showFatalError(items[1]);
+        setTimeout(function () {
+            console.log('Infinite timeout');
+        }, 999999999);
+    }
+}
+
+setProgress(1);
+setNewFact(true);
+getData();
+
+</script>
+
+</html>

@@ -5,9 +5,6 @@ version: 3.0.0.0
 updates:
     # Windows Error Reporting - reporting crash dumps to Microsoft
     # Commented components are to prevent an 'Automatic Repair' loop
-  - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
-    target_arch: amd64
-    version: 38655.38527.65535.65535
   # - target_component: Microsoft-Windows-ErrorReporting-Adm
   #   target_arch: amd64
   #   version: 38655.38527.65535.65535
@@ -71,6 +68,11 @@ updates:
   # - target_component: Microsoft-Windows-ErrorReportingUI.Resources
   #   target_arch: amd64
   #   version: 38655.38527.65535.65535
+
+    # Feedback
+  - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
+    target_arch: amd64
+    version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-Feedback-CourtesyEngine
     target_arch: amd64
     version: 38655.38527.65535.65535

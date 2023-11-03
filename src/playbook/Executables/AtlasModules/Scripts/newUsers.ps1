@@ -5,17 +5,8 @@ Write-Host $title -ForegroundColor Yellow
 Write-Host $('-' * ($title.length + 3)) -ForegroundColor Yellow
 Write-Host 'You''ll be logged out in 10 to 20 seconds, and once you login again, your new account will be ready for use.'
 
-# Remove bitmap from 'New' context menu
 # Disable Windows 11 context menu & 'Gallery' in File Explorer
 if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
-    foreach ($key in $(Get-ChildItem -Path "Registry::HKCR\Local Settings\MrtCache" -Recurse)) {
-        Get-ItemProperty "REGISTRY::$key" | ForEach-Object {
-            foreach ($value in $($_.PSObject.Properties.Name | Where-Object {$_ -like '*ShellNewDisplayName_Bmp*'})) {
-                Set-ItemProperty -Path $key.PSPath -Name $value -Value ""
-            }
-        }
-    }
-
     reg import "$env:windir\AtlasDesktop\4. Optional Tweaks\Windows 11 Context Menu\Old Context Menu (default).reg" *>$null
     reg import "$env:windir\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg" *>$null
 }

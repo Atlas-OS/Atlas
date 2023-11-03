@@ -15,10 +15,6 @@ tasks:
 
   # ----------------------- END NOTES ----------------------- #
 
-  # NGEN - PowerShell optimization
-  - tweaks\statuses\status-ngen.yml
-  - tweaks\scripts\script-ngen.yml
-
   # -----------------------------------------------------
   #                      Networking
   # -----------------------------------------------------
@@ -29,19 +25,17 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-networking.yml
   - tweaks\networking\disable-llmnr.yml
-  # Network Bandwidth is not limited in Windows
-  # - tweaks\networking\disable-reserved-bandwidth.yml
   - tweaks\networking\disable-smart-name-resolution.yml
-  - tweaks\networking\netsh.yml
-  - tweaks\networking\network-power-saving.yml
-  - tweaks\networking\packet-sched-timer-res.yml
+  - tweaks\networking\config-netsh.yml
+  - tweaks\networking\disable-network-power-saving.yml
+  - tweaks\networking\config-packet-sched-timer-res.yml
 
   # -------------------------------------------------------------------------- #
   #  networking\shares                                                         #
   # -------------------------------------------------------------------------- #
   - tweaks\networking\shares\restrict-anonymous-access.yml
   - tweaks\networking\shares\restrict-anonymous-enumeration.yml
-  - tweaks\networking\shares\smb-bandwidth-throttling.yml
+  - tweaks\networking\shares\disable-smb-bandwidth-throttling.yml
 
   # -----------------------------------------------------
   #                      Performance
@@ -52,26 +46,20 @@ tasks:
   # responsiveness, latency, etc.
   # -----------------------------------------------------
   - tweaks\statuses\status-performance.yml
-  # Placebo, mostly protects old vulnerable default Windows processes
-  # Clearing could cause potential issues and only worsens security with no gains
-  # - tweaks\performance\clear-ifeo.yml
   - tweaks\performance\config-mmcss.yml
-  - tweaks\performance\config-presentation-mode.yml
+  - tweaks\performance\disable-game-bar.yml
   - tweaks\performance\disable-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
-  - tweaks\performance\extend-cache.yml
-  - tweaks\performance\no-search-invalid-shortcuts.yml
   - tweaks\performance\disable-fth.yml
-  - tweaks\performance\disable-hags.yml
   - tweaks\performance\disable-sleep-study.yml
 
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
   # -------------------------------------------------------------------------- #
   - tweaks\performance\system\config-boot-config.yml
-  - tweaks\performance\system\config-paging.yml
+  - tweaks\performance\system\disable-paging.yml
   - tweaks\performance\system\optimize-ntfs.yml
-  - tweaks\performance\system\service-host-split.yml
+  - tweaks\performance\system\disable-service-host-split.yml
   - tweaks\performance\system\win32-priority-seperation.yml
 
   # -----------------------------------------------------
@@ -97,6 +85,7 @@ tasks:
   - tweaks\privacy\disable-pca.yml
   - tweaks\privacy\disable-perf-track.yml
   - tweaks\privacy\disable-privacy-experience.yml
+  - tweaks\privacy\disable-device-monitoring.yml
   - tweaks\privacy\disable-rsop-logging.yml
   - tweaks\privacy\disable-speech-auto-updates.yml
   - tweaks\privacy\disable-tailored-experiences.yml
@@ -106,6 +95,7 @@ tasks:
   - tweaks\privacy\disallow-ms-accounts.yml
   - tweaks\privacy\disallow-user-activity-upload.yml
   - tweaks\privacy\search-settings.yml
+  
 
   # -------------------------------------------------------------------------- #
   #  privacy\advertising                                                       #
@@ -162,7 +152,7 @@ tasks:
   - tweaks\qol\show-all-tasks-control-panel.yml
   - tweaks\qol\visual-effects.yml
   - tweaks\qol\disable-tips.yml
-  - tweaks\qol\disable-consumer-expierences.yml
+  - tweaks\qol\disable-system-restore.yml
   - tweaks\qol\set-hidden-settings-pages.yml
 
   # -------------------------------------------------------------------------- #
@@ -177,6 +167,7 @@ tasks:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\windows-update\disable-nagging.yml
   - tweaks\qol\windows-update\disable-insider.yml
+  - tweaks\qol\windows-update\disable-msrt-installation.yml
   - tweaks\qol\windows-update\disable-feature-updates.yml
   - tweaks\qol\windows-update\disable-auto-updates.yml
   - tweaks\qol\windows-update\disable-auto-reboot.yml
@@ -195,14 +186,15 @@ tasks:
   #  qol\explorer                                                              #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\explorer\always-more-details-transfer.yml
+  - tweaks\qol\explorer\disable-invalid-shortcuts-search.yml
   - tweaks\qol\explorer\disable-check-boxes.yml
-  - tweaks\qol\explorer\disable-folder-type-discovery.yml
   - tweaks\qol\explorer\disable-folders-this-pc.yml
   - tweaks\qol\explorer\disable-network-navigation-pane.yml
   - tweaks\qol\explorer\disable-sharing-wizard.yml
   - tweaks\qol\explorer\full-context-on-more-than-15-items.yml
   - tweaks\qol\explorer\hide-frequently-used-items.yml
   - tweaks\qol\explorer\import-power-plan.yml
+  - tweaks\qol\explorer\extend-cache.yml
   - tweaks\qol\explorer\minimize-mouse-hover-time.yml
   - tweaks\qol\explorer\no-internet-open-with.yml
   - tweaks\qol\explorer\open-to-this-pc.yml
@@ -210,7 +202,6 @@ tasks:
   - tweaks\qol\explorer\remove-previous-versions.yml
   - tweaks\qol\explorer\remove-shortcut-text.yml
   - tweaks\qol\explorer\show-files.yml
-  - tweaks\qol\explorer\add-music-vids-to-home.yml
   - tweaks\qol\explorer\classic-search.yml
   - tweaks\qol\explorer\dont-show-office-files.yml
   - tweaks\qol\explorer\use-compact-mode.yml
@@ -249,19 +240,15 @@ tasks:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\shell\alt-tab-open-windows.yml
   - tweaks\qol\shell\config-autorun-autoplay.yml
-  # Most people would find this feature useful and it would not really get in the way
-  # However, as this removal is opinionated, it will still stay, commented
-  # - tweaks\qol\shell\config-snap-settings.yml
   - tweaks\qol\shell\disable-aero-shake.yml
   - tweaks\qol\shell\disable-low-disk-warning.yml
   - tweaks\qol\shell\disable-menu-delay.yml
   - tweaks\qol\shell\disable-network-location-wizard.yml
-  - tweaks\qol\shell\disable-shared-experiences.yml
-  - tweaks\qol\shell\legacy-alt-tab.yml
   - tweaks\qol\shell\set-unpinned-notification-items.yml
   - tweaks\qol\shell\restore-old-context-menu.yml
   - tweaks\qol\shell\show-more-pins.yml
   - tweaks\qol\shell\no-recommendations-start-menu.yml
+  - tweaks\qol\shell\disable-nearby-sharing.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\startup-shutdown                                                      #
@@ -305,9 +292,6 @@ tasks:
   - tweaks\security\block-anonymous-enum-sam.yml
   - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
-  # Not needed on modern versions of Windows
-  # https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
-  # - tweaks\security\strong-dotnet-crypto.yml
 
   # -----------------------------------------------------
   #                        Debloat
@@ -318,11 +302,9 @@ tasks:
   # storage space or convienience.
   # -----------------------------------------------------
   - tweaks\statuses\status-debloat.yml
-  # - tweaks\debloat\autologgers.yml
   - tweaks\debloat\config-content-delivery.yml
   - tweaks\debloat\disable-reserved-storage.yml
-  - tweaks\debloat\legacy-photo-viewer.yml
-  - tweaks\debloat\scheduled-tasks.yml
+  - tweaks\debloat\disable-scheduled-tasks.yml
   - tweaks\debloat\hide-unused-security-pages.yml
   - tweaks\debloat\config-storage-sense.yml
 
@@ -343,9 +325,6 @@ tasks:
   - tweaks\scripts\script-power.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
-  # Cleanup script takes longer to finish so it has its own status
-  - tweaks\statuses\status-cleanup.yml
-  - tweaks\scripts\script-cleanup.yml
 
   # -----------------------------------------------------
   #                         Misc
@@ -358,9 +337,8 @@ tasks:
   - tweaks\statuses\status-misc.yml
   - tweaks\misc\config-time.yml
   - tweaks\misc\disable-game-mode.yml
-  - tweaks\misc\fix-no-downloads-bug.yml
-  - tweaks\misc\oem-information.yml
+  - tweaks\misc\config-oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
   - tweaks\misc\restore-default-sleep-timeout.yml
-  - tweaks\misc\make-shortcuts.yml
+  - tweaks\misc\create-shortcuts.yml
   - tweaks\misc\delete-version-specific-files.yml

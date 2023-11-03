@@ -11,7 +11,7 @@ echo [1] Disable the spinning animation
 echo [2] Enable the spinning animation (default)
 echo]
 choice /c 12 /n /m "Type 1 or 2: "
-if %errorlevel% == 1 (
+if %ERRORLEVEL% == 1 (
 	goto disable
 ) else (
 	goto enable
@@ -24,7 +24,7 @@ goto finish
 
 :enable
 echo]
-bcdedit /set {globalsettings} custom:16000069 true > nul 2>&1
+bcdedit /deletevalue {globalsettings} custom:16000069 > nul 2>&1
 goto finish
 
 :finish

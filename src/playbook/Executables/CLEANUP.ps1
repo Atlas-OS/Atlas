@@ -1,6 +1,3 @@
-# AtlasOS Post-Installation Cleanup Utility
-$ErrorActionPreference = 'SilentlyContinue'
-
 # As cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
 function Invoke-AtlasDiskCleanup {
 	# Kill running cleanmgr instances, as they will prevent new cleanmgr from starting
@@ -36,6 +33,7 @@ function Invoke-AtlasDiskCleanup {
 	foreach ($entry in $regValues.GetEnumerator()) {
 		Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
 	}
+
 	# Run preset 64 (0-65535)
 	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64" 2>&1 | Out-Null
 }
@@ -45,13 +43,12 @@ function Invoke-AtlasDiskCleanup {
 $excludedDrive = "C"
 $drives = Get-PSDrive -PSProvider 'FileSystem' | Where-Object { $_.Name -ne $excludedDrive }
 foreach ($drive in $drives) {
-    if (Test-Path -Path $(Join-Path -Path $drive.Root -ChildPath 'Windows') -PathType Container) {
-        $otherInstalls = $true
+    if (!(Test-Path -Path $(Join-Path -Path $drive.Root -ChildPath 'Windows') -PathType Container)) {
+        Invoke-AtlasDiskCleanup
     }
 }
 
-if (!($otherInstalls)) { Invoke-AtlasDiskCleanup }
-
+$ErrorActionPreference = 'SilentlyContinue'
 # Exclude the AME folder while deleting directories in the temporary user folder
 Get-ChildItem -Path "$env:TEMP" | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse
 

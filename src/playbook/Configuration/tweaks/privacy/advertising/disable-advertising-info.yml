@@ -1,6 +1,6 @@
 ---
 title: Disable Advertising ID
-description: Disables advertising ID for privacy
+description: Disables Advertising ID for privacy
 privilege: TrustedInstaller
 actions:
   - !registryValue:

@@ -14,7 +14,7 @@ echo [1] Disable always going to the advanced boot options (default)
 echo [2] Enable always going to the advanced boot options
 echo]
 choice /c 12 /n /m "Type 1 or 2: "
-if %errorlevel% == 1 (
+if %ERRORLEVEL% == 1 (
 	goto disable
 ) else (
 	goto enable
@@ -22,7 +22,7 @@ if %errorlevel% == 1 (
 
 :disable
 echo]
-bcdedit /deletevalue advancedoptions > nul 2>&1
+bcdedit /deletevalue {globalsettings} advancedoptions > nul 2>&1
 goto finish
 
 :enable

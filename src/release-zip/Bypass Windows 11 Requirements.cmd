@@ -3,7 +3,8 @@
 title Bypass Windows 11 Requirements
 cd /d "%~dp0"
 
-:: Set ANSI escape characters
+:: set ANSI escape characters
+cd /d "%~dp0"
 for /f %%a in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%a"
 set "right=%ESC%[<x>C"
 set "bullet= %ESC%[34m-%ESC%[0m"
@@ -45,7 +46,7 @@ set regCommands=reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG
                 reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d "1" /f ^> nul
 
 fltmc > nul 2>&1
-if not "%errorlevel%" == "0" (
+if %ERRORLEVEL% NEQ 0 (
     powershell -NoP Start -WindowStyle Hidden -Verb RunAs 'cmd.exe' -ArgumentList '/c %regCommands%' > nul 2>&1 || (
         set "retry=true"
         call :errorText retry

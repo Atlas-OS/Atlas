@@ -1,6 +1,6 @@
 ---
 title: Configure Content Delivery Manager
-description: Configures Content Delivery Manager not to download any applications such as Disney+ and disables suggested content (tips/tricks/facts/suggestions/ads) for QoL and privacy
+description: Configures Content Delivery Manager not to download any applications such as Candy Crush Soda and disables suggested content (tips/tricks/facts/suggestions/ads) for QoL and privacy
 privilege: TrustedInstaller
 actions:
   - !registryValue:
@@ -26,6 +26,11 @@ actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SilentInstalledAppsEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'SubscribedContentEnabled'
     data: '0'
     type: REG_DWORD
   - !registryValue:
@@ -78,3 +83,12 @@ actions:
     value: 'SoftLandingEnabled'
     data: '0'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'FeatureManagementEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryKey:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions'
+  - !registryKey:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps'

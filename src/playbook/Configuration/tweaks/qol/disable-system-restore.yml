@@ -1,0 +1,10 @@
+---
+title: Disable System Restore
+description: Disable System Restore as it is known to be an unreliable feature
+privilege: TrustedInstaller
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore'
+    value: 'DisableSR'
+    data: '1'
+    type: REG_DWORD

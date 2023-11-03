@@ -5,8 +5,8 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-ping -n 1 -4 www.example.com | find "time=" > nul 2>&1
-if %errorlevel% == 1 (
+ping -n 1 -4 www.example.com > nul 2>&1
+if %ERRORLEVEL% == 1 (
 	echo You must have an internet connection to use this script.
 	pause
 	exit /b 1
@@ -28,7 +28,7 @@ call:isValidIP %DHCPSubnetMask%
 call:isValidIP %DNS1%
 call:isValidIP %DNS2%
 
-if %incorrectIP% == 1 (
+if "%incorrectIP%" == "1" (
 	echo Setting a Static IP address failed.
 	pause
 	exit /b 1
