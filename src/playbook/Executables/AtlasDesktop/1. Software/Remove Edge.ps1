@@ -133,7 +133,7 @@ function RemoveEdgeChromium {
 
 	# terminate Edge processes
 	$services = (Get-Service -Name "*edge*" | Where-Object {$_.DisplayName -like "*Microsoft Edge*"}).Name
-	$processes = (Get-Process | Where-Object {($_.Path -like "$env:SystemDrive\Program Files (x86)\Microsoft\*") -or ($_.Name -like "*msedge*")}).Id	
+	$processes = (Get-Process | Where-Object {($_.Path -like "$env:SystemDrive\Program Files (x86)\Microsoft\*") -or ($_.Name -like "*msedge*")}).Id
 	foreach ($process in $processes) {
 		Stop-Process -Id $process -Force
 	}
@@ -193,15 +193,17 @@ function RemoveEdgeAppX {
 }
 
 function RemoveWebView {
-	$webviewUninstallKey = @()
-	$webviewHKCU = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
-	$webviewHKLM = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
-	if (Test-Path $webviewHKCU) {$webviewUninstallKey += $webviewHKCU}
-	if (Test-Path $webviewHKLM) {$webviewUninstallKey += $webviewHKLM}
-	foreach ($key in $webviewUninstallKey) {
-		$webviewUninstallString = (Get-ItemProperty -Path $key).UninstallString + " --force-uninstall"
-		Start-Process cmd.exe "/c $webviewUninstallString" -WindowStyle Hidden 2>&1 | Out-Null
-	}
+    $edges = @(); $bho = @(); $edgeupdates = @(); 'LocalApplicationData','ProgramFilesX86','ProgramFiles' | foreach {
+    	$folder = [Environment]::GetFolderPath($_)
+    	$edges += dir "$folder\Microsoft\Edge*\setup.exe" -rec -ea 0 | where {$_ -like '*EdgeWebView*'}
+    }
+
+    foreach ($setup in $edges) {
+    	$target = "--msedgewebview"
+    	$sulevel = ('--system-level','--user-level')[$setup -like '*\AppData\Local\*']
+   		$removal = "--uninstall $target $sulevel --verbose-logging --force-uninstall"
+    	start -wait $setup -args $removal
+    }
 }
 
 function UninstallAll {
