@@ -92,6 +92,11 @@ $failedRemovalLink
 # ======================================================================================================================= #
 function MakePackageList {
     $packageList = (Get-ChildItem "$env:windir\AtlasModules\Packages\*.cab").FullName -replace "$env:systemdrive\\", ''
+    if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
+        $packageList = $packageList | Where-Object {$_ -like "*amd64*"}
+    } else {
+        $packageList = $packageList | Where-Object {$_ -like "*arm64*"}
+    }
 
     if ($DefenderOnly) {
         Write-Warning "Making package list only with Defender...."
