@@ -91,7 +91,7 @@ function Menu {
 				'Force'       = $true
 			}
 
-			$arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & ' `
+			$arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & schtasks /delete /tn "AtlasDefenderConfigurationPrompt" /f > nul & ' `
 				+ 'powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasDesktop\5. Security\Defender\Toggle Defender.cmd'') -NextStartup '
 			$action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
 			Register-ScheduledTask -TaskName $taskName -Action $action @taskArgs | Out-Null
