@@ -218,6 +218,7 @@ updates:
     version: 38655.38527.65535.65535
   - target_component: Windows-Defender-UI.Resources
     target_arch: arm64.x86
+    version: 38655.38527.65535.65535
 
     # Windows Defender Advanced Threat Protection Service (Sense)
   - target_component: Microsoft-Windows-SenseClient-Deployment
