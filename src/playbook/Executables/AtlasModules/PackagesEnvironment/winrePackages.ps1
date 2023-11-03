@@ -9,6 +9,12 @@ param (
     [switch]$PlaybookInstall
 )
 
+if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
+    Write-Warning "This script isn't supported for ARM64 currently."
+    Write-Warning "It will be in a future release of Atlas."
+    exit 1
+}
+
 # Task Scheduler is needed for this script to function correctly
 if ((Get-Service -Name 'Schedule' -EA SilentlyContinue).Status -ne 'Running') {
     Set-Service -Name 'Schedule' -StartupType Automatic
