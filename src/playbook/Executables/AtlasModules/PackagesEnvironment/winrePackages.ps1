@@ -358,7 +358,7 @@ $failedRemovalLink
             Write-Warning 'Writing BitLocker key to WinRE partition...'
             [IO.File]::WriteAllLines($bitlockerRecoveryKeyTxt, $bitlockerRecoveryKey)
             $action = New-ScheduledTaskAction -Execute 'cmd' `
-                    -Argument '/c powershell -EP Unrestricted -WindowStyle Hidden -NoP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
+                    -Argument '/c schtasks /delete /tn "AtlasBitlockerRemovalTask" /f > nul & powershell -EP Unrestricted -WindowStyle Hidden -NoP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
             Register-ScheduledTask -TaskName $bitlockerTaskName -Action $action @taskArgs | Out-Null
         } else {
             if (!$? -and $PlaybookInstall) {
