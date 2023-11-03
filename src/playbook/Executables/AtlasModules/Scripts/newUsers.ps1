@@ -17,14 +17,14 @@ if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
     }
 
     reg import "$env:windir\AtlasDesktop\4. Optional Tweaks\Windows 11 Context Menu\Old Context Menu (default).reg" *>$null
-    reg import "$env:windir\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg" *>$null
+    # reg import "$env:windir\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg" *>$null
 }
 
 # Disable 'Network' in navigation pane
-reg import "$env:windir\AtlasDesktop\3. Configuration\Network Discovery\Network Navigation Pane\Disable Network Navigation Pane (default).reg" *>$null
+# reg import "$env:windir\AtlasDesktop\3. Configuration\Network Discovery\Network Navigation Pane\Disable Network Navigation Pane (default).reg" *>$null
 
 # Set visual effects
-Start-Process -FilePath "$env:windir\AtlasDesktop\3. Configuration\Visual Effects\Atlas Visual Effects (default).cmd" -ArgumentList '/silent' -WindowStyle Hidden
+# Start-Process -FilePath "$env:windir\AtlasDesktop\3. Configuration\Visual Effects\Atlas Visual Effects (default).cmd" -ArgumentList '/silent' -WindowStyle Hidden
 
 # Pin 'Videos' and 'Music' folders to Home/Quick Acesss
 $o = new-object -com shell.application

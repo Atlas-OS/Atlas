@@ -11,7 +11,7 @@ actions:
     args: '-Disable'
     option: 'defender-disable'
     # Remove Security Center startup item
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete, option: 'defender-disable'}
 
     # Disable Smart App Control
     # Causes slow app loading issues, and sends data to Microsoft

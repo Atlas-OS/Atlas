@@ -13,31 +13,31 @@ actions:
 
   # ------------------------ Services ------------------------
 
-  - !run:
-    exe: 'Disable Bluetooth.cmd'
-    path: '%windir%\AtlasDesktop\3. Configuration\Bluetooth'
-    args: '/silent'
-    option: 'disable-bluetooth'
-  - !run:
-    exe: 'Disable Printing (default).cmd'
-    path: '%windir%\AtlasDesktop\3. Configuration\Printing'
-    args: '/silent'
+  # - !run:
+  #   exe: 'Disable Bluetooth.cmd'
+  #   path: '%windir%\AtlasDesktop\3. Configuration\Bluetooth'
+  #   args: '/silent'
+  #   option: 'disable-bluetooth'
+  # - !run:
+  #   exe: 'Disable Printing (default).cmd'
+  #   path: '%windir%\AtlasDesktop\3. Configuration\Printing'
+  #   args: '/silent'
 
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
   - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
-  - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
+  # - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
   - !service: {name: 'lfsvc', operation: change, startup: 4}
   - !service: {name: 'MapsBroker', operation: change, startup: 4}
   - !service: {name: 'OneSyncSvc', operation: change, startup: 4}
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
-  - !service: {name: 'TrkWks', operation: change, startup: 4}
+  # - !service: {name: 'TrkWks', operation: change, startup: 4}
   - !service: {name: 'WdiServiceHost', operation: change, startup: 4}
   - !service: {name: 'WdiSystemHost', operation: change, startup: 4}
   - !service: {name: 'wercplsupport', operation: change, startup: 4}
   - !service: {name: 'WerSvc', operation: change, startup: 4}
   - !service: {name: 'wisvc', operation: change, startup: 4}
-  - !service: {name: 'WSearch', operation: change, startup: 4}
+  # - !service: {name: 'WSearch', operation: change, startup: 4}
 
     # Set to manual from automatic
     # Might not be all too beneficial, as services starting and always being ready is probably ideal
@@ -87,38 +87,38 @@ actions:
 
   - !service: {name: '3ware', operation: change, startup: 4}
   - !service: {name: 'ADP80XX', operation: change, startup: 4}
-  - !service: {name: 'AmdK8', operation: change, startup: 4}
+  # - !service: {name: 'AmdK8', operation: change, startup: 4}
   - !service: {name: 'arcsas', operation: change, startup: 4}
-  - !service: {name: 'AsyncMac', operation: change, startup: 4}
+  # - !service: {name: 'AsyncMac', operation: change, startup: 4}
   - !service: {name: 'bam', operation: change, startup: 4}
-  - !service: {name: 'Beep', operation: change, startup: 4}
-  - !service: {name: 'bindflt', operation: change, startup: 4}
-  - !service: {name: 'buttonconverter', operation: change, startup: 4}
-  - !service: {name: 'CAD', operation: change, startup: 4}
-  - !service: {name: 'cdfs', operation: change, startup: 4}
+  # - !service: {name: 'Beep', operation: change, startup: 4}
+  # - !service: {name: 'bindflt', operation: change, startup: 4}
+  # - !service: {name: 'buttonconverter', operation: change, startup: 4}
+  # - !service: {name: 'CAD', operation: change, startup: 4}
+  # - !service: {name: 'cdfs', operation: change, startup: 4}
   - !service: {name: 'CimFS', operation: change, startup: 4}
   - !service: {name: 'circlass', operation: change, startup: 4}
   - !service: {name: 'cnghwassist', operation: change, startup: 4}
-  - !service: {name: 'CompositeBus', operation: change, startup: 4}
-  - !service: {name: 'dam', operation: change, startup: 4}
+  # - !service: {name: 'CompositeBus', operation: change, startup: 4}
+  # - !service: {name: 'dam', operation: change, startup: 4}
   - !service: {name: 'Dfsc', operation: change, startup: 4}
   - !service: {name: 'ErrDev', operation: change, startup: 4}
-  - !service: {name: 'fdc', operation: change, startup: 4}
-  - !service: {name: 'flpydisk', operation: change, startup: 4}
-  - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
-  - !service: {name: 'NetBT', operation: change, startup: 4}
+  # - !service: {name: 'fdc', operation: change, startup: 4}
+  # - !service: {name: 'flpydisk', operation: change, startup: 4}
+  # - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
+  # - !service: {name: 'NetBT', operation: change, startup: 4}
   - !service: {name: 'nvraid', operation: change, startup: 4}
-  - !service: {name: 'sfloppy', operation: change, startup: 4}
+  # - !service: {name: 'sfloppy', operation: change, startup: 4}
   - !service: {name: 'SiSRaid2', operation: change, startup: 4}
   - !service: {name: 'SiSRaid4', operation: change, startup: 4}
-  - !service: {name: 'tcpipreg', operation: change, startup: 4}
+  # - !service: {name: 'tcpipreg', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
-  - !service: {name: 'udfs', operation: change, startup: 4}
-  - !service: {name: 'VerifierExt', operation: change, startup: 4}
+  # - !service: {name: 'udfs', operation: change, startup: 4}
+  # - !service: {name: 'VerifierExt', operation: change, startup: 4}
   - !service: {name: 'vsmraid', operation: change, startup: 4}
-  - !service: {name: 'VSTXRAID', operation: change, startup: 4}
+  # - !service: {name: 'VSTXRAID', operation: change, startup: 4}
   - !service: {name: 'wcnfs', operation: change, startup: 4}
-  - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
+  # - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
 
   # rdbss 3 < Commented as we're not sure if it functions normally set to manual
   # FileInfo 4 < Breaks installing Microsoft Store applications to different disk

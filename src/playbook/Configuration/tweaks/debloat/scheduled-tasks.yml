@@ -9,21 +9,21 @@ actions:
     path: '\Microsoft\Windows\Location'
     operation: deleteFolder
 
-  - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask'}
-  - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\DsSvcCleanup'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\DsSvcCleanup'}
   - !scheduledTask: {path: '\Microsoft\Windows\CloudExperienceHost\CreateObjectTask'}
   - !scheduledTask: {path: '\Microsoft\Windows\Diagnosis\Scheduled'}
   - !scheduledTask: {path: '\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector'}
   - !scheduledTask: {path: '\Microsoft\Windows\DiskFootprint\Diagnostics'}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdates'}
   - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdatesAsUser'}
-  - !scheduledTask: {path: '\Microsoft\Windows\PI\Sqm-Tasks'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\PI\Sqm-Tasks'}
   - !scheduledTask: {path: '\Microsoft\Windows\Registry\RegIdleBackup'}
   - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyMonitor'}
   - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyRefresh'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Shell\IndexerAutomaticMaintenance'}
-  - !scheduledTask: {path: '\Microsoft\Windows\StateRepository\MaintenanceTasks'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Shell\IndexerAutomaticMaintenance'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\StateRepository\MaintenanceTasks'}
   - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start'}
 
   # Here are the scheduled tasks that are currently commented as they're under review.

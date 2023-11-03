@@ -39,43 +39,43 @@ actions:
 
   - !writeStatus: {status: 'Configuring Optional Features'}
     # Disabled for security purposes
-  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30, builds: [ '!>=22000' ]}
+  # - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30, builds: [ '!>=22000' ]}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2Root" /NoRestart', weight: 30}
 
-  - !writeStatus: {status: 'Installing software'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1"'
-    exeDir: true
-    weight: 150
-  - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1" -Chrome'
-    exeDir: true
-    weight: 150
-    option: 'browser-chrome'
-  - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1" -Brave'
-    exeDir: true
-    weight: 150
-    option: 'browser-brave'
+  # - !writeStatus: {status: 'Installing software'}
+  # - !run:
+  #   exe: 'powershell.exe'
+  #   args: '-NoP -File "SOFTWARE.ps1"'
+  #   exeDir: true
+  #   weight: 150
+  # - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
+  # - !run:
+  #   exe: 'powershell.exe'
+  #   args: '-NoP -File "SOFTWARE.ps1" -Chrome'
+  #   exeDir: true
+  #   weight: 150
+  #   option: 'browser-chrome'
+  # - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
+  # - !run:
+  #   exe: 'powershell.exe'
+  #   args: '-NoP -File "SOFTWARE.ps1" -Brave'
+  #   exeDir: true
+  #   weight: 150
+  #   option: 'browser-brave'
 
-  - !writeStatus: {status: 'Installing LibreWolf', option: 'browser-librewolf'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File LIBREWOLF.ps1'
-    exeDir: true
-    weight: 150
-    option: 'librewolf-winupdater'
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "LIBREWOLF.ps1" -NoUpdater'
-    exeDir: true
-    weight: 150
-    option: 'librewolf-winget'
+  # - !writeStatus: {status: 'Installing LibreWolf', option: 'browser-librewolf'}
+  # - !run:
+  #   exe: 'powershell.exe'
+  #   args: '-NoP -File LIBREWOLF.ps1'
+  #   exeDir: true
+  #   weight: 150
+  #   option: 'librewolf-winupdater'
+  # - !run:
+  #   exe: 'powershell.exe'
+  #   args: '-NoP -File "LIBREWOLF.ps1" -NoUpdater'
+  #   exeDir: true
+  #   weight: 150
+  #   option: 'librewolf-winget'
 
   ################ END NO LOCAL BUILD ################
