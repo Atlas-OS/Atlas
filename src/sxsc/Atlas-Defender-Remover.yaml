@@ -197,6 +197,12 @@ updates:
     version: 38655.38527.65535.65535
 
     # Windows Defender Advanced Threat Protection Service (Sense)
+  - target_component: Windows-SenseClient-Service
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-SenseClient-Service.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-SenseClient-Deployment
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -204,12 +210,6 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
   - target_component: Windows-SenseClient-MDM
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Windows-SenseClient-Service
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Windows-SenseClient-Service.Resources
     target_arch: amd64
     version: 38655.38527.65535.65535
 
