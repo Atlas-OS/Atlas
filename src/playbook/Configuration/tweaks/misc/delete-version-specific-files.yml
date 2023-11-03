@@ -10,6 +10,8 @@ actions:
   - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Gallery', builds: [ '!>=22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\Windows 11 Context Menu', builds: [ '!>=22000' ]}
   - !file: {path: '%windir%\AtlasModules\Tools\TimerResolution.exe', builds: [ '!>=22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Folders in This PC\Win11', builds: [ '>=22000' ]}
 
     # Delete Windows 10-only tweaks
   - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\Volume Flyout', builds: [ '>=22000' ], ignoreErrors: true}
+  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Folders in This PC\Win10', builds: [ '>=22000' ]}
