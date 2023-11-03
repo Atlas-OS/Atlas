@@ -12,6 +12,19 @@ powershell -nop "& ([Scriptblock]::Create((Get-Content '%~f0' -Raw))) %args%"
 exit /b %ERRORLEVEL%
 : end batch / begin PowerShell #>
 
+param (
+	[switch]$NextStartup
+)
+
+$taskName = 'AtlasDefenderConfigurationPrompt'
+if ($NextStartup) {
+	$message = "Atlas can't configure the Windows Defender settings after removal. Clicking 'OK' will take you to the Defender settings page."
+	if ((New-Object -ComObject "Wscript.Shell").Popup($message,20,'Windows Defender Configuration - Atlas',0+64) -eq 1) {
+		Start-Process 'windowsdefender://threat'
+	}
+	exit
+}
+
 $ProgressPreference = 'SilentlyContinue'
 function PauseNul ($message = "Press any key to exit... ") {
 	Write-Host $message -NoNewLine
@@ -40,8 +53,7 @@ function Menu {
 		# Disable Defender
 		1 {
 			if ($DefenderDisabled) {Menu}
-			Clear-Host
-			Write-Host "Are you sure that you want to disable Defender?" -ForegroundColor Red
+			Clear-Host; Write-Host "Are you sure that you want to disable Defender?" -ForegroundColor Red
 			Write-Host "Although disabling Windows Defender will improve performance and convienience, it's important for security.`n"
 			Write-Host "Your computer will restart automatically if you proceed.`n" -ForegroundColor Yellow
 			
@@ -58,8 +70,7 @@ function Menu {
 		# Enable Defender
 		2 {
 			if ($DefenderEnabled) {Menu}
-			Clear-Host
-			Write-Host "Enabling Defender..." -ForegroundColor Yellow
+			Clear-Host; Write-Host "Enabling Defender..." -ForegroundColor Yellow
 			foreach ($package in $packages) {
 				try {
 					Remove-WindowsPackage -Online -PackageName $package -NoRestart -LogLevel 1 *>$null
@@ -69,6 +80,21 @@ function Menu {
 					PauseNul; exit 1
 				}
 			}
+
+			$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+			$trigger = New-ScheduledTaskTrigger -AtLogon
+			$taskArgs = @{
+				'Trigger'     = $trigger
+				'Settings'    = $settings
+				'User'        = $user
+				'RunLevel'    = 'Highest'
+				'Force'       = $true
+			}
+
+			$arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & ' `
+				+ 'powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasDesktop\5. Security\Defender\Toggle Defender.cmd'') -NextStartup '
+			$action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
+			Register-ScheduledTask -TaskName $taskName -Action $action @taskArgs | Out-Null
 
 			Write-Host "`nCompleted!" -ForegroundColor Green
 			choice /c yn /n /m "Would you like to restart now to apply the changes? [Y/N] "
