@@ -91,8 +91,10 @@ actions:
   # ------------------------- Drivers ------------------------
 
     # NetBios support can be enabled with the file sharing script
+  - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
   - !service: {name: 'NetBT', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
+  
 
     # These drivers are mostly needed for compatiblity
     # They shouldn't be disabled unless proven to have an effect
@@ -100,14 +102,12 @@ actions:
   # - !service: {name: 'bindflt', operation: change, startup: 4}
   # - !service: {name: 'CimFS', operation: change, startup: 4}
   # - !service: {name: 'Dfsc', operation: change, startup: 4}
-  # - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
   # - !service: {name: 'tcpipreg', operation: change, startup: 4}
   # - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
 
     # These drivers are commented as they're manual
     # They will only be uncommented once there's a proven benefit
   # - !service: {name: 'flpydisk', operation: change, startup: 4}
-  # - !service: {name: 'dam', operation: change, startup: 4}
   # - !service: {name: '3ware', operation: change, startup: 4}
   # - !service: {name: 'ADP80XX', operation: change, startup: 4}
   # - !service: {name: 'AmdK8', operation: change, startup: 4}
