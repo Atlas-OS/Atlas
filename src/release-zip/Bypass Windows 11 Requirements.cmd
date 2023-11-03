@@ -3,6 +3,15 @@
 title Bypass Windows 11 Requirements
 cd /d "%~dp0"
 
+fltmc > nul 2>&1 || (
+	echo Administrator privileges are required.
+	PowerShell Start -Verb RunAs '%0' 2> nul || (
+		echo You must run this script as admin.
+		exit /b 1
+	)
+	exit /b
+)
+
 :: set ANSI escape characters
 cd /d "%~dp0"
 for /f %%a in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%a"
