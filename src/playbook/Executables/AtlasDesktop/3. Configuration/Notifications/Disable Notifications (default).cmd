@@ -14,7 +14,7 @@ reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings" 
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d "0" /f > nul
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" /v "NoCloudApplicationNotification" /t REG_DWORD /d "1" /f > nul
 
-:: Re-enable action center on Windows 11 as it breaks calendar
+:: Only disable action center on 10, as on Windows 11 as it disables the calendar
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     if %%a LSS 22000 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f > nul
 )

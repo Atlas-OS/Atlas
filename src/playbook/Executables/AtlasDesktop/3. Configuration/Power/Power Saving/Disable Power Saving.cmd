@@ -1,6 +1,6 @@
 @echo off
 
-if "%~1" == "/setup" goto main
+if "%~1" == "/silent" goto main
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call %windir%\AtlasModules\Scripts\RunAsTI.cmd "%~f0" %*
@@ -62,9 +62,6 @@ powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 3c
 :: Reduces DPCs, can be set all the way to 5000ms for statically clocked systems
 powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 4d2b0152-7d5c-498b-88e2-34345392a2c5 200
 
-:: Sleep/Standby States - Disabled
-call "%windir%\AtlasDesktop\3. Configuration\Power\Sleep\Disable Sleep (default).cmd" /silent
-
 :: Set the active scheme as the current scheme
 powercfg /setactive scheme_current
 
@@ -108,7 +105,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerT
 :: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
 bcdedit /set disabledynamictick yes > nul
 
-if "%~1" == "/setup" exit
+if "%~1" == "/silent" exit
 
 echo Completed.
 echo Press any key to exit...
