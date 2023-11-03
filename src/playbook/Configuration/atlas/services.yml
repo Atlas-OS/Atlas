@@ -94,7 +94,6 @@ actions:
   - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
   - !service: {name: 'NetBT', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
-  
 
     # These drivers are mostly needed for compatiblity
     # They shouldn't be disabled unless proven to have an effect
