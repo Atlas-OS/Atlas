@@ -90,15 +90,19 @@ actions:
 
   # ------------------------- Drivers ------------------------
 
-  - !service: {name: 'Beep', operation: change, startup: 4}
-  - !service: {name: 'bindflt', operation: change, startup: 4}
-  - !service: {name: 'CimFS', operation: change, startup: 4}
-  - !service: {name: 'Dfsc', operation: change, startup: 4}
-  - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
+    # NetBios support can be enabled with the file sharing script
   - !service: {name: 'NetBT', operation: change, startup: 4}
-  - !service: {name: 'tcpipreg', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
-  - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
+
+    # These drivers are mostly needed for compatiblity
+    # They shouldn't be disabled unless proven to have an effect
+  # - !service: {name: 'Beep', operation: change, startup: 4}
+  # - !service: {name: 'bindflt', operation: change, startup: 4}
+  # - !service: {name: 'CimFS', operation: change, startup: 4}
+  # - !service: {name: 'Dfsc', operation: change, startup: 4}
+  # - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
+  # - !service: {name: 'tcpipreg', operation: change, startup: 4}
+  # - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
 
     # These drivers are commented as they're manual
     # They will only be uncommented once there's a proven benefit
