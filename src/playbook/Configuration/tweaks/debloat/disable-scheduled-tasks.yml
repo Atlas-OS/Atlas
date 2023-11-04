@@ -2,8 +2,6 @@
 title: Disable Scheduled Tasks
 description: Disables scheduled tasks to prevent automatic tasks from running at startup, consuming resources and collecting user data
 title: Disable Scheduled Tasks
-description: Disables scheduled tasks to prevent automatic tasks from running at startup, consuming resources and collecting user data
-privilege: TrustedInstaller
 actions:
   # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
 
@@ -11,7 +9,6 @@ actions:
     path: '\Microsoft\Windows\Location'
     operation: deleteFolder
 
-  - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily'}
   - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily'}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask'}
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask'}
