@@ -102,7 +102,7 @@ Some of the many changes that we have made to improve Windows are listed below:
 ### 🔒 Legal
 Many custom Windows OSes distribute their systems by providing a tweaked ISO of Windows. Not only does it violate [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), but it is also not a safe way to install.
 
-Atlas partnered with the Ameliorated team to provide users with a safer and legal way to install, using [AME Wizard](https://ameliorated.io). With it, Atlas fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.html).
+Atlas partnered with the Ameliorated team to provide users with a safer and legal way to install, using [AME Wizard](https://ameliorated.io). With it, Atlas fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
 ## 🎨 Brand kit
 Feeling creative? Want to create your own Atlas wallpaper with some original creative designs? Our brand kit has got you covered!
