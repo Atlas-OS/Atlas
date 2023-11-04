@@ -43,17 +43,18 @@ actions:
     value: 'EnableDynamicContentInWSB'
     data: '0'
     type: REG_DWORD
-    
+
     # Disable online search and don't include web results from Bing
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer'
     value: 'DisableSearchBoxSuggestions'
     data: '1'
     type: REG_DWORD
-    
+
     # Set search as icon on taskbar
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
     value: 'SearchboxTaskbarMode'
     data: '1'
     type: REG_DWORD
+    scope: activeUsers

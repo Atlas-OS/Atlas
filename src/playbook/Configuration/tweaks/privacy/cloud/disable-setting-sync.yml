@@ -19,6 +19,11 @@ actions:
     data: '1'
     type: REG_DWORD
   - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'
+    value: 'DisableWindowsSettingSync'
+    data: '2'
+    type: REG_DWORD
+  - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Personalization'
     value: 'Enabled'
     data: '0'

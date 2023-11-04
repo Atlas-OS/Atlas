@@ -1,6 +1,6 @@
 ---
 title: Configure Boot Configuration
-description: Configures the boot configuration (BCD) for the best performance and QoL
+description: Configures the boot configuration (BCD) for QoL
 privilege: TrustedInstaller
 actions:
     # Lowering dual boot choice time
@@ -9,3 +9,13 @@ actions:
 
     # Use legacy boot menu
   - !run: {exe: 'bcdedit', args: '/set bootmenupolicy Legacy'}
+
+    # Set boot manager descriptions
+  - !run:
+    exe: 'bcdedit'
+    args: '/set description "AtlasOS 10"'
+    builds: [ '!>=22000' ]
+  - !run:
+    exe: 'bcdedit'
+    args: '/set description "AtlasOS 11"'
+    builds: [ '>=22000' ]

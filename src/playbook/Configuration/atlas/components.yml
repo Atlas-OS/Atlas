@@ -3,16 +3,11 @@ title: Components
 description: Removes certain Windows components
 privilege: TrustedInstaller
 actions:
-    # Windows Defender
-  - !writeStatus: {status: 'Disabling Windows Defender', option: 'defender-disable'}
-  - !run:
-    exe: 'C:\Windows\AtlasDesktop\3. Configuration\5. Security\Defender\Toggle Defender.cmd'
-    args: '-Disable'
-    wait: true
-    option: 'defender-disable'
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
-    # Causes slow app loading issues, and sends data to Microsoft
+
+    # Disable Smart App Control
+    # Causes slow app loading issues and sends data to Microsoft
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy'
     value: 'VerifiedAndReputablePolicyState'
@@ -21,39 +16,43 @@ actions:
 
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Tools\NSudoLC.exe'
-    args: '-U:E -UseCurrentConsole -Wait powershell.exe -NoP -EP Unrestricted -File "C:\Windows\AtlasDesktop\1. Software\Remove Edge.ps1" -AMEWizard'
+  - !cmd:
+    command: 'powershell.exe -NoP -EP Unrestricted -File "%windir%\AtlasDesktop\1. Software\Remove Edge.ps1" -UninstallEdge -KeepAppX -Exit'
     wait: true
+    runas: currentUserElevated
     option: 'uninstall-edge'
-    # AppX uninstallation in the script seems to fail with NSudo, therefore it's not used and AME Wizard is used instead
-  - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge'}
+    # AppX uninstallation in the script seems to fail, therefore it's not used and AME Wizard is used instead
+  - !appx: {name: '*Microsoft.MicrosoftEdge.Stable*', type: family, option: 'uninstall-edge'}
+  - !appx: {name: '*Microsoft.MicrosoftEdge*', type: family, option: 'uninstall-edge'}
+  - !appx: {name: '*Microsoft.MicrosoftEdgeDevToolsClient*', type: family, option: 'uninstall-edge'}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
-  
-    # NoTelemetry Package
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Scripts\online-sxs.cmd'
-    args: '"C:\Windows\AtlasModules\Packages\Z-Atlas-NoTelemetry-Package31bf3856ad364e35amd643.0.0.0.cab"'
-    wait: true
-
-    # Misc Package
-  - !run:
-    exe: 'C:\Windows\AtlasModules\Scripts\online-sxs.cmd'
-    args: '"C:\Windows\AtlasModules\Packages\Z-Atlas-Misc-Remover-Package31bf3856ad364e35amd643.0.0.0.cab"'
-    wait: true
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdgeDevToolsClient_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
 
     # OneDrive
+    # The actual OneDrive setup in Windows is stripped at a component-level in the miscellaneous package
   - !writeStatus: {status: 'Removing OneDrive'}
   - !run: {exeDir: true, exe: 'ONED.cmd'}
 
+  - !writeStatus: {status: 'Removing components'}
+  - !run:
+    exe: 'powershell'
+    args: '& """$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1""" -PlaybookInstall'
+    option: 'defender-disable'
+  - !run:
+    exe: 'powershell'
+    args: '& """$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1""" -PlaybookInstall -EverythingButDefender'
+    option: 'defender-enable'
+
     # Update Health Tools
-  - !writeStatus: {status: 'Removing Update Health Tools'}
+  - !writeStatus: {status: 'Removing Update Health'}
   - !powerShell: {command: 'Import-Module -Name """$env:windir\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Microsoft Update Health Tools'''}
 
     # PC Health Check
   - !writeStatus: {status: 'Removing PC Health Check'}
   - !powerShell: {command: 'Import-Module -Name """$env:windir\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Windows PC Health Check'''}
+    # The Microsoft Update Health Service stays, which is a Windows bug
+  - !service: {name: 'uhssvc', deleteUsingRegistry: true}
 
     # Converts all Microsoft user accounts to local accounts
   - !run:

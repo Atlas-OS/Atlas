@@ -3,9 +3,27 @@ title: Add Theme
 description: Adds and sets the Atlas themes by default
 privilege: TrustedInstaller
 actions:
-  - !taskKill: {name: 'SystemSettings'}
-  - !taskKill: {name: 'control'}
-  - !taskKill: {name: 'explorer'}
+    # Copy files
+  - !cmd:
+    command: 'copy /y "Themes" "%windir%\Resources\Themes" > nul'
+    exeDir: true
+    wait: true
+
+    # Set lockscreen
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -EP Unrestricted & "LOCKSCREEN.ps1"'
+    exeDir: true
+    runas: currentUserElevated
+  - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
+  - !taskKill: {name: 'control', ignoreErrors: true}
+
+    # Disable fun facts, tips, tricks, and more on lockscreen
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
+    value: 'LockScreenOverlaysDisabled'
+    data: '1'
+    type: REG_DWORD
 
     # Windows theme
   - !registryValue:
@@ -27,17 +45,17 @@ actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'WallPaper'
-    data: 'C:\Windows\AtlasModules\Wallpapers\atlas-dark.png'
+    data: '%windir%\AtlasModules\Wallpapers\atlas-dark.png'
     type: REG_SZ
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
     value: 'BackgroundHistoryPath0'
-    data: 'C:\Windows\AtlasModules\Wallpapers\atlas-dark.png'
+    data: '%windir%\AtlasModules\Wallpapers\atlas-dark.png'
     type: REG_SZ
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
     value: 'BackgroundHistoryPath1'
-    data: 'C:\Windows\AtlasModules\Wallpapers\atlas-light.png'
+    data: '%windir%\AtlasModules\Wallpapers\atlas-light.png'
     type: REG_SZ
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
@@ -54,44 +72,44 @@ actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
     value: 'CurrentTheme'
-    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    data: '%windir%\Resources\Themes\atlas-dark.theme'
     type: REG_SZ
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\HighContrast'
     value: 'Pre-High Contrast Scheme'
-    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    data: '%windir%\Resources\Themes\atlas-dark.theme'
     type: REG_SZ
 
     # Set Atlas theme as default
   - !registryValue:
     path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Themes'
     value: 'InstallTheme'
-    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    data: '%windir%\Resources\Themes\atlas-dark.theme'
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Themes'
     value: 'InstallThemeDark'
-    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    data: '%windir%\Resources\Themes\atlas-dark.theme'
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Themes'
     value: 'InstallThemeLight'
-    data: 'C:\Windows\Resources\Themes\atlas-light.theme'
+    data: '%windir%\Resources\Themes\atlas-light.theme'
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
     value: 'InstallTheme'
-    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    data: '%windir%\Resources\Themes\atlas-dark.theme'
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
     value: 'InstallThemeDark'
-    data: 'C:\Windows\Resources\Themes\atlas-dark.theme'
+    data: '%windir%\Resources\Themes\atlas-dark.theme'
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
     value: 'InstallThemeLight'
-    data: 'C:\Windows\Resources\Themes\atlas-light.theme'
+    data: '%windir%\Resources\Themes\atlas-light.theme'
     type: REG_SZ
 
     # Accent color
@@ -138,8 +156,18 @@ actions:
     data: '0'
     type: REG_DWORD
 
+    # Apply some more theme changes that can't be done in actions
   - !run:
     exeDir: true
     exe: 'THEME.cmd'
     weight: 20
   - !run: {exe: 'rundll32.exe', args: 'user32.dll,UpdatePerUserSystemParameters'}
+
+    # Apply theme file to finish up changes
+  - !cmd:
+    command: 'start "" "%windir%\Resources\Themes\atlas-dark.theme"'
+    wait: true
+    runas: currentUserElevated
+  - !run: {exe: 'timeout', args: '/t 4 /nobreak'}
+  - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
+  - !taskKill: {name: 'control', ignoreErrors: true}

@@ -3,11 +3,8 @@ package: Z-Atlas-NoTelemetry-Package
 target_arch: amd64
 version: 3.0.0.0
 updates:
-    # Windows Error Reporting - used for reporting crash dumps to Microsoft
-    # Commented components are to prevent an 'Automatic Repair' loop 
-  - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+    # Windows Error Reporting - reporting crash dumps to Microsoft
+    # Commented components are to prevent an 'Automatic Repair' loop
   # - target_component: Microsoft-Windows-ErrorReporting-Adm
   #   target_arch: amd64
   #   version: 38655.38527.65535.65535
@@ -71,6 +68,11 @@ updates:
   # - target_component: Microsoft-Windows-ErrorReportingUI.Resources
   #   target_arch: amd64
   #   version: 38655.38527.65535.65535
+
+    # Feedback
+  - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
+    target_arch: amd64
+    version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-Feedback-CourtesyEngine
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -93,7 +95,7 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
 
-    # Telemetry Client - collects and reports diagnostic info to Microsoft
+    # Telemetry - collecting/reporting diagnostic info to Microsoft
   - target_component: Microsoft-OneCore-SystemSettings-InputCloudStore
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -109,6 +111,12 @@ updates:
   - target_component: Microsoft-Windows-Application-Experience-Core-Inventory-Service.Resources
     target_arch: amd64
     version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-Application-Experience-Infrastructure
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
+  # - target_component: Microsoft-Windows-Application-Experience-Infrastructure
+  #   target_arch: wow64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-Application-Experience-Inventory-Data-Sources
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -142,6 +150,9 @@ updates:
   - target_component: Microsoft-Windows-Compat-CompatTelRunner.Resources
     target_arch: amd64
     version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-Compat-CompatTelRunner-DailyTask
+    target_arch: amd64
+    version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-Compat-GeneralTel
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -165,6 +176,9 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-DataCollection-Adm.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-DeviceCensus
     target_arch: amd64
     version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-DeviceCensus-Schedule-ClientServer

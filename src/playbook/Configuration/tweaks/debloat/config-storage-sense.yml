@@ -21,11 +21,8 @@ actions:
     # Clean Recycle Bin every month
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy', value: '08', type: REG_DWORD, data: '1'}
   - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy', value: '256', type: REG_DWORD, data: '30'}
-    
+
     # Enable cleaning temp files
-  - !run:
-    exe: 'schtasks.exe'
-    args: '/change /tn "Microsoft\Windows\DiskCleanup\SilentCleanup" /enable'
-    wait: true
+  - !scheduledTask: {path: '\Microsoft\Windows\DiskCleanup\SilentCleanup', operation: enable}
 
     # There's also subkeys for OneDrive cleanup, but as OneDrive is uninstalled, they probably aren't relevant

@@ -13,25 +13,24 @@ If -Enable is not specified, device is disabled
 - Made by he3als & Xyueta
 - Below shows how to use it for mass disabling devices in a batch script
 
-setlocal EnableDelayedExpansion
 for %%a in (
 	"ACPI Processor Aggregator"
 	"*SmBus*"
 ) do (
-	if defined __devices (
-		set "__devices=!__devices!, "%%~a""
+	if defined devices (
+		set "devices=%devices%, "%%~a""
 	) else (
-		set "__devices=@("%%~a""
+		set "devices=@("%%~a""
 	)
 )
 
-set "__devices=!__devices!)"
-call toggleDev.cmd !__devices!
+set "devices=%devices%)"
+call toggleDev.cmd %devices%
 
 ----------------------------------------------------------------------------
 
 :main
-fltmc >nul 2>&1 || (
+fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
 	PowerShell Start -Verb RunAs '%0' 2> nul || (
 		echo You must run this script as admin.
@@ -43,7 +42,7 @@ fltmc >nul 2>&1 || (
 set args= & set "args1=%*"
 if defined args1 set "args=%args1:"='%"
 powershell -noni -nop "& ([Scriptblock]::Create((Get-Content '%~f0' -Raw))) %args%"
-exit /b %errorlevel%
+exit /b %ERRORLEVEL%
 : end batch / begin PowerShell #>
 
 param (

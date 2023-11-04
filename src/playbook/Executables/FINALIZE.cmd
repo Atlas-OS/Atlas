@@ -3,17 +3,11 @@ setlocal EnableDelayedExpansion
 
 :: MSI Mode
 
-:: Enable MSI mode on USB, GPU, Audio, SATA controllers and network adapters
+:: Enable MSI mode on USB, GPU, Audio, SATA controllers, disk drives and network adapters
 :: Deleting DevicePriority sets the priority to undefined
-for %%a in (
-    Win32_NetworkAdapter,
-    Win32_PnPEntity,
-    Win32_SoundDevice,
-    Win32_USBController,
-    Win32_VideoController,
-) do (
-    if "%%a" == "Win32_PnPEntity" (
-        for /f "tokens=*" %%b in ('PowerShell -NoP -C "Get-WmiObject -Class Win32_PnPEntity | Where-Object {$_.PNPClass -eq 'SCSIAdapter'} | Where-Object { $_.PNPDeviceID -like 'PCI\VEN_*' } | Select-Object -ExpandProperty DeviceID"') do (
+for %%a in ("CIM_NetworkAdapter", "CIM_USBController", "CIM_VideoController" "Win32_IDEController", "Win32_PnPEntity", "Win32_SoundDevice") do (
+    if "%%~a" == "Win32_PnPEntity" (
+        for /f "tokens=*" %%b in ('PowerShell -NoP -C "Get-WmiObject -Class Win32_PnPEntity | Where-Object {($_.PNPClass -eq 'SCSIAdapter') -or ($_.Caption -like '*High Definition Audio*')} | Where-Object { $_.PNPDeviceID -like 'PCI\VEN_*' } | Select-Object -ExpandProperty DeviceID"') do (
             reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%b\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties" /v "MSISupported" /t REG_DWORD /d "1" /f > nul
             reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%b\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f > nul 2>&1
         )
@@ -26,19 +20,15 @@ for %%a in (
 )
 
 :: If a virtual machine is used, set network adapter to normal priority as Undefined may break internet connection
-wmic computersystem get manufacturer /format:value | findstr /i /c:VMWare && (
-    for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID ^| findstr /l "PCI\VEN_"') do (
-        reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2" /f > nul
+for %%a in ("hvm", "hyper", "innotek", "kvm", "parallel", "qemu", "virtual", "xen", "vmware") do (
+    wmic computersystem get manufacturer /format:value | findstr /i /c:%%~a && (
+        for /f %%b in ('wmic path CIM_NetworkAdapter get PNPDeviceID ^| findstr /l "PCI\VEN_"') do (
+            reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%b\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "2" /f > nul
+        )
     )
 )
 
-:: Miscellaneous
-
-:: Disable DMA remapping
-:: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
-for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRemappingCompatible" ^| find /i "Services\" ') do (
-    reg add "%%a" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f > nul
-)
+:: Network Configuration
 
 :: Disable NetBios over tcp/ip
 :: Works only when services are enabled
@@ -56,7 +46,7 @@ for /f %%a in ('wmic path Win32_NetworkAdapter get GUID ^| findstr "{"') do (
 
 :: Set network adapter driver registry key
 for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
-	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver"') do ( 
+	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver" 2^>nul') do (
         set "netKey=HKLM\SYSTEM\CurrentControlSet\Control\Class\%%b"
     )
 )
@@ -108,8 +98,6 @@ for %%a in (
     "Node"
     "NSOffloadEnable"
     "PacketCoalescing"
-    rem Offload "PMARPOffload"
-    rem Offload "PMNSOffload"
     "PMWiFiRekeyOffload"
     "PowerDownPll"
     "PowerSaveMode"
@@ -133,32 +121,37 @@ for %%a in (
     "WoWLANS5Support"
 ) do (
     rem Check without '*'
-    for /f %%b in ('reg query "!netKey!" /v "%%~a" ^| findstr "HKEY"') do (
-        reg add "!netKey!" /v "%%~a" /t REG_SZ /d "0" /f > nul
+    for /f %%b in ('reg query "%netKey%" /v "%%~a" 2^>nul ^| findstr "HKEY" 2^>nul') do (
+        reg add "%netKey%" /v "%%~a" /t REG_SZ /d "0" /f > nul
     )
     rem Check with '*'
-    for /f %%b in ('reg query "!netKey!" /v "*%%~a" ^| findstr "HKEY"') do (
-        reg add "!netKey!" /v "*%%~a" /t REG_SZ /d "0" /f > nul
+    for /f %%b in ('reg query "%netKey%" /v "*%%~a" 2^>nul ^| findstr "HKEY" 2^>nul') do (
+        reg add "%netKey%" /v "*%%~a" /t REG_SZ /d "0" /f > nul
     )
 )
 
-for /f "tokens=1" %%a in ('netsh int ip show interfaces ^| findstr [0-9]') do (
-    netsh int ip set interface %%a routerdiscovery=disabled store=persistent > nul
-)
+:: Miscellaneous
 
-:: Set correct username variable of the currently logged in user
-for /f "tokens=3 delims==\" %%a in ('wmic computersystem get username /value ^| find "="') do set "loggedinUsername=%%a"
+:: Disable Direct Memory Access remapping
+:: https://docs.microsoft.com/en-us/windows-hardware/drivers/pci/enabling-dma-remapping-for-device-drivers
+for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRemappingCompatible" ^| find /i "Services\" ') do (
+    reg add "%%a" /v "DmaRemappingCompatible" /t REG_DWORD /d "0" /f > nul
+)
 
 :: Hide unnecessary items from the 'Send To' context menu
 for %%a in (
     "Documents.mydocs"
     "Mail Recipient.MAPIMail"
 ) do (
-    attrib +h "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\%%~a" > nul
+    attrib +h "%APPDATA%\Microsoft\Windows\SendTo\%%~a" > nul
 )
 
+:: Set RunOnce login script
+:: This is the script that will be ran on login for new users
+reg add "HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "RunScript" /t REG_SZ /d "powershell -EP Unrestricted -NoP & \"$env:windir\AtlasModules\Scripts\newUsers.ps1\"" /f
+
 :: Remove Fax Recipient from the 'Send to' context menu as Fax feature is removed
-del /f /q "C:\Users\%loggedinUsername%\AppData\Roaming\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1
+del /f /q "%APPDATA%\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1
 
 :: Disable audio exclusive mode on all devices
 for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture", "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render") do (
@@ -187,29 +180,19 @@ for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capt
     )
 )
 
-:: Set sound scheme to 'No Sounds'
-for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
-    REM If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs do not have this key.
-    reg query "HKEY_USERS\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_"
-    if not !errorlevel! == 1 (
-        PowerShell -NoP -C "New-PSDrive HKU Registry HKEY_USERS; New-ItemProperty -Path 'HKU:\%%a\AppEvents\Schemes' -Name '(Default)' -Value '.None' -Force | Out-Null" > nul
-        PowerShell -NoP -C "New-PSDrive HKU Registry HKEY_USERS; Get-ChildItem -Path 'HKU:\%%a\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''" > nul
-    )
-)
-
 :: Detect hard drive - Solid State Drive (SSD) or Hard Disk Drive (HDD)
 for /f %%a in ('PowerShell -NoP -C "(Get-PhysicalDisk -SerialNumber (Get-Disk -Number (Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1)).DiskNumber).SerialNumber.TrimStart()).MediaType"') do (
   set "diskDrive=%%a"
 )
 
-if "!diskDrive!" == "SSD" (
+if "%diskDrive%" == "SSD" (
     rem Remove lower filters for rdyboost driver
-    set "key=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
-    for /f "skip=1 tokens=3*" %%a in ('reg query !key! /v "LowerFilters"') do (set val=%%a)
-    set val=!val:rdyboost\0=!
-    set val=!val:\0rdyboost=!
-    set val=!val:rdyboost=!
-    reg add "!key!" /v "LowerFilters" /t REG_MULTI_SZ /d "!val!" /f > nul
+    set "reg_path=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
+    for /f "skip=1 tokens=3*" %%a in ('reg query "!reg_path!" /v "LowerFilters"') do (set "val=%%a")
+    set "val=!val:rdyboost\0=!"
+    set "val=!val:\0rdyboost=!"
+    set "val=!val:rdyboost=!"
+    reg add "!reg_path!" /v "LowerFilters" /t REG_MULTI_SZ /d "!val!" /f > nul
 
     rem Disable ReadyBoost
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "Start" /t REG_DWORD /d "4" /f > nul
@@ -218,9 +201,19 @@ if "!diskDrive!" == "SSD" (
     reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}" /f > nul 2>&1
 
     rem Disable Memory Compression
-    rem SysMain should already disable it, but make sure it is disabled by executing this command.
+    rem If SysMain is disabled, MC should be too, but ensure its state by executing this command.
     PowerShell -NoP -C "Disable-MMAGent -MemoryCompression" > nul
 
     rem Disable SysMain (Superfetch and Prefetch)
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f > nul
+)
+
+:: Detect if user uses laptop device or personal computer
+for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"
+set "DEVICE_TYPE=PC"
+for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "%CHASSIS%" == "%%a" (set "DEVICE_TYPE=LAPTOP")
+
+:: Disable laptop-related services on PC
+if "%DEVICE_TYPE%" == "PC" (
+    call %windir%\AtlasModules\Scripts\setSvc.cmd DisplayEnhancementService 4
 )

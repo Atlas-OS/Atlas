@@ -6,13 +6,18 @@ actions:
   - !writeStatus: {status: 'Removing APPX packages'}
   
   # The reason of removing those applications is that there is a potential of them sending user data,
-  # showing unwanted content including advertisements and using hardware resources. They can also
-  # simply be annoyances that are never used. However, most of these applications can be reinstalled
-  # via Microsoft Store in case user need them.
-  
+  # showing unwanted content (advertisements) and using hardware resources. They can also simply be
+  # annoyances that are never used. However, most of these applications can be reinstalled via the
+  # Microsoft Store in case the user needs them.
+
   # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
 
   #####################################################################################################
+
+  # Get current AppX packages to deprovision removed ones later
+  - !powerShell:
+    command: '(Get-AppxPackage).PackageFamilyName | Out-File "$env:windir\AtlasModules\AtlasPackagesOld.txt"'
+    runas: currentUserElevated
 
   # Clipchamp
   - !appx: {name: '*Clipchamp*', type: family}
@@ -24,6 +29,7 @@ actions:
   - !appx: {name: '*Spotify*', type: family}
 
   # Microsoft Teams
+  - !taskKill: {name: '*teams*', ignoreErrors: true}
   - !appx: {name: '*MicrosoftTeams*', type: family}
 
   # Cortana
@@ -32,9 +38,9 @@ actions:
   # Mixed Reality
   - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
 
-  # Installs unwanted content such as apps like Disney+ and advertisements
-  - !appx: {name: '*Microsoft.Windows.ContentDeliveryManager*', type: family}
-
+  # Dev Home
+  - !appx: {name: '*Microsoft.Windows.DevHome*', type: family}
+  
   # Network connection should not be needed in OOBE
   # Could force users to have to login to a Microsoft account in OOBE
   # Would not be a dependency of anything
@@ -52,14 +58,35 @@ actions:
   - !appx: {name: '*Microsoft.MSPaint*', type: family}
 
   # Widgets
+  # Uninstallation seems to fail with AME Wizard sometimes
+  - !taskKill: {name: '*widgets*', ignoreErrors: true}
   - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
-  
+  - !powerShell:
+    command: 'Get-AppxPackage *Client.WebExperience* -AllUsers | Remove-AppxPackage -AllUsers'
+    runas: currentUserElevated
+
   # Get Started
   - !appx: {name: '*Microsoft.Getstarted*', type: family}
-  - !appx: {name: '*WebExperienceHost*', type: app}
+  - !appx: {name: '*WebExperienceHost*', type: app, unregister: true}
 
-  - !appx: {name: '*MicrosoftCorporationII.MicrosoftFamily*', type: family}
+  # Windows Backup
+  - !appx: {name: '*WindowsBackup*', type: app, unregister: true}
+
+  # Advertisements/Telemetry
+  - !appx: {name: '*Global.Accounts*', type: app, unregister: true}
+  - !appx: {name: '*Global.BackupBanner*', type: app, unregister: true}
+  - !appx: {name: '*Global.IrisService*', type: app, unregister: true}
+  - !appx: {name: '*Global.ValueBanner*', type: app, unregister: true}
+  - !appx: {name: '*Global.DesktopSpotlight*', type: app, unregister: true}
+  
+  - !run:
+    exe: 'powershell.exe'
+    args: '-NoP -File CLIENTCBS.ps1'
+    exeDir: true
+
+  # Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
+
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
   - !appx: {name: '*Microsoft.BingNews*', type: family}
   - !appx: {name: '*Microsoft.BingSearch*', type: family}
@@ -70,7 +97,7 @@ actions:
   - !appx: {name: '*Microsoft.MicrosoftSolitaireCollection*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftStickyNotes*', type: family}
   - !appx: {name: '*Microsoft.Office.OneNote*', type: family}
-  - !appx: {name: '*Microsoft.Outlook*', type: family}
+  - !appx: {name: '*Microsoft.OutlookForWindows*', type: family}
   - !appx: {name: '*Microsoft.People*', type: family}
   - !appx: {name: '*Microsoft.PowerAutomateDesktop*', type: family}
   - !appx: {name: '*Microsoft.Windows.PeopleExperienceHost*', type: family}
@@ -78,7 +105,6 @@ actions:
   - !appx: {name: '*Microsoft.SkypeApp*', type: family}
   - !appx: {name: '*Microsoft.Todos*', type: family}
   - !appx: {name: '*Microsoft.Wallet*', type: family}
-  - !appx: {name: '*Microsoft.Windows.AssignedAccessLockApp*', type: family}
   - !appx: {name: '*Microsoft.Windows.ParentalControls*', type: family}
   - !appx: {name: '*Microsoft.Windows.Photos*', type: family}
   - !appx: {name: '*Microsoft.WindowsAlarms*', type: family}
@@ -92,36 +118,9 @@ actions:
 
   # Prevent provisioned applications from being reinstalled
   # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Clipchamp.Clipchamp_yxz26nhyzhsrt', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.549981C3F5F10_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.BingNews_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.BingWeather_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.GetHelp_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.Getstarted_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftOfficeHub_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftStickyNotes_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.Microsoft3DViewer_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.People_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.PowerAutomateDesktop_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.ScreenSketch_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.Todos_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.Windows.Photos_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.WindowsAlarms_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.WindowsCamera_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\microsoft.windowscommunicationsapps_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.WindowsFeedbackHub_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.WindowsMaps_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.WindowsSoundRecorder_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.YourPhone_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.ZuneMusic_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.ZuneVideo_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftTeams_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\MicrosoftWindows.Client.WebExperience_cw5n1h2txyewy', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.SkypeApp_kzf8qxf38zg5c', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.Office.OneNote_8wekyb3d8bbwe', operation: add}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MixedReality.Portal_8wekyb3d8bbwe', operation: add}
+  - !powerShell:
+    command: '$a = """$env:windir\AtlasModules\AtlasPackagesOld.txt"""; (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force }; Remove-Item $a -Force'
+    runas: currentUserElevated
 
   # Clear caches of Start menu and more
   - !appx: {operation: clearCache, name: '*Client.CBS*'}

@@ -1,12 +1,3 @@
-# Clearing the user's temporary folder
-Get-ChildItem -Path "$env:TEMP" -File | Remove-Item -Force -EA SilentlyContinue
-
-# Clearing the Windows Temp folder
-Remove-Item -Path 'C:\Windows\Temp\*' -Force -Recurse -EA SilentlyContinue
-
-# Exclude the AME folder while deleting directories in the temporary folder
-Get-ChildItem -Path "$env:TEMP" -Directory | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse -EA SilentlyContinue
-
 # As cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
 function Invoke-AtlasDiskCleanup {
 	# Kill running cleanmgr instances, as they will prevent new cleanmgr from starting
@@ -14,7 +5,7 @@ function Invoke-AtlasDiskCleanup {
 	# Disk Cleanup preset
 	# 2 = enabled
 	# 0 = disabled
-	$baseKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches'
+	$baseKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches'
 	$regValues = @{
 		"Active Setup Temp Folders" = 2
 		"BranchCache" = 2
@@ -24,7 +15,7 @@ function Invoke-AtlasDiskCleanup {
 		"Downloaded Program Files" = 2
 		"Internet Cache Files" = 2
 		"Language Pack" = 0
-		"Old ChkDsk Files" = 0
+		"Old ChkDsk Files" = 2
 		"Recycle Bin" = 0
 		"RetailDemo Offline Content" = 2
 		"Setup Log Files" = 2
@@ -40,13 +31,11 @@ function Invoke-AtlasDiskCleanup {
 		"Device Driver Packages" = 2
 	}
 	foreach ($entry in $regValues.GetEnumerator()) {
-		$key = $entry.Key
-		$value = $entry.Value
-		$path = "$baseKey\$key"
-		Set-ItemProperty -Path $path -Name 'StateFlags0064' -Value $value -Type DWORD
+		Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
 	}
+
 	# Run preset 64 (0-65535)
-	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64"
+	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64" 2>&1 | Out-Null
 }
 
 # Check for other installations of Windows
@@ -54,9 +43,20 @@ function Invoke-AtlasDiskCleanup {
 $excludedDrive = "C"
 $drives = Get-PSDrive -PSProvider 'FileSystem' | Where-Object { $_.Name -ne $excludedDrive }
 foreach ($drive in $drives) {
-    if (Test-Path -Path $(Join-Path -Path $drive.Root -ChildPath 'Windows') -PathType Container) {
-        $otherInstalls = $true
+    if (!(Test-Path -Path $(Join-Path -Path $drive.Root -ChildPath 'Windows') -PathType Container)) {
+        Invoke-AtlasDiskCleanup
     }
 }
 
-if (!($otherInstalls)) { Invoke-AtlasDiskCleanup }
+$ErrorActionPreference = 'SilentlyContinue'
+# Exclude the AME folder while deleting directories in the temporary user folder
+Get-ChildItem -Path "$env:TEMP" | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse
+
+# Clear the temporary system folder
+Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse
+
+# Delete all system restore points
+vssadmin delete shadows /all /quiet
+
+# Clear Event Logs
+wevtutil el | ForEach-Object {wevtutil cl "$_"} 2>&1 | Out-Null

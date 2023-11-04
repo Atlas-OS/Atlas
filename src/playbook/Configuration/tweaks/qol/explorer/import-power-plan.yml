@@ -6,7 +6,7 @@ actions:
   - !registryValue:
     path: 'HKCR\powerscheme\DefaultIcon'
     value: ''
-    data: 'C:\Windows\System32\powercpl.dll,1'
+    data: '%windir%\System32\powercpl.dll,1'
     type: REG_SZ
   - !registryValue:
     path: 'HKCR\powerscheme\Shell\open\command'

@@ -2,9 +2,9 @@
 title: Disable Mitigations
 description: Disables mitigations in Windows dependant on the user's options
 privilege: TrustedInstaller
+option: 'mitigations-disable'
 actions:
   - !run:
-    exe: 'C:\Windows\AtlasDesktop\3. Configuration\1. General Configuration\Mitigations\Disable All Mitigations.cmd'
+    exe: 'Disable All Mitigations.cmd'
+    path: '%windir%\AtlasDesktop\7. Security\Mitigations'
     args: '/silent'
-    wait: true
-    option: 'mitigations-disable'

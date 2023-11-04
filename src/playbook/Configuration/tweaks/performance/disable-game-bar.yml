@@ -1,0 +1,55 @@
+---
+title: Disable Game Bar
+description: Disables XBOX Game Bar, which is known as a bloatware feature
+privilege: TrustedInstaller
+actions:
+
+  # Disable Game Bar
+  - !registryValue:
+    path: 'HKCU\System\GameConfigStore'
+    value: 'GameDVR_Enabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'
+    value: 'AppCaptureEnabled'
+    data: '0'
+    type: REG_DWORD
+
+  # Disable Game Bar tips
+  # Disable 'Open Xbox Game Bar using this button on a controller'
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    value: 'GamePanelStartupTipIndex'
+    data: '3'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    value: 'ShowStartupPanel'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    value: 'UseNexusForGameBarEnabled'
+    data: '0'
+    type: REG_DWORD
+
+    # Disable Game Bar Presence Writer, required for GameBar
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter'
+    value: 'ActivationType'
+    data: '0'
+    type: REG_DWORD
+
+    # Disable Windows Game Recording and Broadcasting
+    # It automatically disables Game Bar
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR'
+    value: 'AllowGameDVR'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR'
+    value: 'value'
+    data: '0'
+    type: REG_DWORD

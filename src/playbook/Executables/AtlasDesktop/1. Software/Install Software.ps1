@@ -1,12 +1,5 @@
-function PauseNul ($message = "Press any key to exit... ") {
-	Write-Host $message -NoNewLine
-	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
-}
-
-if ($null -eq $(cmd /c where winget)) {
-    Write-Host "WinGet is not installed, please update or install App Installer from Microsoft Store." -ForegroundColor Red
-    PauseNul
-}
+& "$env:windir\AtlasModules\Scripts\wingetCheck.cmd"
+if ($LASTEXITCODE -ne '0') {exit 1}
 
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -48,14 +41,14 @@ function generate_checkbox {
     $checkbox.Text = $checkboxText
     $checkbox.Name = $package
     $checkbox.Enabled = $enabled
-    
+
     $checkbox
 }
 
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
 
-# Set the size of your form
+# Set the size of the form
 $Form = New-Object System.Windows.Forms.Form
 $Form.Text = "Install Software | Atlas" # Titlebar
 $Form.ShowIcon = $false
@@ -80,14 +73,20 @@ init_item "Ungoogled Chromium" "eloston.ungoogled-chromium"
 # https://winget.run/pkg/Mozilla/Firefox
 init_item "Mozilla Firefox" "Mozilla.Firefox"
 
+# https://winget.run/pkg/Waterfox/Waterfox
+init_item "Waterfox" "Waterfox.Waterfox"
+
 # https://winget.run/pkg/Brave/brave
 init_item "Brave Browser" "Brave.Brave"
 
 # https://winget.run/pkg/Google/Chrome
 init_item "Google Chrome" "Google.Chrome"
 
-# https://winget.run/pkg/Librewolf/Librewolf
-init_item "LibreWolf" "Librewolf.Librewolf"
+# https://winget.run/pkg/Microsoft/Edge
+init_item "Microsoft Edge" "Microsoft.Edge"
+
+# https://winget.run/pkg/LibreWolf/LibreWolf
+init_item "LibreWolf" "LibreWolf.LibreWolf"
 
 # https://winget.run/pkg/TorProject/TorBrowser
 init_item "Tor Browser" "TorProject.TorBrowser"
@@ -203,7 +202,7 @@ if ($this.Text -eq "Dark Mode") {
     light_mode
 }
 })
-# Changed into functions 
+# Changed into functions
 function dark_mode {
     $Form.BackColor = [System.Drawing.Color]::FromArgb(26, 26, 26)
     $Form.ForeColor = [System.Drawing.Color]::White
@@ -225,7 +224,7 @@ function light_mode {
     }
 }
 # Checks the system "app" color (light or dark)
-$registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\"
+$registryPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize\"
 $keyName = "AppsUseLightTheme"
 function check_system_theme{
     if(((Get-ItemProperty -Path $registryPath -Name $keyName).$keyName) -eq 0){
