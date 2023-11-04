@@ -42,7 +42,7 @@ Auf unserer offiziellen [Website](https://atlasos.net) kannst du mehr über Atla
 
 ### 🔒 Mehr Privatsphäre
 Standard-Windows enthält Tracking-Dienste, die deine Daten sammeln und sie zu Microsoft hochladen.
-Atlas entfernt alle Arten von Tracking, die in Windows eingebettet sind, und implementiert zahlreiche Gruppenrichtlinien, um die Datenerfassung zu minimieren. 
+Atlas entfernt alle Arten von Tracking, die in Windows eingebettet sind, und implementiert zahlreiche Gruppenrichtlinien, um die Datenerfassung zu minimieren.
 
 Beachte, dass Atlas die Sicherheit für Dinge außerhalb des Bereichs von Windows (wie Browser und andere Anwendungen von Drittanbietern) nicht gewährleisten kann.
 
