@@ -3,18 +3,11 @@ title: Components
 description: Removes certain Windows components
 privilege: TrustedInstaller
 actions:
-    # Windows Defender
-  - !writeStatus: {status: 'Disabling Windows Defender', option: 'defender-disable'}
-  - !run:
-    exe: 'Toggle Defender.cmd'
-    path: '%windir%\AtlasDesktop\7. Security\Defender'
-    args: '-Disable'
-    option: 'defender-disable'
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete, option: 'defender-disable'}
 
     # Disable Smart App Control
-    # Causes slow app loading issues, and sends data to Microsoft
+    # Causes slow app loading issues and sends data to Microsoft
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy'
     value: 'VerifiedAndReputablePolicyState'
@@ -26,7 +19,6 @@ actions:
   - !cmd:
     command: 'powershell.exe -NoP -EP Unrestricted -File "%windir%\AtlasDesktop\1. Software\Remove Edge.ps1" -UninstallEdge -KeepAppX -Exit'
     wait: true
-    exeDir: true
     runas: currentUserElevated
     option: 'uninstall-edge'
     # AppX uninstallation in the script seems to fail, therefore it's not used and AME Wizard is used instead
@@ -43,16 +35,14 @@ actions:
   - !run: {exeDir: true, exe: 'ONED.cmd'}
 
   - !writeStatus: {status: 'Removing components'}
-    # NoTelemetry Package
   - !run:
-    exe: 'online-sxs.cmd'
-    path: '%windir%\AtlasModules\Scripts'
-    args: '"%windir%\AtlasModules\Packages\Z-Atlas-NoTelemetry-Package31bf3856ad364e35amd643.0.0.0.cab"'
-    # Misc Package
+    exe: 'powershell'
+    args: '& """$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1""" -PlaybookInstall'
+    option: 'defender-disable'
   - !run:
-    exe: 'online-sxs.cmd'
-    path: '%windir%\AtlasModules\Scripts'
-    args: '"%windir%\AtlasModules\Packages\Z-Atlas-Misc-Remover-Package31bf3856ad364e35amd643.0.0.0.cab"'
+    exe: 'powershell'
+    args: '& """$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1""" -PlaybookInstall -EverythingButDefender'
+    option: 'defender-enable'
 
     # Update Health Tools
   - !writeStatus: {status: 'Removing Update Health'}

@@ -1,6 +1,6 @@
 ---
 title: Disable Modern Standby SleepStudy
-description: Disable's Modern standby SleepStudy, as it's unnecessary logging that isn't needed on boot
+description: Disables Modern Standby's SleepStudy feature, as it's unnecessary logging that isn't needed on boot
 privilege: TrustedInstaller
 actions:
   - !run:

@@ -197,16 +197,19 @@ updates:
     version: 38655.38527.65535.65535
 
     # Windows Defender Advanced Threat Protection Service (Sense)
-  - target_component: Microsoft-Windows-SenseClient-Deployment
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Windows-SenseClient-MDM
-    target_arch: amd64
-    version: 38655.38527.65535.65535
   - target_component: Windows-SenseClient-Service
     target_arch: amd64
     version: 38655.38527.65535.65535
   - target_component: Windows-SenseClient-Service.Resources
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SenseClient-Deployment
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Microsoft-Windows-SenseClient-Deployment-LanguagePack
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-SenseClient-MDM
     target_arch: amd64
     version: 38655.38527.65535.65535
 
@@ -295,6 +298,36 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
     registry_keys:
+        # Disable SmartScreen
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\System
+        perUserVirtualization: false
+        values:
+          - key: EnableSmartScreen
+            type: REG_DWORD
+            value: 0
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer
+        perUserVirtualization: false
+        values:
+          - key: SmartScreenEnabled
+            type: REG_SZ
+            value: 'Off'
+        # Disable SmartScreen for Edge
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter
+        perUserVirtualization: false
+        values:
+          - key: EnabledV9
+            type: REG_DWORD
+            value: 0
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge
+        perUserVirtualization: false
+        values:
+          - key: SmartScreenEnabled
+            type: REG_DWORD
+            value: 0
         # Disable 'Open file - Security Warning' Message
       - key_name: >-
           HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Attachments
@@ -303,18 +336,10 @@ updates:
           - key: SaveZoneInformation
             type: REG_DWORD
             value: 1
-  - target_component: Microsoft-Windows-SmartScreen
-    target_arch: wow64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-SmartScreen.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-SmartScreen.Resources
-    target_arch: wow64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-SmartScreen-Adm
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-SmartScreen-Adm.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Associations
+        perUserVirtualization: false
+        values:
+          - key: ModRiskFileTypes
+            type: REG_SZ
+            value: '.bat;.exe;.reg;.vbs;.chm;.msi;.js;.cmd'

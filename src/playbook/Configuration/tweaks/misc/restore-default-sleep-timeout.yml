@@ -1,6 +1,6 @@
 ---
 title: Restore Default Sleep Timeout
-description: If the power saving option is disabled, this restores the default automatic sleep timeout
+description: Restores the default automatic sleep timeout if the power saving option is disabled
 privilege: TrustedInstaller
 option: '!disable-power-saving'
 actions:

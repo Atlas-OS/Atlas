@@ -1,6 +1,6 @@
 ---
 title: Hide Folders from This PC
-description: Hides folders from 'This PC' as they are also in Quick Access to reduce clutter and QoL. Also adds 'Music' and 'Videos' to Quick Access.
+description: Hides folders from 'This PC' as they are also in Quick Access to reduce clutter and QoL
 privilege: TrustedInstaller
 actions:
   # - !registryValue:

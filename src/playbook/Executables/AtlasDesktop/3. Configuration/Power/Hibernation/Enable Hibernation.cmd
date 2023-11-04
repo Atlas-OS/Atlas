@@ -9,6 +9,8 @@ powercfg /hibernate on
 powercfg /hibernate /type full
 powercfg /setactive scheme_current
 
+if "%~1" == "/silent" exit /b
+
 echo Finished, changes have been applied.
 pause
 exit /b

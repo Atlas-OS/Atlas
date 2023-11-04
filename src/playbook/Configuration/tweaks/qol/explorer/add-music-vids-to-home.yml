@@ -1,8 +1,0 @@
----
-title: Add Music and Videos folders to Quick Access
-description: Adds the 'Music' and 'Videos' folders to Quick Access/Home as they're unpinned by default with recent files being disabled.
-privilege: TrustedInstaller
-actions:
-  - !powerShell:
-    command: '$o = new-object -com shell.application; $o.Namespace("""$env:userprofile\Videos""").Self.InvokeVerb(''pintohome''); $o.Namespace("""$env:userprofile\Music""").Self.InvokeVerb(''pintohome'')'
-    runas: currentUserElevated

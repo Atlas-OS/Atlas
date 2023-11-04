@@ -9,30 +9,21 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-ping -n 1 -4 www.example.com | find "time=" > nul 2>&1
-if %errorlevel% == 1 (
-	echo You must have an internet connection to use this script.
-	pause
-	exit /b 1
-)
-
-where winget > nul 2>&1 || (
-	echo WinGet is not installed, please update or install App Installer from Microsoft Store.
-	echo Press any key to exit...
-	exit /b 1
-)
+:: Check if WinGet is functional or not
+call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
+if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo Installing Process Explorer...
 winget install -e --id Microsoft.Sysinternals.ProcessExplorer --uninstall-previous -l "%windir%\AtlasModules\Apps\ProcessExplorer" -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
-if %errorlevel% NEQ 0 (
-    echo error: Process Explorer installation failed.
+if %ERRORLEVEL% NEQ 0 (
+    echo error: Process Explorer installation with WinGet failed.
     pause
     exit /b 1
 )
 
 echo Creating the Start menu shortcut...
 PowerShell -NoP -C "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$env:windir\AtlasModules\Apps\ProcessExplorer\process-explorer.exe"""; $Shortcut.Save()" > nul
-if not errorlevel 0 (
+if %ERRORLEVEL% NEQ 0 (
 	echo Process Explorer shortcut could not be created in the start menu!
 )
 

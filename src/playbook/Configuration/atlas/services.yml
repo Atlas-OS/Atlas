@@ -22,6 +22,10 @@ actions:
   #   exe: 'Disable Printing (default).cmd'
   #   path: '%windir%\AtlasDesktop\3. Configuration\Printing'
   #   args: '/silent'
+  # - !run:
+  #   exe: 'Disable Notifications (default).cmd'
+  #   path: '%windir%\AtlasDesktop\3. Configuration\Notifications'
+  #   args: '/silent'
 
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
   - !service: {name: 'diagsvc', operation: change, startup: 4}
@@ -36,13 +40,13 @@ actions:
   - !service: {name: 'WdiSystemHost', operation: change, startup: 4}
   - !service: {name: 'wercplsupport', operation: change, startup: 4}
   - !service: {name: 'WerSvc', operation: change, startup: 4}
-  - !service: {name: 'wisvc', operation: change, startup: 4}
   # - !service: {name: 'WSearch', operation: change, startup: 4}
 
     # Set to manual from automatic
     # Might not be all too beneficial, as services starting and always being ready is probably ideal
-  - !service: {name: 'CryptSvc', operation: change, startup: 3}
-  - !service: {name: 'sppsvc', operation: change, startup: 3}
+    # Commented as these will be automatic for a reason - sppsvc is needed for things like Store & activation
+  # - !service: {name: 'CryptSvc', operation: change, startup: 3}
+  # - !service: {name: 'sppsvc', operation: change, startup: 3}
 
     # These services are commented as they're manual
     # They will only be uncommented once there's a proven benefit
@@ -71,6 +75,7 @@ actions:
   # - !service: {name: 'wlpasvc', operation: change, startup: 4}
   # - !service: {name: 'WMPNetworkSvc', operation: change, startup: 4}
   # - !service: {name: 'WPDBusEnum', operation: change, startup: 4}
+  # - !service: {name: 'wisvc', operation: change, startup: 4}
 
   # DPS 4 < breaks Data Usage
   # DsSvc 4 < can cause issues with Snip & Sketch
@@ -85,40 +90,42 @@ actions:
 
   # ------------------------- Drivers ------------------------
 
-  - !service: {name: '3ware', operation: change, startup: 4}
-  - !service: {name: 'ADP80XX', operation: change, startup: 4}
-  # - !service: {name: 'AmdK8', operation: change, startup: 4}
-  - !service: {name: 'arcsas', operation: change, startup: 4}
-  # - !service: {name: 'AsyncMac', operation: change, startup: 4}
-  - !service: {name: 'bam', operation: change, startup: 4}
-  # - !service: {name: 'Beep', operation: change, startup: 4}
-  # - !service: {name: 'bindflt', operation: change, startup: 4}
-  # - !service: {name: 'buttonconverter', operation: change, startup: 4}
-  # - !service: {name: 'CAD', operation: change, startup: 4}
-  # - !service: {name: 'cdfs', operation: change, startup: 4}
-  - !service: {name: 'CimFS', operation: change, startup: 4}
-  - !service: {name: 'circlass', operation: change, startup: 4}
-  - !service: {name: 'cnghwassist', operation: change, startup: 4}
-  # - !service: {name: 'CompositeBus', operation: change, startup: 4}
-  # - !service: {name: 'dam', operation: change, startup: 4}
-  - !service: {name: 'Dfsc', operation: change, startup: 4}
-  - !service: {name: 'ErrDev', operation: change, startup: 4}
-  # - !service: {name: 'fdc', operation: change, startup: 4}
-  # - !service: {name: 'flpydisk', operation: change, startup: 4}
+    # NetBios support can be enabled with the file sharing script
   # - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
   # - !service: {name: 'NetBT', operation: change, startup: 4}
-  - !service: {name: 'nvraid', operation: change, startup: 4}
-  # - !service: {name: 'sfloppy', operation: change, startup: 4}
-  - !service: {name: 'SiSRaid2', operation: change, startup: 4}
-  - !service: {name: 'SiSRaid4', operation: change, startup: 4}
-  # - !service: {name: 'tcpipreg', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
-  # - !service: {name: 'udfs', operation: change, startup: 4}
-  # - !service: {name: 'VerifierExt', operation: change, startup: 4}
-  - !service: {name: 'vsmraid', operation: change, startup: 4}
-  # - !service: {name: 'VSTXRAID', operation: change, startup: 4}
-  - !service: {name: 'wcnfs', operation: change, startup: 4}
+
+    # These drivers are mostly needed for compatiblity
+    # They shouldn't be disabled unless proven to have an effect
+  # - !service: {name: 'Beep', operation: change, startup: 4}
+  # - !service: {name: 'bindflt', operation: change, startup: 4}
+  # - !service: {name: 'CimFS', operation: change, startup: 4}
+  # - !service: {name: 'Dfsc', operation: change, startup: 4}
+  # - !service: {name: 'tcpipreg', operation: change, startup: 4}
   # - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
+
+    # These drivers are commented as they're manual
+    # They will only be uncommented once there's a proven benefit
+  # - !service: {name: 'flpydisk', operation: change, startup: 4}
+  # - !service: {name: '3ware', operation: change, startup: 4}
+  # - !service: {name: 'ADP80XX', operation: change, startup: 4}
+  # - !service: {name: 'AmdK8', operation: change, startup: 4}
+  # - !service: {name: 'arcsas', operation: change, startup: 4}
+  # - !service: {name: 'AsyncMac', operation: change, startup: 4}
+  # - !service: {name: 'buttonconverter', operation: change, startup: 4}
+  # - !service: {name: 'CAD', operation: change, startup: 4}
+  # - !service: {name: 'nvraid', operation: change, startup: 4}
+  # - !service: {name: 'sfloppy', operation: change, startup: 4}
+  # - !service: {name: 'SiSRaid2', operation: change, startup: 4}
+  # - !service: {name: 'SiSRaid4', operation: change, startup: 4}
+  # - !service: {name: 'VerifierExt', operation: change, startup: 4}
+  # - !service: {name: 'vsmraid', operation: change, startup: 4}
+  # - !service: {name: 'VSTXRAID', operation: change, startup: 4}
+  # - !service: {name: 'ErrDev', operation: change, startup: 4}
+  # - !service: {name: 'fdc', operation: change, startup: 4}
+  # - !service: {name: 'circlass', operation: change, startup: 4}
+  # - !service: {name: 'CompositeBus', operation: change, startup: 4}
+  # - !service: {name: 'wcnfs', operation: change, startup: 4}
 
   # rdbss 3 < Commented as we're not sure if it functions normally set to manual
   # FileInfo 4 < Breaks installing Microsoft Store applications to different disk
@@ -128,5 +135,7 @@ actions:
   # umbus 4 < breaks Hyper-V Enhanced Session
   # volmgrx 4 < breaks dynamic disks
   # wcifs 4 < breaks various Microsoft Store games, erroring with "filter not found"
+  # bam 4 < stopped by default, needed for modern standby
+  # dam 4 < stopped by default, needed for modern standby
 
   # ----------------------- Drivers END ----------------------

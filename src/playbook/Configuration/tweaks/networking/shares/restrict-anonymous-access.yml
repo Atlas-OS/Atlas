@@ -1,5 +1,5 @@
 ---
-title: Restrict Anonymous Access to Named Pipes and Shares
+title: Restrict Anonymous Access
 description: Restricts anonymous access to named pipes and shares to prevent unauthorized system access
 privilege: TrustedInstaller
 actions:

@@ -5,5 +5,5 @@ privilege: TrustedInstaller
 actions:
   - !run:
     exe: 'powershell.exe'
-    args: '-NoP -File NGEN.ps1'
+    args: '-NoP -EP Unrestricted -File NGEN.ps1'
     exeDir: true

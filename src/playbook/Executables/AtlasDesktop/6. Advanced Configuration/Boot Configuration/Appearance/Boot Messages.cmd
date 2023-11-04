@@ -15,7 +15,7 @@ echo [1] Disable boot messages
 echo [2] Enable boot messages (default)
 echo]
 choice /c 12 /n /m "Type 1 or 2: "
-if %errorlevel% == 1 (
+if %ERRORLEVEL% == 1 (
 	goto disable
 ) else (
 	goto enable

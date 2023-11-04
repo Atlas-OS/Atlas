@@ -1,7 +1,6 @@
 @echo off
 
-set baseAssociations=".bmp:PhotoViewer.FileAssoc.Tiff"^
- ".dib:PhotoViewer.FileAssoc.Tiff"^
+set baseAssociations=".dib:PhotoViewer.FileAssoc.Tiff"^
  ".jfif:PhotoViewer.FileAssoc.Tiff"^
  ".jpe:PhotoViewer.FileAssoc.Tiff"^
  ".jpeg:PhotoViewer.FileAssoc.Tiff"^
@@ -11,7 +10,8 @@ set baseAssociations=".bmp:PhotoViewer.FileAssoc.Tiff"^
  ".tif:PhotoViewer.FileAssoc.Tiff"^
  ".tiff:PhotoViewer.FileAssoc.Tiff"^
  ".wdp:PhotoViewer.FileAssoc.Tiff"^
- ".url:IE.AssocFile.URL"
+ ".url:IE.AssocFile.URL"^
+ ".ps1:Microsoft.PowerShellScript.1"
 
 set braveAssociations="Proto:https:BraveHTML"^
  "Proto:http:BraveHTML"^
@@ -20,12 +20,12 @@ set braveAssociations="Proto:https:BraveHTML"^
  ".pdf:BraveFile"^
  ".shtml:BraveHTML"
 
-set libreWolfAssociations="Proto:https:LibreWolfHTM"^
- "Proto:http:LibreWolfHTM"^
- ".htm:LibreWolfHTM"^
- ".html:LibreWolfHTM"^
- ".pdf:LibreWolfHTM"^
- ".shtml:LibreWolfHTM"
+set waterfoxAssociations="Proto:https:WaterfoxURL-6F940AC27A98DD61"^
+ "Proto:http:WaterfoxURL-6F940AC27A98DD61"^
+ ".htm:WaterfoxHTML-6F940AC27A98DD61"^
+ ".html:WaterfoxHTML-6F940AC27A98DD61"^
+ ".pdf:WaterfoxHTML-6F940AC27A98DD61"^
+ ".shtml:WaterfoxHTML-6F940AC27A98DD61"
 
 set chromeAssociations="Proto:https:ChromeHTML"^
  "Proto:http:ChromeHTML"^
@@ -37,7 +37,7 @@ set chromeAssociations="Proto:https:ChromeHTML"^
 if "%~1" == "" set "associations=%baseAssociations%"
 if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
 if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
-if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
+if "%~1" == "WaterFox" set "associations=%baseAssociations% %waterfoxAssociations%"
 if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 
 :: Set 7-Zip assocations
@@ -48,14 +48,14 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Setting associations for "%%a"...
         call :7ZIPUSER "%%a"
-        powershell -NoP -EP Unrestricted -File assoc.ps1 "Placeholder" "%%a" %associations%
+        powershell -NoP -EP Unrestricted -File ASSOC.ps1 "Placeholder" "%%a" %associations%
     )
 )
 exit /b
 
 :7ZIPUSER
 (
-    reg add "HKU\%~1\SOFTWARE\7-Zip\Options" /v "ContextMenu" /t REG_DWORD /d "1073742374" /f
+    reg add "HKU\%~1\SOFTWARE\7-Zip\Options" /v "ContextMenu" /t REG_DWORD /d "1073746726" /f
     reg add "HKU\%~1\SOFTWARE\Classes\.001" /ve /t REG_SZ /d "7-Zip.001" /f
     reg add "HKU\%~1\SOFTWARE\Classes\.7z" /ve /t REG_SZ /d "7-Zip.7z" /f
     reg add "HKU\%~1\SOFTWARE\Classes\.apfs" /ve /t REG_SZ /d "7-Zip.apfs" /f

@@ -14,7 +14,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "Ena
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableVirtualization" /t REG_DWORD /d "1" /f > nul
 
 choice /c:yn /n /m "Would you like to have UAC not dim your desktop? You can change this in the UAC settings. [Y/N] "
-if %errorlevel% == 1 (
+if %ERRORLEVEL% == 1 (
 	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f > nul
 )
 
@@ -29,7 +29,10 @@ exit /b
 
 :uacSettings
 :: set ANSI escape characters
+cd /d "%~dp0"
 for /f %%A in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%A"
+
+title Enable UAC - Atlas
 
 mode con: cols=46 lines=14
 chcp 65001 > nul

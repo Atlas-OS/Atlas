@@ -1,10 +1,9 @@
 ---
 title: Disable LLMNR Protocol
-description: Disable Link-Local Multicast Name Resolution (LLMNR) protocol as it is replaced by DNS and vulnerable
+description: Disable Link-Local Multicast Name Resolution (LLMNR) protocol as it is vulnerable and has been replaced by DNS
 privilege: TrustedInstaller
 actions:
-  # https://www.blackhillsinfosec.com/how-to-disable-llmnr-why-you-want-to
-  # https://www.thewindowsclub.com/disable-netbios-and-llmnr-protocols-via-gpo
+    # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.DNSClient::Turn_Off_Multicast
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient'
     value: 'EnableMulticast'
