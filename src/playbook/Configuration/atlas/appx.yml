@@ -62,7 +62,7 @@ actions:
   - !appx: {name: '*Widgets*', type: family}
   - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
   - !powerShell:
-    command: 'Get-AppxPackage 'MicrosoftWindows.Client.WebExperience' | Remove-AppxPackage'
+    command: 'Get-AppxPackage ''MicrosoftWindows.Client.WebExperience'' | Remove-AppxPackage'
     runas: currentUserElevated
 
   # Get Started
