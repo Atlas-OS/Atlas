@@ -1,6 +1,6 @@
 ⚠️หมายเหตุ: นี่คือเวอร์ชันแปลของต้นฉบับ [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), ข้อมูลที่นี่อาจไม่ถูกต้องและอาจล้าสมัย
 <h1 align="center">
-  <a href="http://atlasos.net" target="_blank"><img src="img\github-banner.png" alt="Atlas" width="800"></a>
+  <a href="http://atlasos.net" target="_blank"><img src="/img/github-banner.png" alt="Atlas" width="800"></a>
 </h1>
   <p align="center">
     <img alt="ใบอนุญาต" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/>
