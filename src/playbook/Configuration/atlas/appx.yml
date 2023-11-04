@@ -58,8 +58,8 @@ actions:
   - !appx: {name: '*Microsoft.MSPaint*', type: family}
 
   # Widgets
-  # Uninstallation seems to fail with AME Wizard sometimes
   - !taskKill: {name: '*widgets*', ignoreErrors: true}
+  - !appx: {name: '*Widgets*', type: family}
   - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
   - !powerShell:
     command: 'Get-AppxPackage *Client.WebExperience* -AllUsers | Remove-AppxPackage -AllUsers'
@@ -84,8 +84,8 @@ actions:
     args: '-NoP -File CLIENTCBS.ps1'
     exeDir: true
 
-  # Quick Assist
-  - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
+  # Family App, Quick Assist
+  - !appx: {name: '*MicrosoftCorporationII*', type: family}
 
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
   - !appx: {name: '*Microsoft.BingNews*', type: family}
