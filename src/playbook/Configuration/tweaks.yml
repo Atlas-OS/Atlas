@@ -26,16 +26,16 @@ tasks:
   - tweaks\statuses\status-networking.yml
   # - tweaks\networking\disable-llmnr.yml
   - tweaks\networking\disable-smart-name-resolution.yml
-  - tweaks\networking\config-netsh.yml
-  # - tweaks\networking\disable-network-power-saving.yml
-  # - tweaks\networking\config-packet-sched-timer-res.yml
+  - tweaks\networking\config-config-netsh.yml
+  # - tweaks\networking\disable-disable-network-power-saving.yml
+  # - tweaks\networking\config-config-packet-sched-timer-res.yml
 
   # -------------------------------------------------------------------------- #
   #  networking\shares                                                         #
   # -------------------------------------------------------------------------- #
   - tweaks\networking\shares\restrict-anonymous-access.yml
   - tweaks\networking\shares\restrict-anonymous-enumeration.yml
-  # - tweaks\networking\shares\disable-smb-bandwidth-throttling.yml
+  # - tweaks\networking\shares\disable-disable-smb-bandwidth-throttling.yml
 
   # -----------------------------------------------------
   #                      Performance
@@ -59,7 +59,7 @@ tasks:
   - tweaks\performance\system\config-boot-config.yml
   # - tweaks\performance\system\disable-paging.yml
   - tweaks\performance\system\optimize-ntfs.yml
-  - tweaks\performance\system\disable-service-host-split.yml
+  - tweaks\performance\system\disable-disable-service-host-split.yml
   # - tweaks\performance\system\win32-priority-seperation.yml
 
   # -----------------------------------------------------
@@ -86,6 +86,7 @@ tasks:
   - tweaks\privacy\disable-perf-track.yml
   - tweaks\privacy\disable-privacy-experience.yml
   - tweaks\privacy\disable-device-monitoring.yml
+  - tweaks\privacy\disable-device-monitoring.yml
   - tweaks\privacy\disable-rsop-logging.yml
   - tweaks\privacy\disable-speech-auto-updates.yml
   - tweaks\privacy\disable-tailored-experiences.yml
@@ -95,6 +96,7 @@ tasks:
   - tweaks\privacy\disallow-ms-accounts.yml
   - tweaks\privacy\disallow-user-activity-upload.yml
   - tweaks\privacy\search-settings.yml
+  
   
 
   # -------------------------------------------------------------------------- #
@@ -168,6 +170,7 @@ tasks:
   - tweaks\qol\windows-update\disable-nagging.yml
   - tweaks\qol\windows-update\disable-insider.yml
   - tweaks\qol\windows-update\disable-msrt-installation.yml
+  - tweaks\qol\windows-update\disable-msrt-installation.yml
   - tweaks\qol\windows-update\disable-feature-updates.yml
   - tweaks\qol\windows-update\disable-auto-updates.yml
   - tweaks\qol\windows-update\disable-auto-reboot.yml
@@ -187,6 +190,7 @@ tasks:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\explorer\always-more-details-transfer.yml
   - tweaks\qol\explorer\disable-invalid-shortcuts-search.yml
+  - tweaks\qol\explorer\disable-invalid-shortcuts-search.yml
   - tweaks\qol\explorer\disable-check-boxes.yml
   - tweaks\qol\explorer\disable-folders-this-pc.yml
   # - tweaks\qol\explorer\disable-network-navigation-pane.yml
@@ -194,6 +198,7 @@ tasks:
   - tweaks\qol\explorer\full-context-on-more-than-15-items.yml
   # - tweaks\qol\explorer\hide-frequently-used-items.yml
   - tweaks\qol\explorer\import-power-plan.yml
+  - tweaks\qol\explorer\extend-cache.yml
   - tweaks\qol\explorer\extend-cache.yml
   - tweaks\qol\explorer\minimize-mouse-hover-time.yml
   - tweaks\qol\explorer\no-internet-open-with.yml
