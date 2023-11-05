@@ -1,12 +1,24 @@
+On Error Resume Next
+
+Dim objProcess, strHTAPath, bHTARunning
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set objShell = CreateObject("WScript.Shell")
 systemDrive = objShell.ExpandEnvironmentStrings("%SystemDrive%")
+arm64 = objShell.ExpandEnvironmentStrings("%PROCESSOR_ARCHITECTURE%") = "ARM64"
+
+launchOpen = 0
+If arm64 Then
+    launchOpen = 1
+End If
 
 strHTAPath = systemDrive & "\atlas\hta\hta.html"
-Dim objProcess, strHTAPath, bHTARunning
-objShell.Run systemDrive & "\atlas\packages.cmd", 0
+objShell.Run systemDrive & "\atlas\packages.cmd", launchOpen, False
 
 Do
+    If arm64 Then
+        Wscript.Quit
+    End If
+
     If objFSO.FileExists(systemDrive & "\AtlasComponentPackageInstallation") Then
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\cimv2")
         Do
@@ -38,6 +50,6 @@ Do
     WScript.Sleep 1000
     packagesCheck = packagesCheck + 1
     If packagesCheck >= 8 Then
-        WScript.Quit
+        Wscript.Quit 1
     End If
 Loop

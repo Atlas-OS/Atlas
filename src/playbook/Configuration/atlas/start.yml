@@ -35,6 +35,15 @@ actions:
   # - !writeStatus: {status: 'Refreshing variables'}
   # - !run: {exeDir: true, exe: 'REFRESHENV.cmd'}
 
+  - !writeStatus: {status: 'Configuring Optional Features'}
+  - !run: {exe: 'DISM.exe', args: '/Online /Cleanup-Image /StartComponentCleanup', weight: 30}
+  - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart /All', weight: 30}
+  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30, builds: [ '!>=22000' ]}
+  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart', weight: 30}
+  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart', weight: 30}
+  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart', weight: 30}
+  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-PrintToPDFServices-Features" /NoRestart', weight: 30}
+
   ################ NO LOCAL BUILD ################
 
   - !writeStatus: {status: 'Installing software'}

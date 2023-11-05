@@ -37,11 +37,11 @@ actions:
   - !writeStatus: {status: 'Removing components'}
   - !run:
     exe: 'powershell'
-    args: '& """$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1""" -PlaybookInstall'
+    args: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall'
     option: 'defender-disable'
   - !run:
     exe: 'powershell'
-    args: '& """$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1""" -PlaybookInstall -EverythingButDefender'
+    args: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall -EverythingButDefender'
     option: 'defender-enable'
 
     # Update Health Tools
