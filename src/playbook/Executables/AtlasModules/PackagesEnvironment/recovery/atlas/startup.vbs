@@ -14,9 +14,15 @@ End If
 strHTAPath = systemDrive & "\atlas\hta\hta.html"
 objShell.Run systemDrive & "\atlas\packages.cmd", launchOpen, False
 
+Function InfiniteLoop()
+    Do
+        WScript.Sleep 9999999
+    Loop
+End Function
+
 Do
     If arm64 Then
-        Wscript.Quit
+        InfiniteLoop()
     End If
 
     If objFSO.FileExists(systemDrive & "\AtlasComponentPackageInstallation") Then
@@ -44,12 +50,12 @@ Do
             End If
         Loop
     ElseIf objFSO.FileExists(systemDrive & "\AtlasNormalWindowsRecovery") Then
-        WScript.Quit
+        InfiniteLoop()
     End If
     
     WScript.Sleep 1000
     packagesCheck = packagesCheck + 1
     If packagesCheck >= 8 Then
-        Wscript.Quit 1
+        InfiniteLoop()
     End If
 Loop
