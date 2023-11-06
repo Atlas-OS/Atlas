@@ -5,14 +5,7 @@ privilege: TrustedInstaller
 builds: [ '>=22000' ]
 actions:
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}'
-    value: ''
-    data: 'File Explorer Context Menu'
-    type: REG_SZ
-  - !registryKey:
-    path: 'HKLM\SOFTWARE\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InProcServer32'
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InProcServer32'
+    path: 'HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
     value: ''
     data: ''
     type: REG_SZ
