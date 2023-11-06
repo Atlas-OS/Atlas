@@ -321,6 +321,9 @@ $failedRemovalLink
     # Notify WinRE that it's package install next boot
     New-Item $componentInstallationIndicator -Force | Out-Null
 
+    # Set startup task
+    StartupTask
+    
     # Boot into Windows Recovery
     reagentc /boottore | Out-Null
 } finally {

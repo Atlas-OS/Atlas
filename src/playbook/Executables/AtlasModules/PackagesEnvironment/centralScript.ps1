@@ -74,7 +74,7 @@ function Write-Info {
 # ======================================================================================================================= #
 # VARIABLES                                                                                                               #
 # ======================================================================================================================= #
-$arm = (Get-WmiObject -Class Win32_ComputerSystem).SystemType -match '*ARM64*'
+$arm = ((Get-WmiObject -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 $modules = "$env:windir\AtlasModules"
 
 # Create log folder
@@ -121,15 +121,6 @@ if ($WinRE) {
     if (Test-Path $useWinreIndicator) {
         Remove-Item $useWinreIndicator -Force
     } else { exit }
-
-    if ($arm) {
-        Clear-Host
-        Write-Host "As you have an ARM64 CPU, the fallback Windows Recovery method isn't supported." -ForegroundColor Yellow
-        Write-Host "It might be in a future release when the script is updated and tested enough.`n"
-        Write-Host "See: " -NoNewline -ForegroundColor Cyan
-        Write-Host "https://docs.atlasos.net/faq-and-troubleshooting/failed-component-removal`n"
-        PauseNul; exit
-    }
 
     Write-Host ''
     & "$envPath\winrePackages.ps1" -LogPath "$sessionLogDirectory\winreSetup.log"
