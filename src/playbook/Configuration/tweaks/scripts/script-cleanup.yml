@@ -7,3 +7,4 @@ actions:
     exe: 'powershell.exe'
     args: '-NoP -File CLEANUP.ps1'
     exeDir: true
+    runas: currentUserElevated
