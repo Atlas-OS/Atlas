@@ -1,107 +1,98 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net" target="_blank"><img src="/img/github-banner.png" alt="Atlas" width="800"></a>
 </h1>
   <p align="center">
-    <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
-      <img alt="Lizenz" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF&label=Lizenz"/>
-    </a>
-    <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors">
-      <img alt="Mitwirkende" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=Mitwirkende" />
-    </a>
-    <a href="https://github.com/Atlas-OS/Atlas/releases/latest">
-      <img alt="Aktuelle Version" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF&label=Aktuelle Version" />
-    </a>
-    <a href="https://github.com/Atlas-OS/Atlas/releases">
-      <img alt="Release Downloads" src="https://img.shields.io/github/downloads/Atlas-OS/Atlas/total?style=for-the-badge&logo=github&color=1A91FF" />
-      </a>
+    <img alt="License" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/>
+    <img alt="Contributors" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
+    <img alt="Release" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
   </p>
-<h4 align="center">Ein offenes und transparentes Windows-Betriebssystem, das zur Optimierung von Leistung, Privatsphäre und Stabilität entwickelt wurde.</h4>
+<p align="center">Eine offene und leichtgewichtige Modifikation von Windows, die Leistung, Datenschutz und Sicherheit optimieren soll.</p>
 
 <p align="center">
-  <a href="https://atlasos.net">Website</a>
+  <a href="https://atlasos.net" target="_blank">🌐 Website</a>
   •
-  <a href="https://docs.atlasos.net">Dokumentation</a>
+  <a href="https://docs.atlasos.net" target="_blank">📚 Dokumentation</a>
   •
-  <a href="https://discord.atlasos.net" target="_blank">Discord</a>
+  <a href="https://discord.atlasos.net" target="_blank">☎️ Discord</a>
   •
-  <a href="https://forum.atlasos.net">Forum</a>
+  <a href="https://forum.atlasos.net" target="_blank">💬 Forum</a>
 </p>
-
-## 🤔 **Was ist Atlas?**
-Atlas ist eine modifizierte Version von Windows 10, welche alle negativen Nachteile von Windows beseitigt, die sich negativ auf die Spieleleistung auswirken. Atlas ist auch eine gute Option um System-, Netzwerk- und Eingabelatenzen zu verringern, aber dennoch dein System sicher zu halten während der Fokus auf der Leistung liegt.
-Auf unserer [Website](https://atlasos.net) kannst du mehr über Atlas erfahren.
 
 ## 📚 **Inhaltsverzeichnis**
 
-- [Contribution Guidelines](https://docs.atlasos.net/contributions)
+- [Contribution Guidelines](https://docs.atlasos.net/contributions/)
+- [Installation](https://docs.atlasos.net/getting-started/installation/)
 
-- Getting Started
-  - [Installation](https://docs.atlasos.net/getting-started/installation)
-  - [Other installation methods](https://docs.atlasos.net/getting-started/other-installation-methods/no-usb)
-  - [Post-Installation](https://docs.atlasos.net/getting-started/post-installation/drivers)
+- Post Installation
+  - [Atlas folder](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/configuration/)
+  - [Drivers](https://docs.atlasos.net/getting-started/post-installation/drivers/getting-started/)
 
 - Troubleshooting
-  - [Removed Features](https://docs.atlasos.net/troubleshooting/removed-features)
-  - [Scripts](https://docs.atlasos.net/troubleshooting/scripts)
+  - [FAQ & Common Issues](https://docs.atlasos.net/faq-and-troubleshooting/removed-features/)
+  - [Scripts](https://docs.atlasos.net/faq-and-troubleshooting/atlas-folder-scripts/)
 
-- FAQ
-  - [Atlas](https://atlasos.net/faq)
-  - [Common Issues](https://docs.atlasos.net/troubleshooting/common-issues/hyper-v/)
+## 🤔 **Was ist Atlas?**
+
+Atlas ist eine modifizierte Version von Windows, welche nahezu alle Nachteile von Windows beseitigt, die sich negativ auf die Spieleleistung auswirken.
+Atlas ist auch eine gute Option, um System- , Netzwerk- und Eingabelatenzen zu reduzieren und dein System privat zu halten, während der Fokus auf der Leistung liegt.
+Auf unserer offiziellen [Website](https://atlasos.net) kannst du mehr über Atlas erfahren.
 
 ## 👀 **Warum Atlas?**
 
 ### 🔒 Mehr Privatsphäre
-Normales Windows enthält Tracking-Dienste, die deine Daten sammeln und sie zu Microsoft hochladen.
+Standard-Windows enthält Tracking-Dienste, die deine Daten sammeln und sie zu Microsoft hochladen.
 Atlas entfernt alle Arten von Tracking, die in Windows eingebettet sind, und implementiert zahlreiche Gruppenrichtlinien, um die Datenerfassung zu minimieren.
 
-Was außerhalb des Bereichs von Windows liegt, können wir jedoch hinsichtlich des Datenschutzes nicht verbessern, wie zum Beispiel Websites, die Sie besuchen oder Programme von Drittherstellern.
+Beachte, dass Atlas die Sicherheit für Dinge außerhalb des Bereichs von Windows (wie Browser und andere Anwendungen von Drittanbietern) nicht gewährleisten kann.
 
 ### 🛡️ Mehr Sicherheit (gegenüber benutzerdefinierten Windows-ISOs)
-Eine veränderte Windows ISO aus dem Internet herunterzuladen ist riskant. Nicht nur können Personen einfach eine der vielen binären/ausführbaren Dateien, die in Windows enthalten sind, böswillig ändern, sie enthält möglicherweise nicht die neuesten Sicherheitsupdates, was ein Sicherheitsrisiko für deinen Computer darstellt.
+Das Herunterladen einer modifizierten Windows-ISO aus dem Internet ist riskant. Nicht nur können Personen leicht eine der vielen binären/ausführbaren Dateien, die in Windows enthalten sind, böswillig verändern, sondern es fehlen möglicherweise auch die neuesten Windows-Sicherheitspatches, was ein ernstes Sicherheitsrisiko für Ihren Computer darstellen kann.
 
-Atlas ist anders. Wir benutzen [AME Wizard](https://ameliorated.io) um Atlas zu installieren und alle unsere Skripte sind Open-Source hier in unserem Repository zu finden. Du kannst das gepackte Atlas-Playbook (`.apbx` - AME Wizard script package) als Archiv anschauen, indem du `malte` (das Standardpasswort für AME Wizard Playbooks) als Passwort verwendest, damit Antiviruse es nicht fälschlicherweise Weise als Virus erkennen.
+Atlas verfügt außerdem über die folgenden optionalen Sicherheitsfunktionen, die bei anderen benutzerdefinierten Windows-Betriebssystemen fehlen:
+- Windows-Sicherheit
+  - Windows Defender und SmartScreen (optional)
+  - Kernisolierung (optional)
+  - CPU-Abschwächungen (optional)
+- Windows-Updates (manuell)
 
-Die einzigen ausführbaren Dateien, die im Playbook enthalten sind, sind Open-Sourced [hier](https://github.com/Atlas-OS/Atlas-Utilities) unter [GPLv3](https://github.com/Atlas-OS/Atlas-Utilities/blob/main/LICENSE), wobei die Hashes mit denen aus dem neustem Release (der neusten Atlas-Version) übereinstimmen. Alles andere ist im Klartext.
+Atlas ist anders. Wir verwenden [AME Wizard] (https://ameliorated.io), um Atlas zu instalieren, und alle Skripte, die wir verwenden, sind Open Source hier in unserem GitHub-Repository. Sie können das gepackte Atlas-Playbook (`.apbx` - AME Wizard script package) als Archiv ansehen, mit dem Passwort `malte` (der Standard für AME Wizard-Playbooks), das nur dazu dient, Falschmeldungen von Antivirenprogrammen zu umgehen.
 
-Du kannst auch alle neusten Sicherheitsupdates anwenden bevor du Atlas installierst um dein System sicher und geschützt zu halten.
+Die einzigen ausführbaren Dateien, die im Playbook enthalten sind, sind [hier](https://github.com/Atlas-OS/utilities) unter [GPLv3](https://github.com/Atlas-OS/utilities/blob/main/LICENSE) als Open Source erhältlich, wobei die Hashes mit den Veröffentlichungen identisch sind. Alles andere ist im Klartext.
 
-Bitte beachte, das mit Atlas v0.2.0, Atlas größtenteils **nicht so sicher wie normales Windows ist**, aufgrund von entfernten/deaktivieten Sicherheitsfunktionen, wie z.B Windows Defender. Allerdings werden in Atlas v0.3.0 die meisten Funktionen als optionale Funktionen hinzugefügt. Schau [hier](https://docs.atlasos.net/troubleshooting/removed-features/) für mehr Informationen.
+### ✅ Improved Performance
+Einige optimierte Systeme im Internet haben Windows zu sehr verändert, sodass wichtige Funktionen wie Bluetooth, Wi-Fi usw. nicht mehr kompatibel sind.
+Atlas befindet sich auf einem guten Weg. Es zielt darauf ab, mehr Leistung zu erhalten und gleichzeitig ein gutes Maß an Kompatibilität zu wahren.
 
-### 🚀 Mehr Speicherplatz
-Vorinstallierte Anwendungen und andere Komponenten wurden entfernt. Trotz möglicher Kompatibilitätsprobleme wird dadurch die Installationsgröße erheblich verringert und das System läuft flüssiger. Aus diesem Grund sind bestimmte Funktionen wie Windows Defender usw. vollständig entfernt.
-Was wir sonst noch entfernt haben, finden Sie in unserem [FAQ](https://docs.atlasos.net/troubleshooting/removed-features/).
-
-### ✅ Mehr Leistung
-Einige optimierte Systeme im Internet haben Windows zu viel optimiert und zerstören die Kompatibilität von Standard-Funktionen wie Bluetooth, Wi-Fi usw. Atlas ist im Sweet-Spot. Es zielt darauf ab, mehr Leistung zu erzielen, aber dennoch ein gutes Level an Kompatibilität beizubehalten.
-
-Einige der vielen Änderungen, die wir vorgenommen haben, um Windows zu optimieren, sind unten aufgeführt:
-- Individuelles Energieschema
-- Reduzierte Anzahl von Diensten und Treibern
-- Deaktivierung des exklusiven Audios
+Einige der vielen Änderungen, die wir zur Verbesserung von Windows vorgenommen haben, sind im Folgenden aufgeführt:
+- Angepasster Energiesparplan
+- Reduzierte Anzahl an Diensten und Treibern
+- Deaktivierung exklusiver Audiofunktionen
 - Deaktivierung nicht benötigter Geräte
-- Deaktivierung des Energiesparmodus (für Desktop-Computer)
-- Deaktivierung leistungsintensiver Sicherheitsfunktionen
+- Deaktivierung der Energiesparfunktion (für PCs)
+- Deaktivierung leistungsintensiver Sicherheitsabschwächungen
 - Automatisch aktivierter MSI-Modus auf allen Geräten
-- Optimierung der Boot-Konfiguration
+- Optimierte Boot-Konfiguration
 - Optimierte Prozessplanung
 
 ### 🔒 Legal
-Viele benutzerdefinierte Windows-Versionen verteilen veränderte ISO-Dateien von Windows. Das verletzt nicht nur die [Nutzungsbedingungen von Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), es ist auch kein sicherer Weg der Installation.
+Viele benutzerdefinierte Windows-Betriebssysteme vertreiben ihre Systeme, indem sie eine modifizierte ISO-Datei von Windows bereitstellen. Dies verstößt nicht nur gegen die [Nutzungsbedingungen von Microsoft] (https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), sondern ist auch keine sichere Installationsmethode.
 
-Atlas hat sich mit dem Windows Ameliorated Team zusammengeschlossen, um Nutzern einen sicheren und legalen Weg der Installation zu ermöglichen: der [AME Wizard](https://ameliorated.io). Mit diesem hält sich Atlas vollständig an die [Nutzungsbedingungen von Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
+Atlas hat sich mit dem Ameliorated-Team zusammengetan, um den Benutzern mit [AME Wizard](https://ameliorated.io) eine sicherere und legale Installationsmethode zu bieten. Damit erfüllt Atlas die [Nutzungsbedingungen von Microsoft](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) vollständig.
 
-## 🎨 Branding-Kit
-Möchten Sie Ihr eigenes Atlas-Hintergrundbild erstellen? Vielleicht mit unserem Logo herumspielen, um Ihr eigenes Design zu entwerfen? Unser Branding-Kit ist für die Öffentlichkeit frei zugänglich. Wir freuen uns über neue kreative Ideen der Gemeinschaft. [Sehen Sie sich unser Branding-Kit an und machen Sie etwas Spektakuläres.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+## 🎨 Brand kit
+Sind Sie kreativ? Möchten Sie Ihre eigenes Atlas-Hintergrundbild mit kreativen Designs entwerfen? Unser Brand Kit bietet Ihnen alles, was Sie brauchen!
+Jeder kann auf das Atlas Brand Kit zugreifen - Sie können es [hier](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) herunterladen und etwas Spektakuläres gestalten!
 
-Wir haben auch einen eigenen Bereich in unserem [Forum](https://forum.atlasos.net/t/art-showcase), damit du deine Kreationen mit anderen kreativen Genies teilen kannst und vielleicht etwas Inspiration findest.
+Wir haben auch einen eigenen Bereich in unserem [Forum](https://forum.atlasos.net/t/art-showcase), in dem du deine Kreationen mit anderen Kreativen teilen und dich vielleicht sogar inspirieren lassen kannst! Hier findest du auch kreative Hintergrundbilder, die andere Nutzer teilen!
 
 ## ⚠️ Disclaimer (Haftungsausschluss)
-https://github.com/Atlas-OS/Atlas#%EF%B8%8F-disclaimer
+https://github.com/Atlas-OS/Atlas#%EF%B8%8F-not-pre-activated
 
 ## Translation contributors (Beitragende zur Übersetzung)
-[DedBash](https://github.com/DedBash/) |
-[GhostZero](https://github.com/ghostzero/) |
+[DedBash](https://github.com/DedBash) |
+[GhostZero](https://github.com/ghostzero) |
 [Alino001](https://github.com/Alino001) |
 [Mahele](https://github.com/leonmartinhess) |
-[elNino0916](https://github.com/elNino0916/)
+[elNino0916](https://github.com/elNino0916) |
+[A-Loot](https://github.com/A-Loot)
