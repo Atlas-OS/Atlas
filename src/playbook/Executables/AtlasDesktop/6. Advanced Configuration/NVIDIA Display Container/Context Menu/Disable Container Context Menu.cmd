@@ -1,19 +1,18 @@
 @echo off
 
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" %*
+fltmc > nul 2>&1 || (
+	echo Administrator privileges are required.
+	PowerShell Start -Verb RunAs '%0' 2> nul || (
+		echo You must run this script as admin.
+		exit /b 1
+	)
 	exit /b
 )
 
 :: check if the service exists
-reg query "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" > nul 2>&1 || (
-    echo The NVIDIA Display Container LS service does not exist, you cannot continue.
-	echo You may not have NVIDIA drivers installed.
-    pause
-    exit /b 1
-)
 reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1 ||
     echo The context menu does not exist, thus you cannot continue.
+    echo]
     pause
     exit /b 1
 )

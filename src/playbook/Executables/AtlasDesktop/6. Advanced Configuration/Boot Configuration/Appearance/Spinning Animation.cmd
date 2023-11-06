@@ -28,6 +28,7 @@ bcdedit /deletevalue {globalsettings} custom:16000069 > nul 2>&1
 goto finish
 
 :finish
+echo]
 echo Finished, please reboot your device for changes to apply.
 pause
 exit /b
