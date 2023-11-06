@@ -38,7 +38,7 @@
 <kbd>[<img title="Svenska" alt="Svenska" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/se.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_sv_SE.md)</kbd>
 <kbd>[<img title="Türkçe" alt="Türkçe" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/tr.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_tr_TR.md)</kbd>
 <kbd>[<img title="ไทย" alt="ไทย" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/th.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_th_TH.md)</kbd>
-<kbd>[<img title="українська мова" alt="українська мова" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ua.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ua_UA.md)</kbd>
+<kbd>[<img title="Українська" alt="Українська" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/ua.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_ua_UA.md)</kbd>
 <kbd>[<img title="Tiếng Việt" alt="Tiếng Việt" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/vn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_vi_VN.md)</kbd>
 <kbd>[<img title="中文" alt="中文" src="https://gcore.jsdelivr.net/gh/hampusborgos/country-flags@main/svg/cn.svg" width="22">](https://github.com/Atlas-OS/Atlas/blob/main/translations/README_zh_CN.md)</kbd>
 #### _Do you want to help us by translating documents? If so, please follow these [instructions](https://github.com/Atlas-OS/Atlas/blob/main/translations/README.md)._
@@ -102,7 +102,7 @@ Some of the many changes that we have made to improve Windows are listed below:
 ### 🔒 Legal
 Many custom Windows OSes distribute their systems by providing a tweaked ISO of Windows. Not only does it violate [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm), but it is also not a safe way to install.
 
-Atlas partnered with the Ameliorated team to provide users with a safer and legal way to install, using [AME Wizard](https://ameliorated.io). With it, Atlas fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.html).
+Atlas partnered with the Ameliorated team to provide users with a safer and legal way to install, using [AME Wizard](https://ameliorated.io). With it, Atlas fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
 ## 🎨 Brand kit
 Feeling creative? Want to create your own Atlas wallpaper with some original creative designs? Our brand kit has got you covered!
