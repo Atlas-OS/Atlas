@@ -187,7 +187,7 @@ tasks:
   - tweaks\qol\explorer\always-more-details-transfer.yml
   - tweaks\qol\explorer\disable-invalid-shortcuts-search.yml
   - tweaks\qol\explorer\disable-check-boxes.yml
-  - tweaks\qol\explorer\disable-folders-this-pc.yml
+  # - tweaks\qol\explorer\disable-folders-this-pc.yml
   # - tweaks\qol\explorer\disable-network-navigation-pane.yml
   # - tweaks\qol\explorer\disable-sharing-wizard.yml
   - tweaks\qol\explorer\full-context-on-more-than-15-items.yml

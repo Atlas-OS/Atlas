@@ -59,7 +59,7 @@ function Menu {
 			
 			Pause; Clear-Host
 			Write-Host "Disabling Defender... Your computer will auto-restart.`n" -ForegroundColor Green
-			& "$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1" -DefenderOnly
+			@REM & "$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1" -DefenderOnly
 			if ($lastexitcode -ne 1) {
 				Write-Host "Something went wrong disabling Defender." -ForegroundColor Red
 				Write-Host "See the documentation: https://docs.atlasos.net/troubleshooting-and-faq/failed-component-removal"
