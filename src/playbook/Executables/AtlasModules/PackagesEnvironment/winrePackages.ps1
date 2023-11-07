@@ -98,8 +98,9 @@ $failurePath = "$env:windir\System32\AtlasPackagesFailure"
 $sh = New-Object -ComObject "Wscript.Shell"
 
 # Docs links and messages
-$failedRemovalLink = 'https://docs.atlasos.net/faq-and-troubleshooting/failed-component-removal'
-$bitlockerDecryptLink = 'https://docs.atlasos.net/faq-and-troubleshooting/common-questions/decryptying-using-bitlocker'
+$commonQuestions = 'https://docs.atlasos.net/faq-and-troubleshooting/common-questions'
+$failedRemovalLink = "$commonQuestions/failed-component-removal"
+$bitlockerDecryptLink = "$commonQuestions/decryptying-using-bitlocker"
 $genericRecoveryFailure = @"
 Something went wrong while trying to use Windows Recovery to remove components.
 
