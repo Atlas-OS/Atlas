@@ -4,7 +4,7 @@ description: Copies Atlas folders/files, installs dependencies and performs the 
 privilege: TrustedInstaller
 actions:
     # AME Wizard Live Log for development playbooks
-    # Do not change the line position of this, otherwise things will break
+    # Do not change the line position of this, otherwise things will break when using local-build
   # - !run: {exe: 'cmd.exe', args: '/c start "AME Wizard Live Log" PowerShell -NoP -C "gc -Wait Logs\TIOutput.txt -EA SilentlyContinue | Write-Output; pause"', baseDir: true, wait: false}
 
     # Prevent annoying notifications during deployment
@@ -52,6 +52,7 @@ actions:
     args: '-NoP -File "SOFTWARE.ps1"'
     exeDir: true
     weight: 150
+    runas: currentUserElevated
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !run:
     exe: 'powershell.exe'
@@ -59,6 +60,7 @@ actions:
     exeDir: true
     weight: 150
     option: 'browser-chrome'
+    runas: currentUserElevated
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
   - !run:
     exe: 'powershell.exe'
@@ -66,7 +68,7 @@ actions:
     exeDir: true
     weight: 150
     option: 'browser-brave'
-
+    runas: currentUserElevated
   - !writeStatus: {status: 'Installing Waterfox', option: 'browser-waterfox'}
   - !run:
     exe: 'powershell.exe'
@@ -74,5 +76,6 @@ actions:
     exeDir: true
     weight: 150
     option: 'browser-waterfox'
+    runas: currentUserElevated
 
   ################ END NO LOCAL BUILD ################

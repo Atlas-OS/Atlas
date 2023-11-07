@@ -12,7 +12,7 @@ actions:
     # Set lockscreen
   - !run:
     exe: 'powershell.exe'
-    args: '-NoP -EP Unrestricted & "LOCKSCREEN.ps1"'
+    args: '-NoP -EP Unrestricted -File "LOCKSCREEN.ps1"'
     exeDir: true
     runas: currentUserElevated
   - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
