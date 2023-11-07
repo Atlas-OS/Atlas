@@ -57,9 +57,13 @@ actions:
   # Paint 3D
   - !appx: {name: '*Microsoft.MSPaint*', type: family}
 
+  # Game Bar
+  # Support is disabled by default - there shouldn't be a popup about 'ms-gaming-overlay-link'
+  - !appx: {name: '*Microsoft.XboxGameOverlay*', type: family}
+  - !appx: {name: '*Microsoft.XboxGamingOverlay*', type: family}
+
   # Widgets
   - !taskKill: {name: '*widgets*', ignoreErrors: true}
-  - !appx: {name: '*Widgets*', type: family}
   - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
   - !powerShell:
     command: 'Get-AppxPackage ''MicrosoftWindows.Client.WebExperience'' | Remove-AppxPackage'
