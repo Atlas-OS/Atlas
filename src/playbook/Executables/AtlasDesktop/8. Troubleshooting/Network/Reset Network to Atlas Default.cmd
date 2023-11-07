@@ -5,6 +5,8 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
+echo Applying changes...
+
 :: Disable Nagle's Algorithm
 :: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
 for /f %%a in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do (
@@ -28,7 +30,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" /v "DefaultPnPC
 for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
 	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver"') do ( 
         set "netKey=HKLM\SYSTEM\CurrentControlSet\Control\Class\%%b"
-    )
+    ) > nul 2>&1
 )
 
 :: Configure internet adapter settings
@@ -110,12 +112,12 @@ for %%a in (
     for /f %%b in ('reg query "%netKey%" /v "*%%~a" ^| findstr "HKEY"') do (
         reg add "%netKey%" /v "*%%~a" /t REG_SZ /d "0" /f > nul
     )
-)
+) > nul 2>&1
 
 :: Configure netsh settings
-netsh int tcp set supplemental Internet congestionprovider=ctcp
-netsh interface Teredo set state type=enterpriseclient
-netsh interface Teredo set state servername=default
+netsh int tcp set supplemental Internet congestionprovider=ctcp > nul
+netsh interface Teredo set state type=enterpriseclient > nul
+netsh interface Teredo set state servername=default > nul
 
 echo Finished, please reboot your device for changes to apply.
 pause

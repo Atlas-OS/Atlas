@@ -4,7 +4,7 @@ description: Removes '- Shortcut' text appended onto the end of shortcuts for Qo
 privilege: TrustedInstaller
 actions:
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
-    value: 'link'
-    data: '00000000'
-    type: REG_BINARY
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\NamingTemplates'
+    value: 'ShortcutNameTemplate'
+    data: '"%s.lnk"'
+    type: REG_SZ

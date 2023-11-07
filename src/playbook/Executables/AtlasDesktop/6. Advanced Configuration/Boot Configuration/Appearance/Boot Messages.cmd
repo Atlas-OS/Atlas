@@ -22,17 +22,15 @@ if %ERRORLEVEL% == 1 (
 )
 
 :disable
-echo]
 bcdedit /set {globalsettings} custom:16000068 true > nul
 goto finish
 
 :enable
-echo]
 bcdedit /deletevalue {globalsettings} custom:16000068 > nul 2>&1
 goto finish
 
 :finish
+echo]
 echo Finished, please reboot your device for changes to apply.
 pause
 exit /b
-)

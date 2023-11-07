@@ -3,6 +3,15 @@
 title Bypass Windows 11 Requirements
 cd /d "%~dp0"
 
+fltmc > nul 2>&1 || (
+	echo Administrator privileges are required.
+	PowerShell Start -Verb RunAs '%0' 2> nul || (
+		echo You must run this script as admin.
+		exit /b 1
+	)
+	exit /b
+)
+
 :: set ANSI escape characters
 cd /d "%~dp0"
 for /f %%a in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%a"
@@ -41,25 +50,10 @@ echo]
 echo %ESC%[2A%ESC%[?25l
 
 :runCommands
-set regCommands=reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG_DWORD /d "1" /f ^> nul ^& ^
-                reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassSecureBootCheck" /t REG_DWORD /d "1" /f ^> nul ^& ^
-                reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d "1" /f ^> nul
+reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG_DWORD /d "1" /f > nul
+reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassSecureBootCheck" /t REG_DWORD /d "1" /f > nul
+reg add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d "1" /f > nul
 
-fltmc > nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    powershell -NoP Start -WindowStyle Hidden -Verb RunAs 'cmd.exe' -ArgumentList '/c %regCommands%' > nul 2>&1 || (
-        set "retry=true"
-        call :errorText retry
-        pause > nul
-        goto runCommands
-    )
-) else (
-    %regCommands:^=% || (
-        call :errorText exit
-        pause > nul
-        cls & exit /b 1
-    )
-)
 echo %ESC%[32m  Completed! %ESC%[0mPress any key to exit...                 %ESC%[1A
 pause > nul
 exit /b
@@ -67,10 +61,6 @@ exit /b
 :::::::::::::::::::::::::::::::::::::::::::::
 :: -------------- FUNCTIONS -------------- ::
 :::::::::::::::::::::::::::::::::::::::::::::
-
-:errorText <"action">
-echo %ESC%[31m  Error! %ESC%[0mPress any key to %~1...                 %ESC%[1A
-exit /b 1
 
 :xcopyInput <"key">
 set "key="

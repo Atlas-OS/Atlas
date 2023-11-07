@@ -27,9 +27,9 @@ actions:
     data: '1'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Start'
-    value: 'ShowRecentList'
-    data: '0'
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'ShowOrHideMostUsedApps'
+    data: '2'
     type: REG_DWORD
 
   - !run:

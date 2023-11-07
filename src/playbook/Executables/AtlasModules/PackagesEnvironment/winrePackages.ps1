@@ -1,29 +1,18 @@
-# If -DefenderOnly and -EverythingButDefender is missing, then all packages are added
 param (
-    [switch]$DefenderOnly,
-    [switch]$EverythingButDefender,
+    [string]$LogPath,
     [switch]$NextStartup,
-    [switch]$DeleteBitLockerPassword,
-    [switch]$RecoveryBroken,
-    [float]$SpaceFailure,
-    [switch]$PlaybookInstall
+    [switch]$DeleteBitLockerPassword
 )
 
-if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
-    Write-Warning "This script isn't supported for ARM64 currently."
-    Write-Warning "It will be in a future release of Atlas."
-    exit 1
+if ((Get-WmiObject -Class Win32_ComputerSystem).SystemType -match '*ARM64*') {
+    Write-Host "This script is not supported on ARM64." -ForegroundColor Yellow
+    pause
 }
 
 # Task Scheduler is needed for this script to function correctly
 if ((Get-Service -Name 'Schedule' -EA SilentlyContinue).Status -ne 'Running') {
     Set-Service -Name 'Schedule' -StartupType Automatic
     Start-Service -Name 'Schedule'
-}
-
-if ($NextStartup -or $DeleteBitLockerPassword) {
-    $host.UI.RawUI.WindowTitle = "Finalizing installation - Atlas"
-    Write-Host "Do not close this window, Atlas is finalizing installation." -ForegroundColor Yellow
 }
 
 function Test-PathOrCommand {
@@ -46,16 +35,42 @@ function Test-PathOrCommand {
     }
 }
 
+function Write-Log {
+    $args | Out-File "$LogPath" -Append -Force
+}
+
+function Write-Info {
+    param (
+        [string]$Text,
+        [switch]$NewLine,
+        [switch]$UseError
+    )
+
+    if ($UseError) {
+        Write-Host "ERROR: " -NoNewLine -ForegroundColor Red
+    } else {
+        Write-Host "INFO: " -NoNewLine -ForegroundColor Blue
+    }
+    Write-Host "$Text"
+
+    if ($NewLine) { Write-Host "" }
+    if ($LogPath) {
+        Write-Log "$Text"
+    }
+}
+
 # ======================================================================================================================= #
 # VARIABLES                                                                                                               #
 # ======================================================================================================================= #
 
-Write-Warning "Setting variables..."
+Write-Info -Text "Setting variables..."
 
 # Required paths
 $requiredPaths = @{
     recoveryXML = "$env:windir\System32\Recovery\ReAgent.xml"
+    modules = "$env:windir\AtlasModules"
     atlasEnvironmentItems = "$env:windir\AtlasModules\PackagesEnvironment\recovery"
+    atlasWinrePackages = "$env:windir\AtlasModules\winrePackagesToInstall"
     reagentc = 'reagentc.exe'
 }
 foreach ($path in $requiredPaths.Keys) {
@@ -64,7 +79,7 @@ foreach ($path in $requiredPaths.Keys) {
 }
 
 # Scheduled Tasks
-$user = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
+$user = (Get-CimInstance -ClassName Win32_ComputerSystem).UserName -replace ".*\\"
 $bitlockerTaskName = 'AtlasBitlockerRemovalTask'
 $failCheck = 'RecoveryFailureCheck'
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
@@ -78,84 +93,21 @@ $taskArgs = @{
 }
 
 # Misc
-$packageListPath = "$env:windir\AtlasModules\packagesToInstall"
-$win10 = [System.Environment]::OSVersion.Version.Build -lt 22000
 $failurePath = "$env:windir\System32\AtlasPackagesFailure"
 # https://ss64.com/vb/popup.html
 $sh = New-Object -ComObject "Wscript.Shell"
 
-# Docs links and messages
-$failedRemovalLink = 'https://docs.atlasos.net/faq-and-troubleshooting/failed-component-removal'
-$bitlockerDecryptLink = 'https://docs.atlasos.net/faq-and-troubleshooting/common-questions/decryptying-using-bitlocker'
+# Messages
+$atlasTeamOnGit = 'Report this to the Atlas team on GitHub.'
 $genericRecoveryFailure = @"
 Something went wrong while trying to use Windows Recovery to remove components.
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@
 
 # ======================================================================================================================= #
 # FUNCTIONS                                                                                                               #
 # ======================================================================================================================= #
-function MakePackageList {
-    $packageList = (Get-ChildItem "$env:windir\AtlasModules\Packages\*.cab").FullName -replace "$env:systemdrive\\", ''
-    if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
-        $packageList = $packageList | Where-Object {$_ -like "*amd64*"}
-    } else {
-        $packageList = $packageList | Where-Object {$_ -like "*arm64*"}
-    }
-
-    if ($DefenderOnly) {
-        Write-Warning "Making package list only with Defender...."
-        $packageList = $packageList | Where-Object { $_ -like '*NoDefender*' }
-    } elseif ($EverythingButDefender) {
-        Write-Warning "Making package list without Defender...."
-        $packageList = $packageList | Where-Object { $_ -notlike '*NoDefender*' }
-    } else {
-        Write-Warning "Making package list with everything...."
-    }
-
-    if ($PlaybookInstall) {
-        $featuresToDisable = @(
-            'MicrosoftWindowsPowerShellV2',
-            'MicrosoftWindowsPowerShellV2Root',
-            'Printing-Foundation-Features',
-            'Printing-Foundation-InternetPrinting-Client',
-            'Printing-XPSServices-Features',
-            'Printing-PrintToPDFServices-Features'
-        ); if ($win10) {
-            $featuresToDisable += 'Internet-Explorer-Optional-amd64'
-        }
-
-        if ($packageList.GetType().IsArray) {
-            $packageList += "disableFeature `"$($featuresToDisable[0])`""
-        } else {
-            $packageList = @($packageList, "disableFeature `"$($featuresToDisable[0])`"")
-        }; $featuresToDisable = $featuresToDisable | Select-Object -Skip 1
-
-        foreach ($feature in $featuresToDisable) { $packageList += "disableFeature `"$feature`"" }
-    }
-
-    if ($packageList.GetType().IsArray) {
-        $packageList += 'dismCleanup'
-    } else {
-        $packageList = @($packageList, 'dismCleanup')
-    }
-
-    [IO.File]::WriteAllLines($packageListPath, $packageList)
-}
-
-function MakeLogDirectory {
-    $global:logDirectory = $null
-    if ($SafeMode) {$folder = 'AtlasSafeMode'} else {$folder = 'AtlasPreWinRE'}
-
-    do {
-        $logDirectory = "$rootLogDirectory\$($logNumCount++)-$folder-$((Get-Date).ToShortDateString() -replace '[^0-9]','-')"
-        if (!(Test-Path $logDirectory)) {
-            New-Item $logDirectory -ItemType Directory -Force
-            $global:logDirectory = $logDirectory
-        }
-    } until ($global:logDirectory)
-}
 
 function PauseNul ($message = "Press any key to exit... ") {
 	Write-Host $message -NoNewLine
@@ -174,89 +126,52 @@ Without this, you won't be able to use disable Defender, remove telemetry and ha
 
 This is an unsupported state.
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@
     exit 1
 }
 
-function StartupTask ($RecoveryBroken, $SpaceFailure) {
-    $arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & ' `
-        + 'powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -NextStartup ' `
-        + $(if ($RecoveryBroken) {'-RecoveryBroken'} elseif ($SpaceFailure) {"-SpaceFailure $spaceFailure"}) `
-        + $(if ($PlaybookInstall) {'-PlaybookInstall'}) + '"'
+function StartupTask {
+    $arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & schtasks /delete /tn "RecoveryFailureCheck" /f > nul & ' `
+        + 'powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -NextStartup"'
     $action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
     Register-ScheduledTask -TaskName $failCheck -Action $action @taskArgs | Out-Null
-    if ($RecoveryBroken -or $SpaceFailure) { exit 1 }
 }
 
 # ======================================================================================================================= #
 # Next startup error                                                                                                      #
 # ======================================================================================================================= #
-if ($NextStartup) {
-    if ($spaceFailurePath) {
-        Write-Warning "Running disk space failure message..."
-        NoDiskSpaceError $(Get-Content $spaceFailurePath -Raw)
-    }
+if ($NextStartup -and (Test-Path $failurePath)) {
+    $WindowTitle = 'Failed removing components - Atlas'
 
-    if ($PlaybookInstall) {
-        Start-Job -ScriptBlock {
-            # Enable DirectPlay for compatibility
-            Enable-WindowsOptionalFeature -Online -FeatureName "DirectPlay" -All -NoRestart
+    Write-Info -Text "Running specific Windows Recovery failure message..." -UseError
+    Unregister-ScheduledTask -TaskName $failCheck -Confirm:$false | Out-Null
+    $AtlasPackagesFailure = Get-Content $failurePath
+    $logPath = ($AtlasPackagesFailure -split '"')[1] -replace [regex]::Escape($env:windir), '%windir%'
+    $errorLevel = ($AtlasPackagesFailure -split '"')[3]
+    
+    Remove-Item $failurePath -Force
 
-            # Pin 'Videos' and 'Music' folders to Quick Acesss
-            if ($win10) {
-                $o = new-object -com shell.application
-                $o.Namespace("$env:USERPROFILE\Videos").Self.InvokeVerb('pintohome')
-                $o.Namespace("$env:USERPROFILE\Music").Self.InvokeVerb('pintohome')
-            }
-        }
-    }
-
-    if ((Test-Path $failurePath) -or $RecoveryBroken) {
-        $WindowTitle = 'Failed removing components - Atlas'
-
-        if (!$RecoveryBroken) {
-            Write-Warning "Running specific Windows Recovery failure message..."
-            Unregister-ScheduledTask -TaskName $failCheck -Confirm:$false | Out-Null
-            $AtlasPackagesFailure = Get-Content $failurePath
-            $logPath = ($AtlasPackagesFailure -split '"')[1] -replace [regex]::Escape($env:windir), '%windir%'
-            $errorLevel = ($AtlasPackagesFailure -split '"')[3]
-            
-            Remove-Item $failurePath -Force
-
-            $Message = @"
+    $Message = @"
 Something went wrong while removing components using Windows Recovery.
 
 Log: $logPath
 Exit code: $errorLevel
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@
-        } else {
-            Write-Warning "Running Windows Recovery enablement failure message..."
-            $Message = $genericRecoveryFailure
-        }
     
-        $sh.Popup($Message,0,$WindowTitle,0+48)
-        Start-Process $failedRemovalLink
-        exit 1
-    }
-    exit
-}
+    $sh.Popup($Message,0,$WindowTitle,0+48)
+    exit 1
+} elseif ($NextStartup) { exit }
 
 # ======================================================================================================================= #
 # Windows Recovery modification                                                                                           #
 # ======================================================================================================================= #
 
-# Playbook insall
-if ($PlaybookInstall) {
-    Write-Warning 'Setting startup task due to $PlaybookInstall...'
-    StartupTask
-}
-
 try {
     # Initial BCD values
-    Write-Warning 'Initial Windows Recovery variables...'
+    Write-Info -Text 'Initial Windows Recovery variables...'
     $recoveryBCD = $([xml]$(Get-Content -Path $recoveryXML)).WindowsRE.WinreBCD.id
     $bcdeditRecoveryOutput = bcdedit /enum "$recoveryBCD" | Select-String 'device' | Select-Object -First 1
     $deviceDrive = ($bcdeditRecoveryOutput -split '\]' -split '\[')[1]
@@ -264,29 +179,25 @@ try {
 
     # Enable Windows Recovery
     # Does nothing if it's already enabled
-    Write-Warning 'Enabling WinRE...'
+    Write-Info -Text 'Enabling WinRE...'
     reagentc /enable | Out-Null
-    if (!$? -and $PlaybookInstall) {
-        Write-Warning 'Failed enabling WinRE, exiting due to $PlaybookInstall...'
-        StartupTask $true
-    } elseif (!$?) {
-        Write-Warning 'Failed enabling WinRE, displaying error...'
+    if (!$?) {
+        Write-Info -Text 'Failed enabling WinRE, displaying error...' -UseError
         FatalError @"
 Something went wrong while trying to enable Windows Recovery for component removal.
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@
 
-        Start-Process $failedRemovalLink
         exit 1
     }
 
     # If WinRE is on Recovery partition, mount it
     if ($deviceDrive -notlike '*:*') {
-        Write-Warning 'Detected Windows Recovery partition...'
+        Write-Info -Text 'Detected Windows Recovery partition...'
         $recoveryPartition = $true
 
-        Write-Warning 'Getting WinRE partition ID...'
+        Write-Info -Text 'Getting WinRE partition ID...'
         $Kernel32 = Add-Type -Name 'Kernel32' -Namespace '' -PassThru -MemberDefinition @"
             [DllImport("kernel32")]
             public static extern int QueryDosDevice(string name, System.Text.StringBuilder path, int pathMaxLength);
@@ -301,19 +212,15 @@ $failedRemovalLink
         } | Where-Object { $_.DevicePath -eq $deviceDrive } | Select-Object -ExpandProperty UniqueId
 
         # Create mount point
-        Write-Warning 'Creating mount point...'
+        Write-Info -Text 'Creating mount point...'
         do {
             $mountPoint = Join-Path -Path $env:WinDir -ChildPath ("atlasRecovery." + $([System.IO.Path]::GetRandomFileName()))
         } until (!(Test-Path $mountPoint))
         if (-Not (Test-Path $mountPoint)) { New-Item -Path $mountPoint -Type Directory -Force | Out-Null }
         mountvol $mountPoint $recoveryID | Out-Null
-        if (!$? -and $PlaybookInstall) {
-            Write-Warning 'Failed mounting WinRE partition, exiting silently due to $PlaybookInstall...'
-            StartupTask $true
-        } elseif (!$?) {
-            Write-Warning 'Failed mounting WinRE partition, displaying mesage...'
+        if (!$?) {
+            Write-Info -Text 'Failed mounting WinRE partition, displaying mesage...' -UseError
             $null = $sh.Popup($genericRecoveryFailure,0,$WindowTitle,0+16)
-            Start-Process $failedRemovalLink
             exit
         }
         $deviceDrive = $mountPoint
@@ -324,7 +231,7 @@ $failedRemovalLink
     $componentInstallationIndicator = "$deviceDrive\AtlasComponentPackageInstallation"
 
     if ($DeleteBitLockerPassword) {
-        Write-Warning "Deleting BitLocker password..."
+        Write-Info -Text "Deleting BitLocker password..."
         $ErrorActionPreference = 'SilentlyContinue'
         Remove-Item $bitlockerRecoveryKeyTxt -Force
         Remove-Item $componentInstallationIndicator -Force
@@ -337,13 +244,8 @@ $failedRemovalLink
     $wimSize = (Get-WindowsImage -ImagePath $fullWimPath -Index 1).ImageSize
     if ($wimSize -gt (Get-PSDrive ($env:systemdrive -replace ':','') | Select-Object -ExpandProperty Free)) {
         $spaceNeeded = $([math]::round($wimSize /1Gb, 3) * 2)
-        if (!$PlaybookInstall) {
-            Write-Warning 'Not enough storage space, displaying mesage...'
-            NoDiskSpaceError $spaceNeeded
-        } else {
-            Write-Warning 'Not enough storage space, silently exiting...'
-            StartupTask $false $spaceNeeded
-        }
+        Write-Info -Text 'Not enough storage space, displaying mesage...' -UseError
+        NoDiskSpaceError $spaceNeeded
         exit 1
     }
 
@@ -351,95 +253,84 @@ $failedRemovalLink
     # It's deleted next reboot
     $bitlockerVolume = Get-BitLockerVolume -MountPoint $env:systemdrive
     if ($bitlockerVolume.ProtectionStatus -eq 'On') {
-        Write-Warning 'BitLocker detected...'
+        Write-Info -Text 'BitLocker detected...'
         $bitlockerRecoveryKey = ($bitlockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }).RecoveryPassword
 
         if ($recoveryPartition) {
-            Write-Warning 'Writing BitLocker key to WinRE partition...'
+            Write-Info -Text 'Writing BitLocker key to WinRE partition...'
             [IO.File]::WriteAllLines($bitlockerRecoveryKeyTxt, $bitlockerRecoveryKey)
             $action = New-ScheduledTaskAction -Execute 'cmd' `
-                    -Argument '/c powershell -EP Unrestricted -WindowStyle Hidden -NoP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
+                    -Argument '/c schtasks /delete /tn "AtlasBitlockerRemovalTask" /f > nul & powershell -EP Unrestricted -WindowStyle Hidden -NoP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
             Register-ScheduledTask -TaskName $bitlockerTaskName -Action $action @taskArgs | Out-Null
         } else {
-            if (!$? -and $PlaybookInstall) {
-                Write-Warning 'No WinRE partition with BitLocker, failing silently...'
-                StartupTask $true
-            } elseif (!$?) {
-                Write-Warning 'No WinRE partition with BitLocker, displaying message...'
+            if (!$?) {
+                $bitlockerLink = 'https://docs.atlasos.net/faq-and-troubleshooting/common-questions/decryptying-using-bitlocker/'
+                Write-Info -Text 'No WinRE partition with BitLocker, displaying message...' -UseError
                 $null = $sh.Popup(@"
 A BitLocker install with Windows Recovery on the system drive was detected.
 
 You need to decrypt your drive.
 
-$failedRemovalLink
+$bitlockerLink
 "@,0,$WindowTitle,0+16)
-                Start-Process $bitlockerDecryptLink
+                Start-Process $bitlockerLink
                 exit 1
             }
         }
     }
 
     # Mount the Recovery WIM
-    Write-Warning 'Mounting WinRE WIM...'
+    Write-Info -Text 'Mounting WinRE WIM...'
     do {
         $atlasWinreWim = Join-Path -Path $env:WinDir -ChildPath ("atlasWinreWim." + $([System.IO.Path]::GetRandomFileName()))
     } until (!(Test-Path $atlasWinreWim))
     New-Item -Path $atlasWinreWim -Type Directory -Force | Out-Null
     Mount-WindowsImage -ImagePath $fullWimPath -Index 1 -Path $atlasWinreWim | Out-Null
-    if (!$? -and $PlaybookInstall) {
-        Write-Warning 'No WinRE partition with BitLocker, failing silently...'
-        StartupTask $true
-    } elseif (!$?) {
-        Write-Warning 'No WinRE partition with BitLocker, displaying message...'
+    if (!$?) {
+        Write-Info -Text 'Something went wrong mounting the WinRE image, displaying message...' -UseError
         $null = $sh.Popup(@"
-A BitLocker install with Windows Recovery on the system drive was detected.
+Something went wrong while mounting the WinRE image.
 
-You need to decrypt your drive.
-
-$failedRemovalLink
+$atlasTeamOnGit
 "@,0,$WindowTitle,0+16)
-        Start-Process $bitlockerDecryptLink
         exit 1
     }
 
     # Set startup application
     # https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/winpeshlini-reference-launching-an-app-when-winpe-starts
-    Write-Warning 'Setting startup application...'
+    Write-Info -Text 'Setting startup application...'
     [IO.File]::WriteAllLines("$atlasWinreWim\Windows\System32\winpeshl.ini", @"
 [LaunchApps]
 %WINDIR%\System32\wscript.exe, %SYSTEMDRIVE%\atlas\startup.vbs //B
 "@)
-#     [IO.File]::WriteAllLines("$atlasWinreWim\Windows\System32\winpeshl.ini", @"
+    # [IO.File]::WriteAllLines("$atlasWinreWim\Windows\System32\winpeshl.ini", @"
 # [LaunchApps]
 # %WINDIR%\System32\cmd.exe
 # "@)
 
     # Copy Atlas Package Installation Environment items
-    Write-Warning 'Creating package list and copying files...'
-    MakePackageList
-    Copy-Item "$atlasEnvironmentItems\*" -Destination "$atlasWinreWim\atlas" -Recurse -Force
+    Write-Info -Text 'Copying files...'
+    Copy-Item "$atlasEnvironmentItems\*" -Destination "$atlasWinreWim\atlas" -Recurse -Force    
 
     # Notify WinRE that it's package install next boot
     New-Item $componentInstallationIndicator -Force | Out-Null
 
+    # Set startup task
+    StartupTask
+    
     # Boot into Windows Recovery
     reagentc /boottore | Out-Null
-    if (!$PlaybookInstall) { $restart = $true }
 } finally {
-    Write-Warning 'Cleaning up...'
+    Write-Info -Text 'Cleaning up...'
     if ((Test-Path "$atlasWinreWim\Windows") -and $atlasWinreWim) {
-        Dismount-WindowsImage -Path $atlasWinreWim -Save
-        if (!$? -and $PlaybookInstall) {
-            Write-Warning 'Failed to save WinRE image, silently failing...'
-            StartupTask $true
-        } elseif (!$?) {
-            Write-Warning 'Failed to save WinRE image, displaying message...'
+        Dismount-WindowsImage -Path $atlasWinreWim -Save | Out-Null
+        if (!$?) {
+            Write-Info -Text 'Failed to save WinRE image, displaying message...' -UseError
             $null = $sh.Popup(@"
-Failed to save the Windows Recovery image, see the documentation below.
+Failed to save the Windows Recovery image.
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@,0,'Component failure - Atlas',0+16)
-            Start-Process $failedRemovalLink
             exit 1
         }
         Remove-Item $atlasWinreWim -Force
@@ -450,7 +341,5 @@ $failedRemovalLink
     }
 }
 
-if ($restart) {
-    Write-Warning 'Restarting...'
-    Restart-Computer
-}
+Write-Info -Text 'Restarting...'
+Restart-Computer

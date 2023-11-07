@@ -16,7 +16,6 @@ param (
 	[switch]$NextStartup
 )
 
-$taskName = 'AtlasDefenderConfigurationPrompt'
 if ($NextStartup) {
 	$message = "Atlas can't configure the Windows Defender settings after removal. Clicking 'OK' will take you to the Defender settings page."
 	if ((New-Object -ComObject "Wscript.Shell").Popup($message,20,'Windows Defender Configuration - Atlas',0+64) -eq 1) {
@@ -43,6 +42,8 @@ function Menu {
 	$ColourDisable = 'White'; $ColourEnable = $ColourDisable
 	if ($DefenderDisabled) {$ColourDisable = 'Gray'} else {$ColourEnable = 'Gray'}
 
+	Write-Host "Disabling Defender will automatically restart your computer.`n" -ForegroundColor Blue
+
 	Write-Host "1) Disable Defender $DefenderDisabled" -ForegroundColor $ColourDisable
 	Write-Host "2) Enable Defender $DefenderEnabled`n" -ForegroundColor $ColourEnable
 
@@ -59,7 +60,7 @@ function Menu {
 			
 			Pause; Clear-Host
 			Write-Host "Disabling Defender... Your computer will auto-restart.`n" -ForegroundColor Green
-			& "$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1" -DefenderOnly
+			& "$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1" -DefenderOnly
 			if ($lastexitcode -ne 1) {
 				Write-Host "Something went wrong disabling Defender." -ForegroundColor Red
 				Write-Host "See the documentation: https://docs.atlasos.net/troubleshooting-and-faq/failed-component-removal"
@@ -86,15 +87,15 @@ function Menu {
 			$taskArgs = @{
 				'Trigger'     = $trigger
 				'Settings'    = $settings
-				'User'        = $user
+				'User'        = (Get-CimInstance -ClassName Win32_ComputerSystem).UserName -replace ".*\\"
 				'RunLevel'    = 'Highest'
 				'Force'       = $true
 			}
 
-			$arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & ' `
+			$arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & schtasks /delete /tn "AtlasDefenderConfigurationPrompt" /f > nul & ' `
 				+ 'powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasDesktop\5. Security\Defender\Toggle Defender.cmd'') -NextStartup '
 			$action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
-			Register-ScheduledTask -TaskName $taskName -Action $action @taskArgs | Out-Null
+			Register-ScheduledTask -TaskName 'AtlasDefenderConfigurationPrompt' -Action $action @taskArgs | Out-Null
 
 			Write-Host "`nCompleted!" -ForegroundColor Green
 			choice /c yn /n /m "Would you like to restart now to apply the changes? [Y/N] "

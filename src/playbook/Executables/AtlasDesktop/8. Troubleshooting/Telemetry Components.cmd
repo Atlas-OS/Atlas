@@ -48,7 +48,7 @@ Your computer will auto-restart if you disable it.`n
 		1 {
 			if ($TelemetryDisabled) {Menu}
 			Clear-Host; Write-Host "Disabling telemetry... Your computer will auto-restart.`n" -ForegroundColor Green
-			& "$env:windir\AtlasModules\PackagesEnvironment\winrePackages.ps1" -EverythingButDefender
+			& "$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1" -EverythingButDefender
 			if ($lastexitcode -ne 1) {
 				Write-Host "Something went wrong disabling telemetry." -ForegroundColor Red
 				Write-Host "See the documentation: https://docs.atlasos.net/troubleshooting-and-faq/failed-component-removal"

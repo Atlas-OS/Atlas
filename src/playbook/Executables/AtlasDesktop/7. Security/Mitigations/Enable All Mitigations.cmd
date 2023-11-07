@@ -1,6 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+if "%~1"=="/main" goto main
+
 echo WARNING: This will force enable all security mitigiations for improved security.
 echo          This will slow down performance (especially on older CPUs).
 echo          It is recommended to use 'Set Windows Default Mitigations.cmd' instead.
@@ -11,10 +13,11 @@ pause > nul
 cls
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" %*
+	call RunAsTI.cmd "%~f0" "/main"
 	exit /b
 )
 
+:main
 :: Enable Spectre and Meltdown
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f > nul
 wmic cpu get name | findstr "Intel" > nul && (
