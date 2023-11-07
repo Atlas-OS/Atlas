@@ -97,14 +97,12 @@ $failurePath = "$env:windir\System32\AtlasPackagesFailure"
 # https://ss64.com/vb/popup.html
 $sh = New-Object -ComObject "Wscript.Shell"
 
-# Docs links and messages
-$commonQuestions = 'https://docs.atlasos.net/faq-and-troubleshooting/common-questions'
-$failedRemovalLink = "$commonQuestions/failed-component-removal"
-$bitlockerDecryptLink = "$commonQuestions/decryptying-using-bitlocker"
+# Messages
+$atlasTeamOnGit = 'Report this to the Atlas team on GitHub.'
 $genericRecoveryFailure = @"
 Something went wrong while trying to use Windows Recovery to remove components.
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@
 
 # ======================================================================================================================= #
@@ -128,7 +126,7 @@ Without this, you won't be able to use disable Defender, remove telemetry and ha
 
 This is an unsupported state.
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@
     exit 1
 }
@@ -160,11 +158,10 @@ Something went wrong while removing components using Windows Recovery.
 Log: $logPath
 Exit code: $errorLevel
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@
     
     $sh.Popup($Message,0,$WindowTitle,0+48)
-    Start-Process $failedRemovalLink
     exit 1
 } elseif ($NextStartup) { exit }
 
@@ -189,10 +186,9 @@ try {
         FatalError @"
 Something went wrong while trying to enable Windows Recovery for component removal.
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@
 
-        Start-Process $failedRemovalLink
         exit 1
     }
 
@@ -225,7 +221,6 @@ $failedRemovalLink
         if (!$?) {
             Write-Info -Text 'Failed mounting WinRE partition, displaying mesage...' -UseError
             $null = $sh.Popup($genericRecoveryFailure,0,$WindowTitle,0+16)
-            Start-Process $failedRemovalLink
             exit
         }
         $deviceDrive = $mountPoint
@@ -269,15 +264,16 @@ $failedRemovalLink
             Register-ScheduledTask -TaskName $bitlockerTaskName -Action $action @taskArgs | Out-Null
         } else {
             if (!$?) {
+                $bitlockerLink = 'https://docs.atlasos.net/faq-and-troubleshooting/common-questions/decryptying-using-bitlocker/'
                 Write-Info -Text 'No WinRE partition with BitLocker, displaying message...' -UseError
                 $null = $sh.Popup(@"
 A BitLocker install with Windows Recovery on the system drive was detected.
 
 You need to decrypt your drive.
 
-$failedRemovalLink
+$bitlockerLink
 "@,0,$WindowTitle,0+16)
-                Start-Process $bitlockerDecryptLink
+                Start-Process $bitlockerLink
                 exit 1
             }
         }
@@ -291,15 +287,12 @@ $failedRemovalLink
     New-Item -Path $atlasWinreWim -Type Directory -Force | Out-Null
     Mount-WindowsImage -ImagePath $fullWimPath -Index 1 -Path $atlasWinreWim | Out-Null
     if (!$?) {
-        Write-Info -Text 'No WinRE partition with BitLocker, displaying message...' -UseError
+        Write-Info -Text 'Something went wrong mounting the WinRE image, displaying message...' -UseError
         $null = $sh.Popup(@"
-A BitLocker install with Windows Recovery on the system drive was detected.
+Something went wrong while mounting the WinRE image.
 
-You need to decrypt your drive.
-
-$failedRemovalLink
+$atlasTeamOnGit
 "@,0,$WindowTitle,0+16)
-        Start-Process $bitlockerDecryptLink
         exit 1
     }
 
@@ -334,11 +327,10 @@ $failedRemovalLink
         if (!$?) {
             Write-Info -Text 'Failed to save WinRE image, displaying message...' -UseError
             $null = $sh.Popup(@"
-Failed to save the Windows Recovery image, see the documentation below.
+Failed to save the Windows Recovery image.
 
-$failedRemovalLink
+$atlasTeamOnGit
 "@,0,'Component failure - Atlas',0+16)
-            Start-Process $failedRemovalLink
             exit 1
         }
         Remove-Item $atlasWinreWim -Force
