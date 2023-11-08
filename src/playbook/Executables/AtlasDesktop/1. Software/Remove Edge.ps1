@@ -193,7 +193,7 @@ function RemoveEdgeAppX {
 }
 
 function RemoveWebView {
-    $edges = @(); $bho = @(); $edgeupdates = @(); 'LocalApplicationData','ProgramFilesX86','ProgramFiles' | foreach {
+	$edges = @(); $bho = @(); $edgeupdates = @(); 'LocalApplicationData','ProgramFilesX86','ProgramFiles' | foreach {
     	$folder = [Environment]::GetFolderPath($_)
     	$edges += dir "$folder\Microsoft\Edge*\setup.exe" -rec -ea 0 | where {$_ -like '*EdgeWebView*'}
     }

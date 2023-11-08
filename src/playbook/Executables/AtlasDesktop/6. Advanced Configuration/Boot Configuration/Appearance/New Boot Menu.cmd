@@ -22,16 +22,15 @@ if %ERRORLEVEL% == 1 (
 )
 
 :disable
-echo]
 bcdedit /set {default} bootmenupolicy legacy > nul
 goto finish
 
 :enable
-echo]
 bcdedit /set {default} bootmenupolicy standard > nul 2>&1
 goto finish
 
 :finish
+echo]
 echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

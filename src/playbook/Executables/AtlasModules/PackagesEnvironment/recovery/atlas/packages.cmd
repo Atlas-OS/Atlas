@@ -67,7 +67,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     set "dataPath=%htaFolderPath%\data.css"
 
     :: Target disk variables
-    set "packagesList=%targetDrive%\Windows\AtlasModules\packagestoInstall"
+    set "packagesList=%targetDrive%\Windows\AtlasModules\winrePackagesToInstall"
     set "atlasLogDirectory=%targetDrive%\Windows\AtlasModules\Logs"
 
     :: Other variables
@@ -81,7 +81,7 @@ powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
     set formattedDate=%unformattedDate:~6,2%-%unformattedDate:~4,2%-%unformattedDate:~0,4%
     :makeLogDirectoryAndFile
     set /a logNum += 1
-    set "logDirPath=%atlasLogDirectory%\%logNum%-AtlasPackageInstall-%formattedDate%"
+    set "logDirPath=%atlasLogDirectory%\%logNum%-AtlasWinRE-PackageInstall-%formattedDate%"
     if exist "%logDirPath%" (goto makeLogDirectoryAndFile) else (
         mkdir "%logDirPath%"
         set "logPath=%logDirPath%\dism.log"

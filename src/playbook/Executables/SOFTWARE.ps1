@@ -11,7 +11,7 @@ param (
 # Create temporary directory
 $tempDir = Join-Path -Path $env:TEMP -ChildPath $([System.IO.Path]::GetRandomFileName())
 New-Item $tempDir -ItemType Directory -Force | Out-Null
-Set-Location $tempDir
+Push-Location $tempDir
 
 # Brave
 if ($Brave) {
@@ -106,4 +106,5 @@ Write-Host "Installing legacy DirectX runtimes..."
 Start-Process -FilePath "$tempDir\directx\dxsetup.exe" -WindowStyle Hidden -ArgumentList '/silent' -Wait 2>&1 | Out-Null
 
 # Remove temporary directory
+Pop-Location
 Remove-Item -Path $tempDir -Force -Recurse *>$null

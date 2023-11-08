@@ -20,6 +20,7 @@ DISM /Online /Enable-Feature /FeatureName:"SmbDirect" /NoRestart
 
 if "%~1" == "/silent" exit /b
 
+echo]
 echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

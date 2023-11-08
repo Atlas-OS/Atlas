@@ -22,11 +22,11 @@ for /f "tokens=2 delims=()" %%a in ('netsh int ip show config name^="%DeviceName
 :: Check for errors and exit if invalid
 cls
 if "%DeviceName%" == "" set "incorrectIP=1"
-call:isValidIP %LocalIP%
-call:isValidIP %DHCPGateway%
-call:isValidIP %DHCPSubnetMask%
-call:isValidIP %DNS1%
-call:isValidIP %DNS2%
+call :isValidIP %LocalIP%
+call :isValidIP %DHCPGateway%
+call :isValidIP %DHCPSubnetMask%
+call :isValidIP %DNS1%
+call :isValidIP %DNS2%
 
 if "%incorrectIP%" == "1" (
 	echo Setting a Static IP address failed.
@@ -46,13 +46,14 @@ echo Subnet Mask: %DHCPSubnetMask%%
 echo Gateway: %DHCPGateway%
 echo Primary DNS: %DNS1%
 echo Alternate DNS: %DNS2%
-echo.
-echo If this information appears to be incorrect or is blank, please report it on Discord or Github.
+echo]
+echo If this information appears to be incorrect or is blank, please report it on Discord or GitHub.
 
 :: Disable DHCP service, not needed when using Static IP
 call setSvc.cmd Dhcp 4
+sc stop Dhcp > nul 2>&1
 
-echo Finished, please reboot your device for changes to apply.
+echo Completed.
 pause
 exit /b
 

@@ -9,6 +9,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 reg query "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" > nul 2>&1 || (
     echo The NVIDIA Display Container LS service does not exist, you cannot continue.
 	echo You may not have NVIDIA drivers installed.
+    echo]
     pause
     exit /b 1
 )
@@ -21,6 +22,7 @@ echo You can enable the NVIDIA Control Panel and the service again by running th
 echo Additionally, you can add a context menu to the desktop with another script in the Atlas folder.
 echo]
 echo Read README.txt for more info.
+echo]
 pause
 
 call setSvc.cmd NVDisplay.ContainerLocalSystem 4

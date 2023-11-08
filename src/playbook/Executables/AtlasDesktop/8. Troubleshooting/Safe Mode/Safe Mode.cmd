@@ -5,7 +5,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-bcdedit /set {current} safeboot minimal
+bcdedit /set {current} safeboot minimal > nul
 
 echo Finished, please reboot your device for changes to apply.
 pause

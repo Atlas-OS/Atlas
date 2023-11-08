@@ -57,12 +57,16 @@ actions:
   # Paint 3D
   # - !appx: {name: '*Microsoft.MSPaint*', type: family}
 
+  # Game Bar
+  # Support is disabled by default - there shouldn't be a popup about 'ms-gaming-overlay-link'
+  - !appx: {name: '*Microsoft.XboxGameOverlay*', type: family}
+  - !appx: {name: '*Microsoft.XboxGamingOverlay*', type: family}
+
   # Widgets
-  # Uninstallation seems to fail with AME Wizard sometimes
   - !taskKill: {name: '*widgets*', ignoreErrors: true}
   - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
   - !powerShell:
-    command: 'Get-AppxPackage *Client.WebExperience* -AllUsers | Remove-AppxPackage -AllUsers'
+    command: 'Get-AppxPackage ''MicrosoftWindows.Client.WebExperience'' | Remove-AppxPackage'
     runas: currentUserElevated
 
   # Get Started
@@ -77,15 +81,15 @@ actions:
   - !appx: {name: '*Global.BackupBanner*', type: app, unregister: true}
   - !appx: {name: '*Global.IrisService*', type: app, unregister: true}
   - !appx: {name: '*Global.ValueBanner*', type: app, unregister: true}
-  - !appx: {name: '*Global.DesktopSpotlight*', type: app, unregister: true}
-  
+
   - !run:
     exe: 'powershell.exe'
     args: '-NoP -File CLIENTCBS.ps1'
     exeDir: true
 
-  # Quick Assist
+  # Family App, Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
+  - !appx: {name: '*MicrosoftCorporationII.MicrosoftFamily*', type: family}
 
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
   - !appx: {name: '*Microsoft.BingNews*', type: family}

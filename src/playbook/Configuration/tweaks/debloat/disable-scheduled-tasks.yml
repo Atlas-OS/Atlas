@@ -32,7 +32,7 @@ actions:
 
   # Here are the scheduled tasks that are currently commented as they're under review.
   # This list should be somewhat minimal in the tasks it deletes, as a lot of the tasks below won't run by default ever anyways, unless needed.
-  # Telemetry, Windows Error Reporting and CEIP/SQM is stripped by default anyways, so don't worry about that.
+  # Telemetry and CEIP/SQM is stripped by default anyways, so don't worry about that.
 
   # - !scheduledTask:
   #   path: '\Microsoft\Windows\DeviceDirectoryClient'

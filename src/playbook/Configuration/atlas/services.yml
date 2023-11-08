@@ -7,7 +7,7 @@ actions:
 
   # Backup default Windows serivces & drivers
   - !cmd:
-    command: 'powershell -NoP -EP Unrestricted -File "BACKUP.ps1" "%windir%\AtlasModules\Other\atlasServices.reg"'
+    command: 'powershell -NoP -EP Unrestricted -File "BACKUP.ps1" "%windir%\AtlasModules\Other\winServices.reg"'
     wait: true
     exeDir: true
 

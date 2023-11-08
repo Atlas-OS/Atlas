@@ -14,6 +14,6 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "Globa
 schtasks /create /tn "Force Timer Resolution" /xml "%windir%\AtlasModules\Other\Force Timer Resolution.xml" /f > nul
 schtasks /run /tn "Force Timer Resolution" > nul
 
-echo Finished, changes have been applied.
+echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

@@ -250,7 +250,7 @@ body {
     z-index: -1;
     top: 0;
     left: 0;
-    transform: scale(1.2)
+    transform: scale(1.6)
 }
 
 @media only screen and (orientation:portrait) {

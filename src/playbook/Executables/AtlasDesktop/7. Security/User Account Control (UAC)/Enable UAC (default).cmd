@@ -15,7 +15,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "Ena
 
 choice /c:yn /n /m "Would you like to have UAC not dim your desktop? You can change this in the UAC settings. [Y/N] "
 if %ERRORLEVEL% == 1 (
-	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "1" /f > nul
+	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f > nul
 )
 
 :: Unlock UserAccountControlSettings.exe
@@ -23,6 +23,7 @@ reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Executi
 
 call setSvc.cmd luafv 2
 
+echo]
 echo Finished, please reboot your device for changes to apply.
 pause
 exit /b
