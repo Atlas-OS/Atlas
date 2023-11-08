@@ -1,3 +1,5 @@
+#Requires -RunAsAdministrator
+
 param (
     [string]$LogPath,
     [switch]$NextStartup,
