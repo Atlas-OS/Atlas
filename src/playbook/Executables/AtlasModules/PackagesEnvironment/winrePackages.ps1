@@ -4,11 +4,6 @@ param (
     [switch]$DeleteBitLockerPassword
 )
 
-if ((Get-WmiObject -Class Win32_ComputerSystem).SystemType -match '*ARM64*') {
-    Write-Host "This script is not supported on ARM64." -ForegroundColor Yellow
-    pause
-}
-
 # Task Scheduler is needed for this script to function correctly
 if ((Get-Service -Name 'Schedule' -EA SilentlyContinue).Status -ne 'Running') {
     Set-Service -Name 'Schedule' -StartupType Automatic

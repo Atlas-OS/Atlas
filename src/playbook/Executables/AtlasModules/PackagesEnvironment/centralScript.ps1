@@ -120,7 +120,9 @@ if ($Verbose) { Write-Host "" }
 if ($WinRE) {
     if (Test-Path $useWinreIndicator) {
         Remove-Item $useWinreIndicator -Force
-    } else { exit }
+    } else {
+        exit
+    }
 
     Write-Host ''
     & "$envPath\winrePackages.ps1" -LogPath "$sessionLogDirectory\winreSetup.log"
@@ -139,14 +141,13 @@ foreach ($package in $packageList) {
     $packageName = (Get-Item $package).Basename
     Write-Info -Text "Installing $packageName with online-sxs..."
     $onlineSxsOutput = & "$envPath\onlineSxs.ps1" "$package" *>&1
-    if (!$? -and !$safeModeWithList) {
-    # if (!$safeModeWithList) {
-        Write-Info "Failed to install $packageName, will try safe mode after completion..." -UseError
+    if (!$?) {
         $failedPackages += $package
-    } elseif (!$? -and $safeModeWithList) {
-    # } elseif ($safeModeWithList) {
-        Write-Info "Failed to install $packageName, will try in WinRE..." -UseError
-        $failedPackages += $package
+        if (!$safeModeWithList) {
+            Write-Info "Failed to install $packageName, will try safe mode after completion..." -UseError
+        } else {
+            Write-Info "Failed to install $packageName, will try in WinRE..." -UseError
+        }
     } else {
         Write-Info "Installed $packageName..."
     }
@@ -172,7 +173,7 @@ if ($failedPackages.Count -ne 0) {
             'Force'       = $true
         }
         $arguments = "/c title Finalizing installation - Atlas & echo Do not close this window. & echo Atlas is setting up component removal in Windows Recovery... & echo Your computer will automatically restart. & echo] & schtasks /delete /tn `"$safeModeStartupTitle`" /f > nul & " `
-        + "powershell -NoP -EP Unrestricted -C `"& '$envPath\winrePackages.ps1' -WinRE`" & pause"
+        + "powershell -NoP -EP Unrestricted -C `"& '$envPath\centralScript.ps1' -WinRE`" & pause"
         $action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
         Register-ScheduledTask -TaskName $safeModeStartupTitle -Action $action @taskArgs | Out-Null
     }
