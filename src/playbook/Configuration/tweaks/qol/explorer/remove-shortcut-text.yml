@@ -8,6 +8,7 @@ actions:
     value: 'ShortcutNameTemplate'
     data: '"%s.lnk"'
     type: REG_SZ
+
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
     value: 'link'
