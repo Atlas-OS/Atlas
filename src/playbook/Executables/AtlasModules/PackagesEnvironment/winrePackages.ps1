@@ -4,7 +4,7 @@ param (
     [switch]$DeleteBitLockerPassword
 )
 
-if ((Get-WmiObject -Class Win32_ComputerSystem).SystemType -match '*ARM64*') {
+if ($env:PROCESSOR_ARCHITECTURE -match 'ARM64') {
     Write-Host "This script is not supported on ARM64." -ForegroundColor Yellow
     pause
 }
