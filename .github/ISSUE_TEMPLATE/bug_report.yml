@@ -44,6 +44,7 @@ body:
       label: Atlas Version
       options:
         - Atlas 10 22H2
+        - Atlas 11 23H2
     validations:
       required: true
 
