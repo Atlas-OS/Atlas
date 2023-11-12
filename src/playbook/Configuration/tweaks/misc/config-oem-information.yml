@@ -11,7 +11,7 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
     value: 'Model'
-    data: 'AtlasOS v0.3.1'
+    data: 'AtlasOS v0.3.2'
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
@@ -22,4 +22,9 @@ actions:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
     value: 'SupportPhone'
     data: 'https://github.com/Atlas-OS/Atlas'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Atlas'
+    value: 'WinreFallbackFixed'
+    data: '1'
     type: REG_SZ
