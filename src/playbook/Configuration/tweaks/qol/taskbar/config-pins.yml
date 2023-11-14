@@ -17,8 +17,8 @@ actions:
     exeDir: true
   - !run:
     exe: 'TASKBARPINS.cmd'
-    args: '"Waterfox"'
-    option: 'browser-waterfox'
+    args: '"Firefox"'
+    option: 'browser-firefox'
     exeDir: true
   - !run:
     exe: 'TASKBARPINS.cmd'

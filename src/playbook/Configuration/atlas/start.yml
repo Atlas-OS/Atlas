@@ -66,12 +66,12 @@ actions:
     weight: 150
     option: 'browser-brave'
     runas: currentUserElevated
-  - !writeStatus: {status: 'Installing Waterfox', option: 'browser-waterfox'}
+  - !writeStatus: {status: 'Installing Firefox', option: 'browser-firefox'}
   - !powerShell:
-    command: '& """SOFTWARE.ps1""" -Waterfox'
+    command: '& """SOFTWARE.ps1""" -Firefox'
     exeDir: true
     weight: 150
-    option: 'browser-waterfox'
+    option: 'browser-firefox'
     runas: currentUserElevated
 
   ################ END NO LOCAL BUILD ################

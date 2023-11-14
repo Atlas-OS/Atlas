@@ -1,7 +1,7 @@
 param (
 	[switch]$Chrome,
 	[switch]$Brave,
-	[switch]$Waterfox
+	[switch]$Firefox
 )
 
 # ----------------------------------------------------------------------------------------------------------- #
@@ -38,11 +38,11 @@ if ($Brave) {
 	exit
 }
 
-# Waterfox
-if ($Waterfox) {
-	Write-Host "Installing Waterfox..."
-	& curl.exe -LSs "https://cdn1.waterfox.net/waterfox/releases/latest/windows" -o "$tempDir\waterfox.exe"
-	Start-Process -FilePath "$tempDir\waterfox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait 2>&1 | Out-Null
+# Firefox
+if ($Firefox) {
+	Write-Host "Installing Firefox..."
+	& curl.exe -LSs "https://download.mozilla.org/?product=firefox-latest-ssl&os=win64&lang=en-US" -o "$tempDir\firefox.exe"
+	Start-Process -FilePath "$tempDir\firefox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait 2>&1 | Out-Null
 	exit
 }
 

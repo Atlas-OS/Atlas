@@ -20,12 +20,12 @@ set braveAssociations="Proto:https:BraveHTML"^
  ".pdf:BraveFile"^
  ".shtml:BraveHTML"
 
-set waterfoxAssociations="Proto:https:WaterfoxURL-6F940AC27A98DD61"^
- "Proto:http:WaterfoxURL-6F940AC27A98DD61"^
- ".htm:WaterfoxHTML-6F940AC27A98DD61"^
- ".html:WaterfoxHTML-6F940AC27A98DD61"^
- ".pdf:WaterfoxHTML-6F940AC27A98DD61"^
- ".shtml:WaterfoxHTML-6F940AC27A98DD61"
+set firefoxAssociations="Proto:https:FirefoxURL-308046B0AF4A39CB"^
+ "Proto:http:FirefoxURL-308046B0AF4A39CB"^
+ ".htm:FirefoxHTML-308046B0AF4A39CB"^
+ ".html:FirefoxHTML-308046B0AF4A39CB"^
+ ".pdf:FirefoxPDF-308046B0AF4A39CB"^
+ ".shtml:FirefoxHTML-308046B0AF4A39CB"
 
 set chromeAssociations="Proto:https:ChromeHTML"^
  "Proto:http:ChromeHTML"^
@@ -37,7 +37,7 @@ set chromeAssociations="Proto:https:ChromeHTML"^
 if "%~1" == "" set "associations=%baseAssociations%"
 if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
 if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
-if "%~1" == "WaterFox" set "associations=%baseAssociations% %waterfoxAssociations%"
+if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%"
 if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 
 :: Set 7-Zip assocations
