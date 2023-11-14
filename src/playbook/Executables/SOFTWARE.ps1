@@ -60,7 +60,7 @@ if ($Chrome) {
 
 # Visual C++ Runtimes (referred to as vcredists for short)
 # https://learn.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist
-$legacyArgs1 = '/q'
+$legacyArgs1 = '/Q'
 $legacyArgs2 = '/q /norestart'
 $modernArgs = "/install /quiet /norestart"
 
