@@ -82,9 +82,8 @@ actions:
   - !appx: {name: '*Global.IrisService*', type: app, unregister: true}
   - !appx: {name: '*Global.ValueBanner*', type: app, unregister: true}
 
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File CLIENTCBS.ps1'
+  - !powerShell: 
+    command: '& """CLIENTCBS.ps1"""'
     exeDir: true
 
   # Family App, Quick Assist

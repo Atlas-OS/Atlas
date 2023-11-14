@@ -47,32 +47,28 @@ actions:
   ################ NO LOCAL BUILD ################
 
   - !writeStatus: {status: 'Installing software'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1"'
+  - !powerShell:
+    command: '& """SOFTWARE.ps1"""'
     exeDir: true
     weight: 150
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1" -Chrome'
+  - !powerShell:
+    command: '& """SOFTWARE.ps1""" -Chrome'
     exeDir: true
     weight: 150
     option: 'browser-chrome'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1" -Brave'
+  - !powerShell:
+    command: '& """SOFTWARE.ps1"" -Brave'
     exeDir: true
     weight: 150
     option: 'browser-brave'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing Waterfox', option: 'browser-waterfox'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1" -Waterfox'
+  - !powerShell:
+    command: '& """SOFTWARE.ps1""" -Waterfox'
     exeDir: true
     weight: 150
     option: 'browser-waterfox'

@@ -16,8 +16,8 @@ actions:
 
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
-  - !cmd:
-    command: 'powershell.exe -NoP -EP Unrestricted -File "%windir%\AtlasDesktop\1. Software\Remove Edge.ps1" -UninstallEdge -KeepAppX -Exit'
+  - !powerShell: 
+    command: '& """$env:windir\AtlasDesktop\1. Software\Remove Edge.ps1""" -UninstallEdge -KeepAppX -Exit'
     wait: true
     runas: currentUserElevated
     option: 'uninstall-edge'
@@ -35,13 +35,11 @@ actions:
   - !run: {exeDir: true, exe: 'ONED.cmd'}
 
   - !writeStatus: {status: 'Removing components'}
-  - !run:
-    exe: 'powershell'
-    args: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall'
+  - !powerShell: 
+    command: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall'
     option: 'defender-disable'
-  - !run:
-    exe: 'powershell'
-    args: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall -EverythingButDefender'
+  - !powerShell: 
+    command: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall -EverythingButDefender'
     option: 'defender-enable'
 
     # Update Health Tools

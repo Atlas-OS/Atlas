@@ -6,9 +6,8 @@ actions:
   - !writeStatus: {status: 'Configuring services'}
 
   # Backup default Windows serivces & drivers
-  - !cmd:
-    command: 'powershell -NoP -EP Unrestricted -File "BACKUP.ps1" "%windir%\AtlasModules\Other\winServices.reg"'
-    wait: true
+  - !powerShell: 
+    command: '& """BACKUP.ps1""" """$env:windir\AtlasModules\Other\winServices.reg"""'
     exeDir: true
 
   # ------------------------ Services ------------------------
