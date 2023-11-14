@@ -1,6 +1,6 @@
 ---
 title: Delete Windows-version Specific Tweaks
-description:  Deletes Windows 10 or Windows 11-only tweaks in the Atlas folder, depending on the current version
+description: Deletes Windows 10 or Windows 11-only tweaks in the Atlas folder, depending on the current version
 privilege: TrustedInstaller
 actions:
     # Windows 11-only
