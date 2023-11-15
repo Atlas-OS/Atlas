@@ -26,7 +26,7 @@ function SafeMode {
 
     if ($Enable) {
         $bcdeditArgs = '/set {current} safeboot minimal'
-        $shellValue = "powershell -NoP -EP Unrestricted -File `"$envPath\centralScript.ps1`" $arguments"
+        $shellValue = "PowerShell -NoP -EP Unrestricted -File `"$envPath\centralScript.ps1`" $arguments"
     } else {
         $bcdeditArgs = '/deletevalue {current} safeboot'
         $shellValue = 'explorer.exe'
@@ -173,7 +173,7 @@ if ($failedPackages.Count -ne 0) {
             'Force'       = $true
         }
         $arguments = "/c title Finalizing installation - Atlas & echo Do not close this window. & echo Atlas is setting up component removal in Windows Recovery... & echo Your computer will automatically restart. & echo] & schtasks /delete /tn `"$safeModeStartupTitle`" /f > nul & " `
-        + "powershell -NoP -EP Unrestricted -C `"& '$envPath\centralScript.ps1' -WinRE`" & pause"
+        + "PowerShell -NoP -EP Unrestricted -C `"& '$envPath\centralScript.ps1' -WinRE`" & pause"
         $action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
         Register-ScheduledTask -TaskName $safeModeStartupTitle -Action $action @taskArgs | Out-Null
     }
