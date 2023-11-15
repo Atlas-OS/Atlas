@@ -91,7 +91,7 @@ if ($vlc) {
 	$matchingLines = $lines | Where-Object { $_ -like '*win64.exe*' }
 	$filename = ($matchingLines -match 'href="([^"]+)"')[0] -replace '.*href="([^"]+)".*', '$1'
 	& curl.exe -LSs "$url$filename" -o "$tempDir\vlc.exe"
-	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/S' -Wait 2>&1 | Out-Null
+	Start-Process -FilePath "$tempDir\vlc.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait 2>&1 | Out-Null
 	exit
 }
 
@@ -108,12 +108,11 @@ if ($npp) {
 # VSCode
 if ($vscode) {
 	Write-Host "Installing VSCode..."
-	& curl.exe -LSs "https://code.visualstudio.com/sha/download?build=stable&os=win32-x64" -o "$tempDir\chrome.msi"
-	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/VERYSILENT /NORESTART /MERGETASKS=!runcode' -Wait 2>&1 | Out-Null
+	& curl.exe -LSs "https://code.visualstudio.com/sha/download?build=stable&os=win32-x64" -o "$tempDir\vscode.exe"
+	Start-Process -FilePath "$tempDir\vscode.exe" -WindowStyle Hidden -ArgumentList '/VERYSILENT /NORESTART /MERGETASKS=!runcode' -Wait 2>&1 | Out-Null
 	exit
 }
-
-VSCodiumSetup-x64-1.84.2.23317.exe 
+ 
 # VSCodium
 if ($vscodium) {
 	Write-Host "Installing VSCodium..."
