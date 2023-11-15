@@ -10,8 +10,9 @@ actions:
     wait: true
 
     # Set lockscreen
-  - !powerShell: 
-    command: '& """LOCKSCREEN.ps1"""'
+  - !run:
+    exe: "PowerShell"
+    args: '-NoP -EP Bypass -File LOCKSCREEN.ps1'
     exeDir: true
     runas: currentUserElevated
   - !taskKill: {name: 'SystemSettings', ignoreErrors: true}

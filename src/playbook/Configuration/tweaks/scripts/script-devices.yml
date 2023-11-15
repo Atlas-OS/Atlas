@@ -4,6 +4,7 @@ description: Disables devices that users would not typically need to reduce any 
 privilege: TrustedInstaller
 actions:
   - !powerShell: {command: 'Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr'}
-  - !powerShell: 
-    command: '& """DISABLEPNP.ps1"""'
+  - !run:
+    exe: "PowerShell"
+    args: '-NoP -EP Bypass -File DISABLEPNP.ps1'
     exeDir: true
