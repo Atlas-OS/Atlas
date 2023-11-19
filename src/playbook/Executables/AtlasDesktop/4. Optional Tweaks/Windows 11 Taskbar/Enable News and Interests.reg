@@ -1,16 +1,16 @@
 Windows Registry Editor Version 5.00
 ; Windows default
 
-[HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Feeds]
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Feeds]
 "ShellFeedsTaskbarViewMode"=dword:00000000
 
-[HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds]
 "EnableFeeds"=dword:00000001
 
-[-HKLM\SOFTWARE\Policies\Microsoft\Dsh]
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Dsh]
 
-[HKLM\SOFTWARE\Microsoft\PolicyManager\default\NewsAndInterests\AllowNewsAndInterests]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\NewsAndInterests\AllowNewsAndInterests]
 "value"=dword:00000001
 
-[HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced]
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced]
 "TaskbarDa"=dword:00000001
