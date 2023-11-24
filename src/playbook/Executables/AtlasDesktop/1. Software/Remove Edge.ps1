@@ -242,7 +242,7 @@ Please relaunch this script under a regular admin account.`n" -ForegroundColor Y
 	exit 1
 } else {
 	if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-		Start-Process cmd "/c PowerShell -NoP -EP Unrestricted -File `"$PSCommandPath`"" -Verb RunAs; exit
+		Start-Process cmd "/c PowerShell -NoP -EP Bypass -File `"$PSCommandPath`"" -Verb RunAs; exit
 	}
 }
 

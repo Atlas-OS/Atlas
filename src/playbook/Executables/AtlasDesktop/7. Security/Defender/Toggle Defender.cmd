@@ -93,7 +93,7 @@ function Menu {
 			}
 
 			$arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & schtasks /delete /tn "AtlasDefenderConfigurationPrompt" /f > nul & ' `
-				+ 'PowerShell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasDesktop\5. Security\Defender\Toggle Defender.cmd'') -NextStartup '
+				+ 'PowerShell -NoP -EP Bypass -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasDesktop\5. Security\Defender\Toggle Defender.cmd'') -NextStartup '
 			$action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
 			Register-ScheduledTask -TaskName 'AtlasDefenderConfigurationPrompt' -Action $action @taskArgs | Out-Null
 
