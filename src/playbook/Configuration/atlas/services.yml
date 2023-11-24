@@ -8,7 +8,7 @@ actions:
   # Backup default Windows serivces & drivers
   - !run:
     exe: "PowerShell"
-    args: '-NoP -EP Bypass -File BACKUP.ps1 $env:windir\AtlasModules\Other\winServices.reg'
+    args: '-NoP -EP Bypass -File BACKUP.ps1 """$env:windir\AtlasModules\Other\winServices.reg"""'
     exeDir: true
 
   # ------------------------ Services ------------------------

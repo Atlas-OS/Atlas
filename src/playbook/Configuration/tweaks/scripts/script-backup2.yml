@@ -5,5 +5,5 @@ privilege: TrustedInstaller
 actions:
   - !run:
     exe: "PowerShell"
-    args: '-NoP -EP Bypass -File BACKUP.ps1 $env:windir\AtlasModules\Other\atlasServices.reg'
+    args: '-NoP -EP Bypass -File BACKUP.ps1 """$env:windir\AtlasModules\Other\atlasServices.reg"""'
     exeDir: true
