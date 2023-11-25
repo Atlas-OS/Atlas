@@ -1,8 +1,16 @@
 ---
-title: Services
-description: Configures services
+title: Configure Services and Drivers
+description: Configures services and drivers to reduce background system resource utilisation
 privilege: TrustedInstaller
 actions:
+  # ----------------------------------
+  # - Potential references           -
+  # - Mostly upon IoT recommandation -
+  # ----------------------------------
+  # https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-vdi-recommendations-2004
+  # https://learn.microsoft.com/en-us/windows-server/security/windows-services/security-guidelines-for-disabling-system-services-in-windows-server
+  # https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/optimize/services
+
   - !writeStatus: {status: 'Configuring services'}
 
   # Backup default Windows serivces & drivers
@@ -11,7 +19,9 @@ actions:
     args: '-NoP -EP Bypass -File BACKUP.ps1 """$env:windir\AtlasModules\Other\winServices.reg"""'
     exeDir: true
 
-  # ------------------------ Services ------------------------
+  ##############################################################################################
+  ## SERVICES                                                                                 ##
+  ##############################################################################################
 
   - !run:
     exe: 'Disable Bluetooth.cmd'
@@ -27,115 +37,33 @@ actions:
     path: '%windir%\AtlasDesktop\3. Configuration\Notifications'
     args: '/silent'
 
-  - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
-  - !service: {name: 'diagsvc', operation: change, startup: 4}
-  - !service: {name: 'DiagTrack', operation: change, startup: 4}
-  - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4}
+    # ------ Microsoft recommendation - 'OK to disable' ------
   - !service: {name: 'lfsvc', operation: change, startup: 4}
   - !service: {name: 'MapsBroker', operation: change, startup: 4}
   - !service: {name: 'OneSyncSvc', operation: change, startup: 4}
-  - !service: {name: 'PcaSvc', operation: change, startup: 4}
   - !service: {name: 'TrkWks', operation: change, startup: 4}
-  - !service: {name: 'WdiServiceHost', operation: change, startup: 4}
-  - !service: {name: 'WdiSystemHost', operation: change, startup: 4}
-  - !service: {name: 'wercplsupport', operation: change, startup: 4}
-  - !service: {name: 'WerSvc', operation: change, startup: 4}
+  - !service: {name: 'PcaSvc', operation: change, startup: 4}
+  - !service: {name: 'DiagTrack', operation: change, startup: 4}
   - !service: {name: 'WSearch', operation: change, startup: 4}
 
-    # Set to manual from automatic
-    # Might not be all too beneficial, as services starting and always being ready is probably ideal
-    # Commented as these will be automatic for a reason - sppsvc is needed for things like Store & activation
-  # - !service: {name: 'CryptSvc', operation: change, startup: 3}
-  # - !service: {name: 'sppsvc', operation: change, startup: 3}
+    # ------ Microsoft recommendation - 'Do not disable' -----
+  - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
+  - !service: {name: 'diagsvc', operation: change, startup: 4}
+  - !service: {name: 'WdiServiceHost', operation: change, startup: 4}
+  - !service: {name: 'WdiSystemHost', operation: change, startup: 4}
+  - !service: {name: 'WerSvc', operation: change, startup: 4} 
+  - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4} 
 
-    # These services are commented as they're manual
-    # They will only be uncommented once there's a proven benefit
-  # - !service: {name: 'AarSvc', operation: change, startup: 4}
-  # - !service: {name: 'AJRouter', operation: change, startup: 4}
-  # - !service: {name: 'AppIDSvc', operation: change, startup: 4}
-  # - !service: {name: 'autotimesvc', operation: change, startup: 4}
-  # - !service: {name: 'embeddedmode', operation: change, startup: 4}
-  # - !service: {name: 'fhsvc', operation: change, startup: 4}
-  # - !service: {name: 'GraphicsPerfSvc', operation: change, startup: 4}
-  # - !service: {name: 'IpxlatCfgSvc', operation: change, startup: 4}
-  # - !service: {name: 'KtmRm', operation: change, startup: 4}
-  # - !service: {name: 'MessagingService', operation: change, startup: 4}
-  # - !service: {name: 'MSDTC', operation: change, startup: 4}
-  # - !service: {name: 'PeerDistSvc', operation: change, startup: 4}
-  # - !service: {name: 'PhoneSvc', operation: change, startup: 4}
-  # - !service: {name: 'RasMan', operation: change, startup: 4}
-  # - !service: {name: 'SEMgrSvc', operation: change, startup: 4}
-  # - !service: {name: 'Smartcard', operation: change, startup: 4}
-  # - !service: {name: 'SmsRouter', operation: change, startup: 4}
-  # - !service: {name: 'SstpSvc', operation: change, startup: 4}
-  # - !service: {name: 'W32Time', operation: change, startup: 4}
-  # - !service: {name: 'WarpJITSvc', operation: change, startup: 4}
-  # - !service: {name: 'wbengine', operation: change, startup: 4}
-  # - !service: {name: 'WEPHOSTSVC', operation: change, startup: 4}
-  # - !service: {name: 'wlpasvc', operation: change, startup: 4}
-  # - !service: {name: 'WMPNetworkSvc', operation: change, startup: 4}
-  # - !service: {name: 'WPDBusEnum', operation: change, startup: 4}
-  # - !service: {name: 'wisvc', operation: change, startup: 4}
+    # ------- Microsoft recommendation - 'No guideance' ------
+  - !service: {name: 'wercplsupport', operation: change, startup: 4}
 
-  # DPS 4 < breaks Data Usage
-  # DsSvc 4 < can cause issues with Snip & Sketch
-  # icssvc 4 < breaks mobile/Wi-Fi hotspot
-  # IKEEXT 4 < causes Teredo not to work
-  # iphlpsvc 4 < causes Teredo not to work
-  # KeyIso 4 < causes issues with NVCleanstall's driver telemetry tweak
-  # SharedAccess 4 < breaks mobile/Wi-Fi hotspot
-  # ShellHWDetection 4 < breaks bitlocker
+  ##############################################################################################
+  ## DRIVERS                                                                                  ##
+  ##############################################################################################
 
-  # ---------------------- Services END ----------------------
-
-  # ------------------------- Drivers ------------------------
+  - !writeStatus: {status: 'Configuring drivers'}
 
     # NetBios support can be enabled with the file sharing script
   - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
   - !service: {name: 'NetBT', operation: change, startup: 4}
   - !service: {name: 'Telemetry', operation: change, startup: 4}
-
-    # These drivers are mostly needed for compatiblity
-    # They shouldn't be disabled unless proven to have an effect
-  # - !service: {name: 'Beep', operation: change, startup: 4}
-  # - !service: {name: 'bindflt', operation: change, startup: 4}
-  # - !service: {name: 'CimFS', operation: change, startup: 4}
-  # - !service: {name: 'Dfsc', operation: change, startup: 4}
-  # - !service: {name: 'tcpipreg', operation: change, startup: 4}
-  # - !service: {name: 'WindowsTrustedRTProxy', operation: change, startup: 4}
-
-    # These drivers are commented as they're manual
-    # They will only be uncommented once there's a proven benefit
-  # - !service: {name: 'flpydisk', operation: change, startup: 4}
-  # - !service: {name: '3ware', operation: change, startup: 4}
-  # - !service: {name: 'ADP80XX', operation: change, startup: 4}
-  # - !service: {name: 'AmdK8', operation: change, startup: 4}
-  # - !service: {name: 'arcsas', operation: change, startup: 4}
-  # - !service: {name: 'AsyncMac', operation: change, startup: 4}
-  # - !service: {name: 'buttonconverter', operation: change, startup: 4}
-  # - !service: {name: 'CAD', operation: change, startup: 4}
-  # - !service: {name: 'nvraid', operation: change, startup: 4}
-  # - !service: {name: 'sfloppy', operation: change, startup: 4}
-  # - !service: {name: 'SiSRaid2', operation: change, startup: 4}
-  # - !service: {name: 'SiSRaid4', operation: change, startup: 4}
-  # - !service: {name: 'VerifierExt', operation: change, startup: 4}
-  # - !service: {name: 'vsmraid', operation: change, startup: 4}
-  # - !service: {name: 'VSTXRAID', operation: change, startup: 4}
-  # - !service: {name: 'ErrDev', operation: change, startup: 4}
-  # - !service: {name: 'fdc', operation: change, startup: 4}
-  # - !service: {name: 'circlass', operation: change, startup: 4}
-  # - !service: {name: 'CompositeBus', operation: change, startup: 4}
-  # - !service: {name: 'wcnfs', operation: change, startup: 4}
-
-  # rdbss 3 < Commented as we're not sure if it functions normally set to manual
-  # FileInfo 4 < Breaks installing Microsoft Store applications to different disk
-  # FileCrypt 4 < Breaks installing Microsoft Store applications to different disk
-  # PEAUTH 4 < breaks UWP streaming applications such as netflix, manual mode does not fix
-  # NdisVirtualBus 4 < breaks network bridges
-  # umbus 4 < breaks Hyper-V Enhanced Session
-  # volmgrx 4 < breaks dynamic disks
-  # wcifs 4 < breaks various Microsoft Store games, erroring with "filter not found"
-  # bam 4 < stopped by default, needed for modern standby
-  # dam 4 < stopped by default, needed for modern standby
-
-  # ----------------------- Drivers END ----------------------
