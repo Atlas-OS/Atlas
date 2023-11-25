@@ -3,7 +3,7 @@ title: Backup Atlas Services and Drivers
 description: Backs up default Atlas services and drivers, after all the tweaks are finished
 privilege: TrustedInstaller
 actions:
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File BACKUP.ps1 """$env:windir\AtlasModules\Other\atlasServices.reg"""'
+  - !cmd:
+    command: 'powershell -NoP -EP Unrestricted -File "BACKUP.ps1" "%windir%\AtlasModules\Other\atlasServices.reg"'
+    wait: true
     exeDir: true
