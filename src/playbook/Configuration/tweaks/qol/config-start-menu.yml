@@ -3,7 +3,7 @@ title: Configure Start Menu
 description: Configures the Start Menu's settings for QoL
 privilege: TrustedInstaller
 actions:
-    # Configure Windows 11 pins
+    # Configure default Windows 11 pins
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Start'
     value: 'ConfigureStartPins'
@@ -32,7 +32,10 @@ actions:
     data: '2'
     type: REG_DWORD
 
+    # Set Windows 10 & 11 start menu pins
+  - !taskKill: {name: 'StartMenuExperienceHost', ignoreErrors: true}
   - !run:
     exeDir: true
     exe: 'STARTMENU.cmd'
     weight: 20
+  - !appx: {operation: clearCache, name: '*StartMenuExperienceHost*'}

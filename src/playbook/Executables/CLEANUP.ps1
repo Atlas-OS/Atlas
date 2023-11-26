@@ -56,6 +56,8 @@ Get-ChildItem -Path "$env:TEMP" | Where-Object { $_.Name -ne 'AME' } | Remove-It
 Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse
 
 # Delete all system restore points
+# This is so that users can't revert back from Atlas to stock with Restore Points
+# It's very unsupported to do so, and will cause breakage
 vssadmin delete shadows /all /quiet
 
 # Clear Event Logs

@@ -126,8 +126,7 @@ actions:
     command: '$a = """$env:windir\AtlasModules\AtlasPackagesOld.txt"""; (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force }; Remove-Item $a -Force'
     runas: currentUserElevated
 
-  # Clear caches of Start menu and more
+  # Clear caches of Client.CBS and more
   - !appx: {operation: clearCache, name: '*Client.CBS*'}
-  - !appx: {operation: clearCache, name: '*StartMenuExperienceHost*'}
   - !appx: {operation: clearCache, name: '*Windows.Search*'}
   - !appx: {operation: clearCache, name: '*Microsoft.Windows.SecHealthUI'}
