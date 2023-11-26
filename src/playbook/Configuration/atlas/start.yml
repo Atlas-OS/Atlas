@@ -47,17 +47,15 @@ actions:
 
   - !writeStatus: {status: 'Installing software'}
 
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1'
-    exeDir: true
-
+    # Initial software (7-Zip & Visual C++ runtimes)
   - !run:
     exe: "PowerShell"
     args: '-NoP -EP Bypass -File SOFTWARE.ps1'
     exeDir: true
     weight: 150
     runas: currentUserElevated
+
+    # Browsers
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !run:
     exe: "PowerShell"
@@ -83,6 +81,7 @@ actions:
     option: 'browser-firefox'
     runas: currentUserElevated
 
+    # Media players
   - !writeStatus: {status: 'Installing mpv', option: 'player-mpv'}
   - !run:
     exe: "PowerShell"
@@ -108,6 +107,7 @@ actions:
     option: 'player-vlc'
     runas: currentUserElevated
 
+    # Text editors
   - !writeStatus: {status: 'Installing Notepad++', option: 'editor-npp'}
   - !run:
     exe: "PowerShell"
