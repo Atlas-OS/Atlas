@@ -211,5 +211,6 @@ if "%diskDrive%" == "SSD" (
 :: Disable brightness slider service if it's not supported on the current display
 powershell -nop -c "if ((Get-Computerinfo).CsPCSystemType -eq 'Desktop') { exit 532 }" 
 if errorlevel 532 set disableBright=true
-powershell -nop -c "Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods" | find "Not supported" > nul || set disableBright=false
+powershell -nop -c "Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods -EA 0; if (!$?) {exit 533}"
+if errorlevel 533 set disableBright=true
 if "%disableBright%"=="true" call %windir%\AtlasModules\Scripts\setSvc.cmd DisplayEnhancementService 4
