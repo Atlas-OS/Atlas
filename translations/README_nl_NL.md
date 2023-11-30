@@ -1,6 +1,6 @@
 ⚠️Let op: Dit is een vertaling van de originele [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), de informatie kan verouderd zijn.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -96,7 +96,7 @@ Atlas werkt samen met Windows Ameliorated Team om gebruikers een veiligere en le
 
 ## 🎨 Brand kit
 In een creatieve bui? Wil je je eigen Atlas-bureaubladachtergrond maken met originele, creatieve ontwerpen? Dan is onze brand kit wat je zoekt!
-Iedereen heeft toegang tot onze Brand Kit — Je kan het [hier](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) downloaden, en wat spectaculairs maken!
+Iedereen heeft toegang tot onze Brand Kit—Je kan het [hier](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) downloaden, en wat spectaculairs maken!
 
 We hebben ook een speciaal gedeelte op ons [forum](https://forum.atlasos.net/t/art-showcase), zodat je je creaties kunt delen met andere creatieve genieën en misschien zelfs wat inspiratie kunt opdoen! Je kunt hier ook creatieve achtergronden vinden die andere gebruikers delen!
 

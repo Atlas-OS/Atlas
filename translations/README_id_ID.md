@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">Sebuah sistem operasi yang terbuka dan transparan, dirancang untuk performa, privasi, serta stabilitas yang optimal.</h4>
@@ -78,7 +78,7 @@ Atlas bekerja sama dengan tim Windows Ameliorated untuk menyediakan sebuah cara 
 
 ## 🎨 Brand kit
 Merasa kreatif? Ingin membuat wallpaper Atlas-mu sendiri dengan beberapa desain kreatif yang orisinil? Nah, brand kit kami siap membantumu!
-Brand kit Atlas dapat diakses oleh publik, Kamu bisa mengunduhnya di [sini](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) dan ciptakan sesuatu yang spektakuler!
+Brand kit Atlas dapat diakses oleh publik, Kamu bisa mengunduhnya di [sini](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) dan ciptakan sesuatu yang spektakuler!
 
 Kami juga memiliki area khusus di [Forum](https://forum.atlasos.net/t/art-showcase) kami, jadi kamu bisa membagikan kreasimu dengan jenius kreatif lainnya dan bahkan mungkin memicu beberapa inspirasi! Kamu juga dapat menemukan wallpaper kreatif yang dibagikan oleh pengguna lain di sini!
 

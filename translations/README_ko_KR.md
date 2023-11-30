@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original README.md, information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -95,7 +95,7 @@ Atlas는 Windows Ameliorated Team과 협력하여 사용자에게 더 안전하�
 
 ## 🎨Translation Contributors (브랜드 키트)
 무언가 영감이 떠올랐나요? 독창적인 디자인으로 자신만의 Atlas 배경 화면을 만들고 싶으신가요? 저희 브랜드 키트가 도와드릴 수 있습니다!
-누구나 Atlas 브랜드 키트에 접근할 수 있습니다. [이곳](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)에서 다운로드하여 멋진 것을 만들어 보세요!
+누구나 Atlas 브랜드 키트에 접근할 수 있습니다. [이곳](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip)에서 다운로드하여 멋진 것을 만들어 보세요!
 
 우리는 또한 [포럼](https://forum.atlasos.net/t/art-showcase), 전용 영역을 가지고 있습니다. [여기](https://forum.atlasos.net/t/art-showcase)에서 다른 창의적인 천재들과 당신의 창작물을 공유하고 영감을 줄 수도 있습니다! 또한 다른 사용자가 공유하는 창의적인 배경 화면도 찾을 수 있습니다!
 

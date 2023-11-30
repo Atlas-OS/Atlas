@@ -1,6 +1,6 @@
 ⚠️Poznámka: Toto je přeložená verze originálu [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), informace zde nemusí být přesné a mohou být zastaralé.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -96,7 +96,7 @@ Společnost Atlas navázala spolupráci s týmem Windows Ameliorated Team, aby u
 
 ## 🎨 Souprava značky
 Cítíte se kreativně? Chcete si vytvořit vlastní tapetu Atlas s originálními kreativními vzory? Naše sada pro značku vám pomůže!
-Přístup ke značkové sadě Atlas má každý - můžete si ji stáhnout [zde](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) a vytvořit něco velkolepého!
+Přístup ke značkové sadě Atlas má každý - můžete si ji stáhnout [zde](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) a vytvořit něco velkolepého!
 
 Na našem [fóru](https://forum.atlasos.net/t/art-showcase) máme také vyhrazený prostor, kde se můžete podělit o své výtvory s ostatními kreativními génii a možná i načerpat inspiraci! Můžete zde také najít kreativní tapety, které sdílejí ostatní uživatelé!
 

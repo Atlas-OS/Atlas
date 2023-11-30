@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -97,7 +97,7 @@ Check out what else we have removed in our [FAQ](https://docs.atlasos.net/troubl
 
 ## 🎨 品牌工具包
 想制作自己的 Atlas 壁纸吗？也许你可以用我们的 logo 来制作你自己的设计？
-谁都可以访问到这个品牌工具包 — 仅需轻轻点击 [这里](https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) 下载即可！（[中国境内镜像链接](https://jsd.cdn.zzko.cn/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)）
+谁都可以访问到这个品牌工具包—仅需轻轻点击 [这里](https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) 下载即可！（[中国境内镜像链接](https://jsd.cdn.zzko.cn/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)）
 
 我们同时也在官方[论坛](https://forum.atlasos.net/t/art-showcase)有一个壁纸分享区。在这里，你可以分享你独一无二，有趣新奇的设计，供大家欣赏，使用！
 

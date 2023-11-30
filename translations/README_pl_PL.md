@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">Otwarty i przejrzysty system operacyjny Windows, zaprojektowany w celu optymalizacji wydajności i opóźnień.</h4>
@@ -76,7 +76,7 @@ Atlas jest wstępnie zoptymalizowany. Zachowując kompatybilność, ale także d
 - Zoptymalizowano harmonogramowanie procesów
 
 ## 🎨 Zestaw marki
-Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stworzyć własne? Mamy to dostępne publicznie, aby pobudzić nowe kreatywne pomysły w całej społeczności. [Sprawdź nasz zestaw marki i stwórz coś niesamowitego](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip).
+Chcesz stworzyć własną tapetę Atlas? A może pobawić się naszym logo i stworzyć własne? Mamy to dostępne publicznie, aby pobudzić nowe kreatywne pomysły w całej społeczności. [Sprawdź nasz zestaw marki i stwórz coś niesamowitego](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip).
 
 Mamy też [dedykowany obszar w zakładce dyskusje](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), więc możesz podzielić się swoimi projektami z innymi kreatywnymi twórcami, a może nawet zaskoczyć jakąś inspiracją!
 
