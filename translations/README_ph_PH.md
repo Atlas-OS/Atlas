@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">Isang bukas at transparent na operating system ng Windows, na idinisenyo upang i-optimize ang performance at latency.</h4>
@@ -78,7 +78,7 @@ Nakalista sa ibaba ang ilan sa maraming pagbabago na ginawa namin upang mapabuti
 - Na-optimize na pag-iiskedyul ng proseso
 
 ## 🎨 Branding kit
-Gusto mo bang gumawa ng sarili mong wallpaper ng Atlas? Baka magulo ang aming logo para gumawa ng sarili mong disenyo? Naa-access namin ito sa publiko para makapagsimula ng mga bagong malikhaing ideya sa buong komunidad. [Tingnan ang aming brand kit at gumawa ng kamangha-manghang bagay.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+Gusto mo bang gumawa ng sarili mong wallpaper ng Atlas? Baka magulo ang aming logo para gumawa ng sarili mong disenyo? Naa-access namin ito sa publiko para makapagsimula ng mga bagong malikhaing ideya sa buong komunidad. [Tingnan ang aming brand kit at gumawa ng kamangha-manghang bagay.](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip)
 
 Mayroon din kaming [nakalaang lugar sa tab ng mga talakayan](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), para maibahagi mo ang iyong mga likha sa iba pang mga magagaling sa pag-drawing at maaaring maging spark ng inspirasyon!
 

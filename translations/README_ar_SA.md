@@ -1,7 +1,7 @@
 ﻿⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -126,7 +126,7 @@
 
 هل ترغب في إنشاء خلفية أطلس الخاصّة بك؟ ربما العبث بشعارنا لعمل التصميم الخاص بك؟ عُدَّتنا في مُتناول الجميع.
 
-[جَرّب العبث بعلامتنا التجاريّة واصنع شيئًا مُذهلًا!](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+[جَرّب العبث بعلامتنا التجاريّة واصنع شيئًا مُذهلًا!](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip)
 
 أيضًا لدينا [مساحة خاصّة للمبدعين](https://forum.atlasos.net/t/art-showcase)، حتّى تتمكّن من مُشاركة أفكارك وإبداعاتك مع عباقرة ومبدعين آخرين!
 

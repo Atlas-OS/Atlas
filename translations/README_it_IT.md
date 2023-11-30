@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">Un sistema operativo aperto e trasparente, progettato per ottimizzare prestazioni, privacy e stabilità.</h4>
@@ -77,7 +77,7 @@ Atlas ha collaborato con Windows Ameliorated Team per fornire agli utenti un mod
 
 ## 🎨 Brand Kit
 Ti senti creativo? Vuoi creare il tuo sfondo di Atlas con alcuni design creativi ed originali? Bene, ci pensa il nostro brand kit!
-Atlas brand kit è accessibile al pubblico, puoi scaricarlo [qui](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) e realizzare qualcosa di spettacolare!
+Atlas brand kit è accessibile al pubblico, puoi scaricarlo [qui](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) e realizzare qualcosa di spettacolare!
 
 Abbiamo anche un'area dedicata sul nostro [Forum](https://forum.atlasos.net/t/art-showcase), in modo che tu possa condividere le tue creazioni con altri geni creativi e magari anche trovare ispirazione! Puoi anche trovare sfondi creativi che altri utenti condividono!
 

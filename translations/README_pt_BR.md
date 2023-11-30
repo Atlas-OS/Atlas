@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">Um sistema aberto e transparente, projetado para otimizar desempenho, privacidade e estabilidade.</h4>
@@ -92,7 +92,7 @@ Ao usá-lo, o Atlas cumpre integralmente os [Termos de Serviço da Microsoft](ht
 Você é criativo? Quer criar seu próprio papel de parede Atlas com alguns designs originais e criativos?
 Bem, nosso kit de customização de marca permite isso!
 O kit de customização de marca Atlas é acessível ao público, e você pode baixá-lo
-[aqui](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) e criar algo espetacular!
+[aqui](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) e criar algo espetacular!
 
 Nós também temos uma área dedicada em nosso [Fórum](https://forum.atlasos.net/t/art-showcase),
 para que você possa compartilhar suas criações com outros gênios criativos e talvez até gerar alguma inspiração!

@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net" target="_blank"><img src="/img/github-banner.png" alt="Atlas" width="800"></a>
+  <a href="http://atlasos.net" target="_blank"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="800"></a>
 </h1>
   <p align="center">
     <img alt="License" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/>
@@ -82,7 +82,7 @@ Atlas hat sich mit dem Ameliorated-Team zusammengetan, um den Benutzern mit [AME
 
 ## 🎨 Brand kit
 Sind Sie kreativ? Möchten Sie Ihre eigenes Atlas-Hintergrundbild mit kreativen Designs entwerfen? Unser Brand Kit bietet Ihnen alles, was Sie brauchen!
-Jeder kann auf das Atlas Brand Kit zugreifen - Sie können es [hier](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) herunterladen und etwas Spektakuläres gestalten!
+Jeder kann auf das Atlas Brand Kit zugreifen - Sie können es [hier](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) herunterladen und etwas Spektakuläres gestalten!
 
 Wir haben auch einen eigenen Bereich in unserem [Forum](https://forum.atlasos.net/t/art-showcase), in dem du deine Kreationen mit anderen Kreativen teilen und dich vielleicht sogar inspirieren lassen kannst! Hier findest du auch kreative Hintergrundbilder, die andere Nutzer teilen!
 

@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -91,7 +91,7 @@ Windows'u geliştirmek için yaptığımız bazı değişiklikler:
 Atlas Windows Ameliorated Takımı ile partner olup kullanıcılarına Atlas'ı yüklemek için daha güvenli ve yasal bir yol, [AME Wizard'ı](https://ameliorated.io) sağladı. Bununla Atlas [Microsoft'un Hizmet Şartları'na](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm) tamamen uygun.
 
 ## 🎨 Marka kiti
-İlham mı geldi? Orijinal ve yaratıcı tasarımlarla kendi Atlas arkaplanını mı yapmak istiyorsun? Marka kitimiz tam da ihtiyacın olan şey! Herkes Atlas marka kitine [buradan](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) ulaşıp, muhteşem şeyler yapabilir!
+İlham mı geldi? Orijinal ve yaratıcı tasarımlarla kendi Atlas arkaplanını mı yapmak istiyorsun? Marka kitimiz tam da ihtiyacın olan şey! Herkes Atlas marka kitine [buradan](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) ulaşıp, muhteşem şeyler yapabilir!
 
 Ayrıca [forumumuzda](https://forum.atlasos.net/t/art-showcase), yaptığın tasarımları öbür insanlarla paylaşabilir ve hatta belki bazılarına ilham kaynağı olabilirsin! İlham kaynağı bulamadıysan başkalarının paylaştığı arkaplanlarını da kullanabilirsin.
 

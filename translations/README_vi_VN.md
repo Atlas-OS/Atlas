@@ -1,6 +1,6 @@
 ﻿⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -95,7 +95,7 @@ Atlas đã hợp tác với nhóm Windows Ameliorated để đưa ra cho ngườ
 
 ## 🎨 Bộ thương hiệu
 Bạn cảm thấy sáng tạo? Bạn muốn tạo một hình nền Atlas của riêng bạn với những thiết kế sáng tạo? Bộ thương hiệu của chúng tôi là dành cho bạn!
-Bộ thương hiệu của Atlas có thể truy cập một cách công khai, bạn có thể tải nó xuống [ở đây](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) và làm thứ gì đó thật đặc biệt!
+Bộ thương hiệu của Atlas có thể truy cập một cách công khai, bạn có thể tải nó xuống [ở đây](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) và làm thứ gì đó thật đặc biệt!
 
 Chúng tôi cũng có [một mục riêng trong diễn đàn của chúng tôi](https://forum.atlasos.net/t/art-showcase), bạn có thể chia sẻ sự sáng tạo của mình với các nhà thiết kế khác, hoặc có thể bạn cũng sẽ tìm được nguồn cảm hứng ở đó!
 

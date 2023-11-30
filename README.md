@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="http://atlasos.net" target="_blank"><img src="img\github-banner.png" alt="Atlas" width="800"></a>
+  <a href="http://atlasos.net" target="_blank"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/branding@main/github-banner.png" alt="Atlas" width="800"></a>
 </h1>
   <p align="center">
     <img alt="License" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/>
@@ -106,9 +106,9 @@ Atlas partnered with the Ameliorated team to provide users with a safer and lega
 
 ## 🎨 Brand kit
 Feeling creative? Want to create your own Atlas wallpaper with some original creative designs? Our brand kit has got you covered!
-Anyone can access the Atlas brand kit—you can download it [here](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) and make something spectacular!
+Anyone can access the Atlas brand kit—you can download it [here](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) and make something spectacular!
 
 We also have a dedicated area on our [forum](https://forum.atlasos.net/t/art-showcase), so you can share your creations with other creatives and maybe even spark some inspiration! You can also find creative wallpapers that other users share here too!
 
 ## ⚠️ Not pre-activated
-AtlasOS is **NOT a pre-activated version of Windows**. You **must** use a valid key to activate Windows. Before buying a Windows 10 (Professional or Home) license, be sure the seller is trustworthy and the key is legitimate — no matter where you buy it.
+AtlasOS is **NOT a pre-activated version of Windows**. You **must** use a valid key to activate Windows. Before buying a Windows 10 (Professional or Home) license, be sure the seller is trustworthy and the key is legitimate—no matter where you buy it.

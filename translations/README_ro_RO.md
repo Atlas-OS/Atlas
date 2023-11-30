@@ -1,7 +1,7 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 <p align="center">
   <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -96,7 +96,7 @@ Atlas a colaborat cu echipa Windows Ameliorated pentru a oferi utilizatorilor o 
 
 ## 🎨 Kit de brand
 Vă simțiți creativ? Vreți să creați propriul wallpaper Atlas cu câteva design-uri creative originale? Kitul nostru de brand vă acoperă!
-Oricine poate accesa kitul nostru de brand Atlas - îl puteți descărca [aici](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) și să creați ceva spectaculos!
+Oricine poate accesa kitul nostru de brand Atlas - îl puteți descărca [aici](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) și să creați ceva spectaculos!
 
 De asemenea, avem o secțiune dedicată pe [forumul](https://forum.atlasos.net/t/art-showcase) nostru, astfel încât să puteți împărtăși creațiile dvs. cu alți genii creative și poate chiar să aprindeți puțină inspirație! Acolo veți găsi și wallpapere creative împărtășite de alți utilizatori!
 

@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net" target="_blank"><img src="/img/github-banner.png" alt="Atlas" width="800"></a>
+  <a href="http://atlasos.net" target="_blank"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="800"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -90,7 +90,7 @@ Atlas партнира със Windows Ameliorated Team за да предост�
 
 ## 🎨 Brand kit
 Чустваш се креативен? Искаш да създадеш свой Atlas тапет със оригинален и креативен дизайн? Нашия марков комплект ви осигурява!
-Всеки има достъп към марковия комплект на Atlas — можеш да го изтеглиш [тук](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) и да направиш нешо прекрасно!
+Всеки има достъп към марковия комплект на Atlas—можеш да го изтеглиш [тук](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) и да направиш нешо прекрасно!
 
 Ние също имаме специална част за това на нашия [форум](https://forum.atlasos.net/t/art-showcase), за да може да споделите вашите творби със други креативни гении и дори да предизвикате вдъхновение! Можете да намерите и креативни тапети които други потребители са споделили тук!
 

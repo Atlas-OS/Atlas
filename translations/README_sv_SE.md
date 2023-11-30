@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
 
 <h4 align="center">Ett fridoms fullt Windows operativ system, designat för att optimisera och improvisera responstid.</h4>
@@ -77,7 +77,7 @@ Vissa av de många förändringar som vi har gjort för att improvisera Windows 
 
 ## 🎨 Varumärkes Kit
 
-Vill du göra din egna Atlas bakgrundsbild? Kanske leka runt lite med våran logga och göra din egna design? Vi har detta åtkomstbart till alla för att införa nya krativa idéer runt gemenskapen. [Ta en titt på vårat varumärkes kit och hitta på något spektakulärt.](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip)
+Vill du göra din egna Atlas bakgrundsbild? Kanske leka runt lite med våran logga och göra din egna design? Vi har detta åtkomstbart till alla för att införa nya krativa idéer runt gemenskapen. [Ta en titt på vårat varumärkes kit och hitta på något spektakulärt.](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip)
 
 Vi har också en [dedikerad plats i våran diskussions plats](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork), så att du kan dela med dig med dina kreativa idéer till andra kreativa smarton och kanske sprida lite inspiration!
 

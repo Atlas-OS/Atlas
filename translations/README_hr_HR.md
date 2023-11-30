@@ -1,6 +1,6 @@
 ⚠️Note: This is a translated version of the original [README.md](https://github.com/Atlas-OS/Atlas/blob/main/README.md), information here may not be accurate and can be outdated.
 <h1 align="center">
-  <a href="http://atlasos.net"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
+  <a href="http://atlasos.net"><img src="https://github.com/Atlas-OS/branding/blob/main/github-banner.png" alt="Atlas" width="900" style="border-radius: 30px"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE">
@@ -96,7 +96,7 @@ Atlas se udružio s Windows Ameliorated Teamom kako bi korisnicima pružio sigur
 
 ## 🎨 Brand komplet
 Osjećate se kreativno? Želite li izraditi vlastitu Atlas pozadinu s originalnim kreativnim dizajnom? Naš brand komplet vas pokriva!
-Svatko može pristupiti kompletu marke Atlas — možete ga preuzeti [ovdje](https://cdn.jsdelivr.net/gh/Atlas-OS/Atlas@main/img/brand-kit.zip) i napravite nešto spektakularno!
+Svatko može pristupiti kompletu marke Atlas—možete ga preuzeti [ovdje](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) i napravite nešto spektakularno!
 
 Također imamo namjenjeni prostor na našem [forumu](https://forum.atlasos.net/t/art-showcase), tako da možete podijeliti svoje kreacije s drugim kreativnim genijima i možda čak potaknuti malo inspiracije! Ovdje također možete pronaći kreativne pozadine koje drugih korisnika!
 
