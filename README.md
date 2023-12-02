@@ -34,7 +34,7 @@ Atlas is an open-source project that enhances Windows by eliminating factors tha
 Atlas removes all types of tracking embedded within Windows and implements numerous group policies to minimize data collection. However, it cannot ensure the security for things outside the scope of Windows, such as browsers and other third-party applications.
   
 ### 🛡️ Increased Security
-Unlike other custom Windows ISOs, Atlas is safer as it doesn't require downloading a modified Windows ISO from the internet. Atlas also includes optional security features that other custom Windows OSs often strip.
+Unlike other custom Windows ISOs, Atlas is safer as it doesn't require downloading a modified Windows ISO from the internet. Atlas also includes optional security features (e.g. Defender, Update) that other custom Windows OSs often strip.
   
 ### ✅ Optimized Performance
 Atlas strikes a balance between performance and compatibility. It implements numerous changes to improve Windows performance without breaking essential features.
