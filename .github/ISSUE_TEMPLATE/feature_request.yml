@@ -3,7 +3,7 @@ description: Create a feature request to help us improve Atlas.
 labels: enhancement
 title: "[FEATURE REQUEST] - "
 body:
-    - type: markdown
+  - type: markdown
     attributes:
       value: |
        Before submitting an feature request, please ensure you have completed the following steps:
