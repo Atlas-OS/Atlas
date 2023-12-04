@@ -1,7 +1,7 @@
 name: Feature request
 description: Create a feature request to help us improve Atlas.
 labels: enhancement
-title: "[FEATURE REQUEST] - "
+title: "[FEATURE] - "
 body:
   - type: markdown
     attributes:
@@ -24,7 +24,7 @@ body:
     attributes:
       label: Is your feature request related to a problem? Please describe.
       placeholder: |
-        A clear and brief description of what the problem is.
+        e.g. I always wanted Atlas to...
     validations:
       required: true
 
@@ -32,7 +32,7 @@ body:
     attributes:
       label: Describe the solution you would like.
       placeholder: |
-        A clear and brief description of what you want to happen.
+        e.g. I would like Atlas to add...
     validations:
       required: true
 
