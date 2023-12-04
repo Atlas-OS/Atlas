@@ -6,12 +6,11 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before creating an issue, confirm that the following actions has been taken.
-        - You've checked our [docs](https://docs.atlasos.net).
-        - You've searched on our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue).
-        - The issue itself is not a support thread. 
-        By creating an issue, you fully understand that the maintainers can close and lock your issue without any response if you did not follow the steps above.
-
+       Before submitting an issue, please ensure you have completed the following steps:
+       - Reviewed our [documentation](https://docs.atlasos.net).
+       - Searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already.
+       - Confirmed that your issue is not a support request.
+       Please note, by submitting an issue, you acknowledge that if the above steps have not been followed, the maintainers reserve the right to close and lock your issue without further response.
   - type: textarea
     attributes:
       label: Description
