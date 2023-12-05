@@ -6,7 +6,7 @@
     <img alt="Contributors" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
     <img alt="Release" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" />
   </p>
-<p align="center">An open and lightweight modification to Windows, designed to optimize performance, privacy and security.</p>
+<p align="center">An open and lightweight modification to Windows, designed to optimize performance, privacy and usability.</p>
 
 <p align="center">
   <a href="https://atlasos.net" target="_blank">🌐 Website</a>
