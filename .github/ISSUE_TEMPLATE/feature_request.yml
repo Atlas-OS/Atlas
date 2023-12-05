@@ -7,9 +7,11 @@ body:
     attributes:
       value: |
        Before submitting an feature request, please ensure you have completed the following steps:
-       - The request you submit is related to the Atlas Playbook. If not, request it in our [forum](https://forum.atlasos.net/t/general).
-       - Searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already.
-       - Confirmed that your issue is not a support request.
+       - The request you submit is related to the Atlas Playbook. If not, request it in our [forum](https://forum.atlasos.net/t/general)
+       - Searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already
+       - Confirmed that your issue is not a support request
+       - Confirmed that your idea is not already in the latest version of Atlas
+
        Please note, by submitting an issue, you acknowledge that if the above steps have not been followed, the maintainers reserve the right to close and lock your issue without further response.
   - type: dropdown
     attributes:
