@@ -32,21 +32,21 @@ Atlas is an open-source project that enhances Windows by eliminating factors tha
 Atlas removes the majority of tracking embedded within Windows and implements numerous group policies to minimize data collection. However, it cannot ensure the security for things outside the scope of Windows, such as browsers and other third-party applications.
   
 ### 🛡️ Increased Security
-Unlike custom Windows ISOs, Atlas is safer and easier to audit. It doesn't require a modified ISO download and includes optional security features like Windows Defender, Windows Update, CPU mitigations, and UAC, often stripped in other custom OSs. 
+Unlike custom Windows ISOs, Atlas is safer and easier to audit. It doesn't require a modified ISO download and includes optional security features like Windows Defender, Windows Update, CPU mitigations, and User Account Control, often stripped in other custom OSs. 
 
 ### 🔮 Improved Transparency
-Atlas and AME Wizard offer improved transparency compared to ISOs. With AME Wizard's open-source backend and Atlas scripts mostly being plain text in a zip archive, the process is more accessible and easier to review.
+Atlas and AME Wizard offers improved transparency compared to ISOs. With AME Wizard's open-source backend and Atlas' download consisting of mostly plain text in a zip archive, the process is more accessible and easier to review.
   
 ### ✅ Optimized Performance
-Atlas strikes a balance between performance and compatibility. It implements numerous meaningful changes to improve Windows performance without breaking essential features. Atlas don't do placebo, visual, or extreme marginal gains tweaks, making Atlas more stable.
+Atlas strikes a balance between performance and compatibility. It implements numerous meaningful changes to improve Windows performance without breaking essential features. Atlas will not do tweaks for a placebo effect or extreme marginal gains, making Atlas more stable.
   
 ### 🔒 Legal Compliance
 Atlas partners with the Ameliorated team to provide users with a safer and legal way to install, using [AME Wizard](https://ameliorated.io). With it, Atlas fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm).
 
 ### 🌐 Open Source
-All scripts used by Atlas are open-sourced in this repository. Executables included in the playbook are open-sourced in our [utilities](https://github.com/Atlas-OS/utilities) repository. 
+Atlas is fully open source, with all of the playbook's contents being contained within this repository. Executables included in the playbook are open-sourced in our [utilities](https://github.com/Atlas-OS/utilities) repository, with the [hashes being verified](https://github.com/Atlas-OS/Atlas/blob/main/src/playbook/Executables/AtlasModules/README.md).
 
-The packaged Atlas playbook, being an AME Wizard script package (.apbx), can be opened as a .zip archive using the password `malte` without any obfuscation of files, which is the standard for AME Wizard playbooks. This is implemented solely to prevent false positive detections by antivirus software.
+The packaged Atlas playbook, being an AME Wizard script package (**.abpx**), can be opened as a **.zip** archive using the password `malte` without any obfuscation of files, which is the standard for AME Wizard playbooks. The password is implemented solely to prevent false positive detections by antivirus software.
   
 ## 🎨 Brand kit
 Want to create your own Atlas wallpaper with some original creative designs? Download our brand kit [here](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) and share your creations on our [forum](https://forum.atlasos.net/t/art-showcase).
