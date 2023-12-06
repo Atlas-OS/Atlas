@@ -1,0 +1,6 @@
+---
+title: Unbind Network Protocols with PowerShell  
+description: Configures the optimal networking settings using PowerShell
+privilege: TrustedInstaller
+actions:
+  - !run: {exe: 'powershell', args: '-Command "Disable-NetAdapterBinding -ComponentID ms_implat,ms_lldp,ms_lltdio,ms_server,ms_msclient,ms_tcpip6,ms_rspndr,ms_pacer -Name *"'}
