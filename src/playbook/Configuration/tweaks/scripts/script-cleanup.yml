@@ -3,8 +3,7 @@ title: Cleanup Temporary Files
 description: Cleans up temporary files using Disk Cleanup (if no other installs of Windows are found)
 privilege: TrustedInstaller
 actions:
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File CLEANUP.ps1'
+  - !powerShell:
+    command: '.\CLEANUP.ps1'
     exeDir: true
     runas: currentUserElevated

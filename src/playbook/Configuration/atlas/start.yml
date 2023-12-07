@@ -48,88 +48,78 @@ actions:
   - !writeStatus: {status: 'Installing software'}
 
     # Initial software (7-Zip & Visual C++ runtimes)
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1'
     exeDir: true
     weight: 150
     runas: currentUserElevated
 
     # Browsers
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1 -Chrome'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -Chrome'
     exeDir: true
-    weight: 150
+    weight: 120
     option: 'browser-chrome'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1 -Brave'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -Brave'
     exeDir: true
-    weight: 150
+    weight: 120
     option: 'browser-brave'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing Firefox', option: 'browser-firefox'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1 -Firefox'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -Firefox'
     exeDir: true
-    weight: 150
+    weight: 120
     option: 'browser-firefox'
     runas: currentUserElevated
 
     # Media players
   - !writeStatus: {status: 'Installing mpv', option: 'player-mpv'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1 -mpv'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -mpv'
     exeDir: true
-    weight: 150
+    weight: 90
     option: 'player-mpv'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing MPC-HC', option: 'player-mpchc'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1 -mpchc'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -mpchc'
     exeDir: true
-    weight: 150
+    weight: 90
     option: 'player-mpchc'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing VLC', option: 'player-vlc'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1 -vlc'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -vlc'
     exeDir: true
-    weight: 150
+    weight: 90
     option: 'player-vlc'
     runas: currentUserElevated
 
     # Text editors
   - !writeStatus: {status: 'Installing Notepad++', option: 'editor-npp'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1 -npp'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -npp'
     exeDir: true
-    weight: 150
+    weight: 90
     option: 'editor-npp'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing VSCode', option: 'editor-vscode'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1 -vscode'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -vscode'
     exeDir: true
-    weight: 150
+    weight: 120
     option: 'editor-vscode'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing VLC', option: 'editor-vscodium'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File SOFTWARE.ps1 -vscodium'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -vscodium'
     exeDir: true
-    weight: 150
+    weight: 120
     option: 'editor-vscodium'
     runas: currentUserElevated
 

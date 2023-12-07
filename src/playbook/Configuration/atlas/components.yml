@@ -16,9 +16,8 @@ actions:
 
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass & """$env:windir\AtlasDesktop\1. Software\Remove Edge.ps1""" -UninstallEdge -KeepAppX -Exit'
+  - !powerShell:
+    command: '& """$env:windir\AtlasDesktop\1. Software\Remove Edge.ps1""" -UninstallEdge -KeepAppX -Exit'
     runas: currentUserElevated
     option: 'uninstall-edge'
     # AppX uninstallation in the script seems to fail, therefore it's not used and AME Wizard is used instead
@@ -35,13 +34,11 @@ actions:
   - !run: {exeDir: true, exe: 'ONED.cmd'}
 
   - !writeStatus: {status: 'Removing components'}
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass & """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall'
+  - !powerShell:
+    command: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall'
     option: 'defender-disable'
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass & """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall -EverythingButDefender'
+  - !powerShell:
+    command: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall -EverythingButDefender'
     option: 'defender-enable'
 
     # Update Health Tools

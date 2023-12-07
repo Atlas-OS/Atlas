@@ -3,7 +3,6 @@ title: Set Profile Pictures
 description: Sets the default Atlas profile pictures
 privilege: TrustedInstaller
 actions:
-  - !run:
-    exe: "PowerShell"
-    args: '-NoP -EP Bypass -File PFP.ps1'
+  - !powerShell:
+    command: '.\PFP.ps1'
     exeDir: true

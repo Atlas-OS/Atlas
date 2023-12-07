@@ -4,8 +4,7 @@ description: Removes bitmap image from the 'New' context menu
 privilege: TrustedInstaller
 actions:
   - !registryKey: {path: 'HKCR\.bmp\ShellNew'}
-  # - !run:
-  #   exe: "PowerShell"
-  #   args: '-NoP -EP Bypass -File REMOVEBITMAP.ps1'
+  # - !powerShell:
+  #   command: '& REMOVEBITMAP.ps1'
   #   exeDir: true
   #   runas: currentUserElevated

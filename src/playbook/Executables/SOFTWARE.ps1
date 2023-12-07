@@ -2,12 +2,12 @@ param (
 	[switch]$Chrome,
 	[switch]$Brave,
 	[switch]$Firefox,
-	[switch]$mpv,
-	[switch]$mpchc,
-	[switch]$vlc,
-	[switch]$npp,
-	[switch]$vscode,
-	[switch]$vscodium
+	[switch]$MPV,
+	[switch]$MPCHC,
+	[switch]$VLC,
+	[switch]$NotepadPlusPlus,
+	[switch]$VisualStudioCode,
+	[switch]$VSCodium
 )
 
 # ----------------------------------------------------------------------------------------------------------- #
