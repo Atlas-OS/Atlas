@@ -50,8 +50,3 @@ actions:
   - !powerShell: {command: 'Import-Module -Name """$env:windir\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Windows PC Health Check'''}
     # The Microsoft Update Health Service stays, which is a Windows bug
   - !service: {name: 'uhssvc', deleteUsingRegistry: true}
-
-    # Converts all Microsoft user accounts to local accounts
-  - !run:
-    exeDir: true
-    exe: 'CONVERTUSERS.cmd'
