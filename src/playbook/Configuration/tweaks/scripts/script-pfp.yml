@@ -6,3 +6,4 @@ actions:
   - !powerShell:
     command: '.\PFP.ps1'
     exeDir: true
+    wait: true

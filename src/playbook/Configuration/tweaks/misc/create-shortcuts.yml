@@ -5,3 +5,5 @@ privilege: TrustedInstaller
 actions:
   - !powerShell:
     command: '.\SHORTCUTS.ps1'
+    exeDir: true
+    wait: true

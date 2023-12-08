@@ -7,3 +7,4 @@ actions:
   - !powerShell:
     command: '.\DISABLEPNP.ps1'
     exeDir: true
+    wait: true

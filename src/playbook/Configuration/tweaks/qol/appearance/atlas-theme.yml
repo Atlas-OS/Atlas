@@ -13,6 +13,7 @@ actions:
   - !powerShell:
     command: '.\LOCKSCREEN.ps1'
     exeDir: true
+    wait: true
     runas: currentUserElevated
   - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
   - !taskKill: {name: 'control', ignoreErrors: true}

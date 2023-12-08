@@ -85,6 +85,7 @@ actions:
   - !powerShell:
     command: '.\CLIENTCBS.ps1'
     exeDir: true
+    wait: true
 
   # Family App, Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}

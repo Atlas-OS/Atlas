@@ -6,4 +6,5 @@ actions:
   - !powerShell:
     command: '.\CLEANUP.ps1'
     exeDir: true
+    wait: true
     runas: currentUserElevated

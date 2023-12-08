@@ -7,4 +7,5 @@ actions:
   # - !powerShell:
   #   command: '& REMOVEBITMAP.ps1'
   #   exeDir: true
+  #   wait: true
   #   runas: currentUserElevated

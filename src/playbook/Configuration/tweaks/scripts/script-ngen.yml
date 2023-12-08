@@ -6,3 +6,4 @@ actions:
   - !powerShell:
     command: '.\NGEN.ps1'
     exeDir: true
+    wait: true
