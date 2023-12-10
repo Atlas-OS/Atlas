@@ -23,19 +23,19 @@ actions:
   ## SERVICES                                                                                 ##
   ##############################################################################################
 
-  - !run:
-    exe: 'Disable Bluetooth.cmd'
-    path: '%windir%\AtlasDesktop\3. Configuration\Bluetooth'
-    args: '/silent'
+  - !cmd:
+    command: '"AtlasDesktop\3. Configuration\Bluetooth\Disable Bluetooth.cmd" /silent'
     option: 'disable-bluetooth'
-  - !run:
-    exe: 'Disable Printing (default).cmd'
-    path: '%windir%\AtlasDesktop\3. Configuration\Printing'
-    args: '/silent'
-  - !run:
-    exe: 'Disable Notifications (default).cmd'
-    path: '%windir%\AtlasDesktop\3. Configuration\Notifications'
-    args: '/silent'
+    exeDir: true
+    wait: true
+  - !cmd:
+    command: '"AtlasDesktop\3. Configuration\Printing\Disable Printing (default).cmd" /silent'
+    exeDir: true
+    wait: true
+  - !cmd:
+    command: '"AtlasDesktop\3. Configuration\Notifications\Disable Notifications (default).cmd" /silent'
+    exeDir: true
+    wait: true
 
     # ------ Microsoft recommendation - 'OK to disable' ------
   - !service: {name: 'lfsvc', operation: change, startup: 4}

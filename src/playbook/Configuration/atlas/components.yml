@@ -17,10 +17,11 @@ actions:
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
   - !powerShell:
-    command: '& """$env:windir\AtlasDesktop\1. Software\Remove Edge.ps1""" -UninstallEdge -KeepAppX -Exit'
+    command: '& """.\AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -UninstallEdge -KeepAppX -Exit'
     runas: currentUserElevated
     option: 'uninstall-edge'
     wait: true
+    exeDir: true
     # AppX uninstallation in the script seems to fail, therefore it's not used and AME Wizard is used instead
   - !appx: {name: '*Microsoft.MicrosoftEdge.Stable*', type: family, option: 'uninstall-edge'}
   - !appx: {name: '*Microsoft.MicrosoftEdge*', type: family, option: 'uninstall-edge'}
@@ -36,20 +37,22 @@ actions:
 
   - !writeStatus: {status: 'Removing components'}
   - !powerShell:
-    command: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall'
+    command: '& """.\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall'
     option: 'defender-disable'
     wait: true
+    exeDir: true
   - !powerShell:
-    command: '& """$env:windir\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall -EverythingButDefender'
+    command: '& """.\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall -EverythingButDefender'
     option: 'defender-enable'
     wait: true
+    exeDir: true
 
     # Update Health Tools
   - !writeStatus: {status: 'Removing Update Health'}
-  - !powerShell: {command: 'Import-Module -Name """$env:windir\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Microsoft Update Health Tools'''}
+  - !powerShell: {command: 'Import-Module -Name """.\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Microsoft Update Health Tools''', exeDir: true}
 
     # PC Health Check
   - !writeStatus: {status: 'Removing PC Health Check'}
-  - !powerShell: {command: 'Import-Module -Name """$env:windir\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Windows PC Health Check'''}
+  - !powerShell: {command: 'Import-Module -Name """.\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Windows PC Health Check''', exeDir: true}
     # The Microsoft Update Health Service stays, which is a Windows bug
   - !service: {name: 'uhssvc', deleteUsingRegistry: true}
