@@ -14,6 +14,9 @@ actions:
     data: '0'
     type: REG_DWORD
     cpuArch: 'X64'
+    
     # Reset FTH entries
   - !run: {exe: 'rundll32.exe', args: 'fthsvc.dll,FthSysprepSpecialize', cpuArch: 'X64', wait: false}
+
+    # Don't run on Arm64 - FTH doesn't exist
   - !file: {path: '%windir%\AtlasDesktop\7. Security\Mitigations\Fault Tolerant Heap', cpuArch: 'Arm64'}

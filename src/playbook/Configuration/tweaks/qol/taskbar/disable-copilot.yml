@@ -4,8 +4,9 @@ description: Disables Windows Copilot as it depends on Edge, as well it collecti
 privilege: TrustedInstaller
 builds: [ '>=22000' ]
 actions:
+    # Doesn't work with HKLM
   - !registryValue:
-    path: 'HKLM\Software\Policies\Microsoft\Windows\WindowsCopilot'
+    path: 'HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot'
     value: 'TurnOffWindowsCopilot'
     data: '1'
     type: REG_DWORD

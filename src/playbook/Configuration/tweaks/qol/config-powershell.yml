@@ -1,6 +1,6 @@
 ---
 title: Configure PowerShell
-description: Configures PowerShell for the optimal privacy, performance and usability
+description: Configures PowerShell for the optimal privacy and usability
 privilege: TrustedInstaller
 actions:
     # Disable PowerShell Core telemetry

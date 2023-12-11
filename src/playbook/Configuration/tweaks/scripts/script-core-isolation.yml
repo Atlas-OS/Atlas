@@ -5,6 +5,6 @@ privilege: TrustedInstaller
 option: 'vbs-disable'
 actions:
   - !powerShell:
-    command: '& """$env:windir\AtlasDesktop\7. Security\Core Isolation (VBS)\Current Configuration.ps1""" -DisableAllVBS'
-    exeDir: true
+    command: '& """.\AtlasModules\Scripts\ScriptWrappers\ConfigVBS.ps1""" -DisableAllVBS'
     wait: true
+    exeDir: true

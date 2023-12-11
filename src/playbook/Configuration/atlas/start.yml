@@ -36,7 +36,6 @@ actions:
   # - !run: {exeDir: true, exe: 'REFRESHENV.cmd'}
 
   - !writeStatus: {status: 'Configuring Optional Features'}
-  - !run: {exe: 'DISM.exe', args: '/Online /Cleanup-Image /StartComponentCleanup', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart /All', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30, builds: [ '!>=22000' ]}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart', weight: 30}
@@ -47,35 +46,91 @@ actions:
   ################ NO LOCAL BUILD ################
 
   - !writeStatus: {status: 'Installing software'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1"'
+
+    # Initial software (7-Zip & Visual C++ runtimes)
+  - !powerShell:
+    command: '.\SOFTWARE.ps1'
     exeDir: true
+    wait: true
     weight: 150
     runas: currentUserElevated
+
+    # Browsers
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1" -Chrome'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -Chrome'
     exeDir: true
-    weight: 150
+    wait: true
+    weight: 120
     option: 'browser-chrome'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1" -Brave'
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -Brave'
     exeDir: true
-    weight: 150
+    wait: true
+    weight: 120
     option: 'browser-brave'
     runas: currentUserElevated
-  - !writeStatus: {status: 'Installing Waterfox', option: 'browser-waterfox'}
-  - !run:
-    exe: 'powershell.exe'
-    args: '-NoP -File "SOFTWARE.ps1" -Waterfox'
+  - !writeStatus: {status: 'Installing Firefox', option: 'browser-firefox'}
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -Firefox'
     exeDir: true
-    weight: 150
-    option: 'browser-waterfox'
+    wait: true
+    weight: 120
+    option: 'browser-firefox'
+    runas: currentUserElevated
+
+    # Media players
+  - !writeStatus: {status: 'Installing mpv', option: 'player-mpv'}
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -mpv'
+    exeDir: true
+    wait: true
+    weight: 90
+    option: 'player-mpv'
+    runas: currentUserElevated
+  - !writeStatus: {status: 'Installing MPC-HC', option: 'player-mpchc'}
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -mpchc'
+    exeDir: true
+    wait: true
+    weight: 90
+    option: 'player-mpchc'
+    runas: currentUserElevated
+  - !writeStatus: {status: 'Installing VLC', option: 'player-vlc'}
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -vlc'
+    exeDir: true
+    wait: true
+    weight: 90
+    option: 'player-vlc'
+    runas: currentUserElevated
+
+    # Text editors
+  - !writeStatus: {status: 'Installing Notepad++', option: 'editor-npp'}
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -npp'
+    exeDir: true
+    wait: true
+    weight: 90
+    option: 'editor-npp'
+    runas: currentUserElevated
+  - !writeStatus: {status: 'Installing VSCode', option: 'editor-vscode'}
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -vscode'
+    exeDir: true
+    wait: true
+    weight: 120
+    option: 'editor-vscode'
+    runas: currentUserElevated
+  - !writeStatus: {status: 'Installing VLC', option: 'editor-vscodium'}
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -vscodium'
+    exeDir: true
+    wait: true
+    weight: 120
+    option: 'editor-vscodium'
     runas: currentUserElevated
 
   ################ END NO LOCAL BUILD ################

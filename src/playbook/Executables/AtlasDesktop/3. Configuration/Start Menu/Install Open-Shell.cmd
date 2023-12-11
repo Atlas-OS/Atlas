@@ -10,6 +10,7 @@ fltmc > nul 2>&1 || (
 )
 
 :: Check if WinGet is functional or not
+echo Checking if WinGet exists...
 call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
@@ -30,7 +31,7 @@ for /f tokens^=^4^ delims^=^" %%a in ('curl -L# -m 60 "https://api.github.com/re
 )
 
 curl -L -m 60 --output "%TEMP%\skin.zip" %fluentMetro% > nul 2>&1 || goto fluentError
-powershell -NoP -C "Expand-Archive '%TEMP%\skin.zip' -DestinationPath '%ProgramFiles%\Open-Shell\Skins'" > nul 2>&1 || goto fluentError
+PowerShell -NoP -C "Expand-Archive '%TEMP%\skin.zip' -DestinationPath '%ProgramFiles%\Open-Shell\Skins'" > nul 2>&1 || goto fluentError
 
 :finish
 del /f /q %TEMP%\Open-Shell.exe > nul 2>&1
