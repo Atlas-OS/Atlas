@@ -85,12 +85,9 @@ if ($mpchc) {
 # VLC
 if ($vlc) {
 	Write-Host "Installing VLC..."
-	$url = "https://get.videolan.org/vlc/last/win64/"
-	$response = Invoke-WebRequest -Uri $url
-	$lines = $response.Content -split "`n"
-	$matchingLines = $lines | Where-Object { $_ -like '*win64.exe*' }
-	$filename = ($matchingLines -match 'href="([^"]+)"')[0] -replace '.*href="([^"]+)".*', '$1'
-	& curl.exe -LSs "$url$filename" -o "$tempDir\vlc.exe"
+	$baseUrl = "https://get.videolan.org/vlc/last/win64/"
+	$fileName = $((Invoke-WebRequest -Uri $baseUrl -UseBasicParsing).Links | Where-Object { $_.Href -like 'vlc*.exe' } | Select-Object -First 1 -ExpandProperty Href)
+	& curl.exe -LSs "$baseUrl$fileName" -o "$tempDir\vlc.exe"
 	Start-Process -FilePath "$tempDir\vlc.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait 2>&1 | Out-Null
 	exit
 }
