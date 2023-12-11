@@ -1,12 +1,6 @@
 readme:
 - '**/README.md'
 
-translations:
-- translations/**/*
-
-branding:
-- img/**/*
-
 actions:
 - .github/workflows/**/*
 - .github/labeler.yml
