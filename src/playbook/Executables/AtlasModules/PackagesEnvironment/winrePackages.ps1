@@ -130,7 +130,7 @@ $atlasTeamOnGit
 
 function StartupTask {
     $arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & schtasks /delete /tn "RecoveryFailureCheck" /f > nul & ' `
-        + 'powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -NextStartup"'
+        + 'PowerShell -NoP -EP Bypass -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -NextStartup"'
     $action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
     Register-ScheduledTask -TaskName $failCheck -Action $action @taskArgs | Out-Null
 }
@@ -257,7 +257,7 @@ $atlasTeamOnGit
             Write-Info -Text 'Writing BitLocker key to WinRE partition...'
             [IO.File]::WriteAllLines($bitlockerRecoveryKeyTxt, $bitlockerRecoveryKey)
             $action = New-ScheduledTaskAction -Execute 'cmd' `
-                    -Argument '/c schtasks /delete /tn "AtlasBitlockerRemovalTask" /f > nul & powershell -EP Unrestricted -WindowStyle Hidden -NoP & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
+                    -Argument '/c schtasks /delete /tn "AtlasBitlockerRemovalTask" /f > nul & PowerShell -NoP -EP Bypass -WindowStyle Hidden & $(Join-Path $env:windir ''\AtlasModules\PackagesEnvironment\winrePackages.ps1'') -DeleteBitLockerPassword'
             Register-ScheduledTask -TaskName $bitlockerTaskName -Action $action @taskArgs | Out-Null
         } else {
             if (!$?) {

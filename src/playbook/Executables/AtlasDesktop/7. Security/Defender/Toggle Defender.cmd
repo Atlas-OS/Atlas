@@ -8,7 +8,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 set args= & set "args1=%*"
 if defined args1 set "args=%args1:"='%"
-powershell -nop "& ([Scriptblock]::Create((Get-Content '%~f0' -Raw))) %args%"
+PowerShell -NoP "& ([Scriptblock]::Create((Get-Content '%~f0' -Raw))) %args%"
 exit /b %ERRORLEVEL%
 : end batch / begin PowerShell #>
 
@@ -93,7 +93,7 @@ function Menu {
 			}
 
 			$arguments = '/c title Finalizing installation - Atlas & echo Do not close this window. & schtasks /delete /tn "AtlasDefenderConfigurationPrompt" /f > nul & ' `
-				+ 'powershell -NoP -EP Unrestricted -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasDesktop\5. Security\Defender\Toggle Defender.cmd'') -NextStartup '
+				+ 'PowerShell -NoP -EP Bypass -WindowStyle Hidden -C "& $(Join-Path $env:windir ''\AtlasDesktop\5. Security\Defender\Toggle Defender.cmd'') -NextStartup '
 			$action = New-ScheduledTaskAction -Execute 'cmd' -Argument $arguments
 			Register-ScheduledTask -TaskName 'AtlasDefenderConfigurationPrompt' -Action $action @taskArgs | Out-Null
 

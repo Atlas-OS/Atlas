@@ -14,11 +14,26 @@ actions:
     exeDir: true
   - !run:
     exe: 'FILEASSOC.cmd'
-    args: '"WaterFox"'
-    option: 'browser-waterfox'
+    args: '"Firefox"'
+    option: 'browser-firefox'
     exeDir: true
   - !run:
     exe: 'FILEASSOC.cmd'
     args: '"Google Chrome"'
     option: 'browser-chrome'
+    exeDir: true
+  - !run:
+    exe: 'FILEASSOC.cmd'
+    args: '"mpv"'
+    option: 'player-mpv'
+    exeDir: true
+  - !run:
+    exe: 'FILEASSOC.cmd'
+    args: '"MPC-HC"'
+    option: 'player-mpchc'
+    exeDir: true
+  - !run:
+    exe: 'FILEASSOC.cmd'
+    args: '"VLC"'
+    option: 'player-vlc'
     exeDir: true

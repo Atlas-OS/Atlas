@@ -3,11 +3,13 @@ title: Disable News and Interests
 description: Disables News and Interests on the taskbar for privacy (lots of third party connections) and QoL
 privilege: TrustedInstaller
 actions:
+  - !taskKill: {name: 'explorer'}
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Feeds'
     value: 'ShellFeedsTaskbarViewMode'
     data: '2'
     type: REG_DWORD
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds'
     value: 'EnableFeeds'

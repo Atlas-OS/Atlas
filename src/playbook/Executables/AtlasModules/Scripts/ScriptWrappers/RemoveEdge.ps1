@@ -31,8 +31,8 @@ param (
 	[switch]$KeepAppX
 )
 
-$version = '1.6'
-$host.UI.RawUI.WindowTitle = "EdgeRemover $version"
+$version = '1.7'
+$host.UI.RawUI.WindowTitle = "EdgeRemover $version | made by @he3als"
 
 # credit to ave9858 for Edge removal method: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6
 $ProgressPreference = "SilentlyContinue"
@@ -41,12 +41,34 @@ $SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Securi
 $EdgeRemoverReg = 'HKLM:\SOFTWARE\EdgeRemover'
 
 if ($Exit -and ((-not $UninstallAll) -and (-not $UninstallEdge))) {
-    $Exit = $false
+	$Exit = $false
 }
 
 function PauseNul ($message = "Press any key to continue... ") {
 	Write-Host $message -NoNewLine
 	$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
+}
+
+function Uninstall-MsiexecAppByName {
+	param(
+		[Parameter(Mandatory = $true)]
+		[ValidateNotNullOrEmpty()]
+		[string]$Name
+	)
+
+	$uninstallKeyPath = "Microsoft\Windows\CurrentVersion\Uninstall"
+	$uninstallKeys = (Get-ChildItem -Path @(
+		"HKLM:\SOFTWARE\$uninstallKeyPath",
+		"HKLM:\SOFTWARE\WOW6432Node\$uninstallKeyPath",
+		"HKCU:\SOFTWARE\$uninstallKeyPath",
+		"HKCU:\SOFTWARE\WOW6432Node\$uninstallKeyPath"
+	) -EA SilentlyContinue) -match "\{\b[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12}\b\}"
+
+	foreach ($key in $uninstallKeys.PSPath) {
+		if (((Get-ItemProperty -Path $key).DisplayName -like "*$Name*") -and ((Get-ItemProperty -Path $key).UninstallString -like "*MsiExec.exe*")) {
+			Start-Process -FilePath "msiexec.exe" -ArgumentList "/qn /X$(Split-Path -Path $key -Leaf) REBOOT=ReallySuppress /norestart" 2>&1 | Out-Null
+		}
+	}
 }
 
 function BlockEdgeInstallandUpdates {
@@ -85,10 +107,10 @@ function BlockEdgeInstallandUpdates {
 		"UpdatesSuppressedDurationMin" = 1440
 	}
 
-	New-Item -Path $EdgeRemoverReg -Force -EA SilentlyContinue | Out-Null
-	$EdgeUpdateDisabled = 'HKLM:\SOFTWARE\EdgeRemover\EdgeUpdateDisabled'
+	$EdgeUpdateDisabled = "$EdgeRemoverReg\EdgeUpdateDisabled"
 	$EdgeUpdateOrchestrator = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\EdgeUpdate'
 	if ($blockEdge) {
+		New-Item -Path $EdgeRemoverReg -Force -EA SilentlyContinue | Out-Null
 		foreach ($a in $completeBlockPolicies.Keys) {
 			Set-ItemProperty -Path $EdgeUpdatePolicyKey -Name $a -Value $completeBlockPolicies.$a -Type Dword -Force
 		}
@@ -131,6 +153,9 @@ function RemoveEdgeChromium {
 	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
 	$ErrorActionPreference = 'SilentlyContinue'
 
+	# check for copilot
+	$copilot = (Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "ShowCopilotButton" -EA 0)."ShowCopilotButton" -eq 1
+	
 	# terminate Edge processes
 	$services = (Get-Service -Name "*edge*" | Where-Object {$_.DisplayName -like "*Microsoft Edge*"}).Name
 	$processes = (Get-Process | Where-Object {($_.Path -like "$env:SystemDrive\Program Files (x86)\Microsoft\*") -or ($_.Name -like "*msedge*")}).Id
@@ -163,7 +188,19 @@ function RemoveEdgeChromium {
 	if (Test-Path $uninstallKeyPath) {
 		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString + " --force-uninstall"
 		Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden 2>&1 | Out-Null
+	} else {
+		$edges = @(); 'LocalApplicationData','ProgramFilesX86','ProgramFiles' | ForEach-Object {
+			$folder = [Environment]::GetFolderPath($_)
+			$edges += Get-ChildItem "$folder\Microsoft\Edge*\setup.exe" -Recurse -EA SilentlyContinue | Where-Object {($_ -like '*Edge\Application*') -or ($_ -like '*SxS\Application*')}
+		}
+		foreach ($setup in $edges) {
+			$sulevel = ('--system-level','--user-level')[$setup -like '*\AppData\Local\*']
+			Start-Process -Wait $setup -ArgumentList "--uninstall --msedge $sulevel --channel=stable --verbose-logging --force-uninstall"
+		}
 	}
+
+	# uninstall Edge with MsiExec (e.g. WinGet installs)
+	Uninstall-MsiexecAppByName -Name "Microsoft Edge"
 
 	# remove user data
 	if ($removeData) {
@@ -176,6 +213,12 @@ function RemoveEdgeChromium {
 	$shortcutPath = "$env:USERPROFILE\Desktop\Microsoft Edge.lnk"
 	if (Test-Path $shortcutPath) {
 		Remove-Item $shortcutPath -Force
+	}
+
+	# restart explorer if Copilot is enabled
+	# this will hide the Copilot button
+	if ($copilot) {
+		Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
 	}
 }
 
@@ -193,17 +236,36 @@ function RemoveEdgeAppX {
 }
 
 function RemoveWebView {
-	$edges = @(); $bho = @(); $edgeupdates = @(); 'LocalApplicationData','ProgramFilesX86','ProgramFiles' | foreach {
-    	$folder = [Environment]::GetFolderPath($_)
-    	$edges += dir "$folder\Microsoft\Edge*\setup.exe" -rec -ea 0 | where {$_ -like '*EdgeWebView*'}
-    }
+	$webviewUninstallKey = @()
+	$webviewKey = "Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
 
-    foreach ($setup in $edges) {
-    	$target = "--msedgewebview"
-    	$sulevel = ('--system-level','--user-level')[$setup -like '*\AppData\Local\*']
-   		$removal = "--uninstall $target $sulevel --verbose-logging --force-uninstall"
-    	start -wait $setup -args $removal
-    }
+	foreach ($key in @(
+		"HKCU:\SOFTWARE\$webviewKey"
+		"HKLM:\SOFTWARE\WOW6432Node\$webviewKey"
+	)) {
+		$webviewUninstallKey += $key
+	}
+
+	if ($key.Count -eq 0) {
+		$webViews = @(); 'LocalApplicationData','ProgramFilesX86','ProgramFiles' | ForEach-Object {
+			$folder = [Environment]::GetFolderPath($_)
+			$webViews += Get-ChildItem "$folder\Microsoft\Edge*\setup.exe" -Recurse -EA SilentlyContinue | Where-Object {$_ -like '*EdgeWebView*'}
+		}
+
+		foreach ($setup in $webViews) {
+			$sulevel = ('--system-level','--user-level')[$setup -like '*\AppData\Local\*']
+			Start-Process -Wait $setup -ArgumentList "--uninstall --msedgewebview $sulevel --verbose-logging --force-uninstall"
+		}
+	} else {
+		foreach ($key in $webviewUninstallKey) {
+			$webviewUninstallString = (Get-ItemProperty -Path $key -EA 0).UninstallString
+			if ($null -ne $webviewUninstallString) {
+				Start-Process cmd.exe $("/c $webviewUninstallString" + " --force-uninstall") -WindowStyle Hidden 2>&1 | Out-Null
+			}
+		}
+	}
+
+	Uninstall-MsiexecAppByName -Name "Microsoft Edge WebView2 Runtime"
 }
 
 function UninstallAll {
@@ -220,11 +282,24 @@ function UninstallAll {
 		RemoveWebView
 	}
 	if ($removeEdge -and $removeWebView) {
-		Write-Warning "Uninstalling Edge Update..."
+		Write-Warning "Deleting Edge Update..."
 		DeleteEdgeUpdate
 	}
 	Write-Warning "Applying EdgeUpdate policies..."
 	BlockEdgeInstallandUpdates
+}
+
+function ReinstallWarning {
+	Clear-Host
+	Write-Host "It's highly recommended to remove the install/update blocks to reinstall Edge." -ForegroundColor Yellow
+	choice /c:yn /n /m "Would you like to remove the blocks? [Y/N]"
+	if ($LASTEXITCODE -eq 1) {
+		$global:removeEdge = $false
+		$global:removeWebView = $false
+		$global:removeData = $false
+		$global:blockEdge = $false
+		BlockEdgeInstallandUpdates
+	}
 }
 
 function Completed {
@@ -242,7 +317,7 @@ Please relaunch this script under a regular admin account.`n" -ForegroundColor Y
 	exit 1
 } else {
 	if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-		Start-Process cmd "/c powershell -NoP -EP Unrestricted -File `"$PSCommandPath`"" -Verb RunAs; exit
+		Start-Process cmd "/c PowerShell -NoP -EP Bypass -File `"$PSCommandPath`"" -Verb RunAs; exit
 	}
 }
 
@@ -285,6 +360,11 @@ while (!($continue)) {
 	Write-Host "[2] Remove Edge WebView ($textWeb)" -ForegroundColor $colourWeb
 	Write-Host "[3] Remove Edge User Data ($textData)" -ForegroundColor $colourData
 	Write-Host "[4] Block WebView install & Edge updates ($textBlock)" -ForegroundColor $colourBlock
+
+	Write-Host "`nReinstall Edge links:"
+	Write-Host "[5] Install Edge" -ForegroundColor Magenta
+	Write-Host "[6] Install WebView" -ForegroundColor Magenta
+
 	Write-Host "`nPress enter to continue or use numbers to select options... " -NoNewLine
 
 	$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
@@ -301,6 +381,14 @@ while (!($continue)) {
 		}
 		52 { # num 4
 			$blockEdge = !$blockEdge
+		}
+		53 { # num 5
+			ReinstallWarning
+			Start-Process "https://www.microsoft.com/en-us/edge/download"
+		}
+		54 { # num 6
+			ReinstallWarning
+			Start-Process "https://go.microsoft.com/fwlink/?linkid=2124701"
 		}
 		13 { # enter
 			$continue = $true

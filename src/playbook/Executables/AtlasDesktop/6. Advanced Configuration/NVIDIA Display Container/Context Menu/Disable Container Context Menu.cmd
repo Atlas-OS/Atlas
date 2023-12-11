@@ -10,7 +10,7 @@ fltmc > nul 2>&1 || (
 )
 
 :: check if the service exists
-reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1 ||
+reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1 || (
     echo The context menu does not exist, thus you cannot continue.
     echo]
     pause
