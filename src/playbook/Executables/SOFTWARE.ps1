@@ -1,13 +1,7 @@
 param (
 	[switch]$Chrome,
 	[switch]$Brave,
-	[switch]$Firefox,
-	[switch]$MPV,
-	[switch]$MPCHC,
-	[switch]$VLC,
-	[switch]$NotepadPlusPlus,
-	[switch]$VisualStudioCode,
-	[switch]$VSCodium
+	[switch]$Firefox
 )
 
 # ----------------------------------------------------------------------------------------------------------- #
@@ -57,66 +51,6 @@ if ($Chrome) {
 	Write-Host "Installing Google Chrome..."
 	& curl.exe -LSs "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi" -o "$tempDir\chrome.msi"
 	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait 2>&1 | Out-Null
-	exit
-}
-
-#################
-##    MEDIA    ##
-#################
-
-# mpv
-# if ($mpv) {
-#	Write-Host "Installing mpv..."
-#	& curl.exe -LSs "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi" -o "$tempDir\chrome.msi"
-#	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait 2>&1 | Out-Null
-#	exit
-#}
-
-# MPC-HC
-if ($mpchc) {
-	Write-Host "Installing MPC-HC..."
-	$latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/clsid2/mpc-hc/releases/latest"
-	$link = $latestRelease.assets | Where-Object { $_.browser_download_url -like "*x64.exe" } | Select-Object -ExpandProperty browser_download_url
-	& curl.exe -LSs "$link" -o "$tempDir\mpc-hc.exe"
-	Start-Process -FilePath "$tempDir\mpc-hc.exe" -WindowStyle Hidden -ArgumentList '/VERYSILENT /NORESTART' -Wait 2>&1 | Out-Null
-	exit
-}
-
-# VLC
-if ($vlc) {
-	Write-Host "Installing VLC..."
-	$baseUrl = "https://get.videolan.org/vlc/last/win64/"
-	$fileName = $((Invoke-WebRequest -Uri $baseUrl -UseBasicParsing).Links | Where-Object { $_.Href -like 'vlc*.exe' } | Select-Object -First 1 -ExpandProperty Href)
-	& curl.exe -LSs "$baseUrl$fileName" -o "$tempDir\vlc.exe"
-	Start-Process -FilePath "$tempDir\vlc.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait 2>&1 | Out-Null
-	exit
-}
-
-# Notepad++
-if ($npp) {
-	Write-Host "Installing Notepad++..."
-	$latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/notepad-plus-plus/notepad-plus-plus/releases/latest"
-	$link = $latestRelease.assets | Where-Object { $_.browser_download_url -like "*x64.exe" } | Select-Object -ExpandProperty browser_download_url
-	& curl.exe -LSs "$link" -o "$tempDir\npp.exe"
-	Start-Process -FilePath "$tempDir\npp.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait 2>&1 | Out-Null
-	exit
-}
-
-# VSCode
-if ($vscode) {
-	Write-Host "Installing VSCode..."
-	& curl.exe -LSs "https://code.visualstudio.com/sha/download?build=stable&os=win32-x64" -o "$tempDir\vscode.exe"
-	Start-Process -FilePath "$tempDir\vscode.exe" -WindowStyle Hidden -ArgumentList '/VERYSILENT /NORESTART /MERGETASKS=!runcode' -Wait 2>&1 | Out-Null
-	exit
-}
- 
-# VSCodium
-if ($vscodium) {
-	Write-Host "Installing VSCodium..."
-	$latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/VSCodium/vscodium/releases/latest"
-	$link = $latestRelease.assets | Where-Object { $_.browser_download_url -like "*VSCodiumSetup-x64*" -and $_.browser_download_url -like "*.exe" } | Select-Object -ExpandProperty browser_download_url
-	& curl.exe -LSs "$link" -o "$tempDir\vscodium.exe"
-	Start-Process -FilePath "$tempDir\vscodium.exe" -WindowStyle Hidden -ArgumentList '/VERYSILENT /NORESTART /MERGETASKS=!runcode' -Wait 2>&1 | Out-Null
 	exit
 }
 
