@@ -4,8 +4,8 @@ $cbsPublic = "$env:windir\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\P
 # --------------------------------------------------------------
 
 # Find feature/velocity IDs to disable for the 'Accounts' page
-# This acts as a fallback in case wsxpacks gets updated by Windows Update
 # After disabling each one, there's a 'Microsoft account' page that appears (ms-settings:account)
+# It can be hidden by using SettingsPageVisibility
 
 # Finds velocity IDs listed in 'Accounts' wsxpack
 $ids = @()
