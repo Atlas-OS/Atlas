@@ -93,7 +93,7 @@ updates:
   - target_component: Microsoft-Windows-Compatibility-Aggregator
     target_arch: amd64
     version: 38655.38527.65535.65535
-    # Breaks Bluetooth
+    # Breaks Bluetooth connectivity
   # - target_component: Microsoft-Windows-CoreSystem-Bluetooth-Telemetry
   #   target_arch: amd64
   #   version: 38655.38527.65535.65535

@@ -7,6 +7,6 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
     files:
-      - file: 'SystemSettingsExtensions.dll'
+      - file: 'SystemSettingsExtensions.dll' # Remove banner from Settings
         destination: '$(runtime.windows)\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\'
         operation: delete

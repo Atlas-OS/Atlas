@@ -17,20 +17,6 @@ updates:
     target_arch: arm64
     version: 38655.38527.65535.65535
 
-    # Application Guard
-  - target_component: Windows-Defender-ApplicationGuard-Inbox-Deployment
-    target_arch: arm64
-    version: 38655.38527.65535.65535
-  - target_component: Windows-Defender-ApplicationGuard-Inbox-Deployment-LanguagePack
-    target_arch: arm64
-    version: 38655.38527.65535.65535
-  - target_component: Windows-Defender-ApplicationGuard-Inbox-WOW64-Deployment
-    target_arch: arm64
-    version: 38655.38527.65535.65535
-  - target_component: Windows-Defender-ApplicationGuard-Inbox-WOW64-Deployment-LanguagePack
-    target_arch: arm64
-    version: 38655.38527.65535.65535
-
     # Defender Branding
   - target_component: Windows-Defender-Branding
     target_arch: arm64
@@ -49,6 +35,20 @@ updates:
     version: 38655.38527.65535.65535
   - target_component: Windows-Defender-Branding.Resources
     target_arch: arm64.x86
+    version: 38655.38527.65535.65535
+
+    # Application Guard
+  - target_component: Windows-Defender-ApplicationGuard-Inbox-Deployment
+    target_arch: arm64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-ApplicationGuard-Inbox-Deployment-LanguagePack
+    target_arch: arm64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-ApplicationGuard-Inbox-WOW64-Deployment
+    target_arch: arm64
+    version: 38655.38527.65535.65535
+  - target_component: Windows-Defender-ApplicationGuard-Inbox-WOW64-Deployment-LanguagePack
+    target_arch: arm64
     version: 38655.38527.65535.65535
 
     # Defender Events
