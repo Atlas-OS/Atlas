@@ -6,7 +6,6 @@ on:
       - 'src/**'
 
 env:
-  PACKAGE_PATH: '..\Atlas\src\playbook\Executables\AtlasModules\Packages'
   SXSC_REPO: 'https://github.com/Atlas-OS/sxsc'
 
 jobs:
@@ -38,8 +37,8 @@ jobs:
           $changedFiles = "${{ steps.changed-files.outputs.sxsc_all_changed_files }}" -split ' '
 
           foreach ($file in $changedFiles) {
-            Write-Output "Copying: $file"
-            Copy-Item $file $configs -Force
+              Write-Output "Copying: $file"
+              Copy-Item $file $configs -Force
           }
 
       - name: Clone the sxsc repository
@@ -54,11 +53,18 @@ jobs:
           Write-Host "Installing dependencies..."
           pip install -r requirements.txt | Out-Null
 
-          $packagePath = "${{ env.PACKAGE_PATH }}"
-          mkdir $packagePath -EA SilentlyContinue | Out-Null
+          $atlasSrcPath = '..\Atlas\src\'
+          $packagePath = '$atlasSrcPath\playbook\Executables\AtlasModules\Packages'
+          mkdir $packagePath -EA 0 | Out-Null
           Get-ChildItem -Recurse "configs" -Filter *.yaml | ForEach-Object {
               Write-Host "`nProcessing $($_.Name)`n------------------------------------------------------"
               Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
+
+              $folderDir = ".\$atlasSrcPath\sxsc\$($_.Name)"
+              if (Test-Path $folderDir -PathType Container) {
+                  Write-Host "Copying $($_.Name)'s files..."
+                  Copy-Item -Path "$folderDir\*" -Destination '.\' -Recurse -Force | Out-Null
+              }
 
               Write-Host "Generating package files..."
               python sxsc.py
