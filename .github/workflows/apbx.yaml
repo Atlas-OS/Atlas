@@ -28,13 +28,20 @@ jobs:
               - 'src/sxsc/*.yaml'
 
       - name: Copy modified .yamls
-        if: steps.changed-files.outputs.sxsc_any_changed == 'true'
-        id: copy_yamls
         run: |
-          $configs = "..\configs"
-          mkdir $configs | Out-Null
-
-          $changedFiles = "${{ steps.changed-files.outputs.sxsc_all_changed_files }}" -split ' '
+          $sxsc = '.\src\sxsc'
+          if ('${{ steps.changed-files.outputs.sxsc_all_changed_files }}' -eq 'true') {
+              $configs = '..\configs'
+              mkdir $configs | Out-Null
+              $changedFiles = '${{ steps.changed-files.outputs.sxsc_all_changed_files }}'' -split ' '
+          } elseif (Test-Path $sxsc) {
+              Write-Output "Regenerating all configs..."
+              Remove-Item -Path $sxsc -Force
+              $changedFiles = Get-ChildItem 'configs' -Filter *.yaml
+          } else {
+              "dontRunSxsc=true" >> $env:GITHUB_ENV
+              exit
+          }
 
           foreach ($file in $changedFiles) {
               Write-Output "Copying: $file"
@@ -46,43 +53,44 @@ jobs:
           git clone --depth=1 ${{ env.SXSC_REPO }}
           Copy-Item -Path "configs" -Destination ".\sxsc\configs" -Recurse -Force
         working-directory: ..
-        if: ${{ steps.copy_yamls.outcome != 'skipped' }}
+        if: env.dontRunSxsc == 'true'
+        id: clone_sxsc
 
       - name: Build CAB
         run: |
-          Write-Host "Installing dependencies..."
+          Write-Output "Installing dependencies..."
           pip install -r requirements.txt | Out-Null
 
           $atlasSrcPath = '..\Atlas\src\'
           $packagePath = "$atlasSrcPath\playbook\Executables\AtlasModules\Packages"
           mkdir $packagePath -EA 0 | Out-Null
-          Get-ChildItem -Recurse "configs" -Filter *.yaml | ForEach-Object {
-              Write-Host "`nProcessing $($_.Name)`n------------------------------------------------------"
+          Get-ChildItem "configs" -Filter *.yaml | ForEach-Object {
+              Write-Output "`nProcessing $($_.Name)`n------------------------------------------------------"
               Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
 
               $folderDir = ".\$atlasSrcPath\sxsc\$($_.Name)"
               if (Test-Path $folderDir -PathType Container) {
-                  Write-Host "Copying $($_.Name)'s files..."
+                  Write-Output "Copying $($_.Name)'s files..."
                   Copy-Item -Path "$folderDir\*" -Destination '.\' -Recurse -Force | Out-Null
               }
 
-              Write-Host "Generating package files..."
+              Write-Output "Generating package files..."
               python sxsc.py
               if ($LASTEXITCODE -ne 0) { exit 1 }
 
-              Write-Host "Building package..."
+              Write-Output "Building package..."
               .\build.bat
 
-              Write-Host "Copying package to AtlasModules..."
+              Write-Output "Copying package to AtlasModules..."
               Get-ChildItem -File -Recurse -Filter *.cab | ForEach-Object {
                   Copy-Item -Path $_.FullName -Destination $packagePath -Force
               }
 
-              Write-Host "Cleaning up..."
+              Write-Output "Cleaning up..."
               .\clean.bat
           }
         working-directory: ..\sxsc
-        if: ${{ steps.copy_yamls.outcome != 'skipped' }}
+        if: ${{ steps.clone_sxsc.outcome != 'skipped' }}
 
       - name: Commit and push changes
         run: |
@@ -92,7 +100,7 @@ jobs:
           git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
           git push
         working-directory: src\playbook\Executables\AtlasModules\Packages
-        if: ${{ steps.copy_yamls.outcome != 'skipped' }}
+        if: ${{ steps.clone_sxsc.outcome != 'skipped' }}
 
   build:
     needs: package-build
