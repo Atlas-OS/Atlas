@@ -30,13 +30,15 @@ jobs:
       - name: Copy modified .yamls
         run: |
           $sxsc = '.\src\sxsc'
+          $configs = '..\configs'
+          
           if ('${{ steps.changed-files.outputs.sxsc_all_changed_files }}' -eq 'true') {
-              $configs = '..\configs'
               mkdir $configs | Out-Null
-              $changedFiles = '${{ steps.changed-files.outputs.sxsc_all_changed_files }}'' -split ' '
-          } elseif (Test-Path $sxsc) {
+              $changedFiles = '${{ steps.changed-files.outputs.sxsc_all_changed_files }}' -split ' '
+          } elseif (Test-Path "$sxsc\regenAllConfigs") {
               Write-Output "Regenerating all configs..."
-              Remove-Item -Path $sxsc -Force
+              Remove-Item -Path "$sxsc\regenAllConfigs" -Force
+              Remove-Item -Path "$sxsc\*.cab" -Force -Recurse
               $changedFiles = Get-ChildItem 'configs' -Filter *.yaml
           } else {
               "dontRunSxsc=true" >> $env:GITHUB_ENV
