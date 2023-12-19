@@ -54,7 +54,7 @@ jobs:
           pip install -r requirements.txt | Out-Null
 
           $atlasSrcPath = '..\Atlas\src\'
-          $packagePath = '$atlasSrcPath\playbook\Executables\AtlasModules\Packages'
+          $packagePath = "$atlasSrcPath\playbook\Executables\AtlasModules\Packages"
           mkdir $packagePath -EA 0 | Out-Null
           Get-ChildItem -Recurse "configs" -Filter *.yaml | ForEach-Object {
               Write-Host "`nProcessing $($_.Name)`n------------------------------------------------------"
