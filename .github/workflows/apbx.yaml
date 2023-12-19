@@ -31,14 +31,14 @@ jobs:
         run: |
           $sxsc = '.\src\sxsc'
           $configs = '..\configs'
-          
+
           if ('${{ steps.changed-files.outputs.sxsc_all_changed_files }}' -eq 'true') {
               mkdir $configs | Out-Null
               $changedFiles = '${{ steps.changed-files.outputs.sxsc_all_changed_files }}' -split ' '
           } elseif (Test-Path "$sxsc\regenAllConfigs") {
               Write-Output "Regenerating all configs..."
               Remove-Item -Path "$sxsc\regenAllConfigs" -Force
-              Remove-Item -Path "$sxsc\*.cab" -Force -Recurse
+              Remove-Item -Path ".\src\playbook\Executables\AtlasModules\Packages\*.cab" -Force -Recurse
               $changedFiles = Get-ChildItem 'configs' -Filter *.yaml
           } else {
               "dontRunSxsc=true" >> $env:GITHUB_ENV
