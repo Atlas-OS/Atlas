@@ -62,26 +62,6 @@ actions:
   - !appx: {name: '*Microsoft.XboxGameOverlay*', type: family}
   - !appx: {name: '*Microsoft.XboxGamingOverlay*', type: family}
 
-  # Widgets
-  - !taskKill: {name: '*widgets*', ignoreErrors: true}
-  - !appx: {name: '*MicrosoftWindows.Client.WebExperience*', type: family}
-  - !powerShell:
-    command: 'Get-AppxPackage ''MicrosoftWindows.Client.WebExperience'' | Remove-AppxPackage'
-    runas: currentUserElevated
-
-  # Get Started
-  - !appx: {name: '*Microsoft.Getstarted*', type: family}
-  - !appx: {name: '*WebExperienceHost*', type: app, unregister: true}
-
-  # Windows Backup
-  - !appx: {name: '*WindowsBackup*', type: app, unregister: true}
-
-  # Advertisements/Telemetry
-  - !appx: {name: '*Global.Accounts*', type: app, unregister: true}
-  - !appx: {name: '*Global.BackupBanner*', type: app, unregister: true}
-  - !appx: {name: '*Global.IrisService*', type: app, unregister: true}
-  - !appx: {name: '*Global.ValueBanner*', type: app, unregister: true}
-
   - !powerShell:
     command: '.\CLIENTCBS.ps1'
     exeDir: true

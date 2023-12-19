@@ -1,7 +1,7 @@
 copyright: Atlas
 package: Z-Atlas-NoTelemetry-Package
 target_arch: amd64
-version: 3.0.0.0
+version: 4.0.0.0
 updates:
     # Feedback
   - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine

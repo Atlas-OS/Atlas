@@ -1,0 +1,12 @@
+copyright: Atlas (GPLv3)
+package: Z-Atlas-Misc-Package
+target_arch: amd64
+version: 4.0.0.0
+updates:
+  - target_component: Atlas-Settings-Banner-Remover
+    target_arch: amd64
+    version: 38655.38527.65535.65535
+    files:
+      - file: 'SystemSettingsExtensions.dll'
+        destination: '$(runtime.windows)\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\'
+        operation: delete
