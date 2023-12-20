@@ -10,7 +10,7 @@ updates:
       - file: 'SystemSettingsExtensions.dll' # Remove banner from Settings
         destination: '$(runtime.windows)\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\'
         operation: replace
-      - file: 'SettingsExtensions.json' # Remove ads from 'Accounts' page in Settings
+      - file: 'SettingsExtensions.json' # Remove advertisements from 'Accounts' page in Settings
         destination: '$(runtime.windows)\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\Public\wsxpacks\Account\'
         operation: replace
         text: '{}'
