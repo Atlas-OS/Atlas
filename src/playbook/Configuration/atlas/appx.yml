@@ -62,6 +62,9 @@ actions:
   - !appx: {name: '*Microsoft.XboxGameOverlay*', type: family}
   - !appx: {name: '*Microsoft.XboxGamingOverlay*', type: family}
 
+  # Tips
+  - !appx: {name: '*Microsoft.Getstarted*', type: family}
+
   # Family App, Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
   - !appx: {name: '*MicrosoftCorporationII.MicrosoftFamily*', type: family}
