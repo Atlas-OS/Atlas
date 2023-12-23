@@ -1,37 +1,32 @@
 name: Feature request
 description: Create a feature request to help us improve Atlas.
 labels: enhancement
-title: "[FEATURE REQUEST] - "
+title: "[FEATURE] - "
 body:
   - type: markdown
     attributes:
       value: |
-        A clear and brief description of your feature request.
+       Before submitting an feature request, please ensure you have completed the following steps:
+       - The request you submit is related to the Atlas Playbook. If not, request it in our [forum](https://forum.atlasos.net/t/general)
+       - Searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already
+       - Confirmed that your issue is not a support request
+       - Confirmed that your idea is not already in the latest version of Atlas
 
+       Please note, by submitting an issue, you acknowledge that if the above steps have not been followed, the maintainers reserve the right to close and lock your issue without further response.
   - type: dropdown
     attributes:
       label: What is your feature request regarding to?
       options:
-        - AtlasOS
-        - README
-        - Documentation
-        - Other, specify below
+        - Atlas Playbook
+        - Other (submit it in https://forum.atlasos.net)
     validations:
       required: true
-
-  - type: input
-    attributes:
-      label: Other
-      description: Only enter if you chose "Other"
-      placeholder: |
-        e.g. the...
-    validations:
 
   - type: textarea
     attributes:
       label: Is your feature request related to a problem? Please describe.
       placeholder: |
-        A clear and brief description of what the problem is.
+        e.g. I always wanted Atlas to...
     validations:
       required: true
 
@@ -39,7 +34,7 @@ body:
     attributes:
       label: Describe the solution you would like.
       placeholder: |
-        A clear and brief description of what you want to happen.
+        e.g. I would like Atlas to add...
     validations:
       required: true
 
@@ -49,19 +44,6 @@ body:
       description: If you have found a temporary fix, list it here.
     validations:
       required: true
-
-  - type: checkboxes
-    attributes:
-      label: Requisites
-      description: |
-        To rule out invalid issues, confirm and check each one of the checkboxes.
-      options:
-        - label: This is not a support issue or a question. For any support, questions or help, join our [Discord server](https://discord.atlasos.net).
-          required: true
-        - label: I performed a [cursory search of the issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to avoid opening a duplicate issue.
-          required: true
-        - label: I understand that not filling out this template will lead to the issue being closed.
-          required: true
 
   - type: textarea
     attributes:

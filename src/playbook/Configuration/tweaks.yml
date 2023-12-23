@@ -335,8 +335,8 @@ tasks:
   - tweaks\statuses\status-misc.yml
   - tweaks\misc\config-time.yml
   - tweaks\misc\disable-game-mode.yml
+  - tweaks\misc\delete-windows-specific-files.yml
   # - tweaks\misc\config-oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
   # - tweaks\misc\restore-default-sleep-timeout.yml
   - tweaks\misc\create-shortcuts.yml
-  - tweaks\misc\delete-version-specific-files.yml

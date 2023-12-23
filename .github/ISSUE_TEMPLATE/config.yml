@@ -1,14 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: General discussions
-    url: https://discord.atlasos.net
-    about: Please join our Discord server for general discussions.
-  - name: General discussions (if you do not use Discord)
-    url: https://forum.atlasos.net
-    about: Use our forum for general discussions.
-  - name: Contribute to Atlas Documentation
-    url: https://github.com/Atlas-OS/docs
-    about: Contribute to Atlas Documentation in this repository.
+  - name: Report Issue about Atlas Documentation
+    url: https://github.com/Atlas-OS/docs/issues/
+    about: Report all Documentation issues in our Documentation repository issue tracker.
   - name: Report an issue (non-Atlas related issue)
-    url: https://forum.atlasos.net
-    about: Please report any non-Atlas related issue in our ``Bug Report`` section on our Forum (Website, Discord bot, etc.).
+    url: https://forum.atlasos.net/t/atlas-bug-report
+    about: Please report any non-Atlas Playbook related issue in the ``Bug Report`` section on our Forum (Website, Discord bot, etc.).

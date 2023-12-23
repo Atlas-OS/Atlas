@@ -1,5 +1,5 @@
 <# : batch portion
-@echo off & powershell -nop Get-Content """%~f0""" -Raw ^| iex & exit /b
+@echo off & PowerShell -NoP Get-Content """%~f0""" -Raw ^| iex & exit /b
 : end batch / begin PowerShell #>
 
 # Do not change anything here, this is simply for reference

@@ -1,6 +1,6 @@
 @echo off
 
-if "%~1" == "/setup" goto main
+if "%~1" == "/silent" goto main
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	call RunAsTI.cmd "%~f0" %*

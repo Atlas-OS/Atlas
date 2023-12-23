@@ -1,12 +1,21 @@
 @echo off
 
-taskkill /f /im OneDrive*.exe > nul 2>&1
+for /f "usebackq delims=" %%a in (`dir /b /a:d "%SystemDrive%\Users"`) do (
+	if exist "%SystemDrive%\Users\%%a\OneDrive" (
+		dir "%SystemDrive%\Users\%%a\OneDrive" /b | findstr "." > nul 2>&1 && (
+			echo Not stripping OneDrive as OneDrive files exist, exiting...
+			exit 6000
+		)
+	)
+)
+
+taskkill /f /im OneDrive.exe > nul 2>&1
 for %%a in (
 	"%windir%\System32\OneDriveSetup.exe"
 	"%windir%\SysWOW64\OneDriveSetup.exe"
 ) do (
 	if exist "%%a" (
-		"%%a" /uninstall > nul 2>nul
+		"%%a" /uninstall > nul 2>&1
 	)
 )
 
@@ -48,6 +57,10 @@ for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows
 for /f "usebackq delims=" %%a in (`reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" 2^>nul ^| findstr /i /c:"OneDrive" 2^>nul`) do (
 	reg delete "%%a" /f > nul 2>&1
 )
+
+reg add "HKU\%~1\SOFTWARE\Classes\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /v "System.IsPinnedToNameSpaceTree" /t REG_DWORD /d "0" /f > nul 2>&1
+reg add "HKU\%~1\SOFTWARE\Classes\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /v "System.IsPinnedToNameSpaceTree" /t REG_DWORD /d "0" /f > nul 2>&1
+reg delete "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f > nul 2>&1
 
 reg delete "HKU\%~1\Environment" /v "OneDrive" /f > nul 2>&1
 reg delete "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f > nul 2>&1

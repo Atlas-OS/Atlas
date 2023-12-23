@@ -148,7 +148,7 @@ for %%a in (
 
 :: Set RunOnce login script
 :: This is the script that will be ran on login for new users
-reg add "HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "RunScript" /t REG_SZ /d "powershell -EP Unrestricted -NoP & \"$env:windir\AtlasModules\Scripts\newUsers.ps1\"" /f
+reg add "HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "RunScript" /t REG_SZ /d "powershell -EP Bypass -NoP & \"$env:windir\AtlasModules\Scripts\newUsers.ps1\"" /f
 
 :: Remove Fax Recipient from the 'Send to' context menu as Fax feature is removed
 del /f /q "%APPDATA%\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1
@@ -208,12 +208,10 @@ if "%diskDrive%" == "SSD" (
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f > nul
 )
 
-@REM :: Detect if user uses laptop device or personal computer
-@REM for /f "delims=:{}" %%a in ('wmic path Win32_SystemEnclosure get ChassisTypes ^| findstr [0-9]') do set "CHASSIS=%%a"
-@REM set "DEVICE_TYPE=PC"
-@REM for %%a in (8 9 10 11 12 13 14 18 21 30 31 32) do if "%CHASSIS%" == "%%a" (set "DEVICE_TYPE=LAPTOP")
-
-@REM :: Disable laptop-related services on PC
-@REM if "%DEVICE_TYPE%" == "PC" (
-@REM     call %windir%\AtlasModules\Scripts\setSvc.cmd DisplayEnhancementService 4
-@REM )
+:: Disable brightness slider service if it's not supported on the current display
+@REM powershell -nop -c "if ((Get-Computerinfo).CsPCSystemType -eq 'Desktop') { exit 532 }" 
+@REM if errorlevel 532 set disableBright=true
+@REM powershell -nop -c "Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods -EA 0; if (!$?) {exit 533}"
+@REM if errorlevel 533 set disableBright=true
+@REM if "%disableBright%"=="true" (set brightStartup=4) else (set brightStartup=2)
+@REM call %windir%\AtlasModules\Scripts\setSvc.cmd DisplayEnhancementService %brightStartup%
