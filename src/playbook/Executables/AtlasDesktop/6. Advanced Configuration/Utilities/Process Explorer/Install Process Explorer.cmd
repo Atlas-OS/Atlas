@@ -31,7 +31,6 @@ echo Configuring Process Explorer...
 :: Run Process Explorer only in one instance
 reg add "HKCU\SOFTWARE\Sysinternals\Process Explorer" /v "OneInstance" /t REG_DWORD /d "1" /f > nul
 sc config pcw start=disabled > nul
-sc stop pcw > nul 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%windir%\AtlasModules\Apps\ProcessExplorer\process-explorer.exe" /f > nul
 
 echo]
