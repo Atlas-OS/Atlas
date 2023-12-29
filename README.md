@@ -58,7 +58,7 @@ Unlike custom Windows ISOs, Atlas is easier to audit due to Atlas' use of the so
 Playbooks are renamed **.zip** archives (with the password [`malte`](https://docs.ameliorated.io/developers/getting-started/creation.html)) which primarily consists of plain text scripts, meaning that Atlas is much easier to audit to see exactly what is changed. This is unlike custom Windows ISOs, which have many more entry points for malicious activity. The minimal amount of binaries included in the Playbook are open source in our [utilities](https://github.com/Atlas-OS/utilities) repository, with the [hashes being listed here](https://github.com/Atlas-OS/Atlas/blob/main/src/playbook/Executables/AtlasModules/README.md).
 
 ### 🔒 Legal Compliance
-As Atlas doesn't redistrbute a modified Windows ISO, Atlas fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). In addition, activation in Windows is not modified.
+As Atlas doesn't redistribute a modified Windows ISO, Atlas fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). In addition, activation in Windows is not modified.
 
 ## 🎨 Brand kit
 Want to create your own Atlas wallpaper with some original creative designs? Download our brand kit [here](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) and share your creations on our [forum](https://forum.atlasos.net/t/art-showcase).
