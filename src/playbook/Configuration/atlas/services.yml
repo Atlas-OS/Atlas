@@ -30,10 +30,12 @@ actions:
     wait: true
   - !cmd:
     command: '"AtlasDesktop\3. Configuration\Printing\Disable Printing (default).cmd" /silent'
+    option: 'disable-printing'
     exeDir: true
     wait: true
   - !cmd:
     command: '"AtlasDesktop\3. Configuration\Notifications\Disable Notifications (default).cmd" /silent'
+    option: 'disable-notifications'
     exeDir: true
     wait: true
 

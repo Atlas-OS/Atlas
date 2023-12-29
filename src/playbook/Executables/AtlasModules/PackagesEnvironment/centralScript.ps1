@@ -97,7 +97,10 @@ if ($safeModeWithList) { SafeMode }
 # PACKAGE LIST                                                                                                            #
 # ======================================================================================================================= #
 if (!$safeModeWithList) {
-    $packageList = (Get-ChildItem "$env:windir\AtlasModules\Packages\*.cab").FullName | Where-Object {$_ -like "*$(if ($arm) {'arm64'} else {'amd64'})*"}
+    $packageList = Get-ChildItem "$env:windir\AtlasModules\Packages\*.cab" | Where-Object { 
+        $_.FullName -like "*$(if ($arm) {'arm64'} else {'amd64'})*" -or 
+        ($_.FullName -notlike "*amd64*" -and $_.FullName -notlike "*arm64*")
+    }
 
     if ($DefenderOnly) {
         $packageList = $packageList | Where-Object { $_ -like '*NoDefender*' }
