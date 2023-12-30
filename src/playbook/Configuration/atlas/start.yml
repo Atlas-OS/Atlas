@@ -80,7 +80,7 @@ actions:
     exeDir: true
     wait: true
     weight: 120
-    option: 'browser-firefox'
+    option: 'browser-librewolf'
     runas: currentUserElevated
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !powerShell:
