@@ -36,8 +36,6 @@ $host.UI.RawUI.WindowTitle = "EdgeRemover $version | made by @he3als"
 
 # credit to ave9858 for Edge removal method: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6
 $ProgressPreference = "SilentlyContinue"
-$user = $env:USERNAME
-$SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
 $EdgeRemoverReg = 'HKLM:\SOFTWARE\EdgeRemover'
 
 if ($Exit -and ((-not $UninstallAll) -and (-not $UninstallEdge))) {
@@ -223,6 +221,9 @@ function RemoveEdgeChromium {
 }
 
 function RemoveEdgeAppX {
+	$user = $env:USERNAME
+	$SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
+	
 	# remove from Registry
 	$appxStore = '\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
 	$pattern = "HKLM:$appxStore\InboxApplications\Microsoft.MicrosoftEdge_*_neutral__8wekyb3d8bbwe"
