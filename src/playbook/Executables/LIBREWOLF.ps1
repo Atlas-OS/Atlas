@@ -26,9 +26,9 @@ $outputLibrewolfUpdater = "$env:systemdrive\librewolf-winupdater.zip"
 
 # Download files
 Write-Output "Downloading the latest LibreWolf setup"
-Invoke-WebRequest -Uri $librewolfDownload -OutFile $outputLibrewolf
+curl.exe -LSs "$librewolfDownload" -o "$outputLibrewolf"
 Write-Output "Downloading the latest LibreWolf WinUpdater ZIP"
-Invoke-WebRequest -Uri $librewolfUpdaterDownload -OutFile $outputLibrewolfUpdater
+curl.exe -LSs "$librewolfUpdaterDownload" -o "$outputLibrewolfUpdater"
 
 # Install LibreWolf & LibreWolf-WinUpdater
 Write-Output "Installing LibreWolf silently"
@@ -42,14 +42,13 @@ Expand-Archive -Path $outputLibrewolfUpdater -DestinationPath "$env:programfiles
 
 # Automatic updater
 Write-Output "Adding automatic updater task"
-$Title = "LibreWolf WinUpdater"
 $Action   = New-ScheduledTaskAction -Execute "$updaterPath\LibreWolf-WinUpdater.exe" -Argument "/Scheduled"
 $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RunOnlyIfNetworkAvailable
 $7Hours   = New-ScheduledTaskTrigger -Once -At (Get-Date -Minute 0 -Second 0).AddHours(1) -RepetitionInterval (New-TimeSpan -Hours 7)
 $AtLogon  = New-ScheduledTaskTrigger -AtLogOn
 $AtLogon.Delay = 'PT1M'
-$User = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -replace ".*\\"
-Register-ScheduledTask -TaskName "$Title ($User)" -Action $Action -Settings $Settings -Trigger $7Hours,$AtLogon -User $User -RunLevel Highest -Force | Out-Null
+$User = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+Register-ScheduledTask -TaskName "LibreWolf Updater ($($User -replace ".*\\"))" -Action $Action -Settings $Settings -Trigger $7Hours,$AtLogon -User $User -RunLevel Highest -Force | Out-Null
 
 # Shortcuts
 Write-Output "Creating shortcuts"

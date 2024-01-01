@@ -19,8 +19,8 @@ Start-Process -FilePath "$env:windir\AtlasDesktop\3. Configuration\Visual Effect
 
 # Pin 'Videos' and 'Music' folders to Home/Quick Acesss
 $o = new-object -com shell.application
-$o.Namespace("$env:userprofile\Videos").Self.InvokeVerb('pintohome')
-$o.Namespace("$env:userprofile\Music").Self.InvokeVerb('pintohome')
+$o.Namespace([Environment]::GetFolderPath("MyVideos")).Self.InvokeVerb('pintohome')
+$o.Namespace([Environment]::GetFolderPath("MyMusic")).Self.InvokeVerb('pintohome')
 
 # Set taskbar search box to an icon
 Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 1

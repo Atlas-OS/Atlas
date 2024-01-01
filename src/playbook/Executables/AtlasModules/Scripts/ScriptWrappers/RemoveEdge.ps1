@@ -221,9 +221,8 @@ function RemoveEdgeChromium {
 }
 
 function RemoveEdgeAppX {
-	$user = $env:USERNAME
-	$SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
-	
+	$SID = (New-Object System.Security.Principal.NTAccount(([System.Security.Principal.WindowsIdentity]::GetCurrent().Name))).Translate([Security.Principal.SecurityIdentifier]).Value
+
 	# remove from Registry
 	$appxStore = '\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
 	$pattern = "HKLM:$appxStore\InboxApplications\Microsoft.MicrosoftEdge_*_neutral__8wekyb3d8bbwe"
