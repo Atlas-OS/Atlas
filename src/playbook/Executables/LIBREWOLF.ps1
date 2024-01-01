@@ -48,7 +48,7 @@ $7Hours   = New-ScheduledTaskTrigger -Once -At (Get-Date -Minute 0 -Second 0).Ad
 $AtLogon  = New-ScheduledTaskTrigger -AtLogOn
 $AtLogon.Delay = 'PT1M'
 $User = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-Register-ScheduledTask -TaskName "LibreWolf Updater ($($User -replace ".*\\"))" -Action $Action -Settings $Settings -Trigger $7Hours,$AtLogon -User $User -RunLevel Highest -Force | Out-Null
+Register-ScheduledTask -TaskName "LibreWolf WinUpdater ($($User -replace ".*\\"))" -Action $Action -Settings $Settings -Trigger $7Hours,$AtLogon -User $User -RunLevel Highest -Force | Out-Null
 
 # Shortcuts
 Write-Output "Creating shortcuts"
