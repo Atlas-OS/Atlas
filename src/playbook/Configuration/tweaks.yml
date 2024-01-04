@@ -153,7 +153,6 @@ tasks:
   - tweaks\qol\visual-effects.yml
   - tweaks\qol\disable-tips.yml
   - tweaks\qol\set-hidden-settings-pages.yml
-  - tweaks\qol\enable-verbose-messages.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\appearance                                                            #
@@ -256,6 +255,7 @@ tasks:
   - tweaks\qol\startup-shutdown\decrease-shutdown-time.yml
   - tweaks\qol\startup-shutdown\disable-startup-delay.yml
   - tweaks\qol\startup-shutdown\force-end-shutdown-apps.yml
+  - tweaks\qol\startup-shutdown\enable-verbose-messages.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\system                                                                #
