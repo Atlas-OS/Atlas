@@ -341,3 +341,4 @@ tasks:
   - tweaks\misc\rebuild-perf-counters.yml
   - tweaks\misc\restore-default-sleep-timeout.yml
   - tweaks\misc\create-shortcuts.yml
+  - tweaks\misc\revert-old-tweaks.yml
