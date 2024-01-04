@@ -266,7 +266,6 @@ tasks:
   #  qol\taskbar                                                               #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\taskbar\cmd-win-x.yml
-  - tweaks\qol\taskbar\disable-badges-taskbar.yml
   - tweaks\qol\taskbar\disable-cloud-optimized-content.yml
   - tweaks\qol\taskbar\disable-desktop-peek.yml
   - tweaks\qol\taskbar\disable-news-and-interests.yml
