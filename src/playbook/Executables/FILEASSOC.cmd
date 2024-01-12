@@ -34,10 +34,18 @@ set chromeAssociations="Proto:https:ChromeHTML"^
  ".pdf:ChromeHTML"^
  ".shtml:ChromeHTML"
 
+set libreWolfAssociations="Proto:https:LibreWolfHTM"^
+ "Proto:http:LibreWolfHTM"^
+ ".htm:LibreWolfHTM"^
+ ".html:LibreWolfHTM"^
+ ".pdf:LibreWolfHTM"^
+ ".shtml:LibreWolfHTM"
+
 if "%~1" == "" set "associations=%baseAssociations%"
 if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
 if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
 if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%"
+if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
 if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 
 :: Set 7-Zip assocations

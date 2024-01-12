@@ -25,3 +25,8 @@ actions:
     args: '"Google Chrome"'
     option: 'browser-chrome'
     exeDir: true
+  - !run:
+    exe: 'TASKBARPINS.cmd'
+    args: '"LibreWolf"'
+    option: 'browser-librewolf'
+    exeDir: true

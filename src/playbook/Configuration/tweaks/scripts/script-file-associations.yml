@@ -24,16 +24,6 @@ actions:
     exeDir: true
   - !run:
     exe: 'FILEASSOC.cmd'
-    args: '"mpv"'
-    option: 'player-mpv'
-    exeDir: true
-  - !run:
-    exe: 'FILEASSOC.cmd'
-    args: '"MPC-HC"'
-    option: 'player-mpchc'
-    exeDir: true
-  - !run:
-    exe: 'FILEASSOC.cmd'
-    args: '"VLC"'
-    option: 'player-vlc'
+    args: '"LibreWolf"'
+    option: 'browser-librewolf'
     exeDir: true
