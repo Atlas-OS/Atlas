@@ -27,8 +27,16 @@ actions:
     exeDir: true
 
   - !writeStatus: {status: 'Setting the environment'}
-  - !cmd: {command: 'setx PATH "%PATH%;%windir%\AtlasModules;%windir%\AtlasModules\Apps;%windir%\AtlasModules\Other;%windir%\AtlasModules\Tools;%windir%\AtlasModules\Scripts" -m'}
-  - !cmd: {command: 'setx PSModulePath "%PSModulePath%;%windir%\AtlasModules\Scripts\Modules" -m'}
+  - !powerShell:
+    wait: true
+    command: >-
+      [Environment]::SetEnvironmentVariable('Path', $env:Path +
+      """;$env:windir\AtlasModules;$env:windir\AtlasModules\Apps;$env:windir\AtlasModules\Other;$env:windir\AtlasModules\Tools;%windir%\AtlasModules\Scripts""",
+      [System.EnvironmentVariableTarget]::Machine);
+
+      [Environment]::SetEnvironmentVariable('PSModulePath', $env:PSModulePath +
+      """;$env:windir\AtlasModules\Scripts\Modules""",
+      [System.EnvironmentVariableTarget]::Machine)
 
     # Doesn't refresh the environment variables of TrustedUninstaller
     # An alternative should be found, for now, exact paths are used
