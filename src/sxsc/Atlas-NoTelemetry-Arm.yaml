@@ -29,7 +29,7 @@ updates:
     target_arch: arm64
     version: 38655.38527.65535.65535
 
-    # Telemetry - collecting/reporting diagnostic info to Microsoft
+    # Telemetry - collecting and reporting diagnostic info to Microsoft
   - target_component: Microsoft-OneCore-SystemSettings-InputCloudStore
     target_arch: arm64
     version: 38655.38527.65535.65535
