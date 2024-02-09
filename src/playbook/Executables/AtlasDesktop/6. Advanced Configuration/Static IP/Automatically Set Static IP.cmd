@@ -49,10 +49,6 @@ echo Alternate DNS: %DNS2%
 echo]
 echo If this information appears to be incorrect or is blank, please report it on Discord or GitHub.
 
-:: Disable DHCP service, not needed when using Static IP
-call setSvc.cmd Dhcp 4
-sc stop Dhcp > nul 2>&1
-
 echo Completed.
 pause
 exit /b
