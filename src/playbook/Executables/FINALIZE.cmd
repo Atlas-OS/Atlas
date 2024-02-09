@@ -78,7 +78,6 @@ for %%a in (
     "EnablePME"
     "EnablePowerManagement"
     "EnableSavePowerNow"
-    "EnableWakeOnLan"
     "FlowControl"
     "FlowControlCap"
     "GigaLite"
@@ -92,7 +91,6 @@ for %%a in (
     "LsoV2IPv4"
     "LsoV2IPv6"
     "MasterSlave"
-    "ModernStandbyWoLMagicPacket"
     "MPC"
     "NicAutoPowerSaver"
     "Node"
@@ -117,8 +115,6 @@ for %%a in (
     "WakeOnPattern"
     "WakeOnSlot"
     "WakeUpModeCap"
-    "WoWLANLPSLevel"
-    "WoWLANS5Support"
 ) do (
     rem Check without '*'
     for /f %%b in ('reg query "%netKey%" /v "%%~a" 2^>nul ^| findstr "HKEY" 2^>nul') do (
