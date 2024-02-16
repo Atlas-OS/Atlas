@@ -29,6 +29,7 @@ jobs:
             auto-pr
             translations
             readme
+            dependabot
             "
             
             no_run=false
