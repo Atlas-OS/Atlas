@@ -2,11 +2,11 @@
 title: Root Playbook File
 description: Runs all of the playbook files
 privilege: TrustedInstaller
-actions: []
+actions:
+  - !writeStatus: {status: 'Optimizing PowerShell'}
 tasks:
   # Configure PowerShell first so that other PowerShell scripts work
-  # NGEN - PowerShell optimization
-  - tweaks\statuses\status-ngen.yml
+  # NGEN - .NET assemblies PowerShell optimization
   - tweaks\scripts\script-ngen.yml
   - tweaks\qol\config-powershell.yml
 
