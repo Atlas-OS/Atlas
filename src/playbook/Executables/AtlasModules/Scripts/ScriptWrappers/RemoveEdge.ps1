@@ -31,11 +31,17 @@ param (
 	[switch]$KeepAppX
 )
 
-$version = '1.7'
+$sys32 = [Environment]::GetFolderPath('System')
+$env:path = "$([Environment]::GetFolderPath('Windows'));$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
+
+$version = '1.8'
 $host.UI.RawUI.WindowTitle = "EdgeRemover $version | made by @he3als"
 
 # credit to ave9858 for Edge removal method: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6
 $ProgressPreference = "SilentlyContinue"
+$user = $env:USERNAME
+$SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
+$admin = [System.Security.Principal.NTAccount]$(New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544')).Translate([System.Security.Principal.NTAccount]).Value
 $EdgeRemoverReg = 'HKLM:\SOFTWARE\EdgeRemover'
 
 if ($Exit -and ((-not $UninstallAll) -and (-not $UninstallEdge))) {
@@ -140,7 +146,10 @@ function DeleteEdgeUpdate {
 		}
 		
 		# delete the edgeupdate folder
-		Remove-Item -Path "$env:SystemDrive\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
+		'LocalApplicationData','ProgramFilesX86','ProgramFiles' | ForEach-Object {
+			$folder = "$([Environment]::GetFolderPath($_))\Microsoft\EdgeUpdate"
+			if (Test-Path $folder) { Remove-Item -Path $folder -Recurse -Force | Out-Null }
+		}
 	}
 
 	# revert error action preference
@@ -156,7 +165,7 @@ function RemoveEdgeChromium {
 	
 	# terminate Edge processes
 	$services = (Get-Service -Name "*edge*" | Where-Object {$_.DisplayName -like "*Microsoft Edge*"}).Name
-	$processes = (Get-Process | Where-Object {($_.Path -like "$env:SystemDrive\Program Files (x86)\Microsoft\*") -or ($_.Name -like "*msedge*")}).Id
+	$processes = (Get-Process | Where-Object {($_.Path -like "$([Environment]::GetFolderPath('ProgramFilesX86'))\Microsoft\*") -or ($_.Name -like "*msedge*")}).Id
 	foreach ($process in $processes) {
 		Stop-Process -Id $process -Force
 	}
@@ -177,15 +186,47 @@ function RemoveEdgeChromium {
 	}
 
 	# allow Edge uninstall
+	# seems to no longer exist, kept anyways for legacy purposes
+	# replaced with modifying IntegratedServicesRegionPolicySet.json
 	$devKeyPath = Join-Path -Path $baseKey -ChildPath "EdgeUpdateDev"
 	if (-not (Test-Path $devKeyPath)) { New-Item -Path $devKeyPath -ItemType "Key" -Force | Out-Null }
 	Set-ItemProperty -Path $devKeyPath -Name "AllowUninstall" -Value "" -Type String -Force | Out-Null
+
+	# modifies IntegratedServicesRegionPolicySet as that's now checked for Edge uninstall
+	$integratedServicesPath = "$sys32\IntegratedServicesRegionPolicySet.json"
+	if (!(Test-Path $integratedServicesPath)) {
+		Write-Warning "'$integratedServicesPath' not found, continuing anyways but uninstall might fail."
+	} else {
+		try {
+			# get perms (normally TI :3)
+			$acl = Get-Acl -Path $integratedServicesPath
+			$backup = [System.Security.AccessControl.FileSecurity]::new()
+			$backup.SetSecurityDescriptorSddlForm($acl.Sddl)
+			# full control
+			$acl.SetOwner($admin)
+			$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($admin, "FullControl", "Allow")
+			$acl.AddAccessRule($rule)
+			# set modified ACL
+			Set-Acl -Path $integratedServicesPath -AclObject $acl
+
+			# modify the stuff :3
+			$integratedServices = Get-Content $integratedServicesPath | ConvertFrom-Json
+			($integratedServices.policies | Where-Object { ($_.'$comment' -like "*Edge*") -and ($_.'$comment' -like "*uninstall*") }).defaultState = 'enabled'
+			$modifiedJson = $integratedServices | ConvertTo-Json -Depth 100
+
+			$backupIntegratedServicesPath = "IntegratedServicesRegionPolicySet.json.$([System.IO.Path]::GetRandomFileName())"
+			Rename-Item $integratedServicesPath -NewName $backupIntegratedServicesPath -Force
+			Set-Content $integratedServicesPath -Value $modifiedJson -Force -Encoding UTF8	
+		} catch {
+			Write-Error "Failed to modify region policies. $_"
+		}	
+	}
 
 	# uninstall Edge
 	$uninstallKeyPath = Join-Path -Path $baseKey -ChildPath "Windows\CurrentVersion\Uninstall\Microsoft Edge"
 	if (Test-Path $uninstallKeyPath) {
 		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString + " --force-uninstall"
-		Start-Process cmd.exe "/c $uninstallString" -WindowStyle Hidden 2>&1 | Out-Null
+		Start-Process -Wait cmd.exe -ArgumentList "/c start /wait `"`" $uninstallString" -WindowStyle Hidden
 	} else {
 		$edges = @(); 'LocalApplicationData','ProgramFilesX86','ProgramFiles' | ForEach-Object {
 			$folder = [Environment]::GetFolderPath($_)
@@ -200,18 +241,25 @@ function RemoveEdgeChromium {
 	# uninstall Edge with MsiExec (e.g. WinGet installs)
 	Uninstall-MsiexecAppByName -Name "Microsoft Edge"
 
+	# revert IntegratedServicesRegionPolicySet modification
+	if ($backupIntegratedServicesPath) {
+		Remove-Item $integratedServicesPath -Force
+		Rename-Item $backupIntegratedServicesPath -NewName $integratedServicesPath -Force
+
+		# restore old ACL
+		Set-Acl -Path $integratedServicesPath -AclObject $backup
+	}
+
 	# remove user data
 	if ($removeData) {
-		$path = "$env:LOCALAPPDATA\Microsoft\Edge"
+		$path = "$([Environment]::GetFolderPath('LocalApplicationData'))\Microsoft\Edge"
 		if (Test-Path $path) {Remove-Item $path -Force -Recurse}
 	}
 
 	# remove Edge shortcut on desktop
 	# may exist for some people after a proper uninstallation
-	$shortcutPath = "$env:USERPROFILE\Desktop\Microsoft Edge.lnk"
-	if (Test-Path $shortcutPath) {
-		Remove-Item $shortcutPath -Force
-	}
+	$shortcutPath = "$([Environment]::GetFolderPath('Desktop'))\Microsoft Edge.lnk"
+	if (Test-Path $shortcutPath) { Remove-Item $shortcutPath -Force }
 
 	# restart explorer if Copilot is enabled
 	# this will hide the Copilot button
@@ -221,8 +269,6 @@ function RemoveEdgeChromium {
 }
 
 function RemoveEdgeAppX {
-	$SID = (New-Object System.Security.Principal.NTAccount(([System.Security.Principal.WindowsIdentity]::GetCurrent().Name))).Translate([Security.Principal.SecurityIdentifier]).Value
-
 	# remove from Registry
 	$appxStore = '\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
 	$pattern = "HKLM:$appxStore\InboxApplications\Microsoft.MicrosoftEdge_*_neutral__8wekyb3d8bbwe"
