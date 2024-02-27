@@ -25,7 +25,7 @@
 - [Branding](https://docs.atlasos.net/branding/)
 
 ## 🤔 What is Atlas?
-Atlas is an open source project that enhances Windows by eliminating factors that negatively impact gaming performance. We optimize for minimal stutters and input lag, enhanced privacy, usability, and performance, all with a focus on maintaining functionality.
+Atlas is an open-source project that enhances Windows by eliminating factors negatively impacting gaming performance. We optimize for minimal stutters and input lag, enhanced privacy, usability, and performance, all focusing on maintaining functionality.
 
 ## 👀 Why Atlas?
 ### 🔒 Enhanced Privacy
@@ -35,14 +35,14 @@ Atlas removes the majority of telemetry embedded within Windows and implements n
 Atlas strikes a balance between performance and compatibility. It implements numerous meaningful changes to improve Windows performance and responsiveness without breaking essential features. Atlas will not do tweaks for a placebo effect or very marginal gains, making Atlas more stable and compatible.
 
 ### 🛡️ Security Features
-Unlike most other Windows modifications, we don't remove key security features that most users need to maintain a secure system. However, Atlas allows power users to have more customisation over disabling certain security features within their needs, including informing users with information about the [pros and cons](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/security/) of each option.
+Unlike most other Windows modifications, we don't remove key security features that most users need to maintain a secure system. However, Atlas allows power users to have more customization over turning off certain security features within their needs, including informing users with information about the [pros and cons](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/security/) of each option.
 
-Some security features which are optional are:
+Some optional security features are:
 
 - Windows Defender & SmartScreen
 - Windows Update
-  - No automatic updates (will be customisable next release)
-  - No major feature updates (potentially customisable in the future)
+  - No automatic updates (will be customizable next release)
+  - No major feature updates (potentially customizable in the future)
 - CPU mitigations
 - User Account Control
 - Core isolation features
@@ -55,10 +55,10 @@ Atlas is open source with the [GPLv3 license](https://github.com/Atlas-OS/Atlas/
 
 Unlike custom Windows ISOs, Atlas is easier to audit due to Atlas' use of the software [AME Wizard](https://ameliorated.io). AME Wizard is controlled by Playbooks, a heavily customizable script-esque system that can perform a wide range of tasks, including deep modifications to Windows. AME Wizard's backend is [open source](https://git.ameliorated.info/Styris/trusted-uninstaller-cli), meaning that you can see exactly what is ran.
 
-Playbooks are renamed **.zip** archives (with the password [`malte`](https://docs.ameliorated.io/developers/getting-started/creation.html)) which primarily consists of plain text scripts, meaning that Atlas is much easier to audit to see exactly what is changed. This is unlike custom Windows ISOs, which have many more entry points for malicious activity. The minimal amount of binaries included in the Playbook are open source in our [utilities](https://github.com/Atlas-OS/utilities) repository, with the [hashes being listed here](https://github.com/Atlas-OS/Atlas/blob/main/src/playbook/Executables/AtlasModules/README.md).
+Playbooks are renamed **.zip** archives (with the password `malte`), which primarily consist of plain text scripts, meaning Atlas is much easier to audit to see exactly what changes. This is unlike custom Windows ISOs, which have many more entry points for malicious activity. The minimal binaries in the Playbook are open source in our [utilities](https://github.com/Atlas-OS/utilities) repository, with the [hashes listed here](https://github.com/Atlas-OS/Atlas/blob/main/src/playbook/Executables/AtlasModules/README.md).
 
 ### 🔒 Legal Compliance
-As Atlas doesn't redistribute a modified Windows ISO, Atlas fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). In addition, activation in Windows is not modified.
+As Atlas doesn't redistribute a modified Windows ISO, it fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). In addition, activation in Windows is not modified.
 
 ## 🎨 Brand kit
 Want to create your own Atlas wallpaper with some original creative designs? Download our brand kit [here](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) and share your creations on our [forum](https://forum.atlasos.net/t/art-showcase).
