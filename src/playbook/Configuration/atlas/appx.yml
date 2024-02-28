@@ -68,18 +68,20 @@ actions:
   # Family App, Quick Assist
   - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
   - !appx: {name: '*MicrosoftCorporationII.MicrosoftFamily*', type: family}
+  
+  # Bing-related applications
+  - !appx: {name: '*Bing*', type: family}
+
+  # Outlook-related applications
+  - !appx: {name: '*Outlook*', type: family}
 
   - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
-  - !appx: {name: '*Microsoft.BingNews*', type: family}
-  - !appx: {name: '*Microsoft.BingSearch*', type: family}
-  - !appx: {name: '*Microsoft.BingWeather*', type: family}
   - !appx: {name: '*Microsoft.GetHelp*', type: family}
   - !appx: {name: '*Microsoft.Microsoft3DViewer*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftOfficeHub*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftSolitaireCollection*', type: family}
   - !appx: {name: '*Microsoft.MicrosoftStickyNotes*', type: family}
   - !appx: {name: '*Microsoft.Office.OneNote*', type: family}
-  - !appx: {name: '*Microsoft.OutlookForWindows*', type: family}
   - !appx: {name: '*Microsoft.People*', type: family}
   - !appx: {name: '*Microsoft.PowerAutomateDesktop*', type: family}
   - !appx: {name: '*Microsoft.Windows.PeopleExperienceHost*', type: family}
