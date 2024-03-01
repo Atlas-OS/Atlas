@@ -153,6 +153,7 @@ tasks:
   - tweaks\qol\visual-effects.yml
   - tweaks\qol\disable-tips.yml
   - tweaks\qol\set-hidden-settings-pages.yml
+  - tweaks\qol\disable-win11-settings-banner.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\appearance                                                            #
