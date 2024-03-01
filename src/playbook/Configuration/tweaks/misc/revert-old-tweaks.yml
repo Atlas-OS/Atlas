@@ -4,10 +4,17 @@ description: Reverts removed tweaks, so that people who upgrade from older Atlas
 privilege: TrustedInstaller
 actions:
     # Hide UWP Badges on Taskbar
-    # Improperly titled, disables badges on all apps
+    # Tweak was improperly titled, disables badges on all apps
     # Why would you disable badges on UWP apps anyways?
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'TaskbarBadges'
     data: '1'
     type: REG_DWORD
+
+    # Reverted for security reasons
+    # Users get no update notifications otherwise, which means many users don't update at all
+  - !cmd:
+    command: 'reg import "AtlasDesktop\3. Configuration\Windows Update\Update Notifications\Enable Update Notifications (default).reg"'
+    exeDir: true
+    wait: true

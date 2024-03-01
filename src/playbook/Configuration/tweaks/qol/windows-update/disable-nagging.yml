@@ -8,6 +8,3 @@ actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'NoAUAsDefaultShutdownOption', data: '1', type: REG_DWORD}
     # Seems to be legacy, but it will be kept anyways https://www.thewindowsclub.com/disable-windows-creators-update-notice-windows-update
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings', value: 'HideMCTLink', data: '1', type: REG_DWORD}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'SetAutoRestartNotificationDisable', data: '1', type: REG_DWORD}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings', value: 'RestartNotificationsAllowed2', data: '0', type: REG_DWORD}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'SetUpdateNotificationLevel', data: '2', type: REG_DWORD}
