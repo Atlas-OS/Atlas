@@ -7,6 +7,7 @@ actions:
     # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-'
     # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-'
 
+  - !taskKill: {name: 'explorer'}
   - !run:
     exe: 'TASKBARPINS.cmd'
     exeDir: true
@@ -30,3 +31,4 @@ actions:
     args: '"LibreWolf"'
     option: 'browser-librewolf'
     exeDir: true
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
