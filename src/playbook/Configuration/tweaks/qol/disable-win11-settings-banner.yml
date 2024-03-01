@@ -8,4 +8,4 @@ actions:
     value: 'ActivationType'
     data: '0'
     type: REG_DWORD
-    builds: [ '>=22000' ]}
+    builds: [ '>=22000' ]
