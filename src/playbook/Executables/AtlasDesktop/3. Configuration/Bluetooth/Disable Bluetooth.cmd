@@ -3,7 +3,7 @@
 if "%~1" == "/silent" goto main
 
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call %windir%\AtlasModules\Scripts\RunAsTI.cmd "%~f0" %*
+	call "%windir%\AtlasModules\Scripts\RunAsTI.cmd" "%~f0" %*
 	exit /b
 )
 
@@ -35,7 +35,8 @@ call %windir%\AtlasModules\Scripts\setSvc.cmd BthPan 4 > nul 2>&1
 :: Disable Bluetooth devices
 call %windir%\AtlasModules\Scripts\toggleDev.cmd -Silent '*Bluetooth*'
 
-attrib +h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+:: Disable in Send To context menu
+"%windir%\AtlasDesktop\4. Optional Tweaks\Send To Context Menu\Debloat Send To Context Menu.cmd" -Disable @('Bluetooth')
 
 :: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-connectivity
 reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth" /v "value" /t REG_DWORD /d "0" /f > nul

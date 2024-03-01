@@ -36,8 +36,8 @@ call toggleDev.cmd -Silent -Enable '*Bluetooth*'
 reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth" /v "value" /t REG_DWORD /d "2" /f > nul
 
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
-if %ERRORLEVEL% == 1 attrib -h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
-if %ERRORLEVEL% == 2 attrib +h "%APPDATA%\Microsoft\Windows\SendTo\Bluetooth File Transfer.LNK"
+if %ERRORLEVEL% == 1 "%windir%\AtlasDesktop\4. Optional Tweaks\Send To Context Menu\Debloat Send To Context Menu.cmd" -Enable @('Bluetooth')
+if %ERRORLEVEL% == 2 "%windir%\AtlasDesktop\4. Optional Tweaks\Send To Context Menu\Debloat Send To Context Menu.cmd" -Disable @('Bluetooth')
 
 echo Finished, please reboot your device for changes to apply.
 pause

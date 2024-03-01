@@ -135,12 +135,7 @@ for /f %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s /f "DmaRem
 )
 
 :: Hide unnecessary items from the 'Send To' context menu
-for %%a in (
-    "Documents.mydocs"
-    "Mail Recipient.MAPIMail"
-) do (
-    attrib +h "%APPDATA%\Microsoft\Windows\SendTo\%%~a" > nul
-)
+"%windir%\AtlasDesktop\4. Optional Tweaks\Send To Context Menu\Debloat Send To Context Menu.cmd" -Disable @('Documents', 'Mail Recipient')
 
 :: Set RunOnce login script
 :: This is the script that will be ran on login for new users
