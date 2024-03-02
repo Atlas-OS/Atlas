@@ -176,9 +176,9 @@ try {
 			$content = Get-Content -Path $tempStartYML
 
 			if ($liveLog) {
-				# uncomment the 8th line (7 in PowerShell because arrays are zero-based)
-				if ($content.Count -gt 7) {
-					$content[7] = $content[7] -replace ' #', ''
+				# uncomment the 8th line (6 in PowerShell because arrays are zero-based)
+				if ($content.Count -gt 6) {
+					$content[6] = $content[6] -replace ' #', ''
 				}
 			}
 
