@@ -32,8 +32,15 @@ reg import "$atlasDesktop\3. Configuration\Network Discovery\Network Navigation 
 
 # Pin 'Videos' and 'Music' folders to Home/Quick Acesss
 $o = new-object -com shell.application
-$o.Namespace([Environment]::GetFolderPath("MyVideos")).Self.InvokeVerb('pintohome')
-$o.Namespace([Environment]::GetFolderPath("MyMusic")).Self.InvokeVerb('pintohome')
+$currentPins = $o.Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}').Items() | ForEach-Object { $_.Path }
+foreach ($path in @(
+    [Environment]::GetFolderPath('MyVideos'),
+    [Environment]::GetFolderPath('MyMusic')
+)) {
+    if ($currentPins -notcontains $path) {
+        $o.Namespace($path).Self.InvokeVerb('pintohome')
+    }
+}
 
 # Set taskbar search box to an icon
 Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 1
