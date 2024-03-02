@@ -72,6 +72,8 @@ for %%a in (
     )
 ) > nul 2>&1
 
+if "%~1"=="/silent" exit /b
+
 echo Finished, please reboot your device for changes to apply.
 pause
 exit /b

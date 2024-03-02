@@ -24,10 +24,7 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-networking.yml
   - tweaks\networking\disable-llmnr.yml
-  - tweaks\networking\disable-smart-name-resolution.yml
-  - tweaks\networking\config-netsh.yml
-  - tweaks\networking\disable-network-power-saving.yml
-  - tweaks\networking\config-packet-sched-timer-res.yml
+  - tweaks\networking\atlas-network-settings.yml
 
   # -------------------------------------------------------------------------- #
   #  networking\shares                                                         #

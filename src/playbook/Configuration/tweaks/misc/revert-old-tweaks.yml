@@ -30,9 +30,11 @@ actions:
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched', value: 'TimerResolution', operation: delete}
     # Used for DSCP? DSCP is not relevant for home networks
   - !registryValue: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\QoS', value: 'Do not use NLA', operation: delete}
-    # Disables LLMNR, but it's irrelevant to Atlas
-  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient', value: 'EnableMulticast', operation: delete}
     # Revert CTCP
     # > "seen as very delay sensitive and also worked poorly in data centre"
     # > https://en.wikipedia.org/wiki/Compound_TCP#Windows_8_and_up
   - !cmd: {command: 'netsh int tcp set supplemental Internet congestionprovider=default'}
+    # Revert disabling smart name resolution
+    # Doesn't prevent DNS leakage, just makes it less optimised
+  - !registryValue: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters', value: 'DisableParallelAandAAAA', operation: delete}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient', value: 'DisableSmartNameResolution', operation: delete}
