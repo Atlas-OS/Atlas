@@ -3,6 +3,7 @@ set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\TelemetryComponents.ps1
 if not exist "%script%" (
 	echo Script not found.
 	echo "%script%"
+	pause
 	exit /b 1
 )
 
