@@ -325,6 +325,7 @@ tasks:
   - tweaks\scripts\script-power.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
+  - tweaks\scripts\script-clientcbs.yml
 
   # -----------------------------------------------------
   #                         Misc
