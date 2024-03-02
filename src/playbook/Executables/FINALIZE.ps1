@@ -1,5 +1,3 @@
-$windir = [Environment]::GetFolderPath('Windows')
-
 # SSD specific settings
 if ((Get-Partition | Where-Object { $_.IsBoot } | Get-Disk | Get-PhysicalDisk).MediaType -eq "SSD") {
     # Remove lower filters for rdyboost driver

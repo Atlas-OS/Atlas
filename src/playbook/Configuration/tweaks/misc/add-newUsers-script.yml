@@ -5,6 +5,7 @@ actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
     value: 'RunScript'
-    data: 'powershell -EP Bypass -NoP & \"$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\newUsers.ps1\"'
+    data: >-
+      powershell -EP Bypass -NoP & \"$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\newUsers.ps1\"
     type: REG_SZ
     scope: defaultUsers
