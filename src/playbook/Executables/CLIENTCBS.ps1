@@ -16,13 +16,13 @@ if (!(Test-Path $settingsExtensions)) {
 }
 
 # Finds velocity IDs listed in 'Accounts' wsxpack
-$ids = @()
 function Find-VelocityID($Node) {
+    $ids = @()
     if ($Node -is [PSCustomObject]) {
         # If the node is a PSObject, go through through its properties
         foreach ($property in $Node.PSObject.Properties) {
             if ($property.Name -eq 'velocityKey' -and $property.Value.id) {
-                $global:ids += $property.Value.id
+                $ids += $property.Value.id
             }
             Find-VelocityID -Node $property.Value
         }
@@ -32,8 +32,10 @@ function Find-VelocityID($Node) {
             Find-VelocityID -Node $element
         }
     }
+
+    return $ids
 }
-Find-VelocityID -Node $(Get-Content -Path $settingsExtensions | ConvertFrom-Json)
+$ids = Find-VelocityID -Node $(Get-Content -Path $settingsExtensions | ConvertFrom-Json)
 
 # No IDs check
 if ($ids.Count -le 0) {
