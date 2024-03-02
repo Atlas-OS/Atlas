@@ -1,7 +1,6 @@
 ---
 title: Configure PowerShell
 description: Configures PowerShell for the optimal privacy and usability
-privilege: TrustedInstaller
 actions:
     # Disable PowerShell Core telemetry
   - !cmd: {command: 'setx POWERSHELL_TELEMETRY_OPTOUT 1'}

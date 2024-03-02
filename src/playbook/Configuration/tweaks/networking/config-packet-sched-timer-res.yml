@@ -1,7 +1,6 @@
 ---
 title: Configure Packet Scheduler Timer Resolution
 description: Configures the network stack (packet scheduler) timer resolution to be more precise
-privilege: TrustedInstaller
 actions:
   # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.QualityofService::QosTimerResolution
   - !registryValue:

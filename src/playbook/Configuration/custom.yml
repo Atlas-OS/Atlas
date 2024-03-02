@@ -1,7 +1,6 @@
 ---
 title: Root Playbook File
 description: Runs all of the playbook files
-privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Optimizing PowerShell'}
 tasks:

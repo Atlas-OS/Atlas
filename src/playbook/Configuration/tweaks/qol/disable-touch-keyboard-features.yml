@@ -1,7 +1,6 @@
 ---
 title: Disable Unnecessary Touch Keyboard Settings
 description: Disable unnecessary touch keyboard settings for QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'

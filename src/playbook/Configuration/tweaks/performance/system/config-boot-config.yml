@@ -1,7 +1,6 @@
 ---
 title: Configure Boot Configuration
 description: Configures the boot configuration (BCD) for QoL
-privilege: TrustedInstaller
 actions:
     # Lowering dual boot choice time
     # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/--timeout#parameters

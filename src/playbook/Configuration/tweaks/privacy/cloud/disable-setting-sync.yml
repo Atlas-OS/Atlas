@@ -1,7 +1,6 @@
 ---
 title: Disable Settings Sync
 description: Disables Settings Synchronization feature for QoL and privacy
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'

@@ -1,7 +1,6 @@
 ---
 title: Configure Services and Drivers
 description: Configures services and drivers to reduce background system resource utilisation
-privilege: TrustedInstaller
 actions:
   # ----------------------------------
   # - Potential references           -

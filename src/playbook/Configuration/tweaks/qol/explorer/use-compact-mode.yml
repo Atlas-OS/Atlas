@@ -1,7 +1,6 @@
 ---
 title: Use Compact Mode
 description: Sets compact mode in File Explorer
-privilege: TrustedInstaller
 builds: [ '>=22000' ]
 actions:
   - !registryValue:

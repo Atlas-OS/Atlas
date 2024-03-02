@@ -1,7 +1,6 @@
 ---
 title: Disable Modern Standby SleepStudy
 description: Disables Modern Standby's SleepStudy feature, as it's unnecessary logging that isn't needed on boot
-privilege: TrustedInstaller
 actions:
   - !run:
     exe: 'wevtutil.exe'

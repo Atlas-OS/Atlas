@@ -1,7 +1,6 @@
 ---
 title: Disable Scheduled Tasks
 description: Disables scheduled tasks to prevent automatic tasks from running at startup, consuming resources and collecting user data
-privilege: TrustedInstaller
 actions:
   # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
 

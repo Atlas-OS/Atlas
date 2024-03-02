@@ -1,7 +1,6 @@
 ---
 title: Set File Associations
 description: Sets file associations for the user-selected web browser and other apps like the Windows Photo Viewer
-privilege: TrustedInstaller
 actions:
   - !run:
     exe: 'FILEASSOC.cmd'

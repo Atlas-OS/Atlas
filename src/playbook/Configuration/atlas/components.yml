@@ -1,7 +1,6 @@
 ---
 title: Components
 description: Removes certain Windows components
-privilege: TrustedInstaller
 actions:
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}

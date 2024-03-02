@@ -1,7 +1,6 @@
 ---
 title: AppX
 description: Removes AppX packages and prevents them from being reinstalled
-privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Removing AppX packages'}
   

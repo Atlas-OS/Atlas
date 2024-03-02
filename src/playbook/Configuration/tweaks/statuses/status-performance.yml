@@ -1,6 +1,5 @@
 ---
 title: Status in AME Wizard for the Performance Category
 description: Displays a status in AME Wizard for a specified category
-privilege: TrustedInstaller
 actions:
   - !writeStatus: {status: 'Running performance tweaks'}

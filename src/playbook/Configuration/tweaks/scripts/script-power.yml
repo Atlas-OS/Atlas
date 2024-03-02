@@ -1,7 +1,6 @@
 ---
 title: Configure Power Settings
 description: Executes script to configure power settings for the best performance, especially focusing on the lowest latency e.g. by reducing any potential jitter
-privilege: TrustedInstaller
 actions:
     # Disable Power Saving features
   - !cmd:

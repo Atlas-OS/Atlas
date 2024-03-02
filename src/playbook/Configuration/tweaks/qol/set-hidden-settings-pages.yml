@@ -1,7 +1,6 @@
 ---
 title: Set Hidden Pages
 description: Hides Settings pages that are either broken or unused
-privilege: TrustedInstaller
 actions:
     # https://learn.microsoft.com/en-us/windows/uwp/launch-resume/launch-settings-app
 

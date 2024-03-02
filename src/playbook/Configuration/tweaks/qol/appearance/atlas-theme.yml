@@ -1,7 +1,6 @@
 ---
 title: Add Theme
 description: Adds and sets the Atlas themes by default
-privilege: TrustedInstaller
 actions:
     # Copy files
   - !cmd:

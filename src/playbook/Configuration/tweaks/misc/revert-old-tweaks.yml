@@ -1,7 +1,6 @@
 ---
 title: Revert Tweaks from Old Versions
 description: Reverts removed tweaks, so that people who upgrade from older Atlas versions no longer have the tweaks
-privilege: TrustedInstaller
 actions:
     # Hide UWP Badges on Taskbar
     # Tweak was improperly titled, disables badges on all apps

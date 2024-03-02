@@ -1,7 +1,6 @@
 ---
 title: Restrict Anonymous Access
 description: Restricts anonymous access to named pipes and shares to prevent unauthorized system access
-privilege: TrustedInstaller
 actions:
     # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220932
   - !registryValue:

@@ -1,7 +1,6 @@
 ---
 title: Disable WU Nagging
 description: Disables Windows Update from nagging you in any way possible, e.g. about restarting your computer.
-privilege: TrustedInstaller
 actions:
     # Do not adjust default option to 'Install Updates and Shut Down' in Shut Down Windows dialog box
     # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.WindowsUpdate::AUNoUasDefaultPolicy_Mach

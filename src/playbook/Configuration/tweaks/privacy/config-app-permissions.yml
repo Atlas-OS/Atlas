@@ -1,7 +1,6 @@
 ---
 title: Configure App Permissions
 description: Configures default app permissions in Settings for the optimal privacy
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\appDiagnostics'

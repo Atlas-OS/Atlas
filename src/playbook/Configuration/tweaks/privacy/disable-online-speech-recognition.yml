@@ -1,7 +1,6 @@
 ---
 title: Disable Online Speech Recognition
 description: Disables online speech recognition for privacy purposes
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy'

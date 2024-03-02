@@ -1,7 +1,6 @@
 ---
 title: Add 'Merge as TrustedInstaller' to Context Menu
 description: Adds 'Merge as TrustedInstaller' to context menu for registry files
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCR\regfile\Shell\RunAs'

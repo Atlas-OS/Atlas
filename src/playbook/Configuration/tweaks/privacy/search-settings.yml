@@ -1,7 +1,6 @@
 ---
 title: Configure Search on the Taskbar
 description: Configures search for the optimal usability and privacy, such as disabling online features to make it simplistic and usable
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'

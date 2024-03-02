@@ -1,7 +1,6 @@
 ---
 title: Configure Start Menu
 description: Configures the Start Menu's settings for QoL
-privilege: TrustedInstaller
 actions:
     # Configure default Windows 11 pins
   - !registryValue:

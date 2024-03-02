@@ -1,7 +1,6 @@
 ---
 title: Add 'End task' to the taskbar
 description: Adds 'End task' as a right-click option on taskbar for QoL
-privilege: TrustedInstaller
 builds: [ '>22000' ]
 actions:
   - !registryValue:

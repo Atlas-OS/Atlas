@@ -1,7 +1,6 @@
 ---
 title: Initial Configuration
 description: Copies Atlas folders/files, installs dependencies and performs the preliminary configuration
-privilege: TrustedInstaller
 actions:
     # AME Wizard Live Log for development playbooks
     # Do not change the line position of this, otherwise things will break when using local-build

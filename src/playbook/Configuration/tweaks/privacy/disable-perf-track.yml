@@ -1,7 +1,6 @@
 ---
 title: Disable Performance Track
 description: Disables tracking of responsiveness events for privacy
-privilege: TrustedInstaller
 actions:
     # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.PerformancePerftrack::WdiScenarioExecutionPolicy
   - !registryValue:

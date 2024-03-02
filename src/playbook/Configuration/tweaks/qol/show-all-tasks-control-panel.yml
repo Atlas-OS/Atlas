@@ -1,7 +1,6 @@
 ---
 title: Show All Tasks in Control Panel
 description: Shows 'All Tasks' in Control Panel (God Mode), so that people can easily access all settings for QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCR\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}'

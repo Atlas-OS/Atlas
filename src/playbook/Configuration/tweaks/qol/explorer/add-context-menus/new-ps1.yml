@@ -1,7 +1,6 @@
 ---
 title: Add PowerShell Script to 'New' Context Menu
 description: Adds PowerShell script (.ps1) to 'New' context menu
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCR\.ps1'

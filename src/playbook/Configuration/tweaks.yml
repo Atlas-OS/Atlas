@@ -1,7 +1,6 @@
 ---
 title: Tweaks Root Playbook File
 description: Runs all of the Atlas playbook tweaks
-privilege: TrustedInstaller
 actions: []
 tasks:
   # ------------------------- NOTES ------------------------- #
