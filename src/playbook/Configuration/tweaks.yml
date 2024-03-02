@@ -344,3 +344,4 @@ tasks:
   - tweaks\misc\restore-default-sleep-timeout.yml
   - tweaks\misc\create-shortcuts.yml
   - tweaks\misc\revert-old-tweaks.yml
+  - tweaks\misc\add-music-videos-to-home.yml
