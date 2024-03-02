@@ -1,5 +1,9 @@
 #Requires -RunAsAdministrator
 
+param (
+    [switch]$Silent
+)
+
 $networkDiscoveryConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. Configuration\Network Discovery"
 
 # Disable network items
@@ -27,6 +31,8 @@ Get-NetFirewallRule | Where-Object {
 } | Disable-NetFirewallRule
 
 if ($LASTEXITCODE -eq 1) {reg import "$networkDiscoveryConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).reg" | Out-Null}
+
+if ($Silent) { exit }
 
 Clear-Host
 Write-Host "Completed!" -ForegroundColor Green

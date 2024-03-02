@@ -1,0 +1,9 @@
+---
+title: Debloat Send-To Context Menu
+description: Removes commonly un-used items from the Send-To context menu in Explorer
+actions:
+  - !cmd:
+    command: >-
+      "AtlasDesktop\4. Optional Tweaks\Send To Context Menu\Debloat Send To Context Menu.cmd" -Disable @('Documents', 'Mail Recipient')
+    exeDir: true
+    wait: true

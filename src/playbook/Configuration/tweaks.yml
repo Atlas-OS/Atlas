@@ -205,6 +205,7 @@ tasks:
   - tweaks\qol\explorer\dont-show-office-files.yml
   - tweaks\qol\explorer\use-compact-mode.yml
   - tweaks\qol\explorer\disable-gallery.yml
+  - tweaks\qol\explorer\debloat-send-to.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
@@ -344,3 +345,4 @@ tasks:
   - tweaks\misc\create-shortcuts.yml
   - tweaks\misc\revert-old-tweaks.yml
   - tweaks\misc\add-music-videos-to-home.yml
+  - tweaks\misc\add-newUsers-script.yml

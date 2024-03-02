@@ -38,6 +38,10 @@ actions:
     option: 'disable-notifications'
     exeDir: true
     wait: true
+  - !powerShell:
+    command: '.\AtlasModules\Scripts\ScriptWrappers\DisableFileSharing.ps1 -Silent'
+    exeDir: true
+    wait: true
 
     # ------ Microsoft recommendation - 'OK to disable' ------
   - !service: {name: 'lfsvc', operation: change, startup: 4}
