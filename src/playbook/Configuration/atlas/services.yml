@@ -15,7 +15,8 @@ actions:
 
   # Backup default Windows serivces & drivers
   - !powerShell:
-    command: '.\BACKUP.ps1 -FilePath """$env:windir\AtlasModules\Other\winServices.reg"""'
+    command: >-
+      .\BACKUP.ps1 -FilePath """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\winServices.reg"""
     wait: true
     exeDir: true
 

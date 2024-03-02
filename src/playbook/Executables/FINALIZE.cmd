@@ -139,7 +139,7 @@ call "%windir%\AtlasDesktop\4. Optional Tweaks\Send To Context Menu\Debloat Send
 
 :: Set RunOnce login script
 :: This is the script that will be ran on login for new users
-reg add "HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "RunScript" /t REG_SZ /d "powershell -EP Bypass -NoP & \"$env:windir\AtlasModules\Scripts\newUsers.ps1\"" /f
+reg add "HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "RunScript" /t REG_SZ /d "powershell -EP Bypass -NoP & \"$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\newUsers.ps1\"" /f
 
 :: Remove Fax Recipient from the 'Send to' context menu as Fax feature is removed
 del /f /q "%APPDATA%\Microsoft\Windows\SendTo\Fax Recipient.lnk" > nul 2>&1

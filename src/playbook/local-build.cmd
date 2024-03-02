@@ -25,13 +25,13 @@ $defaultConfig = @{
 	removeProductCode = $true
 }
 
-$configPath = "$env:APPDATA\local-build\config.json"
+$configPath = "$([Environment]::GetFolderPath('ApplicationData'))\local-build\config.json"
 
 # ------------- #
 # config system #
 # ------------- #
 
-$shortcut = "$env:LOCALAPPDATA\Microsoft\WindowsApps\ame-lb-conf.lnk"
+$shortcut = "$([Environment]::GetFolderPath('LocalApplicationData'))\Microsoft\WindowsApps\ame-lb-conf.lnk"
 
 function New-ConfigPathShortcut {
 	$WshShell = New-Object -comObject WScript.Shell
@@ -211,8 +211,8 @@ try {
 	$filteredItems = @()
 	if (Get-Command '7z.exe' -EA SilentlyContinue) {
 		$7zPath = '7z.exe'
-	} elseif (Test-Path "$env:ProgramFiles\7-Zip\7z.exe") {
-		$7zPath = "$env:ProgramFiles\7-Zip\7z.exe"
+	} elseif (Test-Path "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe") {
+		$7zPath = "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe"
 	}
 
 	if ($7zPath) {

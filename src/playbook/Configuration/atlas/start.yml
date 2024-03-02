@@ -30,7 +30,7 @@ actions:
   - !powerShell:
     wait: true
     command: >-
-      $modulesPath = """$env:windir\AtlasModules""";
+      $modulesPath = """$([Environment]::GetFolderPath('Windows'))\AtlasModules""";
 
       function AddToVar($env, $value) {
             $a = [IO.Path]::PathSeparator;

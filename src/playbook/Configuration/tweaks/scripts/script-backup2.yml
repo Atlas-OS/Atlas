@@ -4,6 +4,7 @@ description: Backs up default Atlas services and drivers, after all the tweaks a
 privilege: TrustedInstaller
 actions:
   - !powerShell:
-    command: '.\BACKUP.ps1 -FilePath """$env:windir\AtlasModules\Other\atlasServices.reg"""'
+    command: >-
+      .\BACKUP.ps1 -FilePath """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\atlasServices.reg"""
     wait: true
     exeDir: true

@@ -53,7 +53,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 Get-ChildItem -Path "$env:TEMP" | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse
 
 # Clear the temporary system folder
-Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse
+Remove-Item -Path "$([Environment]::GetFolderPath('Windows'))\Temp\*" -Force -Recurse
 
 # Delete all system restore points
 # This is so that users can't revert back from Atlas to stock with Restore Points

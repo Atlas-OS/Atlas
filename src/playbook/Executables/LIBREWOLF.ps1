@@ -2,10 +2,11 @@ $ProgressPreference = "SilentlyContinue"
 $ErrorActionPreference = "Stop"
 
 # Define variables
-$updaterPath = "$env:programfiles\LibreWolf\librewolf-winupdater"
-$librewolfPath = "$env:programfiles\LibreWolf"
 $desktop = [Environment]::GetFolderPath("Desktop")
 $startMenu = [Environment]::GetFolderPath("CommonPrograms")
+$programs = [Environment]::GetFolderPath("ProgramFiles")
+$updaterPath = "$programs\LibreWolf\librewolf-winupdater"
+$librewolfPath = "$programs\LibreWolf"
 
 # Get latest LibreWolf download link
 Write-Output "Getting the latest LibreWolf download link"
