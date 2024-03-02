@@ -1,0 +1,10 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\DesktopBackground\Shell\KillNRTasks]
+"icon"="taskmgr.exe,-30651"
+"MUIverb"="Kill all not responding tasks"
+"Position"="Top"
+
+[HKEY_CLASSES_ROOT\DesktopBackground\Shell\KillNRTasks\command]
+@="CMD.exe /C taskkill.exe /f /fi \"status eq Not Responding\" & Pause"
+
