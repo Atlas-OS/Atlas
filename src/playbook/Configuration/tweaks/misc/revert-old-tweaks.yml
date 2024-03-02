@@ -17,3 +17,8 @@ actions:
     command: 'reg import "AtlasDesktop\3. Configuration\Windows Update\Update Notifications\Enable Update Notifications (default).reg"'
     exeDir: true
     wait: true
+
+    # Revert deferring quality updates
+    # No real point - these are secruity updates
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferQualityUpdates', operation: delete}
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferQualityUpdatesPeriodInDays', operation: delete}
