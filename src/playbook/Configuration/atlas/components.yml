@@ -36,12 +36,21 @@ actions:
 
   - !writeStatus: {status: 'Removing components'}
   - !powerShell:
-    command: '& """.\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall'
+    command: >-
+      & """.\AtlasModules\Scripts\packageInstall.ps1"""
+      -InstallPackages @('*Z-Atlas-NoDefender-Package*',
+        '*Z-Atlas-NoTelemetry-Package*'
+      )
+      -NoInteraction
     option: 'defender-disable'
     wait: true
     exeDir: true
   - !powerShell:
-    command: '& """.\AtlasModules\PackagesEnvironment\centralScript.ps1""" -PlaybookInstall -EverythingButDefender'
+    command: >-
+      & """.\AtlasModules\Scripts\packageInstall.ps1"""
+      -InstallPackages @('*Z-Atlas-NoTelemetry-Package*')
+      -UninstallPackages @('*Z-Atlas-NoDefender-Package*')
+      -NoInteraction
     option: 'defender-enable'
     wait: true
     exeDir: true
