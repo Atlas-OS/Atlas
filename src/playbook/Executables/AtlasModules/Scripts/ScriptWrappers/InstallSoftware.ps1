@@ -1,5 +1,5 @@
 & "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\wingetCheck.cmd"
-if ($LASTEXITCODE -ne '0') {exit 1}
+if ($LASTEXITCODE -ne 0) { exit 1 }
 
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -171,6 +171,17 @@ init_item "Lightshot" "Skillbrains.Lightshot"
 
 # https://winget.run/pkg/ShareX/ShareX
 init_item "ShareX" "ShareX.ShareX"
+
+# https://winget.run/pkg/valinet/ExplorerPatcher
+init_item "ExplorerPatcher" "valinet.ExplorerPatcher"
+
+if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
+    # https://winget.run/pkg/StartIsBack/StartAllBack
+    init_item "StartAllBack" "StartIsBack.StartAllBack"
+} else {
+    # https://winget.run/pkg/StartIsBack/StartAllBack
+    init_item "StartIsBack" "StartIsBack.StartIsBack"
+}
 
 $global:item_count = $global:items.Length
 
