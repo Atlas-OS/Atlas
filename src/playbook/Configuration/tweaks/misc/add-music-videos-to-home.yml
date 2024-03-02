@@ -5,6 +5,6 @@ actions:
   - !powerShell:
     command: >-
       $o = new-object -com shell.application;
-      $o.Namespace([Environment]::GetFolderPath("MyVideos")).Self.InvokeVerb('pintohome');
-      $o.Namespace([Environment]::GetFolderPath("MyMusic")).Self.InvokeVerb('pintohome');
+      $o.Namespace([Environment]::GetFolderPath('MyVideos')).Self.InvokeVerb('pintohome');
+      $o.Namespace([Environment]::GetFolderPath('MyMusic')).Self.InvokeVerb('pintohome');
     runas: currentUser
