@@ -1,23 +1,28 @@
 #Requires -RunAsAdministrator
 
-$isLaptop = (Get-CimInstance -Class Win32_ComputerSystem -Property PCSystemType).PCSystemType -eq 2
-if ($isLaptop) {
-    Write-Host @"
-WARNING: You are on a laptop, disabling power saving will cause faster battery drainage and increased heat output.
-         If you use your laptop on battery, certain power saving features will enable, but not all.
-         Generally, it's NOT recommended to run this script on laptops.`n
-"@ -ForegroundColor Yellow
-    Start-Sleep 2
-}
+param (
+    [switch]$Silent
+)
 
-Write-Host @"
+if (!$Silent) {
+    $isLaptop = (Get-CimInstance -Class Win32_ComputerSystem -Property PCSystemType).PCSystemType -eq 2
+    if ($isLaptop) {
+        Write-Host @"
+WARNING: You are on a laptop, disabling power saving will cause faster battery drainage and increased heat output.
+        If you use your laptop on battery, certain power saving features will enable, but not all.
+        Generally, it's NOT recommended to run this script on laptops.`n
+"@ -ForegroundColor Yellow
+        Start-Sleep 2
+    }
+
+    Write-Host @"
 This script will disable many power saving features in Windows for reduced latency and increased performance.
 Ensure that you have adequate cooling.`n
 "@ -ForegroundColor Cyan
-Pause
+    Pause
+}
 
-Write-Host "Disabling power saving...`n" -ForegroundColor Cyan
-
+Write-Host "`nAdding power scheme..." -ForegroundColor Yellow
 # Duplicate Ultimate Performance power scheme, customize it and make it the Atlas power scheme
 if (!(powercfg /l | Select-String "GUID: 11111111-1111-1111-1111-111111111111" -Quiet)) {
     powercfg /duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 11111111-1111-1111-1111-111111111111 > $null
@@ -50,10 +55,23 @@ powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 4d
 # Set the active scheme as the current scheme
 powercfg /setactive scheme_current
 
-# Disable power-saving ACPI devices
+Write-Host "Disabling power-saving ACPI devices..." -ForegroundColor Yellow
 & toggleDev.cmd -Disable '@("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI")' | Out-Null
 
-# Configure internet adapter settings
+Write-Host "Disabling USB power-saving..." -ForegroundColor Yellow
+foreach ($power_device in (Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi)){
+    foreach ($device in @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub')) {
+        foreach ($hub in Get-WmiObject $device) {
+            $pnp_id = $hub.PNPDeviceID
+            if ($power_device.InstanceName.ToUpper() -like "*$pnp_id*") {
+                $power_device.enable = $false | Out-Null
+                $power_device.psbase.put() | Out-Null
+            }
+        }
+    }
+}
+
+Write-Host "Disabling network adapter power-saving..." -ForegroundColor Yellow
 $properties = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty
 foreach ($setting in @(
     # Stands for Ultra Low Power
@@ -83,7 +101,7 @@ foreach ($setting in @(
     $properties | Where-Object { $_.RegistryKeyword -eq "*$setting" -or $_.RegistryKeyword -eq $setting } | Set-NetAdapterAdvancedProperty -RegistryValue 0
 }
 
-# Disable device power saving
+Write-Host "Disabling device power-saving..." -ForegroundColor Yellow
 $keys = Get-ChildItem -Path "HKLM:\SYSTEM\CurrentControlSet\Enum" -Recurse -EA 0
 foreach ($value in @(
     "AllowIdleIrpInD3",
@@ -111,6 +129,8 @@ foreach ($value in @(
     }
 }
 
+Write-Host "Disabling miscellaneous power-saving..." -ForegroundColor Yellow
+
 # Disable D3 support on SATA/NVMEs while using Modern Standby
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Storage" -Name "StorageD3InModernStandby" -Value 0 -PropertyType DWORD -Force | Out-Null
 
@@ -118,6 +138,8 @@ New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Storage" -Name "S
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" -Name "IdlePowerMode" -Value 0 -PropertyType DWORD -Force | Out-Null
 
 # Disable power throttling
+$powerKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling"
+if (!(Test-Path $powerKey) { New-Item $powerKey | Out-Null }
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" -Name "PowerThrottlingOff" -Value 1 -PropertyType DWORD -Force | Out-Null
 
 # Disable the kernel from being tickless
@@ -126,4 +148,4 @@ New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrott
 bcdedit /set disabledynamictick yes | Out-Null
 
 if ($Silent) { exit }
-$null = Read-Host "Completed.`nPress Enter to exit"
+$null = Read-Host "`nCompleted.`nPress Enter to exit"

@@ -1,28 +1,26 @@
 #Requires -RunAsAdministrator
 
-Write-Host "Enabling power saving...`n" -ForegroundColor Cyan
-
-# Restore default power schemes
+Write-Host "`nRestoring default power schemes..." -ForegroundColor Yellow
 # This should set the power plan to 'Balanced' by default
 powercfg /restoredefaultschemes | Out-Null
 
-# Enable power-saving ACPI devices
+Write-Host "Enabling power-saving ACPI devices..." -ForegroundColor Yellow
 & toggleDev.cmd -Enable '@("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI")' | Out-Null
 
-# Enable USB device power-saving
+Write-Host "Enabling USB power-saving..." -ForegroundColor Yellow
 foreach ($power_device in (Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi)){
     foreach ($device in @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub')) {
         foreach ($hub in Get-WmiObject $device) {
             $pnp_id = $hub.PNPDeviceID
             if ($power_device.InstanceName.ToUpper() -like "*$pnp_id*") {
-                $power_device.enable = $True
-                $power_device.psbase.put()
+                $power_device.enable = $true | Out-Null
+                $power_device.psbase.put() | Out-Null
             }
         }
     }
 }
 
-# Enable device power saving
+Write-Host "Enabling device power-saving..." -ForegroundColor Yellow
 $keys = Get-ChildItem -Path "HKLM:\SYSTEM\CurrentControlSet\Enum" -Recurse -EA 0
 foreach ($value in @(
     "AllowIdleIrpInD3",
@@ -46,10 +44,10 @@ foreach ($value in @(
     }
 }
 
+Write-Host "Enabling network adapter power saving..." -ForegroundColor Yellow
 # Set power saving mode for all network cards to default
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" -Name "DefaultPnPCapabilities" -Value 0
-
-# Configure internet adapter settings
+# Configure network adapter settings
 $properties = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty
 foreach ($setting in @(
     # Stands for Ultra Low Power
@@ -79,6 +77,8 @@ foreach ($setting in @(
     $properties | Where-Object { $_.RegistryKeyword -eq "*$setting" -or $_.RegistryKeyword -eq $setting } | Reset-NetAdapterAdvancedProperty
 }
 
+Write-Host "Enabling miscellaneous power-saving..." -ForegroundColor Yellow
+
 # Disable D3 support on SATA/NVMEs while using Modern Standby
 # Reference: https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/power-management-for-storage-hardware-devices-intro#d3-support
 Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Storage" -Name "StorageD3InModernStandby" -ErrorAction SilentlyContinue
@@ -95,4 +95,4 @@ Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThr
 bcdedit /deletevalue disabledynamictick *> $null
 
 # Finish
-$null = Read-Host "Completed.`nPress Enter to exit"
+$null = Read-Host "`nCompleted.`nPress Enter to exit"
