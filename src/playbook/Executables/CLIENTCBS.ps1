@@ -42,7 +42,7 @@ if ($ids.Count -le 0) {
 }
 
 # Hide 'Microsoft account' page in Settings that appears
-# Not set in the actual YAML in case the above happens
+# Not set in the actual YAML in case no velocity IDs were found
 # If the velocity IDs aren't set, then the account page disappears
 function SettingsPageVisibility {
     $policyKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
