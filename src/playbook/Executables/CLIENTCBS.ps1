@@ -35,6 +35,30 @@ function Find-VelocityID($Node) {
 }
 Find-VelocityID -Node $(Get-Content -Path $settingsExtensions | ConvertFrom-Json)
 
+# No IDs check
+if ($ids.Count -le 0) {
+    Write-Output "No velocity IDs were found, Microsoft might have changed something."
+    exit 1
+}
+
+# Hide 'Microsoft account' page in Settings that appears
+# Not set in the actual YAML in case the above happens
+# If the velocity IDs aren't set, then the account page disappears
+function SettingsPageVisibility {
+    $policyKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
+    $visbility = "SettingsPageVisibility"
+    $currentPolicy = (Get-ItemProperty -Path $policyKey -Name $visbility -EA 0).$visbility
+
+    if ($currentPolicy -like "showonly:*") {
+        return "Current $visibilityValue is 'showonly', no need to append."
+    }
+
+    $split = $currentPolicy -replace 'hide:' -split ';' | Where-Object { $_ }
+    $split += "account"
+    Set-ItemProperty -Path $policyKey -Name $visbility -Value "hide:$($split -join ';')"
+}
+SettingsPageVisibility
+
 # Obfuscate velocity IDs
 # Rewritten in PowerShell from ViVE
 # https://github.com/thebookisclosed/ViVe/blob/master/ViVe/ObfuscationHelpers.cs
@@ -62,7 +86,7 @@ class ObfuscationHelpers {
 $featureKey = "HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8"
 foreach ($id in $($ids | Sort-Object -Unique)) {
     $veloId = "$featureKey\$([ObfuscationHelpers]::ObfuscateFeatureId($id))"
-    Write-Host "Disabling velocity ID '$veloId'..."
+    Write-Output "Disabling velocity ID '$veloId'..."
     New-Item $veloId -Force | Out-Null
     Set-ItemProperty -Path $veloId -Name "EnabledStateOptions" -Value 0 -Force
     Set-ItemProperty -Path $veloId -Name "EnabledState" -Value 1 -Force
