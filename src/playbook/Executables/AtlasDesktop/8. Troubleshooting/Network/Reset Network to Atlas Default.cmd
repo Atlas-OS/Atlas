@@ -14,7 +14,7 @@ for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI
     ) > nul 2>&1
 )
 
-:: Configure internet adapter settings
+:: Configure network adapter settings
 
 rem --------------------------
 rem Unknown benefit
