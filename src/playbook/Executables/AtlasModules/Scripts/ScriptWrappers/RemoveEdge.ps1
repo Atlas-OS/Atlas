@@ -34,13 +34,11 @@ param (
 $sys32 = [Environment]::GetFolderPath('System')
 $env:path = "$([Environment]::GetFolderPath('Windows'));$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
 
-$version = '1.8'
+$version = '1.8.1'
 $host.UI.RawUI.WindowTitle = "EdgeRemover $version | made by @he3als"
 
 # credit to ave9858 for Edge removal method: https://gist.github.com/ave9858/c3451d9f452389ac7607c99d45edecc6
 $ProgressPreference = "SilentlyContinue"
-$user = $env:USERNAME
-$SID = (New-Object System.Security.Principal.NTAccount($user)).Translate([Security.Principal.SecurityIdentifier]).Value
 $admin = [System.Security.Principal.NTAccount]$(New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544')).Translate([System.Security.Principal.NTAccount]).Value
 $EdgeRemoverReg = 'HKLM:\SOFTWARE\EdgeRemover'
 
@@ -195,7 +193,7 @@ function RemoveEdgeChromium {
 	# modifies IntegratedServicesRegionPolicySet as that's now checked for Edge uninstall
 	$integratedServicesPath = "$sys32\IntegratedServicesRegionPolicySet.json"
 	if (!(Test-Path $integratedServicesPath)) {
-		Write-Warning "'$integratedServicesPath' not found, continuing anyways but uninstall might fail."
+		Write-Warning "'$integratedServicesPath' not found, uninstall might fail."
 	} else {
 		try {
 			# get perms (normally TI :3)
@@ -214,8 +212,8 @@ function RemoveEdgeChromium {
 			($integratedServices.policies | Where-Object { ($_.'$comment' -like "*Edge*") -and ($_.'$comment' -like "*uninstall*") }).defaultState = 'enabled'
 			$modifiedJson = $integratedServices | ConvertTo-Json -Depth 100
 
-			$backupIntegratedServicesPath = "IntegratedServicesRegionPolicySet.json.$([System.IO.Path]::GetRandomFileName())"
-			Rename-Item $integratedServicesPath -NewName $backupIntegratedServicesPath -Force
+			$backupIntegratedServicesName = "IntegratedServicesRegionPolicySet.json.$([System.IO.Path]::GetRandomFileName())"
+			Rename-Item $integratedServicesPath -NewName $backupIntegratedServicesName -Force
 			Set-Content $integratedServicesPath -Value $modifiedJson -Force -Encoding UTF8	
 		} catch {
 			Write-Error "Failed to modify region policies. $_"
@@ -242,11 +240,9 @@ function RemoveEdgeChromium {
 	Uninstall-MsiexecAppByName -Name "Microsoft Edge"
 
 	# revert IntegratedServicesRegionPolicySet modification
-	if ($backupIntegratedServicesPath) {
+	if ($backupIntegratedServicesName) {
 		Remove-Item $integratedServicesPath -Force
-		Rename-Item $backupIntegratedServicesPath -NewName $integratedServicesPath -Force
-
-		# restore old ACL
+		Rename-Item "$sys32\$backupIntegratedServicesName" -NewName $integratedServicesPath -Force
 		Set-Acl -Path $integratedServicesPath -AclObject $backup
 	}
 
@@ -269,16 +265,22 @@ function RemoveEdgeChromium {
 }
 
 function RemoveEdgeAppX {
-	# remove from Registry
-	$appxStore = '\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
-	$pattern = "HKLM:$appxStore\InboxApplications\Microsoft.MicrosoftEdge_*_neutral__8wekyb3d8bbwe"
-	$edgeAppXKey = (Get-Item -Path $pattern).PSChildName
-	if (Test-Path "$pattern") { reg delete "HKLM$appxStore\InboxApplications\$edgeAppXKey" /f | Out-Null }
+	# i'm aware of how this is deprecated
+	# kept for legacy purposes just in case
+	if ($null -ne (Get-AppxPackage -Name Microsoft.MicrosoftEdge)) {
+		$SID = (New-Object System.Security.Principal.NTAccount([Environment]::UserName)).Translate([Security.Principal.SecurityIdentifier]).Value
 
-	# make the Edge AppX able to uninstall and uninstall
-	New-Item -Path "HKLM:$appxStore\EndOfLife\$SID\Microsoft.MicrosoftEdge_8wekyb3d8bbwe" -Force | Out-Null
-	Get-AppxPackage -Name Microsoft.MicrosoftEdge | Remove-AppxPackage | Out-Null
-	Remove-Item -Path "HKLM:$appxStore\EndOfLife\$SID\Microsoft.MicrosoftEdge_8wekyb3d8bbwe" -Force | Out-Null
+		# remove from Registry
+		$appxStore = '\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
+		$pattern = "HKLM:$appxStore\InboxApplications\Microsoft.MicrosoftEdge_*_neutral__8wekyb3d8bbwe"
+		$edgeAppXKey = (Get-Item -Path $pattern).PSChildName
+		if (Test-Path "$pattern") { reg delete "HKLM$appxStore\InboxApplications\$edgeAppXKey" /f | Out-Null }
+	
+		# make the Edge AppX able to uninstall and uninstall
+		New-Item -Path "HKLM:$appxStore\EndOfLife\$SID\Microsoft.MicrosoftEdge_8wekyb3d8bbwe" -Force | Out-Null
+		Get-AppxPackage -Name Microsoft.MicrosoftEdge | Remove-AppxPackage | Out-Null
+		Remove-Item -Path "HKLM:$appxStore\EndOfLife\$SID\Microsoft.MicrosoftEdge_8wekyb3d8bbwe" -Force | Out-Null
+	}
 }
 
 function RemoveWebView {
@@ -340,10 +342,10 @@ function ReinstallWarning {
 	Write-Host "It's highly recommended to remove the install/update blocks to reinstall Edge." -ForegroundColor Yellow
 	choice /c:yn /n /m "Would you like to remove the blocks? [Y/N]"
 	if ($LASTEXITCODE -eq 1) {
-		$global:removeEdge = $false
-		$global:removeWebView = $false
-		$global:removeData = $false
-		$global:blockEdge = $false
+		$script:removeEdge = $false
+		$script:removeWebView = $false
+		$script:removeData = $false
+		$script:blockEdge = $false
 		BlockEdgeInstallandUpdates
 	}
 }
