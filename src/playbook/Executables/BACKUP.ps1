@@ -5,7 +5,7 @@ param (
 
 if (Test-Path $FilePath) { exit }
 
-Add-Content -Path $FileName -Value "Windows Registry Editor Version 5.00"
+Add-Content -Path $FilePath -Value "Windows Registry Editor Version 5.00"
 Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | ForEach-Object {
 	if ((Get-ItemProperty $_.PSPath).PSObject.Properties.Name -contains "Start") {
 		$startValue = (Get-ItemProperty -Path $_.PSPath -Name "Start").Start
