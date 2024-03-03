@@ -58,19 +58,6 @@ powercfg /setactive scheme_current
 Write-Host "Disabling power-saving ACPI devices..." -ForegroundColor Yellow
 & toggleDev.cmd -Disable '@("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI")' | Out-Null
 
-Write-Host "Disabling USB power-saving..." -ForegroundColor Yellow
-foreach ($power_device in (Get-WmiObject MSPower_DeviceEnable -Namespace root\wmi)){
-    foreach ($device in @('Win32_USBController', 'Win32_USBControllerDevice', 'Win32_USBHub')) {
-        foreach ($hub in Get-WmiObject $device) {
-            $pnp_id = $hub.PNPDeviceID
-            if ($power_device.InstanceName.ToUpper() -like "*$pnp_id*") {
-                $power_device.enable = $false | Out-Null
-                $power_device.psbase.put() | Out-Null
-            }
-        }
-    }
-}
-
 Write-Host "Disabling network adapter power-saving..." -ForegroundColor Yellow
 $properties = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty
 foreach ($setting in @(
@@ -128,20 +115,17 @@ foreach ($value in @(
         Set-ItemProperty -Path $KeyPath -Name $value -Value 0 -Type DWORD -Force
     }
 }
+Get-CimInstance -ClassName MSPower_DeviceEnable -Namespace root/WMI | Set-CimInstance -Property @{ Enable = $false }
 
 Write-Host "Disabling miscellaneous power-saving..." -ForegroundColor Yellow
-
 # Disable D3 support on SATA/NVMEs while using Modern Standby
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Storage" -Name "StorageD3InModernStandby" -Value 0 -PropertyType DWORD -Force | Out-Null
-
 # Disable IdlePowerMode for stornvme.sys (storage devices) - the device will never enter a low-power state
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device" -Name "IdlePowerMode" -Value 0 -PropertyType DWORD -Force | Out-Null
-
 # Disable power throttling
 $powerKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling"
-if (!(Test-Path $powerKey) { New-Item $powerKey | Out-Null }
+if (!(Test-Path $powerKey)) { New-Item $powerKey | Out-Null }
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" -Name "PowerThrottlingOff" -Value 1 -PropertyType DWORD -Force | Out-Null
-
 # Disable the kernel from being tickless
 # It's power saving
 # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings

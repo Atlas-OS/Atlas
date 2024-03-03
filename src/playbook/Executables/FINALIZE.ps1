@@ -17,7 +17,7 @@ if ((Get-Partition | Where-Object { $_.IsBoot } | Get-Disk | Get-PhysicalDisk).M
 # Disable brightness slider service if it's not supported on the current display
 $startup = 'Automatic'
 try {
-    Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods -ErrorAction Stop | Out-Null
+    Get-CimInstance -Class WmiMonitorBrightnessMethods -Namespace root/wmi -ErrorAction Stop | Out-Null
 } catch {
     if ((Get-ComputerInfo).CsPCSystemType -eq 'Desktop') {
         $startup = 'Disabled'
