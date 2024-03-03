@@ -4,6 +4,6 @@ description: Removes commonly un-used items from the Send-To context menu in Exp
 actions:
   - !cmd:
     command: >-
-      "AtlasDesktop\4. Optional Tweaks\Send To Context Menu\Debloat Send To Context Menu.cmd" -Disable @('Documents', 'Mail Recipient')
+      "AtlasDesktop\4. Optional Tweaks\Send To Context Menu\Debloat Send To Context Menu.cmd" -Disable @('Documents', 'Mail Recipient', 'Fax recipient')
     exeDir: true
     wait: true

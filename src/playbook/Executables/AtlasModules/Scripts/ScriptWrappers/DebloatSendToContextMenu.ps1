@@ -17,8 +17,15 @@ $shell = New-Object -Com WScript.Shell
 
 # Get Bluetooth path
 foreach ($lnk in (($sendTo | Where-Object { $_.Extension -eq ".lnk" }).FullName)) {
-    if ($shell.CreateShortcut($lnk).TargetPath -like '*fsquirt*') {
+    if ($shell.CreateShortcut($lnk).TargetPath -like '*fsquirt.exe*') {
         $items["Bluetooth"] = $lnk
+        $blueFound = $true
+    } elseif ($shell.CreateShortcut($lnk).TargetPath -like '*wfs.exe /SendTo*') {
+        $items["Fax recipient"] = $lnk
+        $faxFound = $true
+    }
+
+    if ($faxFound -and $blueFound) {
         break
     }
 }
