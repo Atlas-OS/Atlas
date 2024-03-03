@@ -333,7 +333,7 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-misc.yml
   - tweaks\misc\config-time.yml
-  - tweaks\misc\disable-game-mode.yml
+  # - tweaks\misc\disable-game-mode.yml
   - tweaks\misc\delete-windows-specific-files.yml
   - tweaks\misc\config-oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
