@@ -1,0 +1,190 @@
+THEME_NAME              = "yaschir"
+
+// Main window
+MAINWND_TEXT_COLOR       = 0x000000
+MAINWND_WX               = 675
+MAINWND_WY               = 592
+MAINWND_MINX             = 675
+MAINWND_MINY             = 345
+MAINWND_INSIDE_COLOR     = 0xE6E6E6
+MAINWND_BITMAP_FILENAME  = "yaschir\main.webp"
+MAINWND_BITMAP_ANCHOR    = top_left
+MAINWND_BITMAP_FILL      = center
+
+// Progress bar (active)
+PROGR_OUTLINE_ROUND      = 0
+
+// Panel, generic
+PANEL_INSIDE_COLOR       = 0xFF000000
+PANEL_OUTLINE_ROUND      = 0
+PANEL_BITMAP_FILENAME    = "yaschir\semi.webp"
+PANEL_BITMAP_ANCHOR      = top_left
+PANEL_BITMAP_FILL        = center
+
+// Panel, sysinfo
+PANEL1_OFSX              = 487
+PANEL1_OFSY              = 9
+PANEL1_WX                = -10
+PANEL1_BITMAP_FILENAME   = "yaschir\screen.webp"
+PANEL1_BITMAP_ANCHOR     = top_left
+PANEL1_BITMAP_FILL       = center
+
+// Panel, install
+PANEL2_OFSX              = 0
+PANEL2_OFSY              = 0
+PANEL2_WX                = -1
+PANEL2_WY                = 30
+PANEL2_INSIDE_COLOR      = 0xFF000000
+PANEL2_OUTLINE_WIDTH     = 0
+PANEL2_BITMAP_FILENAME   = ""
+
+// Panel, lang_theme
+PANEL3_OFSY              = 104
+
+// Panel, actions
+PANEL4_OFSY              = 213
+
+// Panel, filters (found)
+PANEL5_OFSY              = 302
+
+// Panel, filters (not found)
+PANEL6_OFSY              = 453
+
+// Panel, filters (special)
+PANEL7_OFSY              = 554
+
+// Panel, revision
+PANEL8_OFSX              = 10
+PANEL8_OFSY              = -33
+PANEL8_WX                = 188
+PANEL8_WY                = 0
+PANEL8_BITMAP_FILENAME   = ""
+
+// Panel, install button
+PANEL9_OFSX              = 6
+PANEL9_OFSY              = 7
+PANEL9_WX                = 196
+PANEL9_WY                = 30
+PANEL9_OUTLINE_WIDTH     = -1
+PANEL9_BITMAP_FILENAME   = "yaschir\install1.webp"
+PANEL9_BITMAP_FILENAME_H = "yaschir\install2.webp"
+PANEL9_BITMAP_ANCHOR     = top_left
+PANEL9_BITMAP_FILL       = center
+PANEL9_BITMAP_ANCHOR_H   = top_left
+PANEL9_BITMAP_FILL_H     = center
+
+// Panel, selectall button
+PANEL10_OFSX             = 6
+PANEL10_OFSY             = 38
+PANEL10_WX               = 196
+PANEL10_WY               = 30
+PANEL10_OUTLINE_WIDTH    = PANEL9_OUTLINE_WIDTH
+PANEL10_BITMAP_FILENAME  = "yaschir\selectall1.webp"
+PANEL10_BITMAP_FILENAME_H= "yaschir\selectall2.webp"
+PANEL10_BITMAP_ANCHOR    = top_left
+PANEL10_BITMAP_FILL      = center
+PANEL10_BITMAP_ANCHOR_H  = top_left
+PANEL10_BITMAP_FILL_H    = center
+
+// Panel, selectnone button
+PANEL11_OFSX             = PANEL10_OFSX
+PANEL11_OFSY             = 69
+PANEL11_WX               = PANEL10_WX
+PANEL11_WY               = PANEL10_WY
+PANEL11_OUTLINE_WIDTH    = PANEL9_OUTLINE_WIDTH
+PANEL11_BITMAP_FILENAME  = "yaschir\selectnone1.webp"
+PANEL11_BITMAP_FILENAME_H= "yaschir\selectnone2.webp"
+PANEL11_BITMAP_ANCHOR    = top_left
+PANEL11_BITMAP_FILL      = center
+PANEL11_BITMAP_ANCHOR_H  = top_left
+PANEL11_BITMAP_FILL_H    = center
+
+// Panel, options
+PANEL12_OFSX             = 207
+PANEL12_OFSY             = 9
+PANEL12_WX               = 272
+PANEL12_WY               = PANEL_WY
+PANEL12_BITMAP_FILENAME  = "yaschir\screen.webp"
+PANEL12_BITMAP_ANCHOR    = top_left
+PANEL12_BITMAP_FILL      = center
+
+// Checkboxes on left panel
+CHKBOX_TEXT_COLOR        = 0x000000
+CHKBOX_TEXT_COLOR_H      = 0xFFFFFF
+BUTTON_BITMAP_CHECKED    = "yaschir\checked.webp"
+BUTTON_BITMAP_CHECKED_H  = "yaschir\checked.webp"
+BUTTON_BITMAP_UNCHECKED  = "yaschir\unchecked.webp"
+BUTTON_BITMAP_UNCHECKED_H= "yaschir\unchecked.webp"
+ITEM_BITMAP_CHECKED      = "yaschir\checked.webp"
+ITEM_BITMAP_CHECKED_H    = "yaschir\checked.webp"
+ITEM_BITMAP_UNCHECKED    = "yaschir\unchecked.webp"
+ITEM_BITMAP_UNCHECKED_H  = "yaschir\unchecked.webp"
+
+// Buttons on left panel
+BUTTON_OUTLINE_WIDTH     = 0
+BUTTON_OUTLINE_ROUND     = 0
+BUTTON_OUTLINE_WIDTH_H   = 0
+BUTTON_OUTLINE_ROUND_H   = 0
+BUTTON_INSIDE_COLOR      = 0xFF000000
+BUTTON_INSIDE_COLOR_H    = 0xFF000000
+BUTTON_OUTLINE_COLOR     = 0xFF000000
+BUTTON_OUTLINE_COLOR_H   = 0xFF000000
+BUTTON_BITMAP_FILENAME   = "yaschir\optiona1.webp"
+BUTTON_BITMAP_FILENAME_H = "yaschir\optiona2.webp"
+BUTTON_BITMAP_ANCHOR     = top_left
+BUTTON_BITMAP_FILL       = center
+BUTTON_BITMAP_ANCHOR_H   = top_left
+BUTTON_BITMAP_FILL_H     = center
+
+// Driver list
+DRVLIST_OFSX             = 207
+DRVLIST_OFSY             = 88
+DRVLIST_WX               = -10
+DRVLIST_WY               = -10
+DRVLIST_INSIDE_COLOR     = 0xFF000000
+DRVLIST_OUTLINE_COLOR    = 0x000000
+DRVLIST_OUTLINE_WIDTH    = 1
+DRVLIST_OUTLINE_ROUND    = 0
+DRVLIST_BITMAP_FILENAME  = "yaschir\semi.webp"
+DRVLIST_BITMAP_ANCHOR    = top_left
+DRVLIST_BITMAP_FILL      = center
+
+// Driver item (generic style)
+DRVITEM_OUTLINE_ROUND    = 0
+DRVITEM_OUTLINE_ROUND_H  = 0
+DRVITEM_INSIDE_COLOR     = 0xFF000000
+DRVITEM_INSIDE_COLOR_H   = 0xFF000000
+DRVITEM_OUTLINE_COLOR    = 0xFF000000
+DRVITEM_OUTLINE_COLOR_H  = 0xFF000000
+DRVITEM_BITMAP_FILENAME  = "yaschir\semi2.webp"
+DRVITEM_BITMAP_FILENAME_H= "yaschir\semi.webp"
+DRVITEM_BITMAP_ANCHOR    = top_left
+DRVITEM_BITMAP_FILL      = center
+DRVITEM_BITMAP_ANCHOR_H  = top_left
+DRVITEM_BITMAP_FILL_H    = center
+
+// BETTER_NEW
+DRVITEM_TEXT2_COLOR_BN   = 0xA25100
+
+// SAME_NEW
+DRVITEM_TEXT2_COLOR_SN   = 0xA25100
+
+// WORSE_NEW
+DRVITEM_TEXT2_COLOR_WN   = 0xA25100
+
+// BETTER_CUR
+DRVITEM_TEXT2_COLOR_BC   = 0xA25100
+
+// BETTER_OLD
+DRVITEM_TEXT2_COLOR_BO   = 0x008100
+
+// MISSING
+DRVITEM_TEXT2_COLOR_MS   = 0x008400
+
+// Patreon
+DRVITEM_INSIDE_COLOR_PT     = 0x675447
+DRVITEM_INSIDE_COLOR_PT_H   = 0xB3805D
+DRVITEM_OUTLINE_COLOR_PT    = DRVITEM_INSIDE_COLOR_PT
+DRVITEM_OUTLINE_COLOR_PT_H  = DRVITEM_INSIDE_COLOR_PT_H
+DRVITEM_TEXT1_COLOR_PT      = 0xFFFFFF
+DRVITEM_TEXT2_COLOR_PT      = 0xCCFF11

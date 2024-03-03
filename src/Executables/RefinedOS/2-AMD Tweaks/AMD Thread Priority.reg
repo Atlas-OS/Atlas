@@ -1,0 +1,6 @@
+Windows Registry Editor Version 5.00                                                                                                                                                                                     youtube.com/adamxYT
+
+;AMD Driver Thread Priority
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\amdkmdap\Parameters]
+"ThreadPriority"=dword:0000001F

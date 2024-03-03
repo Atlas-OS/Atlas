@@ -1,0 +1,417 @@
+//
+// COAX theme by Matija Matečić
+//
+
+THEME_NAME = "Coax"
+
+// ----------------------------------------------------------------
+// Global > Font
+// ----------------------------------------------------------------
+FONT_NAME = "Calibri"
+FONT_SIZE = 15
+
+// ----------------------------------------------------------------
+// Main window
+// ----------------------------------------------------------------
+MAINWND_TRANSPARENCY = 255
+MAINWND_TEXT_COLOR = 0xFFFF00
+MAINWND_WX = 1024
+MAINWND_WY = 870
+MAINWND_MINX = 640
+MAINWND_MINY = 335
+MAINWND_INSIDE_COLOR = 0xE1E1E1
+MAINWND_OUTLINE_COLOR = 0xFF000000 // Transparent
+MAINWND_OUTLINE_WIDTH = 0
+MAINWND_OUTLINE_ROUND = 0
+//MAINWND_BITMAP_FILENAME = ""
+//MAINWND_BITMAP_ANCHOR = center
+//MAINWND_BITMAP_FILL = hstr_vstr
+
+// ----------------------------------------------------------------
+// Popup
+// ----------------------------------------------------------------
+POPUP_TRANSPARENCY = 255
+POPUP_FONT_SIZE = 11
+POPUP_TEXT_COLOR = 0x222222
+POPUP_OFSX = 10
+POPUP_OFSY = 10
+POPUP_WX = 450
+POPUP_WY = 13
+POPUP_INSIDE_COLOR = 0xFFFFFF
+POPUP_OUTLINE_COLOR = 0x888888
+POPUP_OUTLINE_WIDTH = 1
+POPUP_OUTLINE_ROUND = 0
+//POPUP_BITMAP_FILENAME = ""
+//POPUP_BITMAP_ANCHOR = 0
+//POPUP_BITMAP_FILL = 0
+
+// ----------------------------------------------------------------
+// Buttons
+// ----------------------------------------------------------------
+BUTTON_INSIDE_COLOR = 0xFF000000 // Transparent
+BUTTON_OUTLINE_COLOR = 0xFF000000 // Transparent
+BUTTON_OUTLINE_WIDTH = 0
+BUTTON_OUTLINE_ROUND = 2
+BUTTON_INSIDE_COLOR_H = 0xF0F0F0
+BUTTON_OUTLINE_COLOR_H = 0xFF000000 // Transparent
+BUTTON_OUTLINE_WIDTH_H = BUTTON_OUTLINE_WIDTH
+BUTTON_OUTLINE_ROUND_H = BUTTON_OUTLINE_ROUND
+//BUTTON_BITMAP_FILENAME_H = ""
+//BUTTON_BITMAP_ANCHOR_H = 0
+//BUTTON_BITMAP_FILL_H = 0
+
+// ----------------------------------------------------------------
+// Checkbox (selected with keyboard)
+// ----------------------------------------------------------------
+KBHLT_INSIDE_COLOR = 0xF0F0F0
+KBHLT_OUTLINE_COLOR = 0xFF000000 // Transparent
+KBHLT_OUTLINE_WIDTH = 0
+KBHLT_OUTLINE_ROUND = 2
+//KBHLT_BITMAP_FILENAME = ""
+//KBHLT_BITMAP_ANCHOR = 0
+//KBHLT_BITMAP_FILL = 0
+
+// ----------------------------------------------------------------
+// Progress bar (active)
+// ----------------------------------------------------------------
+PROGR_INSIDE_COLOR = 0x68D4A0
+PROGR_OUTLINE_COLOR = 0x61C796
+PROGR_OUTLINE_WIDTH = 0
+PROGR_OUTLINE_ROUND = 0
+//PROGR_BITMAP_FILENAME = ""
+//PROGR_BITMAP_ANCHOR = 0
+//PROGR_BITMAP_FILL = 0
+
+// ----------------------------------------------------------------
+// No updates (progress bar background)
+// ----------------------------------------------------------------
+DRVITEM_INSIDE_COLOR_IU = 0x999999
+DRVITEM_INSIDE_COLOR_IU_H = 0x888888
+DRVITEM_TEXT2_COLOR_IU = 0xFFFFFF
+DRVITEM_OUTLINE_COLOR_IU = 0xB3805D
+DRVITEM_OUTLINE_COLOR_IU_H = 0xCB916A
+
+// ----------------------------------------------------------------
+// Progress bar (stopping)
+// ----------------------------------------------------------------
+PROGR_S_INSIDE_COLOR = 0x5555F2
+PROGR_S_OUTLINE_COLOR = PROGR_OUTLINE_COLOR
+PROGR_S_OUTLINE_WIDTH = PROGR_OUTLINE_WIDTH
+PROGR_S_OUTLINE_ROUND = PROGR_OUTLINE_ROUND
+//PROGR_S_BITMAP_FILENAME = ""
+//PROGR_S_BITMAP_ANCHOR = 0
+//PROGR_S_BITMAP_FILL = 0
+
+// ----------------------------------------------------------------
+// Panel, generic
+// ----------------------------------------------------------------
+PANEL_OFSX = 10
+PANEL_OFSY = 10
+PANEL_WX = 170
+PANEL_WY = 24
+PANEL_INSIDE_COLOR = 0xFFFFFF
+PANEL_OUTLINE_COLOR = 0xFF000000 // Transparent
+PANEL_OUTLINE_WIDTH = 0
+PANEL_OUTLINE_ROUND = 2
+//PANEL_INSIDE_COLOR_H = PANEL_INSIDE_COLOR
+//PANEL_OUTLINE_COLOR_H = PANEL_OUTLINE_COLOR
+//PANEL_OUTLINE_WIDTH_H = PANEL_OUTLINE_WIDTH
+//PANEL_OUTLINE_ROUND_H = PANEL_OUTLINE_ROUND
+//PANEL_BITMAP_FILENAME_H = ""
+//PANEL_BITMAP_ANCHOR_H = 0
+//PANEL_BITMAP_FILL_H = 0
+PANEL_BITMAP_FILL = hstr_vstr
+
+// ----------------------------------------------------------------
+// Panel > Sysinfo
+// ----------------------------------------------------------------
+PANEL1_OFSX = PANEL_OFSX
+PANEL1_OFSY = -2
+PANEL1_WX = PANEL_WX
+PANEL1_WY = PANEL_WY
+PANEL1_INSIDE_COLOR = 0xFF000000 // Transparent
+
+// ----------------------------------------------------------------
+// Panel > Install
+// ----------------------------------------------------------------
+PANEL2_OFSX = -2
+PANEL2_OFSY = -2
+PANEL2_WX = PANEL_WX
+PANEL2_WY = PANEL_WY
+PANEL2_INSIDE_COLOR = 0xFF000000 // Transparent
+
+	// ----------------------------------------------------------------
+	// Panel > Install > Install button
+	// ----------------------------------------------------------------
+	PANEL9_OFSX = PANEL_OFSX
+	PANEL9_OFSY = 235
+	PANEL9_WX = PANEL_WX
+	PANEL9_WY = 50
+	PANEL9_INSIDE_COLOR = 0xFFFFFF
+	//PANEL9_OUTLINE_COLOR = 0xFFFFFF
+	PANEL9_OUTLINE_WIDTH = 0
+	PANEL9_OUTLINE_ROUND = 2
+	//PANEL9_INSIDE_COLOR_H = PANEL_INSIDE_COLOR
+	//PANEL9_OUTLINE_COLOR_H = PANEL_OUTLINE_COLOR_H
+	//PANEL9_OUTLINE_WIDTH_H = -1
+	//PANEL9_OUTLINE_ROUND_H = PANEL_OUTLINE_ROUND_H
+
+	// ----------------------------------------------------------------
+	// Panel > Install > Select All button
+	// ----------------------------------------------------------------
+	PANEL10_OFSX = PANEL9_OFSX
+	PANEL10_OFSY = 293
+	PANEL10_WX = 140
+	PANEL10_WY = PANEL_WY
+	PANEL10_INSIDE_COLOR = 0xFF000000 // Transparent
+	//PANEL10_OUTLINE_COLOR = PANEL9_OUTLINE_COLOR
+	//PANEL10_OUTLINE_WIDTH = PANEL9_OUTLINE_WIDTH
+
+	// ----------------------------------------------------------------
+	// Panel > Select None button
+	// ----------------------------------------------------------------
+	PANEL11_OFSX = PANEL9_OFSX
+	PANEL11_OFSY = 317
+	PANEL11_WX = 140
+	PANEL11_WY = PANEL_WY
+	PANEL11_INSIDE_COLOR = 0xFF000000 // Transparent
+	//PANEL11_OUTLINE_COLOR = PANEL9_OUTLINE_COLOR
+	//PANEL11_OUTLINE_WIDTH = PANEL9_OUTLINE_WIDTH
+
+// ----------------------------------------------------------------
+// Panel > Language, Theme
+// ----------------------------------------------------------------
+PANEL3_OFSX = PANEL_OFSX
+PANEL3_OFSY = 100
+PANEL3_WX = PANEL_WX
+PANEL3_WY = PANEL_WY
+PANEL3_INSIDE_COLOR = PANEL_INSIDE_COLOR
+
+// ----------------------------------------------------------------
+// Panel containing actions - dimensions per button
+// ----------------------------------------------------------------
+PANEL4_OFSX = PANEL_OFSX
+PANEL4_OFSY = 341
+PANEL4_WX = 140
+PANEL4_WY = PANEL_WY
+PANEL4_INSIDE_COLOR = 0xFF000000 // Transparent
+//PANEL4_OUTLINE_COLOR = PANEL9_OUTLINE_COLOR
+//PANEL4_OUTLINE_WIDTH = PANEL9_OUTLINE_WIDTH
+//PANEL4_OUTLINE_ROUND = PANEL9_OUTLINE_ROUND
+//PANEL4_BITMAP_FILENAME = PANEL9_BITMAP_FILENAME
+//PANEL4_BITMAP_ANCHOR = PANEL9_BITMAP_ANCHOR
+//PANEL4_INSIDE_COLOR_H = PANEL9_INSIDE_COLOR_H
+//PANEL4_OUTLINE_COLOR_H = PANEL9_OUTLINE_COLOR_H
+//PANEL4_OUTLINE_WIDTH_H = PANEL9_OUTLINE_WIDTH_H
+//PANEL4_OUTLINE_ROUND_H = PANEL9_OUTLINE_ROUND_H
+//PANEL4_BITMAP_FILENAME_H = ""
+//PANEL4_BITMAP_ANCHOR_H = 0
+//PANEL4_BITMAP_FILL_H = 0
+
+// ----------------------------------------------------------------
+// Panel > Filters (found)
+// ----------------------------------------------------------------
+PANEL5_OFSX = PANEL_OFSX
+PANEL5_OFSY = 448
+PANEL5_WX = PANEL_WX
+PANEL5_WY = PANEL_WY
+PANEL5_INSIDE_COLOR = PANEL_INSIDE_COLOR
+
+// ----------------------------------------------------------------
+// Panel > Filters (not found)
+// ----------------------------------------------------------------
+PANEL6_OFSX = PANEL_OFSX
+PANEL6_OFSY = 631
+PANEL6_INSIDE_COLOR = PANEL_INSIDE_COLOR
+
+// ----------------------------------------------------------------
+// Panel > Filters (special)
+// ----------------------------------------------------------------
+PANEL7_OFSX = PANEL5_OFSX
+PANEL7_OFSY = 742
+PANEL7_WX = PANEL_WX
+PANEL7_WY = PANEL_WY
+PANEL7_INSIDE_COLOR = PANEL_INSIDE_COLOR
+
+// ----------------------------------------------------------------
+// Panel > Version
+// ----------------------------------------------------------------
+PANEL8_OFSX = -2
+PANEL8_OFSY = -2
+
+// ----------------------------------------------------------------
+// Panel > Options > Reboot after install
+// ----------------------------------------------------------------
+PANEL12_OFSX = -2
+PANEL12_OFSY = -2
+PANEL12_WX = PANEL_WX
+PANEL12_WY = 0
+PANEL12_INSIDE_COLOR = 0x108010
+
+// ----------------------------------------------------------------
+// Panel > Logo
+// ----------------------------------------------------------------
+PANEL13_OFSX = 40
+PANEL13_OFSY = 0
+PANEL13_WX = 100
+PANEL13_WY = 95
+PANEL13_INSIDE_COLOR = 0xFF000000 // Transparent
+PANEL13_OUTLINE_COLOR = 0xFF000000 // Transparent
+PANEL13_OUTLINE_WIDTH = 0
+PANEL13_BITMAP_FILENAME = "RES_211"
+
+// ----------------------------------------------------------------
+// Checkboxes on left panel
+// ----------------------------------------------------------------
+CHKBOX_TEXT_OFSX = 24
+CHKBOX_TEXT_COLOR = 0x555555
+CHKBOX_TEXT_COLOR_H = 0x000000
+CHKBOX_SIZE = 21
+BUTTON_BITMAP_CHECKED = "coax\checked.webp"
+BUTTON_BITMAP_CHECKED_H = "coax\checked_h.webp"
+BUTTON_BITMAP_UNCHECKED = "coax\unchecked.webp"
+BUTTON_BITMAP_UNCHECKED_H= "coax\unchecked_h.webp"
+
+// ----------------------------------------------------------------
+// Driver list
+// ----------------------------------------------------------------
+DRVLIST_OFSX = 180
+DRVLIST_OFSY = 5
+DRVLIST_WX = -2
+DRVLIST_WY = -2
+DRVLIST_INSIDE_COLOR = 0xFF000000 // Transparent
+DRVLIST_OUTLINE_COLOR = 0xFF000000 // Transparent
+DRVLIST_OUTLINE_WIDTH = 0
+DRVLIST_OUTLINE_ROUND = 0
+DRVLIST_BITMAP_FILENAME = "" // Hide SDI logo
+
+// ----------------------------------------------------------------
+// Driver items
+// ----------------------------------------------------------------
+DRVITEM_WX = -10
+DRVITEM_WY = 40
+DRVITEM_OFSX = 10
+DRVITEM_OFSY = 5
+DRVITEM_LINE_INTEND = 32
+DRVITEM_LINE_COLOR = 0xAEAEAE
+DRVITEM_LINE_WIDTH = 1
+DRVITEM_DIST_Y0 = 43
+DRVITEM_DIST_Y1 = DRVITEM_DIST_Y0
+DRVITEM_DIST_Y2 = 5
+
+// ----------------------------------------------------------------
+// Driver item (generic style)
+// ----------------------------------------------------------------
+DRVITEM_INSIDE_COLOR = 0xFFFFFF
+DRVITEM_INSIDE_COLOR_H = 0xF9F9F9
+DRVITEM_OUTLINE_COLOR = 0x0
+DRVITEM_OUTLINE_WIDTH = 0
+DRVITEM_OUTLINE_ROUND = 2
+DRVITEM_OUTLINE_COLOR_H = 0
+DRVITEM_OUTLINE_WIDTH_H = DRVITEM_OUTLINE_WIDTH
+DRVITEM_OUTLINE_ROUND_H = DRVITEM_OUTLINE_ROUND
+DRVITEM_TEXT1_COLOR = 0x222222
+DRVITEM_TEXT2_COLOR = 0xFFFFFF
+DRVITEM_BITMAP_FILENAME = ""
+DRVITEM_BITMAP_ANCHOR = 0
+DRVITEM_BITMAP_FILL = 0
+DRVITEM_BITMAP_FILENAME_H= DRVITEM_BITMAP_FILENAME
+DRVITEM_BITMAP_ANCHOR_H = DRVITEM_BITMAP_ANCHOR
+DRVITEM_BITMAP_FILL_H = DRVITEM_BITMAP_FILL
+
+// ----------------------------------------------------------------
+// Driver checkbox
+// ----------------------------------------------------------------
+ITEM_CHECKBOX_SIZE = 22
+ITEM_BITMAP_CHECKED = "coax\checked.webp"
+ITEM_BITMAP_CHECKED_H = "coax\checked_h.webp"
+ITEM_BITMAP_UNCHECKED = "coax\unchecked.webp"
+ITEM_BITMAP_UNCHECKED_H = "coax\unchecked_h.webp"
+ITEM_EXPAND_UP = "coax\up.webp"
+ITEM_EXPAND_UP_H = "coax\up.webp"
+ITEM_EXPAND_DOWN = "coax\down.webp"
+ITEM_EXPAND_DOWN_H = "coax\down_h.webp"
+
+// ----------------------------------------------------------------
+// Packname
+// ----------------------------------------------------------------
+DRVITEM_INSIDE_COLOR_PN = 0xFF000000 // Transparent
+DRVITEM_OUTLINE_COLOR_PN = DRVITEM_OUTLINE_COLOR
+DRVITEM_OUTLINE_WIDTH_PN = 0
+DRVITEM_OUTLINE_ROUND_PN = 0
+DRVITEM_BITMAP_FILENAME_PN = DRVITEM_BITMAP_FILENAME
+DRVITEM_BITMAP_ANCHOR_PN = DRVITEM_BITMAP_ANCHOR
+DRVITEM_BITMAP_FILL_PN = DRVITEM_BITMAP_FILL
+DRVITEM_INSIDE_COLOR_PN_H = DRVITEM_INSIDE_COLOR_H
+DRVITEM_OUTLINE_COLOR_PN_H = DRVITEM_OUTLINE_COLOR_H
+DRVITEM_OUTLINE_WIDTH_PN_H = 0
+DRVITEM_OUTLINE_ROUND_PN_H = 0
+DRVITEM_BITMAP_FILENAME_PN_H= DRVITEM_BITMAP_FILENAME_H
+DRVITEM_BITMAP_ANCHOR_PN_H = DRVITEM_BITMAP_ANCHOR_H
+DRVITEM_BITMAP_FILL_PN_H = DRVITEM_BITMAP_FILL_H
+DRVITEM_TEXT1_COLOR_PN = DRVITEM_TEXT1_COLOR
+DRVITEM_TEXT2_COLOR_PN = 0x222222
+
+// ----------------------------------------------------------------
+// Text colors
+// ----------------------------------------------------------------
+	// Worse, new
+	DRVITEM_TEXT2_COLOR_WN = 0x5555F2
+
+	// Better, old
+	DRVITEM_TEXT2_COLOR_BO = 0x5555F2
+
+	// Same, new
+	DRVITEM_TEXT2_COLOR_SN = 0x009966
+
+	// Better, new
+	DRVITEM_TEXT2_COLOR_BN = 0xA2B34D
+
+	// Worse, old
+	DRVITEM_TEXT2_COLOR_WO = 0x5555F2
+
+	// Current driver
+	DRVITEM_TEXT2_COLOR_SC = 0xB58410
+
+	// Old driver
+	DRVITEM_TEXT2_COLOR_SO = 0x5555F2
+
+// ----------------------------------------------------------------
+// Driver > Not found (Installed)
+// ----------------------------------------------------------------
+DRVITEM_TEXT2_COLOR_NU = 0x555555
+DRVITEM_INSIDE_COLOR_NU = 0xF0F0F0
+DRVITEM_INSIDE_COLOR_NU_H = 0xF9F9F9
+
+// ----------------------------------------------------------------
+// Driver > Not found (Standard)
+// ----------------------------------------------------------------
+DRVITEM_TEXT2_COLOR_NS = 0x555555
+DRVITEM_INSIDE_COLOR_NS = 0xF0F0F0
+DRVITEM_INSIDE_COLOR_NS_H = 0xF9F9F9
+
+// ----------------------------------------------------------------
+// Driver > Installed
+// ----------------------------------------------------------------
+DRVITEM_INSIDE_COLOR_D1 = 0x68D4A0
+DRVITEM_INSIDE_COLOR_D1_H = 0x61C796
+DRVITEM_OUTLINE_COLOR_D1 = DRVITEM_INSIDE_COLOR_D1
+DRVITEM_OUTLINE_COLOR_D1_H = DRVITEM_INSIDE_COLOR_D1_H
+
+// ----------------------------------------------------------------
+// Driver > Installed > Reboot required
+// ----------------------------------------------------------------
+DRVITEM_INSIDE_COLOR_D2 = 0x69CDFD
+DRVITEM_INSIDE_COLOR_D2_H = 0x62C3F0
+DRVITEM_OUTLINE_COLOR_D2 = DRVITEM_INSIDE_COLOR_D2
+DRVITEM_OUTLINE_COLOR_D2_H = DRVITEM_INSIDE_COLOR_D2_H
+
+// ----------------------------------------------------------------
+// Driver > Installation error
+// ----------------------------------------------------------------
+DRVITEM_INSIDE_COLOR_DE = 0x5555F2
+DRVITEM_INSIDE_COLOR_DE_H = 0x5050E5
+DRVITEM_OUTLINE_COLOR_DE = DRVITEM_INSIDE_COLOR_DE
+DRVITEM_OUTLINE_COLOR_DE_H = DRVITEM_INSIDE_COLOR_DE_H
+DRVITEM_TEXT1_COLOR_DE = 0xFFFFFF
+DRVITEM_TEXT2_COLOR_DE = 0xFFFFFF

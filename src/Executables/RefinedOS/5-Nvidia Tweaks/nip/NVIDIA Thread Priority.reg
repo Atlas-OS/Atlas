@@ -1,0 +1,6 @@
+Windows Registry Editor Version 5.00                                                                                                                                                                                     youtube.com/adamxYT
+
+;NVIDIA Driver Thread Priority
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nvlddmkm\Parameters]
+"ThreadPriority"=dword:0000001F

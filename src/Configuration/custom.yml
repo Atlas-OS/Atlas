@@ -1,0 +1,11 @@
+---
+title: Custom
+description: Custom RefinedOS configuration
+privilege: Admin
+actions: []
+features:
+- features\RefinedOS\start.yml
+- features\RefinedOS\services.yml
+- features\RefinedOS\components.yml
+- features\RefinedOS\packages.yml
+- features\RefinedOS\config.yml

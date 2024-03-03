@@ -1,0 +1,273 @@
+---
+title: Copy
+description: Copies RefinedOS and other folders/files
+privilege: TrustedInstaller
+actions:
+    # Prevent annoying notifications during deployment
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance'
+    value: 'Enabled'
+    type: REG_DWORD
+    data: '0'
+
+  - !writeStatus: {status: 'Copying files'}
+  - !cmd:
+    exeDir: true
+    command: 'robocopy "Web" "C:\Windows\Web" /E /PURGE /IM /IT /NP'
+    weight: 10
+  - !cmd:
+    exeDir: true
+    command: 'robocopy "RefinedOSModules" "C:\Windows\RefinedOSModules" /E /PURGE /IM /IT /NP'
+    weight: 10
+  - !run:
+    exeDir: true
+    exe: "COPYDESKTOP.cmd"
+    weight: 20
+  - !cmd:
+    command: 'robocopy "RefinedOS" "C:\Windows\RefinedOS" /E /PURGE /IM /IT /NP'
+    weight: 10
+  - !run:
+    exeDir: true
+    exe: "COPYDESKTOP.cmd"
+    weight: 20
+
+  - !writeStatus: {status: 'Setting the environment'}
+    # Set path variable for RefinedOSModules
+    # Must be set before changing features
+  - !cmd:
+    exeDir: true
+    command: 'setx path "%PATH%;C:\Windows\RefinedOSModules;C:\Windows\RefinedOSModules\Apps;C:\Windows\RefinedOSModules\Other;C:\Windows\RefinedOSModules\Tools;C:\Windows\RefinedOSModules\Scripts" -m'
+
+    # Set environment variable for setSvc
+  - !cmd:
+    exeDir: true
+    command: 'setx -m setSvcScript "call C:\Windows\RefinedOSModules\Scripts\setSvc.cmd"'
+
+  - !writeStatus: {status: 'Configuring updates'}
+    # Disable Windows Updates
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'ExcludeWUDriversInQualityUpdate'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'DisableWindowsUpdateAccess'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'AllowAutoWindowsUpdateDownloadOverMeteredNetwork'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'DisableDualScan'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'AUPowerManagement'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'SetAutoRestartNotificationDisable'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'ManagePreviewBuilds'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'ManagePreviewBuildsPolicyValue'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'DeferFeatureUpdates'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'BranchReadinessLevel'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'DeferFeatureUpdatesPeriodInDays'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'DeferQualityUpdates'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'DeferQualityUpdatesPeriodInDays'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    value: 'SetDisableUXWUAccess'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+    value: 'AUOptions'
+    data: '2'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+    value: 'NoAutoUpdate'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+    value: 'NoAUAsDefaultShutdownOption'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+    value: 'NoAUShutdownOption'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+    value: 'NoAutoRebootWithLoggedOnUsers'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+    value: 'EnableFeaturedSoftware'
+    data: "0"
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
+    value: 'RestartNotificationsAllowed2'
+    data: "0"
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
+    value: 'HideMCTLink'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching'
+    value: 'SearchOrderConfig'
+    data: "0"
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata'
+    value: 'PreventDeviceMetadataFromNetwork'
+    data: '1'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate'
+    value: 'SusClientId'
+    data: '00000000-0000-0000-0000-000000000000'
+    type: REG_SZ
+
+  - !service:
+    name: 'wuauserv'
+    startup: 4
+    operation: change
+  - !service:
+    name: 'wuauserv'
+    operation: stop
+
+  - !service:
+    name: 'bits'
+    operation: stop
+  - !service:
+    name: 'appidsvc'
+    operation: stop
+  - !service:
+    name: 'cryptsvc'
+    operation: stop
+  - !file:
+    path: 'C:\SoftwareDistribution'
+    weight: 20
+    
+  - !writeStatus: {status: 'Configuring features'}
+  - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"LegacyComponents" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart', weight: 30}
+
+  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2Root" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"MicrosoftWindowsPowerShellV2" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"WorkFolders-Client" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:Printing-XPSServices-Features /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"Windows-Defender-Default-Definitions" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Disable-Feature /FeatureName:"SmbDirect" /NoRestart', weight: 30}
+
+  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"App.StepsRecorder~~~~0.0.1.0" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"App.Support.QuickAssist~~~~0.0.1.0" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Hello.Face.18967~~~~0.0.1.0" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Language.Handwriting~~~en-US~0.0.1.0" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Language.Speech~~~en-US~0.0.1.0" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Language.TextToSpeech~~~en-US~0.0.1.0" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"MathRecognizer~~~~0.0.1.0" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"OpenSSH.Client~~~~0.0.1.0" /NoRestart', weight: 30}
+  - !cmd: {command: 'DISM /Online /Remove-Capability /CapabilityName:"Print.Fax.Scan~~~~0.0.1.0" /NoRestart', weight: 30}
+
+  - !writeStatus: {status: 'Installing Chocolatey'}
+    # Install Chocolatey
+  - !powerShell:
+    command: 'Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://community.chocolatey.org/install.ps1''))'
+    weight: 30
+
+    # Enable AllowGlobalConfirmation in Chocolatey
+  - !cmd:
+    command: '"C:\ProgramData\chocolatey\bin\choco.exe" feature enable -n allowGlobalConfirmation'
+    weight: 30
+
+  - !writeStatus: {status: 'Installing vcredist'}
+    # Install VisualCppRedist AIO
+  - !cmd:
+    command: 'for /f "tokens=2" %a in (''curl https://api.github.com/repos/abbodi1406/vcredist/releases/latest ^| findstr "browser_download_url" ^| findstr x86_x64'') do curl %a -L -o %TEMP%\VC++.zip & PowerShell Expand-Archive -Path ''%TEMP%\VC++.zip'' -DestinationPath ''%TEMP%\VC++'' & move /y %TEMP%\VC++\VisualCppRedist_AIO_x86_x64.exe C:\Windows\RefinedOSModules\Apps & C:\Windows\RefinedOSModules\Apps\VisualCppRedist_AIO_x86_x64.exe /ai'
+    weight: 100
+
+  - !writeStatus: {status: 'Installing .NET 3.5'}
+    # Install .NET Framework 3.5
+  - !cmd:
+    command: '"C:\ProgramData\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums dotnet3.5'
+    weight: 150
+
+  - !writeStatus: {status: 'Installing DirectX'}
+    # Install DirectX End-User Runtime
+  - !cmd:
+    command: '"C:\ProgramData\chocolatey\bin\choco.exe" install -y --force --allow-empty-checksums directx'
+    weight: 150
+
+  - !service:
+    name: 'wuauserv'
+    operation: stop

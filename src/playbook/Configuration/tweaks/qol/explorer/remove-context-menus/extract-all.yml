@@ -1,7 +1,0 @@
----
-title: Remove 'Extract all' from Context Menu
-description: Removes 'Extract all' from Context Menu
-privilege: TrustedInstaller
-actions:
-  - !registryKey: {path: 'HKCR\CompressedFolder\ShellEx\ContextMenuHandlers\{b8cdcb65-b1bf-4b42-9428-1dfdb7ee92af}'}
-  - !registryKey: {path: 'HKCR\SystemFileAssociations\.zip\ShellEx\ContextMenuHandlers\{b8cdcb65-b1bf-4b42-9428-1dfdb7ee92af}'}
