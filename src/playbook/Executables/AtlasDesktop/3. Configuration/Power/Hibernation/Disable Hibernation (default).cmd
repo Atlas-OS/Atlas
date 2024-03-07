@@ -8,7 +8,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :main
-powercfg /hibernate off
+powercfg /h off
 
 if "%~1" == "/silent" exit
 
