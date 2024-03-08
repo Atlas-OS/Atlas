@@ -181,6 +181,7 @@ tasks:
   #  qol\explorer                                                              #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\explorer\always-more-details-transfer.yml
+  - tweaks\qol\explorer\disable-auto-folder-discovery.ym
   - tweaks\qol\explorer\disable-invalid-shortcuts-search.yml
   - tweaks\qol\explorer\disable-check-boxes.yml
   - tweaks\qol\explorer\disable-folders-this-pc.yml
@@ -192,8 +193,7 @@ tasks:
   - tweaks\qol\explorer\extend-cache.yml
   - tweaks\qol\explorer\minimize-mouse-hover-time.yml
   - tweaks\qol\explorer\no-internet-open-with.yml
-  - tweaks\qol\explorer\open-to-this-pc.yml
-  - tweaks\qol\explorer\optimise-shell-bags.yml
+  - tweaks\qol\explorer\open-to-this-pc.ymll
   - tweaks\qol\explorer\removable-drives-only-this-pc.yml
   - tweaks\qol\explorer\remove-previous-versions.yml
   - tweaks\qol\explorer\remove-shortcut-text.yml
