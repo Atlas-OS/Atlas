@@ -1,5 +1,5 @@
 ---
-title: Optimise Shell Bags
+title: Disable Automatic Folder Discovery
 description: Improves file indexing on HDD drives.
 privilege: TrustedInstaller
 actions:
