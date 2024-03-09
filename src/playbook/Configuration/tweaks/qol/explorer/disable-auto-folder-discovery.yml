@@ -1,7 +1,6 @@
 ---
 title: Disable Automatic Folder Discovery
 description: Improves file indexing on HDD drives.
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell'
