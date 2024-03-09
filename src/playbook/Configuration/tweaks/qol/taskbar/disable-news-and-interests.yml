@@ -3,11 +3,21 @@ title: Disable News and Interests
 description: Disables News and Interests on the taskbar for privacy (lots of third party connections) and QoL
 actions:
   - !taskKill: {name: 'explorer'}
+
+    # Disable Widgets in taskbar
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'TaskbarDa'
+    data: '0'
+    type: REG_DWORD
+    builds: [ '>=22000' ]
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Feeds'
     value: 'ShellFeedsTaskbarViewMode'
     data: '2'
     type: REG_DWORD
+    
+    # Policies
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds'
     value: 'EnableFeeds'
@@ -23,11 +33,5 @@ actions:
     value: 'value'
     data: '0'
     type: REG_DWORD
-    # Disable Widgets in taskbar
-  - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-    value: 'TaskbarDa'
-    data: '0'
-    type: REG_DWORD
-    builds: [ '>=22000' ]
+
   - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
