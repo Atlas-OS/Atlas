@@ -2,7 +2,7 @@
 
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
-	PowerShell Start -Verb RunAs '%0' 2> nul || (
+	powershell Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList '/c "%0" %*' 2> nul || (
 		echo You must run this script as admin.
 		exit /b 1
 	)
