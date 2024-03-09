@@ -1,52 +1,45 @@
 @echo off
 
-set baseAssociations=".dib:PhotoViewer.FileAssoc.Tiff"^
- ".jfif:PhotoViewer.FileAssoc.Tiff"^
- ".jpe:PhotoViewer.FileAssoc.Tiff"^
- ".jpeg:PhotoViewer.FileAssoc.Tiff"^
- ".jpg:PhotoViewer.FileAssoc.Tiff"^
- ".jxr:PhotoViewer.FileAssoc.Tiff"^
- ".png:PhotoViewer.FileAssoc.Tiff"^
- ".tif:PhotoViewer.FileAssoc.Tiff"^
- ".tiff:PhotoViewer.FileAssoc.Tiff"^
- ".wdp:PhotoViewer.FileAssoc.Tiff"^
- ".url:IE.AssocFile.URL"^
- ".ps1:Microsoft.PowerShellScript.1"
+@REM ASSOC.ps1 is currently broken and
+@REM that's why everything's commented
+@REM ---------------------------------
 
-set braveAssociations="Proto:https:BraveHTML"^
- "Proto:http:BraveHTML"^
- ".htm:BraveHTML"^
- ".html:BraveHTML"^
- ".pdf:BraveFile"^
- ".shtml:BraveHTML"
+@REM set baseAssociations=".url:IE.AssocFile.URL"
 
-set firefoxAssociations="Proto:https:FirefoxURL-308046B0AF4A39CB"^
- "Proto:http:FirefoxURL-308046B0AF4A39CB"^
- ".htm:FirefoxHTML-308046B0AF4A39CB"^
- ".html:FirefoxHTML-308046B0AF4A39CB"^
- ".pdf:FirefoxPDF-308046B0AF4A39CB"^
- ".shtml:FirefoxHTML-308046B0AF4A39CB"
+@REM set braveAssociations="Proto:https:BraveHTML"^
+@REM  "Proto:http:BraveHTML"^
+@REM  ".htm:BraveHTML"^
+@REM  ".html:BraveHTML"^
+@REM  ".pdf:BraveFile"^
+@REM  ".shtml:BraveHTML"
 
-set chromeAssociations="Proto:https:ChromeHTML"^
- "Proto:http:ChromeHTML"^
- ".htm:ChromeHTML"^
- ".html:ChromeHTML"^
- ".pdf:ChromeHTML"^
- ".shtml:ChromeHTML"
+@REM set firefoxAssociations="Proto:https:FirefoxURL-308046B0AF4A39CB"^
+@REM  "Proto:http:FirefoxURL-308046B0AF4A39CB"^
+@REM  ".htm:FirefoxHTML-308046B0AF4A39CB"^
+@REM  ".html:FirefoxHTML-308046B0AF4A39CB"^
+@REM  ".pdf:FirefoxPDF-308046B0AF4A39CB"^
+@REM  ".shtml:FirefoxHTML-308046B0AF4A39CB"
 
-set libreWolfAssociations="Proto:https:LibreWolfHTM"^
- "Proto:http:LibreWolfHTM"^
- ".htm:LibreWolfHTM"^
- ".html:LibreWolfHTM"^
- ".pdf:LibreWolfHTM"^
- ".shtml:LibreWolfHTM"
+@REM set chromeAssociations="Proto:https:ChromeHTML"^
+@REM  "Proto:http:ChromeHTML"^
+@REM  ".htm:ChromeHTML"^
+@REM  ".html:ChromeHTML"^
+@REM  ".pdf:ChromeHTML"^
+@REM  ".shtml:ChromeHTML"
 
-if "%~1" == "" set "associations=%baseAssociations%"
-if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
-if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
-if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%"
-if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
-if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
+@REM set libreWolfAssociations="Proto:https:LibreWolfHTM"^
+@REM  "Proto:http:LibreWolfHTM"^
+@REM  ".htm:LibreWolfHTM"^
+@REM  ".html:LibreWolfHTM"^
+@REM  ".pdf:LibreWolfHTM"^
+@REM  ".shtml:LibreWolfHTM"
+
+@REM if "%~1" == "" set "associations=%baseAssociations%"
+@REM if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
+@REM if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
+@REM if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%"
+@REM if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
+@REM if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 
 :: Set 7-Zip assocations
 call :7ZIPSYSTEM
@@ -56,7 +49,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Setting associations for "%%a"...
         call :7ZIPUSER "%%a"
-        PowerShell -NoP -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
+        @REM PowerShell -NoP -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
     )
 )
 exit /b
