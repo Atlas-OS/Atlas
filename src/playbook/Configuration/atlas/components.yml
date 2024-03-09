@@ -36,21 +36,23 @@ actions:
   - !writeStatus: {status: 'Removing components'}
   - !powerShell:
     command: >-
-      & """.\AtlasModules\Scripts\packageInstall.ps1"""
+      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
       -InstallPackages @('*Z-Atlas-NoDefender-Package*',
         '*Z-Atlas-NoTelemetry-Package*'
       )
       -NoInteraction
     option: 'defender-disable'
+    runas: currentUserElevated
     wait: true
     exeDir: true
   - !powerShell:
     command: >-
-      & """.\AtlasModules\Scripts\packageInstall.ps1"""
+      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
       -InstallPackages @('*Z-Atlas-NoTelemetry-Package*')
       -UninstallPackages @('*Z-Atlas-NoDefender-Package*')
       -NoInteraction
     option: 'defender-enable'
+    runas: currentUserElevated
     wait: true
     exeDir: true
 

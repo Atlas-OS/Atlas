@@ -8,7 +8,8 @@ param (
 	[array]$UninstallPackages,
 	[string]$PackagesPath = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Packages",
 	[switch]$NoInteraction,
-	[switch]$SafeMode
+	[switch]$SafeMode,
+	[switch]$FailMessage
 )
 
 # ======================================================================================================================= #
@@ -32,21 +33,36 @@ function Pause ($message = "Press Enter to exit") {
 	$null = Read-Host $message
 }
 
+function Write-BulletPoint($message) {
+	$message | Foreach-Object {
+		Write-Host " - " -ForegroundColor Green -NoNewline
+		Write-Host $_
+	}
+	Write-Host ""
+}
+
 function SafeMode {
-    param (
-        [switch]$Enable
-    )
+	param (
+		[switch]$Enable,
+		[switch]$FailMessage,
+		[array]$FailedPackageList,
+		[string]$FailedPackageListPath = $safeModePackageList
+	)
 
-    if ($Enable) {
-        $bcdeditArgs = '/set {current} safeboot minimal'
-        $shellValue = "cmd /c start explorer.exe & powershell -NoP -EP Unrestricted -File `"$PSCommandPath`" -SafeMode"
-    } else {
-        $bcdeditArgs = '/deletevalue {current} safeboot'
-        $shellValue = 'explorer.exe'
-    }
+	if ($Enable) {
+		$bcdeditArgs = '/set {current} safeboot minimal'
+		$shellValue = "explorer.exe,powershell -NoP -EP Unrestricted -File `"$PSCommandPath`" -SafeMode"
 
-    bcdedit $bcdeditArgs | Out-Null
-    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name Shell -Value $shellValue -Force
+		if ($FailedPackageList) {
+			Set-Content -Path $FailedPackageListPath -Value $FailedPackageList
+		}
+	} else {
+		$bcdeditArgs = '/deletevalue {current} safeboot'
+		$shellValue = 'explorer.exe'
+	}
+
+	if ($bcdeditArgs) { Start-Process -FilePath "bcdedit" -ArgumentList $bcdeditArgs -WindowStyle Hidden }
+	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name Shell -Value $shellValue -Force
 }
 if (
 	($safeModeStatus -and
@@ -58,12 +74,12 @@ if (
 
 function Restart {
 	shutdown /f /r /t 0 *>$null
-    Start-Sleep 2
-    Restart-Computer
-    Start-Sleep 2
-    Write-Host "Something seems to have went wrong restarting automatically, restart manually." -ForegroundColor Red
-    if (!$NoInteraction) { Pause }
-    exit 9000
+	Start-Sleep 2
+	Restart-Computer
+	Start-Sleep 2
+	Write-Host "Something seems to have went wrong restarting automatically, restart manually." -ForegroundColor Red
+	if (!$NoInteraction) { Pause }
+	exit 9000
 }
 
 function Finish($failedPackages) {
@@ -81,30 +97,53 @@ $seperator
 
 	if ($failedPackages.Count -gt 0) {
 		Write-Host "Some packages failed to install:" -ForegroundColor Red
-		$failedPackages | % {
-			Write-Host " - '$_'"
-		}
-		Write-Host ""
+		Write-BulletPoint $failedPackages
 
 		if ($NoInteraction) {
-			Write-Host "Setting Safe Mode automatically as NoInteraction is enabled."
-			SafeMode
+			Write-Host "Setting error message box next boot as NoInteraction is enabled."
+			Set-Content -Path $safeModePackageList -Value $failedPackages
+
+			$failedMsgTitle = 'AtlasFailedComponentMsgBox'
+			$failedMsgArgs = "/c title Finalizing Installation - Atlas & echo Do not close this window. & schtasks /delete /tn `"$failedMsgTitle`" /f > nul & " `
+			+ "PowerShell -NoP -NonI -W Hidden -EP Bypass -C `"& '$PSCommandPath' -FailMessage`""
+			$failedMsg = @{
+				'TaskName'    = $failedMsgTitle
+				'Settings'    = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+				'Trigger'     = New-ScheduledTaskTrigger -AtLogOn
+				'User'        = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+				'Force'       = $true
+				'RunLevel'    = 'Highest'
+				'Action'      = New-ScheduledTaskAction -Execute 'cmd' -Argument $failedMsgArgs
+			}
+			Register-ScheduledTask @failedMsg	
+
 			exit $script:errorLevel
+		}
+
+		function NoRestart {
+			Write-Host "`nIf any packages installed successfully, they will apply next restart." -ForegroundColor Yellow
+			Pause
 		}
 
 		if ($safeModeStatus) {
-			Write-Host "Please report this to the Atlas team, as nothing else can be done past Safe Mode."
-			Write-Host "."
-		}
-		choice /c yn /n /m "Would you like to boot into Safe mode and attempt to install them? [Y/N] "
-		if ($lastexitcode -eq 1) {
-			SafeMode -Enable
-			Restart
+			Write-Host "Please report this to the Atlas team, as there's no automatic fallbacks past Safe Mode." -ForegroundColor Magenta
+			choice /c yn /n /m "Would you like to restart out of Safe Mode? [Y/N] "
+			if ($lastexitcode -eq 1) {
+				Restart
+			} else {
+				NoRestart
+			}
 		} else {
-			Write-Host "`nIf any packages installed successfully, they will apply next restart." -ForegroundColor Yellow
-			Pause
-			exit $script:errorLevel
+			choice /c yn /n /m "Would you like to boot into Safe Mode and attempt to install them? [Y/N] "
+			if ($lastexitcode -eq 1) {
+				SafeMode -Enable -FailedPackageList $failedPackages
+				Restart
+			} else {
+				NoRestart
+			}
 		}
+
+		exit $script:errorLevel
 	}
 
 	if ($NoInteraction) { exit $script:errorLevel }
@@ -187,9 +226,7 @@ if ($InstallPackages) {
 }
 
 if ($SafeMode) {
-	$matchedPackages = Get-Content $safeModePackageList
-	if ((Test-Path $matchedPackages -PathType Leaf) -contains $false) {
-		Write-Host "[ERROR] Some Safe Mode packages weren't found. Please report this to Atlas.`n$matchedPackages`n" -ForegroundColor Red
+	function ExitSafeModePrompt {
 		choice /c yn /n /m "Would you like to restart to get out of Safe Mode? [Y/N] "
 		if ($lastexitcode -eq 1) {
 			Restart
@@ -197,6 +234,43 @@ if ($SafeMode) {
 			exit 1
 		}
 	}
+
+	$matchedPackages = Get-Content $safeModePackageList
+
+	if ($matchedPackages.Count -le 0) {
+		Write-Host "[ERROR] Safe Mode package list not found! Please report this to Atlas." -ForegroundColor Red
+		ExitSafeModePrompt
+	}
+
+	$packagesThatDontExist = $matchedPackages | ForEach-Object { if (!(Test-Path $_ -PathType Leaf)) { $_ } }
+	if ($packagesThatDontExist) {
+		Write-Host "[ERROR] Some Safe Mode packages weren't found. Please report this to Atlas." -ForegroundColor Red
+		Write-BulletPoint $packagesThatDontExist
+		ExitSafeModePrompt
+	}
+}
+
+if ($FailMessage) {
+	Add-Type -AssemblyName PresentationFramework
+	$body = "It appears that there was an issue while attempting to disable certain Windows components.
+
+Would you like to restart your system into Safe Mode and try again? This process should not take much time.
+
+Please note that if you chose to disable Windows Defender, it may still remain enabled if you select 'No'. However, you can always try disabling it later in the Atlas folder."
+
+	$result = [System.Windows.MessageBox]::Show(
+		$body,
+		"Atlas - Component Modification",
+		[System.Windows.MessageBoxButton]::YesNo,
+		[System.Windows.MessageBoxImage]::Question
+	)
+
+	if ($result -eq 'Yes') {
+		SafeMode -Enable
+		Restart
+	}
+
+	exit
 }
 
 # ======================================================================================================================= #
@@ -237,7 +311,7 @@ function ProcessCab($cabPath) {
 			}
 			if (!$correctUsage) {
 				Write-Host "[ERROR] Cert doesn't have Windows System Component Verification, can't continue." -ForegroundColor Red
-				$scr:errorLevel++
+				$script:errorLevel++
 				return $false
 			}
 			
