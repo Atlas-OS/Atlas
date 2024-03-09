@@ -98,8 +98,6 @@ actions:
   - !appx: {name: '*Microsoft.WindowsMaps*', type: family}
   - !appx: {name: '*Microsoft.WindowsSoundRecorder*', type: family}
   - !appx: {name: '*Microsoft.YourPhone*', type: family}
-  - !appx: {name: '*Microsoft.ZuneMusic*', type: family}
-  - !appx: {name: '*Microsoft.ZuneVideo*', type: family}
 
   # Prevent provisioned applications from being reinstalled
   # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
