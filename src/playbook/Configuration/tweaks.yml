@@ -181,7 +181,7 @@ tasks:
   #  qol\explorer                                                              #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\explorer\always-more-details-transfer.yml
-  - tweaks\qol\explorer\disable-auto-folder-discovery.yml
+  # - tweaks\qol\explorer\disable-auto-folder-discovery.yml
   - tweaks\qol\explorer\disable-invalid-shortcuts-search.yml
   - tweaks\qol\explorer\disable-check-boxes.yml
   - tweaks\qol\explorer\disable-folders-this-pc.yml
