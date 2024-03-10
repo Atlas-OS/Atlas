@@ -29,6 +29,7 @@ actions:
   - !appx: {name: 'Disney.37853FC22B2CE**', type: family}
   - !appx: {name: 'SpotifyAB.SpotifyMusic*', type: family}
   - !appx: {name: 'Microsoft.549981C3F5F10*', type: family} # Cortana
+  - !appx: {name: 'Microsoft.XboxApp*', type: family} # Legacy Xbox Console Companion
   - !appx: {name: 'microsoft.windowscommunicationsapps*', type: family} # Mail and Calendar
   - !appx: {name: 'Microsoft.MSPaint*', type: family} # Paint 3D
   - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips
