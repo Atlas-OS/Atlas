@@ -49,7 +49,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Setting associations for "%%a"...
         call :7ZIPUSER "%%a"
-        @REM PowerShell -NoP -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
+        @REM PowerShell -NoP -NonI -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
     )
 )
 exit /b

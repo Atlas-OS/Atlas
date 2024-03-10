@@ -56,7 +56,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 		)
 
 		if not defined appdata (
-			echo Couldn't find AppData value for "%%a"!
+			echo Couldn't find AppData value!
 		) else (
 			echo Setting "%input%" taskbar shortcut for "%%a"...
 			echo ------------------------------------------------------------------------------------------------------
