@@ -48,21 +48,33 @@ actions:
   # - !writeStatus: {status: 'Refreshing variables'}
   # - !run: {exeDir: true, exe: 'REFRESHENV.cmd'}
 
+  - !writeStatus: {status: 'Disabling Printing', option: 'disable-printing'}
+  - !cmd:
+    command: '"AtlasDesktop\3. Configuration\Printing\Disable Printing.cmd" /silent'
+    option: 'disable-printing'
+    exeDir: true
+    wait: true
+
   - !writeStatus: {status: 'Enabling DirectPlay'}
   - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart /All', weight: 30}
+  
   - !writeStatus: {status: 'Disabling Internet Explorer', builds: [ '!>=22000' ]}
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Internet-Explorer-Optional-amd64" /NoRestart', weight: 30, builds: [ '!>=22000' ]}
-  - !writeStatus: {status: 'Disabling Printing', option: 'disable-printing'}
-  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-Foundation-Features" /NoRestart', weight: 30, option: 'disable-printing'}
-  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-Foundation-InternetPrinting-Client" /NoRestart', weight: 30, option: 'disable-printing'}
-  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-XPSServices-Features" /NoRestart', weight: 30, option: 'disable-printing'}
-  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"Printing-PrintToPDFServices-Features" /NoRestart', weight: 30, option: 'disable-printing'}
+
+  - !writeStatus: {status: 'Disabling Maths Recognizer', builds: [ '!>=22000' ]}
+  - !run: {exe: 'DISM.exe', args: '/Online /Remove-Capability /CapabilityName:"MathRecognizer~~~~0.0.1.0" /NoRestart', weight: 30, builds: [ '!>=22000' ]}
+
+  - !writeStatus: {status: 'Disabling Steps Recorder'}
+  - !run: {exe: 'DISM.exe', args: '/Online /Remove-Capability /CapabilityName:"App.StepsRecorder~~~~0.0.1.0" /NoRestart', weight: 30}
+
+  - !writeStatus: {status: 'Disabling Legacy Media Player'}
+  - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"WindowsMediaPlayer" /NoRestart', weight: 30}
+  - !run: {exe: 'DISM.exe', args: '/Online /Remove-Capability /CapabilityName:"Media.WindowsMediaPlayer~~~~0.0.12.0" /NoRestart', weight: 30}
 
   ################ NO LOCAL BUILD ################
 
-  - !writeStatus: {status: 'Installing software'}
-
     # Initial software (7-Zip & Visual C++ runtimes)
+  - !writeStatus: {status: 'Installing Utilities'}
   - !powerShell:
     command: '.\SOFTWARE.ps1'
     exeDir: true

@@ -34,11 +34,11 @@ actions:
   - !appx: {name: 'Microsoft.MSPaint*', type: family} # Paint 3D
   - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips
   - !appx: {name: 'Microsoft.ZuneVideo*', type: family} # Films & TV
-  - !appx: {name: 'MicrosoftCorporationII.QuickAssist*', type: family}
   - !appx: {name: 'MicrosoftCorporationII.MicrosoftFamily*', type: family}
   - !appx: {name: 'Microsoft.MixedReality.Portal*', type: family}
   - !appx: {name: 'Microsoft.Windows.DevHome*', type: family}
   - !appx: {name: 'Microsoft.BingWeather*', type: family}
+  - !appx: {name: 'Microsoft.BingNews*', type: family}
   - !appx: {name: 'Microsoft.OutlookForWindows*', type: family}
   - !appx: {name: 'Microsoft.GetHelp*', type: family}
   - !appx: {name: 'Microsoft.Microsoft3DViewer*', type: family}
