@@ -30,10 +30,10 @@ for %%a in (
 )
 
 :: Seems to not exist sometimes
-call %windir%\AtlasModules\Scripts\setSvc.cmd BthPan 4 > nul 2>&1
+call "%windir%\AtlasModules\Scripts\setSvc.cmd" BthPan 4 > nul 2>&1
 
 :: Disable Bluetooth devices
-call %windir%\AtlasModules\Scripts\toggleDev.cmd -Silent '*Bluetooth*'
+call "%windir%\AtlasModules\Scripts\toggleDev.cmd" -Silent '*Bluetooth*'
 
 :: Disable in Send To context menu
 call "%windir%\AtlasDesktop\4. Optional Tweaks\Send To Context Menu\Debloat Send To Context Menu.cmd" -Disable @('Bluetooth')

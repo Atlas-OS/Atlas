@@ -6,4 +6,4 @@ if not exist "%script%" (
 	pause
 	exit /b 1
 )
-powershell -EP Bypass -NoP Unblock-File -Path """$env:script""" -EA 0; ^& """$env:script""" %*
+powershell -EP Bypass -NoP ^& """$env:script""" %*

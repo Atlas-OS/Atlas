@@ -16,4 +16,4 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-powershell -EP Bypass -NoP Unblock-File -Path """$env:script""" -EA 0; ^& """$env:script""" %*
+powershell -EP Bypass -NoP ^& """$env:script""" %*
