@@ -1,7 +1,8 @@
 @echo off
+setlocal EnableDelayedExpansion
 
-set "input=%~1"
 set browser=true
+set "input=%~1"
 set "taskBarLocation=Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
 set "rootKey=SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband"
 
@@ -48,26 +49,26 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 	reg query "HKEY_USERS\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
 		echo]
 		if "%%a"=="AME_UserHive_Default" (
-			set "appdata=%systemdrive%\Users\Default\AppData\Roaming"
+			set "userAppdata=%systemdrive%\Users\Default\AppData\Roaming"
 		) else (
 			for /f "usebackq tokens=3* delims= " %%b in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "AppData" 2^>nul ^| findstr /r /x /c:".*AppData[ ]*REG_SZ[ ].*" 2^>nul`) do (
-				set "appdata=%%b"
+				set "userAppdata=%%b"
 			)
 		)
 
-		if not defined appdata (
+		if [!userAppdata!]==[] (
 			echo Couldn't find AppData value!
 		) else (
 			echo Setting "%input%" taskbar shortcut for "%%a"...
 			echo ------------------------------------------------------------------------------------------------------
 
 			echo Clear current shortcuts and copy File Explorer
-			rmdir /s /q "%appdata%\%taskBarLocation%" > nul
-			mkdir "%appdata%\%taskBarLocation%" > nul
-			copy /y "Shortcuts\File Explorer.lnk" "%appdata%\%taskBarLocation%" > nul
+			rmdir /s /q "!userAppdata!\%taskBarLocation%" > nul
+			mkdir "!userAppdata!\%taskBarLocation%" > nul
+			copy /y "Shortcuts\File Explorer.lnk" "!userAppdata!\%taskBarLocation%" > nul
 
 			echo Copy browser shortcut if applicable
-			if "%browser%"=="true" copy /y "Shortcuts\%input%.lnk" "%appdata%\%taskBarLocation%" > nul
+			if "%browser%"=="true" copy /y "Shortcuts\%input%.lnk" "!userAppdata!\%taskBarLocation%" > nul
 
 			echo Set in Registry
 			reg add "HKU\%%a\%rootKey%" /v "FavoritesResolve" /t REG_BINARY /d "%favoritesResolve%" /f > nul

@@ -9,6 +9,7 @@ actions:
   - !taskKill: {name: 'explorer'}
   - !run:
     exe: 'TASKBARPINS.cmd'
+    option: '!install-another-browser'
     exeDir: true
   - !run:
     exe: 'TASKBARPINS.cmd'
