@@ -20,16 +20,10 @@ actions:
       Out-File """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
     runas: currentUserElevated
 
-
-  # Microsoft Teams
+  # AppX Microsoft Teams
   # Seems legacy - not in 23H2?
   - !taskKill: {name: 'msteams', ignoreErrors: true}
   - !appx: {name: 'MicrosoftTeams', type: family}
-
-  # Game Bar
-  # Support is disabled by default - there shouldn't be a popup about 'ms-gaming-overlay-link'
-  - !appx: {name: 'Microsoft.XboxGameOverlay', type: family}
-  - !appx: {name: 'Microsoft.XboxGamingOverlay', type: family}
 
   - !appx: {name: 'Clipchamp.Clipchamp', type: family}
   - !appx: {name: 'Disney.37853FC22B2CE', type: family}

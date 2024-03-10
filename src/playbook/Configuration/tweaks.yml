@@ -43,7 +43,7 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-performance.yml
   - tweaks\performance\config-mmcss.yml
-  - tweaks\performance\disable-game-bar.yml
+  # - tweaks\performance\disable-game-bar.yml
   - tweaks\performance\disable-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
   - tweaks\performance\disable-fth.yml
