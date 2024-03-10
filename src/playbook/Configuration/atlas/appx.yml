@@ -25,8 +25,8 @@ actions:
   - !taskKill: {name: 'msteams*', ignoreErrors: true}
   - !appx: {name: 'MicrosoftTeams*', type: family}
 
-  - !appx: {name: 'Clipchamp.Clipchamp**', type: family}
-  - !appx: {name: 'Disney.37853FC22B2CE**', type: family}
+  - !appx: {name: 'Clipchamp.Clipchamp*', type: family}
+  - !appx: {name: 'Disney.37853FC22B2CE*', type: family}
   - !appx: {name: 'SpotifyAB.SpotifyMusic*', type: family}
   - !appx: {name: 'Microsoft.549981C3F5F10*', type: family} # Cortana
   - !appx: {name: 'Microsoft.XboxApp*', type: family} # Legacy Xbox Console Companion
