@@ -8,6 +8,9 @@ param (
 # Software is no longer installed with a package manager anymore to be as fast and as reliable as possible.   #
 # ----------------------------------------------------------------------------------------------------------- #
 
+$arm = ((Get-CimInstance -Class Win32_OperatingSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+$armString = ('x64', 'arm64')[$arm]
+
 # Create temporary directory
 $tempDir = Join-Path -Path $env:TEMP -ChildPath $([System.Guid]::NewGuid())
 New-Item $tempDir -ItemType Directory -Force | Out-Null
@@ -94,7 +97,7 @@ $num = 0; foreach ($a in $vcredists.GetEnumerator()) {
 
 # 7-Zip
 $website = 'https://7-zip.org/'
-$download = $website + ((Invoke-WebRequest $website -UseBasicParsing).Links.href | Where-Object { $_ -like "a/7z2301-x64.exe" })
+$download = $website + ((Invoke-WebRequest $website -UseBasicParsing).Links.href | Where-Object { $_ -like "a/7z*-$armString.exe" })
 & curl.exe -LSs $download -o "$tempDir\7zip.exe"
 Start-Process -FilePath "$tempDir\7zip.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait 2>&1 | Out-Null
 
