@@ -10,7 +10,8 @@ if not exist "%script%" (
 
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
-	powershell Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList '/c "%0" %*' 2> nul || (
+	set "___args="%~f0" %*"
+	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
 		echo You must run this script as admin.
 		exit /b 1
 	)
