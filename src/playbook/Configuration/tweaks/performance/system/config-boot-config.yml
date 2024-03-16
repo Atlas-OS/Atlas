@@ -13,7 +13,7 @@ actions:
   - !run:
     exe: 'bcdedit'
     args: '/set description "AtlasOS 10"'
-    builds: [ '!>=22000' ]
+    builds: [ '<22000' ]
   - !run:
     exe: 'bcdedit'
     args: '/set description "AtlasOS 11"'

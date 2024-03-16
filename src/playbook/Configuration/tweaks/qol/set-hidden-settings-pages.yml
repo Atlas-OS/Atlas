@@ -10,7 +10,7 @@ actions:
     value: 'SettingsPageVisibility'
     data: 'hide:recovery;autoplay;usb;maps;maps-downloadmaps;findmydevice;privacy;privacy-speechtyping;privacy-speech;privacy-feedback;privacy-activityhistory;search-permissions;privacy-location;privacy-general;sync;printers;cortana-windowssearch;mobile-devices;mobile-devices-addphone;workplace;backup'
     type: REG_SZ
-    builds: [ '!>=22000' ]
+    builds: [ '<22000' ]
 
     # Windows 11
   - !registryValue:
