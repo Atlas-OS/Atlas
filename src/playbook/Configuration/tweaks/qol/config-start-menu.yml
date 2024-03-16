@@ -37,4 +37,4 @@ actions:
     exeDir: true
     exe: 'STARTMENU.cmd'
     weight: 20
-  - !appx: {operation: clearCache, name: '*StartMenuExperienceHost*'}
+  - !appx: {operation: clearCache, name: 'Microsoft.Windows.StartMenuExperienceHost*'}

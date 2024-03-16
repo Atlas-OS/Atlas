@@ -20,86 +20,44 @@ actions:
       Out-File """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
     runas: currentUserElevated
 
-  # Clipchamp
-  - !appx: {name: '*Clipchamp*', type: family}
+  # AppX Microsoft Teams
+  # Seems legacy - not in 23H2?
+  - !taskKill: {name: 'msteams*', ignoreErrors: true}
+  - !appx: {name: 'MicrosoftTeams*', type: family}
 
-  # Disney
-  - !appx: {name: '*Disney*', type: family}
-
-  # Spotify
-  - !appx: {name: '*Spotify*', type: family}
-
-  # Microsoft Teams
-  - !taskKill: {name: '*teams*', ignoreErrors: true}
-  - !appx: {name: '*MicrosoftTeams*', type: family}
-
-  # Cortana
-  - !appx: {name: '*Microsoft.549981C3F5F10*', type: family}
-
-  # Mixed Reality
-  - !appx: {name: '*Microsoft.MixedReality.Portal*', type: family}
-
-  # Dev Home
-  - !appx: {name: '*Microsoft.Windows.DevHome*', type: family}
-  
-  # Network connection should not be needed in OOBE
-  # Could force users to have to login to a Microsoft account in OOBE
-  # Would not be a dependency of anything
-  - !appx: {name: '*Microsoft.Windows.OOBENetworkCaptivePortal*', type: family}
-  - !appx: {name: '*Microsoft.Windows.OOBENetworkConnectionFlow*', type: family}
-
-  # Mail and Calendar
-  - !appx: {name: '*microsoft.windowscommunicationsapps*', type: family}
-
-  # Take a Test
-  # https://www.mdsec.co.uk/2021/03/phishing-users-to-take-a-test
-  - !appx: {name: '*Microsoft.Windows.SecureAssessmentBrowser*', type: family}
-
-  # Paint 3D
-  - !appx: {name: '*Microsoft.MSPaint*', type: family}
-
-  # Game Bar
-  # Support is disabled by default - there shouldn't be a popup about 'ms-gaming-overlay-link'
-  - !appx: {name: '*Microsoft.XboxGameOverlay*', type: family}
-  - !appx: {name: '*Microsoft.XboxGamingOverlay*', type: family}
-
-  # Tips
-  - !appx: {name: '*Microsoft.Getstarted*', type: family}
-
-  # Family App, Quick Assist
-  - !appx: {name: '*MicrosoftCorporationII.QuickAssist*', type: family}
-  - !appx: {name: '*MicrosoftCorporationII.MicrosoftFamily*', type: family}
-  
-  # Bing-related applications
-  - !appx: {name: '*Bing*', type: family}
-
-  # Outlook-related applications
-  - !appx: {name: '*Outlook*', type: family}
-
-  - !appx: {name: '*Microsoft.Advertising.Xaml*', type: family}
-  - !appx: {name: '*Microsoft.GetHelp*', type: family}
-  - !appx: {name: '*Microsoft.Microsoft3DViewer*', type: family}
-  - !appx: {name: '*Microsoft.MicrosoftOfficeHub*', type: family}
-  - !appx: {name: '*Microsoft.MicrosoftSolitaireCollection*', type: family}
-  - !appx: {name: '*Microsoft.MicrosoftStickyNotes*', type: family}
-  - !appx: {name: '*Microsoft.Office.OneNote*', type: family}
-  - !appx: {name: '*Microsoft.People*', type: family}
-  - !appx: {name: '*Microsoft.PowerAutomateDesktop*', type: family}
-  - !appx: {name: '*Microsoft.Windows.PeopleExperienceHost*', type: family}
-  - !appx: {name: '*Microsoft.ScreenSketch*', type: family}
-  - !appx: {name: '*Microsoft.SkypeApp*', type: family}
-  - !appx: {name: '*Microsoft.Todos*', type: family}
-  - !appx: {name: '*Microsoft.Wallet*', type: family}
-  - !appx: {name: '*Microsoft.Windows.ParentalControls*', type: family}
-  - !appx: {name: '*Microsoft.Windows.Photos*', type: family}
-  - !appx: {name: '*Microsoft.WindowsAlarms*', type: family}
-  - !appx: {name: '*Microsoft.WindowsCamera*', type: family}
-  - !appx: {name: '*Microsoft.WindowsFeedbackHub*', type: family}
-  - !appx: {name: '*Microsoft.WindowsMaps*', type: family}
-  - !appx: {name: '*Microsoft.WindowsSoundRecorder*', type: family}
-  - !appx: {name: '*Microsoft.YourPhone*', type: family}
-  - !appx: {name: '*Microsoft.ZuneMusic*', type: family}
-  - !appx: {name: '*Microsoft.ZuneVideo*', type: family}
+  - !appx: {name: 'Clipchamp.Clipchamp*', type: family}
+  - !appx: {name: 'Disney.37853FC22B2CE*', type: family}
+  - !appx: {name: 'SpotifyAB.SpotifyMusic*', type: family}
+  - !appx: {name: 'Microsoft.549981C3F5F10*', type: family} # Cortana
+  - !appx: {name: 'Microsoft.XboxApp*', type: family} # Legacy Xbox Console Companion
+  - !appx: {name: 'microsoft.windowscommunicationsapps*', type: family} # Mail and Calendar
+  - !appx: {name: 'Microsoft.MSPaint*', type: family} # Paint 3D
+  - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips
+  - !appx: {name: 'Microsoft.ZuneVideo*', type: family} # Films & TV
+  - !appx: {name: 'MicrosoftCorporationII.MicrosoftFamily*', type: family}
+  - !appx: {name: 'Microsoft.MixedReality.Portal*', type: family}
+  - !appx: {name: 'Microsoft.Windows.DevHome*', type: family}
+  - !appx: {name: 'Microsoft.BingWeather*', type: family}
+  - !appx: {name: 'Microsoft.BingNews*', type: family}
+  - !appx: {name: 'Microsoft.OutlookForWindows*', type: family}
+  - !appx: {name: 'Microsoft.GetHelp*', type: family}
+  - !appx: {name: 'Microsoft.Microsoft3DViewer*', type: family}
+  - !appx: {name: 'Microsoft.MicrosoftOfficeHub*', type: family}
+  - !appx: {name: 'Microsoft.MicrosoftSolitaireCollection*', type: family}
+  - !appx: {name: 'Microsoft.MicrosoftStickyNotes*', type: family}
+  - !appx: {name: 'Microsoft.Office.OneNote*', type: family}
+  - !appx: {name: 'Microsoft.People*', type: family}
+  - !appx: {name: 'Microsoft.PowerAutomateDesktop*', type: family}
+  - !appx: {name: 'Microsoft.ScreenSketch*', type: family}
+  - !appx: {name: 'Microsoft.SkypeApp*', type: family}
+  - !appx: {name: 'Microsoft.Todos*', type: family}
+  - !appx: {name: 'Microsoft.Windows.Photos*', type: family}
+  - !appx: {name: 'Microsoft.WindowsAlarms*', type: family}
+  - !appx: {name: 'Microsoft.WindowsCamera*', type: family}
+  - !appx: {name: 'Microsoft.WindowsFeedbackHub*', type: family}
+  - !appx: {name: 'Microsoft.WindowsMaps*', type: family}
+  - !appx: {name: 'Microsoft.WindowsSoundRecorder*', type: family}
+  - !appx: {name: 'Microsoft.YourPhone*', type: family}
 
   # Prevent provisioned applications from being reinstalled
   # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
@@ -113,6 +71,6 @@ actions:
 
   # Clear caches of Client.CBS and more
   - !writeStatus: {status: 'Clearing AppX caches'}
-  - !appx: {operation: clearCache, name: '*Client.CBS*'}
-  - !appx: {operation: clearCache, name: '*Windows.Search*'}
-  - !appx: {operation: clearCache, name: '*Microsoft.Windows.SecHealthUI'}
+  - !appx: {operation: clearCache, name: '*MicrosoftWindows.Client.CBS*'}
+  - !appx: {operation: clearCache, name: '*Microsoft.Windows.Search*'}
+  - !appx: {operation: clearCache, name: '*Microsoft.Windows.SecHealthUI*'}

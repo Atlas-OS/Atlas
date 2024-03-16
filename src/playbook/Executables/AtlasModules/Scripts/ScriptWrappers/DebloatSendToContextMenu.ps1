@@ -13,14 +13,16 @@ $items = @{
     )
 }
 $sendTo = Get-ChildItem ([Environment]::GetFolderPath('SendTo')) -Force
+$sys32 = [Environment]::GetFolderPath('System')
 $shell = New-Object -Com WScript.Shell
 
 # Get Bluetooth path
 foreach ($lnk in (($sendTo | Where-Object { $_.Extension -eq ".lnk" }).FullName)) {
-    if ($shell.CreateShortcut($lnk).TargetPath -like '*fsquirt.exe*') {
+    $target = $shell.CreateShortcut($lnk).TargetPath
+    if ($target -eq "$sys32\fsquirt.exe") {
         $items["Bluetooth"] = $lnk
         $blueFound = $true
-    } elseif ($shell.CreateShortcut($lnk).TargetPath -like '*wfs.exe /SendTo*') {
+    } elseif ($target -eq "$sys32\WFS.exe") {
         $items["Fax recipient"] = $lnk
         $faxFound = $true
     }

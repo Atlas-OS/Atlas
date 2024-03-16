@@ -25,7 +25,13 @@ function New-Shortcut {
 Write-Output "Creating Desktop & Start Menu shortcuts..."
 $defaultShortcut = "$env:SystemDrive\Users\Default\Desktop\Atlas.lnk"
 New-Shortcut -Icon "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\atlas-folder.ico,0" -Target "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop" -ShortcutPath $defaultShortcut
-foreach ($userKey in (Get-ChildItem -Path "Registry::HKU" | ? { $_.Name -match "S-.*|AME_UserHive_[^_]*" -and $_.Name -notlike '*Classes*' }).PsPath) {
+
+$registryKeys = Get-ChildItem -Path "Registry::HKU" | Where-Object { 
+    $_.Name -match "S-.*|AME_UserHive_[^_]*" -and
+    $_.Name -notlike '*Classes*' -and
+    $_.Name -notlike '*Default*'
+}
+foreach ($userKey in $registryKeys.PsPath) {
     $deskPath = (get-itemproperty -path "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name Desktop -EA 0).Desktop
     if ($null -eq $deskPath) {
         Write-Output "Desktop path not found for '$userKey', shortcuts can't be copied."
@@ -34,13 +40,16 @@ foreach ($userKey in (Get-ChildItem -Path "Registry::HKU" | ? { $_.Name -match "
         Copy-Item $defaultShortcut -Destination $deskPath -Force
     }
 }
+
 Copy-Item $defaultShortcut -Destination "$([Environment]::GetFolderPath('CommonStartMenu'))\Programs" -Force
+
 
 Write-Output "Creating services shortcuts..."
 $runAsTI = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\RunAsTI.cmd"
 $default = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\8. Troubleshooting\Default"
 New-Shortcut -ShortcutPath "$default Windows Services and Drivers.lnk" -Target "$runAsTI" -Arguments "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\winServices.reg" -Icon "$([Environment]::GetFolderPath('Windows'))\regedit.exe,1"
 New-Shortcut -ShortcutPath "$default Atlas Services and Drivers.lnk" -Target "$runAsTI" -Arguments "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\atlasServices.reg" -Icon "$([Environment]::GetFolderPath('Windows'))\regedit.exe,1"
+
 
 Write-Output "Making Windows Tools shortcuts dark mode for Windows 11..."
 $newTargetPath = "$([Environment]::GetFolderPath('Windows'))\explorer.exe"

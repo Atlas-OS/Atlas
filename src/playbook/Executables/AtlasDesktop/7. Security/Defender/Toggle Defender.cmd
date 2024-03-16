@@ -9,11 +9,12 @@ if not exist "%script%" (
 
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
-	PowerShell Start -Verb RunAs '%0' 2> nul || (
+	set "___args="%~f0" %*"
+	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
 		echo You must run this script as admin.
 		exit /b 1
 	)
 	exit /b
 )
 
-powershell -EP Bypass -NoP Unblock-File -Path """$env:script""" -EA 0; ^& """$env:script""" %*
+powershell -EP Bypass -NoP ^& """$env:script""" %*

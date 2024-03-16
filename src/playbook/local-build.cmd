@@ -45,14 +45,27 @@ function CreateConfig($conf) {
 	$conf | ConvertTo-Json -Depth 100 | Out-File $configPath
 }
 
+function Write-BulletPoint($message) {
+	$message | Foreach-Object {
+		Write-Host " - " -ForegroundColor Green -NoNewline
+		Write-Host $_
+	}
+	Write-Host ""
+}
+
 if (!(Test-Path $configPath)) {
 	Remove-Item -Force -Path $shortcut -EA SilentlyContinue
 
-	Write-Host "It seems like this is your first time using AME Local Build.`n" -ForegroundColor Yellow
-	Write-Host "Setup`n---------------------------------" -ForegroundColor Green
-	Write-Host "Adding config to path would allow you to type 'ame-lb-conf' into Run (Win + R) or any other shell and open the config." -ForegroundColor Blue
+	Write-Host "It seems like this is your first time using AME Local Build.`n" -ForegroundColor Cyan
+
+	Write-BulletPoint "Adding config to %PATH% would allow you to type 'ame-lb-conf' into Run or any other shell and open the config."
+	Write-BulletPoint "The configuration is in JSON, and explanations of those arguments are contained in the script."
+	Write-BulletPoint "You can change the config path by modifying the script."
+
+
+	Write-Host "`n---------------------------------------------------------------------------------------------------------`n" -ForegroundColor Magenta
 	choice /c:yn /n /m "Would you like to add a shortcut to %PATH% for the configuration file? [Y/N]"
-	if ($LASTEXITCODE -eq 1) { New-ConfigPathShortcut}
+	if ($LASTEXITCODE -eq 1) { New-ConfigPathShortcut }
 
 	choice /c:yn /n /m "Would you like to open the config file now? [Y/N]"
 	CreateConfig $defaultConfig
@@ -112,20 +125,18 @@ if (!(Test-Path -Path "playbook.conf")) {
 }
 
 # check if old files are in use
+$num = 1
 if (($replaceOldPlaybook) -and (Test-Path -Path $apbxFileName)) {
 	try {
 		$stream = [System.IO.File]::Open($apbxFileName, 'Open', 'Read', 'Write')
 		$stream.Close()
 	} catch {
-		Write-Host "The current playbook in the folder ($apbxFileName) is in use, and it can't be deleted to be replaced." -ForegroundColor Red
-		Write-Host 'Either configure "$replaceOldPlaybook" in the script configuration or close the application its in use with.' -ForegroundColor Red
-		Start-Sleep 4
-		exit 1
+		while(Test-Path -Path "$fileName ($num).apbx") {$num++}
+		$apbxFileName = "$PWD\$fileName ($num).apbx"
 	}
 	Remove-Item -Path $apbxFileName -Force -EA 0
 } else {
 	if (Test-Path -Path $apbxFileName) {
-		$num = 1
 		while(Test-Path -Path "$fileName ($num).apbx") {$num++}
 		$apbxFileName = "$PWD\$fileName ($num).apbx"
 	}
@@ -215,6 +226,7 @@ try {
 		$7zPath = "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe"
 	}
 
+	if (Test-Path $apbxPath) { Remove-Item $apbxFileName -Force }
 	if ($7zPath) {
 		(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName `
 		| Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File "$rootTemp\7zFiles.txt" -Encoding utf8
@@ -232,7 +244,8 @@ try {
 		Rename-Item -Path $zipFileName -NewName $apbxFileName
 	}
 
-	Write-Host "Completed." -ForegroundColor Green
+	Write-Host "Build successfully! Path: `"$apbxPath`"" -ForegroundColor Green
+	Start-Sleep 1
 } finally {
 	Remove-Item $rootTemp -Force -EA 0 -Recurse | Out-Null
 }

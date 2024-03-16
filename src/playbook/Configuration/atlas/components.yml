@@ -36,30 +36,22 @@ actions:
   - !writeStatus: {status: 'Removing components'}
   - !powerShell:
     command: >-
-      & """.\AtlasModules\Scripts\packageInstall.ps1"""
+      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
       -InstallPackages @('*Z-Atlas-NoDefender-Package*',
         '*Z-Atlas-NoTelemetry-Package*'
       )
       -NoInteraction
     option: 'defender-disable'
+    runas: currentUserElevated
     wait: true
     exeDir: true
   - !powerShell:
     command: >-
-      & """.\AtlasModules\Scripts\packageInstall.ps1"""
+      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
       -InstallPackages @('*Z-Atlas-NoTelemetry-Package*')
       -UninstallPackages @('*Z-Atlas-NoDefender-Package*')
       -NoInteraction
     option: 'defender-enable'
+    runas: currentUserElevated
     wait: true
     exeDir: true
-
-    # Update Health Tools
-  - !writeStatus: {status: 'Removing Update Health'}
-  - !powerShell: {command: 'Import-Module -Name """.\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Microsoft Update Health Tools''', exeDir: true}
-
-    # PC Health Check
-  - !writeStatus: {status: 'Removing PC Health Check'}
-  - !powerShell: {command: 'Import-Module -Name """.\AtlasModules\Scripts\Modules\Uninstall-MsiexecAppByName\Uninstall-MsiexecAppByName.psm1"""; Uninstall-MsiexecAppByName -Name ''Windows PC Health Check''', exeDir: true}
-    # The Microsoft Update Health Service stays, which is a Windows bug
-  - !service: {name: 'uhssvc', deleteUsingRegistry: true}
