@@ -1,8 +1,8 @@
 @echo off
 
+set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
-	set "___args="%~f0" %*"
 	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
 		echo You must run this script as admin.
 		exit /b 1
@@ -18,12 +18,9 @@ echo Enabling News and Interests (called Widgets in Windows 11)....
 (
     reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" /v "EnableFeeds" /f
     reg delete "HKLM\SOFTWARE\Policies\Microsoft\Dsh" /v "AllowNewsAndInterests" /f
-    reg delete "HKLM\SOFTWARE\Microsoft\PolicyManager\default\NewsAndInterests\AllowNewsAndInterests" /v "value" /f
     taskkill /f /im explorer.exe
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Feeds" /v "ShellFeedsTaskbarViewMode" /t REG_DWORD /d "0" /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarDa" /t REG_DWORD /d "1" /f
     start explorer.exe
-) > nul
+) > nul 2>&1
 
 timeout /t 2 /nobreak > nul
 start ms-settings:taskbar
