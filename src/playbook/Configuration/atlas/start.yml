@@ -74,7 +74,7 @@ actions:
   ################ NO LOCAL BUILD ################
 
     # Initial software (7-Zip & Visual C++ runtimes)
-  - !writeStatus: {status: 'Installing Utilities'}
+  - !writeStatus: {status: 'Installing utilities'}
   - !powerShell:
     command: '.\SOFTWARE.ps1'
     exeDir: true
