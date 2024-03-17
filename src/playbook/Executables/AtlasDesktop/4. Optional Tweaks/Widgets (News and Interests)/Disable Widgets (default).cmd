@@ -11,7 +11,7 @@ fltmc > nul 2>&1 || (
 )
 
 echo]
-echo Disabling News and Interests (called Widgets in Windows 11)....
+echo Disabling News and Interests (called Widgets in Windows 11)...
 
 (
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" /v "EnableFeeds" /t REG_DWORD /d "0" /f

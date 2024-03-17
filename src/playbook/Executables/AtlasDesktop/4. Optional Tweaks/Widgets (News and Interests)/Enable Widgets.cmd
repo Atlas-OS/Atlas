@@ -11,9 +11,10 @@ fltmc > nul 2>&1 || (
 )
 
 call "%windir%\AtlasModules\Scripts\edgeCheck.cmd"
+if %errorlevel% neq 0 exit /b 1
 
 echo]
-echo Enabling News and Interests (called Widgets in Windows 11)....
+echo Enabling News and Interests (called Widgets in Windows 11)...
 
 (
     reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" /v "EnableFeeds" /f

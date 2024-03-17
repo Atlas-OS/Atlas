@@ -51,18 +51,7 @@ echo Disabling services...
 call %windir%\AtlasModules\Scripts\setSvc.cmd Spooler 4
 call %windir%\AtlasModules\Scripts\setSvc.cmd PrintWorkFlowUserSvc 4
 
-echo Hiding Settings pages...
-if not "%~1" == "/silent" (
-    set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
-    reg query "!pageKey!" /v "SettingsPageVisibility" > nul 2>&1
-    if %ERRORLEVEL% == 0 (
-        for /f "usebackq tokens=3" %%a in (`reg query "!pageKey!" /v "SettingsPageVisibility"`) do (
-            reg add "!pageKey!" /v "SettingsPageVisibility" /t REG_SZ /d "%%a;printers;" /f > nul
-        )
-    ) else (
-        reg add "!pageKey!" /v "SettingsPageVisibility" /t REG_SZ /d "hide:printers;" /f > nul
-    )
-)
+call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide printing
 
 echo Disabling capabilities...
 for %%a in (

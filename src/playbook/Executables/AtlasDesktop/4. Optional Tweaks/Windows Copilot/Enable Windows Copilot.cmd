@@ -16,6 +16,7 @@ pause
 
 echo]
 call "%windir%\AtlasModules\Scripts\edgeCheck.cmd"
+if %errorlevel% neq 0 exit /b 1
 echo]
 
 echo Enabling Copilot...

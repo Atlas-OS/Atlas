@@ -48,10 +48,7 @@ echo Enabling services...
 call setSvc.cmd Spooler 2
 call setSvc.cmd PrintWorkFlowUserSvc 3
 
-echo Unhiding Settings pages...
-set "pageKey=HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
-reg query "!pageKey!" /v "SettingsPageVisibility" > nul 2>&1
-if %ERRORLEVEL% == 0 call :enableSettingsPage
+call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide printing
 
 echo Enabling capabilities...
 for %%a in (
@@ -74,9 +71,4 @@ for %%a in (
 echo]
 echo Finished, please reboot your device for changes to apply.
 pause
-exit /b
-
-:enableSettingsPage
-for /f "usebackq tokens=3" %%a in (`reg query "!pageKey!" /v "SettingsPageVisibility"`) do (set "currentPages=%%a")
-reg add "!pageKey!" /v "SettingsPageVisibility" /t REG_SZ /d "!currentPages:printers;=!" /f > nul
 exit /b
