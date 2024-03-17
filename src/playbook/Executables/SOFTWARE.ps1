@@ -8,7 +8,7 @@ param (
 # Software is no longer installed with a package manager anymore to be as fast and as reliable as possible.   #
 # ----------------------------------------------------------------------------------------------------------- #
 
-$arm = ((Get-CimInstance -Class Win32_OperatingSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+$arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 $armString = ('x64', 'arm64')[$arm]
 
 # Create temporary directory

@@ -21,7 +21,7 @@ $env:path = "$([Environment]::GetFolderPath('Windows'));$sys32;$sys32\Wbem;$sys3
 $certRegPath = "HKLM:\Software\Microsoft\SystemCertificates\ROOT\Certificates"
 $errorLevel = $warningLevel = 0
 
-$arm = ((Get-CimInstance -Class Win32_OperatingSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+$arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 $armString = if ($arm) {'arm64'} else {'amd64'}
 
 $safeModeStatus = (Get-CimInstance -Class Win32_ComputerSystem).BootupState -ne 'Normal boot'
