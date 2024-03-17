@@ -2,7 +2,7 @@
 title: Delete Windows-version Specific Tweaks
 description: Deletes Windows 10 or Windows 11-only tweaks in the Atlas folder, depending on the current version
 actions:
-    # Delete files for Windows 10
+    # Delete files exclusive to Windows 11
   - !file: {path: '%windir%\AtlasDesktop\3. Configuration\Background Apps', builds: [ '<22000' ]}
   - !file: {path: '%windir%\AtlasModules\Tools\TimerResolution.exe', builds: [ '<22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\3. Configuration\Power\Timer Resolution', builds: [ '<22000' ]}
@@ -10,6 +10,6 @@ actions:
   - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Gallery', builds: [ '<22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\Windows 11 Context Menu', builds: [ '<22000' ]}
 
-    # Delete files for Windows 11
+    # Delete files exclusive to Windows 10
   - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Folders in This PC', builds: [ '>=22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\Volume Flyout', builds: [ '>=22000' ], ignoreErrors: true}
+  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\Old Flyouts', builds: [ '>=22000' ], ignoreErrors: true}
