@@ -16,13 +16,13 @@ actions:
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
   - !powerShell:
-    command: '& """.\AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -UninstallEdge -KeepAppX -Exit'
+    command: '& """.\AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive'
     runas: currentUserElevated
     option: 'uninstall-edge'
     wait: true
     exeDir: true
     # AppX uninstallation in the script seems to fail, therefore it's not used and AME Wizard is used instead
-  - !appx: {name: '*Microsoft.MicrosoftEdge.Stable*', type: family, option: 'uninstall-edge'}
+    # Note that AppX Edge is removed from the latest builds of Windows, but people could be running a non-updated version
   - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge'}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}

@@ -10,7 +10,7 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-if not exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" call "%windir%\AtlasModules\Scripts\wingetCheck.cmd" /edge
+call "%windir%\AtlasModules\Scripts\edgeCheck.cmd"
 
 echo]
 echo Enabling News and Interests (called Widgets in Windows 11)....

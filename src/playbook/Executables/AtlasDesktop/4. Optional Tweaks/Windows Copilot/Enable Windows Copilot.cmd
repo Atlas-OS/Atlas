@@ -15,7 +15,8 @@ echo This means that the script can seem to 'not work', but it would do if it wa
 pause
 
 echo]
-if not exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" call "%windir%\AtlasModules\Scripts\wingetCheck.cmd" /edge
+call "%windir%\AtlasModules\Scripts\edgeCheck.cmd"
+echo]
 
 echo Enabling Copilot...
 taskkill /f /im explorer.exe > nul 2>&1
