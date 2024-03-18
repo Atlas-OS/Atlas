@@ -14,6 +14,10 @@ tasks:
   - tweaks\statuses\status-cleanup.yml
   - tweaks\scripts\script-cleanup.yml
 
+  # Set hidden Settings pages
+  # Done before everything else as scripts will overwrite it
+  - tweaks\qol\set-hidden-settings-pages.yml
+
   # Main tasks
   - atlas\start.yml
   - atlas\services.yml

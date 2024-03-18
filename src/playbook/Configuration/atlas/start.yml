@@ -48,13 +48,6 @@ actions:
   # - !writeStatus: {status: 'Refreshing variables'}
   # - !run: {exeDir: true, exe: 'REFRESHENV.cmd'}
 
-  - !writeStatus: {status: 'Disabling Printing', option: 'disable-printing'}
-  - !cmd:
-    command: '"AtlasDesktop\3. Configuration\Printing\Disable Printing.cmd" /silent'
-    option: 'disable-printing'
-    exeDir: true
-    wait: true
-
   - !writeStatus: {status: 'Enabling DirectPlay'}
   - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart /All', weight: 30}
   
