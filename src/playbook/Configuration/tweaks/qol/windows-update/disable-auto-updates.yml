@@ -8,6 +8,10 @@ actions:
     exeDir: true
     wait: true
 
+    # Prevent DevHome & Outlook from re-installing
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\DevHomeUpdate'}
+  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\OutlookUpdate'}
+
     # Prevent random apps from installing, including Widgets or advertisements
     # Commented until it's proven that this helps - deleting these values is irreversible
   # - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\Settings', value: 'STOREBIZCRITICALAPPS', operation: delete}
@@ -24,7 +28,3 @@ actions:
   # - !registryValue: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\RestrictedServices\AppIso\FirewallRules', value: '{5D2C72C6-969D-4C1E-8484-41ED53782351}', data: 'v2.32|Action=Block|Active=TRUE|Dir=Out|Profile=Domain|Profile=Private|Profile=Public|RA42=IntErnet|RA62=IntErnet|Name=Windows Web Experience Pack|Desc=Windows Web Experience Pack|LUAuth=O:LSD:(A;;CC;;;S-1-15-3-1)(A;;CC;;;WD)(A;;CC;;;AN)|LUOwn=S-1-5-21-1752034362-1788923297-4099944-1001|AppPkgId=S-1-15-2-1312876954-3728250218-3694470604-4188764552-3197360367-780678243-3229644300|EmbedCtxt=Windows Web Experience Pack|'}
   # - !registryValue: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules', value: '{26037439-AD8B-4A56-AF2E-F6CDDB59F6BE}', data: 'v2.32|Action=Block|Active=TRUE|Dir=Out|Profile=Domain|Profile=Private|Profile=Public|Name=Windows Web Experience Pack|Desc=Windows Web Experience Pack|LUOwn=S-1-5-21-1752034362-1788923297-4099944-1001|AppPkgId=S-1-15-2-1312876954-3728250218-3694470604-4188764552-3197360367-780678243-3229644300|EmbedCtxt=Windows Web Experience Pack|Platform=2:6:2|Platform2=GTEQ|'}
   # - !registryValue: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules', value: '{44000509-BE9E-419B-A60B-54E62CF41203}', data: 'v2.32|Action=Block|Active=TRUE|Dir=Out|Profile=Domain|Profile=Private|Profile=Public|Name=Windows Web Experience Pack|Desc=Windows Web Experience Pack|LUOwn=S-1-5-21-2784447539-1655915103-1638202157-1001|AppPkgId=S-1-15-2-1312876954-3728250218-3694470604-4188764552-3197360367-780678243-3229644300|EmbedCtxt=Windows Web Experience Pack|'}
-
-    # Prevent DevHome & Outlook from installing
-  # - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\DevHomeUpdate'}
-  # - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\OutlookUpdate'}
