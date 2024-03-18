@@ -3,12 +3,10 @@ title: Disable WU Auto-Updates
 description: Disables Windows Update from automatically updating Windows for QoL, at the cost of security.
 actions:
     # Disable auto-updates
-  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'AUOptions', data: '2', type: REG_DWORD}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU', value: 'NoAutoUpdate', data: '1', type: REG_DWORD}
-
-    # Prevent DevHome & Outlook from installing
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\DevHomeUpdate'}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\OutlookUpdate'}
+  - !cmd:
+    command: 'reg import "AtlasDesktop\3. Configuration\Windows Update\Automatic Updates\Disable Automatic Updates (default).reg"'
+    exeDir: true
+    wait: true
 
     # Prevent random apps from installing, including Widgets or advertisements
     # Commented until it's proven that this helps - deleting these values is irreversible
@@ -27,5 +25,6 @@ actions:
   # - !registryValue: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules', value: '{26037439-AD8B-4A56-AF2E-F6CDDB59F6BE}', data: 'v2.32|Action=Block|Active=TRUE|Dir=Out|Profile=Domain|Profile=Private|Profile=Public|Name=Windows Web Experience Pack|Desc=Windows Web Experience Pack|LUOwn=S-1-5-21-1752034362-1788923297-4099944-1001|AppPkgId=S-1-15-2-1312876954-3728250218-3694470604-4188764552-3197360367-780678243-3229644300|EmbedCtxt=Windows Web Experience Pack|Platform=2:6:2|Platform2=GTEQ|'}
   # - !registryValue: {path: 'HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules', value: '{44000509-BE9E-419B-A60B-54E62CF41203}', data: 'v2.32|Action=Block|Active=TRUE|Dir=Out|Profile=Domain|Profile=Private|Profile=Public|Name=Windows Web Experience Pack|Desc=Windows Web Experience Pack|LUOwn=S-1-5-21-2784447539-1655915103-1638202157-1001|AppPkgId=S-1-15-2-1312876954-3728250218-3694470604-4188764552-3197360367-780678243-3229644300|EmbedCtxt=Windows Web Experience Pack|'}
 
-    # Prevent Microsoft Teams installation
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications', value: 'ConfigureChatAutoInstall', data: '0', type: REG_DWORD}
+    # Prevent DevHome & Outlook from installing
+  # - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\DevHomeUpdate'}
+  # - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\OutlookUpdate'}

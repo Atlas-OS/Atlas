@@ -170,7 +170,7 @@ tasks:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\windows-update\disable-nagging.yml
   - tweaks\qol\windows-update\disable-insider.yml
-  - tweaks\qol\windows-update\disable-msrt-installation.yml
+  - tweaks\qol\windows-update\disable-msrt-telemetry.yml
   - tweaks\qol\windows-update\disable-feature-updates.yml
   - tweaks\qol\windows-update\disable-auto-updates.yml
   - tweaks\qol\windows-update\disable-auto-reboot.yml
@@ -354,6 +354,6 @@ tasks:
   - tweaks\misc\rebuild-perf-counters.yml
   - tweaks\misc\restore-default-sleep-timeout.yml
   - tweaks\misc\create-shortcuts.yml
-  - tweaks\misc\revert-old-tweaks.yml
+  # - tweaks\misc\revert-old-tweaks.yml
   - tweaks\misc\add-music-videos-to-home.yml
   - tweaks\misc\add-newUsers-script.yml
