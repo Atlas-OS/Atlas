@@ -20,7 +20,7 @@ for %%a in (
 	call setSvc.cmd %%~a 4
 )
 
-call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide network-vpn /silent
+call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide network-vpn /silent
 
 echo Finished, please reboot your device for changes to apply.
 pause
