@@ -11,9 +11,6 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-call "%windir%\AtlasModules\Scripts\edgeCheck.cmd" /webview
-if %errorlevel% neq 0 exit /b 1
-
 echo]
 echo Enabling Web Search ^& Search Highlights...
 

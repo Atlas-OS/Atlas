@@ -17,7 +17,12 @@ echo %___dashes%
 echo Microsoft Edge %text% required to use this script.
 if %___edge%==0 echo In the future, if you no longer want to use this feature, you can use the disable script and uninstall Edge.
 choice /c:yn /n /m "Would you like to install %plural%? [Y/N] "
-if %errorlevel%==2 exit /b
+if %errorlevel%==2 (
+    echo]
+    echo Press any key to exit...
+    pause > nul
+    exit /b
+)
 
 echo]
 set "___ps=powershell -nop -noni -c "^& """%windir%\AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -NonInteractive -InstallWebView"
