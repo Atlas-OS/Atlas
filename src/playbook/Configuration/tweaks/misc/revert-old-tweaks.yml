@@ -14,7 +14,7 @@ actions:
     # Reverted for security reasons
     # Users get no update notifications otherwise, which means many users don't update at all
   - !cmd:
-    command: 'reg import "AtlasDesktop\3. Configuration\Windows Update\Update Notifications\Enable Update Notifications (default).reg"'
+    command: 'reg import "AtlasDesktop\3. Core Configuration\Windows Update\Update Notifications\Enable Update Notifications (default).reg"'
     exeDir: true
     wait: true
 

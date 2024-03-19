@@ -1,6 +1,6 @@
 #Requires -RunAsAdministrator
 
-$networkDiscoveryConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. Configuration\Network Discovery"
+$networkDiscoveryConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. Core Configuration\Network Discovery"
 
 # Enable network items
 Enable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr | Out-Null
