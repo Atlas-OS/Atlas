@@ -15,8 +15,8 @@ foreach ($interface in $interfaces) {
     Set-ItemProperty -Path $interface.PSPath -Name "NetbiosOptions" -Value 2 | Out-Null
 }
 
-# Disable Net Bios service
-cmd /c "call setSvc.cmd NetBT 4"
+# Disable NetBIOS service
+setSvc.cmd NetBT 4 | Out-Null
 
 # Set network profile to 'Public Network'
 $profiles = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles" -Recurse | Where-Object { $_.GetValue("Category") -ne $null }
@@ -30,7 +30,7 @@ Get-NetFirewallRule | Where-Object {
     $_.Profile -like "*Private*"
 } | Disable-NetFirewallRule
 
-if ($LASTEXITCODE -eq 1) {reg import "$networkDiscoveryConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).reg" | Out-Null}
+reg import "$networkDiscoveryConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).reg" | Out-Null
 
 if ($Silent) { exit }
 

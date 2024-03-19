@@ -14,8 +14,8 @@ foreach ($interface in $interfaces) {
     Set-ItemProperty -Path $interface.PSPath -Name "NetbiosOptions" -Value 2 | Out-Null
 }
 
-# Enable Net Bios service
-cmd /c "call setSvc.cmd NetBT 1"
+# Enable NetBIOS service
+setSvc.cmd NetBT 1 | Out-Null
 
 choice /c:yn /n /m "Would you like to change your network profile to 'Private'? [Y/N] "
 if ($LASTEXITCODE -eq 1) {
@@ -37,7 +37,9 @@ if ($LASTEXITCODE -eq 1) {
 }
 
 choice /c:yn /n /m "Would you like to add the Network Navigation Pane to the Explorer sidebar? [Y/N] "
-if ($LASTEXITCODE -eq 1) {reg import "$networkDiscoveryConfigPath\Network Navigation Pane\User Network Navigation Pane choice.reg" | Out-Null}
+if ($LASTEXITCODE -eq 1) {
+    reg import "$networkDiscoveryConfigPath\Network Navigation Pane\User Network Navigation Pane choice.reg" | Out-Null
+}
 
 Clear-Host
 Write-Host "Completed!" -ForegroundColor Green
