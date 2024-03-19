@@ -91,3 +91,10 @@ actions:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions'
   - !registryKey:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps'
+
+    # 'Show me notifications in the Settings app' in Windows 11
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\SystemSettings\AccountNotifications'
+    value: 'EnableAccountNotifications'
+    data: '0'
+    type: REG_DWORD
