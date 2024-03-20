@@ -25,9 +25,9 @@ if "%~1" == "/silent" exit /b
 
 choice /n /c:yn /m "Would you like to enable hibernation? [Y/N]"
 if %errorlevel%==1 (
-	start "Enabling Hibernation" "%windir%\AtlasDesktop\3. Core Configuration\Power\Hibernation\Enable Hibernation.cmd"
+	start "Enabling Hibernation" "%windir%\AtlasDesktop\3. General Configuration\Power\Hibernation\Enable Hibernation.cmd"
 ) else (
-	start "Disabling Hibernation" "%windir%\AtlasDesktop\3. Core Configuration\Power\Hibernation\Disable Hibernation (default).cmd"
+	start "Disabling Hibernation" "%windir%\AtlasDesktop\3. General Configuration\Power\Hibernation\Disable Hibernation (default).cmd"
 )
 
 echo Finished, changes have been applied.

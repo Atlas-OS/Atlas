@@ -25,19 +25,19 @@ actions:
 
   - !writeStatus: {status: 'Disabling Printing', option: 'disable-printing'}
   - !cmd:
-    command: '"AtlasDesktop\3. Core Configuration\Printing\Disable Printing.cmd" /silent'
+    command: '"AtlasDesktop\3. General Configuration\Printing\Disable Printing.cmd" /silent'
     option: 'disable-printing'
     exeDir: true
     wait: true
   - !writeStatus: {status: 'Disabling Bluetooth', option: 'disable-bluetooth'}
   - !cmd:
-    command: '"AtlasDesktop\3. Core Configuration\Bluetooth\Disable Bluetooth.cmd" /silent'
+    command: '"AtlasDesktop\3. General Configuration\Bluetooth\Disable Bluetooth.cmd" /silent'
     option: 'disable-bluetooth'
     exeDir: true
     wait: true
   - !writeStatus: {status: 'Disable Notifications', option: 'disable-notifications'}
   - !cmd:
-    command: '"AtlasDesktop\3. Core Configuration\Notifications\Disable Notifications.cmd" /silent'
+    command: '"AtlasDesktop\3. General Configuration\Notifications\Disable Notifications.cmd" /silent'
     option: 'disable-notifications'
     exeDir: true
     wait: true
