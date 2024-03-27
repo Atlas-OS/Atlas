@@ -263,11 +263,22 @@ function InstallEdgeChromium {
 	
 	Write-Status "Requesting from the Microsoft Edge Update API..."
 	try {
-		$edgeUpdateApi = (Invoke-WebRequest "https://edgeupdates.microsoft.com/api/products" -UseBasicParsing).Content | ConvertFrom-Json
-		$edgeItem = ($edgeUpdateApi | ? { $_.Product -eq 'Stable' }).Releases | ? { $_.Platform -eq 'Windows' -and $_.Architecture -eq $archString }
-	
-		$hashAlg = $edgeItem.Artifacts.HashAlgorithm | % { if ($_.Length -le 0) { "SHA256" } else { $_ } }
-	
+		try {
+			$edgeUpdateApi = (Invoke-WebRequest "https://edgeupdates.microsoft.com/api/products" -UseBasicParsing).Content | ConvertFrom-Json
+		} catch {
+			Write-Status "Failed to request from EdgeUpdate API!
+Error: $_" -Level Critical -Exit
+		}
+
+		$edgeItem = ($edgeUpdateApi | ? { $_.Product -eq 'Stable' }).Releases |
+			Where-Object { $_.Platform -eq 'Windows' -and $_.Architecture -eq $archString } |
+			Where-Object { $_.Artifacts.Count -ne 0 } | Select-Object -First 1
+		
+		if ($null -eq $edgeItem) {
+			Write-Status "Failed to parse EdgeUpdate API! No matching artifacts found." -Level Critical -Exit
+		}
+
+		$hashAlg = $edgeItem.Artifacts.HashAlgorithm | % { if ([string]::IsNullOrEmpty($_)) { "SHA256" } else { $_ } }
 		foreach ($var in @{
 			link = $edgeItem.Artifacts.Location
 			hash = $edgeItem.Artifacts.Hash
@@ -382,26 +393,35 @@ Please relaunch this script under a regular admin account." -Level Critical -Exi
 
 # main menu
 if (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView) {
-	$version = '1.9'
+	$version = '1.9.1'
 	$host.UI.RawUI.WindowTitle = "EdgeRemover $version | made by @he3als"	
 
 	$RemoveEdgeData = $false
 	while (!$continue) {
 		Clear-Host
-		Write-Host "This script will remove Microsoft Edge, as you can't uninstall it in regions not in the EEA.`n" -ForegroundColor Blue
-		Write-Host "You can always reinstall Microsoft Edge after removal.`n" -ForegroundColor Yellow
+		$description = "This script removes or installs Microsoft Edge."
+		Write-Host "$description`n" -ForegroundColor Blue
+		Write-Host @"
+To select an option, type its number.
+To perform an action, also type its number.
+"@ -ForegroundColor Yellow
+
+		Write-Host "`n$("-" * $description.Length)" -ForegroundColor Magenta
 
 		if ($RemoveEdgeData) {$colourData = "Green"; $textData = "Selected"} else {$colourData = "Red"; $textData = "Unselected"}
 
-		Write-Host "Options:"
+		Write-Host "`nOptions:"
 		Write-Host "[1] Remove Edge User Data ($textData)" -ForegroundColor $colourData
+		
+		Write-Host "`nActions:"
+		Write-Host @"
+[2] Uninstall Edge
+[3] Install Edge
+[4] Install WebView
+[5] Install both Edge & WebView
+"@ -ForegroundColor Cyan
 
-		Write-Host "`nReinstall Edge:"
-		Write-Host "[2] Install Edge" -ForegroundColor Cyan
-		Write-Host "[3] Install WebView" -ForegroundColor Cyan
-		Write-Host "[4] Install both Edge & WebView" -ForegroundColor Cyan
-
-		Write-Host "`nPress Enter to uninstall Edge or type numbers to select options: " -NoNewLine
+		# Write-Host "`nType the number of an action to get started: " -NoNewLine
 
 		$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
@@ -409,20 +429,21 @@ if (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView) {
 			49 { # remove Edge user data (1)
 				$RemoveEdgeData = !$RemoveEdgeData
 			}
-			50 { # reinstall Edge (2)
+			13 { # uninstall Edge (2)
+				$UninstallEdge = $true
+				$continue = $true
+			}
+			50 { # reinstall Edge (3)
 				$InstallEdge = $true
 				$continue = $true
 			}
-			51 { # reinstall WebView (3)
+			51 { # reinstall WebView (4)
 				$InstallWebView = $true
 				$continue = $true
 			}
-			52 { # reinstall both (4)
+			52 { # reinstall both (5)
 				$InstallWebView = $true
 				$InstallEdge = $true
-				$continue = $true
-			}
-			13 { # enter
 				$continue = $true
 			}
 		}
@@ -431,7 +452,7 @@ if (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView) {
 	Clear-Host
 }
 
-if (!$InstallEdge -and !$InstallWebView) {
+if ($UninstallEdge) {
 	Write-Status "Uninstalling Edge Chromium..."
 	RemoveEdgeChromium
 	if ($null -ne (Get-AppxPackage -Name Microsoft.MicrosoftEdge)) {
