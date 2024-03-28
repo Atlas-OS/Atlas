@@ -82,9 +82,6 @@ init_item "Brave Browser" "Brave.Brave"
 # https://winget.run/pkg/Google/Chrome
 init_item "Google Chrome" "Google.Chrome"
 
-# https://winget.run/pkg/Microsoft/Edge
-init_item "Microsoft Edge" "Microsoft.Edge"
-
 # https://winget.run/pkg/LibreWolf/LibreWolf
 init_item "LibreWolf" "LibreWolf.LibreWolf"
 
