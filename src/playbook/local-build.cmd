@@ -53,6 +53,18 @@ function Write-BulletPoint($message) {
 	Write-Host ""
 }
 
+
+if (Get-Command '7z.exe' -EA SilentlyContinue) {
+	$7zPath = '7z.exe'
+} elseif (Test-Path "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe") {
+	$7zPath = "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe"
+}
+if (!$7zPath) {
+	Write-Host "This script requires 7-Zip to be installed to continue."
+	Pause
+	exit 1
+}
+
 if (!(Test-Path $configPath)) {
 	Remove-Item -Force -Path $shortcut -EA SilentlyContinue
 
@@ -220,29 +232,17 @@ try {
 
 	# make playbook, 7z is faster
 	$filteredItems = @()
-	if (Get-Command '7z.exe' -EA SilentlyContinue) {
-		$7zPath = '7z.exe'
-	} elseif (Test-Path "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe") {
-		$7zPath = "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe"
-	}
 
 	if (Test-Path $apbxPath) { Remove-Item $apbxFileName -Force }
-	if ($7zPath) {
-		(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName `
-		| Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File "$rootTemp\7zFiles.txt" -Encoding utf8
 
-		& $7zPath a -spf -y -mx1 -tzip "$apbxPath" `@"$rootTemp\7zFiles.txt" | Out-Null
-		# add edited files
-		Push-Location "$rootTemp\playbook"
-		& $7zPath u "$apbxPath" * | Out-Null
-		Pop-Location
-	} else {
-		$filteredItems += (Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName + "$tempPlaybookConf"
-		if (Test-Path $tempStartYML) { $filteredItems = $filteredItems + "$tempStartYML" }
+	(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName `
+	| Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File "$rootTemp\7zFiles.txt" -Encoding utf8
 
-		Compress-Archive -Path $filteredItems -DestinationPath $zipFileName
-		Rename-Item -Path $zipFileName -NewName $apbxFileName
-	}
+	& $7zPath a -spf -y -mx1 -tzip "$apbxPath" `@"$rootTemp\7zFiles.txt" | Out-Null
+	# add edited files
+	Push-Location "$rootTemp\playbook"
+	& $7zPath u "$apbxPath" * | Out-Null
+	Pop-Location
 
 	Write-Host "Build successfully! Path: `"$apbxPath`"" -ForegroundColor Green
 	Start-Sleep 1
