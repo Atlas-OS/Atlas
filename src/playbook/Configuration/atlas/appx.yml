@@ -52,7 +52,6 @@ actions:
   - !appx: {name: 'Microsoft.ScreenSketch*', type: family}
   - !appx: {name: 'Microsoft.SkypeApp*', type: family}
   - !appx: {name: 'Microsoft.Todos*', type: family}
-  - !appx: {name: 'Microsoft.Windows.Photos*', type: family}
   - !appx: {name: 'Microsoft.WindowsAlarms*', type: family}
   - !appx: {name: 'Microsoft.WindowsCamera*', type: family}
   - !appx: {name: 'Microsoft.WindowsFeedbackHub*', type: family}
