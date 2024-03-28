@@ -1,7 +1,6 @@
 ---
 title: Disable Cloud Optimized Content on Taskbar
-description: Disables cloud optimized content in the taskbar for QoL, which will pin items dependant on what you use like having a linked phone or Xbox Live
-privilege: TrustedInstaller
+description: Disables cloud optimized content in the taskbar for QoL, which pins items dependant on things like having linked phone or Xbox Live - seems to break Windows Spotlight
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'

@@ -1,7 +1,6 @@
 ---
 title: Disable Windows Error Reporting
 description: Disables Windows Error Reporting for privacy and QoL
-privilege: TrustedInstaller
 actions:
   # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.InternetCommunicationManagement::PCH_DoNotReport
   - !registryValue:

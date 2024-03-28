@@ -1,7 +1,6 @@
 ---
 title: Disable WU Auto-Reboot
 description: Disables Windows Update from automatically restarting your computer when there's pending updates.
-privilege: TrustedInstaller
 actions:
     # Make WU not wake up your computer to install updates
     # Seems to be legacy on Windows 11

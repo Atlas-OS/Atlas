@@ -1,7 +1,6 @@
 ---
 title: Disable Wallpaper Compression
 description: Disables wallpaper compression so that your wallpaper is always in its full quality
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'

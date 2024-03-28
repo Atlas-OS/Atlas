@@ -1,7 +1,6 @@
 ---
 title: Change the Tooltip Color to Blue
 description: Changes the tooltip color to blue
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Colors'

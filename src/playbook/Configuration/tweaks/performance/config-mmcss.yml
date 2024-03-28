@@ -1,7 +1,6 @@
 ---
 title: Configure the Multimedia Class Scheduler Service
 description: Configures MMCSS for the best performance
-privilege: TrustedInstaller
 actions:
     # Set system responsiveness to 10%
     # Allocates less CPU resources to tasks that request it such as browsers, so that other applications will not be impacted as much

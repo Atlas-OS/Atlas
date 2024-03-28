@@ -1,7 +1,6 @@
 ---
 title: Disable Paging Settings
 description: Disables memory paging settings for the best performance
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'

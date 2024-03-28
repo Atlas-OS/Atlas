@@ -20,7 +20,7 @@ foreach ($image in $resolutions.Keys) {
     $a = New-Object System.Drawing.Bitmap($resolution, $resolution)
     $graph = [System.Drawing.Graphics]::FromImage($a)
     $graph.DrawImage($img, 0, 0, $resolution, $resolution)
-    $a.Save("$env:ProgramData\Microsoft\User Account Pictures\$image")
+    $a.Save("$([Environment]::GetFolderPath('CommonApplicationData'))\Microsoft\User Account Pictures\$image")
 }
 
 # Set Atlas profile picture for each user

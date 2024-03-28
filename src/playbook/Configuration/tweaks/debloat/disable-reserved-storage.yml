@@ -1,7 +1,6 @@
 ---
 title: Disable Reserved Storage
 description: Disables reserved storage for Windows Updates to have more storage space
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager'

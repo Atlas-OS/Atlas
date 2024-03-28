@@ -1,7 +1,6 @@
 ---
 title: Configure Services and Drivers
 description: Configures services and drivers to reduce background system resource utilisation
-privilege: TrustedInstaller
 actions:
   # ----------------------------------
   # - Potential references           -
@@ -14,8 +13,9 @@ actions:
   - !writeStatus: {status: 'Configuring services'}
 
   # Backup default Windows serivces & drivers
-  - !cmd:
-    command: 'powershell -NoP -EP Unrestricted -File BACKUP.ps1 "%windir%\AtlasModules\Other\winServices.reg"'
+  - !powerShell:
+    command: >-
+      .\BACKUP.ps1 -FilePath """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\winServices.reg"""
     wait: true
     exeDir: true
 
@@ -23,17 +23,27 @@ actions:
   ## SERVICES                                                                                 ##
   ##############################################################################################
 
+  - !writeStatus: {status: 'Disabling Printing', option: 'disable-printing'}
   - !cmd:
-    command: '"AtlasDesktop\3. Configuration\Bluetooth\Disable Bluetooth.cmd" /silent'
+    command: '"AtlasDesktop\3. General Configuration\Printing\Disable Printing.cmd" /silent'
+    option: 'disable-printing'
+    exeDir: true
+    wait: true
+  - !writeStatus: {status: 'Disabling Bluetooth', option: 'disable-bluetooth'}
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Bluetooth\Disable Bluetooth.cmd" /silent'
     option: 'disable-bluetooth'
     exeDir: true
     wait: true
+  - !writeStatus: {status: 'Disable Notifications', option: 'disable-notifications'}
   - !cmd:
-    command: '"AtlasDesktop\3. Configuration\Printing\Disable Printing (default).cmd" /silent'
+    command: '"AtlasDesktop\3. General Configuration\Notifications\Disable Notifications.cmd" /silent'
+    option: 'disable-notifications'
     exeDir: true
     wait: true
-  - !cmd:
-    command: '"AtlasDesktop\3. Configuration\Notifications\Disable Notifications (default).cmd" /silent'
+
+  - !powerShell:
+    command: '.\AtlasModules\Scripts\ScriptWrappers\DisableFileSharing.ps1 -Silent'
     exeDir: true
     wait: true
 

@@ -1,7 +1,6 @@
 ---
 title: Remove 'Cast to device' from Context Menu
 description: Removes 'Cast to device' from Context Menu
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked'

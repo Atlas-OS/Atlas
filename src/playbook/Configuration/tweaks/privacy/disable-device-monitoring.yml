@@ -1,7 +1,6 @@
 ---
 title: Disable Device Health Attestation Monitoring and Reporting
 description: Disables Device Health Attestation Monitoring and Reporting on startuip for privacy
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\DeviceHealthAttestationService'

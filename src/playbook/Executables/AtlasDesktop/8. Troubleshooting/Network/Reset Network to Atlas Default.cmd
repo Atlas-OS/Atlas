@@ -5,26 +5,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-echo Applying changes...
-
-:: Disable Nagle's Algorithm
-:: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
-for /f %%a in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do (
-    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%a" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f > nul
-    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%a" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f > nul
-    reg add "HKLM\SYSTEM\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%a" /v "TCPNoDelay" /t REG_DWORD /d "1" /f > nul
-)
-
-:: https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.QualityofService::QosNonBestEffortLimit
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched" /v "NonBestEffortLimit" /t REG_DWORD /d "0" /f > nul
-:: https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.QualityofService::QosTimerResolution
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched" /v "TimerResolution" /t REG_DWORD /d "1" /f > nul
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\QoS" /v "Do not use NLA" /t REG_DWORD /d "1" /f > nul
-:: reg add "HKLM\SYSTEM\CurrentControlSet\Services\AFD\Parameters" /v "DoNotHoldNicBuffers" /t REG_DWORD /d "1" /f > nul
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" /v "EnableMulticast" /t REG_DWORD /d "0" /f > nul
-
-:: Set default power saving mode for all network cards to disabled
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\NDIS\Parameters" /v "DefaultPnPCapabilities" /t REG_DWORD /d "24" /f > nul
+echo Setting network settings to Atlas defaults...
 
 :: Set network adapter driver registry key
 for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
@@ -33,76 +14,53 @@ for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI
     ) > nul 2>&1
 )
 
-:: Configure internet adapter settings
-:: Dump of all possible settings found
-:: TO DO: revise and document each setting
+:: Configure network adapter settings
+
+rem --------------------------
+rem Unknown benefit
+rem --------------------------
+rem "LargeSendOffload"
+rem "LargeSendOffloadJumboCombo"
+rem "LsoV1IPv4"
+rem "LsoV2IPv4"
+rem "LsoV2IPv6"
+rem "LogLevelWarn"
+rem "AlternateSemaphoreDelay"
+rem "DeviceSleepOnDisconnect"
+rem "EnableModernStandby"
+rem "PriorityVLANTag"
+rem "Node"
+rem "MPC"
+rem "PowerDownPll"
+rem "PMWiFiRekeyOffload"
+rem "ARPOffloadEnable"
+rem "bAdvancedLPs"
+rem "NSOffloadEnable"
+rem "GTKOffloadEnable"
+rem "Enable9KJFTpt"
+rem "EnableEDT"
+rem "GPPSW"
+rem "MasterSlave"
+rem "PacketCoalescing"
+rem Could cause dropped network frames
+rem "FlowControl"
+rem "FlowControlCap"
+
 for %%a in (
-    "AdvancedEEE"
-    "AlternateSemaphoreDelay"
-    "ApCompatMode"
-    "ARPOffloadEnable"
+    rem Don't disable gigabit
     "AutoDisableGigabit"
-    "AutoPowerSaveModeEnabled"
-    "bAdvancedLPs"
-    "bLeisurePs"
-    "bLowPowerEnable"
-    "DeviceSleepOnDisconnect"
-    "DMACoalescing"
-    "EEE"
-    "EEELinkAdvertisement"
-    "EeePhyEnable"
-    "Enable9KJFTpt"
-    "EnableConnectedPowerGating"
-    "EnableDynamicPowerGating"
-    "EnableEDT"
-    "EnableGreenEthernet"
-    "EnableModernStandby"
-    "EnablePME"
-    "EnablePowerManagement"
-    "EnableSavePowerNow"
-    "EnableWakeOnLan"
-    "FlowControl"
-    "FlowControlCap"
-    "GigaLite"
-    "GPPSW"
-    "GTKOffloadEnable"
-    "InactivePs"
-    "LargeSendOffload"
-    "LargeSendOffloadJumboCombo"
-    "LogLevelWarn"
-    "LsoV1IPv4"
-    "LsoV2IPv4"
-    "LsoV2IPv6"
-    "MasterSlave"
-    "ModernStandbyWoLMagicPacket"
-    "MPC"
-    "NicAutoPowerSaver"
-    "Node"
-    "NSOffloadEnable"
-    "PacketCoalescing"
-    rem Offload "PMARPOffload"
-    rem Offload "PMNSOffload"
-    "PMWiFiRekeyOffload"
-    "PowerDownPll"
-    "PowerSaveMode"
-    "PowerSavingMode"
-    "PriorityVLANTag"
-    "ReduceSpeedOnPowerDown"
-    "S5WakeOnLan"
-    "SavePowerNowEnabled"
-    "SelectiveSuspend"
+
+    rem Access Point Compatibility Mode
+    rem Zero is 'High Performance'
+    "ApCompatMode"
+
+    rem About reducing link speed
     "SipsEnabled"
-    "uAPSDSupport"
-    "ULPMode"
-    "WaitAutoNegComplete"
-    "WakeOnDisconnect"
-    "WakeOnLink"
-    "WakeOnMagicPacket"
-    "WakeOnPattern"
-    "WakeOnSlot"
-    "WakeUpModeCap"
-    "WoWLANLPSLevel"
-    "WoWLANS5Support"
+    "ReduceSpeedOnPowerDown"
+
+    rem 'may increase latency'
+    rem https://www.intel.com/content/www/us/en/support/articles/000007456/ethernet-products.html
+    "DMACoalescing"
 ) do (
     rem Check without '*'
     for /f %%b in ('reg query "%netKey%" /v "%%~a" ^| findstr "HKEY"') do (
@@ -114,10 +72,7 @@ for %%a in (
     )
 ) > nul 2>&1
 
-:: Configure netsh settings
-netsh int tcp set supplemental Internet congestionprovider=ctcp > nul
-netsh interface Teredo set state type=enterpriseclient > nul
-netsh interface Teredo set state servername=default > nul
+if "%~1"=="/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause

@@ -1,7 +1,6 @@
 ---
 title: Hide Recent Items
 description: Hide recent items in Quick Access and other places for privacy and QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'

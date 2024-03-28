@@ -1,0 +1,8 @@
+---
+title: Modify Client.CBS
+description: Modifies components related to Client.CBS, the miscellaneous system package in Windows 10+
+actions:
+  - !powerShell:
+    command: '.\CLIENTCBS.ps1'
+    exeDir: true
+    wait: true

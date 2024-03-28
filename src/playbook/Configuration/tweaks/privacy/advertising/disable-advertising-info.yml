@@ -1,7 +1,6 @@
 ---
 title: Disable Advertising ID
 description: Disables Advertising ID for privacy
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo'

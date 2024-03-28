@@ -1,7 +1,6 @@
 ---
 title: Disable Show Desktop Peek on Taskbar
 description: Disables the 'Show Desktop' peek feature on the taskbar, as most of the time people accidently trigger it, so it is disabled here for QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'

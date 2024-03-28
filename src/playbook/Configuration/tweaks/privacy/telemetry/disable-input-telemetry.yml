@@ -1,7 +1,6 @@
 ---
 title: Disable Input Telemetry
 description: Disables text, ink and handwriting telemetry for privacy
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\InputPersonalization'

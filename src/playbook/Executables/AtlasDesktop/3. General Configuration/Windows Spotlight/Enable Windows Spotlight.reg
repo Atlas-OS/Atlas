@@ -1,0 +1,11 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent]
+"DisableCloudOptimizedContent"=-
+
+[HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\CloudContent]
+"DisableWindowsSpotlightFeatures"=-
+"DisableWindowsSpotlightWindowsWelcomeExperience"=-
+"DisableWindowsSpotlightOnActionCenter"=-
+"DisableWindowsSpotlightOnSettings"=-
+"DisableThirdPartySuggestions"=-

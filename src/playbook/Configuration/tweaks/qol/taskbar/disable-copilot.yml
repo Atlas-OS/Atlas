@@ -1,7 +1,6 @@
 ---
-title: Disable Windows Copilot
-description: Disables Windows Copilot as it depends on Edge, as well it collecting data and it not being used by most users
-privilege: TrustedInstaller
+title: Disable Microsoft Copilot
+description: Disables Microsoft Copilot as it depends on Edge, as well it collecting data and not being used by most users
 builds: [ '>=22000' ]
 actions:
     # Doesn't work with HKLM

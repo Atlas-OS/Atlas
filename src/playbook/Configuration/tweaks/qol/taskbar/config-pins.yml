@@ -1,14 +1,15 @@
 ---
 title: Configure Taskbar Pins
 description: Configures taskbar pins for QoL, puts the browser first (if there is one) and Explorer next
-privilege: TrustedInstaller
 actions:
     # PowerShell commands used:
-    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-'
-    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-'
+    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-' | clip
+    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-' | clip
 
+  - !taskKill: {name: 'explorer'}
   - !run:
     exe: 'TASKBARPINS.cmd'
+    option: '!install-another-browser'
     exeDir: true
   - !run:
     exe: 'TASKBARPINS.cmd'
@@ -25,3 +26,9 @@ actions:
     args: '"Google Chrome"'
     option: 'browser-chrome'
     exeDir: true
+  - !run:
+    exe: 'TASKBARPINS.cmd'
+    args: '"LibreWolf"'
+    option: 'browser-librewolf'
+    exeDir: true
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}

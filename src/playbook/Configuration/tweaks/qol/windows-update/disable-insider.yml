@@ -1,7 +1,6 @@
 ---
 title: Restrict Windows Insider
 description: Forcefully restricts Windows Insider from being enabled to prevent extra data collection, tweaks being reverted and general instability.
-privilege: TrustedInstaller
 actions:
     # Disable Windows Insider 
     # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.WindowsUpdate::ManagePreviewBuilds

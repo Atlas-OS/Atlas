@@ -1,7 +1,6 @@
 ---
 title: Disallow Themes to Change Certain Personalized Features
 description: Disallows themes to change certain personalized features, as most of the time people only really apply themes for wallpapers or Windows style skins (custom themes)
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'

@@ -1,7 +1,6 @@
 ---
 title: Disable Windows Feedback
 description: Disables Windows Feedback for QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Siuf\Rules'

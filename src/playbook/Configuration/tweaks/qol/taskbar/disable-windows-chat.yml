@@ -1,7 +1,6 @@
 ---
 title: Disable Windows Chat
 description: Disables Windows Chat as it's not commonly used
-privilege: TrustedInstaller
 builds: [ '>=22000' ]
 actions:
   - !registryValue:

@@ -1,7 +1,6 @@
 ---
 title: Disable Core Isolation
 description: Disables Core Isolation (VBS) based on the user's options
-privilege: TrustedInstaller
 option: 'vbs-disable'
 actions:
   - !powerShell:

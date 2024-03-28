@@ -20,9 +20,9 @@ for /d %%a in ("%ProgramData%\Microsoft\Windows\SystemData\*") do (
 	)
 )
 
-:: set default lockscreen
+:: Set default lockscreen
 :: https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.ControlPanelDisplay::CPL_Personalization_ForceDefaultLockScreen
-reg add "HKLM\Software\Policies\Microsoft\Windows\Personalization" /v LockScreenImage /t REG_SZ /d "%windir%\AtlasModules\Wallpapers\lockscreen.png" /f
+reg add "HKLM\Software\Policies\Microsoft\Windows\Personalization" /v "LockScreenImage" /t REG_SZ /d "%windir%\AtlasModules\Wallpapers\lockscreen.png" /f
 
 exit /b
 
@@ -31,7 +31,7 @@ if defined win11 reg add "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Them
 
 :: Set sound scheme to 'No Sounds'
 reg add "HKU\%~1\AppEvents\Schemes" /ve /d ".None" /f > nul
-PowerShell -NoP -C "New-PSDrive HKU Registry HKEY_USERS; Get-ChildItem -Path 'HKU:\%~1\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''" > nul
+PowerShell -NoP -NonI -C "Get-ChildItem -Path 'Registry::HKEY_USERS\%~1\AppEvents\Schemes\Apps' | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq '.Current'} | Set-ItemProperty -Name '(Default)' -Value ''" > nul
 
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "AccentColor" /t REG_DWORD /d "4290728257" /f > nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SystemProtectedUserData\%~1\AnyoneRead\Colors" /v "StartColor" /t REG_DWORD /d "4291969335" /f > nul

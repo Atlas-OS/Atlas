@@ -1,7 +1,6 @@
 ---
 title: Set Taskbar to Align Left
 description: Sets taskbar to align left instead of centered
-privilege: TrustedInstaller
 builds: [ '>=22000' ]
 actions:
   - !registryValue:

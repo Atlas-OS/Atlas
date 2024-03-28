@@ -1,7 +1,6 @@
 ---
 title: Hide Folders from This PC
 description: Hides folders from 'This PC' as they are also in Quick Access to reduce clutter and QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{31C0DD25-9439-4F12-BF41-7FF4EDA38722}\PropertyBag'
