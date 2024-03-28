@@ -4,7 +4,7 @@ description: Executes script to configure power settings for the best performanc
 actions:
     # Disable Power Saving features
   - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Power\Power Saving\Disable Power-saving.cmd" -Silent'
+    command: '"AtlasDesktop\3. General Configuration\Power\Power-Saving\Disable Power-saving.cmd" -Silent'
     exeDir: true
     wait: true
     weight: 20
