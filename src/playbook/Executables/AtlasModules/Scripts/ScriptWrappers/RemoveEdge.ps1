@@ -125,10 +125,7 @@ function Uninstall-MsiexecAppByName {
 	}
 }
 
-function RemoveEdgeChromium {
-	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
-
-	# terminate Edge processes
+function KillEdgeProcesses {
 	$ErrorActionPreference = 'SilentlyContinue'
 	foreach ($service in (Get-Service -Name "*edge*" | Where-Object {$_.DisplayName -like "*Microsoft Edge*"}).Name) {
 		Stop-Service -Name $service -Force
@@ -139,7 +136,14 @@ function RemoveEdgeChromium {
 	) {
 		Stop-Process -Id $process -Force
 	}
-	$ErrorActionPreference = 'Continue'
+	$ErrorActionPreference = 'Continue'	
+}
+
+function RemoveEdgeChromium {
+	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
+	
+	Write-Status "Terminating Microsoft Edge processes..."
+	KillEdgeProcesses
 
 	# check if 'experiment_control_labels' value exists and delete it if found
 	$keyPath = Join-Path -Path $baseKey -ChildPath "EdgeUpdate\ClientState\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}"
@@ -393,7 +397,7 @@ Please relaunch this script under a regular admin account." -Level Critical -Exi
 
 # main menu
 if (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView) {
-	$version = '1.9.1'
+	$version = '1.9.2'
 	$host.UI.RawUI.WindowTitle = "EdgeRemover $version | made by @he3als"	
 
 	$RemoveEdgeData = $false
@@ -421,27 +425,25 @@ To perform an action, also type its number.
 [5] Install both Edge & WebView
 "@ -ForegroundColor Cyan
 
-		# Write-Host "`nType the number of an action to get started: " -NoNewLine
-
 		$userInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
 		switch ($userInput.VirtualKeyCode) {
 			49 { # remove Edge user data (1)
 				$RemoveEdgeData = !$RemoveEdgeData
 			}
-			13 { # uninstall Edge (2)
+			50 { # uninstall Edge (2)
 				$UninstallEdge = $true
 				$continue = $true
 			}
-			50 { # reinstall Edge (3)
+			51 { # reinstall Edge (3)
 				$InstallEdge = $true
 				$continue = $true
 			}
-			51 { # reinstall WebView (4)
+			52 { # reinstall WebView (4)
 				$InstallWebView = $true
 				$continue = $true
 			}
-			52 { # reinstall both (5)
+			53 { # reinstall both (5)
 				$InstallWebView = $true
 				$InstallEdge = $true
 				$continue = $true
@@ -467,6 +469,7 @@ if ($UninstallEdge) {
 }
 
 if ($RemoveEdgeData) {
+	KillEdgeProcesses
 	DeleteIfExist "$([Environment]::GetFolderPath('LocalApplicationData'))\Microsoft\Edge"
 	Write-Status "Removed any existing Edge Chromium user data." -Level Success
 	Write-Output ""
