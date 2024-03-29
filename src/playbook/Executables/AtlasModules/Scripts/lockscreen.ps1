@@ -1,6 +1,10 @@
 # Credit: https://superuser.com/a/1343640
 $imagePath = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Wallpapers\lockscreen.png"
 
+if (!(Test-Path $imagePath)) {
+    throw "Lockscreen not found."
+}
+
 $newImagePath = [System.IO.Path]::GetTempPath() + (New-Guid).Guid + [System.IO.Path]::GetExtension($imagePath)
 Copy-Item $imagePath $newImagePath
 [Windows.System.UserProfile.LockScreen, Windows.System.UserProfile, ContentType = WindowsRuntime] | Out-Null

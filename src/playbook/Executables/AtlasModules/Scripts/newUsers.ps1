@@ -1,3 +1,19 @@
+param (
+    [switch]$ThemeMRU
+)
+
+function ThemeMRU {
+    New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes" -Name "ThemeMRU" -Value "$((@(
+        "atlas-v0.4.x-dark.theme",
+        "atlas-v0.4.x-light.theme",
+        "atlas-v0.3.x-dark.theme",
+        "atlas-v0.3.x-light.theme",
+        "dark.theme",
+        "aero.theme"
+    ) | % { "$windir\resources\Themes\$_" }) -join ';');" -PropertyType String -Force | Out-Null
+}
+if ($ThemeMRU) { ThemeMRU; exit }
+
 $title = 'Preparing Atlas user settings...'
 
 $windir = [Environment]::GetFolderPath('Windows')
@@ -19,6 +35,9 @@ Write-Host "You'll be logged out in 10 to 20 seconds, and once you login again, 
 if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
     reg import "$atlasDesktop\4. Interface Tweaks\Context Menus\Windows 11 Context Menu\Old Context Menu (default).reg" *>$null
     reg import "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg" *>$null
+
+    # Set ThemeMRU (recent themes)
+    ThemeMRU
 }
 
 # Set lockscreen wallpaper

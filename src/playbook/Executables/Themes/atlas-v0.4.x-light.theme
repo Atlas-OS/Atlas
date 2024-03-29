@@ -1,9 +1,9 @@
 [Theme]
-DisplayName=Atlas Light
+DisplayName=Atlas v0.4.x Light
 ThemeId={9F1AEB0B-4DD7-44EF-8734-D4F82A341818}
 
 [Control Panel\Desktop]
-Wallpaper=%windir%\AtlasModules\Wallpapers\atlas-light.png
+Wallpaper=%windir%\AtlasModules\Wallpapers\atlas-v0.4.x-light.png
 Pattern=
 MultimonBackgrounds=0
 PicturePosition=4
@@ -33,7 +33,7 @@ Path=%windir%\resources\themes\Aero\Aero.msstyles
 ColorStyle=NormalColor
 Size=NormalSize
 AutoColorization=0
-ColorizationColor=0XC47568FF
+ColorizationColor=0XC41B345A
 SystemMode=Dark
 AppMode=Light
 VisualStyleVersion=10

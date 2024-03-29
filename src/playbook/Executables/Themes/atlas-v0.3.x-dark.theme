@@ -1,9 +1,9 @@
 [Theme]
-DisplayName=Atlas Dark
+DisplayName=Atlas v0.3.x Dark
 ThemeId={FB5C68CD-E525-4324-9830-18BFE1746747}
 
 [Control Panel\Desktop]
-Wallpaper=%windir%\AtlasModules\Wallpapers\atlas-dark.png
+Wallpaper=%windir%\AtlasModules\Wallpapers\atlas-v0.3.x-dark.png
 Pattern=
 MultimonBackgrounds=0
 PicturePosition=4
