@@ -1,57 +1,65 @@
 @echo off
 
-@REM ASSOC.ps1 is currently broken and
-@REM that's why everything's commented
-@REM ---------------------------------
+set baseAssociations=".url:IE.AssocFile.URL"
 
-@REM set baseAssociations=".url:IE.AssocFile.URL"
+set braveAssociations="Proto:https:BraveHTML"^
+ "Proto:http:BraveHTML"^
+ ".htm:BraveHTML"^
+ ".html:BraveHTML"^
+ ".pdf:BraveFile"^
+ ".shtml:BraveHTML"
 
-@REM set braveAssociations="Proto:https:BraveHTML"^
-@REM  "Proto:http:BraveHTML"^
-@REM  ".htm:BraveHTML"^
-@REM  ".html:BraveHTML"^
-@REM  ".pdf:BraveFile"^
-@REM  ".shtml:BraveHTML"
+set libreWolfAssociations="Proto:https:LibreWolfHTM"^
+ "Proto:http:LibreWolfHTM"^
+ ".htm:LibreWolfHTM"^
+ ".html:LibreWolfHTM"^
+ ".pdf:LibreWolfHTM"^
+ ".shtml:LibreWolfHTM"
 
-@REM set firefoxAssociations="Proto:https:FirefoxURL-308046B0AF4A39CB"^
-@REM  "Proto:http:FirefoxURL-308046B0AF4A39CB"^
-@REM  ".htm:FirefoxHTML-308046B0AF4A39CB"^
-@REM  ".html:FirefoxHTML-308046B0AF4A39CB"^
-@REM  ".pdf:FirefoxPDF-308046B0AF4A39CB"^
-@REM  ".shtml:FirefoxHTML-308046B0AF4A39CB"
+set firefoxAssociations="Proto:https:FirefoxURL-308046B0AF4A39CB"^
+ "Proto:http:FirefoxURL-308046B0AF4A39CB"^
+ ".htm:FirefoxHTML-308046B0AF4A39CB"^
+ ".html:FirefoxHTML-308046B0AF4A39CB"^
+ ".pdf:FirefoxPDF-308046B0AF4A39CB"^
+ ".shtml:FirefoxHTML-308046B0AF4A39CB"
 
-@REM set chromeAssociations="Proto:https:ChromeHTML"^
-@REM  "Proto:http:ChromeHTML"^
-@REM  ".htm:ChromeHTML"^
-@REM  ".html:ChromeHTML"^
-@REM  ".pdf:ChromeHTML"^
-@REM  ".shtml:ChromeHTML"
+set chromeAssociations="Proto:https:ChromeHTML"^
+ "Proto:http:ChromeHTML"^
+ ".htm:ChromeHTML"^
+ ".html:ChromeHTML"^
+ ".pdf:ChromeHTML"^
+ ".shtml:ChromeHTML"
 
-@REM set libreWolfAssociations="Proto:https:LibreWolfHTM"^
-@REM  "Proto:http:LibreWolfHTM"^
-@REM  ".htm:LibreWolfHTM"^
-@REM  ".html:LibreWolfHTM"^
-@REM  ".pdf:LibreWolfHTM"^
-@REM  ".shtml:LibreWolfHTM"
-
-@REM if "%~1" == "" set "associations=%baseAssociations%"
-@REM if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
-@REM if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
-@REM if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%"
-@REM if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
-@REM if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
+if "%~1" == "" set "associations=%baseAssociations%"
+if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
+if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
+if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
+if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%"
+if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 
 :: Set 7-Zip assocations
 call :7ZIPSYSTEM
+
+:: Make a temporary renamed PowerShell executable to bypass UCPD
+:: https://hitco.at/blog/windows-userchoice-protection-driver-ucpd/
+echo Making temporary PowerShell...
+for /f "tokens=* delims=" %%a in ('where powershell.exe') do (set "powershellPath=%%a")
+for %%A in ("%powershellPath%") do (set "powershellDir=%%~dpA")
+set "powershellTemp=%powershellDir%\powershell%random%%random%%random%%random%.exe"
+copy /y "%powershellPath%" "%powershellTemp%" > nul
 
 :: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs don't have this key.
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Setting associations for "%%a"...
         call :7ZIPUSER "%%a"
-        @REM PowerShell -NoP -NonI -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
+        "%powershellTemp%" -NoP -NonI -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
     )
 )
+
+echo Deleting temporary PowerShell...
+del /f /q "%powershellTemp%" > nul
+
 exit /b
 
 :7ZIPUSER
