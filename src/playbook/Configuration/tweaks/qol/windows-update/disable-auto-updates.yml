@@ -7,6 +7,7 @@ actions:
     command: 'reg import "AtlasDesktop\3. General Configuration\Windows Update\Automatic Updates\Disable Automatic Updates (default).reg"'
     exeDir: true
     wait: true
+    option: 'disable-auto-updates'
 
     # Prevent DevHome & Outlook from re-installing
   - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\DevHomeUpdate'}

@@ -169,6 +169,9 @@ init_item "Lightshot" "Skillbrains.Lightshot"
 # https://winget.run/pkg/ShareX/ShareX
 init_item "ShareX" "ShareX.ShareX"
 
+# https://www.microsoft.com/store/productId/9MZ95KL8MR0L?ocid=pdpshare
+init_item "Snipping Tool" "9MZ95KL8MR0L"
+
 # https://winget.run/pkg/valinet/ExplorerPatcher
 init_item "ExplorerPatcher" "valinet.ExplorerPatcher"
 

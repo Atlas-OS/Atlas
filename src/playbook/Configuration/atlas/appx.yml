@@ -49,7 +49,7 @@ actions:
   - !appx: {name: 'Microsoft.Office.OneNote*', type: family}
   - !appx: {name: 'Microsoft.People*', type: family}
   - !appx: {name: 'Microsoft.PowerAutomateDesktop*', type: family}
-  - !appx: {name: 'Microsoft.ScreenSketch*', type: family}
+  - !appx: {name: 'Microsoft.ScreenSketch*', type: family, option: 'remove-snipping-tool'}
   - !appx: {name: 'Microsoft.SkypeApp*', type: family}
   - !appx: {name: 'Microsoft.Todos*', type: family}
   - !appx: {name: 'Microsoft.WindowsAlarms*', type: family}
