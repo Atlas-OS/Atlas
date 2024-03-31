@@ -61,7 +61,8 @@ actions:
   # - !appx: {name: 'Microsoft.YourPhone*', type: family}
   - !powerShell:
     command: >-
-      Get-AppxPackage -AllUsers Microsoft.YourPhone* | Remove-AppxPackage -AllUsers
+      Get-AppxPackage Microsoft.YourPhone* | Remove-AppxPackage;
+      Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -eq 'Microsoft.YourPhone' } | Remove-AppxProvisionedPackage -Online
     runas: currentUserElevated
 
   # Prevent provisioned applications from being reinstalled
