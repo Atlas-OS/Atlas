@@ -1,6 +1,6 @@
 @echo off
 
-set baseAssociations=".url:IE.AssocFile.URL"
+set baseAssociations=".url:InternetShortcut"
 
 set braveAssociations="Proto:https:BraveHTML"^
  "Proto:http:BraveHTML"^
