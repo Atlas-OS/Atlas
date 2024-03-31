@@ -6,7 +6,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-call setSvc.cmd WSearch 4
+sc config WSearch start=disabled > nul
 sc stop WSearch > nul 2>&1
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide cortana-windowssearch
 
