@@ -1,5 +1,8 @@
 Windows Registry Editor Version 5.00
 
+; Background apps aren't disabled again as we don't know the user's preference
+; As in, we don't know if the user already had background apps enabled or not
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent]
 "DisableCloudOptimizedContent"=dword:00000001
 
@@ -9,3 +12,12 @@ Windows Registry Editor Version 5.00
 "DisableWindowsSpotlightOnActionCenter"=dword:00000001
 "DisableWindowsSpotlightOnSettings"=dword:00000001
 "DisableThirdPartySuggestions"=dword:00000001
+
+
+; Disable in Content Delivery Manager
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager]
+"ContentDeliveryAllowed"=dword:00000000
+"FeatureManagementEnabled"=dword:00000000
+"SubscribedContentEnabled"=dword:00000000
+"SubscribedContent-338387Enabled"=dword:00000000
+"RotatingLockScreenOverlayEnabled"=dword:00000000

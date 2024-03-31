@@ -18,7 +18,7 @@ actions:
   - !taskKill: {name: 'control', ignoreErrors: true}
 
     # Applies Atlas lockscreen background
-    # Also disables fun facts, tips, tricks, and more on lockscreen
+    # Also disables fun facts, tips, tricks, and more on lockscreen - only on Enterprise/Education
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
     value: 'LockScreenOverlaysDisabled'
