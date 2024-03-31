@@ -213,8 +213,6 @@ tasks:
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
   # -------------------------------------------------------------------------- #
-  # Currently and in the future, this will have no use
-  # - tweaks\qol\explorer\add-context-menus\install-cab.yml
   - tweaks\qol\explorer\add-context-menus\merge-as-trustedinstaller.yml
   - tweaks\qol\explorer\add-context-menus\new-bat.yml
   - tweaks\qol\explorer\add-context-menus\new-ps1.yml
@@ -348,7 +346,6 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-misc.yml
   - tweaks\misc\config-time.yml
-  # - tweaks\misc\disable-game-mode.yml
   - tweaks\misc\delete-windows-specific-files.yml
   - tweaks\misc\config-oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
