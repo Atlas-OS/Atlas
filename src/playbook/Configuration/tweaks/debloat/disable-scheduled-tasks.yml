@@ -31,7 +31,6 @@ actions:
   # - !scheduledTask: {path: '\Microsoft\Windows\DiskFootprint\Diagnostics'}
   # - !scheduledTask: {path: '\Microsoft\Windows\Maintenance\WinSAT'}
   # - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic'}
-  # - !scheduledTask: {path: '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem'}
   # - !scheduledTask: {path: '\Microsoft\Windows\Shell\IndexerAutomaticMaintenance'} # Unless indexing is enabled
   # - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyMonitor'}
   # - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyRefresh'}

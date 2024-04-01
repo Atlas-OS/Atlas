@@ -11,3 +11,4 @@ actions:
   - !run:
     exe: 'wevtutil.exe'
     args: 'set-log "Microsoft-Windows-UserModePowerService/Diagnostic" /e:false'
+  - !scheduledTask: {path: '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem', operation: disable}
