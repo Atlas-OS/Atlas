@@ -7,8 +7,9 @@ actions:
     value: 'HasAccepted'
     data: '0'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\InputPersonalization'
-    value: 'AllowInputPersonalization'
-    data: '0'
-    type: REG_DWORD
+    # Allow user to enable it in case they need to
+  # - !registryValue:
+  #   path: 'HKLM\SOFTWARE\Policies\Microsoft\InputPersonalization'
+  #   value: 'AllowInputPersonalization'
+  #   data: '0'
+  #   type: REG_DWORD
