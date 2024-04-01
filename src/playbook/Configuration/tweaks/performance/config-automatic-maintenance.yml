@@ -1,0 +1,22 @@
+---
+title: Configure Automatic Maintenance
+description: Configure the 'Automatic Maintenance' feature in Windows, which does tasks such as updates when the computer is idle, for QoL and performance
+actions:
+    # Automatic maintenance is needed for auto-defrag/TRIM and more
+  # - !registryValue:
+  #   path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance'
+  #   value: 'MaintenanceDisabled'
+  #   data: '1'
+  #   type: REG_DWORD
+  # - !registryValue:
+  #   path: 'HKLM\SOFTWARE\Microsoft\Windows\ScheduledDiagnostics'
+  #   value: 'EnabledExecution'
+  #   data: '0'
+  #   type: REG_DWORD
+
+    # https://www.elevenforum.com/t/enable-or-disable-automatic-maintenance-to-wake-up-computer-in-windows-11.16690/
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Task Scheduler\Maintenance'
+    value: 'WakeUp'
+    data: '0'
+    type: REG_DWORD
