@@ -23,10 +23,12 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 			echo Copying default layout XML
 			copy /y "Layout.xml" "!userAppdata!\Microsoft\Windows\Shell\LayoutModification.xml" > nul
 
-			echo Clear Start Menu pinned items
-			for /f "usebackq delims=" %%d in (`dir /b "!userAppdata!\Packages" /a:d ^| findstr /c:"Microsoft.Windows.StartMenuExperienceHost"`) do (
-				for /f "usebackq delims=" %%e in (`dir /b "!userAppdata!\Packages\%%d\LocalState" /a:-d ^| findstr /R /c:"start.\.bin" /c:"start\.bin"`) do (
-					del /q /f "!userAppdata!\Packages\%%d\LocalState\%%e" > nul 2>&1
+			if "%%a" neq "AME_UserHive_Default" (
+				echo Clear Start Menu pinned items
+				for /f "usebackq delims=" %%d in (`dir /b "!userAppdata!\Packages" /a:d ^| findstr /c:"Microsoft.Windows.StartMenuExperienceHost"`) do (
+					for /f "usebackq delims=" %%e in (`dir /b "!userAppdata!\Packages\%%d\LocalState" /a:-d ^| findstr /R /c:"start.\.bin" /c:"start\.bin"`) do (
+						del /q /f "!userAppdata!\Packages\%%d\LocalState\%%e" > nul 2>&1
+					)
 				)
 			)
 		)

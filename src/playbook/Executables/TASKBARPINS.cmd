@@ -45,19 +45,15 @@ if "%input%" == "" (
 )
 
 :: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs don't have this key.
-for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
+for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[0-9][0-9]*"`) do (
 	reg query "HKEY_USERS\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
 		echo]
-		if "%%a"=="AME_UserHive_Default" (
-			set "userAppdata=%systemdrive%\Users\Default\AppData\Roaming"
-		) else (
-			for /f "usebackq tokens=3* delims= " %%b in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "AppData" 2^>nul ^| findstr /r /x /c:".*AppData[ ]*REG_SZ[ ].*" 2^>nul`) do (
-				set "userAppdata=%%b"
-			)
+		for /f "usebackq tokens=3* delims= " %%b in (`reg query "HKU\%%a\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "AppData" 2^>nul ^| findstr /r /x /c:".*AppData[ ]*REG_SZ[ ].*" 2^>nul`) do (
+			set "userAppdata=%%b"
 		)
 
 		if [!userAppdata!]==[] (
-			echo Couldn't find AppData value!
+			echo Couldn't find AppData value for "%%a"!
 		) else (
 			echo Setting "%input%" taskbar shortcut for "%%a"...
 			echo ------------------------------------------------------------------------------------------------------
@@ -67,8 +63,10 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query "HKEY_USERS" ^| findstr /
 			mkdir "!userAppdata!\%taskBarLocation%" > nul
 			copy /y "Shortcuts\File Explorer.lnk" "!userAppdata!\%taskBarLocation%" > nul
 
-			echo Copy browser shortcut if applicable
-			if "%browser%"=="true" copy /y "Shortcuts\%input%.lnk" "!userAppdata!\%taskBarLocation%" > nul
+			if "%browser%"=="true" (
+				echo Copy browser shortcut
+				copy /y "Shortcuts\%input%.lnk" "!userAppdata!\%taskBarLocation%" > nul
+			)
 
 			echo Set in Registry
 			reg add "HKU\%%a\%rootKey%" /v "FavoritesResolve" /t REG_BINARY /d "%favoritesResolve%" /f > nul
