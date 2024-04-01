@@ -2,19 +2,7 @@
 title: Disallow Edge Swipe
 description: Disallows the ability to swipe from the edge of the screen, e.g., when in a fullscreen UWP app, the titlebar won't show when you put your mouse to the top of the screen. This can be useful for games.
 actions:
-  # https://www.elevenforum.com/t/turn-on-or-off-nearby-sharing-in-windows-11.2644/
-  - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\CDP\SettingsPage'
-    value: 'BluetoothLastDisabledNearShare'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\CDP'
-    value: 'NearShareChannelUserAuthzPolicy'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\CDP'
-    value: 'CdpSessionUserAuthzPolicy'
-    data: '1'
-    type: REG_DWORD
+  - !cmd:
+    command: 'reg import "AtlasDesktop\4. Interface Tweaks\Edge Swipe\Disallow Edge Swipe (default).reg"'
+    exeDir: true
+    wait: true
