@@ -2,41 +2,48 @@
 title: Disable Scheduled Tasks
 description: Disables scheduled tasks to prevent automatic tasks from running at startup, consuming resources and collecting user data
 actions:
-  # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
+    # "The Windows Scheduled Maintenance Task performs periodic maintenance of the
+    # computer system by fixing problems automatically or reporting them through Security and Maintenance."
+  - !scheduledTask: {path: '\Microsoft\Windows\Diagnosis\Scheduled', operation: disable}
 
-  - !scheduledTask:
-    path: '\Microsoft\Windows\Location'
-    operation: deleteFolder
+    # Updates compatibility database
+  - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask', operation: disable}
 
-  - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask'}
-  - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\DsSvcCleanup'}
-  - !scheduledTask: {path: '\Microsoft\Windows\CloudExperienceHost\CreateObjectTask'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Diagnosis\Scheduled'}
-  - !scheduledTask: {path: '\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector'}
-  - !scheduledTask: {path: '\Microsoft\Windows\DiskFootprint\Diagnostics'}
-  - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdates'}
-  - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdatesAsUser'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Maintenance\WinSAT'}
-  - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic'}
-  - !scheduledTask: {path: '\Microsoft\Windows\PI\Sqm-Tasks'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Registry\RegIdleBackup'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyMonitor'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyRefresh'}
-  - !scheduledTask: {path: '\Microsoft\Windows\Shell\IndexerAutomaticMaintenance'}
-  - !scheduledTask: {path: '\Microsoft\Windows\StateRepository\MaintenanceTasks'}
-  - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start'}
 
+  # -------------------------------------------------------------------------------------
   # Here are the scheduled tasks that are currently commented as they're under review.
-  # This list should be somewhat minimal in the tasks it deletes, as a lot of the tasks below won't run by default ever anyways, unless needed.
+  # This list should be somewhat minimal in the tasks it deletes, as a lot of the tasks
+  # below won't run by default ever anyways, unless needed.
   # Telemetry and CEIP/SQM is stripped by default anyways, so don't worry about that.
+  # -------------------------------------------------------------------------------------
 
   # - !scheduledTask:
   #   path: '\Microsoft\Windows\DeviceDirectoryClient'
   #   operation: deleteFolder
 
+    # Needed for Windows Update to function properly
+  # - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdates'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\InstallService\ScanForUpdatesAsUser'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\WindowsUpdate\Scheduled Start'}
+
+    # Wouldn't be randomly executed
+  # - !scheduledTask: {path: '\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\DiskFootprint\Diagnostics'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Maintenance\WinSAT'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\MemoryDiagnostic\RunFullMemoryDiagnostic'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Shell\IndexerAutomaticMaintenance'} # Unless indexing is enabled
+  # - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyMonitor'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Shell\FamilySafetyRefresh'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\PI\Sqm-Tasks'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Registry\RegIdleBackup'} # Registry backups are disabled by default
+  # - !scheduledTask: {path: '\Microsoft\Windows\StateRepository\MaintenanceTasks'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierdaily'}
+  # - !scheduledTask:
+  #   path: '\Microsoft\Windows\Location'
+  #   operation: deleteFolder
+
+    # Needs research
   # - !scheduledTask: {path: '\Microsoft\Windows\AppID\EDP Policy Manager'}
   # - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\appuriverifierinstall'}
   # - !scheduledTask: {path: '\Microsoft\Windows\BrokerInfrastructure\BgTaskRegistrationMaintenanceTask'}
@@ -51,3 +58,6 @@ actions:
   # - !scheduledTask: {path: '\Microsoft\Windows\UPnP\UPnPHostConfig'}
   # - !scheduledTask: {path: '\Microsoft\Windows\WaaSMedic\PerformRemediation'}
   # - !scheduledTask: {path: '\Microsoft\Windows\Windows Media Sharing\UpdateLibrary'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\CloudExperienceHost\CreateObjectTask'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\ApplicationData\DsSvcCleanup'}
+  # - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\StartupAppTask'} # notification to the user if there are too many startup entries
