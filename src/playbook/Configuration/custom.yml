@@ -2,6 +2,35 @@
 title: Root Playbook File
 description: Runs all of the playbook files
 actions:
+    # AME Wizard Live Log for development playbooks
+    # Do not change the line position of this, otherwise things will break when using local-build
+  # - !run: {exe: 'cmd.exe', args: '/c start "AME Wizard Live Log" PowerShell -NoP -C "gc -Wait Logs\TIOutput.txt -EA SilentlyContinue | Write-Output; pause"', baseDir: true, wait: false}
+
+  - !writeStatus: {status: 'Copying files'}
+  - !cmd:
+    command: 'robocopy "AtlasModules" "%windir%\AtlasModules" /E /PURGE /IM /IT /NP > nul'
+    weight: 10
+    wait: true
+    exeDir: true
+  - !cmd:
+    command: 'robocopy "AtlasDesktop" "%windir%\AtlasDesktop" /E /PURGE /IM /IT /NP > nul'
+    weight: 10
+    wait: true
+    exeDir: true
+
+    # Prevent annoying notifications during deployment
+  - !taskKill: {name: 'explorer'}
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Notifications\Disable Notifications.cmd" /silent'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
+
+    # Prevent computer from going to sleep during deployment
+  - !run: {exe: 'powercfg.exe', args: '/setacvalueindex scheme_current sub_sleep standbyidle 0'}
+  - !run: {exe: 'powercfg.exe', args: '/setdcvalueindex scheme_current sub_sleep standbyidle 0'}
+
   - !writeStatus: {status: 'Optimizing PowerShell'}
 tasks:
   # Configure PowerShell first so that other PowerShell scripts work

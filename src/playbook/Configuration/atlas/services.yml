@@ -35,13 +35,7 @@ actions:
     option: 'disable-bluetooth'
     exeDir: true
     wait: true
-  - !writeStatus: {status: 'Disable Notifications', option: 'disable-notifications'}
-  - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Notifications\Disable Notifications.cmd" /silent'
-    option: 'disable-notifications'
-    exeDir: true
-    wait: true
-
+  - !writeStatus: {status: 'Disabling File Sharing'}
   - !powerShell:
     command: '.\AtlasModules\Scripts\ScriptWrappers\DisableFileSharing.ps1 -Silent'
     exeDir: true

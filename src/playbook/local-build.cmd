@@ -177,7 +177,7 @@ New-Item $configDir -ItemType Directory -Force | Out-Null
 
 try {
 	$tempPlaybookConf = "$rootTemp\playbook\playbook.conf"
-	$ymlPath = "Configuration\atlas\start.yml"
+	$ymlPath = "Configuration\custom.yml"
 	$tempStartYML = "$rootTemp\playbook\$ymlPath"
 
 	# remove entries in playbook config that make it awkward for testing
@@ -228,7 +228,7 @@ try {
 		"local-build.cmd",
 		"playbook.conf",
 		"*.apbx"
-	); if (Test-Path $tempStartYML) { $excludeFiles += "start.yml" }
+	); if (Test-Path $tempStartYML) { $excludeFiles += "custom.yml" }
 
 	# make playbook, 7z is faster
 	$filteredItems = @()

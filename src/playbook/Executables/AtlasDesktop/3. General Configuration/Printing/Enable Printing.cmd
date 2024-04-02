@@ -52,7 +52,7 @@ call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide printing
 
 echo Enabling capabilities...
 for %%a in (
-    "Print.Fax.Scan~~~~0.0.1.0",
+    "Print.Fax.Scan~~~~0.0.1.0"
     "Print.Management.Console~~~~0.0.1.0"
 ) do (
     dism /Online /Add-Capability /CapabilityName:"%%a" /NoRestart > nul

@@ -127,9 +127,9 @@ jobs:
           sed -i '/<ProductCode>/d' playbook.conf
           echo "Change description of playbook..."
           sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas Playbook, built with GitHub Actions from commit ${{ github.sha }}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
-          cd Configuration/atlas
+          cd Configuration
           echo "Enabling AME Wizard Live Log..."
-          sed '7s/ #//'
+          sed -i '7s/ #//' custom.yml
       
       - name: Create playbook (ZIP/APBX password is malte)
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
