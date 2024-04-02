@@ -14,8 +14,6 @@ tasks:
 
   # ----------------------- END NOTES ----------------------- #
 
-
-
   # -----------------------------------------------------
   #                      Networking
   # -----------------------------------------------------
@@ -34,8 +32,6 @@ tasks:
   - tweaks\networking\shares\restrict-anonymous-access.yml
   - tweaks\networking\shares\restrict-anonymous-enumeration.yml
   - tweaks\networking\shares\disable-smb-bandwidth-throttling.yml
-
-
 
   # -----------------------------------------------------
   #                      Performance
@@ -62,8 +58,6 @@ tasks:
   - tweaks\performance\system\optimize-ntfs.yml
   - tweaks\performance\system\disable-service-host-split.yml
   - tweaks\performance\system\win32-priority-seperation.yml
-
-
 
   # -----------------------------------------------------
   #                        Privacy
@@ -122,8 +116,6 @@ tasks:
   - tweaks\privacy\telemetry\disable-dotnet-cli-telemetry.yml
   - tweaks\privacy\telemetry\disable-input-telemetry.yml
   - tweaks\privacy\telemetry\disallow-data-collection.yml
-
-
 
   # -----------------------------------------------------
   #                          QOL
@@ -282,8 +274,6 @@ tasks:
   - tweaks\qol\taskbar\set-to-left.yml
   - tweaks\qol\taskbar\end-task.yml
 
-
-
   # -----------------------------------------------------
   #                       Security
   # -----------------------------------------------------
@@ -296,8 +286,6 @@ tasks:
   - tweaks\security\block-anonymous-enum-sam.yml
   - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
-
-
 
   # -----------------------------------------------------
   #                        Debloat
@@ -313,8 +301,6 @@ tasks:
   - tweaks\debloat\disable-scheduled-tasks.yml
   - tweaks\debloat\hide-unused-security-pages.yml
   - tweaks\debloat\config-storage-sense.yml
-
-
 
   # -----------------------------------------------------
   #                        Scripts
@@ -334,8 +320,6 @@ tasks:
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
   - tweaks\scripts\script-clientcbs.yml
-
-
 
   # -----------------------------------------------------
   #                         Misc
