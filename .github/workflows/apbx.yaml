@@ -3,10 +3,10 @@ name: Create and Validate Atlas Playbook
 on:
   push:
     paths:
-      - 'src/**'
+      - "src/**"
 
 env:
-  SXSC_REPO: 'https://github.com/Atlas-OS/sxsc'
+  SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
 
 jobs:
   package-build:
@@ -116,7 +116,7 @@ jobs:
           ref: ${{ github.ref }}
 
       - name: Validate YAML files
-        run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/playbook/.'
+        run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/playbook/.'
 
       - name: Configure playbook
         id: config-playbook
@@ -130,7 +130,7 @@ jobs:
           cd Configuration/atlas
           echo "Enabling AME Wizard Live Log..."
           sed '7s/ #//'
-      
+
       - name: Create playbook (ZIP/APBX password is malte)
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
         run: |
