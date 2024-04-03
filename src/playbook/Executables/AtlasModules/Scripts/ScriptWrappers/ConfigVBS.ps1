@@ -173,11 +173,11 @@ $pages = @(
 		}
 	},
 	@{
-		Title = "VBS Security Properties Avaliable"
+		Title = "VBS Security Properties Available"
 		Commands = {
 			$AvailableSecurityProperties = (Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).AvailableSecurityProperties
 
-			$VirtualizationBasedSecurityAvaliableSecurity = @(
+			$VirtualizationBasedSecurityAvailableSecurity = @(
 				"None",
 				"Hypervisor support",
 				"Secure Boot",
@@ -190,23 +190,23 @@ $pages = @(
 			)
 
 			if ($AvailableSecurityProperties -contains '0') {
-				Write-Host "No security features are avaliable for Virtualization Based Security.`n" -ForegroundColor Green
+				Write-Host "No security features are available for Virtualization Based Security.`n" -ForegroundColor Green
 			} else {
-				Write-Host "Security features avaliable for Virtualization Based Security:`n" -ForegroundColor Yellow
+				Write-Host "Security features available for Virtualization Based Security:`n" -ForegroundColor Yellow
 			}
 			
-			foreach ($feature in $VirtualizationBasedSecurityAvaliableSecurity) {
+			foreach ($feature in $VirtualizationBasedSecurityAvailableSecurity) {
 				if ($feature -eq "None") {
 					continue
 				}
 				
 				Write-Host " - " -NoNewLine
 				
-				if ($AvailableSecurityProperties -contains $VirtualizationBasedSecurityAvaliableSecurity.IndexOf($feature)) {
-					Write-Host "$feature is avaliable" -ForegroundColor Green
+				if ($AvailableSecurityProperties -contains $VirtualizationBasedSecurityAvailableSecurity.IndexOf($feature)) {
+					Write-Host "$feature is available" -ForegroundColor Green
 				} else {
-					# $($VirtualizationBasedSecurityAvaliableSecurity.IndexOf($feature)). 
-					Write-Host "$feature is not avaliable" -ForegroundColor Red
+					# $($VirtualizationBasedSecurityAvailableSecurity.IndexOf($feature)). 
+					Write-Host "$feature is not available" -ForegroundColor Red
 				}
 			}
 		}
