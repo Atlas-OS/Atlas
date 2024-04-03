@@ -2,6 +2,10 @@ param (
     [switch]$ThemeMRU
 )
 
+$windir = [Environment]::GetFolderPath('Windows')
+$atlasDesktop = "$windir\AtlasDesktop"
+$atlasModules = "$windir\AtlasModules"
+
 function ThemeMRU {
     New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes" -Name "ThemeMRU" -Value "$((@(
         "atlas-v0.4.x-dark.theme",
@@ -10,15 +14,11 @@ function ThemeMRU {
         "atlas-v0.3.x-light.theme",
         "dark.theme",
         "aero.theme"
-    ) | % { "$windir\resources\Themes\$_" }) -join ';');" -PropertyType String -Force | Out-Null
+    ) | ForEach-Object { "$windir\resources\Themes\$_" }) -join ';');" -PropertyType String -Force
 }
 if ($ThemeMRU) { ThemeMRU; exit }
 
 $title = 'Preparing Atlas user settings...'
-
-$windir = [Environment]::GetFolderPath('Windows')
-$atlasDesktop = "$windir\AtlasDesktop"
-$atlasModules = "$windir\AtlasModules"
 
 if (!(Test-Path $atlasDesktop) -or !(Test-Path $atlasModules)) {
     Write-Host "Atlas was about to configure user settings, but its files weren't found. :(" -ForegroundColor Red
@@ -37,7 +37,7 @@ if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
     reg import "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg" *>$null
 
     # Set ThemeMRU (recent themes)
-    ThemeMRU
+    ThemeMRU | Out-Null
 }
 
 # Set lockscreen wallpaper

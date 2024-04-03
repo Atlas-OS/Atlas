@@ -4,12 +4,23 @@ description: Adds and sets the Atlas themes by default
 actions:
     # Apply theme file
   - !cmd:
-    command: 'start ms-settings:themes & ping 127.0.0.1 -n 6 > nul & start "" "%windir%\Resources\Themes\atlas-v0.4.x-dark.theme"'
+    command: 'start ms-settings:themes & ping 127.0.0.1 -n 6 > nul & start "" "Themes\atlas-v0.4.x-dark.theme"'
+    exeDir: true
     wait: true
     runas: currentUserElevated
   - !run: {exe: 'ping', args: '127.0.0.1 -n 6'}
+
+    # For Windows 11, set recent theme selection
   - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
   - !taskKill: {name: 'control', ignoreErrors: true}
+  - !taskKill: {name: 'explorer', ignoreErrors: true, builds: [ '>=22000' ]}
+  - !powerShell:
+    command: '.\AtlasModules\Scripts\newUsers.ps1 -ThemeMRU'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+    builds: [ '>=22000' ]
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false, builds: [ '>=22000' ]}
 
     # Applies Atlas lockscreen background
     # Also disables fun facts, tips, tricks, and more on lockscreen - only on Enterprise/Education
@@ -38,10 +49,3 @@ actions:
     value: 'ThemeFile'
     data: '%windir%\Resources\Themes\atlas-v0.4.x-dark.theme'
     type: REG_SZ
-
-    # For Windows 11, set recent theme selection
-  - !powerShell:
-    command: '.\AtlasModules\Scripts\newUsers.ps1 -ThemeMRU'
-    exeDir: true
-    wait: true
-    builds: [ '>=22000' ]
