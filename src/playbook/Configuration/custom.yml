@@ -26,7 +26,7 @@ actions:
     # Prevent annoying notifications during deployment
   - !taskKill: {name: 'explorer'}
   - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Notifications\Disable Notifications.cmd" /silent'
+    command: '"AtlasDesktop\3. General Configuration\Notifications\Disable Notifications.cmd" /includeuserservice'
     exeDir: true
     wait: true
     runas: currentUserElevated

@@ -12,4 +12,3 @@ actions:
     exeDir: true
     wait: true
     option: 'disable-notifications'
-    builds: [ '>=22000' ]

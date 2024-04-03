@@ -1,6 +1,6 @@
 @echo off
 
-if "%~1" == "/silent" goto main
+if "%~1" == "/includeuserservice" goto main
 
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
@@ -29,20 +29,12 @@ for %%a in (
 	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide %%a /silent
 )
 
-if "%~1"=="/silent" (
+if "%~1"=="/includeuserservice" (
 	call :userservice
+	call :disablecenter
 	exit /b
 ) else (
-	for /f "tokens=6 delims=[.] " %%a in ('ver') do (
-		if %%a LSS 22000 (
-			call :userservice
-		) else (
-			setlocal EnableDelayedExpansion
-			echo On Windows 11, disabling the user notification service will prevent you from using the calendar in the taskbar.
-			choice /c:yn /n /m "Would you like to disable the user notification service? [Y/N] "
-		)
-		echo]
-	)
+	for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a LSS 22000 call :disablecenter)
 )
 
 taskkill /f /im explorer.exe > nul 2>&1
@@ -62,3 +54,8 @@ for /f "tokens=5 delims=\" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Ser
 	sc stop "%%a" > nul
 	sc delete "%%a" > nul
 )
+exit /b
+
+:disablecenter
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f > nul
+exit /b
