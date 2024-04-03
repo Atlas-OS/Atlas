@@ -17,6 +17,11 @@ actions:
     weight: 10
     wait: true
     exeDir: true
+  - !cmd:
+    command: 'copy /y "Themes" "%windir%\Resources\Themes" > nul'
+    weight: 10
+    wait: true
+    exeDir: true
 
     # Prevent annoying notifications during deployment
   - !taskKill: {name: 'explorer'}

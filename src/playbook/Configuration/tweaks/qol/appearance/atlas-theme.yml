@@ -2,18 +2,12 @@
 title: Add Theme
 description: Adds and sets the Atlas themes by default
 actions:
-    # Copy files
-  - !cmd:
-    command: 'copy /y "Themes" "%windir%\Resources\Themes" > nul'
-    exeDir: true
-    wait: true
-
     # Apply theme file
   - !cmd:
-    command: 'start "" "%windir%\Resources\Themes\atlas-v0.4.x-dark.theme"'
+    command: 'start ms-settings:themes & ping 127.0.0.1 -n 6 > nul & start "" "%windir%\Resources\Themes\atlas-v0.4.x-dark.theme"'
     wait: true
     runas: currentUserElevated
-  - !run: {exe: 'timeout', args: '/t 4 /nobreak'}
+  - !run: {exe: 'ping', args: '127.0.0.1 -n 6'}
   - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
   - !taskKill: {name: 'control', ignoreErrors: true}
 

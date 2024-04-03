@@ -7,7 +7,7 @@ echo WARNING: This will force enable all security mitigiations for improved secu
 echo          This will slow down performance (especially on older CPUs).
 echo          It is recommended to use 'Set Windows Default Mitigations.cmd' instead.
 echo]
-timeout /nobreak /t 1 > nul
+ping 127.0.0.1 -n 2 > nul
 echo Press any key to continue anyways...
 pause > nul
 cls

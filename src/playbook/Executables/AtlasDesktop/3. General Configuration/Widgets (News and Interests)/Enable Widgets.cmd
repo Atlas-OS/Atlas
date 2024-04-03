@@ -24,7 +24,7 @@ echo Enabling News and Interests (called Widgets in Windows 11)...
     start explorer.exe
 ) > nul 2>&1
 
-timeout /t 2 /nobreak > nul
+ping 127.0.0.1 -n 2 > nul
 start ms-settings:taskbar
 
 echo]

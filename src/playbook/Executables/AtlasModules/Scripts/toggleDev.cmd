@@ -42,7 +42,7 @@ exit /b %ERRORLEVEL%
 : end batch / begin PowerShell #>
 
 param (
-    [switch]$Enable,
+	[switch]$Enable,
 	[switch]$Silent,
 	[string]$Devices
 )
