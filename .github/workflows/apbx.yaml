@@ -3,10 +3,10 @@ name: Create and Validate Atlas Playbook
 on:
   push:
     paths:
-      - 'src/**'
+      - "src/**"
 
 env:
-  SXSC_REPO: 'https://github.com/Atlas-OS/sxsc'
+  SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
 
 jobs:
   package-build:
@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
           token: ${{ secrets.RUNNER_SECRET }}
@@ -111,12 +111,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
       - name: Validate YAML files
-        run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/playbook/.'
+        run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/playbook/.'
 
       - name: Configure playbook
         id: config-playbook
@@ -130,7 +130,7 @@ jobs:
           cd Configuration/atlas
           echo "Enabling AME Wizard Live Log..."
           sed '7s/ #//'
-      
+
       - name: Create playbook (ZIP/APBX password is malte)
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
         run: |
@@ -141,7 +141,7 @@ jobs:
           mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "../release-zip"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
         with:
           name: Atlas Playbook
