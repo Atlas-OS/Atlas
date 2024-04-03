@@ -9,7 +9,8 @@ call setSvc.cmd vwififlt 4
 call setSvc.cmd WlanSvc 4
 
 echo Applications like Microsoft Store and Spotify may not function correctly when Wi-Fi is disabled.
-echo If this is a problem, enable Wi-Fi and restart the computer.
+echo There might be other issues as well, therefore, we do not recommend it.
+pause
 echo]
 echo Finished, please reboot your device for changes to apply.
 pause

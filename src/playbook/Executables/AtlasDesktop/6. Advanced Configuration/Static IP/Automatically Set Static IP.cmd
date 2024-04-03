@@ -11,15 +11,15 @@ ping -n 1 -4 www.example.com > nul 2>&1 || (
 	exit /b 1
 )
 
-set /P DNS1="Set primary DNS Server (e.g. 1.1.1.1): "
-set /P DNS2="Set alternate DNS Server (e.g. 1.0.0.1): "
+set /P DNS1="Set primary DNS Server (e.g. 1.1.1.1): " || set DNS1=1.1.1.1
+set /P DNS2="Set alternate DNS Server (e.g. 1.0.0.1): " || set DNS1=1.0.0.1
 for /f "tokens=*" %%a in ('powershell -NonI -NoP -C "(Get-NetAdapter -Physical | ? { $_.Status -eq 'Up' }).Name"') do set "DeviceName=%%a"
 for /f "tokens=3" %%a in ('netsh int ip show config name^="%DeviceName%" ^| findstr "IP Address:"') do set "LocalIP=%%a"
 for /f "tokens=3" %%a in ('netsh int ip show config name^="%DeviceName%" ^| findstr "Default Gateway:"') do set "DHCPGateway=%%a"
 for /f "tokens=2 delims=()" %%a in ('netsh int ip show config name^="%DeviceName%" ^| findstr /r "(.*)"') do for %%i in (%%a) do set "DHCPSubnetMask=%%i"
 
 :: Check for errors and exit if invalid
-cls
+echo]
 if "%DeviceName%" == "" set "incorrectIP=1"
 call :isValidIP %LocalIP%
 call :isValidIP %DHCPGateway%
@@ -34,6 +34,7 @@ if "%incorrectIP%" == "1" (
 )
 
 :: Display details about the connection
+echo ----------------------------
 echo Settings to be applied
 echo ----------------------------
 echo Interface: %DeviceName%

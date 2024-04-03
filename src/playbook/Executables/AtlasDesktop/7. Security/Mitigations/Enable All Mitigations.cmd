@@ -4,8 +4,8 @@ setlocal EnableDelayedExpansion
 if "%~1"=="/main" goto main
 
 echo WARNING: This will force enable all security mitigiations for improved security.
-echo          This will slow down performance (especially on older CPUs).
-echo          It is recommended to use 'Set Windows Default Mitigations.cmd' instead.
+echo          This will slow down performance, and worsen compatibility. It is
+echo          recommended to use 'Set Windows Default Mitigations.cmd' instead.
 echo]
 ping 127.0.0.1 -n 2 > nul
 echo Press any key to continue anyways...

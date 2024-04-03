@@ -23,7 +23,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Creating the Start menu shortcut...
-PowerShell -NoP -C "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""$([Environment]::GetFolderPath('CommonStartMenu'))\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Apps\ProcessExplorer\process-explorer.exe"""; $Shortcut.Save()" > nul
+PowerShell -NoP -C "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut("""$([Environment]::GetFolderPath('CommonStartMenu'))\Programs\Process Explorer.lnk"""); $Shortcut.TargetPath = """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Apps\ProcessExplorer\procexp.exe"""; $Shortcut.Save()" > nul
 if %ERRORLEVEL% NEQ 0 (
 	echo Process Explorer shortcut could not be created in the start menu!
 )
@@ -32,7 +32,7 @@ echo Configuring Process Explorer...
 :: Run Process Explorer only in one instance
 reg add "HKCU\SOFTWARE\Sysinternals\Process Explorer" /v "OneInstance" /t REG_DWORD /d "1" /f > nul
 sc config pcw start=disabled > nul
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%windir%\AtlasModules\Apps\ProcessExplorer\process-explorer.exe" /f > nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%windir%\AtlasModules\Apps\ProcessExplorer\procexp.exe" /f > nul
 
 echo]
 echo Finished, changes have been applied.

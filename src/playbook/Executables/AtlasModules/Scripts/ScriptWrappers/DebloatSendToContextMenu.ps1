@@ -84,7 +84,7 @@ if ($Enable) {
 
 # Prompt user
 $choices = (multichoice.exe "Send To Debloat" `
-    "Tick the default 'Send To' context menu items that you want to enable here (un-checked items are disabled)" `
+    "Tick the 'Send To' context menu items that you want to enable here (un-checked items are disabled)" `
     "$($items.Keys -join ';')") -split ';'
 
 # Loop through choices

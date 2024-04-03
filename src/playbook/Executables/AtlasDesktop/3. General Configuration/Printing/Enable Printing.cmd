@@ -50,7 +50,7 @@ call setSvc.cmd PrintWorkFlowUserSvc 3
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide printing
 
-echo Enabling capabilities...
+echo Enabling capabilities (this might take a while)...
 for %%a in (
     "Print.Fax.Scan~~~~0.0.1.0"
     "Print.Management.Console~~~~0.0.1.0"

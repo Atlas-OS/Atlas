@@ -12,7 +12,6 @@ fltmc > nul 2>&1 || (
 )
 
 :: Check if WinGet is functional or not
-echo Checking if WinGet exists...
 call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
 if %ERRORLEVEL% NEQ 0 exit /b 1
 

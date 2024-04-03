@@ -8,7 +8,7 @@ Windows Registry Editor Version 5.00
 @="Realtime"
 
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\001flyout\command]
-@="cmd /c start \"\" /Realtime \"%1\""
+@="powershell start -file 'cmd' -args '/c start \"\"\"Realtime App\"\"\" /Realtime \"\"\"%1\"\"\"' -verb runas"
 
 [HKEY_CLASSES_ROOT\exefile\Shell\Priority\shell\002flyout]
 @="High"

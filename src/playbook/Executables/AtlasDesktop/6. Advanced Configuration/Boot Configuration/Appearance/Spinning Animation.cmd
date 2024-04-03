@@ -18,12 +18,10 @@ if %ERRORLEVEL% == 1 (
 )
 
 :disable
-echo]
 bcdedit /set {globalsettings} custom:16000069 true > nul
 goto finish
 
 :enable
-echo]
 bcdedit /deletevalue {globalsettings} custom:16000069 > nul 2>&1
 goto finish
 

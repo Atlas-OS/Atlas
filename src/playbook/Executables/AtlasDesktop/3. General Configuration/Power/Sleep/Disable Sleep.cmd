@@ -1,5 +1,16 @@
 @echo off
 
+set "___args="%~f0" %*"
+fltmc > nul 2>&1 || (
+	echo Administrator privileges are required.
+	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
+		echo You must run this script as admin.
+		if "%*"=="" pause
+		exit /b 1
+	)
+	exit /b
+)
+
 :: Allow Away Mode Policy - No
 powercfg /setacvalueindex scheme_current 238c9fa8-0aad-41ed-83f4-97be242c8f20 25dfa149-5dd1-4736-b5ab-e8a37b5b8187 0
 
