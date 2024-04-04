@@ -15,7 +15,7 @@ foreach ($interface in $interfaces) {
 }
 
 # Enable NetBIOS service
-setSvc.cmd NetBT 1 | Out-Null
+sc.exe config NetBT start=system | Out-Null
 
 choice /c:yn /n /m "Would you like to change your network profile to 'Private'? [Y/N] "
 if ($LASTEXITCODE -eq 1) {

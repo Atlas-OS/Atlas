@@ -16,7 +16,7 @@ foreach ($interface in $interfaces) {
 }
 
 # Disable NetBIOS service
-setSvc.cmd NetBT 4 | Out-Null
+sc.exe config NetBT start=disabled | Out-Null
 
 # Set network profile to 'Public Network'
 $profiles = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles" -Recurse | Where-Object { $_.GetValue("Category") -ne $null }
