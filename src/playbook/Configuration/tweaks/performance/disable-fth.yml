@@ -15,5 +15,6 @@ actions:
         exit 2000
       };
 
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\FTH' -Name 'Enabled' -Value 0 -Type DWORD;
       rundll32.exe fthsvc.dll,FthSysprepSpecialize
     wait: true
