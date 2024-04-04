@@ -31,7 +31,13 @@ function Invoke-AtlasDiskCleanup {
 		"Device Driver Packages" = 2
 	}
 	foreach ($entry in $regValues.GetEnumerator()) {
-		Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
+		$key = "$baseKey\$($entry.Key)"
+
+		if (!(Test-Path $key)) {
+			Write-Output "'$key' not found, not configuring it."
+		} else {
+			Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
+		}
 	}
 
 	# Run preset 64 (0-65535)
