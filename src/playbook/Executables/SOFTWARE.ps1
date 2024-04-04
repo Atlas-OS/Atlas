@@ -44,8 +44,14 @@ if ($Brave) {
 
 # Firefox
 if ($Firefox) {
+	if ($arm) {
+		$firefoxArch = 'win64-aarch64'
+	} else {
+		$firefoxArch = 'win64'
+	}
+
 	Write-Output "Downloading Firefox..."
-	& curl.exe -LSs "https://download.mozilla.org/?product=firefox-latest-ssl&os=win64&lang=en-US" -o "$tempDir\firefox.exe"
+	& curl.exe -LSs "https://download.mozilla.org/?product=firefox-latest-ssl&os=$firefoxArch&lang=en-US" -o "$tempDir\firefox.exe"
 	Write-Output "Installing Firefox..."
 	Start-Process -FilePath "$tempDir\firefox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait 2>&1 | Out-Null
 	exit
