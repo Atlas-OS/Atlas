@@ -114,7 +114,8 @@ $defaultConfig.Keys | ForEach-Object {
 	if ($config.Keys -notcontains $_) {
 		$config = $config + @{
 			$_ = $defaultConfig.$_
-		}; $updateConfig = $true
+		}
+		$updateConfig = $true
 	}
 }
 if ($updateConfig) {CreateConfig $config}
@@ -188,8 +189,10 @@ try {
 	if ($removeWinverRequirement) {$patterns += "<string>", "</SupportedBuilds>", "<SupportedBuilds>"}
 	if ($removeProductCode) {$patterns += "<ProductCode>"}
 
-	$newContent = Get-Content "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') }
-	$newContent | Set-Content "$tempPlaybookConf" -Force
+	if ($patterns.Count -gt 0) {
+		$newContent = Get-Content "playbook.conf"| Where-Object { $_ -notmatch ($patterns -join '|') }
+		$newContent | Set-Content "$tempPlaybookConf" -Force	
+	}
 
 	if ($removeDependencies -or $liveLog) {
 		$startYML = "$PWD\$ymlPath"
@@ -226,13 +229,12 @@ try {
 
 	$excludeFiles = @(
 		"local-build.cmd",
-		"playbook.conf",
 		"*.apbx"
-	); if (Test-Path $tempStartYML) { $excludeFiles += "custom.yml" }
+	)
+	if (Test-Path $tempStartYML) { $excludeFiles += "custom.yml" }
+	if (Test-Path $tempPlaybookConf) { $excludeFiles += "playbook.conf" }
 
 	# make playbook, 7z is faster
-	$filteredItems = @()
-
 	if (Test-Path $apbxPath) { Remove-Item $apbxFileName -Force }
 
 	(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName `
