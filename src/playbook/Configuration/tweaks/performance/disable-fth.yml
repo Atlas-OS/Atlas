@@ -10,7 +10,7 @@ actions:
   - !powerShell:
     command: >-
       if (((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')) {
-        Write-Output 'ARM detected, FTH doesn't exist.';
+        Write-Output 'ARM detected, FTH doesn''t exist.';
         Remove-Item -Path """$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\7. Security\Mitigations\Fault Tolerant Heap""" -Force -Recurse;
         exit 2000
       };
