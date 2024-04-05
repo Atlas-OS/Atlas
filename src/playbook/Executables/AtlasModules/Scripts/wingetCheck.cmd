@@ -43,6 +43,7 @@ if not defined silent (
 exit /b
 
 :error
+cls
 echo You need the latest version of WinGet to use this script.
 echo WinGet is included with 'App Installer' on the Microsoft Store, it's also on GitHub.
 echo]

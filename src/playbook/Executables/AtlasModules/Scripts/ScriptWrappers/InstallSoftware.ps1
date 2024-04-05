@@ -1,6 +1,7 @@
 & "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\wingetCheck.cmd"
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
+Clear-Host
 $ErrorActionPreference = 'SilentlyContinue'
 
 [int] $global:column = 0

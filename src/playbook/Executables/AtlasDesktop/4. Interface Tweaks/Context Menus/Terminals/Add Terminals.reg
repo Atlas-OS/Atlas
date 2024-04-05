@@ -1,7 +1,7 @@
 Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked]
-"{9F156763-7844-4DC4-B2B1-901F640F5155}"=-
+"{9F156763-7844-4DC4-B2B1-901F640F5155}"=""
 
 [HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals]
 "MUIVerb"="Terminals"
@@ -30,7 +30,14 @@ Windows Registry Editor Version 5.00
 @="PowerShell"
 
 [HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\AtlasTerminals\command]
-@="powershell.exe -noexit -command Set-Location -literalPath '%V'"
+@="PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
+
+[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\Item1]
+"MUIVerb"="Windows Terminal"
+"Icon"="%windir%\\system32\\cmd.exe,0"
+
+[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\Item1\command]
+@="wt.exe -d \"%V\""
 
 [HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\Item10]
 "CommandFlags"=dword:00000008
@@ -50,10 +57,18 @@ Windows Registry Editor Version 5.00
 @="PowerShell (Admin)"
 "Extended"=""
 "HasLUAShield"=""
-"Icon"="powershell.exe"
+"Icon"="PowerShell.exe"
 
 [HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\Item3\command]
-@="powershell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs powershell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
+@="PowerShell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs PowerShell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
+
+[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenElevatedCmd]
+"MUIVerb"="Windows Terminal (Admin)"
+"Icon"="%windir%\\system32\\cmd.exe,0"
+"HasLUAShield"=""
+
+[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenElevatedCmd\command]
+@="mshta vbscript:createobject(\"shell.application\").shellexecute(\"wt.exe\",\"-d \"\"%V\"\"\",\"\",\"runas\",1)(close)"
 
 [HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenPS]
 "CommandFlags"=dword:00000008
@@ -64,15 +79,15 @@ Windows Registry Editor Version 5.00
 "Icon"="%windir%\\system32\\cmd.exe,0"
 
 [HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenPSAdmin\command]
-@="powershell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
+@="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
 
 [HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenPSAdmin0]
 "MUIVerb"="PowerShell (System)"
-"Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe,0"
+"Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe,0"
 "HasLUAShield"=""
 
 [HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenPSAdmin0\command]
-@="powershell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% powershell.exe -noexit -command Set-Location -literalPath '%V'"
+@="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
 [HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals]
 "MUIVerb"="Terminals"
@@ -101,7 +116,14 @@ Windows Registry Editor Version 5.00
 @="PowerShell"
 
 [HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\AtlasTerminals\command]
-@="powershell.exe -noexit -command Set-Location -literalPath '%V'"
+@="PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
+
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\Item1]
+"MUIVerb"="Windows Terminal"
+"Icon"="%windir%\\system32\\cmd.exe,0"
+
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\Item1\command]
+@="wt.exe -d \"%V\""
 
 [HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\Item10]
 "CommandFlags"=dword:00000008
@@ -121,10 +143,18 @@ Windows Registry Editor Version 5.00
 @="PowerShell (Admin)"
 "Extended"=""
 "HasLUAShield"=""
-"Icon"="powershell.exe"
+"Icon"="PowerShell.exe"
 
 [HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\Item3\command]
-@="powershell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs powershell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
+@="PowerShell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs PowerShell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
+
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenElevatedCmd]
+"MUIVerb"="Windows Terminal (Admin)"
+"Icon"="%windir%\\system32\\cmd.exe,0"
+"HasLUAShield"=""
+
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenElevatedCmd\command]
+@="mshta vbscript:createobject(\"shell.application\").shellexecute(\"wt.exe\",\"-d \"\"%V\"\"\",\"\",\"runas\",1)(close)"
 
 [HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenPS]
 "CommandFlags"=dword:00000008
@@ -135,15 +165,15 @@ Windows Registry Editor Version 5.00
 "Icon"="%windir%\\system32\\cmd.exe,0"
 
 [HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenPSAdmin\command]
-@="powershell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
+@="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
 
 [HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenPSAdmin0]
 "MUIVerb"="PowerShell (System)"
-"Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe,0"
+"Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe,0"
 "HasLUAShield"=""
 
 [HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenPSAdmin0\command]
-@="powershell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% powershell.exe -noexit -command Set-Location -literalPath '%V'"
+@="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
 [HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals]
 "MUIVerb"="Terminals"
@@ -172,7 +202,14 @@ Windows Registry Editor Version 5.00
 @="PowerShell"
 
 [HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\AtlasTerminals\command]
-@="powershell.exe -noexit -command Set-Location -literalPath '%V'"
+@="PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
+
+[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\Item1]
+"MUIVerb"="Windows Terminal"
+"Icon"="%windir%\\system32\\cmd.exe,0"
+
+[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\Item1\command]
+@="wt.exe -d \"%V\""
 
 [HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\Item10]
 "CommandFlags"=dword:00000008
@@ -192,10 +229,18 @@ Windows Registry Editor Version 5.00
 @="PowerShell (Admin)"
 "Extended"=""
 "HasLUAShield"=""
-"Icon"="powershell.exe"
+"Icon"="PowerShell.exe"
 
 [HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\Item3\command]
-@="powershell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs powershell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
+@="PowerShell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs PowerShell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
+
+[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenElevatedCmd]
+"MUIVerb"="Windows Terminal (Admin)"
+"Icon"="%windir%\\system32\\cmd.exe,0"
+"HasLUAShield"=""
+
+[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenElevatedCmd\command]
+@="mshta vbscript:createobject(\"shell.application\").shellexecute(\"wt.exe\",\"-d \"\"%V\"\"\",\"\",\"runas\",1)(close)"
 
 [HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenPS]
 "CommandFlags"=dword:00000008
@@ -206,15 +251,15 @@ Windows Registry Editor Version 5.00
 "Icon"="%windir%\\system32\\cmd.exe,0"
 
 [HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenPSAdmin\command]
-@="powershell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
+@="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
 
 [HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenPSAdmin0]
 "MUIVerb"="PowerShell (System)"
-"Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe,0"
+"Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe,0"
 "HasLUAShield"=""
 
 [HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenPSAdmin0\command]
-@="powershell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% powershell.exe -noexit -command Set-Location -literalPath '%V'"
+@="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
 [HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals]
 "MUIVerb"="Terminals"
@@ -243,7 +288,14 @@ Windows Registry Editor Version 5.00
 @="PowerShell"
 
 [HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\AtlasTerminals\command]
-@="powershell.exe -noexit -command Set-Location -literalPath '%V'"
+@="PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\Item1]
+"MUIVerb"="Windows Terminal"
+"Icon"="%windir%\\system32\\cmd.exe,0"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\Item1\command]
+@="wt.exe -d \"%V\""
 
 [HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\Item10]
 "CommandFlags"=dword:00000008
@@ -263,10 +315,18 @@ Windows Registry Editor Version 5.00
 @="PowerShell (Admin)"
 "Extended"=""
 "HasLUAShield"=""
-"Icon"="powershell.exe"
+"Icon"="PowerShell.exe"
 
 [HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\Item3\command]
-@="powershell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs powershell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
+@="PowerShell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs PowerShell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenElevatedCmd]
+"MUIVerb"="Windows Terminal (Admin)"
+"Icon"="%windir%\\system32\\cmd.exe,0"
+"HasLUAShield"=""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenElevatedCmd\command]
+@="mshta vbscript:createobject(\"shell.application\").shellexecute(\"wt.exe\",\"-d \"\"%V\"\"\",\"\",\"runas\",1)(close)"
 
 [HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenPS]
 "CommandFlags"=dword:00000008
@@ -277,15 +337,15 @@ Windows Registry Editor Version 5.00
 "Icon"="%windir%\\system32\\cmd.exe,0"
 
 [HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenPSAdmin\command]
-@="powershell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
+@="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
 
 [HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenPSAdmin0]
 "MUIVerb"="PowerShell (System)"
-"Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe,0"
+"Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe,0"
 "HasLUAShield"=""
 
 [HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenPSAdmin0\command]
-@="powershell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% powershell.exe -noexit -command Set-Location -literalPath '%V'"
+@="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
 ; RunAsTI function
 ; https://github.com/AveYo/LeanAndMean
@@ -304,14 +364,14 @@ Windows Registry Editor Version 5.00
 "21"=" function M ($1,$2,$3) {$M.\"G`etMethod\"($1,[type[]]$2).invoke(0,$3)}; $H=@(); $Z,(4*$Z+16)|% {$H += M \"AllocHG`lobal\" $I $_}"
 "22"=" M \"WriteInt`Ptr\" ($P,$P) ($H[0],$As.Handle); $A1.f1=131072; $A1.f2=$Z; $A1.f3=$H[0]; $A2.f1=1; $A2.f2=1; $A2.f3=1; $A2.f4=1"
 "23"=" $A2.f6=$A1; $A3.f1=10*$Z+32; $A4.f1=$A3; $A4.f2=$H[1]; M \"StructureTo`Ptr\" ($D[2],$P,[boolean]) (($A2 -as $D[2]),$A4.f2,$false)"
-"24"=" $Run=@($null, \"powershell -win 1 -nop -c iex `$env:R; # $id\", 0, 0, 0, 0x0E080600, 0, $null, ($A4 -as $T[4]), ($A5 -as $T[5]))"
+"24"=" $Run=@($null, \"PowerShell -win 1 -nop -c iex `$env:R; # $id\", 0, 0, 0, 0x0E080600, 0, $null, ($A4 -as $T[4]), ($A5 -as $T[5]))"
 "25"=" F 'CreateProcess' $Run; return}; $env:R=''; rp $key $id -force; $priv=[diagnostics.process].\"GetM`ember\"('SetPrivilege',42)[0]"
 "26"=" 'SeSecurityPrivilege','SeTakeOwnershipPrivilege','SeBackupPrivilege','SeRestorePrivilege' |% {$priv.Invoke($null, @(\"$_\",2))}"
 "27"=" $HKU=[uintptr][uint32]2147483651; $NT='S-1-5-18'; $reg=($HKU,$NT,8,2,($HKU -as $D[9])); F 'RegOpenKeyEx' $reg; $LNK=$reg[4]"
 "28"=" function L ($1,$2,$3) {sp 'Registry::HKCR\\AppID\\{CDCBCFCA-3CDC-436f-A4E2-0E02075250C2}' 'RunAs' $3 -force -ea 0"
 "29"="  $b=[Text.Encoding]::Unicode.GetBytes(\"\\Registry\\User\\$1\"); F 'RegSetValueEx' @($2,'SymbolicLinkValue',0,6,[byte[]]$b,$b.Length)}"
 "30"=" function Q {[int](gwmi win32_process -filter 'name=\"explorer.exe\"'|?{$_.getownersid().sid-eq$NT}|select -last 1).ProcessId}"
-"31"=" $env:wt='powershell'; dir \"$env:ProgramFiles\\WindowsApps\\Microsoft.WindowsTerminal*\\wt.exe\" -rec|% {$env:wt='\"'+$_.FullName+'\" \"-d .\"'}"
+"31"=" $env:wt='PowerShell'; dir \"$env:ProgramFiles\\WindowsApps\\Microsoft.WindowsTerminal*\\wt.exe\" -rec|% {$env:wt='\"'+$_.FullName+'\" \"-d .\"'}"
 "32"=" $11bug=($((gwmi Win32_OperatingSystem).BuildNumber)-eq'22000')-AND(($cmd-eq'file:')-OR(test-path -lit $cmd -PathType Container))"
 "33"=" if ($11bug) {'System.Windows.Forms','Microsoft.VisualBasic' |% {$9=[Reflection.Assembly]::LoadWithPartialName(\"'$_\")}}"
 "34"=" if ($11bug) {$path='^(l)'+$($cmd -replace '([\\+\\^\\%\\~\\(\\)\\[\\]])','{$1}')+'{ENTER}'; $cmd='control.exe'; $arg='admintools'}"
@@ -319,6 +379,6 @@ Windows Registry Editor Version 5.00
 "36"=" if ($11bug) {$w=0; do {if($w-gt40){break}; sleep -mi 250;$w++} until (Q); [Microsoft.VisualBasic.Interaction]::AppActivate($(Q))}"
 "37"=" if ($11bug) {[Windows.Forms.SendKeys]::SendWait($path)}; do {sleep 7} while(Q); L '.Default' $LNK 'Interactive User'"
 "38"="'@; $V='';'cmd','arg','id','key'|%{$V+=\"`n`$$_='$($(gv $_ -val)-replace\"'\",\"''\")';\"}; sp $key $id $($V,$code) -type 7 -force -ea 0"
-"39"=" start powershell -args \"-win 1 -nop -c `n$V `$env:R=(gi `$key -ea 0).getvalue(`$id)-join''; iex `$env:R\" -verb runas"
+"39"=" start PowerShell -args \"-win 1 -nop -c `n$V `$env:R=(gi `$key -ea 0).getvalue(`$id)-join''; iex `$env:R\" -verb runas"
 "40"="}; $A=,([environment]::commandline-split'-[-]%+ ?',2)[1]-split'\"([^\"]+)\"|([^ ]+)',2|%{$_.Trim(' \"')}; RunAsTI $A[1] $A[2]; # AveYo, 2023.07.06"
 ;
