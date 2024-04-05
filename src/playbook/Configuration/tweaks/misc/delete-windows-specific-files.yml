@@ -8,7 +8,7 @@ actions:
   - !file: {path: '%windir%\AtlasDesktop\3. General Configuration\Power\Timer Resolution', builds: [ '<22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Compact View', builds: [ '<22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery', builds: [ '<22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Context Menu\Windows 11 Context Menu', builds: [ '<22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Context Menu\Windows 11', builds: [ '<22000' ]}
 
     # Delete files exclusive to Windows 10
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Folders in This PC', builds: [ '>=22000' ]}
