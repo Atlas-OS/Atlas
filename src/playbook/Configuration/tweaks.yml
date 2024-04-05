@@ -52,6 +52,8 @@ tasks:
   - tweaks\performance\config-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
   - tweaks\performance\disable-fth.yml
+  - tweaks\performance\disable-sleep-study.yml
+
 
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #

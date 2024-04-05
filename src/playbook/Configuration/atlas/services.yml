@@ -38,11 +38,6 @@ actions:
     command: '.\AtlasModules\Scripts\ScriptWrappers\DisableFileSharing.ps1 -Silent'
     exeDir: true
     wait: true
-  - !writeStatus: {status: 'Disabling Troubleshooting'}
-  - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Diagnostics and Troubleshooting\Disable Troubleshooting (default).cmd" /silent'
-    exeDir: true
-    wait: true
 
   ##############################################################################################
   ## SERVICES                                                                                 ##
