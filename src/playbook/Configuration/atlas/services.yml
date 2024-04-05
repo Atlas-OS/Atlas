@@ -10,8 +10,6 @@ actions:
   # https://learn.microsoft.com/en-us/windows-server/security/windows-services/security-guidelines-for-disabling-system-services-in-windows-server
   # https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/optimize/services
 
-  - !writeStatus: {status: 'Configuring services'}
-
   # Backup default Windows serivces & drivers
   - !powerShell:
     command: >-
@@ -20,7 +18,7 @@ actions:
     exeDir: true
 
   ##############################################################################################
-  ## SERVICES                                                                                 ##
+  ## SCRIPTS                                                                                  ##
   ##############################################################################################
 
   - !writeStatus: {status: 'Disabling Printing', option: 'disable-printing'}
@@ -40,6 +38,17 @@ actions:
     command: '.\AtlasModules\Scripts\ScriptWrappers\DisableFileSharing.ps1 -Silent'
     exeDir: true
     wait: true
+  - !writeStatus: {status: 'Disabling Troubleshooting'}
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Diagnostics and Troubleshooting\Disable Troubleshooting (default).cmd" /silent'
+    exeDir: true
+    wait: true
+
+  ##############################################################################################
+  ## SERVICES                                                                                 ##
+  ##############################################################################################
+
+  - !writeStatus: {status: 'Configuring services'}
 
     # ------ Microsoft recommendation - 'OK to disable' ------
   - !service: {name: 'lfsvc', operation: change, startup: 4}
@@ -53,8 +62,6 @@ actions:
     # ------ Microsoft recommendation - 'Do not disable' -----
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
   - !service: {name: 'diagsvc', operation: change, startup: 4}
-  - !service: {name: 'WdiServiceHost', operation: change, startup: 4}
-  - !service: {name: 'WdiSystemHost', operation: change, startup: 4}
   - !service: {name: 'WerSvc', operation: change, startup: 4} 
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4} 
 
