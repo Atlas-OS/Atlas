@@ -16,7 +16,7 @@ echo This means that the script can seem to 'not work', but it would do if it wa
 pause
 
 echo]
-call "%windir%\AtlasModules\Scripts\edgeCheck.cmd"
+call "%windir%\AtlasModules\Scripts\edgeCheck.cmd" /edgeonly
 if %errorlevel% neq 0 exit /b 1
 echo]
 

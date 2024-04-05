@@ -30,7 +30,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" /v "AppCaptureEnabled" /t REG_DWORD /d "0" /f
 ) > nul
 
-echo Finished, FSO and Game Bar are now Disabled.
+echo Finished, FSO and Game Bar are now disabled.
 echo Press any key to exit...
 pause > nul
 exit /b

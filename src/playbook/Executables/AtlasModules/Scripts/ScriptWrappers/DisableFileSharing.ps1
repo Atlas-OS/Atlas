@@ -34,7 +34,6 @@ reg import "$networkDiscoveryConfigPath\Network Navigation Pane\Disable Network 
 
 if ($Silent) { exit }
 
-Clear-Host
 Write-Host "Completed!" -ForegroundColor Green
 Write-Host "Press any key to exit... " -NoNewLine
 $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null

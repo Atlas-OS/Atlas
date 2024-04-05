@@ -14,3 +14,14 @@ actions:
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Folders in This PC', builds: [ '>=22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Quick Access', builds: [ '>=22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Old Flyouts', builds: [ '>=22000' ], ignoreErrors: true}
+
+    # Delete ARM-specific files
+    # FTH files are deleted in its yml
+  - !powerShell:
+    command: >-
+      if (((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')) {
+        Write-Output 'ARM detected, removing Open-Shell as it's incompatible.';
+        Remove-Item -Path """$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\4. Interface Tweaks\Start Menu\*Open-Shell*""" -Force -Recurse;
+        exit 2000
+      };
+    wait: true

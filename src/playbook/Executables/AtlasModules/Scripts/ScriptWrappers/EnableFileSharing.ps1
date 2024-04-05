@@ -41,7 +41,6 @@ if ($LASTEXITCODE -eq 1) {
     reg import "$networkDiscoveryConfigPath\Network Navigation Pane\User Network Navigation Pane choice.reg" | Out-Null
 }
 
-Clear-Host
 Write-Host "Completed!" -ForegroundColor Green
 Write-Host "Press any key to exit... " -NoNewLine
 $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null

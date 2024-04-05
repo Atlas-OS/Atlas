@@ -1,7 +1,10 @@
 @echo off
 
 set ___edge=0
-if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" set ___edge=1
+if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" (
+    set ___edge=1
+    if "%~1"=="/edgeonly" exit /b
+)
 if "%~1"=="/webview" set ___edge=1
 
 set "___dashes=-----------------------------------------------------------------------------------------------------"
