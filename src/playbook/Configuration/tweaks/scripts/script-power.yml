@@ -3,6 +3,7 @@ title: Configure Power Settings
 description: Executes script to configure power settings for the best performance, especially focusing on the lowest latency e.g. by reducing any potential jitter
 actions:
     # Disable Power Saving features
+  - !run: {exe: 'powercfg.exe', args: '/restoredefaultpowerschemes'}
   - !cmd:
     command: '"AtlasDesktop\3. General Configuration\Power\Power-saving\Disable Power-saving.cmd" -Silent'
     exeDir: true

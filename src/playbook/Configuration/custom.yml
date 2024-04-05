@@ -33,8 +33,20 @@ actions:
   - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
 
     # Prevent computer from going to sleep during deployment
-  - !run: {exe: 'powercfg.exe', args: '/setacvalueindex scheme_current sub_sleep standbyidle 0'}
-  - !run: {exe: 'powercfg.exe', args: '/setdcvalueindex scheme_current sub_sleep standbyidle 0'}
+  - !powerShell: 
+    command: >-
+      $guid = New-Guid;
+      powercfg /duplicatescheme """e9a42b02-d5df-448d-aa00-03f14749eb61""" """$guid""";
+      powercfg /setactive """$guid""";
+      powercfg /xname """$guid""" """Atlas Installation Scheme""" """Duplicate of Ultimate Performance for installing Atlas.""";
+      powercfg /x monitor-timeout-ac 0;
+      powercfg /x monitor-timeout-dc 0;
+      powercfg /x disk-timeout-ac 0;
+      powercfg /x disk-timeout-dc 0;
+      powercfg /x standby-timeout-ac 0;
+      powercfg /x standby-timeout-dc 0;
+      powercfg /x hibernate-timeout-ac 0;
+      powercfg /x hibernate-timeout-dc 0;
 
   - !writeStatus: {status: 'Optimizing PowerShell'}
 tasks:
