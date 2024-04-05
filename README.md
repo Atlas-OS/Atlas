@@ -25,29 +25,29 @@
 - [Branding](https://docs.atlasos.net/branding/)
 
 ## 🤔 What is Atlas?
-Atlas is an open-source project that enhances Windows by eliminating factors negatively impacting gaming performance. We optimize for minimal stutters and input lag, enhanced privacy, usability, and performance, all focusing on maintaining functionality.
+Atlas is an open-source project that enhances Windows by eliminating factors negatively impacting gaming performance. Optimizations include enhanced privacy, usability, and performance, along with changes for minimal stutters and input lag, all focusing on maintaining functionality.
 
 ## 👀 Why Atlas?
 ### 🔒 Enhanced Privacy
 Atlas removes the majority of telemetry embedded within Windows and implements numerous group policies to minimize data collection. However, it cannot ensure privacy outside the scope of Windows, such as browsers and other third-party applications.
 
-### ✅ Optimized Performance
+### 📈 Optimized Performance
 Atlas strikes a balance between performance and compatibility. It implements numerous meaningful changes to improve Windows performance and responsiveness without breaking essential features. Atlas will not do tweaks for a placebo effect or very marginal gains, making Atlas more stable and compatible.
 
 ### 🛡️ Security Features
-Unlike most other Windows modifications, we don't remove key security features that most users need to maintain a secure system. However, Atlas allows power users to have more customization over turning off certain security features within their needs, including informing users with information about the [pros and cons](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/security/) of each option.
+Unlike most other Windows modifications, key security features that most users need to maintain a secure system aren't removed. However, Atlas allows power users to have more customization over turning off certain security features within their needs, including informing users with information about the [pros and cons](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/security/) of each option.
 
 Some optional security features are:
 
 - Windows Defender & SmartScreen
 - Windows Update
-  - No automatic updates (will be customizable next release)
-  - No major feature updates (potentially customizable in the future)
+  - No automatic updates
+  - No major feature updates (customizable in the future)
 - CPU mitigations
 - User Account Control
 - Core isolation features
 
-### 😄 Increased Usability
+### ✅ Increased Usability
 Atlas applies many modifications and default settings to make Windows easier to use. This includes removing commonly unneeded applications (which are reinstallable), configuring many aspects of the interface, disabling advertisements, and much more.
 
 ### 🔍 Open Source and Transparent
