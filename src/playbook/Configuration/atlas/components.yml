@@ -32,6 +32,7 @@ actions:
   - !writeStatus: {status: 'Removing OneDrive'}
   - !run: {exeDir: true, exe: 'ONED.cmd'}
 
+    # Windows components and Telemetry
   - !writeStatus: {status: 'Removing components'}
   - !powerShell:
     command: >-

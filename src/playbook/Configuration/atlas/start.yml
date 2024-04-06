@@ -1,6 +1,6 @@
 ---
 title: Initial Configuration
-description: Copies Atlas folders/files, installs dependencies and performs the preliminary configuration
+description: Performs the preliminary configuration
 actions:
   - !writeStatus: {status: 'Setting the environment'}
   - !powerShell:
@@ -20,11 +20,6 @@ actions:
 
       AddToVar 'Path' """$modulesPath;$modulesPath\Apps;$modulesPath\Other;$modulesPath\Tools;$modulesPath\Scripts""";
 
-    # Doesn't refresh the environment variables of TrustedUninstaller
-    # An alternative should be found, for now, exact paths are used
-  # - !writeStatus: {status: 'Refreshing variables'}
-  # - !run: {exeDir: true, exe: 'REFRESHENV.cmd'}
-
   ################ NO LOCAL BUILD ################
 
   - !writeStatus: {status: 'Enabling DirectPlay'}
@@ -43,7 +38,8 @@ actions:
   - !run: {exe: 'DISM.exe', args: '/Online /Disable-Feature /FeatureName:"WindowsMediaPlayer" /NoRestart', weight: 30}
   - !run: {exe: 'DISM.exe', args: '/Online /Remove-Capability /CapabilityName:"Media.WindowsMediaPlayer~~~~0.0.12.0" /NoRestart', weight: 30}
 
-    # Initial software (7-Zip & Visual C++ runtimes)
+    # Initial software
+    # 7-Zip, Visual C++ Runtimes, DirectX
   - !writeStatus: {status: 'Installing utilities'}
   - !powerShell:
     command: '.\SOFTWARE.ps1'

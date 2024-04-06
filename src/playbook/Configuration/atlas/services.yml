@@ -1,6 +1,6 @@
 ---
-title: Configure Services and Drivers
-description: Configures services and drivers to reduce background system resource utilisation
+title: Services and Drivers
+description: Configures services and drivers to reduce background system resource utilization
 actions:
   # ----------------------------------
   # - Potential references           -
@@ -10,7 +10,7 @@ actions:
   # https://learn.microsoft.com/en-us/windows-server/security/windows-services/security-guidelines-for-disabling-system-services-in-windows-server
   # https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/optimize/services
 
-  # Backup default Windows serivces & drivers
+  # Back up default Windows serivces & drivers
   - !powerShell:
     command: >-
       .\BACKUP.ps1 -FilePath """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\winServices.reg"""

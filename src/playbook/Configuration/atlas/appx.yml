@@ -4,16 +4,16 @@ description: Removes AppX packages and prevents them from being reinstalled
 actions:
   - !writeStatus: {status: 'Removing AppX packages'}
   
-  # The reason of removing those applications is that there is a potential of them sending user data,
-  # showing unwanted content (advertisements) and using hardware resources. They can also simply be
-  # annoyances that are never used. However, most of these applications can be reinstalled via the
+  # The reason of removing those applications is that they might be sending user data,
+  # showing unwanted content and using hardware resources. They can also simply be annoyances
+  # that are never used. However, most of these applications can be reinstalled via
   # Microsoft Store in case the user needs them.
 
   # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
 
   #####################################################################################################
 
-  # Get current AppX packages to deprovision removed ones later
+  # Get current AppX packages to deprovision removed ones afterward
   - !powerShell:
     command: >-
       (Get-AppxPackage).PackageFamilyName |
