@@ -39,7 +39,7 @@ actions:
       """$guid""" | Out-File -Force -LiteralPath """$([Environment]::GetFolderPath('Windows'))\atlasospowercfgguid""";
       powercfg /duplicatescheme """e9a42b02-d5df-448d-aa00-03f14749eb61""" """$guid""";
       powercfg /setactive """$guid""";
-      powercfg /changename """$guid""" """Atlas Installation Scheme""" """Duplicate of Ultimate Performance for installing Atlas.""";
+      powercfg /changename """$guid""" """Atlas Installation Scheme""" """Duplicate of Ultimate Performance used during Atlas installation.""";
       powercfg /x monitor-timeout-ac 0;
       powercfg /x monitor-timeout-dc 0;
       powercfg /x disk-timeout-ac 0;
