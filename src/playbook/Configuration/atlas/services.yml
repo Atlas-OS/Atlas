@@ -56,7 +56,6 @@ actions:
 
     # ------ Microsoft recommendation - 'Do not disable' -----
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
-  - !service: {name: 'diagsvc', operation: change, startup: 4}
   - !service: {name: 'WerSvc', operation: change, startup: 4} 
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4} 
 
