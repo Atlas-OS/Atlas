@@ -21,7 +21,7 @@ echo]
 echo You can enable the NVIDIA Control Panel and the service again by running the enable script.
 echo Additionally, you can add a context menu to the desktop with another script in the Atlas folder.
 echo]
-echo Read README.txt for more info.
+echo See 'Must Read First' for more info.
 echo]
 pause
 

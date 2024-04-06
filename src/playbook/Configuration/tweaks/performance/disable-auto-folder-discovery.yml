@@ -1,0 +1,9 @@
+---
+title: Disable Automatic Folder Discovery
+description: Improves performance in File Explorer by not automatically determining the folder 'type' (such as pictures) for each folder's content.
+actions:
+  - !registryValue:
+    path: 'HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell'
+    value: 'FolderType'
+    data: 'NotSpecified'
+    type: REG_SZ

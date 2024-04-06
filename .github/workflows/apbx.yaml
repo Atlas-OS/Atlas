@@ -3,11 +3,10 @@ name: Create and Validate Atlas Playbook
 on:
   push:
     paths:
-      - 'src/**'
+      - "src/**"
 
 env:
-  PACKAGE_PATH: '..\Atlas\src\playbook\Executables\AtlasModules\Packages'
-  SXSC_REPO: 'https://github.com/Atlas-OS/sxsc'
+  SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
 
 jobs:
   package-build:
@@ -15,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
           token: ${{ secrets.RUNNER_SECRET }}
@@ -29,17 +28,28 @@ jobs:
               - 'src/sxsc/*.yaml'
 
       - name: Copy modified .yamls
-        if: steps.changed-files.outputs.sxsc_any_changed == 'true'
-        id: copy_yamls
         run: |
-          $configs = "..\configs"
+          $sxsc = '.\src\sxsc'
+          $configs = '..\configs'
           mkdir $configs | Out-Null
 
-          $changedFiles = "${{ steps.changed-files.outputs.sxsc_all_changed_files }}" -split ' '
+          if ('${{ steps.changed-files.outputs.sxsc_any_changed }}' -eq 'true') {
+              $changedFiles = '${{ steps.changed-files.outputs.sxsc_all_changed_files }}' -split ' '
+          } elseif (Test-Path "$sxsc\regenAllConfigs") {
+              Write-Output "Regenerating all configs..."
+              Remove-Item -Path "$sxsc\regenAllConfigs" -Force
+              Remove-Item -Path ".\src\playbook\Executables\AtlasModules\Packages\*.cab" -Force -Recurse
+              $changedFiles = Get-ChildItem $sxsc -Filter *.yaml
+          } else {
+              Write-Output "Not building any packages, no sxsc config changes detected."
+              "runSxsc=false" >> $env:GITHUB_ENV
+              exit
+          }
 
+          "runSxsc=true" >> $env:GITHUB_ENV
           foreach ($file in $changedFiles) {
-            Write-Output "Copying: $file"
-            Copy-Item $file $configs -Force
+              Write-Output "Copying: $file"
+              Copy-Item $file $configs -Force
           }
 
       - name: Clone the sxsc repository
@@ -47,36 +57,43 @@ jobs:
           git clone --depth=1 ${{ env.SXSC_REPO }}
           Copy-Item -Path "configs" -Destination ".\sxsc\configs" -Recurse -Force
         working-directory: ..
-        if: ${{ steps.copy_yamls.outcome != 'skipped' }}
+        if: env.runSxsc == 'true'
 
       - name: Build CAB
         run: |
-          Write-Host "Installing dependencies..."
+          Write-Output "Installing dependencies..."
           pip install -r requirements.txt | Out-Null
 
-          $packagePath = "${{ env.PACKAGE_PATH }}"
-          mkdir $packagePath -EA SilentlyContinue | Out-Null
-          Get-ChildItem -Recurse "configs" -Filter *.yaml | ForEach-Object {
-              Write-Host "`nProcessing $($_.Name)`n------------------------------------------------------"
+          $atlasSrcPath = '..\Atlas\src\'
+          $packagePath = "$atlasSrcPath\playbook\Executables\AtlasModules\Packages"
+          mkdir $packagePath -EA 0 | Out-Null
+          Get-ChildItem "configs" -Filter *.yaml | ForEach-Object {
+              Write-Output "`n`nProcessing $($_.Name)`n------------------------------------------------------"
               Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
 
-              Write-Host "Generating package files..."
+              $folderDir = ".\$atlasSrcPath\sxsc\$($_.Name -replace '-Arm','')"
+              if (Test-Path $folderDir -PathType Container) {
+                  Write-Output "Copying $($_.Name)'s files..."
+                  Copy-Item -Path "$folderDir\*" -Destination '.\' -Recurse -Force | Out-Null
+              }
+
+              Write-Output "Generating package files..."
               python sxsc.py
               if ($LASTEXITCODE -ne 0) { exit 1 }
 
-              Write-Host "Building package..."
+              Write-Output "Building package..."
               .\build.bat
 
-              Write-Host "Copying package to AtlasModules..."
+              Write-Output "Copying package to AtlasModules..."
               Get-ChildItem -File -Recurse -Filter *.cab | ForEach-Object {
                   Copy-Item -Path $_.FullName -Destination $packagePath -Force
               }
 
-              Write-Host "Cleaning up..."
+              Write-Output "Cleaning up..."
               .\clean.bat
           }
         working-directory: ..\sxsc
-        if: ${{ steps.copy_yamls.outcome != 'skipped' }}
+        if: env.runSxsc == 'true'
 
       - name: Commit and push changes
         run: |
@@ -86,7 +103,7 @@ jobs:
           git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
           git push
         working-directory: src\playbook\Executables\AtlasModules\Packages
-        if: ${{ steps.copy_yamls.outcome != 'skipped' }}
+        if: env.runSxsc == 'true'
 
   build:
     needs: package-build
@@ -94,12 +111,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
       - name: Validate YAML files
-        run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/playbook/.'
+        run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/playbook/.'
 
       - name: Configure playbook
         id: config-playbook
@@ -110,9 +127,9 @@ jobs:
           sed -i '/<ProductCode>/d' playbook.conf
           echo "Change description of playbook..."
           sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas Playbook, built with GitHub Actions from commit ${{ github.sha }}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
-          cd Configuration/atlas
+          cd Configuration
           echo "Enabling AME Wizard Live Log..."
-          sed '8s/ #//'
+          sed -i '7s/ #//' custom.yml
       
       - name: Create playbook (ZIP/APBX password is malte)
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
@@ -124,7 +141,7 @@ jobs:
           mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "../release-zip"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ steps.config-playbook.outcome != 'skipped' }}
         with:
           name: Atlas Playbook

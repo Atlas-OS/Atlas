@@ -1,8 +1,9 @@
 ---
 title: Disable Settings Sync
-description: Disables Settings Synchronization feature for QoL and privacy
-privilege: TrustedInstaller
+description: Disables Settings Sync (labeled as 'Windows Backup' in Windows 10) for QoL and privacy
 actions:
+    # Policies don't disable the toggles in the UI, doesn't seem like much can be done about it
+    # Whole Settings page is hidden anyways
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'
     value: 'DisableSettingSync'

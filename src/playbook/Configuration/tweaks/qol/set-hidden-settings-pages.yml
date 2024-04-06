@@ -1,7 +1,6 @@
 ---
 title: Set Hidden Pages
 description: Hides Settings pages that are either broken or unused
-privilege: TrustedInstaller
 actions:
     # https://learn.microsoft.com/en-us/windows/uwp/launch-resume/launch-settings-app
 
@@ -9,14 +8,14 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'SettingsPageVisibility'
-    data: 'hide:recovery;autoplay;usb;maps;maps-downloadmaps;findmydevice;privacy;privacy-speechtyping;privacy-speech;privacy-feedback;privacy-activityhistory;search-permissions;privacy-location;privacy-general;sync;printers;cortana-windowssearch;mobile-devices;mobile-devices-addphone;backup;'
+    data: 'hide:recovery;autoplay;usb;maps;maps-downloadmaps;findmydevice;privacy;notifications;privacy-notifications;privacy-speechtyping;privacy-speech;privacy-feedback;privacy-activityhistory;search-permissions;privacy-location;privacy-general;sync;printers;cortana-windowssearch;mobile-devices;mobile-devices-addphone;workplace;backup'
     type: REG_SZ
-    builds: [ '!>=22000' ]
+    builds: [ '<22000' ]
 
     # Windows 11
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'SettingsPageVisibility'
-    data: 'hide:recovery;autoplay;usb;maps;maps-downloadmaps;findmydevice;privacy;privacy-speechtyping;privacy-speech;privacy-feedback;privacy-activityhistory;search-permissions;privacy-location;privacy-general;sync;printers;cortana-windowssearch;mobile-devices;mobile-devices-addphone;family-group;deviceusage;home;'
+    data: 'hide:recovery;autoplay;usb;maps;maps-downloadmaps;findmydevice;privacy;notifications;privacy-notifications;privacy-feedback;privacy-activityhistory;search-permissions;privacy-location;privacy-general;sync;printers;cortana-windowssearch;mobile-devices;mobile-devices-addphone;workplace;family-group;deviceusage;home'
     type: REG_SZ
     builds: [ '>=22000' ]

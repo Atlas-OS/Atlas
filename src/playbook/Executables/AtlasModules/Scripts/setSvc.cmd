@@ -1,16 +1,10 @@
 @echo off
-
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" %*
-	exit /b
-)
 goto script
 
 ----------------------------------------
 
 [CREDITS]
 - Made by he3als & Xyueta
-- Repo forked from: https://github.com/he3als/setSvc
 
 [FEATURES]
 - Checking whether the service/driver exists or not, and error detection

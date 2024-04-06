@@ -1,7 +1,6 @@
 ---
 title: Disable Spell Checking
 description: Disables spell checking for QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'

@@ -25,40 +25,40 @@
 - [Branding](https://docs.atlasos.net/branding/)
 
 ## 🤔 What is Atlas?
-Atlas is an open source project that enhances Windows by eliminating factors that negatively impact gaming performance. We optimize for minimal stutters and input lag, enhanced privacy, usability, and performance, all with a focus on maintaining functionality.
+Atlas is an open-source project that enhances Windows by eliminating factors negatively impacting gaming performance. Optimizations include enhanced privacy, usability, performance, and changes for minimal stutters and input lag while focusing on maintaining functionality.
 
 ## 👀 Why Atlas?
 ### 🔒 Enhanced Privacy
 Atlas removes the majority of telemetry embedded within Windows and implements numerous group policies to minimize data collection. However, it cannot ensure privacy outside the scope of Windows, such as browsers and other third-party applications.
 
-### ✅ Optimized Performance
-Atlas strikes a balance between performance and compatibility. It implements numerous meaningful changes to improve Windows performance and responsiveness without breaking essential features. Atlas will not do tweaks for a placebo effect or very marginal gains, making Atlas more stable and compatible.
+### 📈 Optimized Performance
+Atlas strikes a balance between performance and compatibility. It implements numerous meaningful changes to improve Windows performance and responsiveness without breaking essential features. Atlas will not do tweaks for a placebo effect or marginal gains, making Atlas more stable and compatible.
 
 ### 🛡️ Security Features
-Unlike most other Windows modifications, we don't remove key security features that most users need to maintain a secure system. However, Atlas allows power users to have more customisation over disabling certain security features within their needs, including informing users with information about the [pros and cons](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/security/) of each option.
+Most Windows modifications remove key security features most users need to maintain a secure system. On the other hand, Atlas allows users to customize their security at their own risk while informing users about each option's [pros and cons](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/security/).
 
-Some security features which are optional are:
+Some optional security features are:
 
 - Windows Defender & SmartScreen
 - Windows Update
-  - No automatic updates (will be customisable next release)
-  - No major feature updates (potentially customisable in the future)
+  - Automatic updates are togglable
 - CPU mitigations
 - User Account Control
 - Core isolation features
 
-### 😄 Increased Usability
+### ✅ Increased Usability
 Atlas applies many modifications and default settings to make Windows easier to use. This includes removing commonly unneeded applications (which are reinstallable), configuring many aspects of the interface, disabling advertisements, and much more.
 
 ### 🔍 Open Source and Transparent
-Atlas is open source with the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE).
 
-Unlike custom Windows ISOs, Atlas is easier to audit due to Atlas' use of the software [AME Wizard](https://ameliorated.io). AME Wizard is controlled by Playbooks, a heavily customizable script-esque system that can perform a wide range of tasks, including deep modifications to Windows. AME Wizard's backend is [open source](https://git.ameliorated.info/Styris/trusted-uninstaller-cli), meaning that you can see exactly what is ran.
+Unlike custom Windows ISOs, Atlas is more straightforward to audit due to the use of [AME Wizard](https://ameliorated.io). AME Wizard is controlled by Playbooks, a customizable script-esque system that can perform various tasks.
 
-Playbooks are renamed **.zip** archives (with the password [`malte`](https://docs.ameliorated.io/developers/getting-started/creation.html)) which primarily consists of plain text scripts, meaning that Atlas is much easier to audit to see exactly what is changed. This is unlike custom Windows ISOs, which have many more entry points for malicious activity. The minimal amount of binaries included in the Playbook are open source in our [utilities](https://github.com/Atlas-OS/utilities) repository, with the [hashes being listed here](https://github.com/Atlas-OS/Atlas/blob/main/src/playbook/Executables/AtlasModules/README.md).
+Playbooks are renamed **.zip** archives, with the password [`malte`](https://docs.ameliorated.io/developers/getting-started/creation.html). As they primarily consist of plain text, Playbooks enable transparency, unlike custom Windows ISOs, which have many entry points for malicious activity. The few binaries in the Playbook are open source in our [`utilities` repository](https://github.com/Atlas-OS/utilities), with the [hashes listed here](https://github.com/Atlas-OS/Atlas/blob/main/src/playbook/Executables/AtlasModules/README.md).
+
+Although the GUI is not open source for AME Wizard, AME Wizard's entire backend (called [TrustedUninstaller](https://github.com/Ameliorated-LLC/trusted-uninstaller-cli)) is open source under MIT, which contains each action used to run Atlas. The Atlas Playbook is open source under the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE).
 
 ### 🔒 Legal Compliance
-As Atlas doesn't redistrbute a modified Windows ISO, Atlas fully complies with [Microsoft's Terms of Service](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). In addition, activation in Windows is not modified.
+As Atlas doesn't redistribute a modified Windows ISO, it complies with [Windows's Usage Terms](https://www.microsoft.com/en-us/Useterms/Retail/Windows/10/UseTerms_Retail_Windows_10_English.htm). In addition, Atlas does not alter activation in Windows.
 
 ## 🎨 Brand kit
 Want to create your own Atlas wallpaper with some original creative designs? Download our brand kit [here](https://github.com/Atlas-OS/branding/archive/refs/heads/main.zip) and share your creations on our [forum](https://forum.atlasos.net/t/art-showcase).

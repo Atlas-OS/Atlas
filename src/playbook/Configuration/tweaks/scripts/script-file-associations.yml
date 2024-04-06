@@ -1,7 +1,6 @@
 ---
 title: Set File Associations
-description: Sets file associations for the user-selected web browser and other apps like the Windows Photo Viewer
-privilege: TrustedInstaller
+description: Sets file associations for the user-selected web browser and other apps
 actions:
   - !run:
     exe: 'FILEASSOC.cmd'
@@ -14,6 +13,11 @@ actions:
     exeDir: true
   - !run:
     exe: 'FILEASSOC.cmd'
+    args: '"LibreWolf"'
+    option: 'browser-librewolf'
+    exeDir: true
+  - !run:
+    exe: 'FILEASSOC.cmd'
     args: '"Firefox"'
     option: 'browser-firefox'
     exeDir: true
@@ -21,19 +25,4 @@ actions:
     exe: 'FILEASSOC.cmd'
     args: '"Google Chrome"'
     option: 'browser-chrome'
-    exeDir: true
-  - !run:
-    exe: 'FILEASSOC.cmd'
-    args: '"mpv"'
-    option: 'player-mpv'
-    exeDir: true
-  - !run:
-    exe: 'FILEASSOC.cmd'
-    args: '"MPC-HC"'
-    option: 'player-mpchc'
-    exeDir: true
-  - !run:
-    exe: 'FILEASSOC.cmd'
-    args: '"VLC"'
-    option: 'player-vlc'
     exeDir: true

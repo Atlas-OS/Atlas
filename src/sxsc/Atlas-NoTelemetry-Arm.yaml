@@ -1,7 +1,7 @@
 copyright: Atlas (GPLv3)
 package: Z-Atlas-NoTelemetry-Package
 target_arch: arm64
-version: 3.0.0.0
+version: 4.0.0.0
 updates:
     # Feedback
   - target_component: Microsoft-OneCoreUAP-Feedback-StringFeedbackEngine
@@ -29,7 +29,7 @@ updates:
     target_arch: arm64
     version: 38655.38527.65535.65535
 
-    # Telemetry - collecting/reporting diagnostic info to Microsoft
+    # Telemetry - collecting and reporting diagnostic info to Microsoft
   - target_component: Microsoft-OneCore-SystemSettings-InputCloudStore
     target_arch: arm64
     version: 38655.38527.65535.65535
@@ -93,7 +93,7 @@ updates:
   - target_component: Microsoft-Windows-Compatibility-Aggregator
     target_arch: arm64
     version: 38655.38527.65535.65535
-    # Breaks Bluetooth
+    # Breaks Bluetooth connectivity
   # - target_component: Microsoft-Windows-CoreSystem-Bluetooth-Telemetry
   #   target_arch: amd64
   #   version: 38655.38527.65535.65535

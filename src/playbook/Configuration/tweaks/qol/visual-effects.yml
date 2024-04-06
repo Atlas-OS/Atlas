@@ -1,7 +1,6 @@
 ---
 title: Configure Visual Effects
 description: Configures the visual effects in Windows for the optimal responsiveness, performance and QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'

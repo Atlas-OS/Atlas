@@ -1,7 +1,6 @@
 ---
 title: Disable 'Notify About USB Issues'
 description: Disables 'Notify me if there are issues connecting to USB devices' as this is prone to false positives, for QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Shell\USB'

@@ -1,13 +1,25 @@
 ---
 title: Configure Content Delivery Manager
-description: Configures Content Delivery Manager not to download any applications such as Candy Crush Soda and disables suggested content (tips/tricks/facts/suggestions/ads) for QoL and privacy
-privilege: TrustedInstaller
+description: Configures Content Delivery Manager not to download applications like Candy Crush Soda and turns off suggested content (tips/tricks/facts/suggestions/ads) for QoL and privacy.
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'ContentDeliveryAllowed'
     data: '0'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'FeatureManagementEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'SubscribedContentEnabled'
+    data: '0'
+    type: REG_DWORD
+
+    # Prevent suggested app installs
+    # https://www.tenforums.com/tutorials/68217-turn-off-automatic-installation-suggested-apps-windows-10-a.html
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'OemPreInstalledAppsEnabled'
@@ -28,16 +40,31 @@ actions:
     value: 'SilentInstalledAppsEnabled'
     data: '0'
     type: REG_DWORD
+
+    # Commented as these removals would likely break re-enabling content
+    # Content would likely stay disabled anyways
+  # - !registryKey:
+  #   path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions'
+  # - !registryKey:
+  #   path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps'
+
+    # 'Show me notifications in the Settings app' in Windows 11
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-    value: 'SubscribedContentEnabled'
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\SystemSettings\AccountNotifications'
+    value: 'EnableAccountNotifications'
     data: '0'
     type: REG_DWORD
+
+    # Windows welcome experience
+    # https://winaero.com/disable-welcome-page-windows-10/
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SubscribedContent-310093Enabled'
     data: '0'
     type: REG_DWORD
+
+    # Suggested content in the Settings app
+    # https://www.tenforums.com/tutorials/100541-turn-off-suggested-content-settings-app-windows-10-a.html
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SubscribedContent-338393Enabled'
@@ -55,6 +82,14 @@ actions:
     type: REG_DWORD
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'SystemPaneSuggestionsEnabled'
+    data: '0'
+    type: REG_DWORD
+
+    # "Get fun facts, tips, tricks, and more on your lock screen"
+    # https://www.elevenforum.com/t/enable-or-disable-facts-tips-and-tricks-on-lock-screen-in-windows-11.7079/
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SubscribedContent-338387Enabled'
     data: '0'
     type: REG_DWORD
@@ -63,16 +98,18 @@ actions:
     value: 'RotatingLockScreenOverlayEnabled'
     data: '0'
     type: REG_DWORD
+
+    # Suggestions in Start
+    # https://www.tenforums.com/tutorials/24117-turn-off-app-suggestions-start-windows-10-a.html
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SubscribedContent-338388Enabled'
     data: '0'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-    value: 'SystemPaneSuggestionsEnabled'
-    data: '0'
-    type: REG_DWORD
+
+    # "Get tips, tricks, and suggestions as you use Windows"
+    # https://www.tenforums.com/tutorials/30869-turn-off-tip-trick-suggestion-notifications-windows-10-a.html
+    # https://winaero.com/disable-tips-about-windows-10/
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SubscribedContent-338389Enabled'
@@ -83,12 +120,3 @@ actions:
     value: 'SoftLandingEnabled'
     data: '0'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-    value: 'FeatureManagementEnabled'
-    data: '0'
-    type: REG_DWORD
-  - !registryKey:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions'
-  - !registryKey:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps'

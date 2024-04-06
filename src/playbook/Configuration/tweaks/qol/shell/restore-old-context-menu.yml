@@ -1,7 +1,6 @@
 ---
 title: Restore Old Context Menu
 description: Restores the old context menu in Windows 11
-privilege: TrustedInstaller
 builds: [ '>=22000' ]
 actions:
   - !registryValue:

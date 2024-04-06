@@ -1,0 +1,18 @@
+---
+title: Add Music & Videos To Home
+description: After disabling recent files in Quick Access, Music & Videos disappear. This fixes that.
+actions:
+  - !powerShell:
+    command: >-
+      $o = new-object -com shell.application;
+      $currentPins = $o.Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}').Items() | ForEach-Object { $_.Path };
+      foreach ($path in @(
+          [Environment]::GetFolderPath('MyVideos'),
+          [Environment]::GetFolderPath('MyMusic')
+      )) {
+          if ($currentPins -notcontains $path) {
+              $o.Namespace($path).Self.InvokeVerb('pintohome')
+          }
+      }
+    runas: currentUser
+    wait: true

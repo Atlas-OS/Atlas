@@ -1,7 +1,6 @@
 ---
 title: Hide Unused Windows Security Pages
 description: Hides Windows Security pages that are not commonly needed/used to have a more clean UI
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Family options'

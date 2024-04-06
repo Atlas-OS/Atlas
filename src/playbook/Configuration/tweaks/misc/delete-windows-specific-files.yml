@@ -1,18 +1,27 @@
 ---
 title: Delete Windows-version Specific Tweaks
 description: Deletes Windows 10 or Windows 11-only tweaks in the Atlas folder, depending on the current version
-privilege: TrustedInstaller
 actions:
-    # Windows 11-only
-  - !file: {path: '%windir%\AtlasDesktop\3. Configuration\Background Apps', builds: [ '!>=22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\3. Configuration\Power\Timer Resolution', builds: [ '!>=22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Compact View', builds: [ '!>=22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Gallery', builds: [ '!>=22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Folders in This PC\Win11', builds: [ '!>=22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\Windows 11 Context Menu', builds: [ '!>=22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\Windows Copilot', builds: [ '!>=22000' ]}
-  - !file: {path: '%windir%\AtlasModules\Tools\TimerResolution.exe', builds: [ '!>=22000' ]}
+    # Delete files exclusive to Windows 11
+  - !file: {path: '%windir%\AtlasDesktop\3. General Configuration\Background Apps', builds: [ '<22000' ]}
+  - !file: {path: '%windir%\AtlasModules\Tools\TimerResolution.exe', builds: [ '<22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\3. General Configuration\Power\Timer Resolution', builds: [ '<22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Compact View', builds: [ '<22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery', builds: [ '<22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Context Menu\Windows 11', builds: [ '<22000' ]}
 
-    # Windows 10-only
-  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\File Explorer Customization\Folders in This PC\Win10', builds: [ '>=22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Optional Tweaks\Volume Flyout', builds: [ '>=22000' ], ignoreErrors: true}
+    # Delete files exclusive to Windows 10
+  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Folders in This PC', builds: [ '>=22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Quick Access', builds: [ '>=22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Old Flyouts', builds: [ '>=22000' ], ignoreErrors: true}
+
+    # Delete ARM-specific files
+    # FTH files are deleted in its yml
+  - !powerShell:
+    command: >-
+      if (((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')) {
+        Write-Output 'ARM detected, removing Open-Shell as it''s incompatible.';
+        Remove-Item -Path """$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\4. Interface Tweaks\Start Menu\*Open-Shell*""" -Force -Recurse;
+        exit 2000
+      };
+    wait: true

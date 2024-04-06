@@ -1,7 +1,6 @@
 ---
 title: Configure Time Servers
 description: Configures time servers to be more reliable and accurate than the defaults
-privilege: TrustedInstaller
 actions:
     # https://www.pool.ntp.org/en/use.html
   - !service: {name: 'w32time', operation: start, ignoreErrors: true}

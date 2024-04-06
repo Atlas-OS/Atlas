@@ -1,6 +1,7 @@
-& "$env:windir\AtlasModules\Scripts\wingetCheck.cmd"
-if ($LASTEXITCODE -ne '0') {exit 1}
+& "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\wingetCheck.cmd"
+if ($LASTEXITCODE -ne 0) { exit 1 }
 
+Clear-Host
 $ErrorActionPreference = 'SilentlyContinue'
 
 [int] $global:column = 0
@@ -81,9 +82,6 @@ init_item "Brave Browser" "Brave.Brave"
 
 # https://winget.run/pkg/Google/Chrome
 init_item "Google Chrome" "Google.Chrome"
-
-# https://winget.run/pkg/Microsoft/Edge
-init_item "Microsoft Edge" "Microsoft.Edge"
 
 # https://winget.run/pkg/LibreWolf/LibreWolf
 init_item "LibreWolf" "LibreWolf.LibreWolf"
@@ -171,6 +169,20 @@ init_item "Lightshot" "Skillbrains.Lightshot"
 
 # https://winget.run/pkg/ShareX/ShareX
 init_item "ShareX" "ShareX.ShareX"
+
+# https://www.microsoft.com/store/productId/9MZ95KL8MR0L?ocid=pdpshare
+init_item "Snipping Tool" "9MZ95KL8MR0L"
+
+# https://winget.run/pkg/valinet/ExplorerPatcher
+init_item "ExplorerPatcher" "valinet.ExplorerPatcher"
+
+if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
+    # https://winget.run/pkg/StartIsBack/StartAllBack
+    init_item "StartAllBack" "StartIsBack.StartAllBack"
+} else {
+    # https://winget.run/pkg/StartIsBack/StartAllBack
+    init_item "StartIsBack" "StartIsBack.StartIsBack"
+}
 
 $global:item_count = $global:items.Length
 

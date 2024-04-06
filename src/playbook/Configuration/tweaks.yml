@@ -1,7 +1,6 @@
 ---
 title: Tweaks Root Playbook File
 description: Runs all of the Atlas playbook tweaks
-privilege: TrustedInstaller
 actions: []
 tasks:
   # ------------------------- NOTES ------------------------- #
@@ -15,6 +14,8 @@ tasks:
 
   # ----------------------- END NOTES ----------------------- #
 
+
+
   # -----------------------------------------------------
   #                      Networking
   # -----------------------------------------------------
@@ -25,10 +26,7 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-networking.yml
   - tweaks\networking\disable-llmnr.yml
-  - tweaks\networking\disable-smart-name-resolution.yml
-  - tweaks\networking\config-netsh.yml
-  - tweaks\networking\disable-network-power-saving.yml
-  - tweaks\networking\config-packet-sched-timer-res.yml
+  - tweaks\networking\atlas-network-settings.yml
 
   # -------------------------------------------------------------------------- #
   #  networking\shares                                                         #
@@ -36,6 +34,8 @@ tasks:
   - tweaks\networking\shares\restrict-anonymous-access.yml
   - tweaks\networking\shares\restrict-anonymous-enumeration.yml
   - tweaks\networking\shares\disable-smb-bandwidth-throttling.yml
+
+
 
   # -----------------------------------------------------
   #                      Performance
@@ -47,11 +47,13 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-performance.yml
   - tweaks\performance\config-mmcss.yml
-  - tweaks\performance\disable-game-bar.yml
-  - tweaks\performance\disable-automatic-maintenance.yml
+  - tweaks\performance\disable-auto-folder-discovery.yml
+  # - tweaks\performance\disable-game-bar.yml
+  - tweaks\performance\config-automatic-maintenance.yml
   - tweaks\performance\disable-background-apps.yml
   - tweaks\performance\disable-fth.yml
   - tweaks\performance\disable-sleep-study.yml
+
 
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
@@ -61,6 +63,8 @@ tasks:
   - tweaks\performance\system\optimize-ntfs.yml
   - tweaks\performance\system\disable-service-host-split.yml
   - tweaks\performance\system\win32-priority-seperation.yml
+
+
 
   # -----------------------------------------------------
   #                        Privacy
@@ -95,7 +99,6 @@ tasks:
   - tweaks\privacy\disallow-ms-accounts.yml
   - tweaks\privacy\disallow-user-activity-upload.yml
   - tweaks\privacy\search-settings.yml
-  
 
   # -------------------------------------------------------------------------- #
   #  privacy\advertising                                                       #
@@ -120,6 +123,8 @@ tasks:
   - tweaks\privacy\telemetry\disable-dotnet-cli-telemetry.yml
   - tweaks\privacy\telemetry\disable-input-telemetry.yml
   - tweaks\privacy\telemetry\disallow-data-collection.yml
+
+
 
   # -----------------------------------------------------
   #                          QOL
@@ -152,7 +157,7 @@ tasks:
   - tweaks\qol\show-all-tasks-control-panel.yml
   - tweaks\qol\visual-effects.yml
   - tweaks\qol\disable-tips.yml
-  - tweaks\qol\set-hidden-settings-pages.yml
+  - tweaks\qol\disable-win11-settings-banner.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\appearance                                                            #
@@ -166,11 +171,10 @@ tasks:
   # -------------------------------------------------------------------------- #
   - tweaks\qol\windows-update\disable-nagging.yml
   - tweaks\qol\windows-update\disable-insider.yml
-  - tweaks\qol\windows-update\disable-msrt-installation.yml
+  - tweaks\qol\windows-update\disable-msrt-telemetry.yml
   - tweaks\qol\windows-update\disable-feature-updates.yml
   - tweaks\qol\windows-update\disable-auto-updates.yml
   - tweaks\qol\windows-update\disable-auto-reboot.yml
-  - tweaks\qol\windows-update\defer-updates.yml
   - tweaks\qol\windows-update\disable-delivery-optimization.yml
 
   # -------------------------------------------------------------------------- #
@@ -205,12 +209,11 @@ tasks:
   - tweaks\qol\explorer\dont-show-office-files.yml
   - tweaks\qol\explorer\use-compact-mode.yml
   - tweaks\qol\explorer\disable-gallery.yml
+  - tweaks\qol\explorer\debloat-send-to.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
   # -------------------------------------------------------------------------- #
-  # Currently and in the future, this will have no use
-  # - tweaks\qol\explorer\add-context-menus\install-cab.yml
   - tweaks\qol\explorer\add-context-menus\merge-as-trustedinstaller.yml
   - tweaks\qol\explorer\add-context-menus\new-bat.yml
   - tweaks\qol\explorer\add-context-menus\new-ps1.yml
@@ -248,6 +251,7 @@ tasks:
   - tweaks\qol\shell\show-more-pins.yml
   - tweaks\qol\shell\no-recommendations-start-menu.yml
   - tweaks\qol\shell\disable-nearby-sharing.yml
+  - tweaks\qol\shell\disallow-edge-swipe.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\startup-shutdown                                                      #
@@ -255,6 +259,7 @@ tasks:
   - tweaks\qol\startup-shutdown\decrease-shutdown-time.yml
   - tweaks\qol\startup-shutdown\disable-startup-delay.yml
   - tweaks\qol\startup-shutdown\force-end-shutdown-apps.yml
+  - tweaks\qol\startup-shutdown\enable-verbose-messages.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\system                                                                #
@@ -266,7 +271,6 @@ tasks:
   #  qol\taskbar                                                               #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\taskbar\cmd-win-x.yml
-  - tweaks\qol\taskbar\disable-badges-taskbar.yml
   - tweaks\qol\taskbar\disable-cloud-optimized-content.yml
   - tweaks\qol\taskbar\disable-desktop-peek.yml
   - tweaks\qol\taskbar\disable-news-and-interests.yml
@@ -278,6 +282,8 @@ tasks:
   - tweaks\qol\taskbar\disable-windows-chat.yml
   - tweaks\qol\taskbar\set-to-left.yml
   - tweaks\qol\taskbar\end-task.yml
+
+
 
   # -----------------------------------------------------
   #                       Security
@@ -291,6 +297,8 @@ tasks:
   - tweaks\security\block-anonymous-enum-sam.yml
   - tweaks\security\delete-defaultuser0.yml
   - tweaks\security\disable-remote-assistance.yml
+
+
 
   # -----------------------------------------------------
   #                        Debloat
@@ -307,6 +315,8 @@ tasks:
   - tweaks\debloat\hide-unused-security-pages.yml
   - tweaks\debloat\config-storage-sense.yml
 
+
+
   # -----------------------------------------------------
   #                        Scripts
   # -----------------------------------------------------
@@ -321,9 +331,11 @@ tasks:
   - tweaks\scripts\script-mitigations.yml
   - tweaks\scripts\script-devices.yml
   - tweaks\scripts\script-pfp.yml
-  - tweaks\scripts\script-power.yml
   - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
+  - tweaks\scripts\script-clientcbs.yml
+
+
 
   # -----------------------------------------------------
   #                         Misc
@@ -335,9 +347,11 @@ tasks:
   # -----------------------------------------------------
   - tweaks\statuses\status-misc.yml
   - tweaks\misc\config-time.yml
-  - tweaks\misc\disable-game-mode.yml
   - tweaks\misc\delete-windows-specific-files.yml
   - tweaks\misc\config-oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
-  - tweaks\misc\restore-default-sleep-timeout.yml
   - tweaks\misc\create-shortcuts.yml
+  - tweaks\misc\add-music-videos-to-home.yml
+  - tweaks\misc\add-newUsers-script.yml
+  - tweaks\scripts\script-power.yml # Done last on purpose
+  - tweaks\misc\enable-notifications.yml

@@ -25,13 +25,13 @@ $defaultConfig = @{
 	removeProductCode = $true
 }
 
-$configPath = "$env:APPDATA\local-build\config.json"
+$configPath = "$([Environment]::GetFolderPath('ApplicationData'))\local-build\config.json"
 
 # ------------- #
 # config system #
 # ------------- #
 
-$shortcut = "$env:LOCALAPPDATA\Microsoft\WindowsApps\ame-lb-conf.lnk"
+$shortcut = "$([Environment]::GetFolderPath('LocalApplicationData'))\Microsoft\WindowsApps\ame-lb-conf.lnk"
 
 function New-ConfigPathShortcut {
 	$WshShell = New-Object -comObject WScript.Shell
@@ -45,14 +45,39 @@ function CreateConfig($conf) {
 	$conf | ConvertTo-Json -Depth 100 | Out-File $configPath
 }
 
+function Write-BulletPoint($message) {
+	$message | Foreach-Object {
+		Write-Host " - " -ForegroundColor Green -NoNewline
+		Write-Host $_
+	}
+	Write-Host ""
+}
+
+
+if (Get-Command '7z.exe' -EA SilentlyContinue) {
+	$7zPath = '7z.exe'
+} elseif (Test-Path "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe") {
+	$7zPath = "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe"
+}
+if (!$7zPath) {
+	Write-Host "This script requires 7-Zip to be installed to continue."
+	Pause
+	exit 1
+}
+
 if (!(Test-Path $configPath)) {
 	Remove-Item -Force -Path $shortcut -EA SilentlyContinue
 
-	Write-Host "It seems like this is your first time using AME Local Build.`n" -ForegroundColor Yellow
-	Write-Host "Setup`n---------------------------------" -ForegroundColor Green
-	Write-Host "Adding config to path would allow you to type 'ame-lb-conf' into Run (Win + R) or any other shell and open the config." -ForegroundColor Blue
+	Write-Host "It seems like this is your first time using AME Local Build.`n" -ForegroundColor Cyan
+
+	Write-BulletPoint "Adding config to %PATH% would allow you to type 'ame-lb-conf' into Run or any other shell and open the config."
+	Write-BulletPoint "The configuration is in JSON, and explanations of those arguments are contained in the script."
+	Write-BulletPoint "You can change the config path by modifying the script."
+
+
+	Write-Host "`n---------------------------------------------------------------------------------------------------------`n" -ForegroundColor Magenta
 	choice /c:yn /n /m "Would you like to add a shortcut to %PATH% for the configuration file? [Y/N]"
-	if ($LASTEXITCODE -eq 1) { New-ConfigPathShortcut}
+	if ($LASTEXITCODE -eq 1) { New-ConfigPathShortcut }
 
 	choice /c:yn /n /m "Would you like to open the config file now? [Y/N]"
 	CreateConfig $defaultConfig
@@ -89,7 +114,8 @@ $defaultConfig.Keys | ForEach-Object {
 	if ($config.Keys -notcontains $_) {
 		$config = $config + @{
 			$_ = $defaultConfig.$_
-		}; $updateConfig = $true
+		}
+		$updateConfig = $true
 	}
 }
 if ($updateConfig) {CreateConfig $config}
@@ -112,20 +138,18 @@ if (!(Test-Path -Path "playbook.conf")) {
 }
 
 # check if old files are in use
+$num = 1
 if (($replaceOldPlaybook) -and (Test-Path -Path $apbxFileName)) {
 	try {
 		$stream = [System.IO.File]::Open($apbxFileName, 'Open', 'Read', 'Write')
 		$stream.Close()
 	} catch {
-		Write-Host "The current playbook in the folder ($apbxFileName) is in use, and it can't be deleted to be replaced." -ForegroundColor Red
-		Write-Host 'Either configure "$replaceOldPlaybook" in the script configuration or close the application its in use with.' -ForegroundColor Red
-		Start-Sleep 4
-		exit 1
+		while(Test-Path -Path "$fileName ($num).apbx") {$num++}
+		$apbxFileName = "$PWD\$fileName ($num).apbx"
 	}
 	Remove-Item -Path $apbxFileName -Force -EA 0
 } else {
 	if (Test-Path -Path $apbxFileName) {
-		$num = 1
 		while(Test-Path -Path "$fileName ($num).apbx") {$num++}
 		$apbxFileName = "$PWD\$fileName ($num).apbx"
 	}
@@ -154,7 +178,7 @@ New-Item $configDir -ItemType Directory -Force | Out-Null
 
 try {
 	$tempPlaybookConf = "$rootTemp\playbook\playbook.conf"
-	$ymlPath = "Configuration\atlas\start.yml"
+	$ymlPath = "Configuration\custom.yml"
 	$tempStartYML = "$rootTemp\playbook\$ymlPath"
 
 	# remove entries in playbook config that make it awkward for testing
@@ -165,8 +189,10 @@ try {
 	if ($removeWinverRequirement) {$patterns += "<string>", "</SupportedBuilds>", "<SupportedBuilds>"}
 	if ($removeProductCode) {$patterns += "<ProductCode>"}
 
-	$newContent = Get-Content "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') }
-	$newContent | Set-Content "$tempPlaybookConf" -Force
+	if ($patterns.Count -gt 0) {
+		$newContent = Get-Content "playbook.conf"| Where-Object { $_ -notmatch ($patterns -join '|') }
+		$newContent | Set-Content "$tempPlaybookConf" -Force	
+	}
 
 	if ($removeDependencies -or $liveLog) {
 		$startYML = "$PWD\$ymlPath"
@@ -176,9 +202,9 @@ try {
 			$content = Get-Content -Path $tempStartYML
 
 			if ($liveLog) {
-				# uncomment the 8th line (7 in PowerShell because arrays are zero-based)
-				if ($content.Count -gt 7) {
-					$content[7] = $content[7] -replace ' #', ''
+				# uncomment the 8th line (6 in PowerShell because arrays are zero-based)
+				if ($content.Count -gt 6) {
+					$content[6] = $content[6] -replace ' #', ''
 				}
 			}
 
@@ -203,36 +229,25 @@ try {
 
 	$excludeFiles = @(
 		"local-build.cmd",
-		"playbook.conf",
 		"*.apbx"
-	); if (Test-Path $tempStartYML) { $excludeFiles += "start.yml" }
+	)
+	if (Test-Path $tempStartYML) { $excludeFiles += "custom.yml" }
+	if (Test-Path $tempPlaybookConf) { $excludeFiles += "playbook.conf" }
 
 	# make playbook, 7z is faster
-	$filteredItems = @()
-	if (Get-Command '7z.exe' -EA SilentlyContinue) {
-		$7zPath = '7z.exe'
-	} elseif (Test-Path "$env:ProgramFiles\7-Zip\7z.exe") {
-		$7zPath = "$env:ProgramFiles\7-Zip\7z.exe"
-	}
+	if (Test-Path $apbxPath) { Remove-Item $apbxFileName -Force }
 
-	if ($7zPath) {
-		(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName `
-		| Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File "$rootTemp\7zFiles.txt" -Encoding utf8
+	(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName `
+	| Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File "$rootTemp\7zFiles.txt" -Encoding utf8
 
-		& $7zPath a -spf -y -mx1 -tzip "$apbxPath" `@"$rootTemp\7zFiles.txt" | Out-Null
-		# add edited files
-		Push-Location "$rootTemp\playbook"
-		& $7zPath u "$apbxPath" * | Out-Null
-		Pop-Location
-	} else {
-		$filteredItems += (Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName + "$tempPlaybookConf"
-		if (Test-Path $tempStartYML) { $filteredItems = $filteredItems + "$tempStartYML" }
+	& $7zPath a -spf -y -mx1 -tzip "$apbxPath" `@"$rootTemp\7zFiles.txt" | Out-Null
+	# add edited files
+	Push-Location "$rootTemp\playbook"
+	& $7zPath u "$apbxPath" * | Out-Null
+	Pop-Location
 
-		Compress-Archive -Path $filteredItems -DestinationPath $zipFileName
-		Rename-Item -Path $zipFileName -NewName $apbxFileName
-	}
-
-	Write-Host "Completed." -ForegroundColor Green
+	Write-Host "Build successfully! Path: `"$apbxPath`"" -ForegroundColor Green
+	Start-Sleep 1
 } finally {
 	Remove-Item $rootTemp -Force -EA 0 -Recurse | Out-Null
 }

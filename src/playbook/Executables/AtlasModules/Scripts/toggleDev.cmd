@@ -31,12 +31,8 @@ call toggleDev.cmd %devices%
 
 :main
 fltmc > nul 2>&1 || (
-	echo Administrator privileges are required.
-	PowerShell Start -Verb RunAs '%0' 2> nul || (
-		echo You must run this script as admin.
-		exit /b 1
-	)
-	exit /b
+	echo You need to run this script as an administrator.
+	exit /b 1
 )
 
 set args= & set "args1=%*"
@@ -46,7 +42,7 @@ exit /b %ERRORLEVEL%
 : end batch / begin PowerShell #>
 
 param (
-    [switch]$Enable,
+	[switch]$Enable,
 	[switch]$Silent,
 	[string]$Devices
 )

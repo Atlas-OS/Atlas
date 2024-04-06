@@ -1,7 +1,6 @@
 ---
 title: Disable Game Bar
 description: Disables XBOX Game Bar, which is known as a bloatware feature
-privilege: TrustedInstaller
 actions:
 
   # Disable Game Bar

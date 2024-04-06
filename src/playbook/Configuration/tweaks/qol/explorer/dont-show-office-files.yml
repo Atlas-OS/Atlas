@@ -1,7 +1,6 @@
 ---
 title: Don't Show Office Files
 description: Don't show Office files in Quick Access (Home)
-privilege: TrustedInstaller
 builds: [ '>=22000' ]
 actions:
   - !registryValue:

@@ -29,7 +29,7 @@ if "%~1" == "" (
 	set /P program_path="Enter the valid path of the program or drag it here: "
 	if "!program_path!" == "" (
 		echo error: no input
-		timeout /t 1 > nul
+		ping 127.0.0.1 -n 2 > nul
 		cls
 		goto RunAsTI-Elevate
 	)

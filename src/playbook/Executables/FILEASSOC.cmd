@@ -1,17 +1,6 @@
 @echo off
 
-set baseAssociations=".dib:PhotoViewer.FileAssoc.Tiff"^
- ".jfif:PhotoViewer.FileAssoc.Tiff"^
- ".jpe:PhotoViewer.FileAssoc.Tiff"^
- ".jpeg:PhotoViewer.FileAssoc.Tiff"^
- ".jpg:PhotoViewer.FileAssoc.Tiff"^
- ".jxr:PhotoViewer.FileAssoc.Tiff"^
- ".png:PhotoViewer.FileAssoc.Tiff"^
- ".tif:PhotoViewer.FileAssoc.Tiff"^
- ".tiff:PhotoViewer.FileAssoc.Tiff"^
- ".wdp:PhotoViewer.FileAssoc.Tiff"^
- ".url:IE.AssocFile.URL"^
- ".ps1:Microsoft.PowerShellScript.1"
+set baseAssociations=".url:InternetShortcut"
 
 set braveAssociations="Proto:https:BraveHTML"^
  "Proto:http:BraveHTML"^
@@ -19,6 +8,13 @@ set braveAssociations="Proto:https:BraveHTML"^
  ".html:BraveHTML"^
  ".pdf:BraveFile"^
  ".shtml:BraveHTML"
+
+set libreWolfAssociations="Proto:https:LibreWolfHTM"^
+ "Proto:http:LibreWolfHTM"^
+ ".htm:LibreWolfHTM"^
+ ".html:LibreWolfHTM"^
+ ".pdf:LibreWolfHTM"^
+ ".shtml:LibreWolfHTM"
 
 set firefoxAssociations="Proto:https:FirefoxURL-308046B0AF4A39CB"^
  "Proto:http:FirefoxURL-308046B0AF4A39CB"^
@@ -37,20 +33,33 @@ set chromeAssociations="Proto:https:ChromeHTML"^
 if "%~1" == "" set "associations=%baseAssociations%"
 if "%~1" == "Microsoft Edge" set "associations=%baseAssociations%"
 if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
+if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
 if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%"
 if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 
 :: Set 7-Zip assocations
 call :7ZIPSYSTEM
 
+:: Make a temporary renamed PowerShell executable to bypass UCPD
+:: https://hitco.at/blog/windows-userchoice-protection-driver-ucpd/
+echo Making temporary PowerShell...
+for /f "tokens=* delims=" %%a in ('where powershell.exe') do (set "powershellPath=%%a")
+for %%A in ("%powershellPath%") do (set "powershellDir=%%~dpA")
+set "powershellTemp=%powershellDir%\powershell%random%%random%%random%%random%.exe"
+copy /y "%powershellPath%" "%powershellTemp%" > nul
+
 :: If the "Volatile Environment" key exists, that means it is a proper user. Built in accounts/SIDs don't have this key.
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Setting associations for "%%a"...
         call :7ZIPUSER "%%a"
-        PowerShell -NoP -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
+        "%powershellTemp%" -NoP -NonI -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
     )
 )
+
+echo Deleting temporary PowerShell...
+del /f /q "%powershellTemp%" > nul
+
 exit /b
 
 :7ZIPUSER

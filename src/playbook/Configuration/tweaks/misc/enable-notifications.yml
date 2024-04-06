@@ -1,0 +1,14 @@
+---
+title: Enable Notifications
+description: Notifications were turned off at the start of the Playbook to prevent random notifications from interfering with the process. This task re-enables notifications if the user chose to do so.
+actions:
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Notifications\Enable Notifications.cmd" /silent'
+    exeDir: true
+    wait: true
+    option: '!disable-notifications'
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Notifications\Enable Notifications.cmd" /justuserservice'
+    exeDir: true
+    wait: true
+    option: 'disable-notifications'

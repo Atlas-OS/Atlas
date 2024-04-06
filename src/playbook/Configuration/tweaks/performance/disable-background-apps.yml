@@ -1,7 +1,6 @@
 ---
 title: Disable Background Apps
 description: Disables background apps, so that there are minimal resources used in the background
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'

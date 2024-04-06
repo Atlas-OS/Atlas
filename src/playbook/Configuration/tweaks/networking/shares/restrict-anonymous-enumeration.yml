@@ -1,7 +1,6 @@
 ---
 title: Restrict Anonymous Enumeration of Shares
 description: Restricts anonymous enumeration of shares
-privilege: TrustedInstaller
 actions:
   # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220930
   - !registryValue:

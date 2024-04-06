@@ -1,7 +1,6 @@
 ---
 title: Hide Gallery in File Explorer
 description: Hides the new 23H2 'Gallery' in File Explorer for viewing pictures
-privilege: TrustedInstaller
 builds: [ '>=22000' ]
 actions:
   - !registryValue:

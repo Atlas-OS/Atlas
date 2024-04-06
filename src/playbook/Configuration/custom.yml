@@ -1,12 +1,58 @@
 ---
 title: Root Playbook File
 description: Runs all of the playbook files
-privilege: TrustedInstaller
-actions: []
+actions:
+    # AME Wizard Live Log for development playbooks
+    # Do not change the line position of this, otherwise things will break when using local-build
+  # - !run: {exe: 'cmd.exe', args: '/c start "AME Wizard Live Log" PowerShell -NoP -C "gc -Wait Logs\TIOutput.txt -EA SilentlyContinue | Write-Output; pause"', baseDir: true, wait: false}
+
+  - !writeStatus: {status: 'Copying files'}
+  - !cmd:
+    command: 'robocopy "AtlasModules" "%windir%\AtlasModules" /E /PURGE /IM /IT /NP > nul'
+    weight: 10
+    wait: true
+    exeDir: true
+  - !cmd:
+    command: 'robocopy "AtlasDesktop" "%windir%\AtlasDesktop" /E /PURGE /IM /IT /NP > nul'
+    weight: 10
+    wait: true
+    exeDir: true
+  - !cmd:
+    command: 'copy /y "Themes" "%windir%\Resources\Themes" > nul'
+    weight: 10
+    wait: true
+    exeDir: true
+
+    # Prevent annoying notifications during deployment
+  - !taskKill: {name: 'explorer'}
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Notifications\Disable Notifications.cmd" /includeuserservice'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
+
+    # Prevent computer from going to sleep during deployment
+  - !powerShell: 
+    command: >-
+      $guid = New-Guid;
+      """$guid""" | Out-File -Force -LiteralPath """$([Environment]::GetFolderPath('Windows'))\atlasospowercfgguid""";
+      powercfg /duplicatescheme """e9a42b02-d5df-448d-aa00-03f14749eb61""" """$guid""";
+      powercfg /setactive """$guid""";
+      powercfg /changename """$guid""" """Atlas Installation Scheme""" """Duplicate of Ultimate Performance used during Atlas installation.""";
+      powercfg /x monitor-timeout-ac 0;
+      powercfg /x monitor-timeout-dc 0;
+      powercfg /x disk-timeout-ac 0;
+      powercfg /x disk-timeout-dc 0;
+      powercfg /x standby-timeout-ac 0;
+      powercfg /x standby-timeout-dc 0;
+      powercfg /x hibernate-timeout-ac 0;
+      powercfg /x hibernate-timeout-dc 0;
+
+  - !writeStatus: {status: 'Optimizing PowerShell'}
 tasks:
   # Configure PowerShell first so that other PowerShell scripts work
-  # NGEN - PowerShell optimization
-  - tweaks\statuses\status-ngen.yml
+  # NGEN - .NET assemblies PowerShell optimization
   - tweaks\scripts\script-ngen.yml
   - tweaks\qol\config-powershell.yml
 
@@ -14,6 +60,10 @@ tasks:
   # It's ran here as you can't check when cleanmgr is finished
   - tweaks\statuses\status-cleanup.yml
   - tweaks\scripts\script-cleanup.yml
+
+  # Set hidden Settings pages
+  # Done before everything else as scripts will overwrite it
+  - tweaks\qol\set-hidden-settings-pages.yml
 
   # Main tasks
   - atlas\start.yml

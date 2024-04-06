@@ -1,8 +1,8 @@
 ---
 title: Configure Search on the Taskbar
-description: Configures search for the optimal usability and privacy, such as disabling online features to make it simplistic and usable
-privilege: TrustedInstaller
+description: Configures search for the optimal usability and privacy, such as disabling online features to make it more minimal and snappy
 actions:
+    # Configure search permissions
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
     value: 'BingSearchEnabled'
@@ -28,6 +28,8 @@ actions:
     value: 'SafeSearchMode'
     data: '0'
     type: REG_DWORD
+
+    # Policies
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
     value: 'ConnectedSearchUseWeb'

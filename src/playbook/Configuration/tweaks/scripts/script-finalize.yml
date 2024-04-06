@@ -1,9 +1,8 @@
 ---
-title: Do Final Tweaks
-description: Does final tweaks that are run from a batch script, as some tweaks cannot be done in playbook YAMLs
-privilege: TrustedInstaller
+title: Final Tweaks
+description: Runs any tweaks that are miscellaneous but need more advanced scripting features
 actions:
-  - !run:
+  - !powerShell:
+    command: '.\FINALIZE.ps1'
     exeDir: true
-    exe: 'FINALIZE.cmd'
-    weight: 100
+    wait: true

@@ -1,7 +1,6 @@
 ---
 title: Configure Boot Configuration
 description: Configures the boot configuration (BCD) for QoL
-privilege: TrustedInstaller
 actions:
     # Lowering dual boot choice time
     # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/--timeout#parameters
@@ -14,7 +13,7 @@ actions:
   - !run:
     exe: 'bcdedit'
     args: '/set description "AtlasOS 10"'
-    builds: [ '!>=22000' ]
+    builds: [ '<22000' ]
   - !run:
     exe: 'bcdedit'
     args: '/set description "AtlasOS 11"'

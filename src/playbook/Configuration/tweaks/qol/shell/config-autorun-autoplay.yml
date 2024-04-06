@@ -1,7 +1,6 @@
 ---
 title: Disable AutoRun/AutoPlay
 description: Disables AutoRun/AutoPlay for the optimal security and usability/QoL
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'

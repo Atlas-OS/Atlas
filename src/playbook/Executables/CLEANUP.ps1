@@ -31,7 +31,13 @@ function Invoke-AtlasDiskCleanup {
 		"Device Driver Packages" = 2
 	}
 	foreach ($entry in $regValues.GetEnumerator()) {
-		Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
+		$key = "$baseKey\$($entry.Key)"
+
+		if (!(Test-Path $key)) {
+			Write-Output "'$key' not found, not configuring it."
+		} else {
+			Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
+		}
 	}
 
 	# Run preset 64 (0-65535)
@@ -53,7 +59,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 Get-ChildItem -Path "$env:TEMP" | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse
 
 # Clear the temporary system folder
-Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse
+Remove-Item -Path "$([Environment]::GetFolderPath('Windows'))\Temp\*" -Force -Recurse
 
 # Delete all system restore points
 # This is so that users can't revert back from Atlas to stock with Restore Points

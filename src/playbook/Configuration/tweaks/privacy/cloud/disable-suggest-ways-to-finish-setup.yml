@@ -1,7 +1,6 @@
 ---
 title: Disable Suggested Ways to Finish Setting Up Your Device
 description: Disables suggested ways to finish setting up your device, as it will mostly anony you to use cloud features
-privilege: TrustedInstaller
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\UserProfileEngagement'
