@@ -1,7 +1,9 @@
 ---
-title: Disable Windows Chat
-description: Disables Windows Chat as it's not commonly used
+title: Set Unpinned Control Center Items
+description: Disables unused control center items by default for QoL
 actions:
+  - !taskKill: {name: 'explorer'}
+
     # Windows 10
   - !registryValue:
     path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
@@ -47,3 +49,5 @@ actions:
     data: 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false'
     type: REG_SZ
     builds: [ '>=22000' ]
+
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
