@@ -9,9 +9,10 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 )
 
 :main
-:: Disable Spectre and Meltdown
+:: Disable Spectre, Meltdown and Downfall
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "3" /f > nul
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f > nul
+:: 33554435 (0x2000003) also disables Downfall
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "33554435" /f > nul
 
 :: Disable Structured Exception Handling Overwrite Protection (SEHOP)
 :: Exists in ntoskrnl strings, keep for now
