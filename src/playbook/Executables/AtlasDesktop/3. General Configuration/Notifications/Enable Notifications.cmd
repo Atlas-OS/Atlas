@@ -30,7 +30,7 @@ for %%a in (
 	"notifications"
 	"privacy-notifications"
 ) do (
-	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide "%%a" /silent
+	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide %%~a /silent
 )
 
 if "%~1" == "/silent" exit /b

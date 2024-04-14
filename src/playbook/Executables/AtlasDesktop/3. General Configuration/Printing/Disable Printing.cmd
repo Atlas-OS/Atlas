@@ -51,7 +51,7 @@ echo Disabling services...
 call "%windir%\AtlasModules\Scripts\setSvc.cmd" Spooler 4
 call "%windir%\AtlasModules\Scripts\setSvc.cmd" PrintWorkFlowUserSvc 4
 
-call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide printing
+call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide printers
 
 echo Disabling capabilities...
 for %%a in (
