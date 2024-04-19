@@ -7,7 +7,8 @@
 # It can be hidden by using SettingsPageVisibility
 
 # Variables
-$cbsPublic = "$([Environment]::GetFolderPath('Windows'))\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\Public"
+$windir = [Environment]::GetFolderPath('Windows')
+$cbsPublic = "$windir\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\Public"
 $settingsExtensions = "$cbsPublic\wsxpacks\Account\SettingsExtensions.json"
 if (!(Test-Path $settingsExtensions)) {
     Write-Output "Settings extensions ($settingsExtensions) not found."
@@ -39,27 +40,14 @@ $ids = Find-VelocityID -Node $(Get-Content -Path $settingsExtensions | ConvertFr
 
 # No IDs check
 if ($ids.Count -le 0) {
-    Write-Output "No velocity IDs were found, Microsoft might have changed something."
+    Write-Output "No velocity IDs were found. Exiting."
     exit 1
 }
 
 # Hide 'Microsoft account' page in Settings that appears
 # Not set in the actual YAML in case no velocity IDs were found
 # If the velocity IDs aren't set, then the account page disappears
-function SettingsPageVisibility {
-    $policyKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
-    $visbility = "SettingsPageVisibility"
-    $currentPolicy = (Get-ItemProperty -Path $policyKey -Name $visbility -EA 0).$visbility
-
-    if ($currentPolicy -like "showonly:*") {
-        return "Current $visibilityValue is 'showonly', no need to append."
-    }
-
-    $split = $currentPolicy -replace 'hide:' -split ';' | Where-Object { $_ }
-    $split += "account"
-    Set-ItemProperty -Path $policyKey -Name $visbility -Value "hide:$($split -join ';')"
-}
-SettingsPageVisibility
+& "$windir\AtlasModules\Scripts\settingsPages.cmd" /hide account
 
 # Obfuscate velocity IDs
 # Rewritten in PowerShell from ViVE
