@@ -9,6 +9,8 @@ actions:
     # Updates compatibility database
   - !scheduledTask: {path: '\Microsoft\Windows\Application Experience\PcaPatchDbTask', operation: disable}
 
+    # UCPD
+  - !scheduledTask: {path: '\Microsoft\Windows\AppxDeploymentClient\UCPD velocity', operation: disable}
 
   # -------------------------------------------------------------------------------------
   # Here are the scheduled tasks that are currently commented as they're under review.
