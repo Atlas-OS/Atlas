@@ -61,7 +61,7 @@ actions:
 
     # ------- Microsoft recommendation - 'No guideance' ------
   - !service: {name: 'wercplsupport', operation: change, startup: 4}
-  - !service: {name: 'UCPD', operation: change, startup: 4}​
+  - !service: {name: 'UCPD', operation: change, startup: 4}
 
   ##############################################################################################
   ## DRIVERS                                                                                  ##
