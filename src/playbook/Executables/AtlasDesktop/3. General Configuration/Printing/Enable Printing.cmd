@@ -48,7 +48,7 @@ echo Enabling services...
 call setSvc.cmd Spooler 2
 call setSvc.cmd PrintWorkFlowUserSvc 3
 
-call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide printing
+call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide printers
 
 echo Enabling capabilities (this might take a while)...
 for %%a in (

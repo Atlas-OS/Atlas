@@ -5,9 +5,10 @@ actions:
     # Apply theme file
   - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
   - !cmd:
-    command: 'explorer "%windir%\Resources\Themes\atlas-v0.4.x-dark.theme" & ping 127.0.0.1 -n 6'
+    command: 'explorer "%windir%\Resources\Themes\atlas-v0.4.x-dark.theme" & timeout /t 6 /nobreak > nul'
     wait: true
     runas: currentUser
+    timeout: 30
 
     # For Windows 11, set recent theme selection
   - !taskKill: {name: 'SystemSettings', ignoreErrors: true}

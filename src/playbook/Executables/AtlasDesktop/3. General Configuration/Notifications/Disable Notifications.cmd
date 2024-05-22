@@ -26,7 +26,7 @@ for %%a in (
 	"notifications"
 	"privacy-notifications"
 ) do (
-	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide %%a /silent
+	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide %%~a /silent
 )
 
 if "%~1"=="/includeuserservice" (
