@@ -1,6 +1,6 @@
 ---
 title: Disable 'Always Read and Scan This Section'
-description: Disables 'Always Read and Scan This Section' for QoL
+description: Disables 'Always Read and Scan This Section' in Control Panel for QoL
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Ease of Access'
