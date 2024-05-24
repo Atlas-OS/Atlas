@@ -5,7 +5,6 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-echo Credit to @amitxv on GitHub for the project used that forces timer resolution on Windows 11!
 echo Before running this, please see the Atlas documentation, linked in the folder.
 echo]
 pause & cls
