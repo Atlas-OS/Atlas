@@ -18,7 +18,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "1" /f > nul
 
 :: Disable Control Flow Guard (CFG)
-:: Find correct mitigation values for different Windows versions - AMIT
+:: Find correct mitigation values for different Windows versions
 :: Initialize bit mask in registry by disabling a random mitigation
 PowerShell -NoP -C "Set-ProcessMitigation -System -Disable CFG" > nul
 
