@@ -21,6 +21,10 @@ $devices = @(
 	"System CMOS/real time clock",
 	"System Speaker",
 	"System Timer"
+	"Microsoft Virtual Drive Enumerator"
+	"UMBus Root Bus Enumerator"
+	"Remote Desktop Device Redirector Bus"
+	"NDIS Virtual Network Adapter Enumerator"
 )
 
 # No errors as some devices may not have an option to be disabled
