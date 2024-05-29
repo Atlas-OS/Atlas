@@ -26,8 +26,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 
 :RunAsTI-Elevate
 if "%~1" == "" (
-	set /P program_path="Enter the valid path of the program or drag it here: "
-	if "!program_path!" == "" (
+	set /P program_path="Enter the valid path of the program or drag it here: " || (
 		echo error: no input
 		timeout /t 3 /nobreak > nul
 		cls
@@ -60,6 +59,8 @@ pause > nul
 goto RunAsTI-Elevate
 
 :RunAsTI
+echo Administrator privileges are required.
+
 set "0=%~f0"
 set "1=%*"
 PowerShell -NoP -c iex(gc """$env:0""" -Raw)

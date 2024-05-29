@@ -1,13 +1,18 @@
 @echo off
 
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" %*
+set "___args="%~f0" %*"
+fltmc > nul 2>&1 || (
+	echo Administrator privileges are required.
+	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
+		echo You must run this script as admin.
+		if "%*"=="" pause
+		exit /b 1
+	)
 	exit /b
 )
 
 :: Unpin 'Network' from Explorer sidebar
-reg add "HKCR\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /v "System.IsPinnedToNameSpaceTree" /t REG_DWORD /d "0" /f
-reg add "HKCR\WOW6432Node\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /v "System.IsPinnedToNameSpaceTree" /t REG_DWORD /d "0" /f
+reg import "%~dp0Network Navigation Pane\Disable Network Navigation Pane (default).reg" > nul
 
 call setSvc.cmd fdPHost 4
 call setSvc.cmd FDResPub 4
