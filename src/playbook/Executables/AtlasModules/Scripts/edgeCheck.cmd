@@ -10,20 +10,22 @@ if "%~1"=="/webview" set ___edge=1
 set "___dashes=-----------------------------------------------------------------------------------------------------"
 echo %___dashes%
 
-if %___edge%==0 (
-    echo Microsoft Edge is required to use this script.
-    if %___edge%==0 echo In the future, if you no longer want to use this feature, you can use the disable script and uninstall Edge.
-    choice /c:yn /n /m "Would you like to install Edge? [Y/N] "
-    if %errorlevel%==2 (
-        echo]
-        echo Press any key to exit...
-        pause > nul
-        exit /b
-    )
-) else (
+if %___edge% neq 0 (
     echo Updating Edge WebView 2...
+    goto main
 )
 
+echo Microsoft Edge is required to use this script.
+if %___edge%==0 echo In the future, if you no longer want to use this feature, you can use the disable script and uninstall Edge.
+choice /c:yn /n /m "Would you like to install Edge? [Y/N] "
+if %errorlevel%==2 (
+    echo]
+    echo Press any key to exit...
+    pause > nul
+    exit /b
+)
+
+:main
 echo]
 set "___ps=powershell -nop -noni -c "^& """%windir%\AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -NonInteractive -InstallWebView"
 if %___edge%==0 (
