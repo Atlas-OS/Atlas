@@ -59,7 +59,8 @@ tasks:
   #  performance\system                                                        #
   # -------------------------------------------------------------------------- #
   - tweaks\performance\system\config-boot-config.yml
-  - tweaks\performance\system\disable-paging.yml
+  # Disabled as there's no evidence it helps (likely placebo)
+  # - tweaks\performance\system\disable-paging.yml
   - tweaks\performance\system\optimize-ntfs.yml
   - tweaks\performance\system\disable-service-host-split.yml
   - tweaks\performance\system\win32-priority-seperation.yml
