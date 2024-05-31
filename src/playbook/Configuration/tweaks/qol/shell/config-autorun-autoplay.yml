@@ -18,11 +18,6 @@ actions:
     data: '255'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-    value: 'NoAutorun'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
     value: 'NoAutoplayfornonVolume'
     data: '1'
