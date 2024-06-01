@@ -6,9 +6,3 @@ actions:
     command: '"AtlasDesktop\3. General Configuration\Notifications\Enable Notifications.cmd" /silent'
     exeDir: true
     wait: true
-    option: '!disable-notifications'
-  - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Notifications\Enable Notifications.cmd" /justuserservice'
-    exeDir: true
-    wait: true
-    option: 'disable-notifications'
