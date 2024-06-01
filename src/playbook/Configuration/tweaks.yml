@@ -349,10 +349,10 @@ tasks:
   - tweaks\statuses\status-misc.yml
   - tweaks\misc\config-time.yml
   - tweaks\misc\delete-windows-specific-files.yml
-  - tweaks\misc\config-oem-information.yml
   - tweaks\misc\rebuild-perf-counters.yml
   - tweaks\misc\create-shortcuts.yml
   - tweaks\misc\add-music-videos-to-home.yml
   - tweaks\misc\add-newUsers-script.yml
   - tweaks\scripts\script-power.yml # Done last on purpose
   - tweaks\misc\enable-notifications.yml
+  - tweaks\misc\config-oem-information.yml

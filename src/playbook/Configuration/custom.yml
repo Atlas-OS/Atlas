@@ -6,6 +6,12 @@ actions:
     # Do not change the line position of this, otherwise things will break when using local-build
   # - !run: {exe: 'cmd.exe', args: '/c start "AME Wizard Live Log" PowerShell -NoP -C "gc -Wait Logs\TIOutput.txt -EA SilentlyContinue | Write-Output; pause"', baseDir: true, wait: false}
 
+    # Check various conditions to see if the user should run Atlas or not
+  - !powerShell:
+    command: '.\UPGRADECHECK.ps1'
+    exeDir: true
+    wait: true
+
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
     command: 'robocopy "AtlasModules" "%windir%\AtlasModules" /E /PURGE /IM /IT /NP > nul'
