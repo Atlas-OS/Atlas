@@ -6,7 +6,7 @@ actions:
   - !cmd: {command: 'setx POWERSHELL_TELEMETRY_OPTOUT 1'}
 
     # Set .ps1 file types to open with PowerShell by default
-    # Pre-requisite to setting assosiations (FILEASSOC.cmd)
+    # Pre-requisite to setting associations (FILEASSOC.cmd)
   - !cmd: {command: 'ftype Microsoft.PowerShellScript.1="%windir%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -EP Unrestricted -File "%1" %*'}
 
     # Set PowerShell execution policy to Unrestricted

@@ -20,7 +20,7 @@ if (!(Test-Path $settingsExtensions)) {
 function Find-VelocityID($Node) {
     $ids = @()
     if ($Node -is [PSCustomObject]) {
-        # If the node is a PSObject, go through through its properties
+        # If the node is a PSObject, go through its properties
         foreach ($property in $Node.PSObject.Properties) {
             if ($property.Name -eq 'velocityKey' -and $property.Value.id) {
                 $ids += $property.Value.id

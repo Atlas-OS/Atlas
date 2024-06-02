@@ -349,7 +349,7 @@ Error: $_" -Level Critical -Exit
 	
 	Write-Status -Text "Installer log path: `"$msiLog`""
 	if ($null -eq ($(Get-Content $msiLog) -like "*Product: Microsoft Edge -- * completed successfully.*")) {
-		Write-Status "Can't find sucess string from Edge install log - it seems like the install was a failure." -Level Error -Exit
+		Write-Status "Can't find success string from Edge install log - it seems like the install was a failure." -Level Error -Exit
 	}
 
 	Write-Status -Text "Installed Microsoft Edge!" -Level Success

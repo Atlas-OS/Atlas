@@ -4,13 +4,13 @@ description: Configures services and drivers to reduce background system resourc
 actions:
   # ----------------------------------
   # - Potential references           -
-  # - Mostly upon IoT recommandation -
+  # - Mostly upon IoT recommendation -
   # ----------------------------------
   # https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-vdi-recommendations-2004
   # https://learn.microsoft.com/en-us/windows-server/security/windows-services/security-guidelines-for-disabling-system-services-in-windows-server
   # https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/optimize/services
 
-  # Back up default Windows serivces & drivers
+  # Back up default Windows services & drivers
   - !powerShell:
     command: >-
       .\BACKUP.ps1 -FilePath """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\winServices.reg"""
@@ -59,7 +59,7 @@ actions:
   - !service: {name: 'WerSvc', operation: change, startup: 4} 
   - !service: {name: 'DispBrokerDesktopSvc', operation: change, startup: 4} 
 
-    # ------- Microsoft recommendation - 'No guideance' ------
+    # ------- Microsoft recommendation - 'No guidance' ------
   - !service: {name: 'wercplsupport', operation: change, startup: 4}
   - !service: {name: 'UCPD', operation: change, startup: 4}
 

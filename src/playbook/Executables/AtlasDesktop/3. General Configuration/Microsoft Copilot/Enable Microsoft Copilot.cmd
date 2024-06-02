@@ -11,8 +11,8 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-echo Please note that some regions or devices may not have Copilot avaliable.
-echo This means that the script can seem to 'not work', but it would do if it was avaliable.
+echo Please note that some regions or devices may not have Copilot available.
+echo This means that the script can seem to 'not work', but it would do if it was available.
 pause
 
 cls

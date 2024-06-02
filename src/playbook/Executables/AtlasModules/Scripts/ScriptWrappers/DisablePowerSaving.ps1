@@ -29,19 +29,19 @@ if (!(powercfg /l | Select-String "GUID: 11111111-1111-1111-1111-111111111111" -
 }
 powercfg /setactive 11111111-1111-1111-1111-111111111111
 powercfg /changename scheme_current "Atlas Power Scheme" "Power scheme optimized for optimal latency and performance."
-## Secondary NVMe Idle Timeout - 0 miliseconds
+## Secondary NVMe Idle Timeout - 0 milliseconds
 powercfg /setacvalueindex scheme_current 0012ee47-9041-4b5d-9b77-535fba8b1442 d3d55efd-c1ff-424e-9dc3-441be7833010 0
-## Primary NVMe Idle Timeout - 0 miliseconds
+## Primary NVMe Idle Timeout - 0 milliseconds
 powercfg /setacvalueindex scheme_current 0012ee47-9041-4b5d-9b77-535fba8b1442 d639518a-e56d-4345-8af2-b9f32fb26109 0
 ## NVME NOPPME - Off
 powercfg /setacvalueindex scheme_current 0012ee47-9041-4b5d-9b77-535fba8b1442 fc7372b6-ab2d-43ee-8797-15e9841f2cca 0
 ## Slide show - Paused
 powercfg /setacvalueindex scheme_current 0d7dbae2-4294-402a-ba8e-26777e8488cd 309dce9b-bef4-4119-9921-a851fb12f0f4 1
-## Hub Selective Suspend Timeout - 0 miliseconds
+## Hub Selective Suspend Timeout - 0 milliseconds
 powercfg /setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 0853a681-27c8-4100-a2fd-82013e970683 0
 ## USB selective suspend - Disabled
 powercfg /setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
-## USB 3 Link Power Mangement - Off
+## USB 3 Link Power Management - Off
 powercfg /setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 d4e98f31-5ffe-4ce1-be31-1b38b384c009 0
 ## Allow Throttle States - Off
 powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb 0
@@ -49,7 +49,7 @@ powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b
 powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 17aaa29b-8b43-4b94-aafe-35f64daaf1ee 0
 ## Turn off display after - 0 seconds
 powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e 0
-## Processor performance time check interval - 200 miliseconds
+## Processor performance time check interval - 200 milliseconds
 ## Reduces DPCs, can be set all the way to 5000ms for statically clocked systems
 powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 4d2b0152-7d5c-498b-88e2-34345392a2c5 200
 # Set the active scheme as the current scheme

@@ -1,5 +1,5 @@
 ---
-title: Diasble Low Disk Space Checks
+title: Disable Low Disk Space Checks
 description: DIsables low disk space checks, meaning that there will not be a low disk space warning for QoL
 actions:
   - !registryValue:

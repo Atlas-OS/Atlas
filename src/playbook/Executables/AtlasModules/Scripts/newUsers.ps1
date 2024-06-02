@@ -49,7 +49,7 @@ reg import "$atlasDesktop\3. General Configuration\Network Discovery\Network Nav
 # Set visual effects
 & "$atlasDesktop\4. Interface Tweaks\Visual Effects\Atlas Visual Effects (default).cmd" /silent
 
-# Pin 'Videos' and 'Music' folders to Home/Quick Acesss
+# Pin 'Videos' and 'Music' folders to Home/Quick Access
 $o = new-object -com shell.application
 $currentPins = $o.Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}').Items() | ForEach-Object { $_.Path }
 foreach ($path in @(

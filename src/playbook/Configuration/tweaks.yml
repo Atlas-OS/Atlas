@@ -133,7 +133,7 @@ tasks:
   #
   # QoL stands for Quality of Life, and are general
   # modifications designed for making Windows easier and
-  # more pleasent to use for more advanced general users.
+  # more pleasant to use for more advanced general users.
   #
   # QoL tweaks can be anything, but they are mostly to do
   # with modifying the graphical user interface (GUI).
@@ -306,7 +306,7 @@ tasks:
   # >>> Description <<<
   #
   # Tweaks for debloating Windows, which could be for
-  # storage space or convienience.
+  # storage space or convenience.
   # -----------------------------------------------------
   - tweaks\statuses\status-debloat.yml
   - tweaks\debloat\config-content-delivery.yml

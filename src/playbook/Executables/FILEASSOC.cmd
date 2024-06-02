@@ -37,7 +37,7 @@ if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociati
 if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%"
 if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 
-:: Set 7-Zip assocations
+:: Set 7-Zip associations
 call :7ZIPSYSTEM
 
 :: Make a temporary renamed PowerShell executable to bypass UCPD
