@@ -1,8 +1,0 @@
----
-title: Final Tweaks
-description: Runs any tweaks that are miscellaneous but need more advanced scripting features
-actions:
-  - !powerShell:
-    command: '.\FINALIZE.ps1'
-    exeDir: true
-    wait: true

@@ -332,7 +332,6 @@ tasks:
   - tweaks\scripts\script-mitigations.yml
   - tweaks\scripts\script-devices.yml
   - tweaks\scripts\script-pfp.yml
-  - tweaks\scripts\script-finalize.yml
   - tweaks\scripts\script-backup2.yml
   - tweaks\scripts\script-clientcbs.yml
 
