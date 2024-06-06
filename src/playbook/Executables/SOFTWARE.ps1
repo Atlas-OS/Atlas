@@ -49,7 +49,7 @@ if ($Firefox) {
 	Write-Output "Downloading Firefox..."
 	& curl.exe -LSs "https://download.mozilla.org/?product=firefox-latest-ssl&os=$firefoxArch&lang=en-US" -o "$tempDir\firefox.exe"
 	Write-Output "Installing Firefox..."
-	Start-Process -FilePath "$tempDir\firefox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait | Out-Null
+	Start-Process -FilePath "$tempDir\firefox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait
 	exit
 }
 
@@ -59,7 +59,7 @@ if ($Chrome) {
 	$chromeArch = ('64', '_Arm64')[$arm]
 	& curl.exe -LSs "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise$chromeArch.msi" -o "$tempDir\chrome.msi"
 	Write-Output "Installing Google Chrome..."
-	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait | Out-Null
+	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait
 	exit
 }
 
@@ -119,21 +119,74 @@ foreach ($a in $vcredists.GetEnumerator()) {
 	}
 }
 
-# 7-Zip
-$website = 'https://7-zip.org/'
-$7zipArch = ('x64', 'arm64')[$arm]
-$download = $website + ((Invoke-WebRequest $website -UseBasicParsing).Links.href | Where-Object { $_ -like "a/7z*-$7zipArch.exe" })
-Write-Output "Downloading 7-Zip..."
-& curl.exe -LSs $download -o "$tempDir\7zip.exe"
-Write-Output "Installing 7-Zip..."
-Start-Process -FilePath "$tempDir\7zip.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait | Out-Null
+# NanaZip
+function Install7Zip {
+	$website = 'https://7-zip.org/'
+	$7zipArch = ('x64', 'arm64')[$arm]
+	$download = $website + ((Invoke-WebRequest $website -UseBasicParsing).Links.href | Where-Object { $_ -like "a/7z*-$7zipArch.exe" })
+	Write-Output "Downloading 7-Zip..."
+	& curl.exe -LSs $download -o "$tempDir\7zip.exe"
+	Write-Output "Installing 7-Zip..."
+	Start-Process -FilePath "$tempDir\7zip.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait
+}
+
+$githubApi = Invoke-RestMethod "https://api.github.com/repos/M2Team/NanaZip/releases/latest" -EA 0
+$assets = $githubApi.Assets.browser_download_url | Select-String ".xml", ".msixbundle" | Select-Object -Unique -First 2
+function InstallNanaZip {
+	Write-Output "Downloading NanaZip..."	
+	$path = New-Item "$tempDir\nanazip-$(New-Guid)" -ItemType Directory
+	$assets | ForEach-Object {
+		$filename = $_ -split '/' | Select-Object -Last 1
+		Write-Output "Downloading '$filename'..."
+		& curl.exe -LSs $_ -o "$path\$filename"
+	}
+
+	Write-Output "Installing NanaZip..."	
+	try {
+		$appxArgs = @{
+			"PackagePath" = (Get-ChildItem $path -Filter "*.msixbundle" | Select-Object -First 1).FullName
+			"LicensePath" = (Get-ChildItem $path -Filter "*.xml" | Select-Object -First 1).FullName
+		}
+		Add-AppxProvisionedPackage -Online @appxArgs | Out-Null
+		
+		Write-Output "Installed NanaZip!"
+	} catch {
+		Write-Error "Failed to install NanaZip! Getting 7-Zip instead. $_"
+		Install7Zip
+	}
+}
+
+if ($assets.Count -eq 2) {
+	$7zipRegistry = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip"
+	if (Test-Path $7zipRegistry) {
+		$WindowTitle = 'Installing NanaZip - Atlas'
+	
+		$Message = @'
+Would you like to uninstall 7-Zip and replace it with NanaZip?
+
+NanaZip is a fork of 7-Zip with an updated user interface and extra features.
+'@
+	
+		if ((New-Object -ComObject "Wscript.Shell").Popup($Message,300,$WindowTitle,4+32+4096) -eq 6) {
+			$7zipUninstall = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip" -Name "QuietUninstallString" -EA 0).QuietUninstallString
+			Write-Output "Uninstalling 7-Zip..."
+			Start-Process -FilePath "cmd" -WindowStyle Hidden -ArgumentList "/c $7zipUninstall" -Wait
+			InstallNanaZip
+		}
+	} else {
+		InstallNanaZip
+	}
+} else {
+	Write-Error "Can't access GitHub API, downloading 7-Zip instead of NanaZip."
+	Install7Zip
+}
 
 # Legacy DirectX runtimes
 & curl.exe -LSs "https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe" -o "$tempDir\directx.exe"
 Write-Output "Extracting legacy DirectX runtimes..."
-Start-Process -FilePath "$tempDir\directx.exe" -WindowStyle Hidden -ArgumentList "/q /c /t:`"$tempDir\directx`"" -Wait | Out-Null
+Start-Process -FilePath "$tempDir\directx.exe" -WindowStyle Hidden -ArgumentList "/q /c /t:`"$tempDir\directx`"" -Wait
 Write-Output "Installing legacy DirectX runtimes..."
-Start-Process -FilePath "$tempDir\directx\dxsetup.exe" -WindowStyle Hidden -ArgumentList '/silent' -Wait | Out-Null
+Start-Process -FilePath "$tempDir\directx\dxsetup.exe" -WindowStyle Hidden -ArgumentList '/silent' -Wait
 
 # Remove temporary directory
 Pop-Location
