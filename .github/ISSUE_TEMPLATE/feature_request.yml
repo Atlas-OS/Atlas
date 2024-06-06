@@ -3,16 +3,20 @@ description: Create a feature request to help us improve Atlas.
 labels: enhancement
 title: "[FEATURE] - "
 body:
-  - type: markdown
+  - type: checkboxes
     attributes:
-      value: |
-       Before submitting an feature request, please ensure you have completed the following steps:
-       - The request you submit is related to the Atlas Playbook. If not, request it in our [forum](https://forum.atlasos.net/t/general)
-       - Searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already
-       - Confirmed that your issue is not a support request
-       - Confirmed that your idea is not already in the latest version of Atlas
+      label: Before continuing...
+      description: Please ensure you meet the following criteria. If not, the maintainers reserve the right to close and lock your issue.
+      options:
+        - label: "I agree to follow Atlas' [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
+          required: true
+        - label: "I have searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already"
+          required: true
+        - label: "I have searched the [Atlas documentation](https://docs.atlasos.net) beforehand for a solution"
+          required: true
+        - label: "I am on the latest version of Atlas, and didn't do an unsupported upgrade"
+          required: true
 
-       Please note, by submitting an issue, you acknowledge that if the above steps have not been followed, the maintainers reserve the right to close and lock your issue without further response.
   - type: dropdown
     attributes:
       label: What is your feature request regarding to?

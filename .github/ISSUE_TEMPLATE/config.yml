@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Report Issue about Atlas Documentation
+  - name: Report an issue about the Atlas Documentation
     url: https://github.com/Atlas-OS/docs/issues/
-    about: Report all Documentation issues in our Documentation repository issue tracker.
-  - name: Report an issue (non-Atlas related issue)
+    about: Report all documentation issues in our 'docs' repository issue tracker.
+  - name: Report a non-Atlas related issue
     url: https://forum.atlasos.net/t/atlas-bug-report
-    about: Please report any non-Atlas Playbook related issue in the ``Bug Report`` section on our Forum (Website, Discord bot, etc.).
+    about: Please report any non-Atlas Playbook related issue in the 'Bug Report' section on our forum (website, Discord bot, etc.).

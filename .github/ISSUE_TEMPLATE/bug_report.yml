@@ -3,15 +3,20 @@ description: Create a bug report to help us improve Atlas.
 labels: bug
 title: "[BUG] - "
 body:
-  - type: markdown
+  - type: checkboxes
     attributes:
-      value: |
-       Before submitting an issue, please ensure you have completed the following steps:
-       - Searched our [documentation](https://docs.atlasos.net)
-       - Searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already
-       - Confirmed that you are on the latest version of Atlas
+      label: Before continuing...
+      description: Please ensure you meet the following criteria. If not, the maintainers reserve the right to close and lock your issue.
+      options:
+        - label: "I agree to follow Atlas' [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
+          required: true
+        - label: "I have searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already"
+          required: true
+        - label: "I have searched the [Atlas documentation](https://docs.atlasos.net) beforehand for a solution"
+          required: true
+        - label: "I am on the latest version of Atlas, and didn't do an unsupported upgrade"
+          required: true
 
-       Please note, by submitting an issue, you acknowledge that if the above steps have not been followed, the maintainers reserve the right to close and lock your issue without further response.
   - type: textarea
     attributes:
       label: Description
