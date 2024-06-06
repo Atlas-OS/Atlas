@@ -11,17 +11,21 @@ playbook:
 - src/**/*
 
 appx:
-- src/Configuration/features/atlas/appx.yml
+- src/Configuration/atlas/appx.yml
 
 components:
-- src/Configuration/features/atlas/components.yml
-- src/Configuration/features/atlas/packages.yml
+- src/Configuration/atlas/components.yml
+- src/Configuration/atlas/packages.yml
 
 config:
-- src/Configuration/features/atlas/config.yml
+- src/Configuration/atlas/config.yml
 
 services:
-- src/Configuration/features/atlas/services.yml
+- src/Configuration/atlas/services.yml
+
+tweaks:
+- src/Configuration/tweaks.yml
+- src/Configuration/tweaks/**/*
 
 desktop folder:
-- src/Executables/Atlas/**/*
+- src/Executables/AtlasDesktop/**/*
