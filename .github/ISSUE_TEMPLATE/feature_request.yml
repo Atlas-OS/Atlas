@@ -1,6 +1,7 @@
 name: Feature request
 description: Create a feature request to help us improve Atlas.
-labels: enhancement
+labels:
+- enhancement
 title: "[FEATURE] - "
 body:
   - type: checkboxes
@@ -53,4 +54,3 @@ body:
     attributes:
       label: Additional context.
       description: Add any other context or screenshots about the feature request here.
-    validations:

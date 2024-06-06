@@ -1,6 +1,7 @@
 name: Bug report
 description: Create a bug report to help us improve Atlas.
-labels: bug
+labels: 
+- bug
 title: "[BUG] - "
 body:
   - type: checkboxes
@@ -74,4 +75,3 @@ body:
     attributes:
       label: Additional content
       description: Anything you want to add.
-    validations:
