@@ -9,7 +9,7 @@ env:
   SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
 
 jobs:
-  package-build:
+  build:
     runs-on: windows-latest
 
     steps:
@@ -105,44 +105,23 @@ jobs:
         working-directory: src\playbook\Executables\AtlasModules\Packages
         if: env.runSxsc == 'true'
 
-  build:
-    needs: package-build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
       - name: Validate YAML files
         run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/playbook/.'
 
-      - name: Configure playbook
-        id: config-playbook
+      - name: Create playbook (ZIP/APBX password is malte)
+        id: create-pb
         if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
         run: |
-          cd src/playbook
-          echo "Making playbook display as unverified (remove ProductCode) so that it is not marked as malicious..."
-          sed -i '/<ProductCode>/d' playbook.conf
-          echo "Change description of playbook..."
-          sed -i 's|<Description>.*<\/Description>|<Description>Experimental testing version of the Atlas Playbook, built with GitHub Actions from commit ${{ github.sha }}. Be aware of these builds being potentially unstable and buggy!</Description>|g' playbook.conf
-          cd Configuration
-          echo "Enabling AME Wizard Live Log..."
-          sed -i '7s/ #//' custom.yml
-      
-      - name: Create playbook (ZIP/APBX password is malte)
-        if: ${{ steps.config-playbook.outcome != 'skipped' }}
-        run: |
-          cd src/playbook
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
-          zip -r -P malte "Atlas Playbook ${GITHUB_SHA::8}.apbx" . -x "local-build.cmd"
-          echo "Move the .abpx playbook into the 'Release ZIP' to be released as an artifact with the additional files..."
-          mv "Atlas Playbook ${GITHUB_SHA::8}.apbx" "../release-zip"
+          $pbName = "Atlas Playbook $($env:GITHUB_SHA.Substring(0,8)).apbx"
+          & ..\local-build.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName
+          echo "Move the .abpx playbook into 'Release ZIP' to be released as an artifact with the additional files..."
+          Move-Item $pbName "../release-zip"
+        working-directory: src\playbook
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
-        if: ${{ steps.config-playbook.outcome != 'skipped' }}
+        if: ${{ steps.create-pb.outcome != 'skipped' }}
         with:
           name: Atlas Playbook
           path: |

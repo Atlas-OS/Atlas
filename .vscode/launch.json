@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "Build Playbook (Test)",
+            "script": "& '${workspaceFolder}/src/local-build.ps1' -AddLiveLog -ReplaceOldPlaybook -Removals WinverRequirement, Verification",
+            "cwd": "${workspaceFolder}/src/playbook",
+            "args": []
+        },
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "Build Playbook (Test w/o deps)",
+            "script": "& '${workspaceFolder}/src/local-build.ps1' -AddLiveLog -ReplaceOldPlaybook -Removals Dependencies, WinverRequirement, Verification",
+            "cwd": "${workspaceFolder}/src/playbook",
+            "args": []
+        },
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "Build Playbook (Release)",
+            "script": "& '${workspaceFolder}/src/local-build.ps1'",
+            "cwd": "${workspaceFolder}/src/playbook",
+            "args": []
+        }
+    ]
+}
