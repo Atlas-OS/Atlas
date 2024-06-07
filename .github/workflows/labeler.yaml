@@ -6,8 +6,8 @@ on:
 jobs:
   filter:
     permissions:
-        contents: read
-        pull-requests: write
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/labeler@v4
+    - uses: actions/labeler@v4
