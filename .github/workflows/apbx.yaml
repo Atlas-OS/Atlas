@@ -106,7 +106,7 @@ jobs:
         if: env.runSxsc == 'true'
 
       - name: Validate YAML files
-        run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable}}" src/playbook/.'
+        run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable, new-lines: {type: platform}}}" src\playbook\.'
 
       - name: Create playbook (ZIP/APBX password is malte)
         id: create-pb
