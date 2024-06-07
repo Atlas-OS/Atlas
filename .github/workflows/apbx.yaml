@@ -3,8 +3,9 @@ name: Create and Validate Atlas Playbook
 on:
   push:
     paths:
-      - "src/**"
-      - ".github/workflows/apbx.yaml"
+      - "src/playbook/**"
+      - "**/*.yaml"
+      - "**/*.yml"
 
 env:
   SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
@@ -19,6 +20,9 @@ jobs:
         with:
           ref: ${{ github.ref }}
           token: ${{ secrets.RUNNER_SECRET }}
+
+      - name: Validate YAML files
+        run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable, new-lines: {type: platform}}}" .'
 
       - name: Get changed files
         id: changed-files
@@ -105,9 +109,6 @@ jobs:
           git push
         working-directory: src\playbook\Executables\AtlasModules\Packages
         if: env.runSxsc == 'true'
-
-      - name: Validate YAML files
-        run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable, new-lines: {type: platform}}}" .'
 
       - name: Create playbook (ZIP/APBX password is malte)
         id: create-pb
