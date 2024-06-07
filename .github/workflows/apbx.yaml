@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "src/**"
+      - ".github/workflows/apbx.yaml"
 
 env:
   SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
@@ -113,10 +114,10 @@ jobs:
         if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
         run: |
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
-          $pbName = "Atlas Playbook $($env:GITHUB_SHA.Substring(0,8)).apbx"
+          $pbName = "Atlas Playbook $($env:GITHUB_SHA.Substring(0,8))"
           & ..\local-build.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName
           echo "Move the .abpx playbook into 'Release ZIP' to be released as an artifact with the additional files..."
-          Move-Item $pbName "../release-zip"
+          Move-Item "$pbName.apbx" "../release-zip"
         working-directory: src\playbook
 
       - name: Upload artifact
