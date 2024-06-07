@@ -1,6 +1,6 @@
 ---
 title: Root Playbook File
-description: Runs all of the playbook files
+description: Runs all of the Playbook files
 actions:
     # Check various conditions to see if the user should run Atlas or not
   - !powerShell:
