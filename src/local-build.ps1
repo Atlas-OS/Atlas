@@ -83,7 +83,7 @@ try {
 
 			$actionsIndex = $customYml.IndexOf('actions:')
 			$newCustomYml = $customYml[0..$actionsIndex] + `
-				"  - !powerShell: {command: 'gc -Wait Logs\TIOutput.txt -EA 0 | Write-Output; pause', baseDir: true, wait: false}" + `
+				"  - !cmd: {command: 'start `"AME Wizard Live Log`" PowerShell -NoP -C `"gc -Wait ..\..\..\Logs\TIOutput.txt -EA 0 | Write-Output; pause`"', exeDir: true}" + `
 				$customYml[($actionsIndex + 1)..($customYml.Count)]
 
 			Set-Content -Path $tempCustomYmlPath -Value $newCustomYml
