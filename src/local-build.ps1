@@ -34,8 +34,7 @@ if (!(Test-Path playbook.conf -PathType Leaf)) {
 # check if old files are in use
 $apbxFileName = "$fileName.apbx"
 function GetNewName {
-	$num = 1
-	while (Test-Path -Path "$fileName ($num).apbx") {
+	while (Test-Path -Path $apbxFileName) {
 		$num++
 		$script:apbxFileName = "$fileName ($num).abpx"
 	}
@@ -52,7 +51,7 @@ if ($replaceOldPlaybook -and (Test-Path -Path $apbxFileName)) {
 } elseif (Test-Path -Path $apbxFileName) {
 	GetNewName
 }
-$apbxPath = "$PWD\$fileName.apbx"
+$apbxPath = "$PWD\$apbxFileName"
 
 # make temp directories
 $rootTemp = New-Item (Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $([System.Guid]::NewGuid())) -ItemType Directory -Force
