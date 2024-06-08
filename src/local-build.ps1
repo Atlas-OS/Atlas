@@ -2,6 +2,7 @@ param (
 	[switch]$AddLiveLog,
 	[switch]$ReplaceOldPlaybook,
 	[switch]$DontOpenPbLocation,
+	[switch]$NoPassword,
 	[ValidateSet('Dependencies', 'Requirements', 'WinverRequirement', 'Verification', IgnoreCase = $true)]
 	[array]$Removals,
 	[string]$FileName = "Atlas Test"
@@ -121,11 +122,12 @@ try {
 	$files = "$rootTemp\7zFiles.txt"
 	(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName | Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File $files -Encoding utf8
 
-	& $7zPath a -spf -y -mx1 -tzip "$apbxPath" `@"$files" | Out-Null
+	if (!$NoPassword) { $pass = '-p"malte"' }
+	& $7zPath a -spf -y -mx1 $pass -tzip "$apbxPath" `@"$files" | Out-Null
 	# add edited files
 	if (Test-Path "$playbookTemp\*.*") {
 		Push-Location "$playbookTemp"
-		& $7zPath u "$apbxPath" * | Out-Null
+		& $7zPath u $pass "$apbxPath" * | Out-Null
 		Pop-Location
 	}
 
