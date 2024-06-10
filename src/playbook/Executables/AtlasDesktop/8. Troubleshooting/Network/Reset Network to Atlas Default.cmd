@@ -14,7 +14,7 @@ fltmc > nul 2>&1 || (
 echo Setting network settings to Atlas defaults...
 
 :: Set network adapter driver registry key
-for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
+for /f "usebackq" %%a in (`powershell -NonI -NoP -C "(Get-CimInstance Win32_NetworkAdapter).PNPDeviceID | sls 'PCI\\VEN_'"`) do (
 	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver"') do ( 
         set "netKey=HKLM\SYSTEM\CurrentControlSet\Control\Class\%%b"
     ) > nul 2>&1

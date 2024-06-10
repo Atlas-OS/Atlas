@@ -315,17 +315,17 @@ updates:
             value: 'Off'
         # Disable SmartScreen for Edge
       - key_name: >-
-          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter
-        perUserVirtualization: false
-        values:
-          - key: EnabledV9
-            type: REG_DWORD
-            value: 0
-      - key_name: >-
           HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge
         perUserVirtualization: false
         values:
           - key: SmartScreenEnabled
+            type: REG_DWORD
+            value: 0
+      - key_name: >-
+          HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter
+        perUserVirtualization: false
+        values:
+          - key: EnabledV9
             type: REG_DWORD
             value: 0
         # Disable 'Open file - Security Warning' Message

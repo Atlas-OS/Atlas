@@ -1,9 +1,8 @@
 @echo off
 
 :: Check if hyper threading is enabled
-for /f "tokens=2 delims==" %%a in ('wmic cpu get NumberOfCores /value') do set "PHYSICAL_CORES=%%a"
-for /f "tokens=2 delims==" %%a in ('wmic cpu get NumberOfLogicalProcessors /value') do set "LOGICAL_CORES=%%a"
-if "%LOGICAL_CORES%" GTR "%PHYSICAL_CORES%" goto :hyperThreading
+powershell -NonI -NoP -C "$proc = Get-CimInstance Win32_Processor; if ([int]$proc.NumberOfLogicalProcessors -gt [int]$proc.NumberOfCores) { exit 262 }"
+if "%errorlevel%"=="262" goto :hyperThreading
 
 if "%~1" neq "/silent" (
     echo This forces your CPU to work at its maximum speed always, ensure you have good cooling.

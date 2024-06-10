@@ -1,11 +1,7 @@
 ---
 title: Root Playbook File
-description: Runs all of the playbook files
+description: Runs all of the Playbook files
 actions:
-    # AME Wizard Live Log for development playbooks
-    # Do not change the line position of this, otherwise things will break when using local-build
-  # - !run: {exe: 'cmd.exe', args: '/c start "AME Wizard Live Log" PowerShell -NoP -C "gc -Wait Logs\TIOutput.txt -EA SilentlyContinue | Write-Output; pause"', baseDir: true, wait: false}
-
     # Check various conditions to see if the user should run Atlas or not
   - !powerShell:
     command: '.\UPGRADECHECK.ps1'

@@ -13,4 +13,7 @@
         "!powerShell: mapping",
         "!writeStatus: mapping"
     ],
+    "files.associations": {
+        "playbook.conf": "xml"
+    }
 }

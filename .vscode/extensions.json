@@ -1,0 +1,8 @@
+{
+	"recommendations": [
+		"ms-vscode.powershell",
+		"ionutvmi.reg",
+		"redhat.vscode-xml",
+		"redhat.vscode-yaml"
+	]
+}
