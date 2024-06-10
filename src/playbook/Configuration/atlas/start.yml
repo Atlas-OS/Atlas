@@ -26,7 +26,7 @@ actions:
       };
 
       $modulesPath = """$([Environment]::GetFolderPath('Windows'))\AtlasModules""";
-      Add-ToPath """$modulesPath""", """$modulesPath\Apps""", """$modulesPath\Other""", """$modulesPath\Tools""", """$modulesPath\Scripts""";
+      Add-ToPath """$modulesPath""", """$modulesPath\Tools""", """$modulesPath\Scripts""";
 
   ################ NO LOCAL BUILD ################
 
