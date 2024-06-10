@@ -122,7 +122,7 @@ try {
 	$files = "$rootTemp\7zFiles.txt"
 	(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName | Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File $files -Encoding utf8
 
-	if (!$NoPassword) { $pass = '-p"malte"' }
+	if (!$NoPassword) { $pass = '-pmalte' }
 	& $7zPath a -spf -y -mx1 $pass -tzip "$apbxPath" `@"$files" | Out-Null
 	# add edited files
 	if (Test-Path "$playbookTemp\*.*") {
