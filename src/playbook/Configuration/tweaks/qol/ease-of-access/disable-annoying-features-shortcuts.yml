@@ -27,3 +27,22 @@ actions:
     value: 'Flags'
     data: '0'
     type: REG_DWORD
+
+    # Disable langunage bar shortcuts
+  - !registryKey:
+    path: 'HKCU\Control Panel\Input Method\Hot Keys\00000104'
+  - !registryValue:
+    path: 'HKCU\Keyboard Layout\Toggle'
+    value: 'Layout Hotkey'
+    data: '3'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Keyboard Layout\Toggle'
+    value: 'Language Hotkey'
+    data: '3'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Keyboard Layout\Toggle'
+    value: 'Hotkey'
+    data: '3'
+    type: REG_DWORD
