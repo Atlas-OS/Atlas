@@ -28,7 +28,7 @@ actions:
     data: '0'
     type: REG_DWORD
 
-    # Disable langunage bar shortcuts
+    # Disable language bar shortcuts
   - !registryKey:
     path: 'HKCU\Control Panel\Input Method\Hot Keys\00000104'
   - !registryValue:
