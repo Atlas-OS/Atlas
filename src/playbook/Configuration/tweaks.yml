@@ -252,7 +252,6 @@ tasks:
   - tweaks\qol\shell\show-more-pins.yml
   - tweaks\qol\shell\no-recommendations-start-menu.yml
   - tweaks\qol\shell\disable-nearby-sharing.yml
-  - tweaks\qol\shell\disallow-edge-swipe.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\startup-shutdown                                                      #
