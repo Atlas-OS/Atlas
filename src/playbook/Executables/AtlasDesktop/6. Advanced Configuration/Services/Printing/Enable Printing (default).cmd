@@ -1,6 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+if "%~1"=="/silent" goto main
+
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
@@ -12,6 +14,7 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
+:main
 echo Enabling printing...
 echo]
 
@@ -73,6 +76,8 @@ for %%a in (
 ) do (
     dism /Online /Enable-Feature /FeatureName:"%%a" /NoRestart > nul
 )
+
+if "%~1"=="/silent" exit /b
 
 echo]
 echo Finished, please reboot your device for changes to apply.

@@ -1,5 +1,7 @@
 @echo off
 
+if "%~1"=="/silent" goto main
+
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
@@ -11,8 +13,10 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
+:main
 :: check if the service exists
 reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1 || (
+	if "%~1"=="/silent" exit /b
     echo The context menu does not exist, thus you cannot continue.
     echo]
     pause
@@ -27,6 +31,8 @@ reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul 2>&1
 :: delete icon exe
 taskkill /f /im explorer.exe > nul 2>&1
 start explorer.exe
+
+if "%~1"=="/silent" exit /b
 
 echo Finished, changes have been applied.
 pause

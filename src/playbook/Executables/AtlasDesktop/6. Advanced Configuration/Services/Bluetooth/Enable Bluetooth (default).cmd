@@ -1,5 +1,7 @@
 @echo off
 
+if "%~1"=="/silent" goto main
+
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
@@ -11,6 +13,7 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
+:main
 :: Enable Bluetooth drivers and services
 for %%a in (
 	"BluetoothUserService"
@@ -40,6 +43,8 @@ call toggleDev.cmd -Silent -Enable '*Bluetooth*'
 
 :: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-connectivity
 reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth" /v "value" /t REG_DWORD /d "2" /f > nul
+
+if "%~1"=="/silent" exit /b
 
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
 if %ERRORLEVEL% == 1 call "%windir%\AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Enable @('Bluetooth')
