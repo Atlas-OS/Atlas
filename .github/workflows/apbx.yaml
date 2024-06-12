@@ -117,7 +117,7 @@ jobs:
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
           $pbName = "Atlas Playbook $($env:GITHUB_SHA.Substring(0,8))"
           & ..\local-build.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName
-          echo "Move the .abpx playbook into 'Release ZIP' to be released as an artifact with the additional files..."
+          echo "Move the .apbx playbook into 'Release ZIP' to be released as an artifact with the additional files..."
           Move-Item "$pbName.apbx" "../release-zip"
         working-directory: src\playbook
 
