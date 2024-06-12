@@ -1,8 +1,0 @@
----
-title: Disallow Edge Swipe
-description: Disallows the ability to swipe from the edge of the screen, e.g., when in a fullscreen UWP app, the titlebar won't show when you put your mouse to the top of the screen. This can be useful for games.
-actions:
-  - !cmd:
-    command: 'reg import "AtlasDesktop\4. Interface Tweaks\Edge Swipe\Disallow Edge Swipe (default).reg"'
-    exeDir: true
-    wait: true
