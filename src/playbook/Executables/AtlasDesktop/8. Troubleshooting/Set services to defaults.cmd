@@ -37,7 +37,7 @@ if exist "%winServices%" (
 %title% "Finished."
 if "%~1"=="/silent" exit /b
 choice /c:yn /n /m "Would you like to restart? [Y/N] "
-if "%errorlevel%"==1 shutdown /r /t 0
+if "%errorlevel%"=="1" shutdown /r /t 0
 exit /b
 
 :fullRestore
