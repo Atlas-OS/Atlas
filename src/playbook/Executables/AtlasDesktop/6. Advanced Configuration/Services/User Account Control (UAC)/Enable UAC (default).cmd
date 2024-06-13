@@ -15,6 +15,13 @@ fltmc > nul 2>&1 || (
 )
 
 :main
+call setSvc.cmd luafv 2
+
+:: Unlock UserAccountControlSettings.exe
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /f > nul 2>&1
+
+if /i "%~1" == "/silent" exit /b
+
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "ConsentPromptBehaviorAdmin" /t REG_DWORD /d "5" /f > nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableInstallerDetection" /t REG_DWORD /d "1" /f > nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "EnableLUA" /t REG_DWORD /d "1" /f > nul
@@ -25,13 +32,6 @@ choice /c:yn /n /m "Would you like to have UAC not dim your desktop? You can cha
 if %ERRORLEVEL% == 1 (
 	reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "PromptOnSecureDesktop" /t REG_DWORD /d "0" /f > nul
 )
-
-:: Unlock UserAccountControlSettings.exe
-reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\UserAccountControlSettings.exe" /v "Debugger" /f > nul 2>&1
-
-call setSvc.cmd luafv 2
-
-if /i "%~1" == "/silent" exit /b
 
 echo]
 echo Finished, please reboot your device for changes to apply.
