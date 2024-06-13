@@ -37,7 +37,7 @@ $apbxFileName = "$fileName.apbx"
 function GetNewName {
 	while (Test-Path -Path $apbxFileName) {
 		$num++
-		$script:apbxFileName = "$fileName ($num).abpx"
+		$script:apbxFileName = "$fileName ($num).apbx"
 	}
 }
 if ($replaceOldPlaybook -and (Test-Path -Path $apbxFileName)) {
