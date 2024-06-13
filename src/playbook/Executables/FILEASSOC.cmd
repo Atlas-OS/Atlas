@@ -36,10 +36,10 @@ if "%~1" == "Brave" set "associations=%baseAssociations% %braveAssociations%"
 if "%~1" == "LibreWolf" set "associations=%baseAssociations% %libreWolfAssociations%"
 if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%"
 if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
-if exist "%ProgramFiles%\7-Zip\7zFM.exe" set 7zip=y
+if exist "%ProgramFiles%\7-Zip\7zFM.exe" set sevenZip=y
 
 :: Set 7-Zip assocations
-if "%7zip%"=="y" call :7ZIPSYSTEM
+if "%sevenZip%"=="y" call :7ZIPSYSTEM
 
 :: Make a temporary renamed PowerShell executable to bypass UCPD
 :: https://hitco.at/blog/windows-userchoice-protection-driver-ucpd/
@@ -53,7 +53,7 @@ copy /y "%powershellPath%" "%powershellTemp%" > nul
 for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"HKEY_USERS\\S-.*" /c:"HKEY_USERS\\AME_UserHive_[^_]*"`) do (
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Setting associations for "%%a"...
-        if "%7zip%"=="y" call :7ZIPUSER "%%a"
+        if "%sevenZip%"=="y" call :7ZIPUSER "%%a"
         "%powershellTemp%" -NoP -NonI -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
     )
 )
