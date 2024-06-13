@@ -242,7 +242,7 @@ tasks:
   #  qol\shell                                                                 #
   # -------------------------------------------------------------------------- #
   - tweaks\qol\shell\alt-tab-open-windows.yml
-  - tweaks\qol\shell\config-autorun-autoplay.yml
+  - tweaks\qol\shell\config-autorun.yml
   - tweaks\qol\shell\disable-aero-shake.yml
   - tweaks\qol\shell\disable-low-disk-warning.yml
   - tweaks\qol\shell\disable-menu-delay.yml
