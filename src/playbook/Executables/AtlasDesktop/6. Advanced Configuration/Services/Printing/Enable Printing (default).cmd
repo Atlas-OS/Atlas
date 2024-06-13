@@ -59,14 +59,6 @@ call setSvc.cmd PrintWorkFlowUserSvc 3
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide printers
 
-echo Enabling capabilities (this might take a while)...
-for %%a in (
-    "Print.Fax.Scan~~~~0.0.1.0"
-    "Print.Management.Console~~~~0.0.1.0"
-) do (
-    dism /Online /Add-Capability /CapabilityName:"%%a" /NoRestart > nul
-)
-
 echo Enabling features...
 for %%a in (
     "Printing-Foundation-Features"
@@ -77,7 +69,13 @@ for %%a in (
     dism /Online /Enable-Feature /FeatureName:"%%a" /NoRestart > nul
 )
 
+echo Enabling capabilities (this might take a while)...
+dism /Online /Add-Capability /CapabilityName:"Print.Management.Console~~~~0.0.1.0" /NoRestart > nul
+
 if "%~1"=="/silent" exit /b
+
+choice /c:yn /n /m "Would you want to enable Fax and Scan functionality? [Y/N] "
+if "%errorlevel%"=="1" dism /Online /Add-Capability /CapabilityName:"Print.Fax.Scan~~~~0.0.1.0" /NoRestart > nul
 
 echo]
 echo Finished, please reboot your device for changes to apply.

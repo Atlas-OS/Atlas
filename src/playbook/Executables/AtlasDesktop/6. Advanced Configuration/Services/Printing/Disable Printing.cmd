@@ -59,14 +59,6 @@ call "%windir%\AtlasModules\Scripts\setSvc.cmd" PrintWorkFlowUserSvc 4
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide printers
 
-echo Disabling capabilities...
-for %%a in (
-    "Print.Fax.Scan~~~~0.0.1.0"
-    "Print.Management.Console~~~~0.0.1.0"
-) do (
-    dism /Online /Remove-Capability /CapabilityName:"%%a" /NoRestart > nul
-)
-
 echo Disabling features...
 for %%a in (
     "Printing-Foundation-Features"
