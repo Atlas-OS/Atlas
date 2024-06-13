@@ -3,6 +3,9 @@ setlocal EnableDelayedExpansion
 
 if "%~1"=="/silent" goto main
 
+echo Enabling printing...
+echo]
+
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
@@ -14,9 +17,8 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-:main
-echo Enabling printing...
-echo]
+choice /c:yn /n /m "Would you like to add 'Print' to the context menu? [Y/N] "
+if "%errorlevel%" neq "1" goto :main
 
 echo Adding 'Print' to context menu...
 reg delete "HKCR\SystemFileAssociations\image\shell\print" /v "ProgrammaticAccessOnly" /f > nul 2>&1
@@ -53,6 +55,7 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     )
 )
 
+:main
 echo Enabling services...
 call setSvc.cmd Spooler 2
 call setSvc.cmd PrintWorkFlowUserSvc 3

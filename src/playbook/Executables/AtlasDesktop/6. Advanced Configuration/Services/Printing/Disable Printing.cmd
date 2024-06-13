@@ -2,6 +2,7 @@
 setlocal EnableDelayedExpansion
 
 if "%~1" == "/silent" goto main
+if "%~1" == "/justcontext" goto main
 
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
@@ -52,6 +53,8 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
         reg add "HKCR\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\PrintTo" /v "HideBasedOnVelocityId" /t REG_DWORD /d "6527944" /f > nul
     )
 )
+
+if "%~1" == "/justcontext" exit /b
 
 echo Disabling services...
 call "%windir%\AtlasModules\Scripts\setSvc.cmd" Spooler 4
