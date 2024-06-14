@@ -81,9 +81,17 @@ try {
 			Copy-Item -Path $customYmlPath -Destination $tempCustomYmlPath -Force
 			$customYml = Get-Content -Path $tempCustomYmlPath
 
+			$liveLogScript = {
+$a = Join-Path (Get-ChildItem (Join-Path $([Environment]::GetFolderPath('CommonApplicationData')) '\AME\Logs') -Directory |
+Sort-Object LastWriteTime -Descending |
+Select-Object -First 1).FullName '\OutputBuffer.txt';
+while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sleep 1 }
+}
+			[string]$liveLogText = ($liveLogScript -replace '"','"""' -replace "'","''").Trim() -replace "`r?`n", " "
+			
 			$actionsIndex = $customYml.IndexOf('actions:')
 			$newCustomYml = $customYml[0..$actionsIndex] + `
-				"  - !cmd: {command: 'start `"AME Wizard Live Log`" PowerShell -NoP -C `"gc -Wait ..\..\..\Logs\TIOutput.txt -EA 0 | Write-Output; pause`"', exeDir: true}" + `
+				"  - !cmd: {command: 'start `"AME Wizard Live Log`" PowerShell -NoP -C `"$liveLogText`"'}" + `
 				$customYml[($actionsIndex + 1)..($customYml.Count)]
 
 			Set-Content -Path $tempCustomYmlPath -Value $newCustomYml

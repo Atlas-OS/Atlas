@@ -1,5 +1,0 @@
----
-title: Status in AME Wizard for the Scripts Category
-description: Displays a status in AME Wizard for a specified category
-actions:
-  - !writeStatus: {status: 'Running scripts'}

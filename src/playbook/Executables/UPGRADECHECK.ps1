@@ -29,7 +29,7 @@ function KillAme {
     exit 1
 }
 
-$version = $version -replace '[^0-9]' -replace '^0+'
+$version = [int]($version -replace '[^0-9]' -replace '^0+')
 
 # Check if Atlas is installed
 $model = (Get-ItemProperty $oemInfo -Name "Model" -EA 0).Model
@@ -63,7 +63,7 @@ $guide
 }
 
 # Check if user is trying to downgrade
-if ($version -gt $installedVersion) {
+if ($installedVersion -gt $version) {
     @"
 You can't downgrade from your current version of Atlas to this older version.
 

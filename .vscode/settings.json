@@ -11,7 +11,8 @@
         "!systemPackage: mapping",
         "!cmd: mapping",
         "!powerShell: mapping",
-        "!writeStatus: mapping"
+        "!writeStatus: mapping",
+        "!task: mapping"
     ],
     "files.associations": {
         "playbook.conf": "xml"

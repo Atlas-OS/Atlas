@@ -51,25 +51,24 @@ actions:
       powercfg /x hibernate-timeout-ac 0;
       powercfg /x hibernate-timeout-dc 0;
 
-  - !writeStatus: {status: 'Optimizing PowerShell'}
-tasks:
   # Configure PowerShell first so that other PowerShell scripts work
   # NGEN - .NET assemblies PowerShell optimization
-  - tweaks\scripts\script-ngen.yml
-  - tweaks\qol\config-powershell.yml
+  - !writeStatus: {status: 'Optimizing PowerShell'}
+  - !task: {path: 'tweaks\scripts\script-ngen.yml'}
+  - !task: {path: 'tweaks\qol\config-powershell.yml'}
 
   # Cleanup script takes longer to finish so it has its own status
   # It's ran here as you can't check when cleanmgr is finished
-  - tweaks\statuses\status-cleanup.yml
-  - tweaks\scripts\script-cleanup.yml
+  - !writeStatus: {status: 'Cleaning up'}
+  - !task: {path: 'tweaks\scripts\script-cleanup.yml'}
 
   # Set hidden Settings pages
   # Done before everything else as scripts will overwrite it
-  - tweaks\qol\set-hidden-settings-pages.yml
+  - !task: {path: 'tweaks\qol\set-hidden-settings-pages.yml'}
 
   # Main tasks
-  - atlas\start.yml
-  - atlas\services.yml
-  - atlas\components.yml
-  - atlas\appx.yml
-  - tweaks.yml
+  - !task: {path: 'atlas\start.yml'}
+  - !task: {path: 'atlas\services.yml'}
+  - !task: {path: 'atlas\components.yml'}
+  - !task: {path: 'atlas\appx.yml'}
+  - !task: {path: 'tweaks.yml'}

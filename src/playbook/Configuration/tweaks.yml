@@ -1,8 +1,7 @@
 ---
 title: Tweaks Root Playbook File
 description: Runs all of the Atlas playbook tweaks
-actions: []
-tasks:
+actions:
   # ------------------------- NOTES ------------------------- #
 
   # - Each root folder has its own AME Wizard status
@@ -24,16 +23,16 @@ tasks:
   # Tweaks for modifying network settings, which can lead
   # to improving network performance, security, etc.
   # -----------------------------------------------------
-  - tweaks\statuses\status-networking.yml
-  - tweaks\networking\disable-llmnr.yml
-  - tweaks\networking\atlas-network-settings.yml
+  - !writeStatus: {status: 'Running networking tweaks'}
+  - !task: {path: 'tweaks\networking\disable-llmnr.yml'}
+  - !task: {path: 'tweaks\networking\atlas-network-settings.yml'}
 
   # -------------------------------------------------------------------------- #
   #  networking\shares                                                         #
   # -------------------------------------------------------------------------- #
-  - tweaks\networking\shares\restrict-anonymous-access.yml
-  - tweaks\networking\shares\restrict-anonymous-enumeration.yml
-  - tweaks\networking\shares\disable-smb-bandwidth-throttling.yml
+  - !task: {path: 'tweaks\networking\shares\restrict-anonymous-access.yml'}
+  - !task: {path: 'tweaks\networking\shares\restrict-anonymous-enumeration.yml'}
+  - !task: {path: 'tweaks\networking\shares\disable-smb-bandwidth-throttling.yml'}
 
 
 
@@ -45,25 +44,25 @@ tasks:
   # Tweaks for improving the performance of Windows, such as
   # responsiveness, latency, etc.
   # -----------------------------------------------------
-  - tweaks\statuses\status-performance.yml
-  - tweaks\performance\config-mmcss.yml
-  - tweaks\performance\disable-auto-folder-discovery.yml
-  # - tweaks\performance\disable-game-bar.yml
-  - tweaks\performance\config-automatic-maintenance.yml
-  - tweaks\performance\disable-background-apps.yml
-  - tweaks\performance\disable-fth.yml
-  - tweaks\performance\disable-sleep-study.yml
+  - !writeStatus: {status: 'Running performance tweaks'}
+  - !task: {path: 'tweaks\performance\config-mmcss.yml'}
+  - !task: {path: 'tweaks\performance\disable-auto-folder-discovery.yml'}
+  # - !task: {path: 'tweaks\performance\disable-game-bar.yml'}
+  - !task: {path: 'tweaks\performance\config-automatic-maintenance.yml'}
+  - !task: {path: 'tweaks\performance\disable-background-apps.yml'}
+  - !task: {path: 'tweaks\performance\disable-fth.yml'}
+  - !task: {path: 'tweaks\performance\disable-sleep-study.yml'}
 
 
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
   # -------------------------------------------------------------------------- #
-  - tweaks\performance\system\config-boot-config.yml
+  - !task: {path: 'tweaks\performance\system\config-boot-config.yml'}
   # Disabled as there's no evidence it helps (likely placebo)
-  # - tweaks\performance\system\disable-paging.yml
-  - tweaks\performance\system\optimize-ntfs.yml
-  - tweaks\performance\system\disable-service-host-split.yml
-  - tweaks\performance\system\win32-priority-seperation.yml
+  # - !task: {path: 'tweaks\performance\system\disable-paging.yml'}
+  - !task: {path: 'tweaks\performance\system\optimize-ntfs.yml'}
+  - !task: {path: 'tweaks\performance\system\disable-service-host-split.yml'}
+  - !task: {path: 'tweaks\performance\system\win32-priority-seperation.yml'}
 
 
 
@@ -78,52 +77,52 @@ tasks:
   # Also includes disabling features that are commonly
   # related to impacting privacy, like advertising.
   # -----------------------------------------------------
-  - tweaks\statuses\status-privacy.yml
-  - tweaks\privacy\config-app-permissions.yml
-  - tweaks\privacy\config-windows-media-player.yml
-  - tweaks\privacy\disable-activity-feed.yml
-  - tweaks\privacy\disable-app-launch-tracking.yml
-  - tweaks\privacy\disable-experimentation.yml
-  - tweaks\privacy\disable-location-tracking.yml
-  - tweaks\privacy\disable-lockscreen-camera.yml
-  - tweaks\privacy\disable-online-speech-recognition.yml
-  - tweaks\privacy\disable-pca.yml
-  - tweaks\privacy\disable-perf-track.yml
-  - tweaks\privacy\disable-privacy-experience.yml
-  - tweaks\privacy\disable-device-monitoring.yml
-  - tweaks\privacy\disable-rsop-logging.yml
-  - tweaks\privacy\disable-speech-auto-updates.yml
-  - tweaks\privacy\disable-tailored-experiences.yml
-  - tweaks\privacy\disable-user-tracking.yml
-  - tweaks\privacy\disable-web-lang-list-access.yml
-  - tweaks\privacy\disable-win-error-reporting.yml
-  - tweaks\privacy\disallow-ms-accounts.yml
-  - tweaks\privacy\disallow-user-activity-upload.yml
-  - tweaks\privacy\search-settings.yml
+  - !writeStatus: {status: 'Running privacy tweaks'}
+  - !task: {path: 'tweaks\privacy\config-app-permissions.yml'}
+  - !task: {path: 'tweaks\privacy\config-windows-media-player.yml'}
+  - !task: {path: 'tweaks\privacy\disable-activity-feed.yml'}
+  - !task: {path: 'tweaks\privacy\disable-app-launch-tracking.yml'}
+  - !task: {path: 'tweaks\privacy\disable-experimentation.yml'}
+  - !task: {path: 'tweaks\privacy\disable-location-tracking.yml'}
+  - !task: {path: 'tweaks\privacy\disable-lockscreen-camera.yml'}
+  - !task: {path: 'tweaks\privacy\disable-online-speech-recognition.yml'}
+  - !task: {path: 'tweaks\privacy\disable-pca.yml'}
+  - !task: {path: 'tweaks\privacy\disable-perf-track.yml'}
+  - !task: {path: 'tweaks\privacy\disable-privacy-experience.yml'}
+  - !task: {path: 'tweaks\privacy\disable-device-monitoring.yml'}
+  - !task: {path: 'tweaks\privacy\disable-rsop-logging.yml'}
+  - !task: {path: 'tweaks\privacy\disable-speech-auto-updates.yml'}
+  - !task: {path: 'tweaks\privacy\disable-tailored-experiences.yml'}
+  - !task: {path: 'tweaks\privacy\disable-user-tracking.yml'}
+  - !task: {path: 'tweaks\privacy\disable-web-lang-list-access.yml'}
+  - !task: {path: 'tweaks\privacy\disable-win-error-reporting.yml'}
+  - !task: {path: 'tweaks\privacy\disallow-ms-accounts.yml'}
+  - !task: {path: 'tweaks\privacy\disallow-user-activity-upload.yml'}
+  - !task: {path: 'tweaks\privacy\search-settings.yml'}
 
   # -------------------------------------------------------------------------- #
   #  privacy\advertising                                                       #
   # -------------------------------------------------------------------------- #
-  - tweaks\privacy\advertising\disable-advertising-info.yml
-  - tweaks\privacy\advertising\disable-bluetooth-advertising.yml
-  - tweaks\privacy\advertising\disable-sync-provider-notifs.yml
+  - !task: {path: 'tweaks\privacy\advertising\disable-advertising-info.yml'}
+  - !task: {path: 'tweaks\privacy\advertising\disable-bluetooth-advertising.yml'}
+  - !task: {path: 'tweaks\privacy\advertising\disable-sync-provider-notifs.yml'}
 
   # -------------------------------------------------------------------------- #
   #  privacy\cloud                                                             #
   # -------------------------------------------------------------------------- #
-  - tweaks\privacy\cloud\disable-setting-sync.yml
-  - tweaks\privacy\cloud\disable-suggest-ways-to-finish-setup.yml
-  - tweaks\privacy\cloud\disallow-message-cloud-sync.yml
+  - !task: {path: 'tweaks\privacy\cloud\disable-setting-sync.yml'}
+  - !task: {path: 'tweaks\privacy\cloud\disable-suggest-ways-to-finish-setup.yml'}
+  - !task: {path: 'tweaks\privacy\cloud\disallow-message-cloud-sync.yml'}
 
   # -------------------------------------------------------------------------- #
   #  privacy\telemetry                                                         #
   # -------------------------------------------------------------------------- #
-  - tweaks\privacy\telemetry\disable-activation-telemetry.yml
-  - tweaks\privacy\telemetry\disable-ceip.yml
-  - tweaks\privacy\telemetry\disable-diagnostic-tracing.yml
-  - tweaks\privacy\telemetry\disable-dotnet-cli-telemetry.yml
-  - tweaks\privacy\telemetry\disable-input-telemetry.yml
-  - tweaks\privacy\telemetry\disallow-data-collection.yml
+  - !task: {path: 'tweaks\privacy\telemetry\disable-activation-telemetry.yml'}
+  - !task: {path: 'tweaks\privacy\telemetry\disable-ceip.yml'}
+  - !task: {path: 'tweaks\privacy\telemetry\disable-diagnostic-tracing.yml'}
+  - !task: {path: 'tweaks\privacy\telemetry\disable-dotnet-cli-telemetry.yml'}
+  - !task: {path: 'tweaks\privacy\telemetry\disable-input-telemetry.yml'}
+  - !task: {path: 'tweaks\privacy\telemetry\disallow-data-collection.yml'}
 
 
 
@@ -139,150 +138,149 @@ tasks:
   # QoL tweaks can be anything, but they are mostly to do
   # with modifying the graphical user interface (GUI).
   # -----------------------------------------------------
-  - tweaks\statuses\status-qol.yml
-  - tweaks\qol\best-wallpaper-quality.yml
-  - tweaks\qol\config-start-menu.yml
-  - tweaks\qol\config-windows-ink-workspace.yml
-  - tweaks\qol\disable-background-auto-login.yml
-  - tweaks\qol\disable-mouse-accel.yml
-  - tweaks\qol\disable-settings-tips.yml
-  - tweaks\qol\disable-spell-checking.yml
-  - tweaks\qol\disable-store-auto-updates.yml
-  - tweaks\qol\disable-touch-keyboard-features.yml
-  - tweaks\qol\disable-touch-visual-feedback.yml
-  - tweaks\qol\disable-usb-issues-notifications.yml
-  - tweaks\qol\disable-windows-feedback.yml
-  - tweaks\qol\disable-windows-spotlight.yml
-  - tweaks\qol\do-not-reduce-sounds.yml
-  - tweaks\qol\hide-disabled-disconnected-sounds.yml
-  - tweaks\qol\show-all-tasks-control-panel.yml
-  - tweaks\qol\visual-effects.yml
-  - tweaks\qol\disable-tips.yml
-  - tweaks\qol\disable-win11-settings-banner.yml
+  - !writeStatus: {status: 'Running QoL tweaks'}
+  - !task: {path: 'tweaks\qol\best-wallpaper-quality.yml'}
+  - !task: {path: 'tweaks\qol\config-start-menu.yml'}
+  - !task: {path: 'tweaks\qol\config-windows-ink-workspace.yml'}
+  - !task: {path: 'tweaks\qol\disable-background-auto-login.yml'}
+  - !task: {path: 'tweaks\qol\disable-mouse-accel.yml'}
+  - !task: {path: 'tweaks\qol\disable-settings-tips.yml'}
+  - !task: {path: 'tweaks\qol\disable-spell-checking.yml'}
+  - !task: {path: 'tweaks\qol\disable-store-auto-updates.yml'}
+  - !task: {path: 'tweaks\qol\disable-touch-keyboard-features.yml'}
+  - !task: {path: 'tweaks\qol\disable-touch-visual-feedback.yml'}
+  - !task: {path: 'tweaks\qol\disable-usb-issues-notifications.yml'}
+  - !task: {path: 'tweaks\qol\disable-windows-feedback.yml'}
+  - !task: {path: 'tweaks\qol\disable-windows-spotlight.yml'}
+  - !task: {path: 'tweaks\qol\do-not-reduce-sounds.yml'}
+  - !task: {path: 'tweaks\qol\hide-disabled-disconnected-sounds.yml'}
+  - !task: {path: 'tweaks\qol\show-all-tasks-control-panel.yml'}
+  - !task: {path: 'tweaks\qol\visual-effects.yml'}
+  - !task: {path: 'tweaks\qol\disable-tips.yml'}
+  - !task: {path: 'tweaks\qol\disable-win11-settings-banner.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\appearance                                                            #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\appearance\blue-tooltips.yml
-  - tweaks\qol\appearance\atlas-theme.yml
-  - tweaks\qol\appearance\disallow-theme-changes.yml
+  - !task: {path: 'tweaks\qol\appearance\blue-tooltips.yml'}
+  - !task: {path: 'tweaks\qol\appearance\atlas-theme.yml'}
+  - !task: {path: 'tweaks\qol\appearance\disallow-theme-changes.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\windows-update                                                        #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\windows-update\disable-nagging.yml
-  - tweaks\qol\windows-update\disable-insider.yml
-  - tweaks\qol\windows-update\disable-msrt-telemetry.yml
-  - tweaks\qol\windows-update\disable-feature-updates.yml
-  - tweaks\qol\windows-update\disable-auto-updates.yml
-  - tweaks\qol\windows-update\disable-auto-reboot.yml
-  - tweaks\qol\windows-update\disable-delivery-optimization.yml
+  - !task: {path: 'tweaks\qol\windows-update\disable-nagging.yml'}
+  - !task: {path: 'tweaks\qol\windows-update\disable-insider.yml'}
+  - !task: {path: 'tweaks\qol\windows-update\disable-msrt-telemetry.yml'}
+  - !task: {path: 'tweaks\qol\windows-update\disable-feature-updates.yml'}
+  - !task: {path: 'tweaks\qol\windows-update\disable-auto-updates.yml'}
+  - !task: {path: 'tweaks\qol\windows-update\disable-auto-reboot.yml'}
+  - !task: {path: 'tweaks\qol\windows-update\disable-delivery-optimization.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\ease-of-access                                                        #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\ease-of-access\disable-always-read-section.yml
-  - tweaks\qol\ease-of-access\disable-annoying-features-shortcuts.yml
-  - tweaks\qol\ease-of-access\disable-making-touch-easier.yml
-  - tweaks\qol\ease-of-access\disable-warning-sounds.yml
+  - !task: {path: 'tweaks\qol\ease-of-access\disable-always-read-section.yml'}
+  - !task: {path: 'tweaks\qol\ease-of-access\disable-annoying-features-shortcuts.yml'}
+  - !task: {path: 'tweaks\qol\ease-of-access\disable-making-touch-easier.yml'}
+  - !task: {path: 'tweaks\qol\ease-of-access\disable-warning-sounds.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer                                                              #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\explorer\always-more-details-transfer.yml
-  - tweaks\qol\explorer\disable-invalid-shortcuts-search.yml
-  - tweaks\qol\explorer\disable-check-boxes.yml
-  - tweaks\qol\explorer\disable-folders-this-pc.yml
-  - tweaks\qol\explorer\disable-network-navigation-pane.yml
-  - tweaks\qol\explorer\disable-sharing-wizard.yml
-  - tweaks\qol\explorer\full-context-on-more-than-15-items.yml
-  - tweaks\qol\explorer\hide-frequently-used-items.yml
-  - tweaks\qol\explorer\import-power-plan.yml
-  - tweaks\qol\explorer\extend-cache.yml
-  - tweaks\qol\explorer\minimize-mouse-hover-time.yml
-  - tweaks\qol\explorer\no-internet-open-with.yml
-  - tweaks\qol\explorer\open-to-this-pc.yml
-  - tweaks\qol\explorer\removable-drives-only-this-pc.yml
-  - tweaks\qol\explorer\remove-previous-versions.yml
-  - tweaks\qol\explorer\remove-shortcut-text.yml
-  - tweaks\qol\explorer\show-files.yml
-  - tweaks\qol\explorer\classic-search.yml
-  - tweaks\qol\explorer\dont-show-office-files.yml
-  - tweaks\qol\explorer\use-compact-mode.yml
-  - tweaks\qol\explorer\disable-gallery.yml
-  - tweaks\qol\explorer\debloat-send-to.yml
+  - !task: {path: 'tweaks\qol\explorer\always-more-details-transfer.yml'}
+  - !task: {path: 'tweaks\qol\explorer\disable-invalid-shortcuts-search.yml'}
+  - !task: {path: 'tweaks\qol\explorer\disable-check-boxes.yml'}
+  - !task: {path: 'tweaks\qol\explorer\disable-folders-this-pc.yml'}
+  - !task: {path: 'tweaks\qol\explorer\disable-network-navigation-pane.yml'}
+  - !task: {path: 'tweaks\qol\explorer\disable-sharing-wizard.yml'}
+  - !task: {path: 'tweaks\qol\explorer\full-context-on-more-than-15-items.yml'}
+  - !task: {path: 'tweaks\qol\explorer\hide-frequently-used-items.yml'}
+  - !task: {path: 'tweaks\qol\explorer\import-power-plan.yml'}
+  - !task: {path: 'tweaks\qol\explorer\extend-cache.yml'}
+  - !task: {path: 'tweaks\qol\explorer\minimize-mouse-hover-time.yml'}
+  - !task: {path: 'tweaks\qol\explorer\no-internet-open-with.yml'}
+  - !task: {path: 'tweaks\qol\explorer\open-to-this-pc.yml'}
+  - !task: {path: 'tweaks\qol\explorer\removable-drives-only-this-pc.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-previous-versions.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-shortcut-text.yml'}
+  - !task: {path: 'tweaks\qol\explorer\show-files.yml'}
+  - !task: {path: 'tweaks\qol\explorer\classic-search.yml'}
+  - !task: {path: 'tweaks\qol\explorer\dont-show-office-files.yml'}
+  - !task: {path: 'tweaks\qol\explorer\use-compact-mode.yml'}
+  - !task: {path: 'tweaks\qol\explorer\disable-gallery.yml'}
+  - !task: {path: 'tweaks\qol\explorer\debloat-send-to.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\explorer\add-context-menus\merge-as-trustedinstaller.yml
-  - tweaks\qol\explorer\add-context-menus\new-bat.yml
-  - tweaks\qol\explorer\add-context-menus\new-ps1.yml
-  - tweaks\qol\explorer\add-context-menus\new-reg.yml
+  - !task: {path: 'tweaks\qol\explorer\add-context-menus\merge-as-trustedinstaller.yml'}
+  - !task: {path: 'tweaks\qol\explorer\add-context-menus\new-bat.yml'}
+  - !task: {path: 'tweaks\qol\explorer\add-context-menus\new-ps1.yml'}
+  - !task: {path: 'tweaks\qol\explorer\add-context-menus\new-reg.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\remove-context-menus                                         #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\explorer\remove-context-menus\cast-to-device.yml
-  - tweaks\qol\explorer\remove-context-menus\extract-all.yml
-  - tweaks\qol\explorer\remove-context-menus\give-access-to.yml
-  - tweaks\qol\explorer\remove-context-menus\include-in-library.yml
-  - tweaks\qol\explorer\remove-context-menus\new-bitmap.yml
-  - tweaks\qol\explorer\remove-context-menus\new-rtf.yml
-  - tweaks\qol\explorer\remove-context-menus\paint-3D.yml
-  - tweaks\qol\explorer\remove-context-menus\share.yml
-  - tweaks\qol\explorer\remove-context-menus\troubleshooting-compat.yml
-  - tweaks\qol\explorer\remove-context-menus\printing.yml
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\cast-to-device.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\extract-all.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\give-access-to.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\include-in-library.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\new-bitmap.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\new-rtf.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\paint-3D.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\share.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\troubleshooting-compat.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\printing.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\security                                                              #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\security\disable-uac-secure-desktop.yml
+  - !task: {path: 'tweaks\qol\security\disable-uac-secure-desktop.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\shell                                                                 #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\shell\alt-tab-open-windows.yml
-  - tweaks\qol\shell\config-autorun.yml
-  - tweaks\qol\shell\disable-aero-shake.yml
-  - tweaks\qol\shell\disable-low-disk-warning.yml
-  - tweaks\qol\shell\disable-menu-delay.yml
-  - tweaks\qol\shell\disable-network-location-wizard.yml
-  - tweaks\qol\shell\set-unpinned-notification-items.yml
-  - tweaks\qol\shell\restore-old-context-menu.yml
-  - tweaks\qol\shell\show-more-pins.yml
-  - tweaks\qol\shell\no-recommendations-start-menu.yml
-  - tweaks\qol\shell\disable-nearby-sharing.yml
+  - !task: {path: 'tweaks\qol\shell\alt-tab-open-windows.yml'}
+  - !task: {path: 'tweaks\qol\shell\disable-aero-shake.yml'}
+  - !task: {path: 'tweaks\qol\shell\disable-low-disk-warning.yml'}
+  - !task: {path: 'tweaks\qol\shell\disable-menu-delay.yml'}
+  - !task: {path: 'tweaks\qol\shell\disable-network-location-wizard.yml'}
+  - !task: {path: 'tweaks\qol\shell\set-unpinned-notification-items.yml'}
+  - !task: {path: 'tweaks\qol\shell\restore-old-context-menu.yml'}
+  - !task: {path: 'tweaks\qol\shell\show-more-pins.yml'}
+  - !task: {path: 'tweaks\qol\shell\no-recommendations-start-menu.yml'}
+  - !task: {path: 'tweaks\qol\shell\disable-nearby-sharing.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\startup-shutdown                                                      #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\startup-shutdown\decrease-shutdown-time.yml
-  - tweaks\qol\startup-shutdown\disable-startup-delay.yml
-  - tweaks\qol\startup-shutdown\force-end-shutdown-apps.yml
-  - tweaks\qol\startup-shutdown\enable-verbose-messages.yml
+  - !task: {path: 'tweaks\qol\startup-shutdown\decrease-shutdown-time.yml'}
+  - !task: {path: 'tweaks\qol\startup-shutdown\disable-startup-delay.yml'}
+  - !task: {path: 'tweaks\qol\startup-shutdown\force-end-shutdown-apps.yml'}
+  - !task: {path: 'tweaks\qol\startup-shutdown\enable-verbose-messages.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\system                                                                #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\system\crash-control-qol.yml
-  - tweaks\qol\system\disable-wpbt.yml
+  - !task: {path: 'tweaks\qol\system\crash-control-qol.yml'}
+  - !task: {path: 'tweaks\qol\system\disable-wpbt.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\taskbar                                                               #
   # -------------------------------------------------------------------------- #
-  - tweaks\qol\taskbar\cmd-win-x.yml
-  - tweaks\qol\taskbar\disable-cloud-optimized-content.yml
-  - tweaks\qol\taskbar\disable-desktop-peek.yml
-  - tweaks\qol\taskbar\disable-news-and-interests.yml
-  - tweaks\qol\taskbar\disable-tablet-mode.yml
-  - tweaks\qol\taskbar\hide-meet-now.yml
-  - tweaks\qol\taskbar\hide-task-view.yml
-  - tweaks\qol\taskbar\config-pins.yml
-  - tweaks\qol\taskbar\disable-copilot.yml
-  - tweaks\qol\taskbar\disable-windows-chat.yml
-  - tweaks\qol\taskbar\set-to-left.yml
-  - tweaks\qol\taskbar\end-task.yml
+  - !task: {path: 'tweaks\qol\taskbar\cmd-win-x.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-cloud-optimized-content.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-desktop-peek.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-news-and-interests.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-tablet-mode.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\hide-meet-now.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\hide-task-view.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\config-pins.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-copilot.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-windows-chat.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\set-to-left.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\end-task.yml'}
 
 
 
@@ -294,10 +292,10 @@ tasks:
   # These tweaks aim to enhance Windows' security, upon
   # its defaults.
   # -----------------------------------------------------
-  - tweaks\statuses\status-security.yml
-  - tweaks\security\block-anonymous-enum-sam.yml
-  - tweaks\security\delete-defaultuser0.yml
-  - tweaks\security\disable-remote-assistance.yml
+  - !writeStatus: {status: 'Running security tweaks'}
+  - !task: {path: 'tweaks\security\block-anonymous-enum-sam.yml'}
+  - !task: {path: 'tweaks\security\delete-defaultuser0.yml'}
+  - !task: {path: 'tweaks\security\disable-remote-assistance.yml'}
 
 
 
@@ -309,12 +307,12 @@ tasks:
   # Tweaks for debloating Windows, which could be for
   # storage space or convienience.
   # -----------------------------------------------------
-  - tweaks\statuses\status-debloat.yml
-  - tweaks\debloat\config-content-delivery.yml
-  - tweaks\debloat\disable-reserved-storage.yml
-  - tweaks\debloat\disable-scheduled-tasks.yml
-  - tweaks\debloat\hide-unused-security-pages.yml
-  - tweaks\debloat\config-storage-sense.yml
+  - !writeStatus: {status: 'Running debloating tweaks'}
+  - !task: {path: 'tweaks\debloat\config-content-delivery.yml'}
+  - !task: {path: 'tweaks\debloat\disable-reserved-storage.yml'}
+  - !task: {path: 'tweaks\debloat\disable-scheduled-tasks.yml'}
+  - !task: {path: 'tweaks\debloat\hide-unused-security-pages.yml'}
+  - !task: {path: 'tweaks\debloat\config-storage-sense.yml'}
 
 
 
@@ -326,14 +324,14 @@ tasks:
   # These are playbook files that run external PowerShell
   # or batch scripts for more advanced operations.
   # -----------------------------------------------------
-  - tweaks\statuses\status-scripts.yml
-  - tweaks\scripts\script-file-associations.yml
-  - tweaks\scripts\script-core-isolation.yml
-  - tweaks\scripts\script-mitigations.yml
-  - tweaks\scripts\script-devices.yml
-  - tweaks\scripts\script-pfp.yml
-  - tweaks\scripts\script-backup2.yml
-  - tweaks\scripts\script-clientcbs.yml
+  - !writeStatus: {status: 'Running scripts'}
+  - !task: {path: 'tweaks\scripts\script-file-associations.yml'}
+  - !task: {path: 'tweaks\scripts\script-core-isolation.yml'}
+  - !task: {path: 'tweaks\scripts\script-mitigations.yml'}
+  - !task: {path: 'tweaks\scripts\script-devices.yml'}
+  - !task: {path: 'tweaks\scripts\script-pfp.yml'}
+  - !task: {path: 'tweaks\scripts\script-backup2.yml'}
+  - !task: {path: 'tweaks\scripts\script-clientcbs.yml'}
 
 
 
@@ -345,13 +343,13 @@ tasks:
   # Miscellaneous tweaks which do not fit into other
   # categories.
   # -----------------------------------------------------
-  - tweaks\statuses\status-misc.yml
-  - tweaks\misc\config-time.yml
-  - tweaks\misc\delete-windows-specific-files.yml
-  - tweaks\misc\rebuild-perf-counters.yml
-  - tweaks\misc\create-shortcuts.yml
-  - tweaks\misc\add-music-videos-to-home.yml
-  - tweaks\misc\add-newUsers-script.yml
-  - tweaks\scripts\script-power.yml # Done last on purpose
-  - tweaks\misc\enable-notifications.yml
-  - tweaks\misc\config-oem-information.yml
+  - !writeStatus: {status: 'Running miscellaneous tweaks'}
+  - !task: {path: 'tweaks\misc\config-time.yml'}
+  - !task: {path: 'tweaks\misc\delete-windows-specific-files.yml'}
+  - !task: {path: 'tweaks\misc\rebuild-perf-counters.yml'}
+  - !task: {path: 'tweaks\misc\create-shortcuts.yml'}
+  - !task: {path: 'tweaks\misc\add-music-videos-to-home.yml'}
+  - !task: {path: 'tweaks\misc\add-newUsers-script.yml'}
+  - !task: {path: 'tweaks\scripts\script-power.yml'} # Done last on purpose
+  - !task: {path: 'tweaks\misc\enable-notifications.yml'}
+  - !task: {path: 'tweaks\misc\config-oem-information.yml'}
