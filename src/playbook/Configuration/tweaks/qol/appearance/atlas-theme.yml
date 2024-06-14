@@ -4,11 +4,12 @@ description: Adds and sets the Atlas themes by default
 actions:
     # Apply theme file
   - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
-  - !cmd:
-    command: 'explorer "%windir%\Resources\Themes\atlas-v0.4.x-dark.theme" & timeout /t 6 /nobreak > nul'
+  - !powerShell:
+    command: >-
+      Start-Process -FilePath explorer -ArgumentList """$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.4.x-dark.theme""";
+      Start-Sleep 6
     wait: true
-    runas: currentUser
-    timeout: 30
+    runas: currentUserElevated
 
     # For Windows 11, set recent theme selection
   - !taskKill: {name: 'SystemSettings', ignoreErrors: true}

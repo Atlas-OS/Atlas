@@ -1,12 +1,12 @@
 #Requires -RunAsAdministrator
 
-$networkDiscoveryConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\Network Discovery"
+$networkDiscoveryConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\6. Advanced Configuration\Services\Network Discovery"
 
 # Enable network items
 Enable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr | Out-Null
 
 # Enable Network Discovery services and its dependencies
-Start-Process -FilePath "$networkDiscoveryConfigPath\Enable Network Discovery Services (default)" -ArgumentList "/silent" -WindowStyle Hidden
+Start-Process -FilePath "$networkDiscoveryConfigPath\Enable Network Discovery Services (default).cmd" -ArgumentList "/silent" -WindowStyle Hidden
 
 # Enable NetBios over TCP/IP
 $interfaces = Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" -Recurse | Where-Object { $_.GetValue("NetbiosOptions") -ne $null }
@@ -38,7 +38,7 @@ if ($LASTEXITCODE -eq 1) {
 
 choice /c:yn /n /m "Would you like to add the Network Navigation Pane to the Explorer sidebar? [Y/N] "
 if ($LASTEXITCODE -eq 1) {
-    reg import "$networkDiscoveryConfigPath\Network Navigation Pane\User Network Navigation Pane choice.reg" | Out-Null
+    reg import "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\User Network Navigation Pane choice.reg" | Out-Null
 }
 
 Write-Host "Completed!" -ForegroundColor Green

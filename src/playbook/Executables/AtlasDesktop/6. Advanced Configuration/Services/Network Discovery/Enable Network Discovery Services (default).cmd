@@ -15,7 +15,7 @@ fltmc > nul 2>&1 || (
 
 :main
 :: Enable Lanman Workstation (SMB) as a dependency
-call "%windir%\AtlasDesktop\6. Advanced Configuration\Lanman Workstation (SMB)\Enable Lanman Workstation (default).cmd" /silent
+call "%windir%\AtlasDesktop\6. Advanced Configuration\Services\Lanman Workstation (SMB)\Enable Lanman Workstation (default).cmd" /silent
 :: Enable EventLog as a dependency
 call setSvc.cmd eventlog 2
 

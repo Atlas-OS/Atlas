@@ -1,6 +1,11 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+if "%~1"=="/silent" goto main
+
+echo Enabling printing...
+echo]
+
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
 	echo Administrator privileges are required.
@@ -12,8 +17,8 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-echo Enabling printing...
-echo]
+choice /c:yn /n /m "Would you like to add 'Print' to the context menu? [Y/N] "
+if "%errorlevel%" neq "1" goto :main
 
 echo Adding 'Print' to context menu...
 reg delete "HKCR\SystemFileAssociations\image\shell\print" /v "ProgrammaticAccessOnly" /f > nul 2>&1
@@ -50,19 +55,12 @@ for /f "tokens=6 delims=[.] " %%a in ('ver') do (
     )
 )
 
+:main
 echo Enabling services...
 call setSvc.cmd Spooler 2
 call setSvc.cmd PrintWorkFlowUserSvc 3
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide printers
-
-echo Enabling capabilities (this might take a while)...
-for %%a in (
-    "Print.Fax.Scan~~~~0.0.1.0"
-    "Print.Management.Console~~~~0.0.1.0"
-) do (
-    dism /Online /Add-Capability /CapabilityName:"%%a" /NoRestart > nul
-)
 
 echo Enabling features...
 for %%a in (
@@ -73,6 +71,14 @@ for %%a in (
 ) do (
     dism /Online /Enable-Feature /FeatureName:"%%a" /NoRestart > nul
 )
+
+echo Enabling capabilities (this might take a while)...
+dism /Online /Add-Capability /CapabilityName:"Print.Management.Console~~~~0.0.1.0" /NoRestart > nul
+
+if "%~1"=="/silent" exit /b
+
+choice /c:yn /n /m "Would you want to enable Fax and Scan functionality? [Y/N] "
+if "%errorlevel%"=="1" dism /Online /Add-Capability /CapabilityName:"Print.Fax.Scan~~~~0.0.1.0" /NoRestart > nul
 
 echo]
 echo Finished, please reboot your device for changes to apply.

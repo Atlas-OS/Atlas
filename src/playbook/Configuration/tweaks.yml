@@ -232,6 +232,7 @@ tasks:
   - tweaks\qol\explorer\remove-context-menus\paint-3D.yml
   - tweaks\qol\explorer\remove-context-menus\share.yml
   - tweaks\qol\explorer\remove-context-menus\troubleshooting-compat.yml
+  - tweaks\qol\explorer\remove-context-menus\printing.yml
 
   # -------------------------------------------------------------------------- #
   #  qol\security                                                              #

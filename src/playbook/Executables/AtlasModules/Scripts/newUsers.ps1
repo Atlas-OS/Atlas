@@ -44,7 +44,7 @@ if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
 & "$atlasModules\Scripts\lockscreen.ps1"
 
 # Disable 'Network' in navigation pane
-reg import "$atlasDesktop\3. General Configuration\Network Discovery\Network Navigation Pane\Disable Network Navigation Pane (default).reg" *>$null
+reg import "$atlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg" *>$null
 
 # Set visual effects
 & "$atlasDesktop\4. Interface Tweaks\Visual Effects\Atlas Visual Effects (default).cmd" /silent
