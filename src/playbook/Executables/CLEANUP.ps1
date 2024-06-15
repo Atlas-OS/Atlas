@@ -23,7 +23,7 @@ function Invoke-AtlasDiskCleanup {
 		"System error minidump files" = 2
 		"Temporary Files" = 0
 		"Thumbnail Cache" = 2
-		"Update Cleanup" = 2
+		"Update Cleanup" = 0
 		"User file versions" = 2
 		"Windows Error Reporting Files" = 2
 		"Windows Defender" = 2

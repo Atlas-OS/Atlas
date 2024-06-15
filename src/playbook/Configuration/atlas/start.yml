@@ -42,6 +42,9 @@ actions:
   - !writeStatus: {status: 'Disabling Steps Recorder'}
   - !run: {exe: 'DISM.exe', args: '/Online /Remove-Capability /CapabilityName:"App.StepsRecorder~~~~0.0.1.0" /NoRestart', weight: 30}
 
+  - !writeStatus: {status: 'Cleaning the component store'}
+  - !run: {exe: 'DISM.exe', args: '/Online /Cleanup-Image /StartComponentCleanup', weight: 50}
+
     # Initial software
     # 7-Zip, Visual C++ Runtimes, DirectX
   - !writeStatus: {status: 'Installing utilities'}
