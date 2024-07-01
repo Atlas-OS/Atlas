@@ -140,7 +140,16 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 	}
 
 	Write-Host "Built successfully! Path: `"$apbxPath`"" -ForegroundColor Green
-	if (!$IsLinux -and !$IsMacOS -and !$DontOpenPbLocation) {
+	if (!$DontOpenPbLocation) {
+		if ($IsLinux -or $IsMacOS) {
+			Write-Warning "Can't open to APBX directory as the system isn't Windows."
+			break
+		}
+
+		# Kill old instances
+		# Would use SetForegroundWindow but it doesn't always work, so opening a new window is most reliable :/
+		((New-Object -Com Shell.Application).Windows() | Where-Object { $_.Document.Folder.Self.Path -eq "$(Split-Path -Path $apbxPath)" }).Quit()
+
 		explorer /select,"$apbxPath"
 	}
 } finally {
