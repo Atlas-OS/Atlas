@@ -13,6 +13,17 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
+echo Disabling notifications means **all** notifications, including system ones.
+echo This includes notifications that notify you about security updates.
+echo]
+echo This doesn't improve performance.
+echo]
+echo ---------------------------------------------------------------------------
+echo]
+choice /c:yn /n /m "Would you like to continue anyways? [Y/N] "
+if %errorlevel% neq 1 exit /b
+cls
+
 :main
 sc config WpnService start=disabled > nul
 sc stop WpnService > nul 2>&1
