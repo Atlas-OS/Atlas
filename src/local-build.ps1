@@ -10,6 +10,11 @@ param (
 
 $removals | % { Set-Variable -Name "remove$_" -Value $true }
 
+# Function to convert paths for convienience, needed for Linux/macOS
+function Seperator {
+	return $args -replace '\\', "$([IO.Path]::DirectorySeparatorChar)"
+}
+
 # check 7z
 if (Get-Command '7z' -EA 0) {
 	$7zPath = '7z'
@@ -42,7 +47,7 @@ function GetNewName {
 }
 if ($replaceOldPlaybook -and (Test-Path -Path $apbxFileName)) {
 	try {
-		$stream = [System.IO.File]::Open("$PWD\$apbxFileName", 'Open', 'Read', 'Write')
+		$stream = [System.IO.File]::Open($(Seperator "$PWD\$apbxFileName"), 'Open', 'Read', 'Write')
 		$stream.Close()
 		Remove-Item -Path $apbxFileName -Force -EA 0
 	} catch {
@@ -52,12 +57,12 @@ if ($replaceOldPlaybook -and (Test-Path -Path $apbxFileName)) {
 } elseif (Test-Path -Path $apbxFileName) {
 	GetNewName
 }
-$apbxPath = "$PWD\$apbxFileName"
+$apbxPath = Seperator "$PWD\$apbxFileName"
 
 # make temp directories
 $rootTemp = New-Item (Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $([System.Guid]::NewGuid())) -ItemType Directory -Force
 if (!(Test-Path -Path "$rootTemp")) { throw "Failed to create temporary directory!" }
-$playbookTemp = New-Item "$rootTemp\playbook" -Type Directory
+$playbookTemp = New-Item $(Seperator "$rootTemp\playbook") -Type Directory
 
 try {
 	# remove entries in playbook config that make it awkward for testing
@@ -68,13 +73,13 @@ try {
 	if ($removeWinverRequirement) {$patterns += "<string>", "</SupportedBuilds>", "<SupportedBuilds>"}
 	if ($removeVerification) {$patterns += "<ProductCode>"}
 
-	$tempPbConfPath = "$playbookTemp\playbook.conf"
+	$tempPbConfPath = Seperator "$playbookTemp\playbook.conf"
 	if ($patterns.Count -gt 0) {
 		Get-Content "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') } | Set-Content $tempPbConfPath
 	}
 
-	$customYmlPath = "Configuration\custom.yml"
-	$tempCustomYmlPath = "$playbookTemp\$customYmlPath"
+	$customYmlPath = Seperator "Configuration\custom.yml"
+	$tempCustomYmlPath = Seperator "$playbookTemp\$customYmlPath"
 	if ($AddLiveLog) {
 		if (Test-Path $customYmlPath -PathType Leaf) {
 			New-Item (Split-Path $tempCustomYmlPath -Parent) -ItemType Directory -Force | Out-Null
@@ -100,8 +105,8 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 		}
 	}
 
-	$startYmlPath = "Configuration\atlas\start.yml"
-	$tempStartYmlPath = "$playbookTemp\$startYmlPath"
+	$startYmlPath = Seperator "Configuration\atlas\start.yml"
+	$tempStartYmlPath = Seperator "$playbookTemp\$startYmlPath"
 	if ($removeDependencies) {
 		if (Test-Path $startYmlPath -PathType Leaf) {
 			New-Item (Split-Path $tempStartYmlPath -Parent) -ItemType Directory -Force | Out-Null
@@ -127,13 +132,13 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 	if (Test-Path $tempCustomYmlPath) { $excludeFiles += "custom.yml" }
 	if (Test-Path $tempStartYmlPath) { $excludeFiles += "start.yml" }
 	if (Test-Path $tempPbConfPath) { $excludeFiles += "playbook.conf" }
-	$files = "$rootTemp\7zFiles.txt"
+	$files = Seperator "$rootTemp\7zFiles.txt"
 	(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName | Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File $files -Encoding utf8
 
 	if (!$NoPassword) { $pass = '-pmalte' }
 	& $7zPath a -spf -y -mx1 $pass -tzip "$apbxPath" `@"$files" | Out-Null
 	# add edited files
-	if (Test-Path "$playbookTemp\*.*") {
+	if (Test-Path $(Seperator "$playbookTemp\*.*")) {
 		Push-Location "$playbookTemp"
 		& $7zPath u $pass "$apbxPath" * | Out-Null
 		Pop-Location
