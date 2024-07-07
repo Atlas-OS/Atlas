@@ -148,15 +148,14 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 	if (!$DontOpenPbLocation) {
 		if ($IsLinux -or $IsMacOS) {
 			Write-Warning "Can't open to APBX directory as the system isn't Windows."
-			break
+		} else {
+			# Kill old instances
+			# Would use SetForegroundWindow but it doesn't always work, so opening a new window is most reliable :/
+			$openWindows = ((New-Object -Com Shell.Application).Windows() | Where-Object { $_.Document.Folder.Self.Path -eq "$(Split-Path -Path $apbxPath)" })
+			if ($openWindows.Count -ne 0) { $openWindows.Quit() }
+
+			explorer /select,"$apbxPath"
 		}
-
-		# Kill old instances
-		# Would use SetForegroundWindow but it doesn't always work, so opening a new window is most reliable :/
-		$openWindows = ((New-Object -Com Shell.Application).Windows() | Where-Object { $_.Document.Folder.Self.Path -eq "$(Split-Path -Path $apbxPath)" })
-		if ($openWindows.Count -ne 0) { $openWindows.Quit() }
-
-		explorer /select,"$apbxPath"
 	}
 } finally {
 	Remove-Item $rootTemp -Force -EA 0 -Recurse | Out-Null
