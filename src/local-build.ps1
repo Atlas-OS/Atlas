@@ -126,7 +126,7 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 
 	# exclude files
 	$excludeFiles = @(
-		"local-build.cmd",
+		"local-build.*",
 		"*.apbx"
 	)
 	if (Test-Path $tempCustomYmlPath) { $excludeFiles += "custom.yml" }
