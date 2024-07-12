@@ -47,7 +47,7 @@ actions:
     data: '3'
     type: REG_DWORD
 
-    # Disable narrator shortcut  
+    # Disable Narrator shortcut  
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Narrator\NoRoam'
     value: 'WinEnterLaunchEnabled'

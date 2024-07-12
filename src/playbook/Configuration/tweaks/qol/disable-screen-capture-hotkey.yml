@@ -1,6 +1,6 @@
 ---
-title: Disable screen capture hotkey
-description: Disables using the print screen key to open screen capture when snipping tool is removed
+title: Disable Screen Capture Hotkey
+description: Disables using the print screen key to open Screen Capture when Snipping Tool is removed
 actions:
   - !registryValue:
     path: 'HKCU\Control Panel\Keyboard'
