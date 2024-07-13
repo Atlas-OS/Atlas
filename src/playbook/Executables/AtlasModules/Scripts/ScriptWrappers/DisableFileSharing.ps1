@@ -4,6 +4,7 @@ param (
     [switch]$Silent
 )
 
+$networkDiscoveryConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\6. Advanced Configuration\Services\Network Discovery"
 $fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
 
 # Disable network items
@@ -31,6 +32,8 @@ Get-NetFirewallRule | Where-Object {
 } | Disable-NetFirewallRule
 
 reg import "$networkDiscoveryConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).reg" | Out-Null
+
+reg import "$fileSharingConfigPath\Give Access To Menu\Give Access To Menu Disable (default).reg" | Out-Null
 
 if ($Silent) { exit }
 
