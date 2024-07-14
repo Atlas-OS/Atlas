@@ -3,7 +3,7 @@ name: Create and Validate Atlas Playbook
 on:
   push:
     paths:
-      - "src/playbook/**"
+      - "src/**"
       - "**/*.yaml"
       - "**/*.yml"
 
