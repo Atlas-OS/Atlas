@@ -52,6 +52,7 @@ actions:
   - !task: {path: 'tweaks\performance\disable-background-apps.yml'}
   - !task: {path: 'tweaks\performance\disable-fth.yml'}
   - !task: {path: 'tweaks\performance\disable-sleep-study.yml'}
+  - !task: {path: 'tweaks\performance\respect-power-modes-search.yml'}
 
 
   # -------------------------------------------------------------------------- #
