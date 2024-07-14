@@ -27,6 +27,12 @@ actions:
     exeDir: true
     wait: true
 
+  - !writeStatus: {status: 'Disabling Location'}
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd" /silent'
+    exeDir: true
+    wait: true
+
   ##############################################################################################
   ## SERVICES                                                                                 ##
   ##############################################################################################
