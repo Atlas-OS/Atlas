@@ -69,6 +69,9 @@ jobs:
           Write-Output "Installing dependencies..."
           pip install -r requirements.txt | Out-Null
 
+          Write-Output "Making certificate..."
+          $thumbprint = .\make-cert.ps1
+          
           $atlasSrcPath = '..\Atlas\src\'
           $packagePath = "$atlasSrcPath\playbook\Executables\AtlasModules\Packages"
           mkdir $packagePath -EA 0 | Out-Null
@@ -84,10 +87,10 @@ jobs:
 
               Write-Output "Generating package files..."
               python sxsc.py
-              if ($LASTEXITCODE -ne 0) { exit 1 }
+              if ($LASTEXITCODE -ne 0) { throw "sxsc.py didn't return 0!" }
 
               Write-Output "Building package..."
-              .\build.bat
+              .\start-build.ps1 -Thumbprint $thumbprint
 
               Write-Output "Copying package to AtlasModules..."
               Get-ChildItem -File -Recurse -Filter *.cab | ForEach-Object {
@@ -95,7 +98,7 @@ jobs:
               }
 
               Write-Output "Cleaning up..."
-              .\clean.bat
+              .\clean.ps1
           }
         working-directory: ..\sxsc
         if: env.runSxsc == 'true'
