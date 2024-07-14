@@ -12,13 +12,17 @@ param (
 	[switch]$FailMessage
 )
 
+if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18')) {
+	throw "This script must be ran as TrustedInstaller/SYSTEM."
+}
+
 # ======================================================================================================================= #
 # INITIAL VARIABLES                                                                                                       #
 # ======================================================================================================================= #
 $sys32 = [Environment]::GetFolderPath('System')
+$windir = [Environment]::GetFolderPath('Windows')
 $safeModePackageList = "$sys32\safeModePackagesToInstall.atlasmodule"
-$env:path = "$([Environment]::GetFolderPath('Windows'));$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;$([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory());" + $env:path
-$certRegPath = "HKLM:\Software\Microsoft\SystemCertificates\ROOT\Certificates"
+$env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
 $errorLevel = $warningLevel = 0
 
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
@@ -295,51 +299,78 @@ if (!$matchedPackages) {
 # PROCESS PACKAGES                                                                                                        #
 # ======================================================================================================================= #
 function ProcessCab($cabPath) {
+	$filePath = Split-Path $cabPath -Leaf
+	Write-Host "`nInstalling $filePath..." -ForegroundColor Cyan
+	Write-Host ("-" * 84) -ForegroundColor Magenta
+
+	Write-Host "[INFO] Checking certificate..."
 	try {
-		$filePath = Split-Path $cabPath -Leaf
-		Write-Host "`nInstalling $filePath..." -ForegroundColor Cyan
-		Write-Host ("-" * 84) -ForegroundColor Magenta
-
-		Write-Host "[INFO] Importing and checking certificate..."
-		try {
-			$cert = (Get-AuthenticodeSignature $cabPath).SignerCertificate
-			foreach ($usage in $cert.Extensions.EnhancedKeyUsages) {
-				if ($usage.Value -ne "1.3.6.1.4.1.311.10.3.6") {
-					$correctUsage = $true
-					break
-				}
-			}
-			if (!$correctUsage) {
-				Write-Host "[ERROR] Cert doesn't have Windows System Component Verification, can't continue." -ForegroundColor Red
-				$script:errorLevel++
-				return $false
-			}
-			
-			$certPath = [System.IO.Path]::GetTempFileName()
-			[System.IO.File]::WriteAllBytes($certPath, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
-			Import-Certificate $certPath -CertStoreLocation "Cert:\LocalMachine\Root" | Out-Null
-			Copy-Item -Path "$certRegPath\$($cert.Thumbprint)" "$certRegPath\8A334AA8052DD244A647306A76B8178FA215F344" -Force | Out-Null
-		} catch {
-			Write-Host "[ERROR] Cert error from '$cabPath': $_" -ForegroundColor Red
+		$cert = (Get-AuthenticodeSignature $cabPath).SignerCertificate
+		if ($cert.Extensions.EnhancedKeyUsages.Value -ne "1.3.6.1.4.1.311.10.3.6") {
+			Write-Host "[ERROR] Cert doesn't have proper key usages, can't continue." -ForegroundColor Red
 			$script:errorLevel++
 			return $false
 		}
 
-		Write-Host "[INFO] Adding package..."
-		try {
-			Add-WindowsPackage -Online -PackagePath $cabPath -NoRestart -IgnoreCheck -LogLevel 1 *>$null
-		} catch {
-			Write-Host "[ERROR] Error when adding package '$cabPath': $_" -ForegroundColor Red
-			$script:errorLevel++
-			return $false
+		# add test cert
+		# isn't cleared later as it's required for the alt repair source
+		$certRegPath = "HKLM:\Software\Microsoft\SystemCertificates\ROOT\Certificates\8A334AA8052DD244A647306A76B8178FA215F344"
+		if (!(Test-Path "$certRegPath")) {
+			New-Item -Path $certRegPath -Force | Out-Null
 		}
-	} finally {
-		Write-Host "[INFO] Cleaning up certificates..."
-		Get-ChildItem "Cert:\LocalMachine\Root\$($cert.Thumbprint)" | Remove-Item -Force | Out-Null
-		Remove-Item "$certRegPath\8A334AA8052DD244A647306A76B8178FA215F344" -Force -Recurse | Out-Null
+	} catch {
+		Write-Host "[ERROR] Cert error from '$cabPath': $_" -ForegroundColor Red
+		$script:errorLevel++
+		return $false
 	}
 
+	Write-Host "[INFO] Adding package..."
+	try {
+		Add-WindowsPackage -Online -PackagePath $cabPath -NoRestart -IgnoreCheck -LogLevel 1 *>$null
+	} catch {
+		Write-Host "[ERROR] Error when adding package '$cabPath': $_" -ForegroundColor Red
+		$script:errorLevel++
+		return $false
+	}
+
+	Write-Host "[INFO] Completed sucessfully."
 	return $true
+}
+
+# Fixes RestoreHealth/SFC 'Sources' error
+# https://learn.microsoft.com/windows-hardware/manufacture/desktop/configure-a-windows-repair-source
+# https://github.com/Atlas-OS/Atlas/issues/1103
+function MakeRepairSource {
+	$version = '38655.38527.65535.65535'
+	$srcPath = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Packages\WinSxS"
+
+	Write-Host "`nMaking repair source..." -ForegroundColor Cyan
+	Write-Host ("-" * 84) -ForegroundColor Magenta
+
+	# get list of Atlas manifests
+	Write-Host "[INFO] Getting manifests..."
+	$manifests = Get-ChildItem "$([Environment]::GetFolderPath('Windows'))\WinSxS\Manifests" -File -Filter "*$version*"
+	if ($manifests.Count -eq 0) {
+		Write-Host "[WARN] No manifests found! Can't create repair source." -ForegroundColor Yellow
+		return $false
+	}
+
+	# create new repair source folder
+	if (Test-Path $srcPath -PathType Container) {
+		Write-Host "[INFO] Deleting old RepairSrc..."
+		Remove-Item $srcPath -Force -Recurse
+	}
+	Write-Host "[INFO] Creating RepairSrc path..."
+	New-Item "$srcPath\Manifests" -Force -ItemType Directory | Out-Null
+
+	# hardlink all the manifests to the repair source
+	Write-Host "[INFO] Hard linking manifests..."
+	foreach ($manifest in $manifests) {
+		New-Item -ItemType HardLink -Path "$srcPath\Manifests\$manifest" -Target $manifest.FullName | Out-Null
+	}
+
+	# adds the repair source policy
+	Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing" -Name LocalSourcePath -Value "$srcPath" -Type ExpandString | Out-Null
 }
 
 if ($matchedPackages) {
@@ -348,11 +379,18 @@ if ($matchedPackages) {
 	$packagesToProcess = $openFileDialog.FileNames
 }
 
+$successPackages = @()
 $failedPackages = @()
 $packagesToProcess | ForEach-Object {
-	if (!(ProcessCab $_)) {
+	if (ProcessCab $_) {
+		$successPackages += $_
+	} else {
 		$failedPackages += $_
 	}
+}
+
+if ($successPackages.Count -ne 0) {
+	MakeRepairSource
 }
 
 # ======================================================================================================================= #

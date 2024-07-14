@@ -42,7 +42,6 @@ actions:
       )
       -NoInteraction
     option: 'defender-disable'
-    runas: currentUserElevated
     wait: true
     exeDir: true
   - !powerShell:
@@ -52,6 +51,5 @@ actions:
       -UninstallPackages @('*Z-Atlas-NoDefender-Package*')
       -NoInteraction
     option: 'defender-enable'
-    runas: currentUserElevated
     wait: true
     exeDir: true
