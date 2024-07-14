@@ -10,6 +10,7 @@
 $windir = [Environment]::GetFolderPath('Windows')
 $cbsPublic = "$windir\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\Public"
 $settingsExtensions = "$cbsPublic\wsxpacks\Account\SettingsExtensions.json"
+$arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 if (!(Test-Path $settingsExtensions)) {
     Write-Output "Settings extensions ($settingsExtensions) not found."
     Write-Output "User is likely on Windows 10, nothing to do. Exiting..."
@@ -49,38 +50,33 @@ if ($ids.Count -le 0) {
 # If the velocity IDs aren't set, then the account page disappears
 & "$windir\AtlasModules\Scripts\settingsPages.cmd" /hide account
 
-# Obfuscate velocity IDs
-# Rewritten in PowerShell from ViVE
-# https://github.com/thebookisclosed/ViVe/blob/master/ViVe/ObfuscationHelpers.cs
-class ObfuscationHelpers {
-    static [uint32] SwapBytes([uint32] $x) {
-        $x = ($x -shr 16) -bor ($x -shl 16)
-        return (($x -band 0xFF00FF00) -shr 8) -bor (($x -band 0x00FF00FF) -shl 8)
-    }
-
-    static [uint32] RotateRight32([uint32] $value, [int] $shift) {
-        return ($value -shr $shift) -bor ($value -shl (32 - $shift))
-    }
-
-    static [uint32] ObfuscateFeatureId([uint32] $featureId) {
-        return [ObfuscationHelpers]::RotateRight32(([ObfuscationHelpers]::SwapBytes($featureId -bxor 0x74161A4E) -bxor 0x8FB23D4F), -1) -bxor 0x833EA8FF
-    }
-
-    static [uint32] DeobfuscateFeatureId([uint32] $featureId) {
-        return [ObfuscationHelpers]::SwapBytes(([ObfuscationHelpers]::RotateRight32($featureId -bxor 0x833EA8FF, 1) -bxor 0x8FB23D4F)) -bxor 0x74161A4E
-    }
+# Extract ViVeTool https://github.com/thebookisclosed/ViVe
+# Not done in PowerShell as it's too complicated, it's just easiest to use the actual tool
+$viveZip = Get-ChildItem "ViVeTool-*.zip" -Name
+if ($arm) {
+    $viveZip = $viveZip | Where-Object { $_ -match '-ARM64CLR' }
+} else {
+    $viveZip = $viveZip | Where-Object { $_ -notmatch '-ARM64CLR' }
 }
 
-# Disable velocity IDs
+# Extract & setup ViVeTool
+if ($viveZip) {
+    $viveFolder = Join-Path -Path (Get-Location) -ChildPath "vivetool"
+    if (!(Test-Path -Path $viveFolder)) {
+        New-Item -ItemType Directory -Path $viveFolder | Out-Null
+    }
+    Expand-Archive -Path $viveZip -DestinationPath $viveFolder -Force
+} else {
+    throw "ViVeTool not found!"
+}
+$env:PATH += ";$viveFolder"
+if (!(Get-Command 'vivetool' -EA 0)) {
+    throw "ViVeTool EXE not found in ZIP!"
+}
+
+# Disable feature IDs
 # Applies next reboot
-$featureKey = "HKLM:\SYSTEM\CurrentControlSet\Control\FeatureManagement\Overrides\8"
 foreach ($id in $($ids | Sort-Object -Unique)) {
-    $veloId = "$featureKey\$([ObfuscationHelpers]::ObfuscateFeatureId($id))"
-    Write-Output "Disabling velocity ID '$veloId'..."
-    New-Item $veloId -Force | Out-Null
-    Set-ItemProperty -Path $veloId -Name "EnabledStateOptions" -Value 0 -Force
-    Set-ItemProperty -Path $veloId -Name "EnabledState" -Value 1 -Force
-    Set-ItemProperty -Path $veloId -Name "VariantPayload" -Value 0 -Force
-    Set-ItemProperty -Path $veloId -Name "Variant" -Value 0 -Force
-    Set-ItemProperty -Path $veloId -Name "VariantPayloadKind" -Value 0 -Force
+    Write-Output "Disabling feature ID $id..."
+    ViVeTool.exe /disable /id:$id | Out-Null
 }
