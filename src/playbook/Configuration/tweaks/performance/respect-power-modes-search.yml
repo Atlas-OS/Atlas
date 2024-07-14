@@ -1,0 +1,9 @@
+---
+title: Respect Power Modes Windows Search Indexing
+description: Enables the option to respect power modes for Windows Search Indexing, to prevent performance loss during gaming or other high-performance tasks
+actions:
+  - !registryValue: 
+    path: 'HKLM\Software\Microsoft\Windows Search\Gather\Windows\SystemIndex'
+    value: 'RespectPowerModes'
+    data: '1'
+    type: REG_DWORD
