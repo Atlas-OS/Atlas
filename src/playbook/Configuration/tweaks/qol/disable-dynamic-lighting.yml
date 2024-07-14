@@ -1,6 +1,7 @@
 ---
 title: Disable Dynamic Lighting
 description: Disables Dynamic Lighting by default
+builds: [ '>=22000' ]
 actions:
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Lighting'
