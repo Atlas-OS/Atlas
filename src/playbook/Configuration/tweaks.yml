@@ -102,6 +102,12 @@ actions:
   - !task: {path: 'tweaks\privacy\search-settings.yml'}
 
   # -------------------------------------------------------------------------- #
+  #  privacy\apps                                                              #
+  # -------------------------------------------------------------------------- #
+  - !task: {path: 'tweaks\privacy\apps\disable-nvidia-telemetry.yml'}
+  - !task: {path: 'tweaks\privacy\apps\disable-office-telemetry.yml'}
+
+  # -------------------------------------------------------------------------- #
   #  privacy\advertising                                                       #
   # -------------------------------------------------------------------------- #
   - !task: {path: 'tweaks\privacy\advertising\disable-advertising-info.yml'}
