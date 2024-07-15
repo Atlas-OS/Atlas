@@ -15,14 +15,15 @@ fltmc > nul 2>&1 || (
 
 :main
 (
-    sc config lfsvc start=disabled
-    sc config MapsBroker start=disabled
+	sc config lfsvc start=disabled
+	sc config MapsBroker start=disabled
+	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowSearchToUseLocation /t REG_DWORD /d 0 /f
 ) > nul
 
 (
-    sc stop lfsvc
-    sc stop MapsBroker
-    taskkill /f /im SystemSettings.exe
+	sc stop lfsvc
+	sc stop MapsBroker
+	taskkill /f /im SystemSettings.exe
 ) > nul 2>&1
 
 "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide privacy-location
