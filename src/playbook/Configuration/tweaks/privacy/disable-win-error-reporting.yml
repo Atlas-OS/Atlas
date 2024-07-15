@@ -18,6 +18,31 @@ actions:
     value: 'Disabled'
     data: '1'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'DontShowUI'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting'
+    value: 'ShowUI'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'LoggingDisabled'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'DontSendAdditionalData'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing'
+    value: 'DisableWerReporting'
+    data: '1'
+    type: REG_DWORD
 
   # Do not send a Windows error report when a generic driver is installed on a device
   - !registryValue:
