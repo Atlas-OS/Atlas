@@ -20,12 +20,34 @@ actions:
     data: '0'
     type: REG_DWORD
   - !registryValue:
+    path: 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'
+    value: 'AllowTelemetry'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
     path: 'HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
     value: 'AllowTelemetry'
     data: '0'
     type: REG_DWORD
-  - !registryKey: 
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diagtrack-Listener'
+
+    # Misc
+  - !registryValue:
+    path: 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'
+    value: 'EnableEventTranscript'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'
+    value: 'MiniTraceSlotEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'
+    value: 'AllowDeviceNameInTelemetry'
+    data: '0'
+    type: REG_DWORD
+
+    # Disable & clear logger
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diagtrack-Listener'
     value: 'Start'
