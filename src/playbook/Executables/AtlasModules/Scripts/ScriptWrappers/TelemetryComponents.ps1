@@ -55,6 +55,10 @@ Atlas retains policies that should disable telemetry even after the package remo
    do not work on Windows Home edition.
 "@
 
+	Write-BulletPoint @"
+This package isn't needed on Education or Enterprise-based editions.
+"@
+
 	Write-Host "`n---------------------------------------------------------------------------------------------------------`n" -ForegroundColor Magenta
 
 	Write-Host "1) Add the NoTelemetry package $TelemetryDisabled" -ForegroundColor $ColourDisable
