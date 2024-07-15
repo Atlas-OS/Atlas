@@ -55,7 +55,7 @@ function SafeMode {
 
 	if ($Enable) {
 		$bcdeditArgs = '/set {current} safeboot minimal'
-		$shellValue = "explorer.exe,powershell -NoP -EP Unrestricted -File `"$PSCommandPath`" -SafeMode"
+		$shellValue = "explorer.exe,cmd /c RunAsTI powershell -NoP -EP Unrestricted -File `"$PSCommandPath`" -SafeMode"
 
 		if ($FailedPackageList) {
 			Set-Content -Path $FailedPackageListPath -Value $FailedPackageList
