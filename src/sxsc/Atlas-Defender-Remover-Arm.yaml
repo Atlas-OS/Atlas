@@ -1,7 +1,7 @@
 copyright: Atlas (GPLv3)
 package: Z-Atlas-NoDefender-Package
 target_arch: arm64
-version: 4.0.0.0
+version: 5.0.0.0
 updates:
     # Defender Anti-Malware
   - target_component: Security-Malware-Windows-Defender
