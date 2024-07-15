@@ -26,7 +26,7 @@ $env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:p
 $errorLevel = $warningLevel = 0
 
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
-$armString = if ($arm) {'arm64'} else {'amd64'}
+$arch = if ($arm) {'arm64'} else {'amd64'}
 
 $safeModeStatus = (Get-CimInstance -Class Win32_ComputerSystem).BootupState -ne 'Normal boot'
 
@@ -169,7 +169,7 @@ if ($UninstallPackages) {
 	$notInstalledPackages = $UninstallPackages
 	(Get-WindowsPackage -Online).PackageName | ForEach-Object {
 		foreach ($package in $UninstallPackages) {
-			if (($_ -like $package) -and ($_ -like "*$armString*")) {
+			if (($_ -like $package) -and ($_ -match "$arch")) {
 				$installedPackages += $_
 				$notInstalledPackages = $notInstalledPackages -ne $package
 				break
@@ -208,9 +208,9 @@ if ($UninstallPackages) {
 if ($InstallPackages) {
 	$matchedPackages = @()
 	$notMatchedPackages = $InstallPackages
-	(Get-ChildItem $PackagesPath -File -Filter "*.cab").FullName | ForEach-Object {
-		foreach ($package in $InstallPackages) {
-			if (($_ -like $package) -and ($_ -like "*$armString*")) {
+	(Get-ChildItem $PackagesPath -File -Filter "*.cab").FullName | Sort-Object -Descending | ForEach-Object {
+		foreach ($package in $notMatchedPackages) {
+			if (($_ -like $package) -and ($_ -match "$arch")) {
 				$matchedPackages += $_
 				$notMatchedPackages = $notMatchedPackages -ne $package
 				break
