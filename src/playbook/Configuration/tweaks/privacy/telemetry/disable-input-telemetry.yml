@@ -44,3 +44,8 @@ actions:
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Input\TIPC'
+    value: 'Enabled'
+    data: '0'
+    type: REG_DWORD

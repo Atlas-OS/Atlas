@@ -17,6 +17,12 @@ actions:
     value: 'SubscribedContentEnabled'
     data: '0'
     type: REG_DWORD
+    # Ensure no settings get changed
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'RemediationRequired'
+    data: '0'
+    type: REG_DWORD
 
     # Prevent suggested app installs
     # https://www.tenforums.com/tutorials/68217-turn-off-automatic-installation-suggested-apps-windows-10-a.html
