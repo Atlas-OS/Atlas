@@ -112,9 +112,11 @@ updates:
   - target_component: Microsoft-Windows-DataCollection-Adm.Resources
     target_arch: amd64
     version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-DeviceCensus
-    target_arch: amd64
-    version: 38655.38527.65535.65535
+    # Required for Application Compatibility (PcaSvc)
+    # It's disabled by default on Atlas, but this should still be kept
+  # - target_component: Microsoft-Windows-DeviceCensus
+  #   target_arch: amd64
+  #   version: 38655.38527.65535.65535
   - target_component: Microsoft-Windows-DeviceCensus-Schedule-ClientServer
     target_arch: amd64
     version: 38655.38527.65535.65535
@@ -177,42 +179,4 @@ updates:
     version: 38655.38527.65535.65535
   - target_component: Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient
     target_arch: wow64
-    version: 38655.38527.65535.65535
-
-    # CEIP/SQM - Windows Customer Experience Program
-  - target_component: Microsoft-Windows-AcProxy
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-AcProxy.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-CEIPEnable-Adm
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-CEIPEnable-Adm.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-Client-SQM-Consolidator
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-SQMApi
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-SQMApi
-    target_arch: wow64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-SQM-Consolidator-Base
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-SQM-Consolidator-Base.Resources
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-UsbCeip
-    target_arch: amd64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-UsbCeip
-    target_arch: wow64
-    version: 38655.38527.65535.65535
-  - target_component: Microsoft-Windows-UsbCeip.Resources
-    target_arch: amd64
     version: 38655.38527.65535.65535
