@@ -1,0 +1,10 @@
+---
+title: Disable Recall Snapshots
+description: Disables snapshots of Recall (24H2+)
+builds: [ '>=22000' ]
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
+    value: 'DisableAIDataAnalysis'
+    data: '1'
+    type: REG_DWORD

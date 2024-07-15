@@ -90,6 +90,7 @@ actions:
   - !task: {path: 'tweaks\privacy\disable-pca.yml'}
   - !task: {path: 'tweaks\privacy\disable-perf-track.yml'}
   - !task: {path: 'tweaks\privacy\disable-privacy-experience.yml'}
+  - !task: {path: 'tweaks\privacy\disable-recall-snap.yml'}
   - !task: {path: 'tweaks\privacy\disable-device-monitoring.yml'}
   - !task: {path: 'tweaks\privacy\disable-rsop-logging.yml'}
   - !task: {path: 'tweaks\privacy\disable-speech-auto-updates.yml'}
