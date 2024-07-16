@@ -149,7 +149,6 @@ actions:
   - !task: {path: 'tweaks\qol\best-wallpaper-quality.yml'}
   - !task: {path: 'tweaks\qol\config-start-menu.yml'}
   - !task: {path: 'tweaks\qol\config-windows-ink-workspace.yml'}
-  - !task: {path: 'tweaks\qol\disable-background-auto-login.yml'}
   - !task: {path: 'tweaks\qol\disable-mouse-accel.yml'}
   - !task: {path: 'tweaks\qol\disable-settings-tips.yml'}
   - !task: {path: 'tweaks\qol\disable-spell-checking.yml'}
