@@ -11,11 +11,11 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-echo]
+call "%windir%\AtlasModules\Scripts\wingetCheck.cmd" /nodashes
+if %errorlevel% neq 0 exit /b 1
+
 echo Enabling Web Search ^& Search Highlights...
-
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide search-permissions /silent
-
 (
 	reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "BingSearchEnabled" /f
 	reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings" /v "IsAADCloudSearchEnabled" /f
@@ -33,7 +33,11 @@ call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide search-permission
 	start explorer.exe
 ) > nul 2>&1
 
+:: Enable search indexing to prevent a visual bug
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 sc query wsearch | find "STOPPED" > nul && call :searchIndexBug)
+
+:: Install the Bing search provider
+winget install -e --id 9NZBF4GT040C --uninstall-previous -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
 
 echo]
 echo Finished, you should be able to use Web Search and Search Highlights.

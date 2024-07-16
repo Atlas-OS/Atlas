@@ -31,6 +31,7 @@ call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide search-permissions 
 	taskkill /f /im explorer.exe
 	taskkill /f /im SearchHost.exe
 	start explorer.exe
+	powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.BingSearch* | Remove-AppxPackage -AllUsers"
 ) > nul 2>&1
 
 echo]
