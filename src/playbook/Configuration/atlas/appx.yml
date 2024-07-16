@@ -25,6 +25,7 @@ actions:
   # Seems legacy - not in 23H2?
   - !taskKill: {name: 'msteams*', ignoreErrors: true}
   - !appx: {name: 'MicrosoftTeams*', type: family}
+  - !appx: {name: 'MSTeams*', type: family}
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications', value: 'ConfigureChatAutoInstall', data: '0', type: REG_DWORD}
 
   - !appx: {name: 'Clipchamp.Clipchamp*', type: family}
