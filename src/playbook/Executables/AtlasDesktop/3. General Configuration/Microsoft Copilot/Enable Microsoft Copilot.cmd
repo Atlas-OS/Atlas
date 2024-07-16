@@ -21,6 +21,7 @@ echo Enabling Copilot...
 
 :: Decide if Copilot is avaliable
 :: If not, it could be 24H2 (which replaces it with an app)
+set "appText= "
 reg query HKCU\Software\Microsoft\Windows\Shell\Copilot /v IsCopilotAvailable 2>&1 | find "0x0" > nul
 if %errorlevel%==0 (call :app) else (reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowCopilotButton" /t REG_DWORD /d "1" /f > nul)
 
@@ -30,13 +31,15 @@ start explorer.exe
 
 :finish
 echo]
-echo Finished, changes are applied.
+echo Finished, changes are applied. %appText%
 echo Press any key to exit...
 pause > nul
 exit /b
 
 :app
-echo NOTE: Copilot on the taskbar isn't available, installing the app instead...
-call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
+echo NOTE: Copilot on the taskbar isn't available, the app will be installed instead.
+set "appText=You can find the Copilot app in your Start Menu."
+call "%windir%\AtlasModules\Scripts\wingetCheck.cmd" /nodashes
 if %errorlevel% neq 0 exit /b 1
+echo Installing Copilot...
 winget install -e --id 9NHT9RB2F4HD --uninstall-previous -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
