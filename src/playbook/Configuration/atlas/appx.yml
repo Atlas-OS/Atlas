@@ -48,6 +48,7 @@ actions:
   - !appx: {name: 'Microsoft.Windows.DevHome*', type: family}
   - !appx: {name: 'Microsoft.BingWeather*', type: family}
   - !appx: {name: 'Microsoft.BingNews*', type: family}
+  - !appx: {name: 'Microsoft.BingSearch*', type: family}
   - !appx: {name: 'Microsoft.OutlookForWindows*', type: family}
   - !appx: {name: 'Microsoft.GetHelp*', type: family}
   - !appx: {name: 'Microsoft.Microsoft3DViewer*', type: family}
