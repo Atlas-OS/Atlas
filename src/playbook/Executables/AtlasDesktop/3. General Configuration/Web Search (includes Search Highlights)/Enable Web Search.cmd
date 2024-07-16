@@ -11,10 +11,26 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-call "%windir%\AtlasModules\Scripts\wingetCheck.cmd" /nodashes
+call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
 if %errorlevel% neq 0 exit /b 1
 
 echo Enabling Web Search ^& Search Highlights...
+
+echo]
+set key="HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowSearchToUseLocation
+choice /c:yn /n /m "Would you like web search to use your location for results? [Y/N] "
+if %errorlevel%==1 reg delete %key% /f > nul
+if %errorlevel%==2 reg add %key% /t REG_DWORD /d 0 /f > nul
+
+:: Enable search indexing to prevent a visual bug
+for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 sc query wsearch | find "STOPPED" > nul && call :searchIndexBug)
+
+:: Install the Bing search provider
+echo]
+echo Installing the Bing search provider...
+winget install -e --id 9NZBF4GT040C --uninstall-previous -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
+
+:: Main settings
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide search-permissions /silent
 (
 	reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "BingSearchEnabled" /f
@@ -32,12 +48,6 @@ call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide search-permission
     taskkill /f /im SearchHost.exe
 	start explorer.exe
 ) > nul 2>&1
-
-:: Enable search indexing to prevent a visual bug
-for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 sc query wsearch | find "STOPPED" > nul && call :searchIndexBug)
-
-:: Install the Bing search provider
-winget install -e --id 9NZBF4GT040C --uninstall-previous -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
 
 echo]
 echo Finished, you should be able to use Web Search and Search Highlights.

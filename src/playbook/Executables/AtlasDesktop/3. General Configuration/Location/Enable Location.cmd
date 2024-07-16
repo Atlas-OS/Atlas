@@ -28,11 +28,6 @@ call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide privacy-location
 
 if "%~1"=="/silent" exit /b
 
-set key="HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowSearchToUseLocation
-choice /c:yn /n /m "Would you like to allow Windows Search to use your location? [Y/N] "
-if %errorlevel%==1 reg delete %key% /f > nul
-if %errorlevel%==2 reg add %key% /t REG_DWORD /d 0 /f > nul
-
 set key1="HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice"
 choice /c:yn /n /m "Would you like to unlock Find My Device functionality? [Y/N] "
 if %errorlevel%==1 (
