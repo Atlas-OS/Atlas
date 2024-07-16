@@ -28,14 +28,18 @@ actions:
   - !appx: {name: 'MSTeams*', type: family}
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications', value: 'ConfigureChatAutoInstall', data: '0', type: REG_DWORD}
 
+  # 24H2 Copilot app
+  - !appx: {name: 'Microsoft.Copilot', type: family}
+
+  # Other apps
   - !appx: {name: 'Clipchamp.Clipchamp*', type: family}
   - !appx: {name: 'Disney.37853FC22B2CE*', type: family}
   - !appx: {name: 'SpotifyAB.SpotifyMusic*', type: family}
   - !appx: {name: 'Microsoft.549981C3F5F10*', type: family} # Cortana
-  - !appx: {name: 'Microsoft.XboxApp*', type: family} # Legacy Xbox Console Companion
+  - !appx: {name: 'Microsoft.XboxApp*', type: family} # Xbox Console Companion (deprecated)
   - !appx: {name: 'microsoft.windowscommunicationsapps*', type: family} # Mail and Calendar
   - !appx: {name: 'Microsoft.MSPaint*', type: family} # Paint 3D
-  - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips
+  - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips (deprecated)
   - !appx: {name: 'Microsoft.ZuneVideo*', type: family} # Films & TV
   - !appx: {name: 'MicrosoftCorporationII.MicrosoftFamily*', type: family}
   - !appx: {name: 'Microsoft.MixedReality.Portal*', type: family}

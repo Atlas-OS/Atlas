@@ -11,24 +11,32 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-echo Please note that some regions or devices may not have Copilot avaliable.
-echo This means that the script can seem to 'not work', but it would do if it was avaliable.
-pause
-
-cls
+:: Check for Edge support
 echo]
 call "%windir%\AtlasModules\Scripts\edgeCheck.cmd" /edgeonly
 if %errorlevel% neq 0 exit /b 1
 echo]
 
 echo Enabling Copilot...
+
+:: Decide if Copilot is avaliable
+:: If not, it could be 24H2 (which replaces it with an app
+reg query HKCU\Software\Microsoft\Windows\Shell\Copilot /v IsCopilotAvailable 2>&1 | find "0x0" > nul
+if %errorlevel%==0 (call :app) else (reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowCopilotButton" /t REG_DWORD /d "1" /f > nul)
+
 taskkill /f /im explorer.exe > nul 2>&1
 reg delete "HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /f > nul 2>&1
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowCopilotButton" /t REG_DWORD /d "1" /f > nul
 start explorer.exe
 
+:finish
 echo]
 echo Finished, changes are applied.
 echo Press any key to exit...
 pause > nul
 exit /b
+
+:app
+echo NOTE: Copilot on the taskbar isn't available, installing the app instead...
+call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
+if %errorlevel% neq 0 exit /b 1
+winget install -e --id 9NHT9RB2F4HD --uninstall-previous -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
