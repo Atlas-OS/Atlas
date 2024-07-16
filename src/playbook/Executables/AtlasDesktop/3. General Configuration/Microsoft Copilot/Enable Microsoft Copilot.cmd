@@ -20,7 +20,7 @@ echo]
 echo Enabling Copilot...
 
 :: Decide if Copilot is avaliable
-:: If not, it could be 24H2 (which replaces it with an app
+:: If not, it could be 24H2 (which replaces it with an app)
 reg query HKCU\Software\Microsoft\Windows\Shell\Copilot /v IsCopilotAvailable 2>&1 | find "0x0" > nul
 if %errorlevel%==0 (call :app) else (reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowCopilotButton" /t REG_DWORD /d "1" /f > nul)
 
