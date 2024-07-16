@@ -1,0 +1,4 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Appx]
+"AllowAutomaticAppArchiving"=dword:00000001
