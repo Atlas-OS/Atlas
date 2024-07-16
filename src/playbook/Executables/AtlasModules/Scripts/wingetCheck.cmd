@@ -2,9 +2,11 @@
 
 set "dashes=-----------------------------------------------------------------------------------------------------"
 set "silent="
-echo "%~1 %~2" | find "/silent" > nul && set silent=true
+set "nodashes="
+echo "%*" | find "/silent" > nul && set silent=true
+echo "%*" | find "/nodashes" > nul && set nodashes=true
 
-if not defined silent echo %dashes%
+if not defined silent (if not defined nodashes echo %dashes%)
 
 ping -n 1 -4 www.microsoft.com > nul 2>&1
 if errorlevel == 1 (
@@ -36,8 +38,10 @@ winget search "Microsoft Visual Studio Code" --accept-source-agreements > nul 2>
 )
 
 if not defined silent (
-    echo %dashes%
-    echo]
+    if not defined nodashes (
+        echo %dashes%
+        echo]
+    )
 )
 
 exit /b

@@ -22,19 +22,26 @@ actions:
     wait: true
 
   # AppX Microsoft Teams
-  # Seems legacy - not in 23H2?
+  # Seems legacy - not in 23H2
   - !taskKill: {name: 'msteams*', ignoreErrors: true}
   - !appx: {name: 'MicrosoftTeams*', type: family}
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications', value: 'ConfigureChatAutoInstall', data: '0', type: REG_DWORD}
 
+  # New AppX Teams in 24H2
+  - !taskKill: {name: 'ms-teams*', ignoreErrors: true}
+  - !appx: {name: 'MSTeams*', type: family}
+  # 24H2 Copilot app
+  - !appx: {name: 'Microsoft.Copilot*', type: family}
+
+  # Other apps
   - !appx: {name: 'Clipchamp.Clipchamp*', type: family}
   - !appx: {name: 'Disney.37853FC22B2CE*', type: family}
   - !appx: {name: 'SpotifyAB.SpotifyMusic*', type: family}
   - !appx: {name: 'Microsoft.549981C3F5F10*', type: family} # Cortana
-  - !appx: {name: 'Microsoft.XboxApp*', type: family} # Legacy Xbox Console Companion
+  - !appx: {name: 'Microsoft.XboxApp*', type: family} # Xbox Console Companion (deprecated)
   - !appx: {name: 'microsoft.windowscommunicationsapps*', type: family} # Mail and Calendar
   - !appx: {name: 'Microsoft.MSPaint*', type: family} # Paint 3D
-  - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips
+  - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips (deprecated)
   - !appx: {name: 'Microsoft.ZuneVideo*', type: family} # Films & TV
   - !appx: {name: 'MicrosoftCorporationII.MicrosoftFamily*', type: family}
   - !appx: {name: 'Microsoft.MixedReality.Portal*', type: family}
@@ -79,6 +86,7 @@ actions:
     wait: true
 
   # Clear caches of Client.CBS and more
+  # Start menu cache is cleared later
   - !writeStatus: {status: 'Clearing AppX caches'}
   - !appx: {operation: clearCache, name: '*MicrosoftWindows.Client.CBS*'}
   - !appx: {operation: clearCache, name: '*Microsoft.Windows.Search*'}

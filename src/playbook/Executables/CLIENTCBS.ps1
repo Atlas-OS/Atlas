@@ -8,10 +8,9 @@
 
 # Variables
 $windir = [Environment]::GetFolderPath('Windows')
-$cbsPublic = "$windir\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\Public"
-$settingsExtensions = "$cbsPublic\wsxpacks\Account\SettingsExtensions.json"
+$settingsExtensions = (Get-ChildItem "$windir\SystemApps" -Recurse).FullName | Where-Object { $_ -like '*wsxpacks\Account\SettingsExtensions.json*' }
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
-if (!(Test-Path $settingsExtensions)) {
+if ($settingsExtensions.Count -eq 0) {
     Write-Output "Settings extensions ($settingsExtensions) not found."
     Write-Output "User is likely on Windows 10, nothing to do. Exiting..."
     exit
@@ -37,7 +36,10 @@ function Find-VelocityID($Node) {
 
     return $ids
 }
-$ids = Find-VelocityID -Node $(Get-Content -Path $settingsExtensions | ConvertFrom-Json)
+$ids = @()
+foreach ($settingsJson in $settingsExtensions) {
+    $ids += Find-VelocityID -Node $(Get-Content -Path $settingsJson | ConvertFrom-Json)
+}
 
 # No IDs check
 if ($ids.Count -le 0) {
