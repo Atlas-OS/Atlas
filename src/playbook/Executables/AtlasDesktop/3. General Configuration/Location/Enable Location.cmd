@@ -25,7 +25,7 @@ fltmc > nul 2>&1 || (
 	taskkill /f /im SystemSettings.exe
 ) > nul 2>&1
 
-"%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide privacy-location
+call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide privacy-location
 
 if "%~1"=="/silent" exit /b
 
@@ -34,6 +34,19 @@ choice /c:yn /n /m "Would you like to allow Windows Search to use your location?
 if %errorlevel%==1 reg delete %key% /f > nul
 if %errorlevel%==2 reg add %key% /t REG_DWORD /d 0 /f > nul
 
-echo Finished, please reboot your device for changes to apply.
+set key1="HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice"
+choice /c:yn /n /m "Would you like to unlock Find My Device functionality? [Y/N] "
+if %errorlevel%==1 (
+	reg delete %key1% /f > nul
+	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide findmydevice /silent
+)
+if %errorlevel%==2 (
+	reg add %key1% /v AllowFindMyDevice /t REG_DWORD /d 0 /f > nul
+	reg add %key1% /v LocationSyncEnabled /t REG_DWORD /d 0 /f > nul
+)
+
+echo]
+echo Finished.
+start ms-settings:privacy-location
 pause
 exit /b

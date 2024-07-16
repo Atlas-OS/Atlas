@@ -84,7 +84,6 @@ actions:
   - !task: {path: 'tweaks\privacy\disable-activity-feed.yml'}
   - !task: {path: 'tweaks\privacy\disable-app-launch-tracking.yml'}
   - !task: {path: 'tweaks\privacy\disable-experimentation.yml'}
-  - !task: {path: 'tweaks\privacy\disable-location-tracking.yml'}
   - !task: {path: 'tweaks\privacy\disable-lockscreen-camera.yml'}
   - !task: {path: 'tweaks\privacy\disable-online-speech-recognition.yml'}
   - !task: {path: 'tweaks\privacy\disable-pca.yml'}

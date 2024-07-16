@@ -18,6 +18,8 @@ fltmc > nul 2>&1 || (
 	sc config lfsvc start=disabled
 	sc config MapsBroker start=disabled
 	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowSearchToUseLocation /t REG_DWORD /d 0 /f
+	reg add "HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice" /v AllowFindMyDevice /t REG_DWORD /d 0 /f
+	reg add "HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice" /v LocationSyncEnabled /t REG_DWORD /d 0 /f
 ) > nul
 
 (
@@ -26,10 +28,15 @@ fltmc > nul 2>&1 || (
 	taskkill /f /im SystemSettings.exe
 ) > nul 2>&1
 
-"%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide privacy-location
+for %%a in (
+	"privacy-location"
+	"findmydevice"
+) do (
+	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide %%~a /silent
+)
 
 if "%~1"=="/silent" exit /b
 
-echo Finished, please reboot your device for changes to apply.
+echo Finished.
 pause
 exit /b
