@@ -14,6 +14,7 @@ if defined ___currentPages set "___currentPages=%___currentPages: =%"
 if "%~3"=="/silent" set ___silent=true
 if "%~1"=="/hide" call :hide "%~2"
 if "%~1"=="/unhide" call :unhide "%~2"
+taskkill /f /im SystemSettings.exe > nul 2>&1
 exit /b
 
 

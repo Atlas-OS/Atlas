@@ -16,7 +16,6 @@ reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableWi
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate" /v "AutoDownload" /t REG_DWORD /d "4" /f > nul
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide mobile-devices
 
-taskkill /f /im SystemSettings.exe > nul 2>&1
 start ms-settings:mobile-devices
 
 echo Finished, you can now use the mobile device settings to sync your phone.

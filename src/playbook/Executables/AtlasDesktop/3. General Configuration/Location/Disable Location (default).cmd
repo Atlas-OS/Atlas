@@ -25,7 +25,6 @@ fltmc > nul 2>&1 || (
 (
 	sc stop lfsvc
 	sc stop MapsBroker
-	taskkill /f /im SystemSettings.exe
 ) > nul 2>&1
 
 for %%a in (

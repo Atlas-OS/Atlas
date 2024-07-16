@@ -35,7 +35,6 @@ for %%a in (
 if "%~1" == "/silent" exit /b
 
 taskkill /f /im explorer.exe > nul 2>&1
-taskkill /f /im SystemSettings.exe > nul 2>&1
 taskkill /f /im ShellExperienceHost.exe > nul 2>&1
 start explorer.exe
 

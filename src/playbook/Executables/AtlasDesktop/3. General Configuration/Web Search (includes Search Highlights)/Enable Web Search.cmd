@@ -30,8 +30,7 @@ call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide search-permission
 	reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "2" /f
     taskkill /f /im explorer.exe
     taskkill /f /im SearchHost.exe
-	taskkill /f /im SystemSettings.exe
-    start explorer.exe
+	start explorer.exe
 ) > nul 2>&1
 
 for /f "tokens=6 delims=[.] " %%a in ('ver') do (if %%a GEQ 22000 sc query wsearch | find "STOPPED" > nul && call :searchIndexBug)

@@ -22,7 +22,6 @@ fltmc > nul 2>&1 || (
 (
 	sc start lfsvc
 	sc start MapsBroker
-	taskkill /f /im SystemSettings.exe
 ) > nul 2>&1
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide privacy-location

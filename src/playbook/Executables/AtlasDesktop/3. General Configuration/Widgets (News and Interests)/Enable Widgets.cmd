@@ -25,7 +25,6 @@ echo Enabling News and Interests (called Widgets in Windows 11)...
 ) > nul 2>&1
 
 timeout /t 3 /nobreak > nul
-taskkill /f /im SystemSettings.exe > nul 2>&1
 start ms-settings:taskbar
 
 echo]
