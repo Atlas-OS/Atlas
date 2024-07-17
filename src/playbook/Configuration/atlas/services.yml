@@ -33,6 +33,12 @@ actions:
     exeDir: true
     wait: true
 
+  - !writeStatus: {status: 'Configuring Indexing'}
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd" /silent'
+    exeDir: true
+    wait: true
+
   ##############################################################################################
   ## SERVICES                                                                                 ##
   ##############################################################################################
@@ -44,7 +50,6 @@ actions:
   - !service: {name: 'TrkWks', operation: change, startup: 4}
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
-  - !service: {name: 'WSearch', operation: change, startup: 4}
 
     # ------ Microsoft recommendation - 'Do not disable' -----
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
