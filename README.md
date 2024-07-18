@@ -63,3 +63,6 @@ As Atlas doesn't redistribute a modified Windows ISO, it complies with [Windows'
 
 ## 🎨 Brand kit
 Want to create your own Atlas wallpaper with some original creative designs? Visit our [Branding Kit on Docs](https://docs.atlasos.net/branding/) and share your creations on our [forum](https://forum.atlasos.net/t/art-showcase)!
+
+## 💙 Contributors
+<a href="https://github.com/Atlas-OS/Atlas/graphs/contributors" target="_blank"><img src="https://contrib.rocks/image?repo=Atlas-OS/Atlas&columns=18" alt="Avatars of all contributors"></a>
