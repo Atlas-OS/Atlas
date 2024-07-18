@@ -10,7 +10,7 @@ param (
 
 $removals | % { Set-Variable -Name "remove$_" -Value $true }
 
-# Function to convert paths for convienience, needed for Linux/macOS
+# Convert paths for convienience, needed for Linux/macOS
 function Seperator {
 	return $args -replace '\\', "$([IO.Path]::DirectorySeparatorChar)"
 }
@@ -101,7 +101,7 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 
 			Set-Content -Path $tempCustomYmlPath -Value $newCustomYml
 		} else {
-			Write-Error "Can't find "$customYmlPath", not adding live log."
+			Write-Error "Can't find '$customYmlPath', not adding live log."
 		}
 	}
 
@@ -120,8 +120,35 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 
 			Set-Content -Path $tempStartYmlPath -Value $newStartYml
 		} else {
-			Write-Error "Can't find "$startYmlPath", not removing dependencies."
+			Write-Error "Can't find '$startYmlPath', not removing dependencies."
 		}
+	}
+
+	$oemYmlPath = Seperator "Configuration\tweaks\misc\config-oem-information.yml"
+	$tempOemYmlPath = Seperator "$playbookTemp\$oemYmlPath"
+	if (Test-Path $oemYmlPath -PathType Leaf) {
+		$confXml = ([xml](Get-Content "playbook.conf" -Raw -EA 0)).Playbook
+		$version = "v$($confXml.Version)"
+		if ($version -like '*.*.*') {
+			if ($confXml.Title | Select-String '(dev)' -Quiet) {
+				$version = $version + ' (dev)'
+			}
+
+			$oemToReplace = 'AtlasVersionUndefined'
+			$oemYml = Get-Content -Path $oemYmlPath -Raw
+			$tempOemYml = $oemYml -replace $oemToReplace, $version
+			
+			if ($tempOemYml -eq $oemYml) {
+				Write-Error "Couldn't find OEM string '$oemToReplace'."
+			} else {
+				New-Item (Split-Path $tempOemYmlPath) -ItemType Directory -Force | Out-Null
+				Set-Content -Path $tempOemYmlPath -Value $tempOemYml
+			}
+		} else {
+			Write-Error "Can't XML in 'playbook.conf', not setting OEM version."
+		}
+	} else {
+		Write-Error "Can't find '$oemYmlPath', not setting OEM version."
 	}
 
 	# exclude files

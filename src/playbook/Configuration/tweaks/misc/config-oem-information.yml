@@ -3,8 +3,18 @@ title: Configure OEM Information
 description: Configures OEM information to contain the Atlas version and the Atlas Discord server
 actions:
   - !powerShell:
-    command: '.\UPGRADECHECK.ps1 -SetVersion'
-    exeDir: true
+    command: |
+      $version = 'AtlasVersionUndefined'
+
+      Write-Output 'Setting boot entry name...'
+      bcdedit /set description """AtlasOS $(('10', '11')[[int]([System.Environment]::OSVersion.Version.Build -ge 22000)]) $version"""
+
+      Write-Output 'Setting other versioned OEM information...'
+      $reportedVer = """Atlas Playbook $version"""
+      # Shows in Settings
+      Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Name 'Model' -Value $reportedVer -Force
+      # Shows in winver
+      Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'RegisteredOrganization' -Value $reportedVer -Force
     wait: true
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
