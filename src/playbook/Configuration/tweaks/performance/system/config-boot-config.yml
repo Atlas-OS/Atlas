@@ -2,12 +2,15 @@
 title: Configure Boot Configuration
 description: Configures the boot configuration (BCD) for QoL
 actions:
+  # ------------------------------------------------------------------------------- #
+  # https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set #
+  # ------------------------------------------------------------------------------- #
+
     # Lowering dual boot choice time
-    # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/--timeout#parameters
   - !run: {exe: 'bcdedit', args: '/timeout 10'}
 
     # Use legacy boot menu
-  - !run: {exe: 'bcdedit', args: '/set bootmenupolicy Legacy'}
+  - !run: {exe: 'bcdedit', args: '/set {bootloadersettings} bootmenupolicy legacy'}
 
     # Set boot manager descriptions
   - !run:
