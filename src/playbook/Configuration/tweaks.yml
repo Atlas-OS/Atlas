@@ -219,6 +219,7 @@ actions:
   - !task: {path: 'tweaks\qol\explorer\use-compact-mode.yml'}
   - !task: {path: 'tweaks\qol\explorer\disable-gallery.yml'}
   - !task: {path: 'tweaks\qol\explorer\debloat-send-to.yml'}
+  - !task: {path: 'tweaks\qol\explorer\enable-long-paths.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer\add-context-menus                                            #
