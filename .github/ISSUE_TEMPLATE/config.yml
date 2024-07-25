@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/Atlas-OS/docs/issues/
     about: Report all documentation issues in our 'docs' repository issue tracker.
   - name: Report a non-Atlas related issue
-    url: https://forum.atlasos.net/t/atlas-bug-report
-    about: Please report any non-Atlas Playbook related issue in the 'Bug Report' section on our forum (website, Discord bot, etc.).
+    url: https://github.com/Atlas-OS/Atlas/discussions
+    about: Please report any non-Atlas Playbook related issue in the 'Bug Report' section on GitHub Discussions (website, Discord bot, etc.).
