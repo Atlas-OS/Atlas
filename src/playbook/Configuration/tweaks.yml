@@ -233,7 +233,7 @@ actions:
   #  qol\explorer\remove-context-menus                                         #
   # -------------------------------------------------------------------------- #
   - !task: {path: 'tweaks\qol\explorer\remove-context-menus\cast-to-device.yml'}
-  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\extract-all.yml'}
+  - !task: {path: 'tweaks\qol\explorer\remove-context-menus\extract.yml'}
   - !task: {path: 'tweaks\qol\explorer\remove-context-menus\include-in-library.yml'}
   - !task: {path: 'tweaks\qol\explorer\remove-context-menus\new-bitmap.yml'}
   - !task: {path: 'tweaks\qol\explorer\remove-context-menus\new-rtf.yml'}
