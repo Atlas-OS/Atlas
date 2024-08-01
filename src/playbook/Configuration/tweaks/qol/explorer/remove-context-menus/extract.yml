@@ -2,23 +2,7 @@
 title: Remove 'Extract' from Context Menu
 description: Removes 'Extract' from Context Menu
 actions:
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked'
-    value: '{b8cdcb65-b1bf-4b42-9428-1dfdb7ee92af}'
-    type: REG_SZ
-    data: ''
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked'
-    value: '{BD472F60-27FA-11cf-B8B4-444553540000}'
-    type: REG_SZ
-    data: ''
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked'
-    value: '{EE07CEF5-3441-4CFB-870A-4002C724783A}'
-    type: REG_SZ
-    data: ''
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked'
-    value: '{D12E3394-DE4B-4777-93E9-DF0AC88F8584}'
-    type: REG_SZ
-    data: ''
+  - !cmd:
+    command: 'reg import "AtlasDesktop\4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).reg"'
+    exeDir: true
+    wait: true
