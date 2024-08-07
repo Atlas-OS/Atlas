@@ -7,28 +7,54 @@ actions:
     # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-' | clip
 
   - !taskKill: {name: 'explorer'}
-  - !run:
-    exe: 'TASKBARPINS.cmd'
+
+    # Config pins
+  - !registryKey:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+  - !registryKey:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    operation: add
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    value: 'FavoritesVersion'
+    data: '3'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    value: 'MailPin'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    value: 'CopilotPWAPin'
+    data: '0'
+    type: REG_DWORD
+    # Not sure what this does
+  # - !registryValue:
+  #   path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+  #   value: 'TFLPin'
+  #   data: '0'
+  #   type: REG_DWORD
+
+    # Set new pins
+  - !powerShell:
+    command: '.\TASKBARPINS.ps1'
     option: '!install-another-browser'
     exeDir: true
-  - !run:
-    exe: 'TASKBARPINS.cmd'
-    args: '"Brave"'
+  - !powerShell:
+    command: '.\TASKBARPINS.ps1 "Brave"'
     option: 'browser-brave'
     exeDir: true
-  - !run:
-    exe: 'TASKBARPINS.cmd'
-    args: '"Firefox"'
+  - !powerShell:
+    command: '.\TASKBARPINS.ps1 "Firefox"'
     option: 'browser-firefox'
     exeDir: true
-  - !run:
-    exe: 'TASKBARPINS.cmd'
-    args: '"Google Chrome"'
+  - !powerShell:
+    command: '.\TASKBARPINS.ps1 "Google Chrome"'
     option: 'browser-chrome'
     exeDir: true
-  - !run:
-    exe: 'TASKBARPINS.cmd'
-    args: '"LibreWolf"'
+  - !powerShell:
+    command: '.\TASKBARPINS.ps1 "LibreWolf"'
     option: 'browser-librewolf'
     exeDir: true
   - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
