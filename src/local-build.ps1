@@ -23,7 +23,7 @@ if (Get-Command '7z' -EA 0) {
 } elseif (!$IsLinux -and !$IsMacOS -and (Test-Path "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe")) {
 	$7zPath = "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe"
 } else {
-	throw "This script requires 7-Zip to be installed to continue."
+	throw "This script requires 7-Zip or NanaZip to be installed to continue."
 }
 
 # check if playbook dir
