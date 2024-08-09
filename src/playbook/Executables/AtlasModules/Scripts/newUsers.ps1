@@ -7,14 +7,14 @@ $atlasDesktop = "$windir\AtlasDesktop"
 $atlasModules = "$windir\AtlasModules"
 
 function ThemeMRU {
-    New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes" -Name "ThemeMRU" -Value "$((@(
+    Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes" -Name "ThemeMRU" -Value "$((@(
         "atlas-v0.4.x-dark.theme",
         "atlas-v0.4.x-light.theme",
         "atlas-v0.3.x-dark.theme",
         "atlas-v0.3.x-light.theme",
         "dark.theme",
         "aero.theme"
-    ) | ForEach-Object { "$windir\resources\Themes\$_" }) -join ';');" -PropertyType String -Force
+    ) | ForEach-Object { "$windir\resources\Themes\$_" }) -join ';');" -Type String -Force
 }
 if ($ThemeMRU) { ThemeMRU; exit }
 
