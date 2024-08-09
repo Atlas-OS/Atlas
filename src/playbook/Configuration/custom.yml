@@ -24,11 +24,13 @@ actions:
     weight: 10
     wait: true
     exeDir: true
+    handleExitCodes: {'>1': halt}
   - !cmd:
     command: 'robocopy "AtlasDesktop" "%windir%\AtlasDesktop" /E /PURGE /IM /IT /NP > nul'
     weight: 10
     wait: true
     exeDir: true
+    handleExitCodes: {'>1': halt}
   - !cmd:
     command: 'copy /y "Themes" "%windir%\Resources\Themes" > nul'
     weight: 10
