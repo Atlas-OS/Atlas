@@ -35,9 +35,16 @@ actions:
     value: 'RotatingLockScreenEnabled'
     data: '0'
     type: REG_DWORD
-  - !run:
-    exe: 'THEME.cmd'
+  - !powerShell:
+    command: |
+      $env:PSModulePath += """;$PWD\AtlasModules\Scripts\Modules"""
+      foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
+          Set-ItemProperty `
+              -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative\$(Split-Path $userKey -Leaf)" `
+              -Name 'RotatingLockScreenEnabled' -Type DWORD -Value 0 -Force
+      }
     exeDir: true
+    wait: true
   - !powerShell:
     command: '& ".\AtlasModules\Scripts\LOCKSCREEN.ps1"'
     exeDir: true
