@@ -1,6 +1,7 @@
 param (
     [string]$Browser
 )
+$env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
 
 # The names are used for the shortcuts in the taskbar
 # If they're changed, e.g. 'Brave', then you need new Favorites & FavoritesResolve
@@ -96,36 +97,26 @@ $taskBarLocation = 'Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar
 $rootKey = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
 
 # Clearing taskbar, copying the shortcut, setting registry
-$regPattern = 'AME_UserHive_|Volatile Environment'
-foreach ($userKey in 
-    (Get-ChildItem -Path "Registry::HKU" | Where-Object {
-        $_.Name -match "S-[0-9-]+(?!.*_)|$regPattern"
-    }).PsPath
-) {
-    # If the 'Volatile Environment' key exists, that means it is a proper user. Built in accounts/SIDs don't have this key
-    if ((Get-ChildItem -Path $userKey | Where-Object { $_ -match $regPattern }).Count -ne 0) {
-        Write-Output ""
-        $sid = Split-Path $userKey -Leaf
-		$appData = Get-ItemPropertyValue "Registry::HKU\$sid\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name 'AppData' -EA 0
+foreach ($userKey in (Get-RegUserPaths).PsPath) {
+    $sid = Split-Path $userKey -Leaf
+    $appData = Get-ItemPropertyValue "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name 'AppData' -EA 0
 
-        if ([string]::IsNullOrEmpty($appData)) {
-            Write-Error "Couldn't find AppData value for $sid!"
-        } else {
-			$text = "Setting '$Browser' taskbar shortcut for '$sid'..."
-			Write-Output "$text`n$('-' * $text.Length)"
+    if (!(Test-Path $appData)) {
+        Write-Error "Couldn't find AppData value for $sid!"
+    } else {
+        Write-Title "Setting '$Browser' taskbar shortcut for '$sid'..."
+        
+        Write-Output "Clearing current shortcuts..."
+        $taskBarAppData = "$appData\$taskBarLocation"
+        Get-ChildItem $taskBarAppData | Remove-Item -Force -Recurse
 
-            Write-Output "Clearing current shortcuts..."
-            $taskBarAppData = "$appData\$taskBarLocation"
-            Get-ChildItem $taskBarAppData | Remove-Item -Force -Recurse
+        Write-Output "Adding new shortcuts..."
+        Copy-Item -Path "$tmp\*" -Destination $taskBarAppData -Force
 
-            Write-Output "Adding new shortcuts..."
-            Copy-Item -Path "$tmp\*" -Destination $taskBarAppData -Force
-
-			Write-Output "Changing in Registry..."
-            $key = "$(Convert-Path $userKey)\$rootKey"
-            foreach ($entry in $reg.GetEnumerator()) {
-                reg add `"$key`" /v $($entry.Name) /t REG_BINARY /d `"$($entry.Value)`" /f | Out-Null
-            }
+        Write-Output "Changing in Registry..."
+        $key = "$(Convert-Path $userKey)\$rootKey"
+        foreach ($entry in $reg.GetEnumerator()) {
+            reg add `"$key`" /v $($entry.Name) /t REG_BINARY /d `"$($entry.Value)`" /f | Out-Null
         }
     }
 }
