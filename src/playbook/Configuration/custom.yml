@@ -3,20 +3,12 @@ title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
     # Warn user if their Windows install is old
+  - !writeStatus: {status: 'Checking prerequisites'}
   - !powerShell:
-    command: |
-      if ((gp 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Name 'Model' -EA 0).Model -notmatch 'Atlas') {
-        if (20 -lt ((Get-Date) - (gcim Win32_OperatingSystem).InstallDate).Days) {
-          @'
-      Windows seems to have been installed a while ago. A full Windows reinstall is highly recommended to ensure your initial install of Atlas works without problems.
-
-      Atlas will install anyways, but remember this if there's issues.
-
-      Follow our installation guide: https://docs.atlasos.net/getting-started/installation/
-      '@ | msg *
-          }
-      }
+    command: '.\PREREQUISITES.ps1; exit $lastexitcode'
+    exeDir: true
     wait: true
+    handleExitCodes: {11: halt, 10: log}
 
   - !writeStatus: {status: 'Copying files'}
   - !cmd:
