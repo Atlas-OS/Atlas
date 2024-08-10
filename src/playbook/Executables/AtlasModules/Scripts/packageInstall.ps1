@@ -21,6 +21,7 @@ if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-1
 # ======================================================================================================================= #
 $sys32 = [Environment]::GetFolderPath('System')
 $windir = [Environment]::GetFolderPath('Windows')
+$env:PSModulePath += ";$windir\AtlasModules\Scripts\Modules"
 $safeModePackageList = "$sys32\safeModePackagesToInstall.atlasmodule"
 $env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
 $errorLevel = $warningLevel = 0
@@ -255,21 +256,15 @@ if ($SafeMode) {
 }
 
 if ($FailMessage) {
-	Add-Type -AssemblyName PresentationFramework
-	$body = "It appears that there was an issue while attempting to disable certain Windows components.
+	$body = @"
+It appears that there was an issue while attempting to disable certain Windows components.
 
-Would you like to restart your system into Safe Mode and try again? This process should not take much time.
+Would you like Atlas to restart your system into Safe Mode and try again? This process shouldn't take much time.
 
-Please note that if you chose to disable Windows Defender, it may still remain enabled if you select 'No'. However, you can always try disabling it later in the Atlas folder."
+Please note that if you chose to disable Windows Defender, it may still remain enabled if you select 'No'. However, you can always try disabling it later in the Atlas folder.
+"@
 
-	$result = [System.Windows.MessageBox]::Show(
-		$body,
-		"Atlas - Component Modification",
-		[System.Windows.MessageBoxButton]::YesNo,
-		[System.Windows.MessageBoxImage]::Question
-	)
-
-	if ($result -eq 'Yes') {
+	if ((Read-MessageBox -Title "Atlas - Component Modification" -Body $body -Icon Question) -eq 'Yes') {
 		SafeMode -Enable
 		Restart
 	}

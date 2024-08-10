@@ -15,6 +15,8 @@ $items = @{
 $sendTo = Get-ChildItem ([Environment]::GetFolderPath('SendTo')) -Force
 $sys32 = [Environment]::GetFolderPath('System')
 $shell = New-Object -Com WScript.Shell
+$windir = [Environment]::GetFolderPath('Windows')
+$env:PSModulePath += ";$windir\AtlasModules\Scripts\Modules"
 
 # Get Bluetooth path
 foreach ($lnk in (($sendTo | Where-Object { $_.Extension -eq ".lnk" }).FullName)) {
@@ -103,12 +105,6 @@ foreach ($item in $items.GetEnumerator()) {
 }
 
 # Restart Explorer prompt
-Add-Type -AssemblyName System.Windows.Forms
-if (([System.Windows.Forms.MessageBox]::Show(
-    "Would you like to restart Windows Explorer now? This will finalise the changes.",
-    "Atlas - Send To Debloat",
-    [System.Windows.Forms.MessageBoxButtons]::YesNo,
-    [System.Windows.Forms.MessageBoxIcon]::Information
-)) -eq [System.Windows.Forms.DialogResult]::Yes) {
+if ((Read-MessageBox -Title "Atlas - Send To Debloat" -Body 'Would you like to restart Windows Explorer now? This will finalise the changes' -Icon Information) -eq 'Yes') {
     Stop-Process -Name explorer -Force
 }

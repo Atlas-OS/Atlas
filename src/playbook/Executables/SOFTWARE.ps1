@@ -4,6 +4,8 @@ param (
 	[switch]$Firefox
 )
 
+$env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
+
 # ----------------------------------------------------------------------------------------------------------- #
 # Software is no longer installed with a package manager anymore to be as fast and as reliable as possible.   #
 # ----------------------------------------------------------------------------------------------------------- #
@@ -159,15 +161,13 @@ function InstallNanaZip {
 if ($assets.Count -eq 2) {
 	$7zipRegistry = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip"
 	if (Test-Path $7zipRegistry) {
-		$WindowTitle = 'Installing NanaZip - Atlas'
-	
 		$Message = @'
 Would you like to uninstall 7-Zip and replace it with NanaZip?
 
 NanaZip is a fork of 7-Zip with an updated user interface and extra features.
 '@
-	
-		if ((New-Object -ComObject "Wscript.Shell").Popup($Message,300,$WindowTitle,4+32+4096) -eq 6) {
+
+		if ((Read-MessageBox -Title 'Installing NanaZip - Atlas' -Body $Message -Icon Question) -eq 'Yes') {
 			$7zipUninstall = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip" -Name "QuietUninstallString" -EA 0).QuietUninstallString
 			Write-Output "Uninstalling 7-Zip..."
 			Start-Process -FilePath "cmd" -WindowStyle Hidden -ArgumentList "/c $7zipUninstall" -Wait
