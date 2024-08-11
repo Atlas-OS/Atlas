@@ -58,7 +58,6 @@ actions:
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
   # -------------------------------------------------------------------------- #
-  - !task: {path: 'tweaks\performance\system\config-boot-config.yml'}
   # Disabled as there's no evidence it helps (likely placebo)
   # - !task: {path: 'tweaks\performance\system\disable-paging.yml'}
   - !task: {path: 'tweaks\performance\system\optimize-ntfs.yml'}
@@ -146,6 +145,7 @@ actions:
   # with modifying the graphical user interface (GUI).
   # -----------------------------------------------------
   - !writeStatus: {status: 'Running QoL tweaks'}
+  - !task: {path: 'tweaks\performance\system\bcdedit-tweaks.yml'}
   - !task: {path: 'tweaks\qol\best-wallpaper-quality.yml'}
   - !task: {path: 'tweaks\qol\config-start-menu.yml'}
   - !task: {path: 'tweaks\qol\config-windows-ink-workspace.yml'}
