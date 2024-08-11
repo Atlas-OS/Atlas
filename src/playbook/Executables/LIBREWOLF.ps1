@@ -2,6 +2,7 @@ $ProgressPreference = "SilentlyContinue"
 $ErrorActionPreference = "Stop"
 
 # Initial variables
+$drive = Get-SystemDrive
 $env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
 $desktop = [Environment]::GetFolderPath("Desktop")
 $startMenu = [Environment]::GetFolderPath("CommonPrograms")
@@ -25,8 +26,8 @@ $librewolfUpdaterDownload = (Invoke-RestMethod -Uri "$librewolfUpdaterURI").Asse
 	Select-Object -ExpandProperty browser_download_url
 
 # Output paths
-$outputLibrewolf = "$env:systemdrive\$librewolfFileName"
-$outputLibrewolfUpdater = "$env:systemdrive\librewolf-winupdater.zip"
+$outputLibrewolf = "$drive\$librewolfFileName"
+$outputLibrewolfUpdater = "$drive\librewolf-winupdater.zip"
 
 Write-Output "Downloading the latest LibreWolf setup"
 curl.exe -LSs "$librewolfDownload" -o "$outputLibrewolf"

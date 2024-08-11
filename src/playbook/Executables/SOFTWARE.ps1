@@ -14,7 +14,7 @@ $msiArgs = "/qn /quiet /norestart ALLUSERS=1 REBOOT=ReallySuppress"
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 
 # Create temporary directory
-$tempDir = Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $([System.Guid]::NewGuid())
+$tempDir = Join-Path -Path $(Get-SystemDrive) -ChildPath $([System.Guid]::NewGuid())
 New-Item $tempDir -ItemType Directory -Force | Out-Null
 Push-Location $tempDir
 

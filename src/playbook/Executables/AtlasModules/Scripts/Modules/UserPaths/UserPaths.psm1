@@ -67,4 +67,18 @@ function Get-Accounts {
     return $data
 }
 
+function Get-SystemDrive {
+    @(
+        $env:SystemDrive,
+        (Get-CimInstance -ClassName Win32_OperatingSystem).SystemDrive,
+        "C:"
+    ) | ForEach-Object {
+        if (($_.Length -eq 2) -and (Test-Path $_ -ItemType Container)) {
+            return $_
+        }
+    }
+
+    throw "Failed to find the system drive!"
+}
+
 Export-ModuleMember -Function Get-UserPath, Get-Accounts

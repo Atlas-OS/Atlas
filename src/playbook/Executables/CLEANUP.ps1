@@ -46,7 +46,7 @@ function Invoke-AtlasDiskCleanup {
 
 # Check for other installations of Windows
 # If so, don't cleanup as it will also cleanup other drives, which will be slow, and we don't want to touch other data
-$drives = (Get-PSDrive -PSProvider FileSystem).Root | Where-Object { $_ -notmatch $env:SystemDrive }
+$drives = (Get-PSDrive -PSProvider FileSystem).Root | Where-Object { $_ -notmatch $(Get-SystemDrive) }
 foreach ($drive in $drives) {
     if (!(Test-Path -Path $(Join-Path -Path $drive.Root -ChildPath 'Windows') -PathType Container)) {
         Invoke-AtlasDiskCleanup
