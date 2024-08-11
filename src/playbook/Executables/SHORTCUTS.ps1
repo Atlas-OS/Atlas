@@ -1,55 +1,27 @@
-function New-Shortcut {
-	[CmdletBinding()]
-	param (
-		[Parameter(Mandatory = $True)][ValidateNotNullOrEmpty()][string]$ShortcutPath,
-		[Parameter(Mandatory = $True)][ValidateNotNullOrEmpty()][string]$Target,
-		[ValidateNotNullOrEmpty()][string]$Arguments,
-		[ValidateNotNullOrEmpty()][string]$Icon,
-		[switch]$IfExist
-	)
+$env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
+$windir = [Environment]::GetFolderPath('Windows')
 
-	if ($IfExist) {
-		if (!(Test-Path -Path $ShortcutPath -PathType Leaf)) {
-			return
-		}
-	}
+Write-Title "Creating Desktop & Start Menu shortcuts..."
 
-	$WshShell = New-Object -comObject WScript.Shell
-	$Shortcut = $WshShell.CreateShortcut($ShortcutPath)
-	$Shortcut.TargetPath = $Target
-	if ($Icon) { $Shortcut.IconLocation = $Icon }
-	if ($Arguments) { $Shortcut.Arguments = $Arguments }
-	$Shortcut.Save()
-}
+# Default user
+$defaultShortcut = "$(Get-UserPath)\Atlas.lnk"
+New-Shortcut -Source "$windir\AtlasDesktop" -Destination $defaultShortcut -Icon "$windir\AtlasModules\Other\atlas-folder.ico,0"
 
-Write-Output "Creating Desktop & Start Menu shortcuts..."
-$defaultShortcut = "$env:SystemDrive\Users\Default\Desktop\Atlas.lnk"
-New-Shortcut -Icon "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\atlas-folder.ico,0" -Target "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop" -ShortcutPath $defaultShortcut
-
-$registryKeys = Get-ChildItem -Path "Registry::HKU" | Where-Object { 
-	$_.Name -match "S-.*|AME_UserHive_[^_]*" -and
-	$_.Name -notlike '*Classes*' -and
-	$_.Name -notlike '*Default*'
-}
-foreach ($userKey in $registryKeys.PsPath) {
-	$deskPath = (get-itemproperty -path "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name Desktop -EA 0).Desktop
-	if ($null -eq $deskPath) {
-		Write-Output "Desktop path not found for '$userKey', shortcuts can't be copied."
-	} else {
-		Write-Output "Copying shortcut for '$userKey'..."
+# Copy shortcut to every user
+foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
+	$folders = Get-ItemProperty -path "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
+	$deskPath = $folders.Desktop
+	if (Test-Path $deskPath -PathType Container) {
+		Write-Output "Copying Desktop shortcut for '$userKey'..."
 		Copy-Item $defaultShortcut -Destination $deskPath -Force
+	} else {
+		Write-Error "Desktop path not found for '$userKey', shortcuts can't be copied."
 	}
 }
 
+# Start menu shortcut
 Copy-Item $defaultShortcut -Destination "$([Environment]::GetFolderPath('CommonStartMenu'))\Programs" -Force
 
-Write-Output "Creating services restore shortcut..."
-$desktop = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop"
-New-Shortcut -ShortcutPath "$desktop\6. Advanced Configuration\Services\Set services to defaults.lnk" -Target "$desktop\8. Troubleshooting\Set services to defaults.cmd"
-
-Write-Output "Making Windows Tools shortcuts dark mode for Windows 11..."
-$newTargetPath = "$([Environment]::GetFolderPath('Windows'))\explorer.exe"
-$newArgs = "shell:::{D20EA4E1-3957-11d2-A40B-0C5020524153}"
-foreach ($user in (Get-ChildItem -Path "$env:SystemDrive\Users" -Directory | Where-Object { 'Public' -notcontains $_.Name }).FullName) {
-	New-Shortcut -ShortcutPath "$user\Microsoft\Windows\Start Menu\Programs\Administrative Tools.lnk" -Target $newTargetPath -Arguments $newArgs -IfExist
-}
+Write-Title "Creating services restore shortcut..."
+$desktop = "$windir\AtlasDesktop"
+New-Shortcut -Source "$desktop\8. Troubleshooting\Set services to defaults.cmd" -Destination "$desktop\6. Advanced Configuration\Services\Set services to defaults.lnk"
