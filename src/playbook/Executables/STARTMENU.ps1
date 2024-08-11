@@ -6,7 +6,7 @@ foreach ($userKey in (Get-RegUserPaths).PsPath) {
 
     # Get Local AppData
     $appData = if ($default) {
-        "$env:systemdrive\Users\Default\AppData\Local"
+        Get-UserPath -Folder 'F1B32785-6FBA-4FCF-9D55-7B8E7F157091'
     } else {
         Get-ItemPropertyValue "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name 'Local AppData' -EA 0
     }
