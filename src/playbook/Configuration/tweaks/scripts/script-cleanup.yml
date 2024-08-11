@@ -1,9 +1,0 @@
----
-title: Cleanup Temporary Files
-description: Cleans up temporary files using Disk Cleanup (if no other installs of Windows are found)
-actions:
-  - !powerShell:
-    command: '.\CLEANUP.ps1'
-    exeDir: true
-    wait: true
-    runas: currentUserElevated

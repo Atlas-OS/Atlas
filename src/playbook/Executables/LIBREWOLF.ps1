@@ -1,9 +1,9 @@
+$env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
 $ProgressPreference = "SilentlyContinue"
 $ErrorActionPreference = "Stop"
 
 # Initial variables
 $drive = Get-SystemDrive
-$env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
 $desktop = [Environment]::GetFolderPath("Desktop")
 $startMenu = [Environment]::GetFolderPath("CommonPrograms")
 $programs = [Environment]::GetFolderPath("ProgramFiles")
@@ -19,17 +19,8 @@ if ([string]::IsNullOrEmpty($librewolfVersion)) {
 $librewolfFileName = "librewolf-$librewolfVersion-windows-x86_64-setup.exe"
 $librewolfDownload = "https://gitlab.com/api/v4/projects/$gitLabId/packages/generic/librewolf/$librewolfVersion/$librewolfFileName"
 
-Write-Output "Getting the latest LibreWolf-WinUpdater download link"
-$librewolfUpdaterURI = "https://codeberg.org/api/v1/repos/ltguillaume/librewolf-winupdater/releases?draft=false&pre-release=false&page=1&limit=1"
-$librewolfUpdaterDownload = (Invoke-RestMethod -Uri "$librewolfUpdaterURI").Assets |
-	Where-Object { $_.name -like "*.zip" } |
-	Select-Object -ExpandProperty browser_download_url
-
-# Output paths
-$outputLibrewolf = "$drive\$librewolfFileName"
-$outputLibrewolfUpdater = "$drive\librewolf-winupdater.zip"
-
 Write-Output "Downloading the latest LibreWolf setup"
+$outputLibrewolf = "$drive\$librewolfFileName"
 curl.exe -LSs "$librewolfDownload" -o "$outputLibrewolf"
 
 Write-Output "Installing LibreWolf silently"
@@ -39,15 +30,23 @@ if (!(Test-Path $librewolfPath)) {
 }
 
 Write-Output "Creating LibreWolf Desktop shortcut"
-New-Shortcut -Source "$librewolfPath\librewolf.exe" -ShortcutPath "$desktop\LibreWolf.lnk" -WorkingDir $librewolfPath
+New-Shortcut -Source "$librewolfPath\librewolf.exe" -Destination "$desktop\LibreWolf.lnk" -WorkingDir $librewolfPath
+
+
+Write-Title "Installing LibreWolf-WinUpdater..."
+Write-Output "Getting the latest LibreWolf-WinUpdater download link"
+$librewolfUpdaterURI = "https://codeberg.org/api/v1/repos/ltguillaume/librewolf-winupdater/releases?draft=false&pre-release=false&page=1&limit=1"
+$librewolfUpdaterDownload = (Invoke-RestMethod -Uri "$librewolfUpdaterURI").Assets |
+	Where-Object { $_.name -like "*.zip" } |
+	Select-Object -ExpandProperty browser_download_url
 
 Write-Output "Downloading the latest LibreWolf WinUpdater ZIP"
+$outputLibrewolfUpdater = "$drive\librewolf-winupdater.zip"
 curl.exe -LSs "$librewolfUpdaterDownload" -o "$outputLibrewolfUpdater"
 
-Write-Output "Installing/extracting Librewolf-WinUpdater"
+Write-Output "Extracting Librewolf-WinUpdater"
 Expand-Archive -Path $outputLibrewolfUpdater -DestinationPath "$programs\LibreWolf\librewolf-winupdater" -Force
 
-# Automatic updater
 Write-Output "Adding automatic updater task"
 foreach ($User in (Get-CimInstance -ClassName Win32_UserAccount -Filter "Disabled=False").Name) {
 	$Action   = New-ScheduledTaskAction -Execute "$updaterPath\LibreWolf-WinUpdater.exe" -Argument "/Scheduled"
@@ -59,8 +58,9 @@ foreach ($User in (Get-CimInstance -ClassName Win32_UserAccount -Filter "Disable
 }
 
 Write-Output "Adding LibreWolf WinUpdater shortcut"
-New-Shortcut -Source "$updaterPath\Librewolf-WinUpdater.exe" -ShortcutPath "$startMenu\LibreWolf\LibreWolf WinUpdater.lnk" -WorkingDir $librewolfPath
+New-Shortcut -Source "$updaterPath\Librewolf-WinUpdater.exe" -Destination "$startMenu\LibreWolf\LibreWolf WinUpdater.lnk" -WorkingDir $librewolfPath
 
-Write-Output "Removing temp files"
+# Finish
+Write-Title "Removing temp files"
 Remove-Item "$outputLibrewolf" -Force
 Remove-Item "$outputLibrewolfUpdater" -Force

@@ -43,42 +43,24 @@ public class KnownFolder
     }
 }
 
-function Get-Accounts {
-    $accounts = Get-CimInstance Win32_UserAccount -Filter "Disabled=False"
-    $userProfiles = Get-CimInstance Win32_UserProfile
-
-    $profileLookup = @{}
-    foreach ($profile in $userProfiles) {
-        $profileLookup[$profile.SID] = $profile.LocalPath
-    }
-
-    $data = $accounts | ForEach-Object {
-        $account = $_
-        $profilePath = $profileLookup[$account.SID]
-
-        [PSCustomObject]@{
-            Name    = $account.Name
-            Caption = $account.Caption
-            Path    = $profilePath
-            SID     = $account.SID
-        }
-    }
-
-    return $data
-}
-
 function Get-SystemDrive {
-    @(
+    $drive = $null
+    foreach ($letter in @(
         $env:SystemDrive,
         (Get-CimInstance -ClassName Win32_OperatingSystem).SystemDrive,
         "C:"
-    ) | ForEach-Object {
-        if (($_.Length -eq 2) -and (Test-Path $_ -ItemType Container)) {
-            return $_
+    )) {
+        if ($letter -and ($letter.Length -eq 2) -and (Test-Path $letter -PathType Container)) {
+            $drive = $letter
+            break
         }
     }
 
-    throw "Failed to find the system drive!"
+    if ($drive) {
+        return $drive
+    } else {
+        throw "Failed to find the system drive!"
+    }
 }
 
-Export-ModuleMember -Function Get-UserPath, Get-Accounts
+Export-ModuleMember -Function Get-UserPath, Get-SystemDrive

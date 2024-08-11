@@ -14,6 +14,7 @@ $msiArgs = "/qn /quiet /norestart ALLUSERS=1 REBOOT=ReallySuppress"
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 
 # Create temporary directory
+function Remove-TempDirectory { Pop-Location; Remove-Item -Path $tempDir -Force -Recurse -EA 0 }
 $tempDir = Join-Path -Path $(Get-SystemDrive) -ChildPath $([System.Guid]::NewGuid())
 New-Item $tempDir -ItemType Directory -Force | Out-Null
 Push-Location $tempDir
@@ -36,11 +37,11 @@ if ($Brave) {
 			Write-Output "Still running BraveSetup."
 			Start-Sleep -Seconds 2
 		} else {
-			Remove-Item "$tempDir" -ErrorAction SilentlyContinue -Force -Recurse
+			Remove-TempDirectory
 		}
 	} until (!$processesFound)
 
-	Stop-Process -Name "brave" -Force -ErrorAction SilentlyContinue
+	Stop-Process -Name "brave" -Force -EA 0
 	exit
 }
 
@@ -52,6 +53,8 @@ if ($Firefox) {
 	& curl.exe -LSs "https://download.mozilla.org/?product=firefox-latest-ssl&os=$firefoxArch&lang=en-US" -o "$tempDir\firefox.exe"
 	Write-Output "Installing Firefox..."
 	Start-Process -FilePath "$tempDir\firefox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait
+
+	Remove-TempDirectory
 	exit
 }
 
@@ -62,6 +65,8 @@ if ($Chrome) {
 	& curl.exe -LSs "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise$chromeArch.msi" -o "$tempDir\chrome.msi"
 	Write-Output "Installing Google Chrome..."
 	Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait
+
+	Remove-TempDirectory
 	exit
 }
 
@@ -136,7 +141,7 @@ $githubApi = Invoke-RestMethod "https://api.github.com/repos/M2Team/NanaZip/rele
 $assets = $githubApi.Assets.browser_download_url | Select-String ".xml", ".msixbundle" | Select-Object -Unique -First 2
 function InstallNanaZip {
 	Write-Output "Downloading NanaZip..."	
-	$path = New-Item "$tempDir\nanazip-$(New-Guid)" -ItemType Directory
+	$path = New-Item "$tempDir\nanazip" -ItemType Directory
 	$assets | ForEach-Object {
 		$filename = $_ -split '/' | Select-Object -Last 1
 		Write-Output "Downloading '$filename'..."
@@ -189,5 +194,4 @@ Write-Output "Installing legacy DirectX runtimes..."
 Start-Process -FilePath "$tempDir\directx\dxsetup.exe" -WindowStyle Hidden -ArgumentList '/silent' -Wait
 
 # Remove temporary directory
-Pop-Location
-Remove-Item -Path $tempDir -Force -Recurse -EA 0
+Remove-TempDirectory

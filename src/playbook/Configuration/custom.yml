@@ -61,10 +61,13 @@ actions:
   - !task: {path: 'tweaks\scripts\script-ngen.yml'}
   - !task: {path: 'tweaks\qol\config-powershell.yml'}
 
-  # Cleanup script takes longer to finish so it has its own status
-  # It's ran here as you can't check when cleanmgr is finished
+  # Disk Cleanup is run first so it can run in the background
   - !writeStatus: {status: 'Cleaning up'}
-  - !task: {path: 'tweaks\scripts\script-cleanup.yml'}
+  - !powerShell:
+    command: '.\CLEANUP.ps1'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
 
   # Set hidden Settings pages
   # Done before everything else as scripts will overwrite it

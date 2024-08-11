@@ -9,12 +9,16 @@ function New-Shortcut {
         [switch]$IfExist
     )
 
-    if (!(Test-Path $Source -PathType Leaf)) {
+    if (!(Test-Path $Source)) {
         throw "Source '$source' not found."
     }
 
     if ($IfExist -and !(Test-Path $Destination)) {
         return
+    }
+
+    if (!$WorkingDir) {
+        $WorkingDir = Split-Path $Source
     }
 
 	$WshShell = New-Object -ComObject WScript.Shell
