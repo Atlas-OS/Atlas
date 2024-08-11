@@ -1,4 +1,3 @@
-# As cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
 function Invoke-AtlasDiskCleanup {
 	# Kill running cleanmgr instances, as they will prevent new cleanmgr from starting
 	Get-Process -Name cleanmgr -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -41,30 +40,51 @@ function Invoke-AtlasDiskCleanup {
 	}
 
 	# Run preset 64 (0-65535)
+	# As cleanmgr has multiple processes, there's no point in making the window hidden as it won't apply
 	Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64" 2>&1 | Out-Null
 }
 
 # Check for other installations of Windows
-# If so, don't cleanup as it will also cleanup other drives
-$excludedDrive = "C"
-$drives = Get-PSDrive -PSProvider 'FileSystem' | Where-Object { $_.Name -ne $excludedDrive }
+# If so, don't cleanup as it will also cleanup other drives, which will be slow, and we don't want to touch other data
+$drives = (Get-PSDrive -PSProvider FileSystem).Root | Where-Object { $_ -notmatch $env:SystemDrive }
 foreach ($drive in $drives) {
     if (!(Test-Path -Path $(Join-Path -Path $drive.Root -ChildPath 'Windows') -PathType Container)) {
         Invoke-AtlasDiskCleanup
     }
 }
 
-$ErrorActionPreference = 'SilentlyContinue'
-# Exclude the AME folder while deleting directories in the temporary user folder
-Get-ChildItem -Path "$env:TEMP" | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse
+# Clear the user temp folder
+$env:temp, $env:tmp, "$env:localappdata\Temp" | ForEach-Object {
+	if (Test-Path $_ -PathType Container) {
+		$userTemp = $_
+		break
+	}
+}
+if (!$userTemp) {
+	Write-Error "User temp folder not found!"
+} else {
+	Get-ChildItem -Path $userTemp | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse -EA 0
+}
 
-# Clear the temporary system folder
-Remove-Item -Path "$([Environment]::GetFolderPath('Windows'))\Temp\*" -Force -Recurse
+# Clear the system temp folder
+$machine = [System.EnvironmentVariableTarget]::Machine
+@(
+	[System.Environment]::GetEnvironmentVariable("Temp", $machine),
+	[System.Environment]::GetEnvironmentVariable("Tmp", $machine),
+	"$([Environment]::GetFolderPath('Windows'))\Temp"
+) | ForEach-Object {
+	if (Test-Path $_ -PathType Container) {
+		$sysTemp = $_
+		break
+	}
+}
+if (!$sysTemp) {
+	Write-Error "System temp folder not found!"
+} else {
+	Remove-Item -Path "$sysTemp\*" -Force -Recurse -EA 0
+}
 
 # Delete all system restore points
-# This is so that users can't revert back from Atlas to stock with Restore Points
-# It's very unsupported to do so, and will cause breakage
+# This is so that users can't attempt to revert from Atlas to stock with Restore Points
+# It won't work, a full Windows reinstall is required ^
 vssadmin delete shadows /all /quiet
-
-# Clear Event Logs
-wevtutil el | ForEach-Object {wevtutil cl "$_"} 2>&1 | Out-Null
