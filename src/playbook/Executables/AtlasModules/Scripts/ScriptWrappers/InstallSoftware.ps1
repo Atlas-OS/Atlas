@@ -1,5 +1,5 @@
 $windir = [Environment]::GetFolderPath('Windows')
-$env:PSModulePath += ";$windir\AtlasModules\Scripts\Modules"
+& "$windir\AtlasModules\initPowerShell.ps1"
 & "$windir\AtlasModules\Scripts\wingetCheck.cmd"
 if ($LASTEXITCODE -ne 0) { exit 1 }
 

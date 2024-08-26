@@ -1,4 +1,4 @@
-$env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
+.\AtlasModules\initPowerShell.ps1
 
 if ($env:AtlasUnsupportedInstall -eq 'True') {
     Write-Warning "Unsupported install!"

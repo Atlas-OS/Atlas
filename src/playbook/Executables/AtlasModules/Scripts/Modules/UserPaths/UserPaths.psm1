@@ -15,7 +15,7 @@ function Get-UserPath {
     }
 
     # https://learn.microsoft.com/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
-    Add-Type @"
+    Add-Type @'
 using System;
 using System.Runtime.InteropServices;
 
@@ -29,7 +29,7 @@ public class KnownFolder
         out IntPtr pszPath
     );
 }
-"@
+'@
 
     $pszPath = [IntPtr]::Zero
     $result = [KnownFolder]::SHGetKnownFolderPath($guid, $Flags, $Token, [ref]$pszPath)

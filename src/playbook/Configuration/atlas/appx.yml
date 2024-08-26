@@ -15,9 +15,9 @@ actions:
 
   # Get current AppX packages to deprovision removed ones afterward
   - !powerShell:
-    command: >-
+    command: |
       (Get-AppxPackage).PackageFamilyName |
-      Out-File """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
+        Out-File """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
     runas: currentUserElevated
     wait: true
 
@@ -69,8 +69,8 @@ actions:
   # Removing using AME Wizard causes issues with Cross Device Experience Host installing
   # - !appx: {name: 'Microsoft.YourPhone*', type: family}
   - !powerShell:
-    command: >-
-      Get-AppxPackage Microsoft.YourPhone* | Remove-AppxPackage;
+    command: |
+      Get-AppxPackage Microsoft.YourPhone* | Remove-AppxPackage
       Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -eq 'Microsoft.YourPhone' } | Remove-AppxProvisionedPackage -Online
     runas: currentUserElevated
     wait: true
@@ -78,10 +78,10 @@ actions:
   # Prevent provisioned applications from being reinstalled
   # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
   - !powerShell:
-    command: >-
-      $a = """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt""";
+    command: |
+      $a = """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
       (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | 
-      Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force }; 
+        Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force };
       Remove-Item $a -Force
     runas: currentUserElevated
     wait: true

@@ -1,4 +1,4 @@
-$env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
+.\AtlasModules\initPowerShell.ps1
 
 foreach ($userKey in (Get-RegUserPaths).PsPath) {
     $default = if ($userKey -match 'AME_UserHive_Default') { $true }

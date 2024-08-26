@@ -19,9 +19,9 @@ if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-1
 # ======================================================================================================================= #
 # INITIAL VARIABLES                                                                                                       #
 # ======================================================================================================================= #
-$sys32 = [Environment]::GetFolderPath('System')
 $windir = [Environment]::GetFolderPath('Windows')
-$env:PSModulePath += ";$windir\AtlasModules\Scripts\Modules"
+& "$windir\AtlasModules\initPowerShell.ps1"
+$sys32 = [Environment]::GetFolderPath('System')
 $safeModePackageList = "$sys32\safeModePackagesToInstall.atlasmodule"
 $env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
 $errorLevel = $warningLevel = 0
@@ -337,14 +337,14 @@ function ProcessCab($cabPath) {
 # https://github.com/Atlas-OS/Atlas/issues/1103
 function MakeRepairSource {
 	$version = '38655.38527.65535.65535'
-	$srcPath = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Packages\WinSxS"
+	$srcPath = "$windir\AtlasModules\Packages\WinSxS"
 
 	Write-Host "`nMaking repair source..." -ForegroundColor Cyan
 	Write-Host ("-" * 84) -ForegroundColor Magenta
 
 	# get list of Atlas manifests
 	Write-Host "[INFO] Getting manifests..."
-	$manifests = Get-ChildItem "$([Environment]::GetFolderPath('Windows'))\WinSxS\Manifests" -File -Filter "*$version*"
+	$manifests = Get-ChildItem "$windir\WinSxS\Manifests" -File -Filter "*$version*"
 	if ($manifests.Count -eq 0) {
 		Write-Host "[WARN] No manifests found! Can't create repair source." -ForegroundColor Yellow
 		return $false

@@ -1,4 +1,4 @@
-$env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
+.\AtlasModules\initPowerShell.ps1
 function Invoke-AtlasDiskCleanup {
 	# Kill running cleanmgr instances, as they will prevent new cleanmgr from starting
 	Get-Process -Name cleanmgr -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue

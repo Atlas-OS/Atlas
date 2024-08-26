@@ -37,7 +37,7 @@ actions:
     type: REG_DWORD
   - !powerShell:
     command: |
-      $env:PSModulePath += """;$PWD\AtlasModules\Scripts\Modules"""
+      .\AtlasModules\initPowerShell.ps1
       foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
           Set-ItemProperty `
               -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative\$(Split-Path $userKey -Leaf)" `

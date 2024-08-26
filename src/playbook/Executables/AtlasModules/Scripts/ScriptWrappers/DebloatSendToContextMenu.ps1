@@ -16,7 +16,7 @@ $sendTo = Get-ChildItem ([Environment]::GetFolderPath('SendTo')) -Force
 $sys32 = [Environment]::GetFolderPath('System')
 $shell = New-Object -Com WScript.Shell
 $windir = [Environment]::GetFolderPath('Windows')
-$env:PSModulePath += ";$windir\AtlasModules\Scripts\Modules"
+& "$windir\AtlasModules\initPowerShell.ps1"
 
 # Get Bluetooth path
 foreach ($lnk in (($sendTo | Where-Object { $_.Extension -eq ".lnk" }).FullName)) {

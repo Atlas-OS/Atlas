@@ -31,7 +31,7 @@ actions:
 
     # Delete scheme only used for installation
   - !powerShell: 
-    command: >-
-      $gPath = """$([Environment]::GetFolderPath('Windows'))\atlasospowercfgguid""";
-      powercfg /delete """$((Get-Content $gPath -Raw).Trim())""";
-      Remove-Item $gPath -Force;
+    command: |
+      $gPath = """$([Environment]::GetFolderPath('Windows'))\atlasospowercfgguid"""
+      powercfg /delete """$((Get-Content $gPath -Raw).Trim())"""
+      Remove-Item $gPath -Force

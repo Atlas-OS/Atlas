@@ -4,7 +4,7 @@ param (
 	[switch]$Firefox
 )
 
-$env:PSModulePath += ";$PWD\AtlasModules\Scripts\Modules"
+.\AtlasModules\initPowerShell.ps1
 
 # ----------------------------------------------------------------------------------------------------------- #
 # Software is no longer installed with a package manager anymore to be as fast and as reliable as possible.   #

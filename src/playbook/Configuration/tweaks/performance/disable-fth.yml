@@ -8,13 +8,13 @@ actions:
     # https://www.3dcadworld.com/windows-7-fault-tolerant-heap-prevents-crashing/
 
   - !powerShell:
-    command: >-
+    command: |
       if (((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')) {
-        Write-Output 'ARM detected, FTH doesn''t exist.';
-        Remove-Item -Path """$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\7. Security\Mitigations\Fault Tolerant Heap""" -Force -Recurse;
+        Write-Output 'ARM detected, FTH doesn''t exist.'
+        Remove-Item -Path """$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\7. Security\Mitigations\Fault Tolerant Heap""" -Force -Recurse
         exit 2000
-      };
+      }
 
-      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\FTH' -Name 'Enabled' -Value 0 -Type DWORD;
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\FTH' -Name 'Enabled' -Value 0 -Type DWORD
       rundll32.exe fthsvc.dll,FthSysprepSpecialize
     wait: true
