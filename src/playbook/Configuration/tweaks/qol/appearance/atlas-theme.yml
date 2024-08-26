@@ -2,26 +2,15 @@
 title: Add Theme
 description: Adds and sets the Atlas themes by default
 actions:
-    # Apply theme file
-  - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
+    # Apply theme file and set recent themes
   - !powerShell:
-    command: >-
-      Start-Process -FilePath explorer -ArgumentList """$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.4.x-dark.theme""";
-      Start-Sleep 6
+    command: |
+      .\AtlasModules\initPowerShell.ps1
+      Set-Theme -Path """$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.4.x-dark.theme"""
+      Set-ThemeMRU
     wait: true
-    runas: currentUserElevated
-
-    # For Windows 11, set recent theme selection
-  - !taskKill: {name: 'SystemSettings', ignoreErrors: true}
-  - !taskKill: {name: 'control', ignoreErrors: true}
-  - !taskKill: {name: 'explorer', ignoreErrors: true, builds: [ '>=22000' ]}
-  - !powerShell:
-    command: '.\AtlasModules\Scripts\newUsers.ps1 -ThemeMRU'
     exeDir: true
-    wait: true
     runas: currentUserElevated
-    builds: [ '>=22000' ]
-  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false, builds: [ '>=22000' ]}
 
     # Applies Atlas lockscreen background
     # Also disables fun facts, tips, tricks, and more on lockscreen - only on Enterprise/Education
