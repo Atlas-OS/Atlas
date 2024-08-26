@@ -15,6 +15,48 @@ function Seperator {
 	return $args -replace '\\', "$([IO.Path]::DirectorySeparatorChar)"
 }
 
+# Adds Atlas PSModulesPath to profile for the PowerShell Extension
+$userEnv = [System.EnvironmentVariableTarget]::User
+if ($psEditor.Workspace.Path -and ([Environment]::GetEnvironmentVariable('LOCALBUILD_DONT_ASK_FOR_MODULES', $userEnv) -ne "$true")) {
+	function DontAsk {
+		[Environment]::SetEnvironmentVariable('LOCALBUILD_DONT_ASK_FOR_MODULES', $true, $userEnv)
+	}
+
+	$title = 'Adding to PowerShell profile'
+	$description = @"
+Atlas includes some PowerShell modules by default that aren't usually recognised by the VSCode PowerShell extension.
+Would you like to add to your PowerShell profile to automatically recognise these modules when developing Atlas?`n`n
+"@
+	switch ($host.ui.PromptForChoice($title, $description, ('&Yes', '&No', "&Don't ask me again"), 0)) {
+		0 {
+			if (!(Test-Path $PROFILE)) {
+				New-Item -Path $PROFILE -ItemType File -Force | Out-Null
+			}
+
+			Add-Content -Path $PROFILE -Value @'
+#--LOCAL-BUILD-MODULES-START--#
+$workspace = $psEditor.Workspace.Path
+$modulesFile = "$workspace\.atlasPsModulesPath"
+if ([bool](Test-Path 'Env:\VSCODE_*') -and (Test-Path $workspace) -and (Test-Path $modulesFile)) {
+	$modulePath = Join-Path $workspace (Get-Content $modulesFile -Raw)
+	if (!(Test-Path $modulePath -PathType Container)) {
+		Write-Warning "Couldn't find module path specified in '$modulesFile', no Atlas modules can be loaded."
+	} else {
+		$env:PSModulePath += [IO.Path]::PathSeparator + $modulePath
+	}
+}
+#--LOCAL-BUILD-MODULES-END--#
+'@
+
+			DontAsk
+			& $PROFILE
+		}
+		2 {
+			DontAsk
+		}
+	}
+}
+
 # check 7z
 if (Get-Command '7z' -EA 0) {
 	$7zPath = '7z'
