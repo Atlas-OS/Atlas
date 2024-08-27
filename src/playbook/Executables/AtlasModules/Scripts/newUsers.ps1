@@ -1,4 +1,5 @@
 $windir = [Environment]::GetFolderPath('Windows')
+& "$windir\AtlasModules\initPowerShell.ps1"
 $atlasDesktop = "$windir\AtlasDesktop"
 $atlasModules = "$windir\AtlasModules"
 
@@ -21,7 +22,7 @@ if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
     reg import "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg" *>$null
 
     # Set ThemeMRU (recent themes)
-    ThemeMRU | Out-Null
+    Set-ThemeMRU | Out-Null
 }
 
 # Set lockscreen wallpaper
