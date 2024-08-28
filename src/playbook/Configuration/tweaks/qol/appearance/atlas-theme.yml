@@ -35,7 +35,9 @@ actions:
     exeDir: true
     wait: true
   - !powerShell:
-    command: '& ".\AtlasModules\Scripts\LOCKSCREEN.ps1"'
+    command: |
+      .\AtlasModules\initPowerShell.ps1
+      Set-LockscreenImage
     exeDir: true
     wait: true
     runas: currentUserElevated

@@ -26,7 +26,7 @@ if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
 }
 
 # Set lockscreen wallpaper
-& "$atlasModules\Scripts\lockscreen.ps1"
+Set-LockscreenImage
 
 # Disable 'Network' in navigation pane
 reg import "$atlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg" *>$null
