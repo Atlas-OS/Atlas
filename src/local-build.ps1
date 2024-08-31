@@ -37,7 +37,7 @@ Would you like to add to your PowerShell profile to automatically recognise thes
 #--LOCAL-BUILD-MODULES-START--#
 $workspace = $psEditor.Workspace.Path
 $modulesFile = "$workspace\.atlasPsModulesPath"
-if ([bool](Test-Path 'Env:\VSCODE_*') -and (Test-Path $workspace) -and (Test-Path $modulesFile)) {
+if ([bool](Test-Path 'Env:\VSCODE_*') -and (Test-Path $workspace -EA 0) -and (Test-Path $modulesFile -EA 0)) {
 	$modulePath = Join-Path $workspace (Get-Content $modulesFile -Raw)
 	if (!(Test-Path $modulePath -PathType Container)) {
 		Write-Warning "Couldn't find module path specified in '$modulesFile', no Atlas modules can be loaded."
