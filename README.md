@@ -26,7 +26,8 @@
 - [Branding](https://docs.atlasos.net/branding/)
 
 ## 🤔 What is Atlas?
-Atlas is an open-source project that enhances Windows by eliminating factors negatively impacting gaming performance. Optimizations include enhanced privacy, usability, performance, and changes for minimal stutters and input lag while focusing on maintaining functionality.
+
+AtlasOS, or Atlas, is an open-source project that enhances Windows by conveniently applying privacy, usability, and performance optimizations, all while maintaining functionality and [customizability](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/general-configuration/).
 
 ## 👀 Why Atlas?
 ### 🔒 Enhanced Privacy
