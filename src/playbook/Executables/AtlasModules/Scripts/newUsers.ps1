@@ -7,7 +7,7 @@ $title = 'Preparing Atlas user settings...'
 
 if (!(Test-Path $atlasDesktop) -or !(Test-Path $atlasModules)) {
     Write-Host "Atlas was about to configure user settings, but its files weren't found. :(" -ForegroundColor Red
-    $null = Read-Host "Press Enter to exit"
+    Read-Pause
     exit 1
 }
 

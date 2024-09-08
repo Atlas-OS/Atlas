@@ -34,10 +34,6 @@ $safeModeStatus = (Get-CimInstance -Class Win32_ComputerSystem).BootupState -ne 
 # ======================================================================================================================= #
 # FUNCTIONS                                                                                                               #
 # ======================================================================================================================= #
-function Pause ($message = "Press Enter to exit") {
-	$null = Read-Host $message
-}
-
 function Write-BulletPoint($message) {
 	$message | Foreach-Object {
 		Write-Host " - " -ForegroundColor Green -NoNewline
@@ -83,7 +79,7 @@ function Restart {
 	Restart-Computer
 	Start-Sleep 2
 	Write-Host "Something seems to have went wrong restarting automatically, restart manually." -ForegroundColor Red
-	if (!$NoInteraction) { Pause }
+	if (!$NoInteraction) { Read-Pause }
 	exit 9000
 }
 
@@ -127,7 +123,7 @@ $seperator
 
 		function NoRestart {
 			Write-Host "`nIf any packages installed successfully, they will apply next restart." -ForegroundColor Yellow
-			Pause
+			Read-Pause
 		}
 
 		if ($safeModeStatus) {
@@ -157,7 +153,7 @@ $seperator
 		Restart
 	} else {
 		Write-Host "`nChanges will apply next restart." -ForegroundColor Yellow
-		Pause
+		Read-Pause
 		exit $script:errorLevel
 	}
 }
@@ -221,7 +217,7 @@ if ($InstallPackages) {
 
 	if ($matchedPackages.Count -eq 0) {
 		Write-Host "[ERROR] The specified CABs ($InstallPackages) to install weren't found." -ForegroundColor Red
-		if (!$NoInteraction) { Pause }
+		if (!$NoInteraction) { Read-Pause }
 		exit 1
 	}
 	if ($notMatchedPackages.Count -gt 0) {
@@ -277,7 +273,7 @@ Please note that if you chose to disable Windows Defender, it may still remain e
 # ======================================================================================================================= #
 if (!$matchedPackages) {
 	Write-Host "This will install specified CBS packages online, meaning live on your current install of Windows." -ForegroundColor Yellow
-	Pause "Press Enter to continue"
+	Read-Pause "Press Enter to continue"
 	
 	Write-Host "`n[INFO] Opening file dialog to select CBS package CAB..."
 	Add-Type -AssemblyName System.Windows.Forms

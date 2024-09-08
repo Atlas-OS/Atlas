@@ -8,6 +8,17 @@ function Write-Title {
     Write-Host "`n$dashes`n$text`n$dashes" -ForegroundColor Yellow
 }
 
+function Read-Pause {
+    param (
+        [Parameter(ValueFromPipeline = $true)]
+        [string]$Message = "Press Enter to exit",
+        [switch]$NewLine
+    )
+
+    if ($NewLine) { Write-Output "" }
+    $null = Read-Host $Message
+}
+
 enum MsgIcon {
     Stop
     Question
@@ -57,4 +68,4 @@ function Read-MessageBox {
     }
 }
 
-Export-ModuleMember -Function Write-Title, Read-MessageBox
+Export-ModuleMember -Function Write-Title, Read-Pause, Read-MessageBox

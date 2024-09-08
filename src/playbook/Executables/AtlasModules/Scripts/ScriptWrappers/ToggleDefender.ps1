@@ -1,5 +1,8 @@
 $ProgressPreference = 'SilentlyContinue'
-function Pause ($message = "Press Enter to exit") { $null = Read-Host $message }
+
+$windir = [Environment]::GetFolderPath('Windows')
+& "$windir\AtlasModules\initPowerShell.ps1"
+
 function Restart {
 	Write-Host "`nCompleted!" -ForegroundColor Green
 	choice /c yn /n /m "Would you like to restart now to apply the changes? [Y/N] "
@@ -7,14 +10,14 @@ function Restart {
 		Restart-Computer
 	} else {
 		Write-Host "`nChanges will apply after next restart." -ForegroundColor Yellow
-		Pause
+		Read-Pause
 	}
 }
 
-$packageInstall = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"
+$packageInstall = "$windir\AtlasModules\Scripts\packageInstall.ps1"
 if (!(Test-Path $packageInstall)) {
     Write-Host "Missing package install script, can't continue."
-    if (!$args) { Pause }
+    if (!$args) { Read-Pause }
     exit 1
 }
 
@@ -25,7 +28,7 @@ try {
 } catch {
 	if (!$?) {
 		Write-Host "Failed to get packages! $_" -ForegroundColor Red
-		Pause
+		Read-Pause
         exit 1
 	}
 }
