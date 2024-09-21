@@ -178,6 +178,9 @@ init_item "Snipping Tool" "9MZ95KL8MR0L"
 # https://winget.run/pkg/valinet/ExplorerPatcher
 init_item "ExplorerPatcher" "valinet.ExplorerPatcher"
 
+# https://winget.run/pkg/Microsoft/PowerShell
+init_item "Powershell 7" "Microsoft.PowerShell"
+
 if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
     # https://winget.run/pkg/StartIsBack/StartAllBack
     init_item "StartAllBack" "StartIsBack.StartAllBack"
