@@ -15,7 +15,7 @@ actions:
           if (!$?) { exit 2 }
       }
 
-      Copy-Item -Path 'Themes' -Destination """$windir\Resources\Themes""" -Force -Recurse
+      Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
     weight: 10
     wait: true
     exeDir: true
