@@ -38,9 +38,15 @@ param (
 	[switch]$NonInteractive
 )
 
+$version = '1.9.3'
+
 $ProgressPreference = "SilentlyContinue"
 $sys32 = [Environment]::GetFolderPath('System')
-$env:path = "$([Environment]::GetFolderPath('Windows'));$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
+$windir = [Environment]::GetFolderPath('Windows')
+$env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
+$baseKey = "HKLM:\SOFTWARE" + $(if ([Environment]::Is64BitOperatingSystem) { "\WOW6432Node" }) + "\Microsoft"
+$msedgeExe = "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application\msedge.exe"
+$edgeUWP = "$windir\SystemApps\Microsoft.MicrosoftEdge_8wekyb3d8bbwe"
 
 if ($NonInteractive -and (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView)) {
 	$NonInteractive = $false
@@ -60,10 +66,10 @@ enum LogLevel {
 	Error
 	Critical
 }
-
 function Write-Status {
 	param (
 		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()]
 		[string]$Text,
 		[LogLevel]$Level = "Info",
 		[switch]$Exit,
@@ -77,7 +83,7 @@ function Write-Status {
 		"Yellow",
 		"Red",
 		"Red"
-	)[$([LogLevel].GetEnumValues().IndexOf([LogLevel]"$Level"))]
+	)[$([LogLevel].GetEnumValues().IndexOf($Level))]
 
 	$Text -split "`n" | ForEach-Object {
 		Write-Host "[$($Level.ToString().ToUpper())] $_" -ForegroundColor $colour
@@ -92,7 +98,7 @@ function Write-Status {
 
 function InternetCheck {
 	if ($(Test-Connection "microsoft.com" -Count 1 -EA 0; $?) -eq $false) {
-		Write-Status "Failed to ping Microsoft! You must have an internet connection to reinstall Edge and its components." -Level Critical -Exit
+		Write-Status "Failed to ping Microsoft! You must have an internet connection to reinstall Edge and its components." -Level Critical -Exit -ExitCode 404
 	}
 }
 
@@ -102,7 +108,7 @@ function DeleteIfExist($Path) {
 	}
 }
 
-function Uninstall-MsiexecAppByName {
+function Get-MsiexecAppByName {
 	param(
 		[Parameter(Mandatory = $true)]
 		[ValidateNotNullOrEmpty()]
@@ -117,12 +123,19 @@ function Uninstall-MsiexecAppByName {
 		"HKCU:\SOFTWARE\WOW6432Node\$uninstallKeyPath"
 	) -EA SilentlyContinue) -match "\{\b[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12}\b\}"
 
+	$edges = @()
 	foreach ($key in $uninstallKeys.PSPath) {
 		if (((Get-ItemProperty -Path $key).DisplayName -like "*$Name*") -and ((Get-ItemProperty -Path $key).UninstallString -like "*MsiExec.exe*")) {
-			Write-Status "Uninstalling `"$name`" using Windows Installer..."
-			Start-Process -FilePath "msiexec.exe" -ArgumentList "/qn /X$(Split-Path -Path $key -Leaf) REBOOT=ReallySuppress /norestart" -Wait | Out-Null
+			$edges += Split-Path -Path $key -Leaf
 		}
 	}
+
+	return $edges
+}
+
+# True if it's installed
+function EdgeInstalled {
+	Test-Path $msedgeExe
 }
 
 function KillEdgeProcesses {
@@ -139,87 +152,230 @@ function KillEdgeProcesses {
 	$ErrorActionPreference = 'Continue'	
 }
 
-function RemoveEdgeChromium {
-	$baseKey = "HKLM:\SOFTWARE\WOW6432Node\Microsoft"
-	
-	Write-Status "Terminating Microsoft Edge processes..."
-	KillEdgeProcesses
+function RemoveEdgeChromium([bool]$AlreadyUninstalled) {
+	Write-Status -Text "Trying to find Edge uninstallers..."
 
-	# check if 'experiment_control_labels' value exists and delete it if found
-	$keyPath = Join-Path -Path $baseKey -ChildPath "EdgeUpdate\ClientState\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}"
-	$valueName = "experiment_control_labels"
-	if (Test-Path $keyPath) {
-		if ($null -ne (Get-ItemProperty -Path $keyPath -Name $valueName -ErrorAction 0)) {
-			Remove-ItemProperty -Path $keyPath -Name $valueName -Force | Out-Null
+	# get Edge MsiExec uninstallers
+	# commonly installed with WinGet (it installs the Enterprise MSI)
+	$msis = Get-MsiexecAppByName -Name "Microsoft Edge"
+
+	# find using common locations - used as a backup
+	function UninstallStringFail {
+		if ($msis.Count -le 0) {
+			Write-Status -Text "Couldn't parse uninstall string for Edge. Trying to find uninstaller manually." -Level Warning
 		}
-	}
 
-	# allow Edge uninstall
-	# seems to no longer exist, kept anyways for legacy purposes
-	# replaced with modifying IntegratedServicesRegionPolicySet.json
-	$devKeyPath = Join-Path -Path $baseKey -ChildPath "EdgeUpdateDev"
-	if (!(Test-Path $devKeyPath)) { New-Item -Path $devKeyPath -ItemType "Key" -Force | Out-Null }
-	Set-ItemProperty -Path $devKeyPath -Name "AllowUninstall" -Value "" -Type String -Force | Out-Null
-
-	# modifies IntegratedServicesRegionPolicySet as that's now checked for Edge uninstall
-	# likely to be the most future proof method, although i'm not sure what could happen next
-	$integratedServicesPath = "$sys32\IntegratedServicesRegionPolicySet.json"
-	if (!(Test-Path $integratedServicesPath)) {
-		Write-Warning "'$integratedServicesPath' not found, uninstall might fail."
-	} else {
-		try {
-			$admin = [System.Security.Principal.NTAccount]$(New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544')).Translate([System.Security.Principal.NTAccount]).Value
-
-			# get perms (normally TrustedInstaller only)
-			$acl = Get-Acl -Path $integratedServicesPath
-			$backup = [System.Security.AccessControl.FileSecurity]::new()
-			$backup.SetSecurityDescriptorSddlForm($acl.Sddl)
-			# full control
-			$acl.SetOwner($admin)
-			$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($admin, "FullControl", "Allow")
-			$acl.AddAccessRule($rule)
-			# set modified ACL
-			Set-Acl -Path $integratedServicesPath -AclObject $acl
-
-			# modify the stuff
-			$integratedServices = Get-Content $integratedServicesPath | ConvertFrom-Json
-			($integratedServices.policies | Where-Object { ($_.'$comment' -like "*Edge*") -and ($_.'$comment' -like "*uninstall*") }).defaultState = 'enabled'
-			$modifiedJson = $integratedServices | ConvertTo-Json -Depth 100
-
-			$backupIntegratedServicesName = "IntegratedServicesRegionPolicySet.json.$([System.IO.Path]::GetRandomFileName())"
-			Rename-Item $integratedServicesPath -NewName $backupIntegratedServicesName -Force
-			Set-Content $integratedServicesPath -Value $modifiedJson -Force -Encoding UTF8	
-		} catch {
-			Write-Error "Failed to modify region policies. $_"
-		}	
-	}
-
-	# uninstall Edge with MsiExec (e.g. WinGet installs)
-	# has to be done before uninstalling with CLI args
-	Uninstall-MsiexecAppByName -Name "Microsoft Edge"
-
-	# uninstall Edge
-	$uninstallKeyPath = Join-Path -Path $baseKey -ChildPath "Windows\CurrentVersion\Uninstall\Microsoft Edge"
-	if (Test-Path $uninstallKeyPath) {
-		$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath).UninstallString + " --force-uninstall"
-		Start-Process -Wait cmd.exe -ArgumentList "/c start /wait `"`" $uninstallString" -WindowStyle Hidden
-	} else {
-		$edges = @(); 'LocalApplicationData','ProgramFilesX86','ProgramFiles' | ForEach-Object {
+		$script:edgeUninstallers = @()
+		'LocalApplicationData','ProgramFilesX86','ProgramFiles' | ForEach-Object {
 			$folder = [Environment]::GetFolderPath($_)
-			$edges += Get-ChildItem "$folder\Microsoft\Edge*\setup.exe" -Recurse -EA SilentlyContinue | Where-Object {($_ -like '*Edge\Application*') -or ($_ -like '*SxS\Application*')}
-		}
-		foreach ($setup in $edges) {
-			$sulevel = ('--system-level','--user-level')[$setup -like '*\AppData\Local\*']
-			Start-Process -Wait $setup -ArgumentList "--uninstall --msedge $sulevel --channel=stable --verbose-logging --force-uninstall"
+			$script:edgeUninstallers += Get-ChildItem "$folder\Microsoft\Edge*\setup.exe" -Recurse -EA 0 |
+				Where-Object {($_ -like '*Edge\Application*') -or ($_ -like '*SxS\Application*')}
 		}
 	}
 
-	# revert IntegratedServicesRegionPolicySet modification
-	if ($backupIntegratedServicesName) {
-		Remove-Item $integratedServicesPath -Force
-		Rename-Item "$sys32\$backupIntegratedServicesName" -NewName $integratedServicesPath -Force
-		Set-Acl -Path $integratedServicesPath -AclObject $backup
+	# find using Registry
+	$uninstallKeyPath = "$baseKey\Windows\CurrentVersion\Uninstall\Microsoft Edge"
+	$uninstallString = (Get-ItemProperty -Path $uninstallKeyPath -EA 0).UninstallString
+	if ([string]::IsNullOrEmpty($uninstallString) -and ($msis.Count -le 0)) {
+		$uninstallString = $null
+		UninstallStringFail
+	} else {
+		# split uninstall string for path & args
+		$uninstallPath, $uninstallArgs = $uninstallString -split '"', 3 |
+			Where-Object { $_ } |
+			ForEach-Object { [System.Environment]::ExpandEnvironmentVariables($_.Trim()) }
+
+		# check if fully qualified (should normally be), otherwise it could be null or something in the working dir
+		if (![System.IO.Path]::IsPathRooted($uninstallPath) -or !(Test-Path $uninstallPath -PathType Leaf)) {
+			$uninstallPath = $null
+			UninstallStringFail
+		}
 	}
+
+	# throw if installers aren't found
+	if (($msis.Count -le 0) -and ($script:edgeUninstallers.Count -le 0) -and !$uninstallPath) {
+		$uninstallError = @{
+			Text = "Failed to find uninstaller! " + $(if ($AlreadyUninstalled) {
+				"This likely means Edge is already uninstalled."
+			} else {
+				"The uninstall can't continue. :("
+			})
+			Level = if ($AlreadyUninstalled) { 'Warning' } else { 'Critical' }
+			Exit = $true
+			ExitCode = 2
+		}
+		Write-Status @uninstallError
+	} else {
+		Write-Status "Found Edge uninstallers."
+	}
+
+	# toggles an EU region - this is because anyone in the EEA can uninstall Edge
+	# this key is checked by the Edge uninstaller
+	function ToggleEURegion([bool]$Enable) {
+		$geoKey = "Registry::HKEY_USERS\.DEFAULT\Control Panel\International\Geo"
+
+		# sets Geo to France, which is in the EEA
+		$values = @{
+			"Name" = "FR"
+			"Nation" = "84"
+		}
+		$geoChange = 'EdgeSaved'
+
+		if ($Enable) {
+			$values.GetEnumerator() | ForEach-Object {
+				Rename-ItemProperty -Path $geoKey -Name $_.Key -NewName "$($_.Key)$geoChange" -Force
+				Set-ItemProperty -Path $geoKey -Name $_.Key -Value $_.Value -Force
+			}
+		} else {
+			$values.GetEnumerator() | ForEach-Object {
+				Remove-ItemProperty -Path $geoKey -Name $_.Key -Force -EA 0
+				Rename-ItemProperty -Path $geoKey -Name "$($_.Key)$geoChange" -NewName $_.Key -Force -EA 0
+			}
+		}
+	}
+
+	function ModifyRegionJSON {
+		$cleanup = $false
+		$script:integratedServicesPath = "$sys32\IntegratedServicesRegionPolicySet.json"
+
+		if (Test-Path $integratedServicesPath) {
+			$cleanup = $true
+			try {
+				$admin = [System.Security.Principal.NTAccount]$(New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544')).Translate([System.Security.Principal.NTAccount]).Value
+
+				# get perms (normally TrustedInstaller only)
+				$acl = Get-Acl -Path $integratedServicesPath
+				$script:backup = [System.Security.AccessControl.FileSecurity]::new()
+				$script:backup.SetSecurityDescriptorSddlForm($acl.Sddl)
+				# full control
+				$acl.SetOwner($admin)
+				$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($admin, "FullControl", "Allow")
+				$acl.AddAccessRule($rule)
+				# set modified ACL
+				Set-Acl -Path $integratedServicesPath -AclObject $acl
+
+				# modify the stuff
+				$integratedServices = Get-Content $integratedServicesPath | ConvertFrom-Json
+				($integratedServices.policies | Where-Object { ($_.'$comment' -like "*Edge*") -and ($_.'$comment' -like "*uninstall*") }).defaultState = 'enabled'
+				$modifiedJson = $integratedServices | ConvertTo-Json -Depth 100
+
+				$script:backupIntegratedServicesName = "IntegratedServicesRegionPolicySet.json.$([System.IO.Path]::GetRandomFileName())"
+				Rename-Item $integratedServicesPath -NewName $script:backupIntegratedServicesName -Force
+				Set-Content $integratedServicesPath -Value $modifiedJson -Force -Encoding UTF8
+			} catch {
+				Write-Error "Failed to modify region policies. $_"
+			}
+		} else {
+			Write-Status -Text "'$integratedServicesPath' not found." -Level Warning
+		}
+
+		return $cleanup
+	}
+
+
+	# Edge uninstalling logic
+	function UninstallEdge {
+		# MSI packages have to be uninstalled first, otherwise it breaks
+		foreach ($msi in $msis) {
+			Write-Status 'Uninstalling Edge using Windows Installer...'
+			Start-Process -FilePath "msiexec.exe" -ArgumentList "/qn /X$(Split-Path -Path $msi -Leaf) REBOOT=ReallySuppress /norestart" -Wait
+		}
+
+		# uninstall standard Edge installs
+		if ($uninstallPath) {  # found from Registry
+			Start-Process -Wait -FilePath $uninstallPath -ArgumentList "$uninstallArgs --force-uninstall" -WindowStyle Hidden
+		} else {  # found from system files
+			foreach ($setup in $edgeUninstallers) {
+				if (Test-Path $setup) {
+					$sulevel = ('--system-level','--user-level')[$setup -like '*\AppData\Local\*']
+					Start-Process -Wait $setup -ArgumentList "--uninstall --msedge $sulevel --channel=stable --verbose-logging --force-uninstall"
+				}
+			}
+		}
+
+		# return if Edge is installed or not
+		return EdgeInstalled
+	}
+
+	# things that should always be done before uninstall
+	function GlobalRemoveMethods {
+		Write-Status "Using method $method..." -Level Warning
+
+		# delete experiment_control_labels for key that prevents (or prevented) uninstall
+		Remove-ItemProperty -Path "$baseKey\EdgeUpdate\ClientState\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}" -Name 'experiment_control_labels' -Force -EA 0
+
+		# allow Edge uninstall
+		$devKeyPath = "$baseKey\EdgeUpdateDev"
+		if (!(Test-Path $devKeyPath)) { New-Item -Path $devKeyPath -ItemType "Key" -Force | Out-Null }
+		Set-ItemProperty -Path $devKeyPath -Name "AllowUninstall" -Value "" -Type String -Force
+	
+		Write-Status "Terminating Microsoft Edge processes..."
+		KillEdgeProcesses
+	}
+
+	# go through each uninstall method
+	# yes, i'm aware this seems excessive, but i'm just trying to make sure it works on the most installs possible
+	# it does bloat the script lots though... i'll clean it up in a future release, but for now, i'm just fixing it
+	$fail = $true
+	$method = 1
+	function CleanupMsg { Write-Status "Cleaning up after method $method..." }
+	while ($fail) {
+		switch ($method) {
+			# makes Edge think the old legacy UWP is still installed
+			1 {
+				GlobalRemoveMethods
+				if (!(Test-Path "$edgeUWP\MicrosoftEdge.exe")) {
+					New-Item $edgeUWP -ItemType Directory -ErrorVariable cleanup -EA 0 | Out-Null
+					New-Item "$edgeUWP\MicrosoftEdge.exe" -EA 0 | Out-Null
+					$cleanup = $true
+				}
+
+				# attempt uninstall
+				$fail = UninstallEdge
+
+				if ($cleanup) {
+					CleanupMsg
+					Remove-Item $edgeUWP -Force -EA 0 -Recurse
+				}
+			}
+
+			# changes region in Registry
+			2 {
+				GlobalRemoveMethods
+				ToggleEURegion $true
+
+				$fail = UninstallEdge
+
+				CleanupMsg
+				ToggleEURegion $false
+			}
+
+			# modifies IntegratedServicesRegionPolicySet to add current region to allow list
+			3 {
+				GlobalRemoveMethods
+				$cleanup = ModifyRegionJSON
+				
+				# attempt uninstall
+				$fail = UninstallEdge
+
+				# cleanup
+				if ($cleanup) {
+					CleanupMsg
+					Remove-Item $integratedServicesPath -Force
+					Rename-Item "$sys32\$backupIntegratedServicesName" -NewName $integratedServicesPath -Force
+					Set-Acl -Path $integratedServicesPath -AclObject $backup
+				}
+			}
+
+			# everything fails ╰（‵□′）╯
+			default {
+				Write-Status "The uninstall methods failed for the Edge installers found. Nothing else can be done." -Level Critical -Exit -ExitCode 3
+			}
+		}
+
+		$method++
+	}
+	Write-Status "Successfully removed Edge! :)" -Level Success
 
 	# remove old shortcuts
 	"$([Environment]::GetFolderPath('Desktop'))\Microsoft Edge.lnk",
@@ -234,7 +390,6 @@ function RemoveEdgeChromium {
 function RemoveEdgeAppX {
 	# i'm aware of how this is deprecated
 	# kept for legacy purposes just in case someone's using an older build of Windows
-	# will be removed eventually
 
 	$SID = (New-Object System.Security.Principal.NTAccount([Environment]::UserName)).Translate([Security.Principal.SecurityIdentifier]).Value
 
@@ -271,7 +426,7 @@ function InstallEdgeChromium {
 			$edgeUpdateApi = (Invoke-WebRequest "https://edgeupdates.microsoft.com/api/products" -UseBasicParsing).Content | ConvertFrom-Json
 		} catch {
 			Write-Status "Failed to request from EdgeUpdate API!
-Error: $_" -Level Critical -Exit
+Error: $_" -Level Critical -Exit -ExitCode 4
 		}
 
 		$edgeItem = ($edgeUpdateApi | ? { $_.Product -eq 'Stable' }).Releases |
@@ -300,7 +455,7 @@ Error: $_" -Level Critical -Exit
 		}
 	} catch {
 		Write-Status "Failed to parse Microsoft Edge from `"$link`"!
-Error: $_" -Level Critical -Exit
+Error: $_" -Level Critical -Exit -ExitCode 5
 	}
 	Write-Status "Parsed Microsoft Edge Update API!" -Level Success
 	
@@ -325,7 +480,7 @@ Error: $_" -Level Critical -Exit
 		}
 	} catch {
 		Write-Status "Failed to download Microsoft Edge from `"$link`"!
-Error: $_" -Level Critical -Exit
+Error: $_" -Level Critical -Exit -ExitCode 6
 	}
 	Write-Output ""
 	
@@ -344,12 +499,12 @@ Error: $_" -Level Critical -Exit
 	Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$msi`" /l `"$msiLog`" /quiet" -Wait
 	
 	if (!(Test-Path $msiLog)) {
-		Write-Status "Couldn't find installer log at `"$msiLog`"! This likely means it failed." -Level Critical -Exit
+		Write-Status "Couldn't find installer log at `"$msiLog`"! This likely means it failed." -Level Critical -Exit -ExitCode 7
 	}
 	
 	Write-Status -Text "Installer log path: `"$msiLog`""
 	if ($null -eq ($(Get-Content $msiLog) -like "*Product: Microsoft Edge -- * completed successfully.*")) {
-		Write-Status "Can't find sucess string from Edge install log - it seems like the install was a failure." -Level Error -Exit
+		Write-Status "Can't find success string from Edge install log - it seems like the install was a failure." -Level Error -Exit -ExitCode 8
 	}
 
 	Write-Status -Text "Installed Microsoft Edge!" -Level Success
@@ -371,7 +526,7 @@ function InstallWebView {
 		}
 	} catch {
 		Write-Status "Failed to download Edge WebView from `"$link`"!
-Error: $_" -Level Critical -Exit
+Error: $_" -Level Critical -Exit -ExitCode 9
 	}
 
 	Write-Status "Installing Edge WebView..."
@@ -396,8 +551,8 @@ Please relaunch this script under a regular admin account." -Level Critical -Exi
 }
 
 # main menu
+$edgeInstalled = EdgeInstalled
 if (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView) {
-	$version = '1.9.2'
 	$host.UI.RawUI.WindowTitle = "EdgeRemover $version | made by @he3als"	
 
 	$RemoveEdgeData = $false
@@ -409,6 +564,9 @@ if (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView) {
 To select an option, type its number.
 To perform an action, also type its number.
 "@ -ForegroundColor Yellow
+
+		Write-Host "`nEdge is currently detected as: " -NoNewline -ForegroundColor Green
+		Write-Host "$(@("Uninstalled", "Installed")[$edgeInstalled])" -ForegroundColor Cyan
 
 		Write-Host "`n$("-" * $description.Length)" -ForegroundColor Magenta
 
@@ -456,7 +614,7 @@ To perform an action, also type its number.
 
 if ($UninstallEdge) {
 	Write-Status "Uninstalling Edge Chromium..."
-	RemoveEdgeChromium
+	RemoveEdgeChromium $(!$edgeInstalled)
 	if ($null -ne (Get-AppxPackage -Name Microsoft.MicrosoftEdge)) {
 		if ($KeepAppX) {
 			Write-Status "AppX Edge is being left, there might be a stub..." -Level Warning
@@ -471,7 +629,7 @@ if ($UninstallEdge) {
 if ($RemoveEdgeData) {
 	KillEdgeProcesses
 	DeleteIfExist "$([Environment]::GetFolderPath('LocalApplicationData'))\Microsoft\Edge"
-	Write-Status "Removed any existing Edge Chromium user data." -Level Success
+	Write-Status "Removed any existing Edge Chromium user data."
 	Write-Output ""
 }
 
