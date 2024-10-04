@@ -2,32 +2,24 @@
 title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
-    # Warn user if their Windows install is old
-  - !writeStatus: {status: 'Checking prerequisites'}
-  - !powerShell:
-    command: '.\PREREQUISITES.ps1; exit $lastexitcode'
-    exeDir: true
-    wait: true
-    handleExitCodes: {11: halt, 10: log}
-
   - !writeStatus: {status: 'Copying files'}
-  - !cmd:
-    command: 'robocopy "AtlasModules" "%windir%\AtlasModules" /E /PURGE /IM /IT /NP > nul'
+  - !powerShell:
+    command: |
+      $windir = [Environment]::GetFolderPath('Windows')
+      @(
+          'AtlasModules',
+          'AtlasDesktop'
+      ) | ForEach-Object {
+          if (!(Test-Path $_)) { exit 1 }
+          Copy-Item -Path $_ -Destination $windir -Force -Recurse
+          if (!$?) { exit 2 }
+      }
+
+      Copy-Item -Path 'Themes' -Destination """$windir\Resources\Themes""" -Force -Recurse
     weight: 10
     wait: true
     exeDir: true
-    handleExitCodes: {'>1': halt}
-  - !cmd:
-    command: 'robocopy "AtlasDesktop" "%windir%\AtlasDesktop" /E /PURGE /IM /IT /NP > nul'
-    weight: 10
-    wait: true
-    exeDir: true
-    handleExitCodes: {'>1': halt}
-  - !cmd:
-    command: 'copy /y "Themes" "%windir%\Resources\Themes" > nul'
-    weight: 10
-    wait: true
-    exeDir: true
+    handleExitCodes: {'!0': halt}
 
     # Prevent annoying notifications during deployment
   - !taskKill: {name: 'explorer'}
