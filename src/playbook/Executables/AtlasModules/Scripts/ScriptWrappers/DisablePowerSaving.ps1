@@ -127,10 +127,6 @@ New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\stornvme\Paramet
 $powerKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling"
 if (!(Test-Path $powerKey)) { New-Item $powerKey | Out-Null }
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" -Name "PowerThrottlingOff" -Value 1 -PropertyType DWORD -Force | Out-Null
-# Disable the kernel from being tickless
-# It's power saving
-# https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set#additional-settings
-bcdedit /set disabledynamictick yes | Out-Null
 
 if ($Silent) { exit }
 Read-Pause "`nCompleted.`nPress Enter to exit"
