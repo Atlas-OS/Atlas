@@ -110,7 +110,6 @@ actions:
   #  privacy\advertising                                                       #
   # -------------------------------------------------------------------------- #
   - !task: {path: 'tweaks\privacy\advertising\disable-advertising-info.yml'}
-  - !task: {path: 'tweaks\privacy\advertising\disable-bluetooth-advertising.yml'}
   - !task: {path: 'tweaks\privacy\advertising\disable-sync-provider-notifs.yml'}
 
   # -------------------------------------------------------------------------- #
