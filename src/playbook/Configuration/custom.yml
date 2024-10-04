@@ -30,26 +30,6 @@ actions:
     runas: currentUserElevated
   - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
 
-    # Prevent computer from going to sleep during deployment
-  - !powerShell: 
-    command: |
-      $guid = New-Guid
-      """$guid""" | Out-File -Force -LiteralPath """$([Environment]::GetFolderPath('Windows'))\atlasospowercfgguid"""
-      powercfg /duplicatescheme """e9a42b02-d5df-448d-aa00-03f14749eb61""" """$guid"""
-      powercfg /setactive """$guid"""
-      powercfg /changename """$guid""" """Atlas Installation Scheme""" """Duplicate of Ultimate Performance used during Atlas installation."""
-
-      @(
-        'monitor-timeout-ac 0',
-        'monitor-timeout-dc 0',
-        'disk-timeout-ac 0',
-        'disk-timeout-dc 0',
-        'standby-timeout-ac 0',
-        'standby-timeout-dc 0',
-        'hibernate-timeout-ac 0',
-        'hibernate-timeout-dc 0'
-      ) | Foreach-Object { powercfg /x $_ }
-
   # Configure PowerShell first so that other PowerShell scripts work
   # NGEN - .NET assemblies PowerShell optimization
   - !writeStatus: {status: 'Optimizing PowerShell'}

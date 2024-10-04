@@ -28,10 +28,3 @@ actions:
 
     # Set 'Balanced' power scheme if keeping power saving
   - !run: {exe: 'powercfg.exe', args: '/setactive "381b4222-f694-41f0-9685-ff5bb260df2e"', option: '!disable-power-saving'}
-
-    # Delete scheme only used for installation
-  - !powerShell: 
-    command: |
-      $gPath = """$([Environment]::GetFolderPath('Windows'))\atlasospowercfgguid"""
-      powercfg /delete """$((Get-Content $gPath -Raw).Trim())"""
-      Remove-Item $gPath -Force
