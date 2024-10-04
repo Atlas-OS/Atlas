@@ -1,6 +1,6 @@
 ---
 title: Configure Automatic Maintenance
-description: Configure the 'Automatic Maintenance' feature in Windows, which does tasks such as updates when the computer is idle, for QoL and performance
+description: Configure the 'Automatic Maintenance' feature in Windows
 actions:
     # Automatic maintenance is needed for auto-defrag/TRIM and more
   # - !registryValue:

@@ -1,6 +1,6 @@
 ---
 title: Disable Lockscreen Camera
-description: Disables the lockscreen camera
+description: Disables camera access on the lockscreen
 actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'

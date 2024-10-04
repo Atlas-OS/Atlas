@@ -313,7 +313,7 @@ actions:
   # >>> Description <<<
   #
   # Tweaks for debloating Windows, which could be for
-  # storage space or convienience.
+  # storage space or convenience.
   # -----------------------------------------------------
   - !writeStatus: {status: 'Running debloating tweaks'}
   - !task: {path: 'tweaks\debloat\config-content-delivery.yml'}

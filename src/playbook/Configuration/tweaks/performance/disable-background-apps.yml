@@ -1,6 +1,6 @@
 ---
 title: Disable Background Apps
-description: Disables background apps, so that there are minimal resources used in the background
+description: Disables background apps so there's minimal resources used in the background
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'

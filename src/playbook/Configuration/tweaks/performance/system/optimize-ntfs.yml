@@ -1,6 +1,6 @@
 ---
 title: Optimize NTFS
-description: Optimizes the NTFS filesystem for optimal QoL, performance and privacy
+description: Optimizes NTFS options for optimal QoL, performance and privacy
 actions:
     # https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil
 
