@@ -259,6 +259,7 @@ actions:
   - !task: {path: 'tweaks\qol\shell\show-more-pins.yml'}
   - !task: {path: 'tweaks\qol\shell\no-recommendations-start-menu.yml'}
   - !task: {path: 'tweaks\qol\shell\disable-nearby-sharing.yml'}
+  - !task: {path: 'tweaks\qol\shell\config-autorun.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\startup-shutdown                                                      #
