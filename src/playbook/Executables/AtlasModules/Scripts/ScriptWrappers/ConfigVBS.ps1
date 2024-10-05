@@ -16,23 +16,26 @@ if ($DisableAllVBS) {
 	# Memory Integrity
 	if (Test-Path $memIntegrity) {
 		New-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 0 -PropertyType DWORD -Force
-		Remove-ItemProperty -Path $memIntegrity -Name "ChangedInBootCycle" -ErrorAction SilentlyContinue
-		Remove-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -ErrorAction SilentlyContinue
+		Remove-ItemProperty -Path $memIntegrity -Name "ChangedInBootCycle" -EA 0
+		Remove-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -EA 0
 	}
 
 	# Kernel-mode Hardware-enforced Stack Protection (Windows 11 only)
 	if (Test-Path $kernelShadowStacks) {
 		New-ItemProperty -Path $kernelShadowStacks -Name "Enabled" -Value 0 -PropertyType DWORD -Force
-		Remove-ItemProperty -Path $kernelShadowStacks -Name "ChangedInBootCycle" -ErrorAction SilentlyContinue
-		Remove-ItemProperty -Path $kernelShadowStacks -Name "WasEnabledBy" -ErrorAction SilentlyContinue
+		Remove-ItemProperty -Path $kernelShadowStacks -Name "ChangedInBootCycle" -EA 0
+		Remove-ItemProperty -Path $kernelShadowStacks -Name "WasEnabledBy" -EA 0
 	}
 
 	# Credential Guard (Windows 11 only)
 	if (Test-Path $credentialGuard) {
 		New-ItemProperty -Path $credentialGuard -Name "Enabled" -Value 0 -PropertyType DWORD -Force
-		Remove-ItemProperty -Path $credentialGuard -Name "ChangedInBootCycle" -ErrorAction SilentlyContinue
-		Remove-ItemProperty -Path $credentialGuard -Name "WasEnabledBy" -ErrorAction SilentlyContinue
+		Remove-ItemProperty -Path $credentialGuard -Name "ChangedInBootCycle" -EA 0
+		Remove-ItemProperty -Path $credentialGuard -Name "WasEnabledBy" -EA 0
 	}
+
+	# LSA Protection (24H2 only)
+	New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RunAsPPL" -Value 0 -PropertyType DWORD -Force
 	exit
 } elseif ($EnableMemoryIntegrity) {
 	Write-Warning "Enabling memory integrity..."
