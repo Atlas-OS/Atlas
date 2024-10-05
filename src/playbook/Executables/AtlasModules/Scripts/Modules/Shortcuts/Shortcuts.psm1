@@ -9,7 +9,7 @@ function New-Shortcut {
         [switch]$IfExist
     )
 
-    if (!(Test-Path $Source)) {
+    if (!(Test-Path $Source) -and !(Get-Command $Source -EA 0)) {
         throw "Source '$source' not found."
     }
 
@@ -18,7 +18,11 @@ function New-Shortcut {
     }
 
     if (!$WorkingDir) {
-        $WorkingDir = Split-Path $Source
+        try {
+            $WorkingDir = Split-Path $Source
+        } catch {
+            $WorkingDir = [Environment]::GetFolderPath('System')
+        }
     }
 
 	$WshShell = New-Object -ComObject WScript.Shell
