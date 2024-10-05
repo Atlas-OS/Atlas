@@ -12,7 +12,7 @@ fltmc > nul 2>&1 || (
 )
 
 :: Unpin 'Network' from Explorer sidebar
-reg import "%~dp0Network Navigation Pane\Disable Network Navigation Pane (default).reg" > nul
+reg import "%windir%\AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg" > nul
 
 call setSvc.cmd fdPHost 4
 call setSvc.cmd FDResPub 4
