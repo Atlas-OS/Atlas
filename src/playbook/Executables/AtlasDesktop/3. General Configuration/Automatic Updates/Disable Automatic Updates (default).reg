@@ -2,4 +2,5 @@ Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU]
 "AUOptions"=dword:00000002
-"NoAutoUpdate"=dword:00000001
+; Breaks 'Receive updates for other Microsoft products'
+; "NoAutoUpdate"=dword:00000001
