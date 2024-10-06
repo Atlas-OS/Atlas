@@ -32,7 +32,7 @@ Set-LockscreenImage
 reg import "$atlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg" *>$null
 
 # Set visual effects
-& "$atlasDesktop\4. Interface Tweaks\Visual Effects\Atlas Visual Effects (default).cmd" /silent
+& "$atlasDesktop\4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd" /silent
 
 # Pin 'Videos' and 'Music' folders to Home/Quick Acesss
 $o = new-object -com shell.application
