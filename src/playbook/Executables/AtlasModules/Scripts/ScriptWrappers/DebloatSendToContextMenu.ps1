@@ -105,6 +105,6 @@ foreach ($item in $items.GetEnumerator()) {
 }
 
 # Restart Explorer prompt
-if ((Read-MessageBox -Title "Atlas - Send To Debloat" -Body 'Would you like to restart Windows Explorer now? This will finalise the changes' -Icon Information) -eq 'Yes') {
+if ((Read-MessageBox -Title "Atlas - Send To Debloat" -Body 'Would you like to restart Windows Explorer? This will finalize the Send-To changes.' -Icon Info) -eq 'Yes') {
     Stop-Process -Name explorer -Force
 }

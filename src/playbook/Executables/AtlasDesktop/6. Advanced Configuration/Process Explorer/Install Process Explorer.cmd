@@ -33,6 +33,7 @@ echo Configuring Process Explorer...
 reg add "HKCU\SOFTWARE\Sysinternals\Process Explorer" /v "OneInstance" /t REG_DWORD /d "1" /f > nul
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%windir%\AtlasModules\Apps\ProcessExplorer\procexp.exe" /f > nul
 
+echo]
 echo The 'pcw' service in Windows is needed for Task Manager and performance counters.
 echo Disabling it matters less as you have Process Explorer, but software and Windows might have unexpected issues.
 choice /c:yn /n /m "Would you like to disable it? [Y/N] "

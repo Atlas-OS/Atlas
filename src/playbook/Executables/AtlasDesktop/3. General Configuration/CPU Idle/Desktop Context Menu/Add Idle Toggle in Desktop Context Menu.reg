@@ -13,11 +13,11 @@ Windows Registry Editor Version 5.00
 "Icon"="powercpl.dll"
 
 [HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle\Shell\Disable Idle\Command]
-@="cmd /c \"\"%%windir%%\\AtlasDesktop\\3. General Configuration\\Power\\CPU Idle\\Disable Idle.cmd\"\" /silent"
+@="cmd /c \"\"%%windir%%\\AtlasDesktop\\3. General Configuration\\CPU Idle\\Disable Idle.cmd\"\" /silent"
 
 [HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle\Shell\Enable Idle]
 "Icon"="powercpl.dll"
 "MUIVerb"="Enable Idle"
 
 [HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle\Shell\Enable Idle\Command]
-@="cmd /c \"\"%%windir%%\\AtlasDesktop\\3. General Configuration\\Power\\CPU Idle\\Enable Idle (default).cmd\"\" /silent"
+@="cmd /c \"\"%%windir%%\\AtlasDesktop\\3. General Configuration\\CPU Idle\\Enable Idle (default).cmd\"\" /silent"

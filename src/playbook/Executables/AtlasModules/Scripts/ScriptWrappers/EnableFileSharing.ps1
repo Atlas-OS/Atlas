@@ -46,7 +46,7 @@ if ($LASTEXITCODE -eq 1) {
     reg import "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing\Give Access To Menu\Give Access To Menu Enable.reg" | Out-Null
 }
 
-Write-Host "Completed!" -ForegroundColor Green
+Write-Host "`nCompleted!" -ForegroundColor Green
 Write-Host "Press any key to exit... " -NoNewLine
 $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') | Out-Null
 exit
