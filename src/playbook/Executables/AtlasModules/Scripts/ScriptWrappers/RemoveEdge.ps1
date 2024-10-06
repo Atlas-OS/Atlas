@@ -38,7 +38,7 @@ param (
 	[switch]$NonInteractive
 )
 
-$version = '1.9.3'
+$version = '1.9.4'
 
 $ProgressPreference = "SilentlyContinue"
 $sys32 = [Environment]::GetFolderPath('System')
@@ -322,6 +322,7 @@ function RemoveEdgeChromium([bool]$AlreadyUninstalled) {
 	while ($fail) {
 		switch ($method) {
 			# makes Edge think the old legacy UWP is still installed
+			# seems to fail on some installs?
 			1 {
 				GlobalRemoveMethods
 				if (!(Test-Path "$edgeUWP\MicrosoftEdge.exe")) {
@@ -339,8 +340,28 @@ function RemoveEdgeChromium([bool]$AlreadyUninstalled) {
 				}
 			}
 
-			# changes region in Registry
+			# not having windir defined is a condition to allow uninstall
+			# found in the strings of the setup ^
 			2 {
+				GlobalRemoveMethods
+				$envPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+				try {
+					# delete windir variable temporarily
+					Set-ItemProperty -Path $envPath -Name 'windir' -Value '' -Type ExpandString
+					$env:windir = [System.Environment]::GetEnvironmentVariable('windir', [System.EnvironmentVariableTarget]::Machine)
+
+					# attempt uninstall
+					$fail = UninstallEdge
+				} finally {
+					CleanupMsg
+					# this is the default
+					Set-ItemProperty -Path $envPath -Name 'windir' -Value '%SystemRoot%' -Type ExpandString
+				}
+			}
+
+			# changes region in Registry
+			# currently not known to work, kept for legacy reasons
+			3 {
 				GlobalRemoveMethods
 				ToggleEURegion $true
 
@@ -351,7 +372,8 @@ function RemoveEdgeChromium([bool]$AlreadyUninstalled) {
 			}
 
 			# modifies IntegratedServicesRegionPolicySet to add current region to allow list
-			3 {
+			# currently not known to work, kept for legacy reasons
+			4 {
 				GlobalRemoveMethods
 				$cleanup = ModifyRegionJSON
 				
