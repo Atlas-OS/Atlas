@@ -357,6 +357,7 @@ actions:
   - !task: {path: 'tweaks\misc\config-time.yml'}
   - !task: {path: 'tweaks\misc\delete-windows-specific-files.yml'}
   - !task: {path: 'tweaks\misc\rebuild-perf-counters.yml'}
+  - !task: {path: 'tweaks\misc\make-measuresleep-admin.yml'}
   - !task: {path: 'tweaks\misc\create-shortcuts.yml'}
   - !task: {path: 'tweaks\misc\add-music-videos-to-home.yml'}
   - !task: {path: 'tweaks\misc\add-newUsers-script.yml'}
