@@ -9,9 +9,13 @@ $content = [System.Collections.Generic.List[string]]::new()
 $content.Add("Windows Registry Editor Version 5.00")
 Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | ForEach-Object {
 	try {
-		$startValue = Get-ItemPropertyValue -Path $_.PSPath -Name "Start" -EA Stop
-		$content.Add("`n[$($_.Name)]")
-		$content.Add('"Start"=dword:0000000' + $startValue)
+		$values = Get-ItemProperty -Path $_.PSPath -Name 'Start', 'Description' -EA Stop
+		if ($values.Description -notmatch 'Windows Defender') {
+			$content.Add("`n[$($_.Name)]")
+			$content.Add('"Start"=dword:0000000' + $values.Start)	
+		} else {
+			Write-Output "Excluding $($_.Name)..."
+		}
 	} catch {}
 }
 
