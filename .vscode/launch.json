@@ -21,7 +21,15 @@
             "type": "PowerShell",
             "request": "launch",
             "name": "Build Playbook (Release)",
-            "script": "& \"$(Join-Path '${workspaceFolder}' 'src/dependencies/local-build.ps1')\"",
+            "script": "& \"$(Join-Path '${workspaceFolder}' 'src/dependencies/local-build.ps1')\" -FileName 'Atlas Release'",
+            "cwd": "${workspaceFolder}/src/playbook",
+            "args": []
+        },
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "Build Playbook (Release Candidate)",
+            "script": "& \"$(Join-Path '${workspaceFolder}' 'src/dependencies/local-build.ps1')\" -NoPassword -ReplaceOldPlaybook -Removals Verification",
             "cwd": "${workspaceFolder}/src/playbook",
             "args": []
         }

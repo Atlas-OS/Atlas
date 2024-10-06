@@ -170,8 +170,9 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 	$tempOemYmlPath = Separator "$playbookTemp\$oemYmlPath"
 	if (Test-Path $oemYmlPath -PathType Leaf) {
 		$confXml = ([xml](Get-Content "playbook.conf" -Raw -EA 0)).Playbook
-		$version = "v$($confXml.Version)"
-		if ($version -like '*.*.*') {
+		if ($confXml.Version -match '^(0|[1-9]\d*)(\.(0|[1-9]\d*)){0,2}$') {
+			$version = "v$($confXml.Version)"
+
 			if ($confXml.Title | Select-String '(dev)' -Quiet) {
 				$version = $version + ' (dev)'
 			}
@@ -187,7 +188,7 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 				Set-Content -Path $tempOemYmlPath -Value $tempOemYml
 			}
 		} else {
-			Write-Error "Can't XML in 'playbook.conf', not setting OEM version."
+			Write-Error "Invalid version format in 'playbook.conf', not setting OEM version."
 		}
 	} else {
 		Write-Error "Can't find '$oemYmlPath', not setting OEM version."
@@ -207,7 +208,7 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 	if (!$NoPassword) { $pass = '-pmalte' }
 	& $7zPath a -spf -y -mx1 $pass -tzip "$apbxPath" `@"$files" | Out-Null
 	# add edited files
-	if (Test-Path $(Separator "$playbookTemp\*.*")) {
+	if (Test-Path $(Separator "$playbookTemp\*")) {
 		Push-Location "$playbookTemp"
 		& $7zPath u $pass "$apbxPath" * | Out-Null
 		Pop-Location
