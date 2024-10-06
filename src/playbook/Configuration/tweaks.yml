@@ -339,6 +339,7 @@ actions:
   - !task: {path: 'tweaks\scripts\script-core-isolation.yml'}
   - !task: {path: 'tweaks\scripts\script-mitigations.yml'}
   - !task: {path: 'tweaks\scripts\script-devices.yml'}
+  - !task: {path: 'tweaks\scripts\script-pfp.yml'}
   - !task: {path: 'tweaks\scripts\script-backup2.yml'}
   - !task: {path: 'tweaks\scripts\script-clientcbs.yml'}
 
