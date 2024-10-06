@@ -42,19 +42,19 @@ actions:
     option: '!install-another-browser'
     exeDir: true
   - !powerShell:
-    command: '.\TASKBARPINS.ps1 "Brave"'
+    command: ".\\TASKBARPINS.ps1 'Brave'"
     option: 'browser-brave'
     exeDir: true
   - !powerShell:
-    command: '.\TASKBARPINS.ps1 "Firefox"'
+    command: ".\\TASKBARPINS.ps1 'Firefox'"
     option: 'browser-firefox'
     exeDir: true
   - !powerShell:
-    command: '.\TASKBARPINS.ps1 "Google Chrome"'
+    command: ".\\TASKBARPINS.ps1 'Google Chrome'"
     option: 'browser-chrome'
     exeDir: true
   - !powerShell:
-    command: '.\TASKBARPINS.ps1 "LibreWolf"'
+    command: ".\\TASKBARPINS.ps1 'LibreWolf'"
     option: 'browser-librewolf'
     exeDir: true
   - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}

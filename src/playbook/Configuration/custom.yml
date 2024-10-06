@@ -3,7 +3,7 @@ title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
     # AME Wizard seemingly has a bug where it doesn't mount other user's Registry hives
-  - !writeStatus: {status: 'Preparing Hives'}
+  - !writeStatus: {status: 'Preparing hives'}
   - !powerShell:
     command: |
       $profileList = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' -Name 'ProfilesDirectory', 'Default' -EA 0
