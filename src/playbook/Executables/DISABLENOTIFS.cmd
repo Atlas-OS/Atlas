@@ -30,6 +30,7 @@ for /f "tokens=5 delims=\" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Ser
 :: Apply changes
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im ShellExperienceHost.exe > nul 2>&1
+timeout /t 3 /nobreak > nul
 tasklist | find "explorer.exe" > nul || start explorer.exe
 
 echo Disabled notifications.

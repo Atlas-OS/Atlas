@@ -15,10 +15,14 @@ for %%a in (
 	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide %%~a /silent
 )
 
+:: Enable services
+call "%windir%\AtlasModules\Scripts\setSvc.cmd" "WpnUserService" 2
+sc config WpnService start=auto > nul
 
 :: Apply changes
 taskkill /f /im explorer.exe > nul 2>&1
 taskkill /f /im ShellExperienceHost.exe > nul 2>&1
+timeout /t 3 /nobreak > nul
 tasklist | find "explorer.exe" > nul || start explorer.exe
 
 echo Enabled notifications.
