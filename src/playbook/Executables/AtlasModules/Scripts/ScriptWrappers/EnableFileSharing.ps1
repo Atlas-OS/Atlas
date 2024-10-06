@@ -43,7 +43,7 @@ if ($LASTEXITCODE -eq 1) {
 
 choice /c:yn /n /m "Would you like to restore the 'Give access to' context menu in Explorer? [Y/N] "
 if ($LASTEXITCODE -eq 1) {
-    reg import "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing\Give Access To Menu\Give Access To Menu Enable.reg" | Out-Null
+    reg import "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing\Give Access To Menu\Enable Give Access To Menu.reg" | Out-Null
 }
 
 Write-Host "`nCompleted!" -ForegroundColor Green
