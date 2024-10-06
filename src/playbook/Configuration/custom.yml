@@ -2,6 +2,30 @@
 title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
+    # AME Wizard seemingly has a bug where it doesn't mount other user's Registry hives
+  - !writeStatus: {status: 'Preparing Hives'}
+  - !powerShell:
+    command: |
+      $profileList = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' -Name 'ProfilesDirectory', 'Default' -EA 0
+      $usersPath = if ([string]::IsNullOrEmpty($profileList.ProfilesDirectory)) { """$env:SystemDrive\Users""" } else { $profileList.ProfilesDirectory }
+      $defaultPath = if ([string]::IsNullOrEmpty($profileList.Default)) { """$usersPath\Default""" } else { $profileList.Default }
+
+      $count = 1
+      $prefix = 'HKU\AME_UserHive_'
+      foreach ($hive in (Get-ChildItem -Path $usersPath -Force -Depth 1 | ? { $_.Name -eq 'NTUSER.DAT' })) {
+          if (!$defaultFound -and ($hive.Directory.FullName -eq $defaultPath)) {
+              $defaultFound = $true
+              $name = """$prefix""" + """Default"""
+          } else {
+              $name = """$prefix""" + """$count"""
+          }
+
+          Write-Output """`nMounting $($hive.Directory.Name):"""
+          reg load """$name""" """$($hive.FullName)"""
+      }
+    weight: 10
+    wait: true
+
   - !writeStatus: {status: 'Copying files'}
   - !powerShell:
     command: |
