@@ -46,12 +46,13 @@ actions:
     handleExitCodes: {'!0': halt}
 
     # Prevent annoying notifications during deployment
-  - !taskKill: {name: 'explorer'}
   - !cmd:
     command: 'DISABLENOTIFS.cmd'
     exeDir: true
     wait: true
     runas: currentUserElevated
+  - !taskKill: {name: 'explorer'}
+  - !taskKill: {name: 'ShellExperienceHost'}
   - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
 
   # Configure PowerShell first so that other PowerShell scripts work
