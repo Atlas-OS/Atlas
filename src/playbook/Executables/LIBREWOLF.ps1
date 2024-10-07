@@ -1,6 +1,7 @@
 .\AtlasModules\initPowerShell.ps1
 $ProgressPreference = "SilentlyContinue"
 $ErrorActionPreference = "Stop"
+$timeouts = @("--connect-timeout", "5", "--max-time", "10", "--retry", "5", "--retry-delay", "0", "--retry-max-time", "40", "--retry-all-errors")
 
 # Initial variables
 $drive = Get-SystemDrive
@@ -21,7 +22,7 @@ $librewolfDownload = "https://gitlab.com/api/v4/projects/$gitLabId/packages/gene
 
 Write-Output "Downloading the latest LibreWolf setup"
 $outputLibrewolf = "$drive\$librewolfFileName"
-curl.exe -LSs "$librewolfDownload" -o "$outputLibrewolf"
+curl.exe -LSs "$librewolfDownload" -o "$outputLibrewolf" $timeouts
 
 Write-Output "Installing LibreWolf silently"
 Start-Process -Wait -FilePath $outputLibrewolf -ArgumentList "/S"
@@ -42,7 +43,7 @@ $librewolfUpdaterDownload = (Invoke-RestMethod -Uri "$librewolfUpdaterURI").Asse
 
 Write-Output "Downloading the latest LibreWolf WinUpdater ZIP"
 $outputLibrewolfUpdater = "$drive\librewolf-winupdater.zip"
-curl.exe -LSs "$librewolfUpdaterDownload" -o "$outputLibrewolfUpdater"
+curl.exe -LSs "$librewolfUpdaterDownload" -o "$outputLibrewolfUpdater" $timeouts
 
 Write-Output "Extracting Librewolf-WinUpdater"
 Expand-Archive -Path $outputLibrewolfUpdater -DestinationPath "$programs\LibreWolf\librewolf-winupdater" -Force
