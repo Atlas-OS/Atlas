@@ -1,7 +1,7 @@
 @echo off
 
 :: Check if hyper threading is enabled
-powershell -NonI -NoP -C "$proc = Get-CimInstance Win32_Processor; if ([int]$proc.NumberOfLogicalProcessors -gt [int]$proc.NumberOfCores) { exit 262 }"
+powershell -NonI -NoP -C "Get-CimInstance Win32_Processor | Foreach-Object { if ([int]$_.NumberOfLogicalProcessors -gt [int]$_.NumberOfCores) { exit 262 } }"
 if "%errorlevel%"=="262" goto :hyperThreading
 
 if "%~1" neq "/silent" (

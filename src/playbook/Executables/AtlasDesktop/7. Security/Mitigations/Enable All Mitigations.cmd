@@ -20,7 +20,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 :main
 :: Enable Spectre and Meltdown
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverrideMask" /t REG_DWORD /d "3" /f > nul
-powershell -NonI -NoP -C "$proc = (Get-CimInstance Win32_Processor).Name; $env:CPU = if ($proc | sls 'Intel' -Quiet) {'0'} elseif ($proc | sls 'AMD' -Quiet) {'64'}"
+powershell -NonI -NoP -C "$proc = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name; $env:CPU = if ($proc | sls 'Intel' -Quiet) {'0'} elseif ($proc | sls 'AMD' -Quiet) {'64'}"
 if "%CPU%" neq "" (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "%CPU%" /f > nul
 ) 
