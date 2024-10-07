@@ -3,8 +3,7 @@ title: Disable Recall Snapshots
 description: Disables snapshots of Recall (24H2+)
 builds: [ '>=22000' ]
 actions:
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
-    value: 'DisableAIDataAnalysis'
-    data: '1'
-    type: REG_DWORD
+  - !cmd:
+    command: 'reg import "AtlasDesktop\3. General Configuration\AI Features\Recall\Disable Recall Support (default).reg"'
+    exeDir: true
+    wait: true
