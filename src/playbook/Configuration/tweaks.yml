@@ -24,7 +24,8 @@ actions:
   # to improving network performance, security, etc.
   # -----------------------------------------------------
   - !writeStatus: {status: 'Running networking tweaks'}
-  - !task: {path: 'tweaks\networking\disable-llmnr.yml'}
+  # Needed for compatibility
+  # - !task: {path: 'tweaks\networking\disable-llmnr.yml'}
   - !task: {path: 'tweaks\networking\atlas-network-settings.yml'}
 
   # -------------------------------------------------------------------------- #
