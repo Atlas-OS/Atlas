@@ -10,4 +10,5 @@ actions:
   - !run: {exe: 'bcdedit', args: '/timeout 10'}
 
     # Use legacy boot menu
-  - !run: {exe: 'bcdedit', args: '/set {bootloadersettings} bootmenupolicy legacy'}
+    # Faster as it doesn't boot into an OS
+  - !run: {exe: 'bcdedit', args: '/set bootmenupolicy legacy'}
