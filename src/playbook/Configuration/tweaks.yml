@@ -305,7 +305,6 @@ actions:
   # -----------------------------------------------------
   - !writeStatus: {status: 'Running security tweaks'}
   - !task: {path: 'tweaks\security\block-anonymous-enum-sam.yml'}
-  - !task: {path: 'tweaks\security\delete-defaultuser0.yml'}
   - !task: {path: 'tweaks\security\disable-remote-assistance.yml'}
 
 

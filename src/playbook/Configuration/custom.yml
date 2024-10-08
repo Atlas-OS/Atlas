@@ -6,13 +6,14 @@ actions:
   - !writeStatus: {status: 'Preparing hives'}
   - !powerShell:
     command: |
+      net user defaultuser0 /delete *>$null
       $profileList = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' -Name 'ProfilesDirectory', 'Default' -EA 0
       $usersPath = if ([string]::IsNullOrEmpty($profileList.ProfilesDirectory)) { """$env:SystemDrive\Users""" } else { $profileList.ProfilesDirectory }
       $defaultPath = if ([string]::IsNullOrEmpty($profileList.Default)) { """$usersPath\Default""" } else { $profileList.Default }
 
       $count = 1
       $prefix = 'HKU\AME_UserHive_'
-      foreach ($hive in (Get-ChildItem -Path $usersPath -Force -Depth 1 | ? { $_.Name -eq 'NTUSER.DAT' })) {
+      foreach ($hive in (Get-ChildItem -Path $usersPath -Force -Depth 1 | ? { ($_.Name -eq 'NTUSER.DAT') -and ($_.Directory.Name -notlike 'defaultuser*')})) {
           if (!$defaultFound -and ($hive.Directory.FullName -eq $defaultPath)) {
               $defaultFound = $true
               $name = """$prefix""" + """Default"""
