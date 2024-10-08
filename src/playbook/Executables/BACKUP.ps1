@@ -19,4 +19,5 @@ Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | ForEach-Object {
 	} catch {}
 }
 
-Set-Content -Path $FilePath -Value $content -Force -Encoding UTF8
+# Set-Content can only do UTF8 with BOM, which doesn't work with reg.exe
+[System.IO.File]::WriteAllLines($FilePath, $content, (New-Object System.Text.UTF8Encoding $false))
