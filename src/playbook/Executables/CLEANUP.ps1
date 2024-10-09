@@ -1,7 +1,7 @@
 .\AtlasModules\initPowerShell.ps1
 function Invoke-AtlasDiskCleanup {
 	# Kill running cleanmgr instances, as they will prevent new cleanmgr from starting
-	Get-Process -Name cleanmgr -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+	Get-Process -Name cleanmgr -EA 0 | Stop-Process -Force -EA 0
 	# Disk Cleanup preset
 	# 2 = enabled
 	# 0 = disabled
@@ -47,12 +47,19 @@ function Invoke-AtlasDiskCleanup {
 
 # Check for other installations of Windows
 # If so, don't cleanup as it will also cleanup other drives, which will be slow, and we don't want to touch other data
+$noCleanmgr = $false
 $drives = (Get-PSDrive -PSProvider FileSystem).Root | Where-Object { $_ -notmatch $(Get-SystemDrive) }
 foreach ($drive in $drives) {
-	if (!(Test-Path -Path $(Join-Path -Path $drive -ChildPath 'Windows') -PathType Container)) {
-		Write-Output "No other Windows drives found, running Disk Cleanup."
-		Invoke-AtlasDiskCleanup
+	if (Test-Path -Path $(Join-Path -Path $drive -ChildPath 'Windows') -PathType Container) {
+		Write-Output "Not running Disk Cleanup, other Windows drives found."
+		$noCleanmgr = $true
+		break
 	}
+}
+
+if (!$noCleanmgr) {
+	Write-Output "No other Windows drives found, running Disk Cleanup."
+	Invoke-AtlasDiskCleanup
 }
 
 # Clear the user temp folder
