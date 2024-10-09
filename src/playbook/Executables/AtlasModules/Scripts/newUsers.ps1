@@ -31,6 +31,9 @@ Set-LockscreenImage
 # Disable 'Network' in navigation pane
 reg import "$atlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg" *>$null
 
+# Disable Automatic Folder Discovery
+reg import "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\Disable Automatic Folder Discovery (default).reg" *>$null
+
 # Set visual effects
 & "$atlasDesktop\4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd" /silent
 
