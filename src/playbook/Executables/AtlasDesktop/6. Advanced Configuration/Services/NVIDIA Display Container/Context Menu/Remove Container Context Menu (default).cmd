@@ -13,11 +13,10 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-:main
 :: check if the service exists
 reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1 || (
-	if "%~1"=="/silent" exit /b
     echo The context menu does not exist, thus you cannot continue.
+	if "%~1"=="/silent" exit /b
     echo]
     pause
     exit /b 1
@@ -26,6 +25,7 @@ reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1 || (
 echo Explorer will be restarted to ensure that the context menu is removed.
 pause
 
+:main
 reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul 2>&1
 
 :: delete icon exe
