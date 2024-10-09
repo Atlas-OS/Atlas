@@ -42,6 +42,11 @@ actions:
     type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'AllowSearchToUseLocation'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
     value: 'EnableDynamicContentInWSB'
     data: '0'
     type: REG_DWORD

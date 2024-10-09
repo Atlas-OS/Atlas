@@ -19,7 +19,7 @@ echo Enabling Web Search ^& Search Highlights...
 echo]
 set key="HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowSearchToUseLocation
 choice /c:yn /n /m "Would you like web search to use your location for results? [Y/N] "
-if %errorlevel%==1 reg delete %key% /f > nul
+if %errorlevel%==1 reg delete %key% /f > nul 2>&1
 if %errorlevel%==2 reg add %key% /t REG_DWORD /d 0 /f > nul
 
 :: Enable search indexing to prevent a visual bug
