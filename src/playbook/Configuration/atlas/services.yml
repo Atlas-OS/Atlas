@@ -26,6 +26,7 @@ actions:
     command: '.\AtlasModules\Scripts\ScriptWrappers\DisableFileSharing.ps1 -Silent'
     exeDir: true
     wait: true
+    runas: currentUserElevated
 
   - !writeStatus: {status: 'Disabling Location'}
   - !cmd:

@@ -1,9 +1,0 @@
----
-title: Disable Sharing Wizard
-description: Disables the 'Sharing Wizard' option in File Explorer for QoL
-actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-    value: 'SharingWizardOn'
-    data: '0'
-    type: REG_DWORD
