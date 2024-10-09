@@ -12,8 +12,8 @@ fltmc > nul 2>&1 || (
 )
 
 echo Before running this, please see the Atlas documentation, linked in the folder.
+pause
 echo]
-pause & cls
 
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "GlobalTimerResolutionRequests" /t REG_DWORD /d "1" /f > nul
 schtasks /create /tn "Force Timer Resolution" /xml "%windir%\AtlasModules\Other\Force Timer Resolution.xml" /f > nul
