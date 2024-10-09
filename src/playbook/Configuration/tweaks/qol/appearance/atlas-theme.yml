@@ -26,11 +26,8 @@ actions:
     type: REG_DWORD
   - !powerShell:
     command: |
-      .\AtlasModules\initPowerShell.ps1
-      foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
-          Set-ItemProperty `
-              -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative\$(Split-Path $userKey -Leaf)" `
-              -Name 'RotatingLockScreenEnabled' -Type DWORD -Value 0 -Force
+      foreach ($userKey in (Get-ChildItem "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative").PsPath) {
+          Set-ItemProperty -Path $userKey -Name 'RotatingLockScreenEnabled' -Type DWORD -Value 0 -Force
       }
     exeDir: true
     wait: true
