@@ -20,10 +20,7 @@ sc.exe config NetBT start=system | Out-Null
 choice /c:yn /n /m "Would you like to change your network profile to 'Private'? [Y/N] "
 if ($LASTEXITCODE -eq 1) {
     # Set network profile to 'Private Network'
-    $profiles = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles" -Recurse | Where-Object { $_.GetValue("Category") -ne $null }
-    foreach ($profile in $profiles) {
-        Set-ItemProperty -Path $profile.PSPath -Name "Category" -Value 1 | Out-Null
-    }
+    Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
 
     # Disable network discovery firewall rules
     Get-NetFirewallRule | Where-Object {
