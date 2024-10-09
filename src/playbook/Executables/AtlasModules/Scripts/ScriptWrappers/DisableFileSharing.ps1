@@ -20,10 +20,6 @@ sc.exe config NetBT start=disabled | Out-Null
 
 # Set network profile to 'Public Network'
 Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Public
-$profiles = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles" -Recurse | Where-Object { $_.GetValue("Category") -ne $null }
-foreach ($profile in $profiles) {
-    Set-ItemProperty -Path $profile.PSPath -Name "Category" -Value 0 | Out-Null
-}
 
 # Disable network discovery firewall rules
 Get-NetFirewallRule | Where-Object {
