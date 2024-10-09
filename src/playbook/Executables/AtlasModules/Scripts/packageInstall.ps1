@@ -333,7 +333,8 @@ function ProcessCab($cabPath) {
 # https://github.com/Atlas-OS/Atlas/issues/1103
 function MakeRepairSource {
 	$version = '38655.38527.65535.65535'
-	$srcPath = "$windir\AtlasModules\Packages\WinSxS"
+	$srcPath = "%SystemRoot%\AtlasModules\Packages\WinSxS"
+	$srcPathExpanded = [System.Environment]::ExpandEnvironmentVariables($srcPath)
 
 	Write-Host "`nMaking repair source..." -ForegroundColor Cyan
 	Write-Host ("-" * 84) -ForegroundColor Magenta
@@ -347,21 +348,23 @@ function MakeRepairSource {
 	}
 
 	# create new repair source folder
-	if (Test-Path $srcPath -PathType Container) {
+	if (Test-Path $srcPathExpanded -PathType Container) {
 		Write-Host "[INFO] Deleting old RepairSrc..."
-		Remove-Item $srcPath -Force -Recurse
+		Remove-Item $srcPathExpanded -Force -Recurse
 	}
 	Write-Host "[INFO] Creating RepairSrc path..."
-	New-Item "$srcPath\Manifests" -Force -ItemType Directory | Out-Null
+	New-Item "$srcPathExpanded\Manifests" -Force -ItemType Directory | Out-Null
 
 	# hardlink all the manifests to the repair source
 	Write-Host "[INFO] Hard linking manifests..."
 	foreach ($manifest in $manifests) {
-		New-Item -ItemType HardLink -Path "$srcPath\Manifests\$manifest" -Target $manifest.FullName | Out-Null
+		New-Item -ItemType HardLink -Path "$srcPathExpanded\Manifests\$manifest" -Target $manifest.FullName | Out-Null
 	}
 
 	# adds the repair source policy
-	Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing" -Name LocalSourcePath -Value "$srcPath" -Type ExpandString | Out-Null
+	$servicingPolicyKey = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing"
+	if (!(Test-Path $servicingPolicyKey)) { New-Item -Path $servicingPolicyKey -Force | Out-Null }
+	Set-ItemProperty -Path $servicingPolicyKey -Name LocalSourcePath -Value "$srcPath" -Type ExpandString -Force
 }
 
 if ($matchedPackages) {
