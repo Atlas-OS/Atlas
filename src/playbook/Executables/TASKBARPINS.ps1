@@ -85,11 +85,11 @@ $taskBarLocation = 'Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar
 $rootKey = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
 
 # Clearing taskbar, copying the shortcut, setting registry
-foreach ($userKey in (Get-RegUserPaths).PsPath) {
+foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
     $sid = Split-Path $userKey -Leaf
     $appData = Get-ItemPropertyValue "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name 'AppData' -EA 0
 
-    if (!(Test-Path $appData)) {
+    if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData)) {
         Write-Error "Couldn't find AppData value for $sid!"
     } else {
         Write-Title "Setting '$Browser' taskbar shortcut for '$sid'..."
