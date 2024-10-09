@@ -10,7 +10,7 @@ param (
 # Software is no longer installed with a package manager anymore to be as fast and as reliable as possible.   #
 # ----------------------------------------------------------------------------------------------------------- #
 
-$timeouts = @("--connect-timeout", "5", "--max-time", "10", "--retry", "5", "--retry-delay", "0", "--retry-max-time", "40", "--retry-all-errors")
+$timeouts = @("--connect-timeout", "10", "--retry", "5", "--retry-delay", "0", "--retry-all-errors")
 $msiArgs = "/qn /quiet /norestart ALLUSERS=1 REBOOT=ReallySuppress"
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 

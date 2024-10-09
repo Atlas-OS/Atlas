@@ -1,7 +1,7 @@
 .\AtlasModules\initPowerShell.ps1
 $ProgressPreference = "SilentlyContinue"
 $ErrorActionPreference = "Stop"
-$timeouts = @("--connect-timeout", "5", "--max-time", "10", "--retry", "5", "--retry-delay", "0", "--retry-max-time", "40", "--retry-all-errors")
+$timeouts = @("--connect-timeout", "10", "--retry", "5", "--retry-delay", "0", "--retry-all-errors")
 
 # Initial variables
 $drive = Get-SystemDrive
