@@ -54,10 +54,11 @@ body:
 
 - type: dropdown
   attributes:
-    label: Atlas Edition
+    label: Atlas Version
+    description: 'If you''re on v0.4.0, see the workarounds page first: https://github.com/orgs/Atlas-OS/projects/7/views/5'
     options:
-    - Atlas for Windows 10 22H2
-    - Atlas for Windows 11 23H2
+    - Atlas v0.4.1 for Windows 10 22H2
+    - Atlas v0.4.1 for Windows 11 24H2
   validations:
     required: true
 
