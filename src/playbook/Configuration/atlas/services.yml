@@ -51,6 +51,20 @@ actions:
   - !service: {name: 'TrkWks', operation: change, startup: 4}
   - !service: {name: 'PcaSvc', operation: change, startup: 4}
   - !service: {name: 'DiagTrack', operation: change, startup: 4}
+  - !service: {name: 'WbioSrvc', operation: change, startup: 4}
+  - !service: {name: 'SysMain', operation: change, startup: 4}
+  - !service: {name: 'RetailDemo', operation: change, startup: 4}
+  - !service: {name: 'DoSvc', operation: change, startup: 4} # Disables Delivery Optimization
+  - !service: {name: 'SensorDataService', operation: change, startup: 4}
+  - !service: {name: 'SensrSvc', operation: change, startup: 4}
+  - !service: {name: 'SensorService', operation: change, startup: 4}
+  - !service: {name: 'icssvc', operation: change, startup: 4} # Disables Windows Mobile Hotspot Service
+  - !service: {name: 'WalletService', operation: change, startup: 4}
+  - !service: {name: 'FontCache', operation: change, startup: 4} # Slows down font rendering
+  - !service: {name: 'DPS', operation: change, startup: 4} # Disables Diagnostic Policy Service; telemetry mostly.
+  - !service: {name: 'WdiServiceHost', operation: change, startup: 4} # Disables Diagnostic Service Host; telemetry mostly.
+  - !service: {name: 'WdiSystemHost', operation: change, startup: 4} # Disables Diagnostic System Host; telemetry mostly.
+
 
     # ------ Microsoft recommendation - 'Do not disable' -----
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
