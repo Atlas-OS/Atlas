@@ -126,3 +126,10 @@ actions:
     value: 'SoftLandingEnabled'
     data: '0'
     type: REG_DWORD
+
+    # Disable 'Occasionally show suggestions in Start'
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'SystemPaneSuggestionsEnabled'
+    data: '0'
+    type: REG_DWORD
