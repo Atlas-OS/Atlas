@@ -11,6 +11,9 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
+:: Warn user about service modifications
+call serviceWarning.cmd 
+
 call setSvc.cmd KSecPkg 4
 call setSvc.cmd LanmanServer 4
 call setSvc.cmd LanmanWorkstation 4
