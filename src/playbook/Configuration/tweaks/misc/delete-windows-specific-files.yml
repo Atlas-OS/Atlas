@@ -8,7 +8,7 @@ actions:
   - !file: {path: '%windir%\AtlasDesktop\3. General Configuration\Timer Resolution', builds: [ '<22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Compact View', builds: [ '<22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery', builds: [ '<22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Context Menu\Windows 11', builds: [ '<22000' ]}
+  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Context Menus\Windows 11', builds: [ '<22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Snap Layouts', builds: [ '<22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\3. General Configuration\AI Features\Recall', builds: [ '<22000' ]}
 
