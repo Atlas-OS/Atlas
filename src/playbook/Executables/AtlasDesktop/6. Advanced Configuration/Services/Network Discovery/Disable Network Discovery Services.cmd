@@ -11,6 +11,9 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
+:: Warn user about service modifications
+call serviceWarning.cmd 
+
 :: Unpin 'Network' from Explorer sidebar
 reg import "%windir%\AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg" > nul
 

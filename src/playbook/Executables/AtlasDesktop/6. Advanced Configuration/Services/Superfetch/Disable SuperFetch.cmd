@@ -13,6 +13,9 @@ fltmc > nul 2>&1 || (
 :main
 setlocal EnableDelayedExpansion
 
+:: Warn user about service modifications
+call serviceWarning.cmd 
+
 :: Remove lower filters for rdyboost driver
 set "key=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
 for /f "skip=1 tokens=3*" %%a in ('reg query !key! /v "LowerFilters"') do (set val=%%a)
