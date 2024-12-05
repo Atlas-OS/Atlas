@@ -14,11 +14,7 @@ if ($DisableAllVBS) {
 	Write-Warning "Disabling VBS features..."
 
 	# Memory Integrity
-	if (Test-Path $memIntegrity) {
-		New-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 0 -PropertyType DWORD -Force
-		Remove-ItemProperty -Path $memIntegrity -Name "ChangedInBootCycle" -EA 0
-		Remove-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -EA 0
-	}
+	New-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 0 -PropertyType DWORD -Force # Need to be forced since Windows 11 24H2
 
 	# Kernel-mode Hardware-enforced Stack Protection (Windows 11 only)
 	if (Test-Path $kernelShadowStacks) {
@@ -36,6 +32,9 @@ if ($DisableAllVBS) {
 
 	# LSA Protection (24H2 only)
 	New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RunAsPPL" -Value 0 -PropertyType DWORD -Force
+
+	# VBS General setting (24H2 only) https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-deviceguard-unattend-enablevirtualizationbasedsecurity
+	New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard" -Name "EnableVirtualizationBasedSecurity" -Value 0 -PropertyType DWORD -Force
 	exit
 } elseif ($EnableMemoryIntegrity) {
 	Write-Warning "Enabling memory integrity..."
