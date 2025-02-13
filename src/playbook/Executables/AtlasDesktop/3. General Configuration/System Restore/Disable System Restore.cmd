@@ -1,15 +1,7 @@
 @echo off
-set "settingName=FileSharing"
-set "stateValue=1"
+set "settingName=SystemRestore"
+set "stateValue=0"
 set "scriptPath=%~f0"
-set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\EnableFileSharing.ps1"
-
-if not exist "%script%" (
-    echo Script not found.
-    echo "%script%"
-    pause
-    exit /b 1
-)
 
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
@@ -25,8 +17,10 @@ fltmc > nul 2>&1 || (
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
-powershell -EP Bypass -NoP -File "%script%"
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v "DisableSR" /t REG_DWORD /d 1 /f > nul
 
-echo Finished, File Sharing is now enabled.
+echo.
+echo System Restore has been disabled.
+echo Press any key to exit...
 pause > nul
 exit /b

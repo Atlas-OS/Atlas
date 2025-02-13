@@ -1,33 +1,38 @@
 @echo off
-setlocal EnableDelayedExpansion
+set "settingName=Indexing"
+set "stateValue=2"
+set "scriptPath=%~f0"
 set indexConfPath="%windir%\AtlasModules\Scripts\indexConf.cmd"
-if not exist %indexConfPath% (
-	echo The 'indexConf.cmd' script wasn't found in AtlasModules.
-	if "%~1"=="" pause
-	exit /b 1
+
+set "___args="%~f0" %*"
+fltmc > nul 2>&1 || (
+    echo Administrator privileges are required.
+    powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
+        echo You must run this script as admin.
+        if "%*"=="" pause
+        exit /b 1
+    )
+    exit /b
+)
+
+if not exist "%indexConfPath%" (
+    echo The 'indexConf.cmd' script wasn't found in AtlasModules.
+    pause
+    exit /b 1
 )
 set "indexConf=call %indexConfPath%"
 
-if "%~1" neq "" goto main
-:: TI required for RespectPowerModes
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" %*
-	exit /b
-)
+reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
-:main
-echo ===================================
-echo Enabling search indexing...
-echo ===================================
-echo]
-
+echo.
+echo Enabling full search indexing...
 %indexConf% /stop
-
 %indexConf% /cleanpolicies
 %indexConf% /include "%programdata%\Microsoft\Windows\Start Menu\Programs"
-:: The Atlas folder is so that if the user searches for a Atlas-modified feature, a script shows up in search
 %indexConf% /include "%windir%\AtlasDesktop"
 %indexConf% /include "%systemdrive%\Users"
+
 :: Add default user exclusions
 for /f "usebackq delims=" %%a in (`dir /b /a:d "%SystemDrive%\Users"`) do (
 	for %%z in (
@@ -44,12 +49,14 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows Search" /v SetupCompletedSuccessfully /
 set regCmd=^>nul reg add "HKLM\Software\Microsoft\Windows Search\Gather\Windows\SystemIndex" /v "RespectPowerModes" /t REG_DWORD /d 
 if "%~1"=="/silent" (%regCmd% "0" /f & exit /b)
 
-echo]
+echo.
 :: Respect Power Settings when Search Indexing to prevent performance loss during gaming or battery drain
-choice /c:yn /n /m "Would you like to have indexing disable its self when on battery or gaming? [Y/N] "
+choice /c:yn /n /m "Would you like to have indexing disable itself when on battery or gaming? [Y/N] "
 if %errorlevel%==1 %regCmd% "1" /f
 if %errorlevel%==2 %regCmd% "0" /f
 
-echo Finished, there might be some CPU usage for a period while indexing.
-pause
+echo.
+echo Full Search Indexing has been enabled.
+echo Press any key to exit...
+pause > nul
 exit /b

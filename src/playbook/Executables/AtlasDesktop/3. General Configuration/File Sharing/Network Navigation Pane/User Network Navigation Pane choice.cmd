@@ -1,15 +1,7 @@
 @echo off
-set "settingName=FileSharing"
+set "settingName=NetworkNavigationPane"
 set "stateValue=1"
 set "scriptPath=%~f0"
-set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\EnableFileSharing.ps1"
-
-if not exist "%script%" (
-    echo Script not found.
-    echo "%script%"
-    pause
-    exit /b 1
-)
 
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
@@ -25,8 +17,9 @@ fltmc > nul 2>&1 || (
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
-powershell -EP Bypass -NoP -File "%script%"
 
-echo Finished, File Sharing is now enabled.
+reg delete "HKCU\SOFTWARE\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /v "System.IsPinnedToNameSpaceTree" /f > nul 2>&1
+
+echo Finished, Network Navigation Pane is now enabled.
 pause > nul
 exit /b

@@ -1,6 +1,6 @@
 @echo off
-set "settingName=Widgets"
-set "stateValue=1"
+set "settingName=Copilot"
+set "stateValue=0"
 set "scriptPath=%~f0"
 
 set "___args="%~f0" %*"
@@ -17,24 +17,17 @@ fltmc > nul 2>&1 || (
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
-call "%windir%\AtlasModules\Scripts\edgeCheck.cmd"
-if %errorlevel% neq 0 exit /b 1
+
+echo Disabling and uninstalling Copilot...
+
+powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.Copilot* | Remove-AppxPackage -AllUsers"
+taskkill /f /im explorer.exe > nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowCopilotButton" /t REG_DWORD /d "0" /f > nul
+reg add "HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /t REG_DWORD /d "1" /f > nul
+start explorer.exe
 
 echo]
-echo Enabling News and Interests (called Widgets in Windows 11)...
-
-(
-    reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" /v "EnableFeeds" /f
-    reg delete "HKLM\SOFTWARE\Policies\Microsoft\Dsh" /v "AllowNewsAndInterests" /f
-    taskkill /f /im explorer.exe
-    start explorer.exe
-) > nul 2>&1
-
-timeout /t 3 /nobreak > nul
-start ms-settings:taskbar
-
-echo]
-echo Finished, you should be able to toggle News and Interests or Widgets in Settings.
+echo Finished, changes are applied.
 echo Press any key to exit...
 pause > nul
 exit /b
