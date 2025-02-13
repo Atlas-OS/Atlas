@@ -13,7 +13,7 @@ fltmc > nul 2>&1 || (
 reg query "HKLM\SOFTWARE\AtlasOS\Copilot" /v state > nul 2>&1
 if %errorlevel% neq 0 (
     echo Copilot state registry key not found. Creating it...
-    reg add "HKLM\SOFTWARE\AtlasOS\Copilot" /v state /t REG_DWORD /d 1 /f > nul
+    reg add "HKLM\SOFTWARE\AtlasOS\Copilot" /v state /t REG_DWORD /d 0 /f > nul
 )
 
 for /f "tokens=3" %%A in ('reg query "HKLM\SOFTWARE\AtlasOS\Copilot" /v state 2^>nul ^| findstr REG_DWORD') do set "current_state=%%A"
