@@ -322,3 +322,6 @@ Windows Registry Editor Version 5.00
 "39"=" start PowerShell -args \"-win 1 -nop -c `n$V `$env:R=(gi `$key -ea 0).getvalue(`$id)-join''; iex `$env:R\" -verb runas"
 "40"="}; $A=,([environment]::commandline-split'-[-]%+ ?',2)[1]-split'\"([^\"]+)\"|([^ ]+)',2|%{$_.Trim(' \"')}; RunAsTI $A[1] $A[2]; # AveYo, 2023.07.06"
 ;
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\AtlasOS\ExtractContextMenu]
+"state"=dword:00000001
