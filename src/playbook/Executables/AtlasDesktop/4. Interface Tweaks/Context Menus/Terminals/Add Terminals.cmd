@@ -1,8 +1,8 @@
 @echo off
 :: Change to match the setting name (e.g., Sleep, Indexing, etc.)
-set "settingName=TakeOwnership"
+set "settingName=ContextMenuTerminals"
 :: Change to 0 (Disabled) or 1 (Enabled/Minimal) etc
-set "stateValue=2"
+set "stateValue=0"
 set "scriptPath=%~f0"
 
 set "___args="%~f0" %*"
