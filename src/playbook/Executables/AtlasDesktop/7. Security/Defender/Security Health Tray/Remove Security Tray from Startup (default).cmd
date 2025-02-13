@@ -22,7 +22,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 
 :: End of state and path update
 
-reg import "%windir%\AtlasModules\Scripts\Registry\SecurityHealthTray\disable.reg" /f > nul
+reg import "%windir%\AtlasModules\Scripts\Registry\SecurityHealthTray\disable.reg" > nul
 
 echo Changes applied successfully.
 echo Press any key to exit...
