@@ -17,3 +17,5 @@ function Invoke-AllSecurityTweaks {
     Block-AnonymousSAMEnumeration
     Disable-RemoteAssistance
 }
+
+Export-ModuleMember -Function Invoke-AllSecurityTweaks

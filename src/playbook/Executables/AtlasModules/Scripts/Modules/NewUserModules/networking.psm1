@@ -47,3 +47,5 @@ function Invoke-AllNetworkingOptimizations {
     Set-AtlasNetworkSettings
     Disable-LLMNR
 }
+
+Export-ModuleMember -Function Invoke-AllNetworkingOptimizations

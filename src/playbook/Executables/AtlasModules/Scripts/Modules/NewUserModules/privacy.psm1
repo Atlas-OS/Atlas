@@ -236,3 +236,5 @@ function Invoke-AllPrivacyOptimizations {
     Disable-LanguageListAccess
     Disable-ErrorReporting
 }
+
+Export-ModuleMember -Function Invoke-AllPrivacyOptimizations

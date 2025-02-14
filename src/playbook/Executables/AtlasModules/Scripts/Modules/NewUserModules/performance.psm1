@@ -120,3 +120,5 @@ function Invoke-AllPerformanceOptimizations {
     Disable-SleepStudy
     Set-SearchIndexingPowerMode
 }
+
+Export-ModuleMember -Function Invoke-AllPerformanceOptimizations

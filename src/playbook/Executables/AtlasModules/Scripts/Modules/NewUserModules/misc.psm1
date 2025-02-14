@@ -89,3 +89,5 @@ function Invoke-AllMiscSystemUtilities {
     Enable-MeasureSleepAdmin
     Reset-PerformanceCounters
 }
+
+Export-ModuleMember -Function Invoke-AllMiscSystemUtilities

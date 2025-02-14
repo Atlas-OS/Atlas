@@ -84,3 +84,5 @@ function Invoke-AllSystemScripts {
     Set-ProfilePictures
     Set-PowerSettings -DisablePowerSaving -DisableHibernation
 }
+
+Export-ModuleMember -Function Invoke-AllSystemScripts
