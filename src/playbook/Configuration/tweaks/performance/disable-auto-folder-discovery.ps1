@@ -1,0 +1,1 @@
+Start-Process -FilePath "reg" -ArgumentList "import `"AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\Disable Automatic Folder Discovery (default).reg`"" -NoNewWindow -Wait
