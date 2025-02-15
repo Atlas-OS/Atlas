@@ -41,5 +41,5 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows Search" /v SetupCompletedSuccessfully /
 echo.
 echo Minimal Search Indexing has been configured.
 echo Press any key to exit...
-pause > nul
+if "%~1" neq "/silent" pause
 exit /b

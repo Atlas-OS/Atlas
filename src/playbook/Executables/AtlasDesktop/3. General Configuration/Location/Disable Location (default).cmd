@@ -40,4 +40,5 @@ for %%a in (
 echo.
 echo Location services have been disabled.
 echo Press any key to exit...
-pause > nul
+if "%~1" neq "/silent" pause
+exit /b
