@@ -37,8 +37,10 @@ for %%a in (
     call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide %%~a /silent
 )
 
+if "%~1"=="/silent" exit /b
+
 echo.
 echo Location services have been disabled.
 echo Press any key to exit...
-if "%~1" neq "/silent" pause
+pause
 exit /b

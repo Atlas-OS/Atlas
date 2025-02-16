@@ -40,9 +40,11 @@ if %errorlevel%==2 (
     reg add %key1% /v LocationSyncEnabled /t REG_DWORD /d 0 /f > nul
 )
 
+if "%~1"=="/silent" exit /b
+
 echo.
 echo Location services have been enabled.
 start ms-settings:privacy-location
 echo Press any key to exit...
-pause > nul
+pause
 exit /b

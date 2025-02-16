@@ -19,6 +19,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 
 powercfg /h on
 
+if "%~1"=="/silent" exit /b
+
 echo.
 echo Hibernation has been enabled.
 echo Press any key to exit...

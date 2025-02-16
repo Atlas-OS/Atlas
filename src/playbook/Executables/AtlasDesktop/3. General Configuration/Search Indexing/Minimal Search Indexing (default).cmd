@@ -38,8 +38,10 @@ reg add "HKLM\Software\Microsoft\Windows Search\Gather\Windows\SystemIndex" /v "
 %indexConf% /start
 reg add "HKLM\SOFTWARE\Microsoft\Windows Search" /v SetupCompletedSuccessfully /t REG_DWORD /d 0 /f > nul
 
+if "%~1"=="/silent" exit /b
+
 echo.
 echo Minimal Search Indexing has been configured.
 echo Press any key to exit...
-if "%~1" neq "/silent" pause
+pause
 exit /b
