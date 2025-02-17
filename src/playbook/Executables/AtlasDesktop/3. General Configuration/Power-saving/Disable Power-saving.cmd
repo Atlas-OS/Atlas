@@ -27,6 +27,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 
 powershell -EP Bypass -NoP -File "%script%" %*
 
+if "%~1"=="/silent" exit /b
+
 echo.
 echo Power Saving has been disabled.
 echo Press any key to exit...
