@@ -64,7 +64,7 @@ if ([string]::IsNullOrEmpty($Browser)) { # If Edge exists, pin it, otherwise, pi
         $regTaskbar = $shortcuts.$edge
     } else {
         Write-Warning "Edge isn't installed."
-		$Browser = $explorer
+        $Browser = $explorer
         $regTaskbar = $shortcuts.$explorer
     }
 } else { # Browser options
@@ -96,6 +96,10 @@ foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
         
         Write-Output "Clearing current shortcuts..."
         $taskBarAppData = "$appData\$taskBarLocation"
+        if (Test-Path $taskBarAppData -PathType Leaf) {
+            Write-Output "Deleting TaskBar file..."
+            Remove-Item -Path $taskBarAppData -Force
+        }
         Get-ChildItem $taskBarAppData | Remove-Item -Force -Recurse
 
         Write-Output "Adding new shortcuts..."
@@ -108,3 +112,6 @@ foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
         }
     }
 }
+
+Stop-Process -Name explorer -Force
+Start-Process explorer
