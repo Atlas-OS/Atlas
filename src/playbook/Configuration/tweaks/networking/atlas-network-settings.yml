@@ -3,6 +3,6 @@ title: Applies Atlas' Network Settings
 description: Applies Atlas' optimised network settings
 actions:
   - !cmd:
-    command: '"AtlasDesktop\8. Troubleshooting\Network\Reset Network to Atlas Default.cmd" /silent'
+    command: '"AtlasDesktop\8. Troubleshooting\Network\Reset Network to Atlas Default.cmd" /silent && e'
     exeDir: true
     wait: true
