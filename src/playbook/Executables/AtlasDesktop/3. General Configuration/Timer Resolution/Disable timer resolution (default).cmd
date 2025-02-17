@@ -11,6 +11,8 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
+if not "%~1"=="/silent" call "%windir%\AtlasModules\Scripts\serviceWarning.cmd" %*
+
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "GlobalTimerResolutionRequests" /f > nul 2>&1
 taskkill /f /im SetTimerResolution.exe > nul 2>&1
 schtasks /delete /tn "Force Timer Resolution" /f > nul 2>&1
