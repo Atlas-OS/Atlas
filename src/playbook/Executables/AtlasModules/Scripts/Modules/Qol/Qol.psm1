@@ -2,7 +2,7 @@
 
 # Function to add and set the Atlas themes by default
 function Set-AtlasTheme {
-    .\AtlasModules\initPowerShell.ps1
+    & "$windir\AtlasModules\initPowerShell.ps1"
     Set-Theme -Path "$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.4.x-dark.theme"
     Set-ThemeMRU
 
@@ -13,7 +13,7 @@ function Set-AtlasTheme {
         Set-ItemProperty -Path $userKey -Name 'RotatingLockScreenEnabled' -Type DWORD -Value 0 -Force
     }
 
-    .\AtlasModules\initPowerShell.ps1
+    & "$windir\AtlasModules\initPowerShell.ps1"
     Set-LockscreenImage
 
     reg add "HKCU\Software\Policies\Microsoft\Windows\Personalization" /v "ThemeFile" /t REG_SZ /d "%windir%\Resources\Themes\atlas-v0.4.x-dark.theme" /f
@@ -66,54 +66,54 @@ function Disable-EaseOfAccessSounds {
 
 # Function to add 'Merge as TrustedInstaller' to context menu for registry files
 function Add-MergeAsTrustedInstallerToContextMenu {
-    reg add "HKCR\regfile\Shell\RunAs" /v "" /t REG_SZ /d "Merge As TrustedInstaller" /f
+    reg add "HKCR\regfile\Shell\RunAs" /t REG_SZ /d "Merge As TrustedInstaller" /f
     reg add "HKCR\regfile\Shell\RunAs" /v "HasLUAShield" /t REG_SZ /d "1" /f
-    reg add "HKCR\regfile\Shell\RunAs\Command" /v "" /t REG_SZ /d "cmd /c `%windir%\AtlasModules\Scripts\RunAsTI.cmd `%1" /f
+    reg add "HKCR\regfile\Shell\RunAs\Command" /t REG_SZ /d "cmd /c `%windir%\AtlasModules\Scripts\RunAsTI.cmd `%1" /f
 }
 
 # Function to add batch scripts to 'New' context menu
 function Add-BatchScriptToNewContextMenu {
     reg add "HKCR\.bat\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "%windir%\System32\acppage.dll,-6002" /f
-    reg add "HKCR\.bat\ShellNew" /v "NullFile" /t REG_SZ /d "" /f
+    reg add "HKCR\.bat\ShellNew" /v "NullFile" /t REG_SZ /d "" /f /f 
 }
 
 # Function to add PowerShell script to 'New' context menu
 function Add-PowerShellScriptToNewContextMenu {
-    reg add "HKCR\.ps1" /v "" /t REG_SZ /d "Microsoft.PowerShellScript.1" /f
-    reg add "HKCR\.ps1\ShellNew" /v "NullFile" /t REG_SZ /d "" /f
-    reg add "HKCR\Microsoft.PowerShellScript.1" /v "" /t REG_SZ /d "Windows PowerShell Script" /f
+    reg add "HKCR\.ps1" /t REG_SZ /d "Microsoft.PowerShellScript.1" /f
+    reg add "HKCR\.ps1\ShellNew" /v "NullFile" /t REG_SZ /d "" /f /f 
+    reg add "HKCR\Microsoft.PowerShellScript.1"  /t REG_SZ /d "Windows PowerShell Script" /f
     reg add "HKCR\Microsoft.PowerShellScript.1" /v "FriendlyTypeName" /t REG_SZ /d "Windows PowerShell Script" /f
 }
 
 # Function to add registry entries to 'New' context menu
 function Add-RegistryEntriesToNewContextMenu {
-    reg add "HKCR\.reg\ShellNew" /v "NullFile" /t REG_SZ /d "" /f
-    reg add "HKCR\.reg\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "%windir%\regedit.exe,-309" /f
+    reg add "HKCR\.reg\ShellNew" /v "NullFile" /t REG_SZ /d "" /f /f
+    reg add "HKCR\.reg\ShellNew" /v "ItemName" /t REG_EXPAND_SZ /d "%windir%\regedit.exe,-309" /f 
 }
 
 # Function to remove 'Cast to device' from context menu
 function Remove-CastToDeviceFromContextMenu {
-    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{7AD84985-87B4-4a16-BE58-8B72A5B390F7}" /t REG_SZ /d "" /f
+    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{7AD84985-87B4-4a16-BE58-8B72A5B390F7}" /t REG_SZ /d "" /f /f
 }
 
 # Function to remove 'Extract' from context menu
 function Remove-ExtractFromContextMenu {
-    reg import "AtlasDesktop\4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).reg"
+    & "$windir\AtlasDesktop\4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).cmd" /justcontext
 }
 
 # Function to remove 'Include in Library' from context menu
 function Remove-IncludeInLibraryFromContextMenu {
-    Remove-Item -Path 'HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location' -Force
+    reg delete 'HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location' /f
 }
 
 # Function to remove bitmap image from 'New' context menu
 function Remove-BitmapImageFromNewContextMenu {
-    Remove-Item -Path 'HKCR\.bmp\ShellNew' -Force
+    reg delete 'HKCR\.bmp\ShellNew' /f 
 }
 
 # Function to remove rich text document from 'New' context menu
 function Remove-RichTextDocumentFromNewContextMenu {
-    Remove-Item -Path 'HKCR\.rtf\ShellNew' -Force
+    reg delete 'HKCR\.rtf\ShellNew' /f
 }
 
 # Function to remove 'Edit with Paint 3D' from context menu
@@ -132,25 +132,25 @@ function Remove-EditWithPaint3DFromContextMenu {
         'HKCR\SystemFileAssociations\.tiff\Shell\3D Edit'
     )
     foreach ($key in $keys) {
-        Remove-Item -Path $key -Force
+        reg delete $key /f
     }
 }
 
 # Function to remove printing from context menus
 function Remove-PrintingFromContextMenus {
-    .\AtlasDesktop\6. Advanced Configuration\Services\Printing\Disable Printing.cmd /justcontext
+   & ".\AtlasDesktop\6. Advanced Configuration\Services\Printing\Disable Printing.cmd" /justcontext
 }
 
 # Function to remove 'Share' from context menu
 function Remove-ShareFromContextMenu {
-    Remove-Item -Path 'HKCR\*\shellex\ContextMenuHandlers\ModernSharing' -Force
-    Remove-Item -Path 'HKCR\AllFilesystemObjects\shellex\ContextMenuHandlers\ModernSharing' -Force
+    reg delete 'HKCR\*\shellex\ContextMenuHandlers\ModernSharing' /f
+    reg delete 'HKCR\AllFilesystemObjects\shellex\ContextMenuHandlers\ModernSharing' /f
 }
 
 # Function to remove 'Troubleshooting Compatibility' from context menu
 function Remove-TroubleshootingCompatibilityFromContextMenu {
-    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{1d27f844-3a1f-4410-85ac-14651078412d}" /t REG_SZ /d "" /f
-    reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{1d27f844-3a1f-4410-85ac-14651078412d}" /t REG_SZ /d 
+    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{1d27f844-3a1f-4410-85ac-14651078412d}" /t REG_SZ /d "" /f /f
+    reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" /v "{1d27f844-3a1f-4410-85ac-14651078412d}" /t REG_SZ /d /f /f
 }
 # Function to show more details by default on file transfers
 function Show-MoreDetailsOnTransfers {
@@ -159,14 +159,14 @@ function Show-MoreDetailsOnTransfers {
 
 # Function to revert to classic search
 function Set-ClassicSearch {
-    reg add "HKLM\SOFTWARE\Classes\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs" /v "" /t REG_SZ /d "{64bc32b5-4eec-4de7-972d-bd8bd0324537}" /f
-    reg add "HKLM\SOFTWARE\Classes\WOW6432Node\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs" /v "" /t REG_SZ /d "{64bc32b5-4eec-4de7-972d-bd8bd0324537}" /f
-    reg add "HKLM\SOFTWARE\WOW6432Node\Classes\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs" /v "" /t REG_SZ /d "{64bc32b5-4eec-4de7-972d-bd8bd0324537}" /f
+    reg add "HKLM\SOFTWARE\Classes\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs" /t REG_SZ /d "{64bc32b5-4eec-4de7-972d-bd8bd0324537}" /f
+    reg add "HKLM\SOFTWARE\Classes\WOW6432Node\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs" /t REG_SZ /d "{64bc32b5-4eec-4de7-972d-bd8bd0324537}" /f
+    reg add "HKLM\SOFTWARE\WOW6432Node\Classes\CLSID\{1d64637d-31e9-4b06-9124-e83fb178ac6e}\TreatAs" /t REG_SZ /d "{64bc32b5-4eec-4de7-972d-bd8bd0324537}" /f
 }
 
 # Function to debloat Send-To context menu
 function Set-SendToContextMenu {
-    & "AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Disable @('Documents', 'Mail Recipient', 'Fax recipient', 'Bluetooth')
+    & "$windir\AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Disable @('Documents', 'Mail Recipient', 'Fax recipient', 'Bluetooth')
 }
 
 # Function to disable use of check boxes to select items
@@ -193,7 +193,7 @@ function Hide-FoldersFromThisPC {
 
 # Function to hide Gallery in File Explorer
 function Hide-GalleryInFileExplorer {
-    reg import "AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg"
+    & "$windir\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd" /justcontext
 }
 
 # Function to disable searching for invalid shortcuts
@@ -204,7 +204,7 @@ function Disable-SearchingForInvalidShortcuts {
 
 # Function to disable network navigation pane in Explorer
 function Disable-NetworkNavigationPaneInExplorer {
-    reg import "AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg"
+    & "$windir\AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" /justcontext
 }
 
 # Function to not show Office files in Quick Access
@@ -239,15 +239,15 @@ function Hide-RecentItems {
 
 # Function to add power plan file association
 function Add-PowerPlanFileAssociation {
-    reg add "HKCR\powerscheme\DefaultIcon" /v "" /t REG_SZ /d "%windir%\System32\powercpl.dll,1" /f
-    reg add "HKCR\powerscheme\Shell\open\command" /v "" /t REG_SZ /d "powercfg /import `%1" /f
-    reg add "HKCR\.pow" /v "" /t REG_SZ /d "powerscheme" /f
+    reg add "HKCR\powerscheme\DefaultIcon" /t REG_SZ /d "%windir%\System32\powercpl.dll,1" /f
+    reg add "HKCR\powerscheme\Shell\open\command" /t REG_SZ /d "powercfg /import `%1" /f
+    reg add "HKCR\.pow" /t REG_SZ /d "powerscheme" /f
     reg add "HKCR\.pow" /v "FriendlyTypeName" /t REG_SZ /d "Power Scheme" /f
 }
 
 # Function to minimize mouse hover time for item info
 function Set-MouseHoverTimeForItemInfo {
-    reg add "HKCU\Control Panel\Desktop" /v "MouseHoverTime" /t REG_SZ /d "20" 
+    reg add "HKCU\Control Panel\Desktop" /v "MouseHoverTime" /t REG_SZ /d "20" /f
 }
 
 
@@ -263,8 +263,8 @@ function Set-FileExplorerToThisPC {
 
 # Function to show removable drives only in 'This PC'
 function Show-RemovableDrivesOnlyInThisPC {
-    Remove-Item -Path 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}' -Force
-    Remove-Item -Path 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}' -Force
+    reg delete 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}' /f
+    reg delete 'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\DelegateFolders\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}\{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}' /f
 }
 
 # Function to remove previous versions from Explorer
@@ -280,10 +280,10 @@ function Remove-PreviousVersionsFromExplorer {
         'HKCR\Drive\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'
     )
     foreach ($key in $keys) {
-        Remove-Item -Path $key -Force
+        reg delete $key /f
     }
-    Remove-ItemProperty -Path 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' -Name 'NoPreviousVersionsPage' -ErrorAction SilentlyContinue
-    Remove-ItemProperty -Path 'HKCU\SOFTWARE\Policies\Microsoft\PreviousVersions' -Name 'DisableLocalPage' -ErrorAction SilentlyContinue
+    reg delete 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' /v 'NoPreviousVersionsPage' /f
+    reg delete 'HKCU\SOFTWARE\Policies\Microsoft\PreviousVersions' /v 'DisableLocalPage' /f
 }
 
 # Function to remove shortcut text
@@ -315,10 +315,10 @@ function Disable-ShowEdgeTabsInAltTab {
 # Function to disable AutoRun
 function Disable-AutoRun {
     reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" /v "DisableAutoplay" /t REG_DWORD /d 1 /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\CameraAlternate" /v "MSTakeNoAction" /t REG_NONE /d "" /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\StorageOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\CameraAlternate\ShowPicturesOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\StorageOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\CameraAlternate" /v "MSTakeNoAction" /t REG_NONE /d "" /f /f 
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\StorageOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f /f
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\CameraAlternate\ShowPicturesOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f /f 
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\StorageOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f /f
 }
 
 # Function to disable Aero Shake
@@ -345,7 +345,7 @@ function Disable-SharedExperiences {
 
 # Function to disable network location wizard
 function Disable-NetworkLocationWizard {
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Network" /v "NewNetworkWindowOff" /t REG_SZ /d "" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Network" /v "NewNetworkWindowOff" /t REG_SZ /d "" /f /f
 }
 
 # Function to disable recommendations in the Start Menu
@@ -356,25 +356,25 @@ function Disable-StartMenuRecommendations {
 
 # Function to restore old context menu in Windows 11
 function Restore-OldContextMenu {
-    reg import "AtlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).reg"
+    & "$windir\AtlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd" /justcontext
 }
 
 # Function to set unpinned control center items
 function Set-UnpinnedControlCenterItems {
     Stop-Process -Name explorer -Force
 
-    # Windows 10
-    if ([System.Environment]::OSVersion.Version | Format-List build == 19045){
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Connect" /t REG_NONE /d "" /f
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Location" /t REG_NONE /d "" /f
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false" /f
+    if ((Get-WmiObject -Class Win32_OperatingSystem).Version -like "10.0.19045"){
+        # Windows 10
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Connect" /t REG_NONE /d "" /f /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Location" /t REG_NONE /d "" /f /f 
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false" /f /f
     }
     else{
         # Windows 11
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Cast" /t REG_NONE /d "" /f
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.NearShare" /t REG_NONE /d "" /f
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false" /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Cast" /t REG_NONE /d "" /f /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.NearShare" /t REG_NONE /d "" /f /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false" /f /f
     }
 
 
@@ -427,24 +427,6 @@ function Show-CommandPromptOnWinX {
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "DontUsePowerShellOnWinX" /t REG_DWORD /d 1 /f
 }
 
-# Function to configure taskbar pins
-function Set-TaskbarPins {
-    Stop-Process -Name explorer -Force
-
-    reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband" /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband" /t REG_DWORD /d 3 /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins" /v "MailPin" /t REG_DWORD /d 0 /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins" /v "CopilotPWAPin" /t REG_DWORD /d 0 /f
-
-    .\TASKBARPINS.ps1 '!install-another-browser'
-    .\TASKBARPINS.ps1 'Brave'
-    .\TASKBARPINS.ps1 'Firefox'
-    .\TASKBARPINS.ps1 'Google Chrome'
-    .\TASKBARPINS.ps1 'LibreWolf'
-
-    Start-Process -FilePath explorer.exe
-}
-
 # Function to disable cloud optimized content on taskbar
 function Disable-CloudOptimizedContentOnTaskbar {
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableCloudOptimizedContent" /t REG_DWORD /d 1 /f
@@ -478,7 +460,7 @@ function Hide-TabletMode {
 # Function to disable Windows Chat
 function Disable-WindowsChat {
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat" /v "ChatIcon" /t REG_DWORD /d 3 /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarMn" /t REG_DWORD /d 0 
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarMn" /t REG_DWORD /d 0 /f 
 }
 
 # Function to add 'End task' to the taskbar
@@ -493,7 +475,7 @@ function Hide-MeetNowOnTaskbar {
 
 # Function to disable Task View on taskbar
 function Disable-TaskViewOnTaskbar {
-    Remove-ItemProperty -Path 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultiTaskingView\AllUpView' -Name 'Enabled' -ErrorAction SilentlyContinue
+    reg delete 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultiTaskingView\AllUpView' /v 'Enabled' /f
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowTaskViewButton" /t REG_DWORD /d 0 /f
 }
 
@@ -510,7 +492,7 @@ function Disable-WUAutoReboot {
 
 # Function to disable WU auto-updates
 function Disable-WUAutoUpdates {
-    reg import "AtlasDesktop\3. General Configuration\Automatic Updates\Disable Automatic Updates (default).reg"
+    & "$windir\AtlasDesktop\3. General Configuration\Automatic Updates\Disable Automatic Updates (default).cmd" /justcontext
 
     New-Item -Path 'HKLM\SOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe' -Name 'DevHomeUpdate' -Force
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\DevHomeUpdate" /v "workCompleted" /t REG_DWORD /d 1 /f
@@ -548,14 +530,14 @@ function Disable-WindowsInsider {
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" /v "EnableConfigFlighting" /t REG_DWORD /d 0 /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" /v "EnableExperimentation" /t REG_DWORD /d 0 /f
 
-    reg add "HKLM\SOFTWARE\Microsoft\WindowsSelfHost\UI\Visibility" /v "HideInsiderPage" /t REG_DWORD /d 
+    reg add "HKLM\SOFTWARE\Microsoft\WindowsSelfHost\UI\Visibility" /v "HideInsiderPage" /t REG_DWORD /d 1 /f
 }
 
 # Function to disable MSRT telemetry
 function Disable-MSRTTelemetry {
     reg add "HKLM\SOFTWARE\Policies\Microsoft\MRT" /v "DontReportInfectionInformation" /t REG_DWORD /d 1 /f
     reg add "HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears" /v "HeartbeatTrackingIndex" /t REG_DWORD /d 0 /f
-    reg add "HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears" /v "SpyNetReportingLocation" /t REG_MULTI_SZ /d "" /f
+    reg add "HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears" /v "SpyNetReportingLocation" /t REG_MULTI_SZ /d "" /f /f
 }
 
 # Function to disable WU nagging
@@ -566,7 +548,7 @@ function Disable-WUNagging {
 
 # Function to add network sharing shortcut
 function Add-NetworkSharingShortcut {
-    .\AtlasModules\initPowerShell.ps1
+    & "$windir\AtlasModules\initPowerShell.ps1"
     New-Shortcut -Source 'control.exe' `
         -Destination "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing\Sharing Settings.lnk" `
         -Arguments '/name Microsoft.NetworkAndSharingCenter /page Advanced'
@@ -592,8 +574,49 @@ function Set-PowerShell {
 # Function to configure Start Menu
 function Set-StartMenu {
     reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Start" /v "ConfigureStartPins" /t REG_SZ /d '{"pinnedList":[{"packagedAppId":"windows.immersivecontrolpanel_cw5n1h2txyewy!microsoft.windows.immersivecontrolpanel"},{"packagedAppId":"Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"},{"desktopAppLink":"%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\File Explorer.lnk"},{"packagedAppId":"Microsoft.WindowsStore_8wekyb3d8bbwe!App"},{"packagedAppId":"Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App"},{"packagedAppId":"Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"},{"packagedAppId":"Microsoft.WindowsNotepad_8wekyb3d8bbwe!App"},{"packagedAppId":"Microsoft.Paint_8wekyb3d8bbwe!App"},{"packagedAppId":"Microsoft.SecHealthUI_8wekyb3d8bbwe!SecHealthUI"}]}' /f
-    Stop-Process -Name 'StartMenuExperienceHost' -ErrorAction SilentlyContinue
-    .\STARTMENU.ps1
+
+    foreach ($userKey in (Get-RegUserPaths).PsPath) {
+        $default = if ($userKey -match 'AME_UserHive_Default') { $true }
+        $sid = Split-Path $userKey -Leaf
+    
+        # Get Local AppData
+        $appData = if ($default) {
+            Get-UserPath -Folder 'F1B32785-6FBA-4FCF-9D55-7B8E7F157091'
+        } else {
+            (Get-ItemProperty "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name 'Local AppData' -EA 0).'Local AppData'
+        }
+        
+        Write-Title "Configuring Start Menu for '$sid'..."
+        if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData)) {
+            Write-Error "Couldn't find AppData value for $sid!"
+        } else {
+            Write-Output "Copying default layout XML"
+            Copy-Item -Path "Layout.xml" -Destination "$appdata\Microsoft\Windows\Shell\LayoutModification.xml" -Force
+            
+            if (!$default) {
+                Write-Output "Clearing Start Menu pinned items"
+    
+                $packages = Get-ChildItem -Path "$appdata\Packages" -Directory | Where-Object { $_.Name -match "Microsoft.Windows.StartMenuExperienceHost" }
+                foreach ($package in $packages) {
+                    $bins = Get-ChildItem -Path "$appdata\Packages\$($package.Name)\LocalState" -File | Where-Object { $_.Name -like "start*.bin" }
+                    foreach ($bin in $bins.FullName) {
+                        Remove-Item -Path $bin -Force
+                    }
+                }
+            }
+        }
+        
+        if (!$default) {
+            Write-Output "Clearing default 'tilegrid'"
+            $tilegrid = Get-ChildItem -Path "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\CloudStore\Store\Cache\DefaultAccount" -Recurse | Where-Object { $_.Name -match "start.tilegrid" }    
+            foreach ($key in $tilegrid) {
+                Remove-Item -Path $key.PSPath -Force
+            }
+        }
+    
+        Write-Output "Removing advertisements/stubs from Start Menu (23H2+)"
+        Remove-ItemProperty -Path "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Start" -Name 'Config' -Force -EA 0
+    }
     Remove-AppxPackage -Package 'Microsoft.Windows.StartMenuExperienceHost*'
 
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoStartMenuMFUprogramsList" /t REG_DWORD /d 1 /f
@@ -609,7 +632,7 @@ function Set-WindowsInkWorkspace {
 
 # Function to disable automatic Store app archiving
 function Disable-AutomaticStoreAppArchiving {
-    reg import "AtlasDesktop\3. General Configuration\Store App Archiving\Disable Store App Archiving (default).reg"
+    & "$windir\AtlasDesktop\3. General Configuration\Store App Archiving\Disable Store App Archiving (default).cmd" /justcontext
 }
 
 # Function to disable dynamic lighting
@@ -663,7 +686,7 @@ function Disable-UnnecessaryTouchKeyboardSettings {
 # Function to disable touch visual feedback
 function Disable-TouchVisualFeedback {
     reg add "HKCU\Control Panel\Cursors" /v "GestureVisualization" /t REG_DWORD /d 0 /f
-    reg add "HKCU\Control Panel\Cursors" /v "ContactVisualization" /t REG_DWORD /d 0 
+    reg add "HKCU\Control Panel\Cursors" /v "ContactVisualization" /t REG_DWORD /d 0 /f
 }
 
 # Function to disable Windows 11 Settings banner
@@ -674,7 +697,7 @@ function Disable-Windows11SettingsBanner {
 # Function to disable Windows Feedback
 function Disable-WindowsFeedback {
     reg add "HKCU\SOFTWARE\Microsoft\Siuf\Rules" /v "NumberOfSIUFInPeriod" /t REG_DWORD /d 0 /f
-    Remove-ItemProperty -Path 'HKCU\SOFTWARE\Microsoft\Siuf\Rules' -Name 'PeriodInNanoSeconds' -ErrorAction SilentlyContinue
+    reg delete 'HKCU\SOFTWARE\Microsoft\Siuf\Rules' /v 'PeriodInNanoSeconds' /f
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v "DoNotShowFeedbackNotifications" /t REG_DWORD /d 1 /f
 }
 
@@ -734,17 +757,25 @@ function Set-VisualEffects {
 }
 # Function to invoke all optimizations sequentially
 function Invoke-AllQolOptimizations {
+    Write-Host "Running QOL optimizations"
     Set-AtlasTheme
     Set-TooltipColorBlue
     Disable-ThemeChangesToPersonalizedFeatures
+    Write-Host "disable read and scan"
     Disable-ReadAndScan
+    Write-Host "annoying features and shortcut"
     Disable-AnnoyingFeaturesAndShortcuts
+    Write-Host "accessibility tool shortcut"
     Disable-AccessibilityToolShortcut
+    Write-Host "disable ease of access sounds"
     Disable-EaseOfAccessSounds
-
+    Write-Host "merge as ti in context menu"
     Add-MergeAsTrustedInstallerToContextMenu
+    Write-Host "Add batch script to new context menu"
     Add-BatchScriptToNewContextMenu
+    Write-Host "Add ps script to new context menu"
     Add-PowerShellScriptToNewContextMenu
+    Write-Host "Add registry entries script to new context menu"
     Add-RegistryEntriesToNewContextMenu
     Remove-CastToDeviceFromContextMenu
     Remove-ExtractFromContextMenu
@@ -799,7 +830,6 @@ function Invoke-AllQolOptimizations {
     Set-CrashControl
     Disable-WPBTExecution
     Show-CommandPromptOnWinX
-    Set-TaskbarPins
     Disable-CloudOptimizedContentOnTaskbar
     Disable-MicrosoftCopilot
     Disable-ShowDesktopPeek

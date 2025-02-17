@@ -107,17 +107,30 @@ function Set-SearchIndexingPowerMode {
 
 # Executes all optimizations in sequence
 function Invoke-AllPerformanceOptimizations {
+    Write-Host "Running performance optimisations"
+    Write-Host "disable paging settings"
     Disable-PagingSettings
+    Write-Host "disabling service host splitting"
     Disable-ServiceHostSplitting
+    Write-Host "Optimizing NTFS"
     Optimize-NTFS
+    Write-Host "Optimizing Foreground Apps"
     Optimize-ForegroundApps
+    Write-Host "set automatic maintenance"
     Set-AutomaticMaintenance
+    Write-Host "setting mmcss"
     Set-MMCSS
+    Write-Host "disabling auto folder discovery"
     Disable-AutoFolderDiscovery
+    Write-Host "disabling background apps"
     Disable-BackgroundApps
+    Write-Host "disabling fth"
     Disable-FTH
+    Write-Host "disabling game bar"
     Disable-GameBar
+    Write-Host "disabling sleep study"
     Disable-SleepStudy
+    Write-Host "setting search indexing power mode"
     Set-SearchIndexingPowerMode
 }
 

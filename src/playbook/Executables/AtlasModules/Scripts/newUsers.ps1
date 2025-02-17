@@ -64,5 +64,5 @@ Invoke-AllSecurityTweaks
 Invoke-AllSystemScripts
 
 # Leave
-Start-Sleep 5
-logoff
+#Start-Sleep 5
+#logoff

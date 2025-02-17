@@ -27,7 +27,7 @@ function Block-AnonymousEnumeration {
 
 # Sets Atlas' optimized network settings
 function Set-AtlasNetworkSettings {
-    $scriptPath = "AtlasDesktop\8. Troubleshooting\Network\Reset Network to Atlas Default.cmd"
+    $scriptPath = "C:\Windows\AtlasDesktop\8. Troubleshooting\Network\Reset Network to Atlas Default.cmd"
 
     Start-Process -FilePath $scriptPath -ArgumentList "/silent" -NoNewWindow -Wait
 }
@@ -41,10 +41,15 @@ function Disable-LLMNR {
 }
 
 function Invoke-AllNetworkingOptimizations {
+    Write-Host "Disalbing smb bandwith throttling"
     Disable-SMBBandwidthThrottling
+    Write-Host "Block anonymous access"
     Block-AnonymousAccess
+    Write-Host "block annonymous enumeration"
     Block-AnonymousEnumeration
+    Write-Host "setting atlas default network setttings"
     Set-AtlasNetworkSettings
+    Write-Host "disabling llmnr"
     Disable-LLMNR
 }
 

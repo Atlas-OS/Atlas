@@ -1,4 +1,5 @@
 function Set-ContentDelivery{
+    Write-Host "Setting Content Delivery"
     $key = "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager";
     $data = "0"
     $values = @(
@@ -30,6 +31,7 @@ function Set-ContentDelivery{
 }
 
 function Set-StorageSense{
+    Write-Host "Setting Storage Sense"
     $key = "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy"
     $values = @(
         "32",
@@ -50,18 +52,20 @@ function Set-StorageSense{
 }
 
 function Set-DisableStorageSense {
-    $arg = "/Online /Set-ReservedStorageState /State:Disabled"
-    dism.exe $arg
+    Write-Host "Disalbing Storage Sense"
+    dism.exe /Online /Set-ReservedStorageState /State:Disabled
 }
 
 function Set-DisabledScheduledTasks {
+    Write-Host "Disabling ScheduledTasks"
     Disable-ScheduledTask -TaskPath "\Microsoft\Windows\Application Experience\" -TaskName "PcaPatchDbTask"
     Disable-ScheduledTask -TaskPath "\Microsoft\Windows\AppxDeploymentClient\" -TaskName "UCPD velocity" -ErrorAction SilentlyContinue
     Disable-ScheduledTask -TaskPath "\Microsoft\Windows\Flighting\FeatureConfig\" -TaskName "UsageDataReporting" -ErrorAction SilentlyContinue
-    reg delete "HKLM\System\CurrentControlSet\Control\Ubpm" /v "CriticalMaintenance_UsageDataReporting"
+    reg delete "HKLM\System\CurrentControlSet\Control\Ubpm" /v "CriticalMaintenance_UsageDataReporting" /f
 }
 
 function Invoke-AllDebloatOptimizations {
+    Write-Host "Running debloat optimizations"
     Set-ContentDelivery
     Set-StorageSense
     Set-DisableStorageSense

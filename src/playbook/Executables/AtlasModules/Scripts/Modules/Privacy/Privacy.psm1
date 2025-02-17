@@ -202,6 +202,7 @@ function Set-SearchPrivacy {
 
 # Executes all privacy-related optimizations
 function Invoke-AllPrivacyOptimizations {
+    Write-Host "Running privacy optimizations"
     Disable-AdvertisingID
     Disable-SyncProviderNotifications
     Disable-NvidiaTelemetry

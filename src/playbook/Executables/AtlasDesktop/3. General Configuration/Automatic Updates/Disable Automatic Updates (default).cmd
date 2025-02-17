@@ -21,6 +21,8 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v "AUOption
 :: Breaks 'Receive updates for other Microsoft products'
 :: reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v "NoAutoUpdate" /t REG_DWORD /d 1 /f > nul
 
+if "%~1" == "/justcontext" exit /b
+
 echo.
 echo Automatic Updates have been disabled.
 echo Press any key to exit...

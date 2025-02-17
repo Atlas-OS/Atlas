@@ -117,7 +117,7 @@ try {
 
 	$tempPbConfPath = Separator "$playbookTemp\playbook.conf"
 	if ($patterns.Count -gt 0) {
-		Get-Content "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') } | Set-Content $tempPbConfPath
+		Get-Content -Encoding "utf8" "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') } | Set-Content -Encoding "utf8" $tempPbConfPath
 	}
 
 	$customYmlPath = Separator "Configuration\custom.yml"

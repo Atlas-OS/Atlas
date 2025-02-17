@@ -13,11 +13,6 @@ function Add-MusicVideosToHome {
     }
 }
 
-# Adds newUsers.ps1 script to RunOnce
-function Add-NewUsersScript {
-    reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "RunScript" /t REG_SZ /d "powershell -EP Bypass -NoP & `"$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\newUsers.ps1`"" /f
-}
-
 # Configure OEM Information (AtlasOS branding)
 function Set-OEMInformation {
     $version = "AtlasVersionUndefined"
@@ -41,11 +36,6 @@ function Set-TimeServers {
     w32tm /resync
 }
 
-# Create Shortcuts (Executes SHORTCUTS.ps1)
-function New-Shortcuts {
-    .\SHORTCUTS.ps1
-}
-
 # Delete Windows-version specific tweaks
 function Remove-VersionSpecificTweaks {
     if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
@@ -54,14 +44,9 @@ function Remove-VersionSpecificTweaks {
         Remove-Item -Path "$env:windir\AtlasDesktop\4. Interface Tweaks\Old Flyouts" -Force -ErrorAction SilentlyContinue
         Remove-Item -Path "$env:windir\AtlasDesktop\4. Interface Tweaks\Alt-Tab" -Force -ErrorAction SilentlyContinue
     } else {
-        Remove-Item -Path "$env:windir\AtlasDesktop\3. General Configuration\Background Apps" -Force -ErrorAction SilentlyContinue
-        Remove-Item -Path "$env:windir\AtlasModules\Tools\TimerResolution.exe" -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$env:windir\AtlasDesktop\3. General Configuration\Background Apps" -Force -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$env:windir\AtlasModules\Tools\TimerResolution.exe" -Force -Force -ErrorAction SilentlyContinue
     }
-}
-
-# Enable Notifications after disabling them earlier
-function Enable-Notifications {
-    Start-Process -FilePath "ENABLENOTIFS.cmd" -NoNewWindow -Wait
 }
 
 # Make MeasureSleep.exe run as admin
@@ -79,14 +64,17 @@ function Reset-PerformanceCounters {
 }
 
 function Invoke-AllMiscSystemUtilities {
+    Write-Host "Add-MusicVideosToHome"
     Add-MusicVideosToHome
-    Add-NewUsersScript
+    Write-Host "Set oem information"
     Set-OEMInformation
+    Write-Host "set time servers"
     Set-TimeServers
-    New-Shortcuts
+    Write-Host "removing version specific tweaks"
     Remove-VersionSpecificTweaks
-    Enable-Notifications
+    Write-Host "enable measure sleep admin"
     Enable-MeasureSleepAdmin
+    Write-Host "Resetting performance counter"
     Reset-PerformanceCounters
 }
 

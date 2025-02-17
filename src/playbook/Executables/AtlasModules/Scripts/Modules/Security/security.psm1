@@ -14,6 +14,7 @@ function Disable-RemoteAssistance {
 }
 
 function Invoke-AllSecurityTweaks {
+    Write-Host "Running security tweaks"
     Block-AnonymousSAMEnumeration
     Disable-RemoteAssistance
 }
