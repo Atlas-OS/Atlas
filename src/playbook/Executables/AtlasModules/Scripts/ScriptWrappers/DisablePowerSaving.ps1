@@ -22,7 +22,7 @@ WARNING: You are on a laptop, disabling power saving will cause faster battery d
 This script will disable many power saving features in Windows for reduced latency and increased performance.
 Ensure that you have adequate cooling.`n
 "@ -ForegroundColor Cyan
-    Pause
+    #Pause
 }
 
 Write-Host "`nAdding power scheme..." -ForegroundColor Yellow
@@ -128,5 +128,7 @@ $powerKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling"
 if (!(Test-Path $powerKey)) { New-Item $powerKey | Out-Null }
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" -Name "PowerThrottlingOff" -Value 1 -PropertyType DWORD -Force | Out-Null
 
-if ($Silent) { exit }
-Read-Pause "`nCompleted.`nPress Enter to exit"
+#if ($Silent) { exit }
+#Read-Pause "`nCompleted.`nPress Enter to exit"
+
+exit

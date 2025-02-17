@@ -30,13 +30,13 @@ actions:
 
   - !writeStatus: {status: 'Disabling Location'}
   - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd" /silent && E'
+    command: '"AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd" /silent'
     exeDir: true
     wait: true
 
   - !writeStatus: {status: 'Configuring Indexing'}
   - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd" /silent && E'
+    command: '"AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd" /silent'
     exeDir: true
     wait: true
 
