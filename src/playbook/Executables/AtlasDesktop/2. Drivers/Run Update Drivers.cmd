@@ -1,5 +1,5 @@
 @echo off
-set "script=C:\Users\rad\Downloads\UpdateDrivers.ps1"
+set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\UpdateDrivers.ps1"
 
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
