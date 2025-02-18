@@ -1,20 +1,25 @@
 @echo off
 set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\UpdateDrivers.ps1"
 
+set "___args="%~f0" %*"
+fltmc > nul 2>&1 || (
+    echo Administrator privileges are required.
+    powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
+        echo You must run this script as admin.
+        if "%*"=="" pause
+        exit /b 1
+    )
+    exit /b
+)
+
 if not exist "%script%" (
     echo Script not found: "%script%"
     pause
     exit /b 1
 )
 
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-    call RunAsTI.cmd "%~f0" %*
-    exit /b
-)
+powershell -ExecutionPolicy Bypass -NoProfile -File "%script%"
 
-@REM The "echo Y" is to bypass the NuGet installation user prompt.
-@REM If there's a better way, feel free to PR.
-echo Y | powershell -ExecutionPolicy Bypass -NoProfile -File "%script%"
-
-pause
+echo.
+pause > null
 exit /b 0
