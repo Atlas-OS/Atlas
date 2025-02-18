@@ -138,7 +138,7 @@ function Remove-EditWithPaint3DFromContextMenu {
 
 # Function to remove printing from context menus
 function Remove-PrintingFromContextMenus {
-   & ".\AtlasDesktop\6. Advanced Configuration\Services\Printing\Disable Printing.cmd" /justcontext
+   & "$windir\AtlasDesktop\6. Advanced Configuration\Services\Printing\Disable Printing.cmd" /justcontext
 }
 
 # Function to remove 'Share' from context menu
