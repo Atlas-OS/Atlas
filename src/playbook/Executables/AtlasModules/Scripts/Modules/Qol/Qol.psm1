@@ -591,7 +591,7 @@ function Set-StartMenu {
             Write-Error "Couldn't find AppData value for $sid!"
         } else {
             Write-Output "Copying default layout XML"
-            Copy-Item -Path "Layout.xml" -Destination "$appdata\Microsoft\Windows\Shell\LayoutModification.xml" -Force
+            Copy-Item -Path "$windir\AtlasModules\Other\Layout.xml" -Destination "$appdata\Microsoft\Windows\Shell\LayoutModification.xml" -Force
             
             if (!$default) {
                 Write-Output "Clearing Start Menu pinned items"

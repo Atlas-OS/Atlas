@@ -19,6 +19,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 
 reg add "HKLM\Software\Policies\Microsoft\Windows\Appx" /v "AllowAutomaticAppArchiving" /t REG_DWORD /d 0 /f > nul
 
+if "%~1" == "/justcontext" exit /b
+
 echo.
 echo App Store Archiving has been disabled.
 echo Press any key to exit...
