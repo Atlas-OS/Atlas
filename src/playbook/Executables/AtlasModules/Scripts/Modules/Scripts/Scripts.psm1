@@ -217,7 +217,7 @@ function Set-PowerSettings {
     )
 
     if ($DisablePowerSaving) {
-        Start-Process -FilePath "AtlasDesktop\3. General Configuration\Power-saving\Disable Power-saving.cmd" -ArgumentList "-Silent" -NoNewWindow -Wait
+        Start-Process -FilePath "AtlasDesktop\3. General Configuration\Power-saving\Disable Power-saving.cmd" -ArgumentList "/silent" -NoNewWindow -Wait
     }
 
     if ($DisableHibernation) {

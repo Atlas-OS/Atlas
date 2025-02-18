@@ -44,8 +44,8 @@ function Remove-VersionSpecificTweaks {
         Remove-Item -Path "$env:windir\AtlasDesktop\4. Interface Tweaks\Old Flyouts" -Force -ErrorAction SilentlyContinue
         Remove-Item -Path "$env:windir\AtlasDesktop\4. Interface Tweaks\Alt-Tab" -Force -ErrorAction SilentlyContinue
     } else {
-        Remove-Item -Path "$env:windir\AtlasDesktop\3. General Configuration\Background Apps" -Force -Force -ErrorAction SilentlyContinue
-        Remove-Item -Path "$env:windir\AtlasModules\Tools\TimerResolution.exe" -Force -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$env:windir\AtlasDesktop\3. General Configuration\Background Apps" -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$env:windir\AtlasModules\Tools\TimerResolution.exe" -Force -ErrorAction SilentlyContinue
     }
 }
 
