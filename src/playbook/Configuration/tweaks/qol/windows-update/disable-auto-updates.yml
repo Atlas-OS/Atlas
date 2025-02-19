@@ -4,9 +4,10 @@ description: Disables Windows Update from automatically updating Windows for QoL
 actions:
     # Disable auto-updates
   - !cmd:
-    command: 'reg import "AtlasDesktop\3. General Configuration\Automatic Updates\Disable Automatic Updates (default).reg"'
+    command: '"AtlasDesktop\3. General Configuration\Automatic Updates\Disable Automatic Updates (default).cmd" /silent'
     exeDir: true
     wait: true
+    runas: currentUserElevated
     option: 'auto-updates-disable'
 
     # Prevent DevHome & Outlook from re-installing

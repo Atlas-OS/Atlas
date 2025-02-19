@@ -22,29 +22,46 @@ Push-Location $tempDir
 
 # Brave
 if ($Brave) {
-	Write-Output "Downloading Brave..."
-	& curl.exe -LSs "https://laptop-updates.brave.com/latest/winx64" -o "$tempDir\BraveSetup.exe" $timeouts
-	if (!$?) {
-		Write-Error "Downloading Brave failed."
-		exit 1
-	}
+    Write-Output "Downloading Brave..."
+    & curl.exe -LSs "https://laptop-updates.brave.com/latest/winx64" -o "$tempDir\BraveSetup.exe" $timeouts
+    if (!$?) {
+        Write-Error "Downloading Brave failed."
+        exit 1
+    }
 
-	Write-Output "Installing Brave..."
-	Start-Process -FilePath "$tempDir\BraveSetup.exe" -WindowStyle Hidden -ArgumentList '/silent /install'
+    Write-Output "Installing Brave..."
+    Start-Process -FilePath "$tempDir\BraveSetup.exe" -WindowStyle Hidden -ArgumentList '/silent /install'
 
-	do {
-		$processesFound = Get-Process | Where-Object { "BraveSetup" -contains $_.Name } | Select-Object -ExpandProperty Name
-		if ($processesFound) {
-			Write-Output "Still running BraveSetup."
-			Start-Sleep -Seconds 2
-		} else {
-			Remove-TempDirectory
-		}
-	} until (!$processesFound)
+    do {
+        $processesFound = Get-Process | Where-Object { "BraveSetup" -contains $_.Name } | Select-Object -ExpandProperty Name
+        if ($processesFound) {
+            Write-Output "Still running BraveSetup."
+            Start-Sleep -Seconds 2
+        } else {
+            Remove-TempDirectory
+        }
+    } until (!$processesFound)
 
-	Stop-Process -Name "brave" -Force -EA 0
-	exit
+    Stop-Process -Name "brave" -Force -EA 0
+
+    # ------------------------------------------------------------------------- #
+    # Apply Brave registry keys after installation
+	# Credit: brave-debullshitinator by MulesGaming
+	# Github: https://github.com/MulesGaming/brave-debullshitinator/
+    # ------------------------------------------------------------------------- #
+    Write-Output "Applying Brave registry keys..."
+    New-Item -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Force | Out-Null
+    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "BraveRewardsDisabled" -Value 1 -Type DWord
+    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "BraveWalletDisabled" -Value 1 -Type DWord
+    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "BraveVPNDisabled" -Value 1 -Type DWord
+    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "BraveAIChatEnabled" -Value 0 -Type DWord
+    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "PasswordManagerEnabled" -Value 0 -Type DWord
+    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "TorDisabled" -Value 1 -Type DWord
+    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "DnsOverHttpsMode" -Value "automatic" -Type String
+
+    exit
 }
+
 
 # Firefox
 if ($Firefox) {

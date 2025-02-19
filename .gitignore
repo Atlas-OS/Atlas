@@ -3,3 +3,6 @@
 
 # Playbooks
 *.apbx
+*.apbx.tmp
+src/playbook/pester-tests
+src/dependencies/local-build.ps1

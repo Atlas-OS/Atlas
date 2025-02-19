@@ -1,15 +1,26 @@
 @echo off
+:: Change to match the setting name (e.g., Sleep, Indexing, etc.)
+set "settingName=StaticIp"
+:: Change to 0 (Disabled) or 1 (Enabled/Minimal) etc
+set "stateValue=1"
+set "scriptPath=%~f0"
 
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
-	echo Administrator privileges are required.
-	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
-		echo You must run this script as admin.
-		if "%*"=="" pause
-		exit /b 1
-	)
-	exit /b
+    echo Administrator privileges are required.
+    powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
+        echo You must run this script as admin.
+        if "%*"=="" pause
+        exit /b 1
+    )
+    exit /b
 )
+
+:: Update Registry (State and Path)
+reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
+
+if not "%~1"=="/silent" call "%windir%\AtlasModules\Scripts\serviceWarning.cmd" %*
 
 ping -n 1 -4 www.example.com > nul 2>&1 || (
 	echo You must have an internet connection to use this script.
@@ -63,6 +74,7 @@ netsh int ipv4 add dns name="%DeviceName%" %DNS2% index=2 > nul 2>&1
 echo Completed.
 pause
 exit /b
+if "%~1"=="/silent" exit /b
 
 :isValidIP
 :: Credit to Phlegm for error checking

@@ -1,0 +1,8 @@
+---
+title: Defaults
+description: Run default AtlasFolder scripts
+actions:
+  - !writeStatus: {status: 'Applying default Atlas Folder settings'}
+  - !powerShell:
+    command: '.\DEFAULT.ps1'
+    wait: true

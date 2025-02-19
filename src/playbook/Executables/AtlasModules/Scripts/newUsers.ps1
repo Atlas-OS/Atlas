@@ -28,6 +28,7 @@ if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
 # Set lockscreen wallpaper
 Set-LockscreenImage
 
+
 # Disable 'Network' in navigation pane
 reg import "$atlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg" *>$null
 
@@ -51,6 +52,16 @@ foreach ($path in @(
 
 # Set taskbar search box to an icon
 Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 1
+
+#Set all the tweaks from the playbook
+Invoke-AllDebloatOptimizations
+Invoke-AllMiscSystemUtilities
+Invoke-AllNetworkingOptimizations
+Invoke-AllPerformanceOptimizations
+Invoke-AllPrivacyOptimizations
+Invoke-AllQolOptimizations
+Invoke-AllSecurityTweaks
+Invoke-AllSystemScripts
 
 # Leave
 Start-Sleep 5
