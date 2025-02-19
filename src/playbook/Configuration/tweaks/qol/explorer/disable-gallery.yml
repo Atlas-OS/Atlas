@@ -13,3 +13,4 @@ actions:
     command: '"AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd" /silent'
     exeDir: true
     wait: true
+    runas: currentUserElevated

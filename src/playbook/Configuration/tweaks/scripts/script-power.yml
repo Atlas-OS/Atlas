@@ -8,6 +8,7 @@ actions:
     exeDir: true
     wait: true
     weight: 20
+    runas: currentUserElevated
     option: 'disable-power-saving'
 
     # Disable Fast Startup
@@ -24,6 +25,7 @@ actions:
     exeDir: true
     wait: true
     weight: 20
+    runas: currentUserElevated
     option: 'disable-hibernation'
 
     # Set 'Balanced' power scheme if keeping power saving

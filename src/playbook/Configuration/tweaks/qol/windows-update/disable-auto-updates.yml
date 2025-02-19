@@ -7,6 +7,7 @@ actions:
     command: '"AtlasDesktop\3. General Configuration\Automatic Updates\Disable Automatic Updates (default).cmd" /silent'
     exeDir: true
     wait: true
+    runas: currentUserElevated
     option: 'auto-updates-disable'
 
     # Prevent DevHome & Outlook from re-installing

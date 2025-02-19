@@ -6,3 +6,4 @@ actions:
     command: '"AtlasDesktop\3. General Configuration\Store App Archiving\Disable Store App Archiving (default).cmd" /silent'
     exeDir: true
     wait: true
+    runas: currentUserElevated

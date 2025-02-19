@@ -12,3 +12,4 @@ actions:
     command: '"AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\Disable Automatic Folder Discovery (default).cmd" /silent'
     exeDir: true
     wait: true
+    runas: currentUserElevated

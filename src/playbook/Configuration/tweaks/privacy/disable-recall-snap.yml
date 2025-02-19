@@ -7,3 +7,4 @@ actions:
     command: '"AtlasDesktop\3. General Configuration\AI Features\Recall\Disable Recall Support (default).cmd" /silent'
     exeDir: true
     wait: true
+    runas: currentUserElevated

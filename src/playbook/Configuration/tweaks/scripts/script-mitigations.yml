@@ -7,3 +7,4 @@ actions:
     command: '"AtlasDesktop\7. Security\Mitigations\Disable All Mitigations.cmd" /silent'
     exeDir: true
     wait: true
+    runas: currentUserElevated

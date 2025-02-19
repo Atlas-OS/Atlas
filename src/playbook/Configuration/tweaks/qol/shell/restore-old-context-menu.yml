@@ -13,3 +13,4 @@ actions:
     command: '"AtlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd" /silent'
     exeDir: true
     wait: true
+    runas: currentUserElevated
