@@ -6,4 +6,3 @@ actions:
     command: '"AtlasDesktop\6. Advanced Configuration\Services\Printing\Disable Printing.cmd" /justcontext'
     exeDir: true
     wait: true
-1
