@@ -3,6 +3,6 @@ title: Remove 'Extract' from Context Menu
 description: Removes 'Extract' from Context Menu
 actions:
   - !cmd:
-    command: 'reg import "AtlasDesktop\4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).reg"'
+    command: '"AtlasDesktop\4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).cmd" /silent'
     exeDir: true
     wait: true

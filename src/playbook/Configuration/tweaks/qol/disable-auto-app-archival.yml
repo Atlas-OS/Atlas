@@ -3,6 +3,6 @@ title: Disable Automatic Store App Archiving
 description: Disables automatic Store app archiving so that less commonly apps don't disappear and have to be redownloaded
 actions:
   - !cmd:
-    command: 'reg import "AtlasDesktop\3. General Configuration\Store App Archiving\Disable Store App Archiving (default).reg"'
+    command: '"AtlasDesktop\3. General Configuration\Store App Archiving\Disable Store App Archiving (default).cmd" /silent'
     exeDir: true
     wait: true
