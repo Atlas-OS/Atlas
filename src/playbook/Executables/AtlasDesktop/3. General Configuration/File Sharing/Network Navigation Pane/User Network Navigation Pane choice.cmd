@@ -19,6 +19,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 
 
 reg delete "HKCU\SOFTWARE\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /v "System.IsPinnedToNameSpaceTree" /f > nul 2>&1
+if "%~1"=="/silent" exit /b
 
 echo Finished, Network Navigation Pane is now enabled.
 pause > nul

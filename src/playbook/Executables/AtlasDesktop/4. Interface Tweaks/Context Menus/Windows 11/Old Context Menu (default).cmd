@@ -25,6 +25,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /d "" /f > nul
 
 if "%~1" == "/justcontext" exit /b
+if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
 echo Press any key to exit...

@@ -29,6 +29,7 @@ call setSvc.cmd fdPHost 4
 call setSvc.cmd FDResPub 4
 call setSvc.cmd lmhosts 4
 call setSvc.cmd SSDPSRV 4
+if "%~1"=="/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause

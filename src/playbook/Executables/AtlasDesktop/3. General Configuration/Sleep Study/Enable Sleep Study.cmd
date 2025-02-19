@@ -26,6 +26,7 @@ for %%a in (
 )
 
 schtasks /change /tn "\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem" /enable > nul
+if "%~1"=="/silent" exit /b
 
 echo.
 echo Sleep Study has been enabled.

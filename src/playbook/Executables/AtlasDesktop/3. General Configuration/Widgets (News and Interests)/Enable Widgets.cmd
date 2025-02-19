@@ -32,6 +32,7 @@ echo Enabling News and Interests (called Widgets in Windows 11)...
 
 timeout /t 3 /nobreak > nul
 start ms-settings:taskbar
+if "%~1"=="/silent" exit /b
 
 echo]
 echo Finished, you should be able to toggle News and Interests or Widgets in Settings.

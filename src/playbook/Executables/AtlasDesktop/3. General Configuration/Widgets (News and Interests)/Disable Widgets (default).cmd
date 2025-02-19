@@ -26,6 +26,7 @@ echo Disabling News and Interests (called Widgets in Windows 11)...
     taskkill /f /im explorer.exe
     start explorer.exe
 ) > nul 2>&1
+if "%~1"=="/silent" exit /b
 
 echo]
 echo Finished, changes have been applied.

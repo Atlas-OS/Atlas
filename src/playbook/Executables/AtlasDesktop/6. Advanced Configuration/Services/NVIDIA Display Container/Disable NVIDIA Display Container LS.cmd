@@ -44,6 +44,7 @@ pause
 
 call setSvc.cmd NVDisplay.ContainerLocalSystem 4
 sc stop NVDisplay.ContainerLocalSystem > nul 2>&1
+if "%~1"=="/silent" exit /b
 
 echo Finished, changes have been applied.
 pause

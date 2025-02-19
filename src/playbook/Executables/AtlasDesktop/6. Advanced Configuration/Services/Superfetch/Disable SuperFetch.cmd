@@ -41,6 +41,7 @@ reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA
 
 :: Disable SysMain (Prefetch, Memory Management features)
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f > nul 
+if "%~1"=="/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause

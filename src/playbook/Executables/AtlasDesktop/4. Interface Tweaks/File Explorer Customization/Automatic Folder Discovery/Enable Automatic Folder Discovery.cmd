@@ -23,6 +23,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 :: End of state and path update
 
 reg add "HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell" /t REG_DWORD /v FolderType /d "0" /f > nul
+if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
 echo Press any key to exit...

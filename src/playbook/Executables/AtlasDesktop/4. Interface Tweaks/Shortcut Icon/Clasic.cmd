@@ -23,6 +23,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 :: End of state and path update
 
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Icons" /v 29 /d "C:\\Windows\\AtlasModules\\Other\\Classic.ico,0" /f > nul
+if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
 echo Press any key to exit...

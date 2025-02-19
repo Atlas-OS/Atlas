@@ -23,6 +23,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 :: End of state and path update
 
 reg delete "HKLM\Software\Policies\Microsoft\Windows\EdgeUI" /v "AllowEdgeSwipe" /f > nul
+if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
 echo Press any key to exit...

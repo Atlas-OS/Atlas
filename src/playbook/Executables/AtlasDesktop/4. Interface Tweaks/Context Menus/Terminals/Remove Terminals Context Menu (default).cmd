@@ -23,6 +23,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 :: End of state and path update
 
 reg import "%windir%\AtlasModules\Scripts\Registry\Terminals\disabled.reg" > nul
+if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
 echo Press any key to exit...

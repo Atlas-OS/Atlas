@@ -47,6 +47,7 @@ reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\c
 
 taskkill /f /im explorer.exe > nul 2>&1
 start explorer.exe
+if "%~1"=="/silent" exit /b
 
 echo]
 echo Finished, changes have been applied.

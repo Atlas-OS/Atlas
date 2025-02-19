@@ -74,6 +74,7 @@ netsh int ipv4 add dns name="%DeviceName%" %DNS2% index=2 > nul 2>&1
 echo Completed.
 pause
 exit /b
+if "%~1"=="/silent" exit /b
 
 :isValidIP
 :: Credit to Phlegm for error checking

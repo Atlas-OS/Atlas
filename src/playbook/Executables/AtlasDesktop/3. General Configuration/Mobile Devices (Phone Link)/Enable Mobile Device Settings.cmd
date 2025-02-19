@@ -23,6 +23,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpda
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide mobile-devices
 
 start ms-settings:mobile-devices
+if "%~1"=="/silent" exit /b
 
 echo.
 echo Phone Link has been enabled. You can now sync your phone.

@@ -20,6 +20,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v "AUOptions" /f > nul 2>&1
 :: Breaks 'Receive updates for other Microsoft products'
 :: reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v "NoAutoUpdate" /f > nul 2>&1
+if "%~1"=="/silent" exit /b
 
 echo.
 echo Automatic Updates have been enabled.

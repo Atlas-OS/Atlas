@@ -35,6 +35,7 @@ reg add "HKCR\exefile\Shell\Priority\shell\005flyout\command" /d "cmd /c start \
 reg add "HKCR\exefile\Shell\Priority\shell\006flyout" /d "Low" /f > nul
 reg add "HKCR\exefile\Shell\Priority\shell\006flyout\command" /d "cmd /c start \"\" /Low \"%1\"" /f > nul
 
+if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
 echo Press any key to exit...

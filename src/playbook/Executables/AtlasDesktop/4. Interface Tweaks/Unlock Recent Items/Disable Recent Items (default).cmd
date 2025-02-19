@@ -47,6 +47,7 @@ echo Disabling recent items...
 ) > nul 2>&1
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide privacy-general
+if "%~1"=="/silent" exit /b
 
 echo]
 echo Finished, features relating to app, document, etc tracking have been disabled.

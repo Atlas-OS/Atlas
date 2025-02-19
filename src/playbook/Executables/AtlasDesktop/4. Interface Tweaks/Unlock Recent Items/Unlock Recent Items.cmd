@@ -45,6 +45,7 @@ echo Unlocking recent items...
 ) > nul 2>&1
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide privacy-general
+if "%~1"=="/silent" exit /b
 
 echo]
 echo Finished, you should be able to configure features relating to app, document, etc tracking.

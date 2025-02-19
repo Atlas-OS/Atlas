@@ -26,6 +26,7 @@ if %errorlevel%==1 powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.Yo
 choice /c:yn /n /m "Would you like to disable Store auto-updates? [Y/N] "
 if %errorlevel%==1 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate" /v "AutoDownload" /t REG_DWORD /d "2" /f > nul
 if %errorlevel%==2 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate" /v "AutoDownload" /t REG_DWORD /d "4" /f > nul
+if "%~1"=="/silent" exit /b
 
 echo.
 echo Phone Link has been disabled.

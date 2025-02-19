@@ -25,6 +25,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
     reg delete "HKEY_CLASSES_ROOT\LibraryFolder\background\shellex\ContextMenuHandlers\Sharing" /f
     reg delete "HKEY_CLASSES_ROOT\UserLibraryFolder\shellex\ContextMenuHandlers\Sharing" /f
 ) > nul 2>&1
+if "%~1"=="/silent" exit /b
 
 echo Finished, 'Give Access To' menu is now disabled.
 pause > nul

@@ -37,6 +37,7 @@ call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide search-permissions 
     start explorer.exe
     powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.BingSearch* | Remove-AppxPackage -AllUsers"
 ) > nul 2>&1
+if "%~1"=="/silent" exit /b
 
 echo.
 echo Web Search has been disabled.

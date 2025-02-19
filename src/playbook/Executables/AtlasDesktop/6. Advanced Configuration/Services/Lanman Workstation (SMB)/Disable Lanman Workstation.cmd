@@ -31,6 +31,7 @@ call setSvc.cmd rdbss 3
 call setSvc.cmd srv2 4
 
 DISM /Online /Disable-Feature /FeatureName:"SmbDirect" /NoRestart
+if "%~1"=="/silent" exit /b
 
 echo]
 echo Finished, please reboot your device for changes to apply.

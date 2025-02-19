@@ -54,6 +54,7 @@ call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide search-permission
     taskkill /f /im SearchHost.exe
 	start explorer.exe
 ) > nul 2>&1
+if "%~1"=="/silent" exit /b
 
 echo]
 echo Finished, you should be able to use Web Search and Search Highlights.

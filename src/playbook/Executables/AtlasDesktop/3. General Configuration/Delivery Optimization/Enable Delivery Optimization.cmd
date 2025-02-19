@@ -18,6 +18,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateVal
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" /v "DODownloadMode" /f > nul 2>&1
+if "%~1"=="/silent" exit /b
 
 echo.
 echo Delivery Optimization has been enabled.

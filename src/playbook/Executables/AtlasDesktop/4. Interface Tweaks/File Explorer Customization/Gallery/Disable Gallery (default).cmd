@@ -25,6 +25,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 reg add "HKCU\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}" /t REG_DWORD /v System.IsPinnedToNameSpaceTree /d "0" /f > nul
 
 if "%~1" == "/justcontext" exit /b
+if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
 echo Press any key to exit...

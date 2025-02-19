@@ -35,6 +35,7 @@ if %errorlevel%==0 (call :app) else (reg add "HKCU\Software\Microsoft\Windows\Cu
 taskkill /f /im explorer.exe > nul 2>&1
 reg delete "HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /f > nul 2>&1
 start explorer.exe
+if "%~1"=="/silent" exit /b
 
 :finish
 echo]
