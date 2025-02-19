@@ -25,7 +25,6 @@ function Set-OEMInformation {
     Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Name 'Manufacturer' -Value "Atlas Team" -Force
     Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Name 'SupportURL' -Value "https://discord.atlasos.net" -Force
     Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Name 'SupportPhone' -Value "https://github.com/Atlas-OS/Atlas" -Force
-    Set-ItemProperty 'HKLM:\SOFTWARE\Atlas' -Name 'WinreFallbackFixed' -Value "1" -Force
 }
 
 # Configure Time Servers for better accuracy
