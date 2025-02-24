@@ -21,39 +21,9 @@ function Disable-OfficeTelemetry {
     reg add "HKCU\Software\Policies\Microsoft\office\16.0\common" /v "qmenable" /t REG_DWORD /d 0 /f
 }
 
-# Disables Windows Settings Sync
-function Disable-SettingsSync {
-    $path = "HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync"
-    reg add $path /v "DisableSettingSync" /t REG_DWORD /d 2 /f
-    reg add $path /v "DisableSettingSyncUserOverride" /t REG_DWORD /d 1 /f
-    reg add $path /v "DisableSyncOnPaidNetwork" /t REG_DWORD /d 1 /f
-    reg add $path /v "DisableWindowsSettingSync" /t REG_DWORD /d 2 /f
-}
-
 # Disables Suggested Ways to Finish Setting Up Your Device
 function Disable-DeviceSetupSuggestions {
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\UserProfileEngagement" /v "ScoobeSystemSettingEnabled" /t REG_DWORD /d 0 /f
-}
-
-# Disallows Message Service Cloud Sync
-function Disable-MessageServiceSync {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Messaging" /v "AllowMessageSync" /t REG_DWORD /d 0 /f
-}
-
-# Disables Key Management System Telemetry
-function Disable-KMSTelemetry {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" /v "NoGenTicket" /t REG_DWORD /d 1 /f
-}
-
-# Disables Customer Experience Improvement Program
-function Disable-CustomerExperienceProgram {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\AppV\CEIP" /v "CEIPEnable" /t REG_DWORD /d 0 /f
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\SQMClient\Windows" /v "CEIPEnable" /t REG_DWORD /d 0 /f
-}
-
-# Disables Diagnostic Tracing
-function Disable-DiagnosticTracing {
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Diagnostics\Performance" /v "DisableDiagnosticTracing" /t REG_DWORD /d 1 /f
 }
 
 # Disables .NET CLI Telemetry
@@ -67,24 +37,9 @@ function Disable-InputTelemetry {
     reg add "HKCU\SOFTWARE\Microsoft\InputPersonalization" /v "RestrictImplicitTextCollection" /t REG_DWORD /d 1 /f
 }
 
-# Disables Windows Telemetry & Data Collection
-function Disable-Telemetry {
-    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v "AllowTelemetry" /t REG_DWORD /d 0 /f
-}
-
-# Configures App Permissions for privacy
-function Set-AppPermissions {
-    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" /v "Value" /t REG_SZ /d "Deny" /f
-}
-
 # Configures Windows Media Player for privacy
 function Set-WindowsMediaPlayer {
     reg add "HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences" /v "AcceptedPrivacyStatement" /t REG_DWORD /d 1 /f
-}
-
-# Disables Activity Feed in Task View
-function Disable-ActivityFeed {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "EnableActivityFeed" /t REG_DWORD /d 0 /f
 }
 
 # Disables App Launch Tracking
@@ -92,54 +47,14 @@ function Disable-AppLaunchTracking {
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Start_TrackProgs" /t REG_DWORD /d 0 /f
 }
 
-# Disables Experimentation
-function Disable-Experimentation {
-    reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\System\AllowExperimentation" /v "Value" /t REG_DWORD /d 0 /f
-}
-
-# Disables Windows Lockscreen Camera
-function Disable-LockscreenCamera {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v "NoLockScreenCamera" /t REG_DWORD /d 1 /f
-}
-
 # Disables Online Speech Recognition
 function Disable-OnlineSpeechRecognition {
     reg add "HKCU\SOFTWARE\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy" /v "HasAccepted" /t REG_DWORD /d 0 /f
 }
 
-# Disables Windows Error Reporting
-function Disable-ErrorReporting {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting" /v "Disabled" /t REG_DWORD /d 1 /f
-}
-
-# Disables Device Health Attestation Monitoring and Reporting
-function Disable-DeviceHealthAttestation {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\DeviceHealthAttestationService" /v "EnableDeviceHealthAttestationService" /t REG_DWORD /d 0 /f
-}
-
-# Disables Performance Tracking (responsiveness events)
-function Disable-PerformanceTrack {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WDI\{9c5a40da-b965-4fc3-8781-88dd50a6299d}" /v "ScenarioExecutionEnabled" /t REG_DWORD /d 0 /f
-}
-
-# Disables the OOBE Privacy Experience
-function Disable-OOBEPrivacyExperience {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OOBE" /v "DisablePrivacyExperience" /t REG_DWORD /d 1 /f
-}
-
 # Disables Recall Snapshots (24H2+)
 function Disable-RecallSnapshots {
     Start-Process -FilePath "reg" -ArgumentList "import `"AtlasDesktop\3. General Configuration\AI Features\Recall\Disable Recall Support (default).reg`"" -NoNewWindow -Wait
-}
-
-# Disables Resultant Set of Policy (RSoP) Logging
-function Disable-RSoPLogging {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "RSoPLogging" /t REG_DWORD /d 0 /f
-}
-
-# Disables Automatic Updates of Speech Data
-function Disable-SpeechDataUpdates {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Speech" /v "AllowSpeechModelUpdate" /t REG_DWORD /d 0 /f
 }
 
 # Prevents using Diagnostic Data for Tailored Experiences
@@ -185,16 +100,6 @@ function Disable-ErrorReporting {
     }
 }
 
-# Prevents Non-Local User Accounts
-function Disable-NonLocalAccounts {
-    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "NoConnectedUser" /t REG_DWORD /d 1 /f
-}
-
-# Disables User Activity Upload
-function Disable-UserActivityUpload {
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "UploadUserActivities" /t REG_DWORD /d 0 /f
-}
-
 # Configures Search Privacy
 function Set-SearchPrivacy {
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "BingSearchEnabled" /t REG_DWORD /d 0 /f
@@ -207,31 +112,15 @@ function Invoke-AllPrivacyOptimizations {
     Disable-SyncProviderNotifications
     Disable-NvidiaTelemetry
     Disable-OfficeTelemetry
-    Disable-SettingsSync
     Disable-DeviceSetupSuggestions
-    Disable-MessageServiceSync
-    Disable-KMSTelemetry
-    Disable-CustomerExperienceProgram
-    Disable-DiagnosticTracing
     Disable-NETCLITelemetry
     Disable-InputTelemetry
-    Disable-Telemetry
-    Set-AppPermissions
     Set-WindowsMediaPlayer
-    Disable-ActivityFeed
     Disable-AppLaunchTracking
-    Disable-Experimentation
-    Disable-LockscreenCamera
-    Disable-OnlineSpeechRecognition
-    Disable-NonLocalAccounts
+    Disable-OnlineSpeechRecognition    
     Disable-UserActivityUpload
     Set-SearchPrivacy
-    Disable-DeviceHealthAttestation
-    Disable-PerformanceTrack
-    Disable-OOBEPrivacyExperience
     Disable-RecallSnapshots
-    Disable-RSoPLogging
-    Disable-SpeechDataUpdates
     Disable-TailoredExperiences
     Disable-FrequentApps
     Disable-LanguageListAccess

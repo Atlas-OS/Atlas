@@ -56,7 +56,6 @@ Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" 
 #Set all the tweaks from the playbook
 Invoke-AllDebloatOptimizations
 Invoke-AllMiscSystemUtilities
-Invoke-AllNetworkingOptimizations
 Invoke-AllPerformanceOptimizations
 Invoke-AllPrivacyOptimizations
 Invoke-AllQolOptimizations

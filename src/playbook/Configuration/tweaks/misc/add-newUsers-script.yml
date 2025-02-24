@@ -1,5 +1,5 @@
 ---
-title: Add newUsers.ps1 script
+title: Add newUsers.cmd script
 description: Adds the newUsers.ps1 script to RunOnce, which applies any tweaks that are dynamically generated on new user creation
 actions:
   - !registryValue:

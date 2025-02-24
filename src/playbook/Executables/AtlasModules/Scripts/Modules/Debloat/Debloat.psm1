@@ -61,7 +61,6 @@ function Set-DisabledScheduledTasks {
     Disable-ScheduledTask -TaskPath "\Microsoft\Windows\Application Experience\" -TaskName "PcaPatchDbTask"
     Disable-ScheduledTask -TaskPath "\Microsoft\Windows\AppxDeploymentClient\" -TaskName "UCPD velocity" -ErrorAction SilentlyContinue
     Disable-ScheduledTask -TaskPath "\Microsoft\Windows\Flighting\FeatureConfig\" -TaskName "UsageDataReporting" -ErrorAction SilentlyContinue
-    reg delete "HKLM\System\CurrentControlSet\Control\Ubpm" /v "CriticalMaintenance_UsageDataReporting" /f
 }
 
 function Invoke-AllDebloatOptimizations {
