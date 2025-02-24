@@ -25,7 +25,7 @@ if not exist "%script%" (
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
-powershell -EP Bypass -NoP -File "%script%" %*
+powershell -EP Bypass -NoP -File "%script%" %* -Silent
 
 if "%~1"=="/silent" exit /b
 

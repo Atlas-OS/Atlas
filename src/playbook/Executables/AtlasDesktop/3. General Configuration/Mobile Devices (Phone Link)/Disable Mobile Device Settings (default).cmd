@@ -20,13 +20,14 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "NoConnectedUser" /t REG_DWORD /d "1" /f > nul
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide mobile-devices
 
+if "%~1"=="/silent" exit /b
+
 choice /c:yn /n /m "Would you like to remove the 'Phone Link' app? [Y/N] "
 if %errorlevel%==1 powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.YourPhone* | Remove-AppxPackage -AllUsers"
 
 choice /c:yn /n /m "Would you like to disable Store auto-updates? [Y/N] "
 if %errorlevel%==1 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate" /v "AutoDownload" /t REG_DWORD /d "2" /f > nul
 if %errorlevel%==2 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate" /v "AutoDownload" /t REG_DWORD /d "4" /f > nul
-if "%~1"=="/silent" exit /b
 
 echo.
 echo Phone Link has been disabled.

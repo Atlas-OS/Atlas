@@ -1,4 +1,7 @@
 #Requires -RunAsAdministrator
+param (
+    [switch]$Silent
+)
 
 $windir = [Environment]::GetFolderPath('Windows')
 & "$windir\AtlasModules\initPowerShell.ps1"
@@ -78,5 +81,7 @@ Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\stornvme\Para
 # Reference: https://blogs.windows.com/windows-insider/2017/04/18/introducing-power-throttling
 Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" -Name "PowerThrottlingOff" -ErrorAction SilentlyContinue
 
+
+if ($Silent) { exit }
 # Finish
 Read-Pause "`nCompleted.`nPress Enter to exit"
