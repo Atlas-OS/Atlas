@@ -88,5 +88,6 @@ actions:
   - !task: {path: 'atlas\services.yml'}
   - !task: {path: 'atlas\components.yml'}
   - !task: {path: 'atlas\appx.yml'}
+  - !task: {path: 'revert.yml'}
   - !task: {path: 'atlas\default.yml'}
   - !task: {path: 'tweaks.yml'}
