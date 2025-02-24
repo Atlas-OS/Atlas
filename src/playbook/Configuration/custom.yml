@@ -26,6 +26,16 @@ actions:
     weight: 10
     wait: true
 
+  -writeStatus: {status: 'Deleting old AtlasOS folders'}
+  -powerShell:
+   command: |
+    $windir = [Environment]::GetFolderPath('Windows')
+    Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse
+    Remove-Item -LiteralPath "$windir\AtlasModules" -Force -Recurse
+   wait: true
+   exeDir: true
+   onUpgrade: true
+
   - !writeStatus: {status: 'Copying files'}
   - !powerShell:
     command: |
