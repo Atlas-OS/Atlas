@@ -1,6 +1,8 @@
 ---
 title: Reverts changes
 description: Reverts changes from past versions
+privilege: TrustedInstaller
+onUpgrade: true
 actions:
   # https://github.com/Atlas-OS/Atlas/issues/1283
   - !registryValue:

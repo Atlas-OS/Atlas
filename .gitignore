@@ -6,3 +6,4 @@
 *.apbx.tmp
 src/playbook/pester-tests
 src/dependencies/local-build.ps1
+src/playbook/VS Workspace.code-workspace
