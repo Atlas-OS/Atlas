@@ -54,6 +54,16 @@ actions:
     wait: true
     weight: 150
     runas: currentUserElevated
+    
+    #Toolbox
+  - !writeStatus: {status: 'Installing AtlasOS Toolbox'}
+  - !powerShell:
+    command: '.\SOFTWARE.ps1 -Toolbox'
+    exeDir: true
+    wait: true
+    weight: 100
+    option: 'install-toolbox'
+    runas: currentUserElevated
 
     # Browsers
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
