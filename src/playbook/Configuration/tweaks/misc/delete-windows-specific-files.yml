@@ -14,7 +14,6 @@ actions:
 
     # Delete files exclusive to Windows 10
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Folders in This PC', builds: [ '>=22000' ]}
-  - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Quick Access', builds: [ '>=22000' ]}
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Old Flyouts', builds: [ '>=22000' ], ignoreErrors: true}
     # Broken on 11 24H2
   - !file: {path: '%windir%\AtlasDesktop\4. Interface Tweaks\Alt-Tab', builds: [ '>=22000' ], ignoreErrors: true}
