@@ -97,7 +97,7 @@ function Set-ThemeMRU {
 function Set-LockscreenImage {
     param (
         [ValidateNotNullOrEmpty()]
-        [string]$Path = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Wallpapers\lockscreen.png"
+        [string]$Path = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Wallpapers\lockscreen.jpg"
     )
 
     if (!(Test-Path $Path)) {

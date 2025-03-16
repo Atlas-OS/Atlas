@@ -1,18 +1,18 @@
 ---
 title: Add Theme
-description: Adds and sets the Atlas themes by default
+description: Adds and sets the Atlar themes by default
 actions:
     # Apply theme file and set recent themes
   - !powerShell:
     command: |
-      .\AtlasModules\initPowerShell.ps1
-      Set-Theme -Path """$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.4.x-dark.theme"""
+      .\AtlarModules\initPowerShell.ps1
+      Set-Theme -Path """$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlar-v0.5.x-dark.theme"""
       Set-ThemeMRU
     wait: true
     exeDir: true
     runas: currentUserElevated
 
-    # Applies Atlas lockscreen background
+    # Applies Atlar lockscreen background
     # Also disables fun facts, tips, tricks, and more on lockscreen - only on Enterprise/Education
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
@@ -33,15 +33,15 @@ actions:
     wait: true
   - !powerShell:
     command: |
-      .\AtlasModules\initPowerShell.ps1
+      .\AtlarModules\initPowerShell.ps1
       Set-LockscreenImage
     exeDir: true
     wait: true
     runas: currentUserElevated
 
-    # Set Atlas theme as default for new users
+    # Set Atlar theme as default for new users
   - !registryValue:
     path: 'HKCU\Software\Policies\Microsoft\Windows\Personalization'
     value: 'ThemeFile'
-    data: '%windir%\Resources\Themes\atlas-v0.4.x-dark.theme'
+    data: '%windir%\Resources\Themes\atlar-v0.5.x-dark.theme'
     type: REG_SZ

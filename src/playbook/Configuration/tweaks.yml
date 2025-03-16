@@ -1,6 +1,6 @@
 ---
 title: Tweaks Root Playbook File
-description: Runs all of the Atlas playbook tweaks
+description: Runs all of the Atlar playbook tweaks
 actions:
   # ------------------------- NOTES ------------------------- #
 
@@ -26,7 +26,7 @@ actions:
   - !writeStatus: {status: 'Running networking tweaks'}
   # Needed for compatibility
   # - !task: {path: 'tweaks\networking\disable-llmnr.yml'}
-  - !task: {path: 'tweaks\networking\atlas-network-settings.yml'}
+  - !task: {path: 'tweaks\networking\atlar-network-settings.yml'}
 
   # -------------------------------------------------------------------------- #
   #  networking\shares                                                         #
@@ -173,7 +173,7 @@ actions:
   #  qol\appearance                                                            #
   # -------------------------------------------------------------------------- #
   - !task: {path: 'tweaks\qol\appearance\blue-tooltips.yml'}
-  - !task: {path: 'tweaks\qol\appearance\atlas-theme.yml'}
+  - !task: {path: 'tweaks\qol\appearance\atlar-theme.yml'}
   - !task: {path: 'tweaks\qol\appearance\disallow-theme-changes.yml'}
 
   # -------------------------------------------------------------------------- #

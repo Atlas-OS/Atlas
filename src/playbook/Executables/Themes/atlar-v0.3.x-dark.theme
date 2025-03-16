@@ -1,9 +1,9 @@
 [Theme]
-DisplayName=Atlas Solid
-ThemeId={1545A5F7-3E0C-4670-8A21-99FDEEA37AA5}
+DisplayName=Atlar v0.3.x Dark
+ThemeId={FB5C68CD-E525-4324-9830-18BFE1746747}
 
 [Control Panel\Desktop]
-Wallpaper=%windir%\AtlasModules\Wallpapers\atlas-solid.png
+Wallpaper=%windir%\AtlarModules\Wallpapers\atlar-v0.3.x-dark.png
 Pattern=
 MultimonBackgrounds=0
 PicturePosition=4
@@ -29,11 +29,11 @@ DefaultValue=Windows Default
 SchemeName=No Sounds
 
 [VisualStyles]
-Path=%SystemRoot%\resources\themes\Aero\Aero.msstyles
+Path=%windir%\resources\themes\Aero\Aero.msstyles
 ColorStyle=NormalColor
 Size=NormalSize
 AutoColorization=0
-ColorizationColor=0XC42D7D9A
+ColorizationColor=0XC44151BF
 SystemMode=Dark
 AppMode=Dark
 VisualStyleVersion=10

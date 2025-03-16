@@ -58,8 +58,8 @@ GitHub is a web-based platform that uses Git, a version control system, to allow
 
 Although the GUI is not open source for Github, Github's entire backend (called [git](https://git-scm.com/downloads)) is open source under GPLv2. The Atlar Playbook is open source under the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE).
 
-### 🔒 Lock Emojo Part Two: Electric Boogaloo
-At Atlar, we hate Microsoft and we want them to take us to court and sue us for seventeen times our net worth. We will never comply with [Windows's Usage Terms](https://www.microsoft.com/en-us/useterms/#areaheading-uid6738235). In addition, Atlar activates Windows for free. It's piracy.
+### 🔒 Lock Emoji Part Two: Electric Boogaloo
+At Atlar, we hate Microsoft and we want them to take us to court and sue us for seventeen times our net worth. We will never comply with [Windows's Usage Terms](https://www.microsoft.com/en-us/useterms/#areaheading-uid6738235). In addition, Atlar activates Windows for free. It's piracy. Electric Boogaloo.
 
 ## 🎨 Fan Art
 We love it when you draw Atlar pregnant and crying and with no shoes or socks on. Be sure to follow our [rules](https://docs.atlasos.net/branding/) and share your masterpieces on our [GitHub Discussions](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)!

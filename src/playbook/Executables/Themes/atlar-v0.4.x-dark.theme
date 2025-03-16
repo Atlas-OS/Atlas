@@ -1,9 +1,9 @@
 [Theme]
-DisplayName=Atlas v0.3.x Light
-ThemeId={9F1AEB0B-4DD7-44EF-8734-D4F82A341818}
+DisplayName=Atlar v0.4.x Dark
+ThemeId={FB5C68CD-E525-4324-9830-18BFE1746747}
 
 [Control Panel\Desktop]
-Wallpaper=%windir%\AtlasModules\Wallpapers\atlas-v0.3.x-light.png
+Wallpaper=%windir%\AtlarModules\Wallpapers\atlar-v0.4.x-dark.png
 Pattern=
 MultimonBackgrounds=0
 PicturePosition=4
@@ -33,9 +33,9 @@ Path=%windir%\resources\themes\Aero\Aero.msstyles
 ColorStyle=NormalColor
 Size=NormalSize
 AutoColorization=0
-ColorizationColor=0XC47568FF
+ColorizationColor=0XC44A51A8
 SystemMode=Dark
-AppMode=Light
+AppMode=Dark
 VisualStyleVersion=10
 
 [MasterThemeSelector]

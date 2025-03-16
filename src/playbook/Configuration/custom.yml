@@ -31,8 +31,8 @@ actions:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
       @(
-          'AtlasModules',
-          'AtlasDesktop'
+          'AtlarModules',
+          'AtlarDesktop'
       ) | ForEach-Object {
           if (!(Test-Path $_)) { exit 1 }
           Copy-Item -Path $_ -Destination $windir -Force -Recurse
@@ -69,13 +69,22 @@ actions:
     wait: true
     runas: currentUserElevated
 
+  - !cmd:
+    command: 'HWID_Activation.cmd'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+
   # Set hidden Settings pages
   # Done before everything else as scripts will overwrite it
   - !task: {path: 'tweaks\qol\set-hidden-settings-pages.yml'}
 
   # Main tasks
-  - !task: {path: 'atlas\start.yml'}
-  - !task: {path: 'atlas\services.yml'}
-  - !task: {path: 'atlas\components.yml'}
-  - !task: {path: 'atlas\appx.yml'}
+  - !task: {path: 'atlar\start.yml'}
+  - !task: {path: 'atlar\services.yml'}
+  - !task: {path: 'atlar\components.yml'}
+  - !task: {path: 'atlar\appx.yml'}
   - !task: {path: 'tweaks.yml'}
+
+
+
