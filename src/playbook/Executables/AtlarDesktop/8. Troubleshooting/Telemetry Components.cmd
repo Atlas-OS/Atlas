@@ -1,15 +1,5 @@
 @echo off
-set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\TelemetryComponents.ps1"
-if not exist "%script%" (
-	echo Script not found.
-	echo "%script%"
-	pause
-	exit /b 1
-)
-
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" %*
-	exit /b
-)
-
-powershell -EP Bypass -NoP ^& """$env:script""" %*
+changepk.exe /ProductKey XQQYW-NFFMW-XJPBH-K8732-CKFFD
+%windir%\AtlasModules\Scripts\HWID_Activation.cmd
+reg add "HKLM\Software\Policies\Microsoft\Windows\DataCollection" /v "AllowTelemetry" /t REG_DWORD /d "0" /f
+reg add "HKCU\Software\Policies\Microsoft\Windows\DataCollection" /v "AllowTelemetry" /t REG_DWORD /d "0" /f

@@ -35,21 +35,12 @@ actions:
     # Windows components and Telemetry
   - !writeStatus: {status: 'Removing components'}
   - !powerShell:
-    command: >-
-      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
-      -InstallPackages @('*Z-Atlas-NoDefender-Package*',
-        '*Z-Atlas-NoTelemetry-Package*'
-      )
-      -NoInteraction
+    command: 'echo balls'
     option: 'defender-disable'
     wait: true
     exeDir: true
   - !powerShell:
-    command: >-
-      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
-      -InstallPackages @('*Z-Atlas-NoTelemetry-Package*')
-      -UninstallPackages @('*Z-Atlas-NoDefender-Package*')
-      -NoInteraction
+    command: 'echo "balls 2"'
     option: 'defender-enable'
     wait: true
     exeDir: true
