@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="http://infradragon.com" target="_blank"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/branding@main/banners/banner-v3.png" alt="Atlar" width="800"></a>
+  <a href="http://infradragon.com" target="_blank"><img src="https://cdn.discordapp.com/attachments/1142724966622699640/1350897642560819242/atlar.webp?ex=67d868f8&is=67d71778&hm=4dcab6b26597e67ce4881997f399c8265e514dadf6488831d5f937944eea603b&" alt="Atlar" width="800"></a>
 </h1>
   <p align="center">
     <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/></a>
