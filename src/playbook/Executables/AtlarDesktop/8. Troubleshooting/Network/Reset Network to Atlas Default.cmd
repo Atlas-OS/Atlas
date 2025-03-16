@@ -11,7 +11,7 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-echo Setting network settings to Atlas defaults...
+echo Setting network settings to Atlar defaults...
 
 :: Set network adapter driver registry key
 for /f "usebackq" %%a in (`powershell -NonI -NoP -C "(Get-CimInstance Win32_NetworkAdapter).PNPDeviceID | sls 'PCI\\VEN_'"`) do (

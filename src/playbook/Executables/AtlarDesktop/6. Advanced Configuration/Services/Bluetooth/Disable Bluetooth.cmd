@@ -32,17 +32,17 @@ for %%a in (
 	"Microsoft_Bluetooth_AvrcpTransport"
 	"RFCOMM"
 ) do (
-	call "%windir%\AtlasModules\Scripts\setSvc.cmd" %%~a 4
+	call "%windir%\rModules\Scripts\setSvc.cmd" %%~a 4
 )
 
 :: Seems to not exist sometimes
-call "%windir%\AtlasModules\Scripts\setSvc.cmd" BthPan 4 > nul 2>&1
+call "%windir%\AtlarModules\Scripts\setSvc.cmd" BthPan 4 > nul 2>&1
 
 :: Disable Bluetooth devices
-call "%windir%\AtlasModules\Scripts\toggleDev.cmd" -Silent '*Bluetooth*'
+call "%windir%\AtlarModules\Scripts\toggleDev.cmd" -Silent '*Bluetooth*'
 
 :: Disable in Send To context menu
-call "%windir%\AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Disable @('Bluetooth')
+call "%windir%\AtlarDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Disable @('Bluetooth')
 
 :: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-connectivity
 reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth" /v "value" /t REG_DWORD /d "0" /f > nul

@@ -1,16 +1,16 @@
 ---
 title: Configure OEM Information
-description: Configures OEM information to contain the Atlas version and the Atlas Discord server
+description: Configures OEM information to contain the Atlar version and the Atlar Discord server
 actions:
   - !powerShell:
     command: |
-      $version = 'AtlasVersionUndefined'
+      $version = 'AtlarVersionUndefined'
 
       Write-Output 'Setting boot entry name...'
-      bcdedit /set description """AtlasOS $(('10', '11')[[int]([System.Environment]::OSVersion.Version.Build -ge 22000)]) $version"""
+      bcdedit /set description """AtlarOS $(('10', '11')[[int]([System.Environment]::OSVersion.Version.Build -ge 22000)]) $version"""
 
       Write-Output 'Setting other versioned OEM information...'
-      $reportedVer = """Atlas Playbook $version"""
+      $reportedVer = """Atlar Playbook $version"""
       # Shows in Settings
       Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Name 'Model' -Value $reportedVer -Force
       # Shows in winver
@@ -19,7 +19,7 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
     value: 'Manufacturer'
-    data: 'Atlas Team'
+    data: 'Atlar Team'
     type: REG_SZ
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
@@ -29,10 +29,10 @@ actions:
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
     value: 'SupportPhone'
-    data: 'https://github.com/Atlas-OS/Atlas'
+    data: 'https://github.com/infradragon/Atlar'
     type: REG_SZ
   - !registryValue:
-    path: 'HKLM\SOFTWARE\Atlas'
+    path: 'HKLM\SOFTWARE\Atlar'
     value: 'WinreFallbackFixed'
     data: '1'
     type: REG_SZ

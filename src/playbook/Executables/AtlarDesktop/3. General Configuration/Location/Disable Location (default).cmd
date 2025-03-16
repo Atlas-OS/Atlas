@@ -31,7 +31,7 @@ for %%a in (
 	"privacy-location"
 	"findmydevice"
 ) do (
-	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide %%~a /silent
+	call "%windir%\AtlarModules\Scripts\settingsPages.cmd" /hide %%~a /silent
 )
 
 if "%~1"=="/silent" exit /b

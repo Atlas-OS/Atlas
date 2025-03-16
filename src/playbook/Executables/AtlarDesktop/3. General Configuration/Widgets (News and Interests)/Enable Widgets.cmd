@@ -11,7 +11,7 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-call "%windir%\AtlasModules\Scripts\edgeCheck.cmd"
+call "%windir%\AtlarModules\Scripts\edgeCheck.cmd"
 if %errorlevel% neq 0 exit /b 1
 
 echo]

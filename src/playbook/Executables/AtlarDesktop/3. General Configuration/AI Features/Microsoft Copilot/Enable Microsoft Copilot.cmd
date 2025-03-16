@@ -13,7 +13,7 @@ fltmc > nul 2>&1 || (
 
 :: Check for Edge support
 echo]
-call "%windir%\AtlasModules\Scripts\edgeCheck.cmd" /edgeonly
+call "%windir%\AtlarModules\Scripts\edgeCheck.cmd" /edgeonly
 if %errorlevel% neq 0 exit /b 1
 echo]
 
@@ -39,7 +39,7 @@ exit /b
 :app
 echo NOTE: Copilot on the taskbar isn't available, the app will be installed instead.
 set "appText=You can find the Copilot app in your Start Menu."
-call "%windir%\AtlasModules\Scripts\wingetCheck.cmd" /nodashes
+call "%windir%\AtlarModules\Scripts\wingetCheck.cmd" /nodashes
 if %errorlevel% neq 0 exit /b 1
 echo Installing Copilot...
 winget install -e --id 9NHT9RB2F4HD --uninstall-previous -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul

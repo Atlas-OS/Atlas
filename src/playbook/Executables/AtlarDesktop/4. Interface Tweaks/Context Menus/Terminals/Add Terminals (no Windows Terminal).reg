@@ -3,39 +3,39 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked]
 "{9F156763-7844-4DC4-B2B1-901F640F5155}"=-
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals]
 "MUIVerb"="Terminals"
 "SubCommands"=""
 "Icon"="%windir%\\system32\\cmd.exe,0"
 "NoWorkingDirectory"=""
 "NeverDefault"=""
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell]
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\cmd2]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\cmd2]
 "NeverDefault"=""
 "Icon"="cmd.exe"
 "Extended"=""
 "NoWorkingDirectory"=""
 @="Command Prompt"
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\cmd2\command]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\cmd2\command]
 @="cmd.exe /s /k pushd \"%V\""
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\AtlasTerminals]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\AtlarTerminals]
 "NoWorkingDirectory"=""
 "Extended"=""
 "Icon"="PowerShell.exe"
 "NeverDefault"=""
 @="PowerShell"
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\AtlasTerminals\command]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\AtlarTerminals\command]
 @="PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\Item10]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\Item10]
 "CommandFlags"=dword:00000008
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\Item2]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\Item2]
 "NoWorkingDirectory"=""
 @="Command Prompt (Admin)"
 "Icon"="cmd.exe"
@@ -43,70 +43,70 @@ Windows Registry Editor Version 5.00
 "NeverDefault"=""
 "HasLUAShield"=""
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\Item2\command]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\Item2\command]
 @="PowerShell.exe -windowstyle hidden -Command \"Start-Process cmd.exe -ArgumentList '/s,/k,pushd,%V' -Verb RunAs\""
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\Item3]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\Item3]
 @="PowerShell (Admin)"
 "Extended"=""
 "HasLUAShield"=""
 "Icon"="PowerShell.exe"
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\Item3\command]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\Item3\command]
 @="PowerShell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs PowerShell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenPS]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\OpenPS]
 "CommandFlags"=dword:00000008
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenPSAdmin]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\OpenPSAdmin]
 "MUIVerb"="Command Prompt (System)"
 "HasLUAShield"=""
 "Icon"="%windir%\\system32\\cmd.exe,0"
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenPSAdmin\command]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\OpenPSAdmin\command]
 @="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenPSAdmin0]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\OpenPSAdmin0]
 "MUIVerb"="PowerShell (System)"
 "Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe,0"
 "HasLUAShield"=""
 
-[HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals\shell\OpenPSAdmin0\command]
+[HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals\shell\OpenPSAdmin0\command]
 @="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals]
 "MUIVerb"="Terminals"
 "SubCommands"=""
 "Icon"="%windir%\\system32\\cmd.exe,0"
 "NoWorkingDirectory"=""
 "NeverDefault"=""
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell]
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\cmd2]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\cmd2]
 "NeverDefault"=""
 "Icon"="cmd.exe"
 "Extended"=""
 "NoWorkingDirectory"=""
 @="Command Prompt"
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\cmd2\command]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\cmd2\command]
 @="cmd.exe /s /k pushd \"%V\""
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\AtlasTerminals]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\AtlarTerminals]
 "NoWorkingDirectory"=""
 "Extended"=""
 "Icon"="PowerShell.exe"
 "NeverDefault"=""
 @="PowerShell"
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\AtlasTerminals\command]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\AtlarTerminals\command]
 @="PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\Item10]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\Item10]
 "CommandFlags"=dword:00000008
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\Item2]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\Item2]
 "NoWorkingDirectory"=""
 @="Command Prompt (Admin)"
 "Icon"="cmd.exe"
@@ -114,70 +114,70 @@ Windows Registry Editor Version 5.00
 "NeverDefault"=""
 "HasLUAShield"=""
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\Item2\command]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\Item2\command]
 @="PowerShell.exe -windowstyle hidden -Command \"Start-Process cmd.exe -ArgumentList '/s,/k,pushd,%V' -Verb RunAs\""
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\Item3]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\Item3]
 @="PowerShell (Admin)"
 "Extended"=""
 "HasLUAShield"=""
 "Icon"="PowerShell.exe"
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\Item3\command]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\Item3\command]
 @="PowerShell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs PowerShell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenPS]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\OpenPS]
 "CommandFlags"=dword:00000008
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenPSAdmin]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\OpenPSAdmin]
 "MUIVerb"="Command Prompt (System)"
 "HasLUAShield"=""
 "Icon"="%windir%\\system32\\cmd.exe,0"
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenPSAdmin\command]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\OpenPSAdmin\command]
 @="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenPSAdmin0]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\OpenPSAdmin0]
 "MUIVerb"="PowerShell (System)"
 "Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe,0"
 "HasLUAShield"=""
 
-[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals\shell\OpenPSAdmin0\command]
+[HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals\shell\OpenPSAdmin0\command]
 @="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals]
 "MUIVerb"="Terminals"
 "SubCommands"=""
 "Icon"="%windir%\\system32\\cmd.exe,0"
 "NoWorkingDirectory"=""
 "NeverDefault"=""
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell]
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\cmd2]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\cmd2]
 "NeverDefault"=""
 "Icon"="cmd.exe"
 "Extended"=""
 "NoWorkingDirectory"=""
 @="Command Prompt"
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\cmd2\command]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\cmd2\command]
 @="cmd.exe /s /k pushd \"%V\""
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\AtlasTerminals]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\AtlarTerminals]
 "NoWorkingDirectory"=""
 "Extended"=""
 "Icon"="PowerShell.exe"
 "NeverDefault"=""
 @="PowerShell"
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\AtlasTerminals\command]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\AtlarTerminals\command]
 @="PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\Item10]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\Item10]
 "CommandFlags"=dword:00000008
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\Item2]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\Item2]
 "NoWorkingDirectory"=""
 @="Command Prompt (Admin)"
 "Icon"="cmd.exe"
@@ -185,70 +185,70 @@ Windows Registry Editor Version 5.00
 "NeverDefault"=""
 "HasLUAShield"=""
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\Item2\command]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\Item2\command]
 @="PowerShell.exe -windowstyle hidden -Command \"Start-Process cmd.exe -ArgumentList '/s,/k,pushd,%V' -Verb RunAs\""
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\Item3]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\Item3]
 @="PowerShell (Admin)"
 "Extended"=""
 "HasLUAShield"=""
 "Icon"="PowerShell.exe"
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\Item3\command]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\Item3\command]
 @="PowerShell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs PowerShell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenPS]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\OpenPS]
 "CommandFlags"=dword:00000008
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenPSAdmin]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\OpenPSAdmin]
 "MUIVerb"="Command Prompt (System)"
 "HasLUAShield"=""
 "Icon"="%windir%\\system32\\cmd.exe,0"
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenPSAdmin\command]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\OpenPSAdmin\command]
 @="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenPSAdmin0]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\OpenPSAdmin0]
 "MUIVerb"="PowerShell (System)"
 "Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe,0"
 "HasLUAShield"=""
 
-[HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals\shell\OpenPSAdmin0\command]
+[HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals\shell\OpenPSAdmin0\command]
 @="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals]
 "MUIVerb"="Terminals"
 "SubCommands"=""
 "Icon"="%windir%\\system32\\cmd.exe,0"
 "NoWorkingDirectory"=""
 "NeverDefault"=""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell]
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\cmd2]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\cmd2]
 "NeverDefault"=""
 "Icon"="cmd.exe"
 "Extended"=""
 "NoWorkingDirectory"=""
 @="Command Prompt"
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\cmd2\command]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\cmd2\command]
 @="cmd.exe /s /k pushd \"%V\""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\AtlasTerminals]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\AtlarTerminals]
 "NoWorkingDirectory"=""
 "Extended"=""
 "Icon"="PowerShell.exe"
 "NeverDefault"=""
 @="PowerShell"
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\AtlasTerminals\command]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\AtlarTerminals\command]
 @="PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\Item10]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\Item10]
 "CommandFlags"=dword:00000008
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\Item2]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\Item2]
 "NoWorkingDirectory"=""
 @="Command Prompt (Admin)"
 "Icon"="cmd.exe"
@@ -256,35 +256,35 @@ Windows Registry Editor Version 5.00
 "NeverDefault"=""
 "HasLUAShield"=""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\Item2\command]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\Item2\command]
 @="PowerShell.exe -windowstyle hidden -Command \"Start-Process cmd.exe -ArgumentList '/s,/k,pushd,%V' -Verb RunAs\""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\Item3]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\Item3]
 @="PowerShell (Admin)"
 "Extended"=""
 "HasLUAShield"=""
 "Icon"="PowerShell.exe"
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\Item3\command]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\Item3\command]
 @="PowerShell -WindowStyle Hidden -NoProfile -Command \"Start-Process -Verb RunAs PowerShell.exe -ArgumentList \\\"-NoExit -Command Push-Location \\\\\\\"\\\"%V/\\\\\\\"\\\"\\\""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenPS]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\OpenPS]
 "CommandFlags"=dword:00000008
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenPSAdmin]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\OpenPSAdmin]
 "MUIVerb"="Command Prompt (System)"
 "HasLUAShield"=""
 "Icon"="%windir%\\system32\\cmd.exe,0"
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenPSAdmin\command]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\OpenPSAdmin\command]
 @="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd \"%V\""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenPSAdmin0]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\OpenPSAdmin0]
 "MUIVerb"="PowerShell (System)"
 "Icon"="%windir%\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe,0"
 "HasLUAShield"=""
 
-[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals\shell\OpenPSAdmin0\command]
+[HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals\shell\OpenPSAdmin0\command]
 @="PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp 'Registry::HKCR\\TermsRunAsTI' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath '%V'"
 
 ; RunAsTI function

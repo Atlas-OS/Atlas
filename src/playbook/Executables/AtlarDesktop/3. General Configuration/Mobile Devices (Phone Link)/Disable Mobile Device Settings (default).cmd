@@ -12,7 +12,7 @@ fltmc > nul 2>&1 || (
 )
 
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "NoConnectedUser" /t REG_DWORD /d "1" /f > nul
-call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide mobile-devices
+call "%windir%\AtlarModules\Scripts\settingsPages.cmd" /hide mobile-devices
 
 choice /c:yn /n /m "Would you like to remove the 'Phone Link' app? [Y/N] "
 if %errorlevel% == 1 powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.YourPhone* | Remove-AppxPackage -AllUsers"

@@ -29,7 +29,7 @@ cd /d "%~dp0"
 for /f %%a in ('forfiles /m "%~nx0" /c "cmd /c echo 0x1B"') do set "ESC=%%a"
 chcp 65001 > nul
 
-title HT/SMT Detected - Atlas
+title HT/SMT Detected - Atlar
 mode con: cols=46 lines=13
 
 echo]

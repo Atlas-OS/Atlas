@@ -24,7 +24,7 @@ fltmc > nul 2>&1 || (
 	sc start MapsBroker
 ) > nul 2>&1
 
-call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide privacy-location
+call "%windir%\AtlarModules\Scripts\settingsPages.cmd" /unhide privacy-location
 
 if "%~1"=="/silent" exit /b
 
@@ -32,7 +32,7 @@ set key1="HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice"
 choice /c:yn /n /m "Would you like to unlock Find My Device functionality? [Y/N] "
 if %errorlevel%==1 (
 	reg delete %key1% /f > nul
-	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide findmydevice /silent
+	call "%windir%\AtlarModules\Scripts\settingsPages.cmd" /unhide findmydevice /silent
 )
 if %errorlevel%==2 (
 	reg add %key1% /v AllowFindMyDevice /t REG_DWORD /d 0 /f > nul

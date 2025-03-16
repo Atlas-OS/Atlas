@@ -1,5 +1,5 @@
 @echo off
-set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\ConfigVBS.ps1"
+set "script=%windir%\AtlarModules\Scripts\ScriptWrappers\ConfigVBS.ps1"
 if not exist "%script%" (
 	echo Script not found.
 	echo "%script%"

@@ -15,5 +15,5 @@ actions:
   - !registryValue:
     path: 'HKCR\regfile\Shell\RunAs\Command'
     value: ''
-    data: 'cmd /c "%windir%\AtlasModules\Scripts\RunAsTI.cmd" "%1"'
+    data: 'cmd /c "%windir%\AtlarModules\Scripts\RunAsTI.cmd" "%1"'
     type: REG_SZ

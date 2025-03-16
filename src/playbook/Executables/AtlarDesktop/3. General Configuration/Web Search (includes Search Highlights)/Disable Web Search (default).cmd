@@ -14,7 +14,7 @@ fltmc > nul 2>&1 || (
 echo]
 echo Disabling Web Search ^& Search Highlights...
 
-call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide search-permissions /silent
+call "%windir%\AtlarModules\Scripts\settingsPages.cmd" /hide search-permissions /silent
 
 (
 	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowSearchToUseLocation" /t REG_DWORD /d 0 /f

@@ -1,8 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
-set indexConfPath="%windir%\AtlasModules\Scripts\indexConf.cmd"
+set indexConfPath="%windir%\AtlarModules\Scripts\indexConf.cmd"
 if not exist %indexConfPath% (
-	echo The 'indexConf.cmd' script wasn't found in AtlasModules.
+	echo The 'indexConf.cmd' script wasn't found in AtlarModules.
 	if "%~1"=="" pause
 	exit /b 1
 )

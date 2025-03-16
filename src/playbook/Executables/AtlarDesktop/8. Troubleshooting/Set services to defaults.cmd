@@ -1,8 +1,8 @@
 @echo off
 set "title=call :title"
-set "servicesPath=%windir%\AtlasDesktop\6. Advanced Configuration\Services"
+set "servicesPath=%windir%\AtlarDesktop\6. Advanced Configuration\Services"
 if not exist "%servicesPath%" (
-	echo Services in Atlas folder not found, can't continue.
+	echo Services in Atlar folder not found, can't continue.
 	if "%*"=="" pause
 	exit /b 1
 )
@@ -14,24 +14,24 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 	exit /b
 )
 
-echo This will reset the configuration of services in the Atlas folder.
+echo This will reset the configuration of services in the Atlar folder.
 echo Disabling services often breaks features, and if you're experiencing an issue, this might help.
 echo]
 choice /c:yn /n /m "Continue? [Y/N] "
 if %errorlevel% neq 1 exit /b
 
 :main
-%title% "Enabling services in the Atlas folder... This might take a while."
-for /f "usebackq tokens=*" %%a in (`dir /b /s "%windir%\AtlasDesktop\6. Advanced Configuration\Services" ^| find "(default)"`) do (
+%title% "Enabling services in the Atlar folder... This might take a while."
+for /f "usebackq tokens=*" %%a in (`dir /b /s "%windir%\AtlarDesktop\6. Advanced Configuration\Services" ^| find "(default)"`) do (
 	call :run "%%a"
 	start /min /high /wait cmd /c "%%a" /silent
 )
 
-set "atlasOther=%windir%\AtlasModules\Other"
-set "winServices=%atlasOther%\winServices.reg"
-set "atlasServices=%atlasOther%\atlasServices.reg"
+set "atlarOther=%windir%\AtlarModules\Other"
+set "winServices=%atlarOther%\winServices.reg"
+set "atlarServices=%atlarOther%\atlarServices.reg"
 if exist "%winServices%" (
-	if exist "%atlasServices%" call :fullRestore
+	if exist "%atlarServices%" call :fullRestore
 )
 
 %title% "Finished."
@@ -46,12 +46,12 @@ exit /b
 echo What would you like to do?
 echo]
 echo 1) Restore a full services backup of the default Windows services
-echo 2) Restore a full services backup of the default Atlas services
+echo 2) Restore a full services backup of the default Atlar services
 echo 3) Nothing
 echo]
 choice /c:123 /n /m "Choose a number: [1/2/3] "
 if "%errorlevel%"=="1" reg import "%winServices%" > nul
-if "%errorlevel%"=="2" reg import "%atlasServices%" > nul
+if "%errorlevel%"=="2" reg import "%atlarServices%" > nul
 exit /b
 
 

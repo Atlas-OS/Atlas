@@ -9,7 +9,7 @@ actions:
   #   data: 'NotSpecified'
   #   type: REG_SZ
   - !cmd:
-    command: 'reg import "AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\Disable Automatic Folder Discovery (default).reg"'
+    command: 'reg import "AtlarDesktop\4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\Disable Automatic Folder Discovery (default).reg"'
     exeDir: true
     wait: true
     runas: currentUserElevated

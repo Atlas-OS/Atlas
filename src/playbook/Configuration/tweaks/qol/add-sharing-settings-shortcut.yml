@@ -1,12 +1,12 @@
 ---
 title: Add Network Sharing Shortcut
-description: Adds a network sharing settings shortcut to the Atlas 'File Sharing' folder for QoL
+description: Adds a network sharing settings shortcut to the Atlar 'File Sharing' folder for QoL
 actions:
   - !powerShell:
     command: |
-      .\AtlasModules\initPowerShell.ps1
+      .\AtlarModules\initPowerShell.ps1
       New-Shortcut -Source 'control.exe' `
-        -Destination """$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing\Sharing Settings.lnk""" `
+        -Destination """$([Environment]::GetFolderPath('Windows'))\AtlarDesktop\3. General Configuration\File Sharing\Sharing Settings.lnk""" `
         -Arguments '/name Microsoft.NetworkAndSharingCenter /page Advanced'
     exeDir: true
     wait: true

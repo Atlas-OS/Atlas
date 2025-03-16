@@ -5,10 +5,10 @@ Windows Registry Editor Version 5.00
 
 [-HKEY_CLASSES_ROOT\TermsRunAsTI]
 
-[-HKEY_CLASSES_ROOT\Directory\shell\AtlasTerminals]
+[-HKEY_CLASSES_ROOT\Directory\shell\AtlarTerminals]
 
-[-HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlasTerminals]
+[-HKEY_CLASSES_ROOT\LibraryFolder\shell\AtlarTerminals]
 
-[-HKEY_CLASSES_ROOT\Drive\shell\AtlasTerminals]
+[-HKEY_CLASSES_ROOT\Drive\shell\AtlarTerminals]
 
-[-HKEY_CLASSES_ROOT\Directory\Background\shell\AtlasTerminals]
+[-HKEY_CLASSES_ROOT\Directory\Background\shell\AtlarTerminals]

@@ -47,8 +47,8 @@ reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetoo
 if "%~1"=="/silent" exit /b
 
 choice /c:yn /n /m "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N] "
-if %ERRORLEVEL% == 1 call "%windir%\AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Enable @('Bluetooth')
-if %ERRORLEVEL% == 2 call "%windir%\AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Disable @('Bluetooth')
+if %ERRORLEVEL% == 1 call "%windir%\AtlarDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Enable @('Bluetooth')
+if %ERRORLEVEL% == 2 call "%windir%\AtlarDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Disable @('Bluetooth')
 
 echo Finished, please reboot your device for changes to apply.
 pause

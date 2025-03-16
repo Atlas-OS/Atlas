@@ -10,7 +10,7 @@ actions:
   #   data: ''
   #   type: REG_SZ
   - !cmd:
-    command: 'reg import "AtlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).reg"'
+    command: 'reg import "AtlarDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).reg"'
     exeDir: true
     wait: true
     runas: currentUserElevated

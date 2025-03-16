@@ -1,8 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
-set indexConfPath="%windir%\AtlasModules\Scripts\indexConf.cmd"
+set indexConfPath="%windir%\AtlarModules\Scripts\indexConf.cmd"
 if not exist %indexConfPath% (
-	echo The 'indexConf.cmd' script wasn't found in AtlasModules.
+	echo The 'indexConf.cmd' script wasn't found in AtlarModules.
 	if "%~1"=="" pause
 	exit /b 1
 )
@@ -25,10 +25,10 @@ echo]
 %indexConf% /stop
 
 %indexConf% /cleanpolicies
-:: Add only the Start Menu and AtlasDesktop paths by default
-:: The Atlas folder is so that if the user searches for a Atlas-modified feature, a script shows up in search
+:: Add only the Start Menu and AtlarDesktop paths by default
+:: The Atlar folder is so that if the user searches for a Atlar-modified feature, a script shows up in search
 %indexConf% /include "%programdata%\Microsoft\Windows\Start Menu\Programs"
-%indexConf% /include "%windir%\AtlasDesktop"
+%indexConf% /include "%windir%\AtlarDesktop"
 %indexConf% /exclude "%systemdrive%\Users"
 
 :: Respect Power Settings when Search Indexing to prevent performance loss during gaming or battery drain

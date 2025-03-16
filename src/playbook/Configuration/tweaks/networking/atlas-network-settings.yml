@@ -1,8 +1,8 @@
 ---
-title: Applies Atlas' Network Settings
-description: Applies Atlas' optimised network settings
+title: Applies Atlar's Network Settings
+description: Applies Atlar's optimised network settings
 actions:
   - !cmd:
-    command: '"AtlasDesktop\8. Troubleshooting\Network\Reset Network to Atlas Default.cmd" /silent'
+    command: '"AtlarDesktop\8. Troubleshooting\Network\Reset Network to Atlar Default.cmd" /silent'
     exeDir: true
     wait: true

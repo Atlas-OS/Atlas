@@ -14,7 +14,7 @@ fltmc > nul 2>&1 || (
 )
 
 echo This will repair and replace any corrupt Windows components and system files.
-echo For general issues, this might be a fix. Note that no components of Atlas is reverted with this.
+echo For general issues, this might be a fix. Note that no components of Atlar is reverted with this.
 echo]
 pause
 cls

@@ -11,7 +11,7 @@ fltmc > nul 2>&1 || (
 	exit /b
 )
 
-call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
+call "%windir%\AtlarModules\Scripts\wingetCheck.cmd"
 if %errorlevel% neq 0 exit /b 1
 
 echo Enabling Web Search ^& Search Highlights...
@@ -31,7 +31,7 @@ echo Installing the Bing search provider...
 winget install -e --id 9NZBF4GT040C --uninstall-previous -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
 
 :: Main settings
-call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide search-permissions /silent
+call "%windir%\AtlarModules\Scripts\settingsPages.cmd" /unhide search-permissions /silent
 (
 	reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "BingSearchEnabled" /f
 	reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings" /v "IsAADCloudSearchEnabled" /f
@@ -59,5 +59,5 @@ exit /b
 echo]
 echo On Windows 11, having search indexing disabled causes a graphical bug in web search.
 choice /c:yn /n /m "Would you like to enable search indexing to fix it? [Y/N] "
-if %errorlevel%==1 call "%windir%\AtlasDesktop\3. General Configuration\Search Indexing\Enable Search Indexing.cmd" /silent & set ____restart=true
+if %errorlevel%==1 call "%windir%\AtlarDesktop\3. General Configuration\Search Indexing\Enable Search Indexing.cmd" /silent & set ____restart=true
 exit /b

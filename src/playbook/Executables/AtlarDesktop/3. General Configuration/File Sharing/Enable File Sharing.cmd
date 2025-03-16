@@ -1,5 +1,5 @@
 @echo off
-set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\EnableFileSharing.ps1"
+set "script=%windir%\AtlarModules\Scripts\ScriptWrappers\EnableFileSharing.ps1"
 
 if not exist "%script%" (
 	echo Script not found.

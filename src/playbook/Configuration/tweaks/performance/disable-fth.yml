@@ -8,7 +8,7 @@ actions:
   # https://www.3dcadworld.com/windows-7-fault-tolerant-heap-prevents-crashing/
 
   # Delete folder on ARM64, as FTH doesn't exist
-  - !file: {path: '%windir%\AtlasDesktop\7. Security\Mitigations\Fault Tolerant Heap', cpuArch: 'Arm64'}
+  - !file: {path: '%windir%\AtlarDesktop\7. Security\Mitigations\Fault Tolerant Heap', cpuArch: 'Arm64'}
 
   # Reset & disable FTH for AMD64
   - !run: {exe: 'rundll32.exe', args: 'fthsvc.dll,FthSysprepSpecialize', cpuArch: 'X64'}

@@ -11,7 +11,7 @@ fltmc > nul 2>&1 || (
 )
 
 :: Check if WinGet is functional or not
-call "%windir%\AtlasModules\Scripts\wingetCheck.cmd" /silent
+call "%windir%\AtlarModules\Scripts\wingetCheck.cmd" /silent
 if %ERRORLEVEL% NEQ 0 (
 	echo info: WinGet is not functional, can't uninstall Process Explorer, reverting other changes anyways...
 	goto otherChanges

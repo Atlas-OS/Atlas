@@ -35,7 +35,7 @@ echo Disabling recent items...
     start explorer.exe
 ) > nul 2>&1
 
-call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide privacy-general
+call "%windir%\AtlarModules\Scripts\settingsPages.cmd" /hide privacy-general
 
 echo]
 echo Finished, features relating to app, document, etc tracking have been disabled.

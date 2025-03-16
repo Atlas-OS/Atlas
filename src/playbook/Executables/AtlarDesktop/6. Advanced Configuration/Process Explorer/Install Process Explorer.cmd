@@ -11,11 +11,11 @@ fltmc > nul 2>&1 || (
 )
 
 :: Check if WinGet is functional or not
-call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
+call "%windir%\AtlarModules\Scripts\wingetCheck.cmd"
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo Installing Process Explorer...
-winget install -e --id Microsoft.Sysinternals.ProcessExplorer --uninstall-previous -l "%windir%\AtlasModules\Apps\ProcessExplorer" -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
+winget install -e --id Microsoft.Sysinternals.ProcessExplorer --uninstall-previous -l "%windir%\AtlarModules\Apps\ProcessExplorer" -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
 if %ERRORLEVEL% NEQ 0 (
     echo error: Process Explorer installation with WinGet failed.
     pause
@@ -31,7 +31,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo Configuring Process Explorer...
 :: Run Process Explorer only in one instance
 reg add "HKCU\SOFTWARE\Sysinternals\Process Explorer" /v "OneInstance" /t REG_DWORD /d "1" /f > nul
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%windir%\AtlasModules\Apps\ProcessExplorer\procexp.exe" /f > nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /t REG_SZ /d "%windir%\AtlarModules\Apps\ProcessExplorer\procexp.exe" /f > nul
 
 echo]
 echo The 'pcw' service in Windows is needed for Task Manager and performance counters.
