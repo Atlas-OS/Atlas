@@ -4,7 +4,7 @@ param (
     [switch]$Silent
 )
 
-$fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
+$fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlarDesktop\3. General Configuration\File Sharing"
 
 # Disable network items
 Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr | Out-Null

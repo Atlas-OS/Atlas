@@ -1,7 +1,7 @@
 @echo off
 
 fltmc > nul 2>&1 || (echo You must run this script as admin. & exit /b)
-set ___settings=call "%windir%\AtlasModules\Scripts\settingsPages.cmd"
+set ___settings=call "%windir%\AtlarModules\Scripts\settingsPages.cmd"
 
 
 :: Check args

@@ -27,7 +27,7 @@ if %errorlevel%==2 (
 
 :main
 echo]
-set "___ps=powershell -nop -noni -c "^& """%windir%\AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -NonInteractive -InstallWebView"
+set "___ps=powershell -nop -noni -c "^& """%windir%\AtlarModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -NonInteractive -InstallWebView"
 if %___edge%==0 (
 	%___ps% -InstallEdge"
 ) else (
