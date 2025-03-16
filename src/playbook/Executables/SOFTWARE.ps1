@@ -4,7 +4,7 @@ param (
 	[switch]$Firefox
 )
 
-.\AtlasModules\initPowerShell.ps1
+.\AtlarModules\initPowerShell.ps1
 
 # ----------------------------------------------------------------------------------------------------------- #
 # Software is no longer installed with a package manager anymore to be as fast and as reliable as possible.   #
@@ -173,7 +173,7 @@ Would you like to uninstall 7-Zip and replace it with NanaZip?
 NanaZip is a fork of 7-Zip with an updated user interface and extra features.
 '@
 
-		if ((Read-MessageBox -Title 'Installing NanaZip - Atlas' -Body $Message -Icon Question) -eq 'Yes') {
+		if ((Read-MessageBox -Title 'Installing NanaZip - Atlar' -Body $Message -Icon Question) -eq 'Yes') {
 			$7zipUninstall = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip" -Name "QuietUninstallString" -EA 0).QuietUninstallString
 			Write-Output "Uninstalling 7-Zip..."
 			Start-Process -FilePath "cmd" -WindowStyle Hidden -ArgumentList "/c $7zipUninstall" -Wait

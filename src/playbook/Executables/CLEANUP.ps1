@@ -1,5 +1,5 @@
-.\AtlasModules\initPowerShell.ps1
-function Invoke-AtlasDiskCleanup {
+.\AtlarModules\initPowerShell.ps1
+function Invoke-AtlarDiskCleanup {
 	# Kill running cleanmgr instances, as they will prevent new cleanmgr from starting
 	Get-Process -Name cleanmgr -EA 0 | Stop-Process -Force -EA 0
 	# Disk Cleanup preset
@@ -59,7 +59,7 @@ foreach ($drive in $drives) {
 
 if (!$noCleanmgr) {
 	Write-Output "No other Windows drives found, running Disk Cleanup."
-	Invoke-AtlasDiskCleanup
+	Invoke-AtlarDiskCleanup
 }
 
 # Clear the user temp folder
@@ -96,6 +96,6 @@ if ($sysTemp) {
 }
 
 # Delete all system restore points
-# This is so that users can't attempt to revert from Atlas to stock with Restore Points
+# This is so that users can't attempt to revert from Atlar to stock with Restore Points
 # It won't work, a full Windows reinstall is required ^
 vssadmin delete shadows /all /quiet

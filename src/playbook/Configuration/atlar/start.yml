@@ -25,7 +25,7 @@ actions:
             [Environment]::SetEnvironmentVariable('PATH', """$($newPath -join $seperator)""", $machine)
       }
 
-      $modulesPath = """$([Environment]::GetFolderPath('Windows'))\AtlasModules"""
+      $modulesPath = """$([Environment]::GetFolderPath('Windows'))\AtlarModules"""
       Add-ToPath """$modulesPath""", """$modulesPath\Tools""", """$modulesPath\Scripts"""
 
   ################ NO LOCAL BUILD ################

@@ -2,7 +2,7 @@
   <a href="http://infradragon.com" target="_blank"><img src="https://cdn.discordapp.com/attachments/1142724966622699640/1350897642560819242/atlar.webp?ex=67d868f8&is=67d71778&hm=4dcab6b26597e67ce4881997f399c8265e514dadf6488831d5f937944eea603b&" alt="Atlar" width="800"></a>
 </h1>
   <p align="center">
-    <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/></a>
+    <a href="https://github.com/infradragon/Atlar/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/></a>
     <a href="https://anilist.co/user/Whiteandwild/"><img alt="Contributors" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" /></a>
     <a href="https://github.com/Atlas-OS/Atlas/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" /></a>
     <a href="http://www.digicrime.com/policy.html"><img alt="Code of Conduct" src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge&color=1A91FF" /></a>
@@ -56,7 +56,7 @@ Unlike custom Windows ISOs, Atlar is more straightforward to audit due to the us
 
 GitHub is a web-based platform that uses Git, a version control system, to allow developers to store, manage, and share code, making it a crucial tool for software development and collaboration. 
 
-Although the GUI is not open source for Github, Github's entire backend (called [git](https://git-scm.com/downloads)) is open source under GPLv2. The Atlar Playbook is open source under the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE).
+Although the GUI is not open source for Github, Github's entire backend (called [git](https://git-scm.com/downloads)) is open source under GPLv2. The Atlar Playbook is open source under the [GPLv3 license](https://github.com/infradragon/Atlar/blob/main/LICENSE).
 
 ### 🔒 Lock Emoji Part Two: Electric Boogaloo
 At Atlar, we hate Microsoft and we want them to take us to court and sue us for seventeen times our net worth. We will never comply with [Windows's Usage Terms](https://www.microsoft.com/en-us/useterms/#areaheading-uid6738235). In addition, Atlar activates Windows for free. It's piracy. Electric Boogaloo.

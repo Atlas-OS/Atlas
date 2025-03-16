@@ -13,7 +13,7 @@ actions:
   # Back up default Windows serivces & drivers
   - !powerShell:
     command: |
-      .\BACKUP.ps1 -FilePath """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\winServices.reg"""
+      .\BACKUP.ps1 -FilePath """$([Environment]::GetFolderPath('Windows'))\AtlarModules\Other\winServices.reg"""
     wait: true
     exeDir: true
 
@@ -23,20 +23,20 @@ actions:
 
   - !writeStatus: {status: 'Disabling File Sharing'}
   - !powerShell:
-    command: '.\AtlasModules\Scripts\ScriptWrappers\DisableFileSharing.ps1 -Silent'
+    command: '.\AtlarModules\Scripts\ScriptWrappers\DisableFileSharing.ps1 -Silent'
     exeDir: true
     wait: true
     runas: currentUserElevated
 
   - !writeStatus: {status: 'Disabling Location'}
   - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd" /silent'
+    command: '"AtlarDesktop\3. General Configuration\Location\Disable Location (default).cmd" /silent'
     exeDir: true
     wait: true
 
   - !writeStatus: {status: 'Configuring Indexing'}
   - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd" /silent'
+    command: '"AtlarDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd" /silent'
     exeDir: true
     wait: true
 

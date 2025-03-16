@@ -1,6 +1,6 @@
 $windir = [Environment]::GetFolderPath('Windows')
-& "$windir\AtlasModules\initPowerShell.ps1"
-& "$windir\AtlasModules\Scripts\wingetCheck.cmd"
+& "$windir\AtlarModules\initPowerShell.ps1"
+& "$windir\AtlarModules\Scripts\wingetCheck.cmd"
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Clear-Host
@@ -53,7 +53,7 @@ function generate_checkbox {
 
 # Set the size of the form
 $Form = New-Object System.Windows.Forms.Form
-$Form.Text = "Install Software | Atlas" # Titlebar
+$Form.Text = "Install Software | Atlar" # Titlebar
 $Form.ShowIcon = $false
 $Form.MaximizeBox = $false
 $Form.MinimizeBox = $false

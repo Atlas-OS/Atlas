@@ -11,7 +11,7 @@ for %%a in (
 	"notifications"
 	"privacy-notifications"
 ) do (
-	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide %%~a /silent
+	call "%windir%\AtlarModules\Scripts\settingsPages.cmd" /hide %%~a /silent
 )
 
 :: Disable notif center
@@ -20,9 +20,9 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableNotificat
 :: Disable services
 sc config WpnService start=disabled > nul
 sc stop WpnService > nul 2>&1
-call "%windir%\AtlasModules\Scripts\setSvc.cmd" "WpnUserService" 4
+call "%windir%\AtlarModules\Scripts\setSvc.cmd" "WpnUserService" 4
 for /f "tokens=5 delims=\" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services" ^| find "WpnUserService_"') do (
-	call "%windir%\AtlasModules\Scripts\setSvc.cmd" "%%a" 4
+	call "%windir%\AtlarModules\Scripts\setSvc.cmd" "%%a" 4
 	sc stop "%%a" > nul
 	sc delete "%%a" > nul
 )

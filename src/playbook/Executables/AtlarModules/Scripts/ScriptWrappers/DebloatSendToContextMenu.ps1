@@ -16,7 +16,7 @@ $sendTo = Get-ChildItem ([Environment]::GetFolderPath('SendTo')) -Force
 $sys32 = [Environment]::GetFolderPath('System')
 $shell = New-Object -Com WScript.Shell
 $windir = [Environment]::GetFolderPath('Windows')
-& "$windir\AtlasModules\initPowerShell.ps1"
+& "$windir\rModules\initPowerShell.ps1"
 
 # Get Bluetooth path
 foreach ($lnk in (($sendTo | Where-Object { $_.Extension -eq ".lnk" }).FullName)) {
@@ -105,6 +105,6 @@ foreach ($item in $items.GetEnumerator()) {
 }
 
 # Restart Explorer prompt
-if ((Read-MessageBox -Title "Atlas - Send To Debloat" -Body 'Would you like to restart Windows Explorer? This will finalize the Send-To changes.' -Icon Info) -eq 'Yes') {
+if ((Read-MessageBox -Title "Atlar - Send To Debloat" -Body 'Would you like to restart Windows Explorer? This will finalize the Send-To changes.' -Icon Info) -eq 'Yes') {
     Stop-Process -Name explorer -Force
 }

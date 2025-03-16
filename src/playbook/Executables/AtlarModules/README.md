@@ -5,7 +5,7 @@ The root of the file paths listed here starts in `src\playbook\Executables`.
 
 ### Multi-Choice
 
-- Path: `\AtlasModules\Tools\multichoice.exe`
+- Path: `\AtlarModules\Tools\multichoice.exe`
 - SHA256 Hash: `6AB2FF0163AFE0FAC4E7506F9A63293421A1880076944339700A59A06578927D`
 - Source: https://github.com/Atlas-OS/Atlas-Utilities/releases/download/multichoice-v0.4/multichoice-compressed.exe
 - Repository: https://github.com/Atlas-OS/Atlas-Utilities
@@ -16,11 +16,11 @@ The root of the file paths listed here starts in `src\playbook\Executables`.
 
 ## SetTimerResolution & MeasureSleep
 
-- Path: `\AtlasModules\Tools\SetTimerResolution.exe`
+- Path: `\AtlarModules\Tools\SetTimerResolution.exe`
     - SHA256 Hash: `0515C2428E8960C751AD697ACA1C8D03BD43E2F0F1A0C0D2B4D998361C35EB57`
     - Source: https://github.com/deaglebullet/TimerResolution/releases/download/SetTimerResolution-v1.0.0/SetTimerResolution.exe
     - Version: v1.0.0
-- Path: `\AtlasDesktop\3. General Configuration\Timer Resolution\! MeasureSleep.exe`
+- Path: `\AtlarDesktop\3. General Configuration\Timer Resolution\! MeasureSleep.exe`
     - SHA256 Hash: `377AC4DAF2590AE6AC4703E8B9B532CB1D2041EB0AFE7AD4F62546AF32BE1B11`
     - Source: https://github.com/deaglebullet/TimerResolution/releases/download/MeasureSleep-v1.0.0/MeasureSleep.exe
     - Version: v1.0.0
@@ -31,7 +31,7 @@ The root of the file paths listed here starts in `src\playbook\Executables`.
 ## ViVeTool
 
 > [!NOTE]  
-> This is included in the Playbook and isn't in the AtlasModules.
+> This is included in the Playbook and isn't in the AtlarModules.
 
 - Path: `Executables\ViVeTool-v0.3.3.zip`
     - SHA256 hash: `59D1E792EDCC001A319C16435A03D203975BF50EB38BD55CA34370900606F9F0`

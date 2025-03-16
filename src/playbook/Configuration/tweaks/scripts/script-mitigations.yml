@@ -4,6 +4,6 @@ description: Disables mitigations in Windows dependant on the user's options
 option: 'mitigations-disable'
 actions:
   - !cmd:
-    command: '"AtlasDesktop\7. Security\Mitigations\Disable All Mitigations.cmd" /silent'
+    command: '"AtlarDesktop\7. Security\Mitigations\Disable All Mitigations.cmd" /silent'
     exeDir: true
     wait: true

@@ -50,7 +50,7 @@ if ($ids.Count -le 0) {
 # Hide 'Microsoft account' page in Settings that appears
 # Not set in the actual YAML in case no velocity IDs were found
 # If the velocity IDs aren't set, then the account page disappears
-& "$windir\AtlasModules\Scripts\settingsPages.cmd" /hide account
+& "$windir\AtlarModules\Scripts\settingsPages.cmd" /hide account
 
 # Extract ViVeTool https://github.com/thebookisclosed/ViVe
 # Not done in PowerShell as it's too complicated, it's just easiest to use the actual tool

@@ -1,6 +1,6 @@
 ---
 title: Set Profile Pictures
-description: Sets the default Atlas profile pictures
+description: Sets the default Atlar profile pictures
 actions:
   - !powerShell:
     command: '.\PFP.ps1'

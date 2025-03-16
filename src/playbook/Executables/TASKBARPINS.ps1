@@ -1,7 +1,7 @@
 param (
     [string]$Browser
 )
-.\AtlasModules\initPowerShell.ps1
+.\AtlarModules\initPowerShell.ps1
 
 # The names are used for the shortcuts in the taskbar
 # If they're changed, e.g. 'Brave', then you need new Favorites & FavoritesResolve

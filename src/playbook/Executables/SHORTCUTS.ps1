@@ -1,11 +1,11 @@
-.\AtlasModules\initPowerShell.ps1
+.\AtlarModules\initPowerShell.ps1
 $windir = [Environment]::GetFolderPath('Windows')
 
 Write-Title "Creating Desktop & Start Menu shortcuts..."
 
 # Default user
-$defaultShortcut = "$(Get-UserPath)\Atlas.lnk"
-New-Shortcut -Source "$windir\AtlasDesktop" -Destination $defaultShortcut -Icon "$windir\AtlasModules\Other\atlas-folder.ico,0"
+$defaultShortcut = "$(Get-UserPath)\Atlar.lnk"
+New-Shortcut -Source "$windir\AtlarDesktop" -Destination $defaultShortcut -Icon "$windir\AtlarModules\Other\atlar-folder.ico,0"
 
 # Copy shortcut to every user
 foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
@@ -23,5 +23,5 @@ foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
 Copy-Item $defaultShortcut -Destination "$([Environment]::GetFolderPath('CommonStartMenu'))\Programs" -Force
 
 Write-Title "Creating services restore shortcut..."
-$desktop = "$windir\AtlasDesktop"
+$desktop = "$windir\AtlarDesktop"
 New-Shortcut -Source "$desktop\8. Troubleshooting\Set services to defaults.cmd" -Destination "$desktop\6. Advanced Configuration\Services\Set services to defaults.lnk"

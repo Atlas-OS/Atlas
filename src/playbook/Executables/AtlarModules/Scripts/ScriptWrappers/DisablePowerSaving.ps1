@@ -5,7 +5,7 @@ param (
 )
 
 $windir = [Environment]::GetFolderPath('Windows')
-& "$windir\AtlasModules\initPowerShell.ps1"
+& "$windir\AtlarModules\initPowerShell.ps1"
 
 if (!$Silent) {
     $isLaptop = (Get-CimInstance -Class Win32_ComputerSystem -Property PCSystemType).PCSystemType -eq 2
@@ -26,12 +26,12 @@ Ensure that you have adequate cooling.`n
 }
 
 Write-Host "`nAdding power scheme..." -ForegroundColor Yellow
-# Duplicate Ultimate Performance power scheme, customize it and make it the Atlas power scheme
+# Duplicate Ultimate Performance power scheme, customize it and make it the Atlar power scheme
 if (!(powercfg /l | Select-String "GUID: 11111111-1111-1111-1111-111111111111" -Quiet)) {
     powercfg /duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 11111111-1111-1111-1111-111111111111 > $null
 }
 powercfg /setactive 11111111-1111-1111-1111-111111111111
-powercfg /changename scheme_current "Atlas Power Scheme" "Power scheme optimized for optimal latency and performance."
+powercfg /changename scheme_current "Atlar Power Scheme" "Power scheme optimized for optimal latency and performance."
 ## Secondary NVMe Idle Timeout - 0 miliseconds
 powercfg /setacvalueindex scheme_current 0012ee47-9041-4b5d-9b77-535fba8b1442 d3d55efd-c1ff-424e-9dc3-441be7833010 0
 ## Primary NVMe Idle Timeout - 0 miliseconds
@@ -57,7 +57,7 @@ powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 4d
 powercfg /setactive scheme_current
 
 Write-Host "Disabling power-saving ACPI devices..." -ForegroundColor Yellow
-& "$windir\AtlasModules\Scripts\toggleDev.cmd" -Disable '@("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI")' | Out-Null
+& "$windir\AtlarModules\Scripts\toggleDev.cmd" -Disable '@("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI")' | Out-Null
 
 Write-Host "Disabling network adapter power-saving..." -ForegroundColor Yellow
 $properties = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty

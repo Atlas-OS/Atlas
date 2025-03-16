@@ -17,7 +17,7 @@ actions:
   - !powerShell:
     command: |
       (Get-AppxPackage).PackageFamilyName |
-        Out-File """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
+        Out-File """$([Environment]::GetFolderPath('Windows'))\AtlarModules\AtlarPackagesOld.txt"""
     runas: currentUserElevated
     wait: true
 
@@ -79,7 +79,7 @@ actions:
   # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
   - !powerShell:
     command: |
-      $a = """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
+      $a = """$([Environment]::GetFolderPath('Windows'))\AtlarModules\AtlarPackagesOld.txt"""
       (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | 
         Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force };
       Remove-Item $a -Force
