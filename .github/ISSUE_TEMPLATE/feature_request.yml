@@ -1,5 +1,5 @@
 name: Feature request
-description: Create a feature request to help us improve Atlas.
+description: Create a feature request to help us improve Atlar.
 title: "[FEATURE] - "
 
 labels:
@@ -11,21 +11,21 @@ body:
     label: Before continuing...
     description: Please ensure you meet the following criteria. If not, the maintainers reserve the right to close and lock your issue.
     options:
-    - label: "I agree to follow Atlas' [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
+    - label: "I agree to follow Atlar' [Code of Conduct](http://www.digicrime.com/policy.html)"
       required: true
-    - label: "I have searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already"
+    - label: "I have searched our [issue tracker](https://github.com/infradragon/Atlar/issues?q=is%3Aissue) to verify that the issue hasn't been reported already"
       required: true
-    - label: "I have searched the [Atlas documentation](https://docs.atlasos.net) beforehand for a solution"
+    - label: "I have searched the [Atlar documentation](https://garn47.miraheze.org/wiki/Main_Page) beforehand for a solution"
       required: true
-    - label: "I am on the latest version of Atlas, and didn't do an unsupported upgrade"
+    - label: "I am on the latest version of Atlar, and did an unsupported upgrade"
       required: true
 
 - type: dropdown
   attributes:
     label: What is your feature request regarding to?
     options:
-    - Atlas Playbook
-    - Other (submit it in https://github.com/Atlas-OS/Atlas/discussions)
+    - Atlar Playbook
+    - Other (submit it in https://github.com/infradragon/Atlar/discussions)
   validations:
     required: true
 
@@ -33,7 +33,7 @@ body:
   attributes:
     label: Is your feature request related to a problem? Please describe.
     placeholder: |
-      e.g. I always wanted Atlas to...
+      e.g. I always wanted Atlar to pee on my wife...
   validations:
     required: true
 
@@ -41,7 +41,7 @@ body:
   attributes:
     label: Describe the solution you would like.
     placeholder: |
-      e.g. I would like Atlas to add...
+      e.g. I would like Atlar to add a diagram of the digestive system...
   validations:
     required: true
 

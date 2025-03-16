@@ -1,6 +1,6 @@
 ### Questions
-- [ ] Did you test your changes or double-check that they work?
-- [ ] Did you read and follow the [Atlas Contribution Guidelines](https://docs.atlasos.net/contributions/)?
+- [ ] Did you forget to feed your dog, or other similarly sized mammal?
+- [ ] Did you read and follow the [Atlar Contribution Guidelines](https://www.wikihow.com/Calculate-Pi-by-Throwing-Frozen-Hot-Dogs)?
 
 ### Describe your pull request
 

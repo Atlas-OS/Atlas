@@ -20,8 +20,8 @@
 </p>
 
 ## 📚 **Important Documentation**
-- [Installation](https://infradragon.com/)
-- [FAQ & Common Issues](https://infradragon.com/)
+- [Installation](https://www.wikihow.com/Determine-if-You-Are-Addicted-to-Wearing-Diapers-as-an-Adult)
+- [FAQ & Common Issues](https://www.wikihow.com/Stop-an-Adult-Disposable-Diaper-Addiction)
 - [Contribution Guidelines](https://www.wikihow.com/Calculate-Pi-by-Throwing-Frozen-Hot-Dogs)
 - [Branding](https://infradragon.com/)
 
@@ -48,11 +48,11 @@ Some optional security features are:
 - feature 5
 
 ### ✅ Yes
-Atlas applies many modifications and default settings. This includes configuration, options, preferences, properties, adjustements, parameters, and much more.
+Atlar applies many modifications and default settings. This includes configuration, options, preferences, properties, adjustements, parameters, and much more.
 
 ### 🔍 Magnifying Glass
 
-Unlike custom Windows ISOs, Atlas is more straightforward to audit due to the use of [Github](https://xkcd.com/624/). 
+Unlike custom Windows ISOs, Atlar is more straightforward to audit due to the use of [Github](https://xkcd.com/624/). 
 
 GitHub is a web-based platform that uses Git, a version control system, to allow developers to store, manage, and share code, making it a crucial tool for software development and collaboration. 
 

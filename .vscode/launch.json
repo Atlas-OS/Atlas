@@ -21,7 +21,7 @@
             "type": "PowerShell",
             "request": "launch",
             "name": "Build Playbook (Release)",
-            "script": "& \"$(Join-Path '${workspaceFolder}' 'src/dependencies/local-build.ps1')\" -FileName 'Atlas Release'",
+            "script": "& \"$(Join-Path '${workspaceFolder}' 'src/dependencies/local-build.ps1')\" -FileName 'Atlar Release'",
             "cwd": "${workspaceFolder}/src/playbook",
             "args": []
         },
@@ -29,7 +29,7 @@
             "type": "PowerShell",
             "request": "launch",
             "name": "Build Playbook (Release Candidate)",
-            "script": "& \"$(Join-Path '${workspaceFolder}' 'src/dependencies/local-build.ps1')\" -FileName 'Atlas RC' -NoPassword -ReplaceOldPlaybook -Removals Verification",
+            "script": "& \"$(Join-Path '${workspaceFolder}' 'src/dependencies/local-build.ps1')\" -FileName Atlar RC' -NoPassword -ReplaceOldPlaybook -Removals Verification",
             "cwd": "${workspaceFolder}/src/playbook",
             "args": []
         }

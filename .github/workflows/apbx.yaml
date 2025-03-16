@@ -1,4 +1,4 @@
-name: Create and Validate Atlas Playbook
+name: Create and Validate Atlar Playbook
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
           } elseif (Test-Path "$sxsc\regenAllConfigs") {
               Write-Output "Regenerating all configs..."
               Remove-Item -Path "$sxsc\regenAllConfigs" -Force
-              Remove-Item -Path ".\src\playbook\Executables\AtlasModules\Packages\*.cab" -Force -Recurse
+              Remove-Item -Path ".\src\playbook\Executables\AtlarModules\Packages\*.cab" -Force -Recurse
               $changedFiles = Get-ChildItem $sxsc -Filter *.yaml
           } else {
               Write-Output "Not building any packages, no sxsc config changes detected."
@@ -72,14 +72,14 @@ jobs:
           Write-Output "Making certificate..."
           $thumbprint = .\make-cert.ps1
           
-          $atlasSrcPath = '..\Atlas\src\'
-          $packagePath = "$atlasSrcPath\playbook\Executables\AtlasModules\Packages"
+          $atlarSrcPath = '..\Atlar\src\'
+          $packagePath = "$atlarSrcPath\playbook\Executables\AtlarModules\Packages"
           mkdir $packagePath -EA 0 | Out-Null
           Get-ChildItem "configs" -Filter *.yaml | ForEach-Object {
               Write-Output "`n`nProcessing $($_.Name)`n------------------------------------------------------"
               Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
 
-              $folderDir = ".\$atlasSrcPath\sxsc\$($_.Name -replace '-Arm','')"
+              $folderDir = ".\$atlarSrcPath\sxsc\$($_.Name -replace '-Arm','')"
               if (Test-Path $folderDir -PathType Container) {
                   Write-Output "Copying $($_.Name)'s files..."
                   Copy-Item -Path "$folderDir\*" -Destination '.\' -Recurse -Force | Out-Null
@@ -92,7 +92,7 @@ jobs:
               Write-Output "Building package..."
               .\start-build.ps1 -Thumbprint $thumbprint
 
-              Write-Output "Copying package to AtlasModules..."
+              Write-Output "Copying package to AtlarModules..."
               Get-ChildItem -File -Recurse -Filter *.cab | ForEach-Object {
                   Copy-Item -Path $_.FullName -Destination $packagePath -Force
               }
@@ -105,12 +105,12 @@ jobs:
 
       - name: Commit and push changes
         run: |
-          git config --local user.email "141822421+atlasos-admin@users.noreply.github.com"
-          git config --local user.name "atlasos-admin"
+          git config --local user.email "141822421+atlaros-admin@users.noreply.github.com"
+          git config --local user.name "atlaros-admin"
           git add -A
           git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
           git push
-        working-directory: src\playbook\Executables\AtlasModules\Packages
+        working-directory: src\playbook\Executables\AtlarModules\Packages
         if: env.runSxsc == 'true'
 
       - name: Create playbook (ZIP/APBX password is malte)
@@ -118,7 +118,7 @@ jobs:
         if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
         run: |
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
-          $pbName = "Atlas Playbook $($env:GITHUB_SHA.Substring(0,8))"
+          $pbName = "Atlar Playbook $($env:GITHUB_SHA.Substring(0,8))"
           & ..\dependencies\local-build.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName
           echo "Move the .apbx playbook into 'Release ZIP' to be released as an artifact with the additional files..."
           Move-Item "$pbName.apbx" "../release-zip"
@@ -128,7 +128,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ steps.create-pb.outcome != 'skipped' }}
         with:
-          name: Atlas Playbook
+          name: Atlar Playbook
           path: |
             src/release-zip/*
           if-no-files-found: error
