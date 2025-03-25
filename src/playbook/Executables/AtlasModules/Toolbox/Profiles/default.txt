@@ -1,5 +1,0 @@
-Default Atlas profile
-LockScreen
-SearchIndexing
-CpuIdle
-FsoAndGameBar
