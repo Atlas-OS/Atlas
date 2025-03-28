@@ -41,7 +41,7 @@ if ($Toolbox) {
     }
     Start-Process -FilePath "$tempDir\Net8.0_Runtime.exe" -WindowStyle Hidden -ArgumentList '/silent /install'
 	
-	& curl.exe -LSs "https://download.microsoft.com/download/7a3a6a44-b07e-4ca5-8b63-2de185769dbc/WindowsAppRuntimeInstall-x64.exe" -o "$tempDir\WinAppSDK.exe" $timeouts
+	& curl.exe -LSs "https://aka.ms/windowsappsdk/1.7/latest/windowsappruntimeinstall-x64.exe" -o "$tempDir\WinAppRuntime.exe" $timeouts
     if (!$?) {
 		Write-Error "Downloading Windows App SDK failed."
         exit 1
