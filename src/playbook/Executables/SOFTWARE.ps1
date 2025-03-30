@@ -76,21 +76,6 @@ if ($Brave) {
 
     Stop-Process -Name "brave" -Force -EA 0
 
-    # ------------------------------------------------------------------------- #
-    # Apply Brave registry keys after installation
-	# Credit: brave-debullshitinator by MulesGaming
-	# Github: https://github.com/MulesGaming/brave-debullshitinator/
-    # ------------------------------------------------------------------------- #
-    Write-Output "Applying Brave registry keys..."
-    New-Item -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Force | Out-Null
-    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "BraveRewardsDisabled" -Value 1 -Type DWord
-    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "BraveWalletDisabled" -Value 1 -Type DWord
-    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "BraveVPNDisabled" -Value 1 -Type DWord
-    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "BraveAIChatEnabled" -Value 0 -Type DWord
-    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "PasswordManagerEnabled" -Value 0 -Type DWord
-    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "TorDisabled" -Value 1 -Type DWord
-    Set-ItemProperty -Path "HKLM:\Software\Policies\BraveSoftware\Brave" -Name "DnsOverHttpsMode" -Value "automatic" -Type String
-
     exit
 }
 
