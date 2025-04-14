@@ -9,7 +9,7 @@ $pattern = "\(default\)\.cmd"
 foreach ($script in $folderItems)
 {
   if ($script.PSChildName -match $pattern){
-    #& $script.FullName /silent
+    & $script.FullName /silent
     Write-Host $script.PSChildName
   }
 }
