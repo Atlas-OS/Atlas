@@ -15,6 +15,7 @@ $timeouts = @("--connect-timeout", "10", "--retry", "5", "--retry-delay", "0", "
 $msiArgs = "/qn /quiet /norestart ALLUSERS=1 REBOOT=ReallySuppress"
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 
+# Create a temporary directory
 function Remove-TempDirectory { Pop-Location; Remove-Item -Path $tempDir -Force -Recurse -EA 0 }
 $tempDir = Join-Path -Path $(Get-SystemDrive) -ChildPath $([System.Guid]::NewGuid())
 New-Item $tempDir -ItemType Directory -Force | Out-Null
@@ -22,23 +23,21 @@ Push-Location $tempDir
 
 # Toolbox
 if ($Toolbox) {
-	# Get installer from GitHub
-    # Write-Output "..."
-    # & curl.exe -LSs "https://laptop-updates.brave.com/latest/winx64" -o "$tempDir\BraveSetup.exe" $timeouts
-    # if (!$?) {
-    #     Write-Error "Downloading Brave failed."
-    #     exit 1
-    # }
+    & curl.exe -LSs "https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe" -o "$tempDir\toolbox.exe" $timeouts
+    if (!$?) {
+        Write-Error "Downloading Toolbox failed."
+        exit 1
+    }
 
     Write-Output "Installing Toolbox..."
-    Start-Process -FilePath "toolbox-setup.msi" -WindowStyle Hidden -ArgumentList '/quiet'
-	
+	Start-Process -FilePath "C:\Users\TheyCreeper\Desktop\toolbox.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install'
 
 	& curl.exe -LSs "https://download.visualstudio.microsoft.com/download/pr/fc8c9dea-8180-4dad-bf1b-5f229cf47477/c3f0536639ab40f1470b6bad5e1b95b8/windowsdesktop-runtime-8.0.13-win-x64.exe" -o "$tempDir\Net8.0_Runtime.exe" $timeouts
     if (!$?) {
         Write-Error "Downloading .Net 8.0 Desktop Runtime failed."
         exit 1
     }
+	Write-Output "Installing .Net 8.0 Runtime..."
     Start-Process -FilePath "$tempDir\Net8.0_Runtime.exe" -WindowStyle Hidden -ArgumentList '/silent /install'
 	
 	& curl.exe -LSs "https://aka.ms/windowsappsdk/1.7/latest/windowsappruntimeinstall-x64.exe" -o "$tempDir\WinAppRuntime.exe" $timeouts
@@ -46,11 +45,11 @@ if ($Toolbox) {
 		Write-Error "Downloading Windows App SDK failed."
         exit 1
     }
+	Write-Output "Installing WinAppSDK..."
 	Start-Process -FilePath "$tempDir\WinAppSDK.exe" -WindowStyle Hidden -ArgumentList '/silent /install'
 	exit
 }
 
-# Create temporary directory
 
 # Brave
 if ($Brave) {
