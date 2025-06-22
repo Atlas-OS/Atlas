@@ -1,6 +1,7 @@
 ---
 title: Configure Taskbar Pins
 description: Configures taskbar pins for QoL, puts the browser first (if there is one) and Explorer next
+onUpgrade: false
 actions:
     # PowerShell commands used:
     # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-' | clip

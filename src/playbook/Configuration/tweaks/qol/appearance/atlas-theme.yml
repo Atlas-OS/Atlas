@@ -1,6 +1,7 @@
 ---
 title: Add Theme
 description: Adds and sets the Atlas themes by default
+onUpgrade: false
 actions:
     # Apply theme file and set recent themes
   - !powerShell:
