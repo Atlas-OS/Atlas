@@ -30,7 +30,7 @@ if ($Toolbox) {
     }
 
     Write-Output "Installing Toolbox..."
-	Start-Process -FilePath "C:\Users\TheyCreeper\Desktop\toolbox.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install'
+	Start-Process -FilePath "$tempDir\toolbox.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install'
 
 	& curl.exe -LSs "https://download.visualstudio.microsoft.com/download/pr/fc8c9dea-8180-4dad-bf1b-5f229cf47477/c3f0536639ab40f1470b6bad5e1b95b8/windowsdesktop-runtime-8.0.13-win-x64.exe" -o "$tempDir\Net8.0_Runtime.exe" $timeouts
     if (!$?) {
