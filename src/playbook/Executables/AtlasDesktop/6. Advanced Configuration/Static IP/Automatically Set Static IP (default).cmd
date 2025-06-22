@@ -16,6 +16,9 @@ fltmc > nul 2>&1 || (
     exit /b
 )
 
+:: Exit because the script requires manual text input
+if "%~1"=="/silent" exit /b
+
 :: Update Registry (State and Path)
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
@@ -74,7 +77,6 @@ netsh int ipv4 add dns name="%DeviceName%" %DNS2% index=2 > nul 2>&1
 echo Completed.
 pause
 exit /b
-if "%~1"=="/silent" exit /b
 
 :isValidIP
 :: Credit to Phlegm for error checking

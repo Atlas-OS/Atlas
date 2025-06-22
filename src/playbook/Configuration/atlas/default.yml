@@ -1,10 +1,11 @@
 ---
 title: Defaults
 description: Run default AtlasFolder scripts
+onUpgrade: false
 actions:
   - !writeStatus: {status: 'Applying default Atlas Folder settings'}
-  - !powerShell:
-    command: '.\DEFAULT.ps1'
+  - !cmd:
+    command: 'reg import .\DEFAULT.reg'
     exeDir: true
     wait: true
     runas: currentUserElevated
