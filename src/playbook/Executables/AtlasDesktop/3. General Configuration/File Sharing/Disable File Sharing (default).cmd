@@ -21,7 +21,7 @@ fltmc > nul 2>&1 || (
     )
     exit /b
 )
-`
+
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
