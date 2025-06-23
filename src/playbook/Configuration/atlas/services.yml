@@ -1,6 +1,7 @@
 ---
 title: Services and Drivers
 description: Configures services and drivers to reduce background system resource utilization
+onUpgrade: false
 actions:
   # ----------------------------------
   # - Potential references           -

@@ -1,7 +1,6 @@
 ---
 title: Defaults
 description: Run default AtlasFolder scripts
-onUpgrade: false
 actions:
   - !writeStatus: {status: 'Applying default Atlas Folder settings'}
   - !cmd:

@@ -1,6 +1,7 @@
 ---
 title: AppX
 description: Removes AppX packages and prevents them from being reinstalled
+onUpgrade: false
 actions:
   - !writeStatus: {status: 'Removing AppX packages'}
   
