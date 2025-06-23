@@ -22,7 +22,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 
 :: End of state and path update
 
-reg add "HKLM\Software\Policies\Microsoft\Windows\EdgeUI"/t REG_DWORD /v AllowEdgeSwipe /v "0" /f > nul
+reg add "HKLM\Software\Policies\Microsoft\Windows\EdgeUI" /t REG_DWORD /v AllowEdgeSwipe /d "0" /f > nul
 if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
