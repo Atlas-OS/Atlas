@@ -449,14 +449,71 @@ function Set-VisualEffects {
     reg add "HKCU\SOFTWARE\Microsoft\Windows\DWM" /v "EnableAeroPeek" /t REG_DWORD /d 0 /f
     reg add "HKCU\SOFTWARE\Microsoft\Windows\DWM" /v "AlwaysHibernateThumbnails" /t REG_DWORD /d 0 /f
 }
-# Function to invoke all optimizations sequentially
+
 function Invoke-AllQolOptimizations {
-    $functions = Get-Command -CommandType Function | Where-Object {
-        $_.Definition -match $MyInvocation.MyCommand.Path
-    }
-    foreach ($func in $functions) {
-        & $func.Name
-    } 
+    Write-Host "Running QOL optimizations"
+    Set-AtlasTheme
+    Set-TooltipColorBlue
+    Disable-ThemeChangesToPersonalizedFeatures
+    Disable-ReadAndScan
+    Disable-AnnoyingFeaturesAndShortcuts
+    Disable-AccessibilityToolShortcut
+    Disable-EaseOfAccessSounds
+    Remove-ExtractFromContextMenu
+    Remove-PrintingFromContextMenus
+    Show-MoreDetailsOnTransfers
+    Set-SendToContextMenu
+    Disable-UseCheckBoxesToSelectItems
+    Hide-GalleryInFileExplorer
+    Disable-SearchingForInvalidShortcuts
+    Disable-NetworkNavigationPaneInExplorer
+    Hide-OfficeFilesInQuickAccess
+    Show-FullContextMenuOnItems
+    Hide-RecentItems
+    Set-MouseHoverTimeForItemInfo
+    Set-FileExplorerToThisPC
+    Remove-PreviousVersionsFromExplorer
+    Remove-ShortcutText
+    Show-AllFilesWithExtensions
+    Enable-CompactMode
+    Disable-ShowEdgeTabsInAltTab
+    Disable-AutoRun
+    Disable-AeroShake
+    Disable-LowDiskSpaceChecks
+    Disable-MenuHoverDelay
+    Disable-SharedExperiences
+    Disable-StartMenuRecommendations
+    Restore-OldContextMenu
+    Set-UnpinnedControlCenterItems
+    Show-MorePinsInStartMenu
+    Set-ShutdownTime
+    Disable-StartupDelay
+    Set-CloseApplicationsOnSessionEnd
+    Show-CommandPromptOnWinX
+    Disable-MicrosoftCopilot
+    Disable-ShowDesktopPeek
+    Hide-TabletMode
+    Disable-WindowsChat
+    Add-EndTaskToTaskbar
+    Disable-TaskViewOnTaskbar
+    Set-TaskbarAlignLeft
+    Add-NetworkSharingShortcut
+    Set-BootConfiguration
+    Disable-WallpaperCompression
+    Set-StartMenu
+    Set-WindowsInkWorkspace
+    Disable-AutomaticStoreAppArchiving
+    Disable-DynamicLighting
+    Disable-MouseAcceleration
+    Disable-ScreenCaptureHotkey
+    Disable-SpellChecking
+    Disable-UnnecessaryTouchKeyboardSettings
+    Disable-TouchVisualFeedback
+    Disable-WindowsFeedback
+    Disable-WindowsSpotlight
+    Disable-ReduceSoundsWhileInCall
+    Hide-DisabledAndDisconnectedDevicesInSoundsPanel
+    Set-VisualEffects
 }
 
 # Export functions for module

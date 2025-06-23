@@ -105,6 +105,12 @@ function Set-SearchPrivacy {
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "BingSearchEnabled" /t REG_DWORD /d 0 /f
 }
 
+function Disable-UserActivityUpload {
+    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "EnableActivityFeed" /t REG_DWORD /d 0 /f
+    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "PublishUserActivities" /t REG_DWORD /d 0 /f
+    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "UploadUserActivities" /t REG_DWORD /d 0 /f
+}
+
 # Executes all privacy-related optimizations
 function Invoke-AllPrivacyOptimizations {
     Write-Host "Running privacy optimizations"
@@ -117,7 +123,7 @@ function Invoke-AllPrivacyOptimizations {
     Disable-InputTelemetry
     Set-WindowsMediaPlayer
     Disable-AppLaunchTracking
-    Disable-OnlineSpeechRecognition    
+    Disable-OnlineSpeechRecognition
     Disable-UserActivityUpload
     Set-SearchPrivacy
     Disable-RecallSnapshots
