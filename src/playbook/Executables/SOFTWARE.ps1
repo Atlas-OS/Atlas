@@ -46,7 +46,7 @@ if ($Toolbox) {
         exit 1
     }
 	Write-Output "Installing WinAppSDK..."
-	Start-Process -FilePath "$tempDir\WinAppSDK.exe" -WindowStyle Hidden -ArgumentList '/silent /install'
+	Start-Process -FilePath "$tempDir\WinAppRuntime.exe" -WindowStyle Hidden -ArgumentList '/silent /install'
 	exit
 }
 
