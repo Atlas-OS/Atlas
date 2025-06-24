@@ -1,6 +1,7 @@
 ---
 title: Components
 description: Removes certain Windows components
+onUpgrade: false
 actions:
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
