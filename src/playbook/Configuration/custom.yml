@@ -91,3 +91,11 @@ actions:
   - !task: {path: 'atlas\default.yml'}
   - !task: {path: 'atlas\revert.yml'}
   - !task: {path: 'tweaks.yml'}
+
+  # Set all the correct paths if there are incorrect ones in the registry
+  - !writeStatus: {status: 'Cleaning up registry paths'}
+  - !powerShell:
+    command: '.\SETPATHS.ps1'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
