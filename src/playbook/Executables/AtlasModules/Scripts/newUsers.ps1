@@ -59,7 +59,6 @@ Invoke-AllMiscSystemUtilities
 Invoke-AllPerformanceOptimizations
 Invoke-AllPrivacyOptimizations
 Invoke-AllQolOptimizations
-Invoke-AllSecurityTweaks
 Invoke-AllSystemScripts
 
 # Leave
