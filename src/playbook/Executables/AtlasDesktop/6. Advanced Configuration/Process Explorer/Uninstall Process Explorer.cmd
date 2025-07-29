@@ -50,7 +50,7 @@ if %ERRORLEVEL% NEQ 0 (
     echo Fallback fix applied. Please restart your computer for the changes to take effect.
     pause
 )
-
+if "%~1"=="/silent" exit /b
 echo Finished, changes have been applied.
 pause
 exit /b
