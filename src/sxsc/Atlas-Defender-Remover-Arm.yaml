@@ -397,4 +397,3 @@ updates:
   - target_component: Microsoft-Windows-SmartScreen.Resources
     target_arch: arm64.x86
     version: 38655.38527.65535.65535
-

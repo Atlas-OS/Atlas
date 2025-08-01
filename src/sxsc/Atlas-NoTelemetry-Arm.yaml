@@ -189,4 +189,3 @@ updates:
   - target_component: Windows-System-Diagnostics-Telemetry-PlatformTelemetryClient
     target_arch: arm64.x86
     version: 38655.38527.65535.65535
-

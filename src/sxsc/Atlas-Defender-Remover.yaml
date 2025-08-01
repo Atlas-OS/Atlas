@@ -343,4 +343,3 @@ updates:
           - key: ModRiskFileTypes
             type: REG_SZ
             value: '.bat;.exe;.reg;.vbs;.chm;.msi;.js;.cmd'
-
