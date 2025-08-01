@@ -30,7 +30,7 @@ updates:
   - target_component: Windows-Defender-Branding.Resources
     target_arch: wow64
     version: 38655.38527.65535.65535
- 
+
     # Application Guard
   - target_component: Windows-Defender-ApplicationGuard-Inbox-Deployment
     target_arch: amd64
@@ -343,3 +343,4 @@ updates:
           - key: ModRiskFileTypes
             type: REG_SZ
             value: '.bat;.exe;.reg;.vbs;.chm;.msi;.js;.cmd'
+
