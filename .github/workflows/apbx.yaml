@@ -88,11 +88,13 @@ jobs:
           Write-Output "Installing dependencies..."
           pip install -r requirements.txt | Out-Null
 
-          Write-Output "Making certificate..."
           $thumbprint = '${{ steps.cert.outputs.thumbprint }}'
+          Write-Output "Using cert thumbprint: $thumbprint"
+
           $atlasSrcPath = '..\Atlas\src\'
           $packagePath = "$atlasSrcPath\playbook\Executables\AtlasModules\Packages"
           mkdir $packagePath -EA 0 | Out-Null
+
           Get-ChildItem "configs" -Filter *.yaml | ForEach-Object {
               Write-Output "`n`nProcessing $($_.Name)`n------------------------------------------------------"
               Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
@@ -114,6 +116,9 @@ jobs:
               Get-ChildItem -File -Recurse -Filter *.cab | ForEach-Object {
                   Copy-Item -Path $_.FullName -Destination $packagePath -Force
               }
+
+              Write-Output "Copying certificate to AtlasModules..."
+              Copy-Item -Path ".\sxs.cer" -Destination $packagePath -Force
 
               Write-Output "Cleaning up..."
               .\clean.ps1
