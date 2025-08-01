@@ -71,17 +71,32 @@ jobs:
         working-directory: ..
         if: env.runSxsc == 'true'
 
+      - name: Generate and trust signing certificate
+        id: cert
+        run: |
+          $thumbprint = .\make-cert.ps1
+          Write-Output "thumbprint=$thumbprint" >> $env:GITHUB_OUTPUT
+
+          Write-Output "Importing generated cert to trusted root..."
+          Import-Certificate -FilePath ".\sxs.cer" -CertStoreLocation "Cert:\LocalMachine\Root" | Out-Null
+        shell: pwsh
+        working-directory: ..\sxsc
+        if: env.runSxsc == 'true'
+
       - name: Build CAB
         run: |
           Write-Output "Installing dependencies..."
           pip install -r requirements.txt | Out-Null
 
-          Write-Output "Making certificate..."
-          $thumbprint = .\make-cert.ps1
-          
+          $thumbprint = '${{ steps.cert.outputs.thumbprint }}'
+          Write-Output "Using cert thumbprint: $thumbprint"
+
           $atlasSrcPath = '..\Atlas\src\'
           $packagePath = "$atlasSrcPath\playbook\Executables\AtlasModules\Packages"
           mkdir $packagePath -EA 0 | Out-Null
+
+          Copy-Item -Path ".\sxs.cer" -Destination $packagePath -Force
+
           Get-ChildItem "configs" -Filter *.yaml | ForEach-Object {
               Write-Output "`n`nProcessing $($_.Name)`n------------------------------------------------------"
               Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
