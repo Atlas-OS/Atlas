@@ -17,7 +17,6 @@ updates:
     target_arch: amd64
     version: 38655.38527.65535.65535
 
-
     # Defender Branding
   - target_component: Windows-Defender-Branding
     target_arch: amd64
