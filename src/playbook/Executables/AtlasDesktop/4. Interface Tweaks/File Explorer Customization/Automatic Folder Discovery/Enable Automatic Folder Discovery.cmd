@@ -21,8 +21,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateVal
 reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 :: End of state and path update
+reg delete "HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders" /f
 
-reg add "HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell" /t REG_DWORD /v FolderType /d "0" /f > nul
 if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
