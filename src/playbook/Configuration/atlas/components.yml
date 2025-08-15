@@ -3,14 +3,6 @@ title: Components
 description: Removes certain Windows components
 onUpgrade: false
 actions:
-  # Trust certificate so CAB signatures are valid
-  - !powerShell:
-    command: >-
-      Import-Certificate -FilePath "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Packages\sxs.cer"
-      -CertStoreLocation "Cert:\LocalMachine\Root"
-    wait: true
-    exeDir: false
-
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
 
