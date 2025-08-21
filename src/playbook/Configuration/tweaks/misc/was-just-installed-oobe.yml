@@ -1,0 +1,10 @@
+---
+title: Sets WasJustInstalled reg value
+description: Is set to prevent newUsers script from running after OOBE with ISO injection 
+actions:
+  - !powerShell:
+    command: |
+      Set-ItemProperty -Path "HKLM:\SOFTWARE\AtlasOS\JustInstalled" -Name "WasJustInstalled" -Value 1
+    wait: true
+    runas: currentUserElevated
+    oobe: only

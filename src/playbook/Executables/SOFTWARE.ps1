@@ -23,11 +23,11 @@ Push-Location $tempDir
 
 # Toolbox
 if ($Toolbox) {
-	# & curl.exe -LSs "https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe" -o "$tempDir\toolbox.exe" $timeouts
-	# if (!$?) {
-	# 	Write-Error "Downloading Toolbox failed."
-	# 	exit 1
-	# }
+	& curl.exe -LSs "https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe" -o "$tempDir\toolbox.exe" $timeouts
+	if (!$?) {
+		Write-Error "Downloading Toolbox failed."
+		exit 1
+	}
 
 	Write-Output "Installing Toolbox..."
 	Start-Process -FilePath ".\AtlasToolbox-Setup.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"' -Wait
