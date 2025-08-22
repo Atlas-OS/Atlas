@@ -30,7 +30,7 @@ if ($Toolbox) {
 	}
 
 	Write-Output "Installing Toolbox..."
-	Start-Process -FilePath ".\AtlasToolbox-Setup.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"' -Wait
+	Start-Process -FilePath "$tempDir\toolbox.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"' -Wait
 	exit
 }
 

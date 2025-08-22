@@ -5,14 +5,14 @@ $atlasModules = "$windir\AtlasModules"
 
 $title = 'Preparing Atlas user settings...'
 
-if (Test-Path -Path "HKLM:\SOFTWARE\AtlasOS\JustInstalled") {
-    $wasJustInstalledValue = Get-ItemProperty -Path "HKLM:\SOFTWARE\AtlasOS\JustInstalled" -Name "WasJustInstalled"
-    if ($wasJustInstalledValue.WasJustInstalled -eq 1) {
-        Remove-Item -Path "HKLM:\SOFTWARE\AtlasOS\JustInstalled"
-        exit 0
-    }
-}
-else {
+# if (Test-Path -Path "HKLM:\SOFTWARE\AtlasOS\JustInstalled") {
+#     $wasJustInstalledValue = Get-ItemProperty -Path "HKLM:\SOFTWARE\AtlasOS\JustInstalled" -Name "WasJustInstalled"
+#     if ($wasJustInstalledValue.WasJustInstalled -eq 1) {
+#         Remove-Item -Path "HKLM:\SOFTWARE\AtlasOS\JustInstalled"
+#         exit 0
+#     }
+# }
+# else {
     if (!(Test-Path $atlasDesktop) -or !(Test-Path $atlasModules)) {
     Write-Host "Atlas was about to configure user settings, but its files weren't found. :(" -ForegroundColor Red
     Read-Pause
@@ -72,7 +72,7 @@ else {
     # Leave
     Start-Sleep 5
     logoff
-}
+# }
 
 
 
