@@ -32,29 +32,6 @@ if ($Toolbox) {
 	Write-Output "Installing Toolbox..."
 	Start-Process -FilePath "$tempDir\toolbox.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"'
 
-	& curl.exe -LSs "https://download.visualstudio.microsoft.com/download/pr/fc8c9dea-8180-4dad-bf1b-5f229cf47477/c3f0536639ab40f1470b6bad5e1b95b8/windowsdesktop-runtime-8.0.13-win-x64.exe" -o "$tempDir\Net8.0_Runtime.exe" $timeouts
-	if (!$?) {
-		Write-Error "Downloading .Net 8.0 Desktop Runtime failed."
-		exit 1
-	}
-	Write-Output "Installing .Net 8.0 Runtime..."
-	$p = Start-Process -Verb RunAs -FilePath "$tempDir\Net8.0_Runtime.exe" `
-		-ArgumentList '/silent /install' -WindowStyle Hidden -PassThru -Wait
-	if ($p.ExitCode -ne 0) {
-		Write-Error ".NET 8 Runtime installation failed with exit code $($p.ExitCode)"
-		exit 1
-	}
-
-	Write-Output "Installing WinAppSDK..."
-	$p = Start-Process -FilePath "winget" `
-	-ArgumentList "install --id Microsoft.WindowsAppRuntime.1.7 --silent --accept-source-agreements --accept-package-agreements" `
-	-WindowStyle Hidden -PassThru -Wait
-
-	if ($p.ExitCode -ne 0) {
-		Write-Error "Windows App SDK installation failed with exit code $($p.ExitCode)"
-		exit 1
-	}
-
 	exit
 }
 
