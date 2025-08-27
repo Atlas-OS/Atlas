@@ -364,4 +364,3 @@ actions:
   - !task: {path: 'tweaks\scripts\script-power.yml'} # Done last on purpose
   - !task: {path: 'tweaks\misc\enable-notifications.yml'}
   - !task: {path: 'tweaks\misc\config-oem-information.yml'}
-  - !task: {path: 'tweaks\misc\was-just-installed-oobe.yml'}
