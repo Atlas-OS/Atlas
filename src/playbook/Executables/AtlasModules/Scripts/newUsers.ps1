@@ -16,10 +16,12 @@ Write-Host $title -ForegroundColor Yellow
 Write-Host $('-' * ($title.length + 3)) -ForegroundColor Yellow
 Write-Host "You'll be logged out in 10 to 20 seconds, and once you login again, your new account will be ready for use."
 
+# Force close explorer.exe to prevent user action.
+cmd.exe /c "taskkill /F /IM explorer.exe"
 # Disable Windows 11 context menu & 'Gallery' in File Explorer
 if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
-    reg import "$atlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).reg" *>$null
-    reg import "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg" *>$null
+    & "$atlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd" /silent
+    & "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd" /silent
 
     # Set ThemeMRU (recent themes)
     Set-ThemeMRU | Out-Null
@@ -50,9 +52,6 @@ foreach ($path in @(
     }
 }
 
-& curl.exe -LSs "https://aka.ms/windowsappsdk/1.7/latest/windowsappruntimeinstall-x64.exe" -o "$tempDir\WinAppRuntime.exe" $timeouts
-Write-Output "Installing WinAppSDK..."
-runas /trustlevel:0x20000 "$tempdir\WinAppRuntime.exe -q"
 # Set taskbar search box to an icon
 Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 1
 
@@ -65,5 +64,4 @@ Invoke-AllQolOptimizations
 Invoke-AllSystemScripts
 
 # Leave
-Start-Sleep 5
-Restart-Computer
+cmd.exe /c "shutdown.exe /F /R /T 2"
