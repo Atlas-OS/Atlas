@@ -37,7 +37,14 @@ actions:
   #   data: '0'
   #   type: REG_DWORD
 
-    # Set new pins
+# Sets a temporary value for taskbar pins after oobe
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "Brave", type: REG_SZ, option: 'browser-brave', oobe: only}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "Firefox", type: REG_SZ, option: 'browser-firefox', oobe: only}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "Google Chrome", type: REG_SZ, option: 'browser-chrome', oobe: only}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "LibreWolf", type: REG_SZ, option: 'browser-librewolf', oobe: only}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "", type: REG_SZ, option: 'browser-librewolf', oobe: only}
+
+# Set new pins
   - !powerShell:
     command: '.\TASKBARPINS.ps1'
     option: '!install-another-browser'
