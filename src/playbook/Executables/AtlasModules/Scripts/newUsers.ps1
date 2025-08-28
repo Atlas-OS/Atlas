@@ -40,6 +40,16 @@ Set-LockscreenImage
 # Set visual effects
 & "$atlasDesktop\4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd" /silent
 
+# Set taskbar pins 
+$valueName = "Browser"
+$value = Get-ItemProperty -Path "HKLM:\SOFTWARE\AtlasOS\TempKey" -Name $valueName -ErrorAction Stop
+$Browser = $value.$valueName
+$Browser
+
+& ".\taskbarPins.ps1" $Browser
+
+reg delete "HKLM\SOFTWARE\AtlasOS\TempKey" /f
+
 # Pin 'Videos' and 'Music' folders to Home/Quick Acesss
 $o = new-object -com shell.application
 $currentPins = $o.Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}').Items() | ForEach-Object { $_.Path }
@@ -64,4 +74,4 @@ Invoke-AllQolOptimizations
 Invoke-AllSystemScripts
 
 # Leave
-cmd.exe /c "shutdown.exe /F /R /T 2"
+Start-Sleep 5 

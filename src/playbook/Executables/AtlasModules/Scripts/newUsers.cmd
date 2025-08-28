@@ -15,4 +15,4 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 powershell -ExecutionPolicy Bypass -NoProfile -File "%script%"
 
 pause
-exit /b 0
+shutdown.exe /F /R /T 2
