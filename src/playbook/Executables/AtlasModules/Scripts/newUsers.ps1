@@ -46,7 +46,7 @@ $value = Get-ItemProperty -Path "HKLM:\SOFTWARE\AtlasOS\TempKey" -Name $valueNam
 $Browser = $value.$valueName
 $Browser
 
-& ".\taskbarPins.ps1" $Browser
+& "$atlasModules\Scripts\taskbarPins.ps1" $Browser
 
 reg delete "HKLM\SOFTWARE\AtlasOS\TempKey" /f
 
