@@ -35,6 +35,11 @@ actions:
 
     # Windows components and Telemetry
   - !writeStatus: {status: 'Removing components'}
+  - !registryKey:
+    path: 'HKLM\OfflineSys\ControlSet001\Services\WdBoot'
+    operation: delete
+    option: 'defender-disable'
+    iso: only
   - !powerShell:
     command: >-
       & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
