@@ -8,4 +8,4 @@ actions:
     data: |
       powershell -EP Bypass -NoP & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\newUsers.cmd"""
     type: REG_SZ
-    scope: defaultUser
+    

@@ -7,26 +7,36 @@ actions:
     value: 'Flags'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Control Panel\Accessibility\Keyboard Response'
     value: 'Flags'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Control Panel\Accessibility\MouseKeys'
     value: 'Flags'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Control Panel\Accessibility\StickyKeys'
     value: 'Flags'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Control Panel\Accessibility\ToggleKeys'
     value: 'Flags'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
 
     # Disable language bar shortcuts
   - !registryKey:
@@ -36,16 +46,22 @@ actions:
     value: 'Layout Hotkey'
     data: '3'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Keyboard Layout\Toggle'
     value: 'Language Hotkey'
     data: '3'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Keyboard Layout\Toggle'
     value: 'Hotkey'
     data: '3'
     type: REG_DWORD
+    scope: defaultUser
+    
 
     # Disable Narrator shortcut  
   - !registryValue:
@@ -53,3 +69,5 @@ actions:
     value: 'WinEnterLaunchEnabled'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    

@@ -7,8 +7,12 @@ actions:
     value: 'Hidden'
     data: '1'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'HideFileExt'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    

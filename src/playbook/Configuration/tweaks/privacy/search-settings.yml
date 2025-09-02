@@ -8,26 +8,36 @@ actions:
     value: 'BingSearchEnabled'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'IsAADCloudSearchEnabled'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'IsDeviceSearchHistoryEnabled'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'IsMSACloudSearchEnabled'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'SafeSearchMode'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
 
     # Policies
   - !registryValue:
@@ -57,6 +67,8 @@ actions:
     value: 'DisableSearchBoxSuggestions'
     data: '1'
     type: REG_DWORD
+    scope: defaultUser
+    
 
     # Set search as icon on taskbar
   - !registryValue:
@@ -64,3 +76,5 @@ actions:
     value: 'SearchboxTaskbarMode'
     data: '1'
     type: REG_DWORD
+    scope: defaultUser
+    

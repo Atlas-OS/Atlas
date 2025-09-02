@@ -7,3 +7,5 @@ actions:
     value: 'NoLowDiskSpaceChecks'
     data: '1'
     type: REG_DWORD
+    scope: defaultUser
+    

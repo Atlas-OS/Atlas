@@ -7,3 +7,5 @@ actions:
     value: 'StartupDelayInMSec'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    

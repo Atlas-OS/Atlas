@@ -25,6 +25,8 @@ actions:
     value: 'RotatingLockScreenEnabled'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !powerShell:
     command: |
       foreach ($userKey in (Get-ChildItem "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative").PsPath) {
@@ -46,3 +48,5 @@ actions:
     value: 'ThemeFile'
     data: '%windir%\Resources\Themes\atlas-v0.4.x-dark.theme'
     type: REG_SZ
+    scope: defaultUser
+    

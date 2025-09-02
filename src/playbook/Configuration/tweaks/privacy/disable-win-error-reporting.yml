@@ -8,6 +8,8 @@ actions:
     value: 'Disabled'
     data: '1'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting'
     value: 'DoReport'

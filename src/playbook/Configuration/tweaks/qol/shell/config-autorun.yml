@@ -7,23 +7,33 @@ actions:
     value: 'DisableAutoplay'
     data: '1'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\CameraAlternate'
     value: 'MSTakeNoAction'
     data: ''
     type: REG_NONE
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\StorageOnArrival'
     value: 'MSTakeNoAction'
     data: ''
     type: REG_NONE
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\CameraAlternate\ShowPicturesOnArrival'
     value: 'MSTakeNoAction'
     data: ''
     type: REG_NONE
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\StorageOnArrival'
     value: 'MSTakeNoAction'
     data: ''
     type: REG_NONE
+    scope: defaultUser
+    

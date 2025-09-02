@@ -7,6 +7,7 @@ actions:
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
   - !registryValue:
     path: 'HKLM\Software\Policies\Microsoft\Windows\AdvertisingInfo'
     value: 'DisabledByGroupPolicy'

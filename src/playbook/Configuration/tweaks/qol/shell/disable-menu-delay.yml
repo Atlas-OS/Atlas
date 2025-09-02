@@ -7,3 +7,5 @@ actions:
     value: 'MenuShowDelay'
     data: '0'
     type: REG_SZ
+    scope: defaultUser
+    

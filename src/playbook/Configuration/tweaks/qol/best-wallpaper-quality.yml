@@ -7,3 +7,5 @@ actions:
     value: 'JPEGImportQuality'
     data: '100'
     type: REG_DWORD
+    scope: defaultUser
+    

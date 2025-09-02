@@ -20,16 +20,22 @@ actions:
     value: 'FavoritesVersion'
     data: '3'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
     value: 'MailPin'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
   - !registryValue:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
     value: 'CopilotPWAPin'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
+    
     # Not sure what this does
   # - !registryValue:
   #   path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'

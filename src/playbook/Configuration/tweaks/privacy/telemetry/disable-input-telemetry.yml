@@ -7,21 +7,25 @@ actions:
     value: 'RestrictImplicitInkCollection'
     data: '1'
     type: REG_DWORD
+    scope: defaultUser
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\InputPersonalization'
     value: 'RestrictImplicitTextCollection'
     data: '1'
     type: REG_DWORD
+    scope: defaultUser
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\InputPersonalization\TrainedDataStore'
     value: 'HarvestContacts'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Personalization\Settings'
     value: 'AcceptedPrivacyPolicy'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\TabletPC'
     value: 'PreventHandwritingDataSharing'
@@ -38,12 +42,14 @@ actions:
     value: 'InsightsEnabled'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
     # Disable improve inking and typing recognition
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Input\TIPC'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Input\TIPC'
     value: 'Enabled'

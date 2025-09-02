@@ -7,14 +7,17 @@ actions:
     value: 'sendcustomerdata'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
   - !registryValue:
     path: 'HKCU\Software\Policies\Microsoft\office\common\clienttelemetry'
     value: 'sendtelemetry'
     data: '3'
     type: REG_DWORD
+    scope: defaultUser
     # Customer Experience Program
   - !registryValue:
     path: 'HKCU\Software\Policies\Microsoft\office\16.0\common'
     value: 'qmenable'
     data: '0'
     type: REG_DWORD
+    scope: defaultUser
