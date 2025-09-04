@@ -51,24 +51,27 @@ actions:
   - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "", type: REG_SZ, option: 'browser-librewolf', oobe: only}
 
 # Set new pins
+  # TODO verify this all works. Can test by setting it up and restarting VM
   - !powerShell:
-    command: '.\TASKBARPINS.ps1'
+    command: ''Register-ScheduledTask -TaskName "TASKBARPINS" -Trigger (New-ScheduledTaskTrigger -AtStartup) -Action (New-ScheduledTaskAction -Execute "${Env:WinDir}\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-WindowStyle Hidden -Command `"& 'C:\Windows\AtasModules\Scripts\taskbarPins.ps1'`"") -RunLevel Highest -Force;''
     option: '!install-another-browser'
     exeDir: true
   - !powerShell:
-    command: ".\\TASKBARPINS.ps1 'Brave'"
+    command: "'Register-ScheduledTask -TaskName "TASKBARPINS" -Trigger (New-ScheduledTaskTrigger -AtStartup) -Action (New-ScheduledTaskAction -Execute "${Env:WinDir}\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-WindowStyle Hidden -Command `"& C:\Windows\AtasModules\Scripts\taskbarPins.ps1 'Brave'`"") -RunLevel Highest -Force;'"
     option: 'browser-brave'
     exeDir: true
   - !powerShell:
-    command: ".\\TASKBARPINS.ps1 'Firefox'"
+    command: "'Register-ScheduledTask -TaskName "TASKBARPINS" -Trigger (New-ScheduledTaskTrigger -AtStartup) -Action (New-ScheduledTaskAction -Execute "${Env:WinDir}\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-WindowStyle Hidden -Command `"& 'C:\Windows\AtasModules\Scripts\taskbarPins.ps1' 'Firefox'`"") -RunLevel Highest -Force;'"
     option: 'browser-firefox'
     exeDir: true
   - !powerShell:
-    command: ".\\TASKBARPINS.ps1 'Google Chrome'"
+    command: "'Register-ScheduledTask -TaskName "TASKBARPINS" -Trigger (New-ScheduledTaskTrigger -AtStartup) -Action (New-ScheduledTaskAction -Execute "${Env:WinDir}\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-WindowStyle Hidden -Command `"& 'C:\Windows\AtasModules\Scripts\taskbarPins.ps1' 'Google Chrome'`"") -RunLevel Highest -Force;'"
     option: 'browser-chrome'
     exeDir: true
   - !powerShell:
-    command: ".\\TASKBARPINS.ps1 'LibreWolf'"
+    command: "'Register-ScheduledTask -TaskName "TASKBARPINS" -Trigger (New-ScheduledTaskTrigger -AtStartup) -Action (New-ScheduledTaskAction -Execute "${Env:WinDir}\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-WindowStyle Hidden -Command `"& 'C:\Windows\AtasModules\Scripts\taskbarPins.ps1' 'Librewolf'`"") -RunLevel Highest -Force;'"
     option: 'browser-librewolf'
     exeDir: true
   - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
+  #- !powerShell:
+  #  command: 'Register-ScheduledTask -TaskName "TASKBARPINS" -Trigger (New-ScheduledTaskTrigger -AtStartup) -Action (New-ScheduledTaskAction -Execute "${Env:WinDir}\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-WindowStyle Hidden -Command `"& 'C:\Windows\AtasModules\Scripts\taskbarPins.ps1' -`"") -RunLevel Highest -Force;'

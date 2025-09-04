@@ -1,11 +1,12 @@
----
-title: Add newUsers.cmd script
-description: Adds the newUsers.ps1 script to RunOnce, which applies any tweaks that are dynamically generated on new user creation
-actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
-    value: 'RunScript'
-    data: |
-      powershell -EP Bypass -NoP & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\newUsers.cmd"""
-    type: REG_SZ
+# ---
+# title: Add newUsers.cmd script
+# description: Adds the newUsers.ps1 script to RunOnce, which applies any tweaks that are dynamically generated on new user creation
+# actions:
+#   - !registryValue:
+#     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
+#     value: 'RunScript'
+#     data: |
+#       powershell -EP Bypass -NoP & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\newUsers.cmd"""
+#     type: REG_SZ
     
+    ## TODO Delete before release. Also delte ps1 file
