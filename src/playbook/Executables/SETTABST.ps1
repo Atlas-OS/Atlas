@@ -2,13 +2,22 @@ param (
     [string]$Browser
 )
 if (!$Browser) {
-    $Command = "& 'C:\Windows\AtlasModules\Scripts\taskbarPins.ps1'"
-} else {
-    $Command = "& 'C:\Windows\AtlasModules\Scripts\taskbarPins.ps1' '$Browser'"
+    $ArgString = "`"${Env:WinDir}\AtlasModules\Scripts\taskbarPins.ps1`""
+    $Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File $ArgString"
+    $Trigger = New-ScheduledTaskTrigger -AtLogon
+    $Principal = New-ScheduledTaskPrincipal -UserId "$env:COMPUTERNAME\$env:USERNAME" -LogonType Interactive -RunLevel Highest
+
+    Register-ScheduledTask -TaskName "TaskBarPins" -Action $Action -Trigger $Trigger -Principal $Principal -Force
+}
+else {
+    $ArgString = "`"${Env:WinDir}\AtlasModules\Scripts\taskbarPins.ps1`""
+    $Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File $ArgString `"$Browser`""
+    $Trigger = New-ScheduledTaskTrigger -AtLogon
+    $Principal = New-ScheduledTaskPrincipal -UserId "$env:COMPUTERNAME\$env:USERNAME" -LogonType Interactive -RunLevel Highest
+
+    Register-ScheduledTask -TaskName "TaskBarPins" -Action $Action -Trigger $Trigger -Principal $Principal -Force
+
 }
 
-Register-ScheduledTask -TaskName "TASKBARPINS" -Trigger (New-ScheduledTaskTrigger -AtStartup) `
- -Action (New-ScheduledTaskAction `
- -Execute "${Env:WinDir}\System32\WindowsPowerShell\v1.0\powershell.exe" `
- -Argument "-WindowStyle Hidden -Command `"$Command`"") `
- -RunLevel Highest -Force
+
+

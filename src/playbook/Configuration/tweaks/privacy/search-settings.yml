@@ -69,7 +69,6 @@ actions:
     type: REG_DWORD
     scope: defaultUser
     
-
     # Set search as icon on taskbar
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
@@ -77,4 +76,9 @@ actions:
     data: '1'
     type: REG_DWORD
     scope: defaultUser
+    # Fallback for OOBE as it doesn't seem to work
+  - !powerShell:
+    command: 'reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /t REG_DWORD /v "SearchboxTaskbarMode" /d 1 /f > nul'
+    exeDir: true
+    oobe: only
     

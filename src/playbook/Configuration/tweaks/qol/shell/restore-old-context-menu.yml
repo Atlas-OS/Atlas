@@ -9,3 +9,8 @@ actions:
     data: ''
     type: REG_SZ
     scope: defaultUser
+    # Fall back for OOBE cause it seems not to work 
+  - !powerShell:
+    command: 'reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /t REG_SZ /d "" /f > nul'
+    exeDir: true
+    oobe: only
