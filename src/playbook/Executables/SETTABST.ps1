@@ -3,20 +3,21 @@ param (
 )
 if (!$Browser) {
     $ArgString = "`"${Env:WinDir}\AtlasModules\Scripts\taskbarPins.ps1`""
-    $Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File $ArgString"
+    $Action = New-ScheduledTaskAction -Execute "powershell.exe" `
+        -Argument "-NoProfile -ExecutionPolicy Bypass -File $ArgString `"$Browser`""
     $Trigger = New-ScheduledTaskTrigger -AtLogon
-    $Principal = New-ScheduledTaskPrincipal -UserId "$env:COMPUTERNAME\$env:USERNAME" -LogonType Interactive -RunLevel Highest
+    $Principal = New-ScheduledTaskPrincipal -GroupId "Users" -RunLevel Highest
 
-    Register-ScheduledTask -TaskName "TaskBarPins" -Action $Action -Trigger $Trigger -Principal $Principal -Force
+    Register-ScheduledTask -TaskName "TaskBarPinsDefault" -Action $Action -Trigger $Trigger -Principal $Principal -Force
 }
 else {
     $ArgString = "`"${Env:WinDir}\AtlasModules\Scripts\taskbarPins.ps1`""
-    $Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File $ArgString `"$Browser`""
+    $Action = New-ScheduledTaskAction -Execute "powershell.exe" `
+        -Argument "-NoProfile -ExecutionPolicy Bypass -File $ArgString `"$Browser`""
     $Trigger = New-ScheduledTaskTrigger -AtLogon
-    $Principal = New-ScheduledTaskPrincipal -UserId "$env:COMPUTERNAME\$env:USERNAME" -LogonType Interactive -RunLevel Highest
+    $Principal = New-ScheduledTaskPrincipal -GroupId "Users" -RunLevel Highest
 
     Register-ScheduledTask -TaskName "TaskBarPins" -Action $Action -Trigger $Trigger -Principal $Principal -Force
-
 }
 
 

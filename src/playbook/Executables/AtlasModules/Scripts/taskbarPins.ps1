@@ -123,6 +123,8 @@ foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
     }
 }
 
+& "$atlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd" /silent
+Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 1
 Unregister-ScheduledTask -TaskName "TASKBARPINS" -Confirm:$false
 
 Stop-Process -Name explorer -Force
