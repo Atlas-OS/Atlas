@@ -1,6 +1,8 @@
 param (
     [string]$Browser
 )
+$windir = [Environment]::GetFolderPath('Windows')
+$atlasDesktop = "$windir\AtlasDesktop"
 Set-Location 'C:\Windows\AtlasModules\Scripts'
 ..\initPowerShell.ps1
 
