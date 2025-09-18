@@ -4,13 +4,16 @@ description: Disables the CrossDeviceResume process
 builds: [ '>=22000' ]
 actions:
   - !registryValue: 
-    path: 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CrossDeviceResume\Configuration'
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\CrossDeviceResume\Configuration'
     value: 'IsResumeAllowed'
     type: REG_DWORD
     data: '0'
+    scope: defaultUser
   - !registryValue: 
-    path: 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\DisableCrossDeviceResume'
+    path: 'HKCU\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\DisableCrossDeviceResume'
     value: 'Value'
     type: REG_DWORD
     data: '1'
+    scope: defaultUser
+
 
