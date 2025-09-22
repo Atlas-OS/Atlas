@@ -4,9 +4,9 @@ description: Disables Dynamic Lighting by default
 builds: [ '>=22000' ]
 actions:
   - !registryValue:
-    path: 'HKCU\Software\Microsoft\Lighting'
+    path: 'HKU\.DEFAULT\Software\Microsoft\Lighting'
     value: 'AmbientLightingEnabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
     

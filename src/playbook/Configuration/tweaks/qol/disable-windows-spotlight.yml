@@ -3,44 +3,44 @@ title: Disable Windows Spotlight
 description: Windows Spotlight provides lockscreen messages like 'Like what you see?', and are disabled for QoL and privacy
 actions:
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    path: 'HKU\.DEFAULT\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableWindowsSpotlightFeatures'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    path: 'HKU\.DEFAULT\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableWindowsSpotlightWindowsWelcomeExperience'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    path: 'HKU\.DEFAULT\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableWindowsSpotlightOnActionCenter'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    path: 'HKU\.DEFAULT\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableWindowsSpotlightOnSettings'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    path: 'HKU\.DEFAULT\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableThirdPartySuggestions'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanelt'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanelt'
     value: '{2cc5ca98-6485-489a-920e-b3e88a6ccce3}'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     

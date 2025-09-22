@@ -4,11 +4,11 @@ description: Disables Windows Error Reporting for privacy and QoL
 actions:
   # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.InternetCommunicationManagement::PCH_DoNotReport
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    path: 'HKU\.DEFAULT\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
     value: 'Disabled'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting'

@@ -3,9 +3,9 @@ title: Disable Website Access to Language List
 description: Disables websites accessing the Windows language list for the best privacy, as it is a common fingerprinting technique to identify a user by their languages
 actions:
   - !registryValue:
-    path: 'HKCU\Control Panel\International\User Profile'
+    path: 'HKU\.DEFAULT\Control Panel\International\User Profile'
     value: 'HttpAcceptLanguageOptOut'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     

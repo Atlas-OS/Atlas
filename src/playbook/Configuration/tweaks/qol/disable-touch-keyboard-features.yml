@@ -3,21 +3,21 @@ title: Disable Unnecessary Touch Keyboard Settings
 description: Disable unnecessary touch keyboard settings for QoL
 actions:
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\TabletTip\1.7'
     value: 'EnableAutoShiftEngage'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
     
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\TabletTip\1.7'
     value: 'EnableKeyAudioFeedback'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
     
   # - !registryValue:
-  #   path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
+  #   path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\TabletTip\1.7'
   #   value: 'EnableShiftLock'
   #   data: '0'
   #   type: REG_DWORD

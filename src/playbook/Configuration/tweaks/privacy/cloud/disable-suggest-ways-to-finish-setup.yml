@@ -3,8 +3,8 @@ title: Disable Suggested Ways to Finish Setting Up Your Device
 description: Disables suggested ways to finish setting up your device, as it will mostly anony you to use cloud features
 actions:
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\UserProfileEngagement'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\UserProfileEngagement'
     value: 'ScoobeSystemSettingEnabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    

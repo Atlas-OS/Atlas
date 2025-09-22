@@ -21,11 +21,11 @@ actions:
     data: '1'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'RotatingLockScreenEnabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
     
   - !powerShell:
     command: |
@@ -44,9 +44,9 @@ actions:
 
     # Set Atlas theme as default for new users
   - !registryValue:
-    path: 'HKCU\Software\Policies\Microsoft\Windows\Personalization'
+    path: 'HKU\.DEFAULT\Software\Policies\Microsoft\Windows\Personalization'
     value: 'ThemeFile'
     data: '%windir%\Resources\Themes\atlas-v0.4.x-dark.theme'
     type: REG_SZ
-    scope: defaultUser
+    
     

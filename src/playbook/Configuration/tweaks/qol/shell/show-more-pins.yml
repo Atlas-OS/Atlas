@@ -4,9 +4,9 @@ description: Shows more pins in the Start Menu, meaning less recommendations
 builds: [ '>=22000' ]
 actions:
   - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    path: 'HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'Start_Layout'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     

@@ -5,38 +5,38 @@ actions:
 
   # Disable Game Bar
   - !registryValue:
-    path: 'HKCU\System\GameConfigStore'
+    path: 'HKU\.DEFAULT\System\GameConfigStore'
     value: 'GameDVR_Enabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'
     value: 'AppCaptureEnabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
 
   # Disable Game Bar tips
   # Disable 'Open Xbox Game Bar using this button on a controller'
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\GameBar'
     value: 'GamePanelStartupTipIndex'
     data: '3'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\GameBar'
     value: 'ShowStartupPanel'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\GameBar'
     value: 'UseNexusForGameBarEnabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
 
     # Disable Game Bar Presence Writer, required for GameBar
   - !registryValue:

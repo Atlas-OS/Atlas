@@ -3,14 +3,14 @@ title: Do Not Use Diagnostic Data For Tailored Experiences
 description: Prevents Windows from using diagnostic data for tailored experiences for privacy, also labeled as "Let Microsoft provide more tailored experiences with relevant tips and recommendations by using your diagnostic data"
 actions:
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'
     value: 'TailoredExperiencesWithDiagnosticDataEnabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    path: 'HKU\.DEFAULT\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableTailoredExperiencesWithDiagnosticData'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    

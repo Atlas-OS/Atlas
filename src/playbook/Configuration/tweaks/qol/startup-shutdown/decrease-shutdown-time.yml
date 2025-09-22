@@ -3,18 +3,18 @@ title: Decrease Shutdown Time
 description: Makes it so that Windows is less tolerable to hung apps, and tries to kill them as fast as possible on shutdown
 actions:
   - !registryValue:
-    path: 'HKCU\Control Panel\Desktop'
+    path: 'HKU\.DEFAULT\Control Panel\Desktop'
     value: 'HungAppTimeout'
     data: '2000'
     type: REG_SZ
-    scope: defaultUser
+    
     
   - !registryValue:
-    path: 'HKCU\Control Panel\Desktop'
+    path: 'HKU\.DEFAULT\Control Panel\Desktop'
     value: 'WaitToKillAppTimeOut'
     data: '2000'
     type: REG_SZ
-    scope: defaultUser
+    
     
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control'

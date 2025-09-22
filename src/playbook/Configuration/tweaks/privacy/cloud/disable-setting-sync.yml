@@ -25,38 +25,38 @@ actions:
     data: '2'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Personalization'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Personalization'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\BrowserSettings'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\BrowserSettings'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Credentials'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Credentials'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Accessibility'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Accessibility'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync'
     value: 'SyncPolicy'
     data: '5'
     type: REG_DWORD
-    scope: defaultUser
+    

@@ -5,11 +5,11 @@ actions:
     # Stop DiagTrack service to add the changes
   - !service: {name: 'DiagTrack', operation: stop, ignoreErrors: true}
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
     value: 'ShowedToastAtLevel'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
     value: 'AllowTelemetry'

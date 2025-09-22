@@ -11,18 +11,18 @@ actions:
 
     # Disable Windows Media Player wizard on first run
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\MediaPlayer\Preferences'
     value: 'AcceptedPrivacyStatement'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     
 
     # Disable Windows Media Player diagnostics
   - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences'
+    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\MediaPlayer\Preferences'
     value: 'UsageTracking'
     data: '0'
     type: REG_DWORD
-    scope: defaultUser
+    
     

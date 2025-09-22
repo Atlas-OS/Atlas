@@ -5,9 +5,9 @@ builds: [ '>=22000' ]
 actions:
     # Doesn't work with HKLM
   - !registryValue:
-    path: 'HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot'
+    path: 'HKU\.DEFAULT\Software\Policies\Microsoft\Windows\WindowsCopilot'
     value: 'TurnOffWindowsCopilot'
     data: '1'
     type: REG_DWORD
-    scope: defaultUser
+    
     
