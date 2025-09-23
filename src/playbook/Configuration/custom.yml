@@ -71,7 +71,7 @@ actions:
   # Test hive applying. Not sure if this will work as intended
   - !writeStatus: {status: 'Applying hives...'}
   - !powerShell:
-    command: '.\APPPLYDUHIVE.ps1'
+    command: '.\APPLYDUHIVE.ps1'
     exeDir: true
     wait: true
     runas: currentUserElevated
