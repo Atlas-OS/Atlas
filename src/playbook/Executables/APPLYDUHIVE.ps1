@@ -35,7 +35,7 @@ foreach ($path in $RegistryPaths) {
                     New-ItemProperty -Path $destination -Name $property.Name -Value $property.Value | Out-Null
                 }
                 else {
-                    Set-ItemProperty -Path $destination -Name $property.Value -Value $property.Value
+                    Set-ItemProperty -Path $destination -Name $property.Name -Value $property.Value
                 }
             }
         }
