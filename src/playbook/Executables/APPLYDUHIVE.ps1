@@ -1,7 +1,9 @@
 # Load DefaultUser hive
 $module = Get-Module -Name "FXPSYaml"
 if (!$module) {
-    Install-Module -Name FXPSYaml -Confirm:$false
+    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+    Install-Module -Name FXPSYaml -Force
+    Import-Module -Name FXPSYaml
 }
 $mountPoint = "Registry::HKU\.DEFAULT"
 

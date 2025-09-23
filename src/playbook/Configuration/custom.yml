@@ -75,6 +75,7 @@ actions:
     exeDir: true
     wait: true
     runas: currentUserElevated
+    oobe: false
 
   # Set all the correct paths if there are incorrect ones in the registry
   - !writeStatus: {status: 'Cleaning up registry paths'}
