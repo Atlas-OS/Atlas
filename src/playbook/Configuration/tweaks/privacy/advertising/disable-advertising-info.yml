@@ -3,7 +3,7 @@ title: Disable Advertising ID
 description: Disables Advertising ID for privacy
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD

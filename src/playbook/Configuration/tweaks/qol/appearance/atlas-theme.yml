@@ -21,7 +21,7 @@ actions:
     data: '1'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'RotatingLockScreenEnabled'
     data: '0'
     type: REG_DWORD
@@ -44,7 +44,7 @@ actions:
 
     # Set Atlas theme as default for new users
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Policies\Microsoft\Windows\Personalization'
+    path: 'HKU\DefaultUser\Software\Policies\Microsoft\Windows\Personalization'
     value: 'ThemeFile'
     data: '%windir%\Resources\Themes\atlas-v0.4.x-dark.theme'
     type: REG_SZ

@@ -4,7 +4,7 @@ description: Disables the network navigation pane/item in the Explorer sidebar f
 actions:
     # Use this instead once AME fixes hives issue
   # - !registryValue:
-  #   path: 'HKU\.DEFAULT\SOFTWARE\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}'
+  #   path: 'HKU\DefaultUser\SOFTWARE\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}'
   #   value: 'System.IsPinnedToNameSpaceTree'
   #   data: '0'
   #   type: REG_DWORD

@@ -3,14 +3,14 @@ title: Disable Ease of Access Sounds
 description: Disable Ease Of Access sounds on activation or sound warnings, like the infamous sticky keys sound, for QoL
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\Control Panel\Accessibility'
+    path: 'HKU\DefaultUser\Control Panel\Accessibility'
     value: 'Warning Sounds'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\.DEFAULT\Control Panel\Accessibility'
+    path: 'HKU\DefaultUser\Control Panel\Accessibility'
     value: 'Sound on Activation'
     data: '0'
     type: REG_DWORD
@@ -18,7 +18,7 @@ actions:
     
     # Disable visual warning for sounds in ease of access
   - !registryValue:
-    path: 'HKU\.DEFAULT\Control Panel\Accessibility\SoundSentry'
+    path: 'HKU\DefaultUser\Control Panel\Accessibility\SoundSentry'
     value: 'WindowsEffect'
     data: '0'
     type: REG_SZ

@@ -3,7 +3,7 @@ title: Disable Accessibility Tool Shortcut
 description: Disables the accessibility tool shortcut that launches with Win+Vol, which is also labeled as making touch and tablets easier to use, for QoL
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\Control Panel\Accessibility\SlateLaunch'
+    path: 'HKU\DefaultUser\Control Panel\Accessibility\SlateLaunch'
     value: 'LaunchAT'
     data: '0'
     type: REG_DWORD

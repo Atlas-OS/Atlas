@@ -3,7 +3,7 @@ title: Open File Explorer to This PC
 description: Configures File Explorer to open to This PC instead of Quick Access for QoL
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'LaunchTo'
     data: '1'
     type: REG_DWORD

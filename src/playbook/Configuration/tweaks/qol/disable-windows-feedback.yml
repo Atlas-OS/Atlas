@@ -3,14 +3,14 @@ title: Disable Windows Feedback
 description: Disables Windows Feedback for QoL
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Siuf\Rules'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Siuf\Rules'
     value: 'NumberOfSIUFInPeriod'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Siuf\Rules'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Siuf\Rules'
     value: 'PeriodInNanoSeconds'
     operation: delete
   - !registryValue:

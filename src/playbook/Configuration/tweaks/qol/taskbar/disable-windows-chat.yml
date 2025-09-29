@@ -9,7 +9,7 @@ actions:
     data: '3'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'TaskbarMn'
     data: '0'
     type: REG_DWORD

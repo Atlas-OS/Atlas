@@ -3,20 +3,20 @@ title: Disable Office Telemetry
 description: Disables Microsoft Office telemetry for privacy
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Policies\Microsoft\office\16.0\common'
+    path: 'HKU\DefaultUser\Software\Policies\Microsoft\office\16.0\common'
     value: 'sendcustomerdata'
     data: '0'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Policies\Microsoft\office\common\clienttelemetry'
+    path: 'HKU\DefaultUser\Software\Policies\Microsoft\office\common\clienttelemetry'
     value: 'sendtelemetry'
     data: '3'
     type: REG_DWORD
     
     # Customer Experience Program
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Policies\Microsoft\office\16.0\common'
+    path: 'HKU\DefaultUser\Software\Policies\Microsoft\office\16.0\common'
     value: 'qmenable'
     data: '0'
     type: REG_DWORD

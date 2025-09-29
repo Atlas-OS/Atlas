@@ -3,7 +3,7 @@ title: Do Not Reduce Sounds While in a Call
 description: Makes it so that Windows does not reduce sounds in a call for QoL, as people generally wouldn't want this behavior
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Multimedia\Audio'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Multimedia\Audio'
     value: 'UserDuckingPreference'
     data: '3'
     type: REG_DWORD

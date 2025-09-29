@@ -3,14 +3,14 @@ title: Disallow Themes to Change Certain Personalized Features
 description: Disallows themes to change certain personalized features, as most of the time people only really apply themes for wallpapers or Windows style skins (custom themes)
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
     value: 'ThemeChangesMousePointers'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes'
     value: 'ThemeChangesDesktopIcons'
     data: '0'
     type: REG_DWORD

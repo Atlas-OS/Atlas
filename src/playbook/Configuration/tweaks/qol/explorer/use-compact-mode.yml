@@ -4,7 +4,7 @@ description: Sets compact mode in File Explorer
 builds: [ '>=22000' ]
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'UseCompactMode'
     data: '1'
     type: REG_DWORD

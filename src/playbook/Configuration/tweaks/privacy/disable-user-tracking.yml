@@ -3,7 +3,7 @@ title: Disable Most Frequently Used Applications
 description: Disables the most frequently used applications in the start menu for privacy
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'NoInstrumentation'
     data: '1'
     type: REG_DWORD

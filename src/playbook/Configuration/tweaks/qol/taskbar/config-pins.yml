@@ -4,33 +4,33 @@ description: Configures taskbar pins for QoL, puts the browser first (if there i
 onUpgrade: false
 actions:
     # PowerShell commands used:
-    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKU\.DEFAULT:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-' | clip
-    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKU\.DEFAULT:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-' | clip
+    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKU\DefaultUser:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-' | clip
+    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKU\DefaultUser:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-' | clip
 
   - !taskKill: {name: 'explorer'}
 
     # Config pins
   - !registryKey:
-    path: 'HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
   - !registryKey:
-    path: 'HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
     operation: add
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
     value: 'FavoritesVersion'
     data: '3'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
     value: 'MailPin'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
     value: 'CopilotPWAPin'
     data: '0'
     type: REG_DWORD
@@ -38,7 +38,7 @@ actions:
     
     # Not sure what this does
   # - !registryValue:
-  #   path: 'HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+  #   path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
   #   value: 'TFLPin'
   #   data: '0'
   #   type: REG_DWORD

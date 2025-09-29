@@ -5,7 +5,7 @@ if (!$module) {
     Install-Module -Name FXPSYaml -Force
     Import-Module -Name FXPSYaml
 }
-$mountPoint = "Registry::HKU\.DEFAULT"
+reg load "HKU\DefaultUser" "C:\Users\Default\NTUSER.DAT"
 
 $configurationFolder = Join-Path $PSScriptRoot "..\Configuration\tweaks"
 $yamlFiles = Get-ChildItem -Path $configurationFolder -Filter *.yml -Recurse
@@ -16,7 +16,7 @@ foreach ($yamlFile in $yamlFiles) {
     $parsedYaml = ConvertFrom-Yaml $yamlContent
     foreach ($entry in $parsedYaml) {
         foreach ($value in $entry.actions.path) {
-            if ($value -like 'HKU\.DEFAULT*') {
+            if ($value -like 'HKU\DefaultUser*') {
                 if (!$RegistryPaths.Contains($value.Substring(13))) { $RegistryPaths += $value.Substring(13) }
             }
         }
@@ -45,4 +45,4 @@ foreach ($path in $RegistryPaths) {
 }
 Remove-Module "FXPSYaml" -Force
 # Unload DefaultUser hive
-reg unload $mountPoint
+reg unload "HKU\DefaultUser"

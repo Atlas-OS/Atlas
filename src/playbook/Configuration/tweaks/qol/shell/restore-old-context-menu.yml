@@ -4,13 +4,13 @@ description: Restores the old context menu in Windows 11
 builds: [ '>=22000' ]
 actions:
   - !registryValue:
-    path: 'HKU\.DEFAULT\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+    path: 'HKU\DefaultUser\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
     value: ''
     data: ''
     type: REG_SZ
     
     # Fall back for OOBE cause it seems not to work 
   - !powerShell:
-    command: 'reg add "HKU\.DEFAULT\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /t REG_SZ /d "" /f > nul'
+    command: 'reg add "HKU\DefaultUser\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /t REG_SZ /d "" /f > nul'
     exeDir: true
     oobe: only

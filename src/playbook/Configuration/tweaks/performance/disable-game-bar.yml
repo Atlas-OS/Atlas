@@ -5,13 +5,13 @@ actions:
 
   # Disable Game Bar
   - !registryValue:
-    path: 'HKU\.DEFAULT\System\GameConfigStore'
+    path: 'HKU\DefaultUser\System\GameConfigStore'
     value: 'GameDVR_Enabled'
     data: '0'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'
     value: 'AppCaptureEnabled'
     data: '0'
     type: REG_DWORD
@@ -20,19 +20,19 @@ actions:
   # Disable Game Bar tips
   # Disable 'Open Xbox Game Bar using this button on a controller'
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\GameBar'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\GameBar'
     value: 'GamePanelStartupTipIndex'
     data: '3'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\GameBar'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\GameBar'
     value: 'ShowStartupPanel'
     data: '0'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\.DEFAULT\SOFTWARE\Microsoft\GameBar'
+    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\GameBar'
     value: 'UseNexusForGameBarEnabled'
     data: '0'
     type: REG_DWORD
