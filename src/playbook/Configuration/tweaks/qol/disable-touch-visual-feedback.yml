@@ -3,14 +3,14 @@ title: Disable Touch Visual Feedback
 description: Disables touch visual feedback for QoL
 actions:
   - !registryValue:
-    path: 'HKU\DefaultUser\Control Panel\Cursors'
+    path: 'HKU\AME_UserHive_Default\Control Panel\Cursors'
     value: 'GestureVisualization'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\DefaultUser\Control Panel\Cursors'
+    path: 'HKU\AME_UserHive_Default\Control Panel\Cursors'
     value: 'ContactVisualization'
     data: '0'
     type: REG_DWORD

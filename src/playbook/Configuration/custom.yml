@@ -2,19 +2,11 @@
 title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
-  # AME Wizard seemingly has a bug where it doesn't mount other user's Registry hives
   - !writeStatus: { status: "Preparing hives" }
   - !powerShell:
-    command: |
-      do {
-        try {
-            reg load "HKU\DefaultUser" "C:\Users\Default\NTUSER.DAT" > nul
-        } catch {
-            Write-Warning $error[0]
-        }
-      } until (!$processesFound)
-    weight: 10
+    command: "reg load HKU\\AME_UserHive_Default C:\\Users\\Default\\NTUSER.DAT"
     wait: true
+    oobe: false
 
   - !writeStatus: { status: "Deleting old AtlasOS folders" }
   - !powerShell:
@@ -44,28 +36,6 @@ actions:
     wait: true
     exeDir: true
     handleExitCodes: { "!0": halt }
-
-  # - !writeStatus: { status: "Copying files" }
-  # - !powerShell:
-  #   command: |
-  #     $windir = [Environment]::GetFolderPath('Windows')
-  #     New-Item -Path ";$windir\AtlasModules\" -Name "OOBETemp" -ItemType "Directory"
-  #     New-Item -Path ";$windir\AtlasModules\OOBETemp" -Name "Executables" -ItemType "Directory"
-  #     New-Item -Path ";$windir\AtlasModules\OOBETemp" -Name "Configuration" -ItemType "Directory"
-  #     $windir = [Environment]::GetFolderPath('Windows')
-  #     @(
-  #         '..\Configuration\tweaks',
-  #     ) | ForEach-Object {
-  #         if (!(Test-Path $_)) { exit 1 }
-  #         Copy-Item -Path $_ -Destination ";$windir\AtlasModules\Configuration" -Force -Recurse
-  #         if (!$?) { exit 2 }
-  #     }
-  #         Copy-Item -Path 'APPLYDUHIVE.ps1' -Destination """$windir\AtlasModules\OOBETemp\Executables""" -Force -Recurse
-
-  #   weight: 10
-  #   wait: true
-  #   exeDir: true
-  #   handleExitCodes: { "!0": halt }
 
   # Prevent annoying notifications during deployment
   - !cmd:
@@ -123,6 +93,6 @@ actions:
 
   - !writeStatus: { status: "Cleaning up hives" }
   - !powerShell:
-    command: |
-      reg unload "HKU\DefaultUser"
+    command: "reg unload \"HKU\\AME_UserHive_Default\""
+    oobe: false
     wait: true

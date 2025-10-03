@@ -4,21 +4,21 @@ description: Disables 'Shared Experiences', which is a way of sharing items betw
 actions:
   # https://www.elevenforum.com/t/turn-on-or-off-nearby-sharing-in-windows-11.2644/
   - !registryValue:
-    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\CDP\SettingsPage'
+    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\CDP\SettingsPage'
     value: 'BluetoothLastDisabledNearShare'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\CDP'
+    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\CDP'
     value: 'NearShareChannelUserAuthzPolicy'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\CDP'
+    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\CDP'
     value: 'CdpSessionUserAuthzPolicy'
     data: '1'
     type: REG_DWORD

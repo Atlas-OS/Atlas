@@ -4,7 +4,7 @@ description: Sets taskbar to align left instead of centered
 builds: [ '>=22000' ]
 actions:
   - !registryValue:
-    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'TaskbarAl'
     data: '0'
     type: REG_DWORD

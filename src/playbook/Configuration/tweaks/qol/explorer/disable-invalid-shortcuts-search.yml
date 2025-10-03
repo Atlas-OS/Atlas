@@ -3,14 +3,14 @@ title: Disable Searching for Invalid Shortcuts
 description: Disables searching drives or using NTFS file system tracking for shortcuts that have invalid/non-existant paths for responsiveness
 actions:
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'NoResolveSearch'
     data: '1'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     value: 'NoResolveTrack'
     data: '1'
     type: REG_DWORD

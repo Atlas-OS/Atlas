@@ -3,7 +3,7 @@ title: Remove Shortcut Text
 description: Removes '- Shortcut' text appended onto the end of shortcuts for QoL
 actions:
   - !registryValue:
-    path: 'HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\NamingTemplates'
+    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\Explorer\NamingTemplates'
     value: 'ShortcutNameTemplate'
     data: '"%s.lnk"'
     type: REG_SZ

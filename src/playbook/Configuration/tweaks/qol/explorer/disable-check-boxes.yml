@@ -3,7 +3,7 @@ title: Disable Use Check Boxes to Select Items
 description: Disables check boxes in File Explorer to select items for QoL
 actions:
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'AutoCheckSelect'
     data: '0'
     type: REG_DWORD

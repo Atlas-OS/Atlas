@@ -10,5 +10,5 @@ actions:
   - !registryKey: {path: 'HKCR\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'}
   - !registryKey: {path: 'HKCR\Directory\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'}
   - !registryKey: {path: 'HKCR\Drive\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'}
-  - !registryValue: {path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer', value: 'NoPreviousVersionsPage', operation: delete}
-  - !registryValue: {path: 'HKU\DefaultUser\SOFTWARE\Policies\Microsoft\PreviousVersions', value: 'DisableLocalPage', operation: delete}
+  - !registryValue: {path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer', value: 'NoPreviousVersionsPage', operation: delete}
+  - !registryValue: {path: 'HKU\AME_UserHive_Default\SOFTWARE\Policies\Microsoft\PreviousVersions', value: 'DisableLocalPage', operation: delete}

@@ -3,7 +3,7 @@ title: Show More Details by Default on Transfers
 description: Shows more details by default on file transfers such as exact speed of files copying, moving, deleting, etc.
 actions:
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\OperationStatusManager'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\OperationStatusManager'
     value: 'EnthusiastMode'
     data: '1'
     type: REG_DWORD

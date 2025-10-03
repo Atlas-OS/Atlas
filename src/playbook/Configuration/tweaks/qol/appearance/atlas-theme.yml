@@ -13,7 +13,7 @@ actions:
     exeDir: true
     runas: currentUserElevated
 
-    # Applies Atlas lockscreen background
+    # Applies Atlas lockscreen background & wallpaper 
     # Also disables fun facts, tips, tricks, and more on lockscreen - only on Enterprise/Education
   - !registryValue:
     path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
@@ -21,11 +21,15 @@ actions:
     data: '1'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'RotatingLockScreenEnabled'
     data: '0'
     type: REG_DWORD
-    
+  - !registryValue:
+    path: 'HKU\AME_UserHive_Default\Control Panel\Desktop'
+    value: 'WallPaper'
+    data: 'C:\Windows\AtlasModules\Wallpapers\atlas-v0.4.x-dark.png'
+    type: REG_SZ
     
   - !powerShell:
     command: |
@@ -44,7 +48,7 @@ actions:
 
     # Set Atlas theme as default for new users
   - !registryValue:
-    path: 'HKU\DefaultUser\Software\Policies\Microsoft\Windows\Personalization'
+    path: 'HKU\AME_UserHive_Default\Software\Policies\Microsoft\Windows\Personalization'
     value: 'ThemeFile'
     data: '%windir%\Resources\Themes\atlas-v0.4.x-dark.theme'
     type: REG_SZ

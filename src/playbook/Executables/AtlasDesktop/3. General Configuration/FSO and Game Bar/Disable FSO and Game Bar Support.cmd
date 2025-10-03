@@ -37,6 +37,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" /v "AppCaptureEnabled" /t REG_DWORD /d "0" /f
 ) > nul
+Get-AppxPackage *xboxgamingoverlay* | Remove-AppxPackage -Confirm:$false
 if "%~1"=="/silent" exit /b
 
 echo.

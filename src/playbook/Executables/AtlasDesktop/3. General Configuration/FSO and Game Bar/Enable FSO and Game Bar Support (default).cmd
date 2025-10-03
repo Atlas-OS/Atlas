@@ -38,6 +38,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%
 
     reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" /v "AppCaptureEnabled" /f
 ) > nul 2>&1
+winget install 9NZKPSTSNW4P --accept-package-agreements --accept-source-agreements --silent
 if "%~1"=="/silent" exit /b
 
 echo.

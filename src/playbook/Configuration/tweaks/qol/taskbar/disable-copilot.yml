@@ -5,7 +5,7 @@ builds: [ '>=22000' ]
 actions:
     # Doesn't work with HKLM
   - !registryValue:
-    path: 'HKU\DefaultUser\Software\Policies\Microsoft\Windows\WindowsCopilot'
+    path: 'HKU\AME_UserHive_Default\Software\Policies\Microsoft\Windows\WindowsCopilot'
     value: 'TurnOffWindowsCopilot'
     data: '1'
     type: REG_DWORD

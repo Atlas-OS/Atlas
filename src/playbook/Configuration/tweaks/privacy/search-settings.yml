@@ -4,35 +4,35 @@ description: Configures search for the optimal usability and privacy, such as di
 actions:
     # Configure search permissions
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
     value: 'BingSearchEnabled'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'IsAADCloudSearchEnabled'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'IsDeviceSearchHistoryEnabled'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'IsMSACloudSearchEnabled'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'SafeSearchMode'
     data: '0'
     type: REG_DWORD
@@ -63,7 +63,7 @@ actions:
 
     # Disable online search and don't include web results from Bing
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Policies\Microsoft\Windows\Explorer'
     value: 'DisableSearchBoxSuggestions'
     data: '1'
     type: REG_DWORD
@@ -71,14 +71,14 @@ actions:
     
     # Set search as icon on taskbar
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
     value: 'SearchboxTaskbarMode'
     data: '1'
     type: REG_DWORD
     
     # Fallback for OOBE as it doesn't seem to work
   - !powerShell:
-    command: 'reg add "HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /t REG_DWORD /v "SearchboxTaskbarMode" /d 1 /f > nul'
+    command: 'reg add "HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /t REG_DWORD /v "SearchboxTaskbarMode" /d 1 /f > nul'
     exeDir: true
     oobe: only
     

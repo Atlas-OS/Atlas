@@ -3,25 +3,25 @@ title: Disable Input Telemetry
 description: Disables text, ink and handwriting telemetry for privacy
 actions:
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\InputPersonalization'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\InputPersonalization'
     value: 'RestrictImplicitInkCollection'
     data: '1'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\InputPersonalization'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\InputPersonalization'
     value: 'RestrictImplicitTextCollection'
     data: '1'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\InputPersonalization\TrainedDataStore'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\InputPersonalization\TrainedDataStore'
     value: 'HarvestContacts'
     data: '0'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Personalization\Settings'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Personalization\Settings'
     value: 'AcceptedPrivacyPolicy'
     data: '0'
     type: REG_DWORD
@@ -38,14 +38,14 @@ actions:
     type: REG_DWORD
     # Disable typing insights
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Input\Settings'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Input\Settings'
     value: 'InsightsEnabled'
     data: '0'
     type: REG_DWORD
     
     # Disable improve inking and typing recognition
   - !registryValue:
-    path: 'HKU\DefaultUser\SOFTWARE\Microsoft\Input\TIPC'
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Input\TIPC'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD

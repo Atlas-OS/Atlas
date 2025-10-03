@@ -4,7 +4,7 @@ description: Improves performance in File Explorer by not automatically determin
 actions:
     # Use this instead once AME fixes hives issue
   # - !registryValue:
-  #   path: 'HKU\DefaultUser\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell'
+  #   path: 'HKU\AME_UserHive_Default\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell'
   #   value: 'FolderType'
   #   data: 'NotSpecified'
   #   type: REG_SZ
