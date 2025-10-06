@@ -4,7 +4,7 @@ description: Runs all of the Playbook files
 actions:
   - !writeStatus: { status: "Preparing hives" }
   - !powerShell:
-    command: "reg load HKU\\AME_UserHive_Default C:\\Users\\Default\\NTUSER.DAT"
+    command: 'reg load HKU\AME_UserHive_Default C:\Users\Default\NTUSER.DAT'
     wait: true
     oobe: false
 
@@ -16,6 +16,7 @@ actions:
       Remove-Item -LiteralPath "$windir\AtlasModules" -Force -Recurse
     wait: true
     exeDir: true
+    oobe: false
     onUpgrade: true
 
   - !writeStatus: { status: "Copying files" }

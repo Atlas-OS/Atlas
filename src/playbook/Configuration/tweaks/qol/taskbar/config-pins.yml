@@ -52,32 +52,32 @@ actions:
 
 # Set new pins
   # TODO verify this all works. Can test by setting it up and restarting VM
-  - !powerShell:
-    command: '.\SETTABST.ps1'
-    option: '!install-another-browser'
-    exeDir: true
-    oobe: only
-  - !powerShell:
-    command: ".\\SETTABST.ps1 'Brave'"
-    option: 'browser-brave'
-    exeDir: true
-    oobe: only
-  - !powerShell:
-    command: ".\\SETTABST.ps1 'Firefox'"
-    option: 'browser-firefox'
-    exeDir: true
-    oobe: only
-  - !powerShell:
-    command: ".\\SETTABST.ps1 'Google Chrome'"
-    option: 'browser-chrome'
-    exeDir: true
-    oobe: only
-  - !powerShell:
-    command: ".\\SETTABST.ps1 'LibreWolf'"
-    option: 'browser-librewolf'
-    exeDir: true
-    oobe: only
-  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
+  # - !powerShell:
+  #   command: '.\SETTABST.ps1'
+  #   option: '!install-another-browser'
+  #   exeDir: true
+  #   oobe: only
+  # - !powerShell:
+  #   command: ".\\SETTABST.ps1 'Brave'"
+  #   option: 'browser-brave'
+  #   exeDir: true
+  #   oobe: only
+  # - !powerShell:
+  #   command: ".\\SETTABST.ps1 'Firefox'"
+  #   option: 'browser-firefox'
+  #   exeDir: true
+  #   oobe: only
+  # - !powerShell:
+  #   command: ".\\SETTABST.ps1 'Google Chrome'"
+  #   option: 'browser-chrome'
+  #   exeDir: true
+  #   oobe: only
+  # - !powerShell:
+  #   command: ".\\SETTABST.ps1 'LibreWolf'"
+  #   option: 'browser-librewolf'
+  #   exeDir: true
+  #   oobe: only
+  # - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
 
   - !powerShell:
     command: '.\TASKBARPINS.ps1'
