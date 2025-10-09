@@ -30,6 +30,7 @@ actions:
     value: 'WallPaper'
     data: 'C:\Windows\AtlasModules\Wallpapers\atlas-v0.4.x-dark.png'
     type: REG_SZ
+    onUpgrade: false
     
   - !powerShell:
     command: |

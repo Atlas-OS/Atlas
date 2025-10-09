@@ -16,7 +16,7 @@ foreach ($yamlFile in $yamlFiles) {
     $parsedYaml = ConvertFrom-Yaml $yamlContent
     foreach ($entry in $parsedYaml) {
         foreach ($value in $entry.actions.path) {
-            if ($value -like 'HKU\AME_UserHive_Default*') {
+            if ($value -like 'HKU\AME_UserHive_Default*' -and $value -notlike 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce') {
                 if (!$RegistryPaths.Contains($value.Substring(25))) { $RegistryPaths += $value.Substring(25) }
             }
         }
