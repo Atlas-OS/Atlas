@@ -23,7 +23,12 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSetti
 if "%~1"=="/silent" exit /b
 
 echo.
+
 echo Hibernation has been disabled.
-echo Press any key to exit...
+echo.
+set /p reboot=Would you like to reboot now to apply changes? (Y/N): 
+if /i "%reboot%"=="Y" (
+    shutdown /r /t 0
+)
 pause > nul
 exit /b
