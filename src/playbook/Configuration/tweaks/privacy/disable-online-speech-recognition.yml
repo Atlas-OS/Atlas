@@ -3,7 +3,7 @@ title: Disable Online Speech Recognition
 description: Disables online speech recognition for privacy purposes
 actions:
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy'
+    path: 'HKCU\SOFTWARE\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy'
     value: 'HasAccepted'
     data: '0'
     type: REG_DWORD

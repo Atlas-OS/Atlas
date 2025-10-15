@@ -14,8 +14,8 @@ fltmc > nul 2>&1 || (
     exit /b
 )
 
-reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
-reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path  /t REG_SZ    /d "%scriptPath%" /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path  /t REG_SZ    /d "%scriptPath%" /f > nul
 
 powershell -NoP -NonI -Command "Get-AppxPackage -AllUsers Microsoft.WindowsStore | ForEach-Object {Add-AppxPackage -DisableDevelopmentMode -Register (Join-Path $_.InstallLocation 'AppXManifest.xml')}" > nul
 

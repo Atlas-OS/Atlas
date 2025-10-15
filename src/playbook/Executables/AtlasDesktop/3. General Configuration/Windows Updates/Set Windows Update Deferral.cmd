@@ -60,13 +60,13 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v DeferFeature
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v DeferQualityUpdates /t REG_DWORD /d 1 /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v DeferQualityUpdatesPeriodInDays /t REG_DWORD /d %QualityDeferral% /f
 
-reg add "HKLM\SOFTWARE\AtlasOS\%settingNameFeature%" /v state /t REG_DWORD /d %stateValue% /f >nul
-reg add "HKLM\SOFTWARE\AtlasOS\%settingNameFeature%" /v path /t REG_SZ /d "%scriptPath%" /f >nul
-reg add "HKLM\SOFTWARE\AtlasOS\%settingNameFeature%" /v days /t REG_DWORD /d %FeatureDeferral% /f >nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services%settingNameFeature%" /v state /t REG_DWORD /d %stateValue% /f >nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services%settingNameFeature%" /v path /t REG_SZ /d "%scriptPath%" /f >nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services%settingNameFeature%" /v days /t REG_DWORD /d %FeatureDeferral% /f >nul
 
-reg add "HKLM\SOFTWARE\AtlasOS\%settingNameQuality%" /v state /t REG_DWORD /d %stateValue% /f >nul
-reg add "HKLM\SOFTWARE\AtlasOS\%settingNameQuality%" /v path /t REG_SZ /d "%scriptPath%" /f >nul
-reg add "HKLM\SOFTWARE\AtlasOS\%settingNameQuality%" /v days /t REG_DWORD /d %QualityDeferral% /f >nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services%settingNameQuality%" /v state /t REG_DWORD /d %stateValue% /f >nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services%settingNameQuality%" /v path /t REG_SZ /d "%scriptPath%" /f >nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services%settingNameQuality%" /v days /t REG_DWORD /d %QualityDeferral% /f >nul
 
 echo.
 echo Deferral settings applied successfully.

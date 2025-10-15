@@ -25,37 +25,37 @@ actions:
     data: '2'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Personalization'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Personalization'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\BrowserSettings'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\BrowserSettings'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Credentials'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Credentials'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Accessibility'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Accessibility'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
     
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync'
     value: 'SyncPolicy'
     data: '5'
     type: REG_DWORD

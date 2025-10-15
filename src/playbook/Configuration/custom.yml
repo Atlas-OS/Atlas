@@ -2,12 +2,6 @@
 title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
-  - !writeStatus: { status: "Preparing hives" }
-  - !powerShell:
-    command: 'reg load HKU\AME_UserHive_Default C:\Users\Default\NTUSER.DAT'
-    wait: true
-    oobe: false
-
   - !writeStatus: { status: "Deleting old AtlasOS folders" }
   - !powerShell:
     command: |
@@ -76,13 +70,21 @@ actions:
   - !task: { path: "tweaks.yml" }
 
   # Test hive applying. Not sure if this will work as intended
+  - !powerShell:
+    command: 'reg load HKU\AME_UserHive_Default C:\Users\Default\NTUSER.DAT'
+    oobe: false
+    wait: true
   - !writeStatus: { status: "Applying hives..." }
   - !powerShell:
     command: '.\APPLYDUHIVE.ps1'
     exeDir: true
     wait: true
     runas: currentUserElevated
+  - !powerShell:
+    command: "reg unload \"HKU\\AME_UserHive_Default\""
     oobe: false
+    wait: true
+ 
 
   # Set all the correct paths if there are incorrect ones in the registry
   - !writeStatus: { status: "Cleaning up registry paths" }
@@ -91,9 +93,3 @@ actions:
     exeDir: true
     wait: true
     runas: currentUserElevated
-
-  - !writeStatus: { status: "Cleaning up hives" }
-  - !powerShell:
-    command: "reg unload \"HKU\\AME_UserHive_Default\""
-    oobe: false
-    wait: true

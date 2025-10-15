@@ -17,8 +17,8 @@ fltmc > nul 2>&1 || (
 )
 
 :: Update Registry (State and Path)
-reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
-reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 if /i not "%~1"=="/silent" if /i not "%~1"=="/justcontext" call "%windir%\AtlasModules\Scripts\serviceWarning.cmd" %*
 

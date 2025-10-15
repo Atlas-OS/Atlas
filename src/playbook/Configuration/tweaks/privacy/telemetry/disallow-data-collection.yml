@@ -5,7 +5,7 @@ actions:
     # Stop DiagTrack service to add the changes
   - !service: {name: 'DiagTrack', operation: stop, ignoreErrors: true}
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
     value: 'ShowedToastAtLevel'
     data: '1'
     type: REG_DWORD

@@ -3,7 +3,7 @@ title: Add Theme
 description: Adds and sets the Atlas themes by default
 onUpgrade: false
 actions:
-    # Apply theme file and set recent themes
+    #Apply theme file and set recent themes
   - !powerShell:
     command: |
       .\AtlasModules\initPowerShell.ps1
@@ -21,15 +21,10 @@ actions:
     data: '1'
     type: REG_DWORD
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'RotatingLockScreenEnabled'
     data: '0'
     type: REG_DWORD
-  - !registryValue:
-    path: 'HKU\AME_UserHive_Default\Control Panel\Desktop'
-    value: 'WallPaper'
-    data: 'C:\Windows\AtlasModules\Wallpapers\atlas-v0.4.x-dark.png'
-    type: REG_SZ
     
   - !powerShell:
     command: |
@@ -48,7 +43,7 @@ actions:
 
     # Set Atlas theme as default for new users
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\Software\Policies\Microsoft\Windows\Personalization'
+    path: 'HKCU\Software\Policies\Microsoft\Windows\Personalization'
     value: 'ThemeFile'
     data: '%windir%\Resources\Themes\atlas-v0.4.x-dark.theme'
     type: REG_SZ

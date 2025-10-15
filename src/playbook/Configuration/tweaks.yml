@@ -196,6 +196,22 @@ actions:
   - !task: {path: 'tweaks\qol\ease-of-access\disable-warning-sounds.yml'}
 
   # -------------------------------------------------------------------------- #
+  #  qol\taskbar                                                               #
+  # -------------------------------------------------------------------------- #
+  - !task: {path: 'tweaks\qol\taskbar\cmd-win-x.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-cloud-optimized-content.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-desktop-peek.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-news-and-interests.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-tablet-mode.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\hide-meet-now.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\hide-task-view.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\config-pins.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-copilot.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-windows-chat.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\set-to-left.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\end-task.yml'}
+
+  # -------------------------------------------------------------------------- #
   #  qol\explorer                                                              #
   # -------------------------------------------------------------------------- #
   - !task: {path: 'tweaks\qol\explorer\always-more-details-transfer.yml'}
@@ -276,23 +292,6 @@ actions:
   # -------------------------------------------------------------------------- #
   - !task: {path: 'tweaks\qol\system\crash-control-qol.yml'}
   - !task: {path: 'tweaks\qol\system\disable-wpbt.yml'}
-
-  # -------------------------------------------------------------------------- #
-  #  qol\taskbar                                                               #
-  # -------------------------------------------------------------------------- #
-  - !task: {path: 'tweaks\qol\taskbar\cmd-win-x.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-cloud-optimized-content.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-desktop-peek.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-news-and-interests.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-tablet-mode.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\hide-meet-now.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\hide-task-view.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\config-pins.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-copilot.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-windows-chat.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\set-to-left.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\end-task.yml'}
-
 
 
   # -----------------------------------------------------

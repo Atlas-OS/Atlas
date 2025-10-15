@@ -2,9 +2,17 @@
 title: Add newUsers.cmd script
 description: Adds the newUsers.ps1 script to RunOnce, which applies any tweaks that are dynamically generated on new user creation
 actions:
+  - !powerShell:
+    command: 'reg load HKU\AME_UserHive_Default C:\Users\Default\NTUSER.DAT'
+    oobe: false
+    wait: true
   - !registryValue:
     path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
     value: 'RunScript'
     data: |
       powershell -EP Bypass -NoP & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\newUsers.cmd"""
     type: REG_SZ
+  - !powerShell:
+    command: "reg unload \"HKU\\AME_UserHive_Default\""
+    oobe: false
+    wait: true

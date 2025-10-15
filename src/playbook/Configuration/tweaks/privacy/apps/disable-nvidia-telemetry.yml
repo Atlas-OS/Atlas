@@ -3,7 +3,7 @@ title: Disable NVIDIA Control Panel Telemetry
 description: Disables NVIDIA Control Panel telemetry for privacy
 actions:
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\Software\NVIDIA Corporation\NVControlPanel2\Client'
+    path: 'HKCU\Software\NVIDIA Corporation\NVControlPanel2\Client'
     value: 'OptInOrOutPreference'
     data: '0'
     type: REG_DWORD

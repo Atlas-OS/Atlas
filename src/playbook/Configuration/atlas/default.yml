@@ -8,3 +8,9 @@ actions:
     exeDir: true
     wait: true
     runas: currentUserElevated
+  - !powerShell:
+    command: '.\DEFAULT.ps1'
+    exeDir: true
+    onUpgrade: true
+    wait: true
+    runas: currentUserElevated

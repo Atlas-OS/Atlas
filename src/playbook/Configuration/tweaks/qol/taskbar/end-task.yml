@@ -4,7 +4,7 @@ description: Adds 'End task' as a right-click option on taskbar for QoL
 builds: [ '>22000' ]
 actions:
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings'
     value: 'TaskbarEndTask'
     data: '1'
     type: REG_DWORD

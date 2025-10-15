@@ -14,7 +14,7 @@ fltmc > nul 2>&1 || (
     exit /b
 )
 
-reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 for /f "tokens=3" %%a in ('sc qc wuauserv ^| findstr /i START_TYPE') do (
     set "WUState=%%a"
@@ -50,7 +50,7 @@ sc config wuauserv start= disabled >nul 2>&1
 schtasks /Change /TN "Microsoft\Windows\WindowsUpdate\sih" /Disable >nul 2>&1
 schtasks /Change /TN "Microsoft\Windows\WindowsUpdate\sihboot" /Disable >nul 2>&1
 
-reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d 0 /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d 0 /f > nul
 
 echo Windows Updates have been disabled.
 call :askReboot
@@ -64,7 +64,7 @@ sc start wuauserv >nul 2>&1
 schtasks /Change /TN "Microsoft\Windows\WindowsUpdate\sih" /Enable >nul 2>&1
 schtasks /Change /TN "Microsoft\Windows\WindowsUpdate\sihboot" /Enable >nul 2>&1
 
-reg add "HKLM\SOFTWARE\AtlasOS\%settingName%" /v state /t REG_DWORD /d 1 /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d 1 /f > nul
 
 echo Windows Updates have been enabled.
 call :askReboot

@@ -48,7 +48,7 @@ $Browser
 
 & "$atlasModules\Scripts\taskbarPins.ps1" $Browser
 
-reg delete "HKLM\SOFTWARE\AtlasOS\TempKey" /f
+reg delete "HKLM\SOFTWARE\AtlasOS\ServicesTempKey" /f
 
 # Leave
 Start-Sleep 5 

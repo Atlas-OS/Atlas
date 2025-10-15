@@ -5,7 +5,7 @@ builds: [ '>=22000' ]
 actions:
     # Use this instead once AME fixes hives issue
   # - !registryValue:
-  #   path: 'HKU\AME_UserHive_Default\SOFTWARE\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}'
+  #   path: 'HKCU\SOFTWARE\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}'
   #   value: 'System.IsPinnedToNameSpaceTree'
   #   data: '0'
   #   type: REG_DWORD

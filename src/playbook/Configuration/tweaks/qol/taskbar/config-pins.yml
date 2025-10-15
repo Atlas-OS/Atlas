@@ -4,33 +4,33 @@ description: Configures taskbar pins for QoL, puts the browser first (if there i
 onUpgrade: false
 actions:
     # PowerShell commands used:
-    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKU\AME_UserHive_Default:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-' | clip
-    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKU\AME_UserHive_Default:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-' | clip
+    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-' | clip
+    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-' | clip
 
   - !taskKill: {name: 'explorer'}
 
     # Config pins
   - !registryKey:
-    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
   - !registryKey:
-    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
     operation: add
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
     value: 'FavoritesVersion'
     data: '3'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
     value: 'MailPin'
     data: '0'
     type: REG_DWORD
     
     
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
     value: 'CopilotPWAPin'
     data: '0'
     type: REG_DWORD
@@ -38,7 +38,7 @@ actions:
     
     # Not sure what this does
   # - !registryValue:
-  #   path: 'HKU\AME_UserHive_Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+  #   path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
   #   value: 'TFLPin'
   #   data: '0'
   #   type: REG_DWORD
@@ -50,58 +50,34 @@ actions:
   - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "LibreWolf", type: REG_SZ, option: 'browser-librewolf', oobe: only}
   - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "", type: REG_SZ, option: 'browser-librewolf', oobe: only}
 
-# Set new pins
-  # TODO verify this all works. Can test by setting it up and restarting VM
-  # - !powerShell:
-  #   command: '.\SETTABST.ps1'
-  #   option: '!install-another-browser'
-  #   exeDir: true
-  #   oobe: only
-  # - !powerShell:
-  #   command: ".\\SETTABST.ps1 'Brave'"
-  #   option: 'browser-brave'
-  #   exeDir: true
-  #   oobe: only
-  # - !powerShell:
-  #   command: ".\\SETTABST.ps1 'Firefox'"
-  #   option: 'browser-firefox'
-  #   exeDir: true
-  #   oobe: only
-  # - !powerShell:
-  #   command: ".\\SETTABST.ps1 'Google Chrome'"
-  #   option: 'browser-chrome'
-  #   exeDir: true
-  #   oobe: only
-  # - !powerShell:
-  #   command: ".\\SETTABST.ps1 'LibreWolf'"
-  #   option: 'browser-librewolf'
-  #   exeDir: true
-  #   oobe: only
-  # - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
-
   - !powerShell:
     command: '.\TASKBARPINS.ps1'
     option: '!install-another-browser'
     exeDir: true
     oobe: false
+    wait: true
   - !powerShell:
     command: ".\\TASKBARPINS.ps1 'Brave'"
     option: 'browser-brave'
     exeDir: true
     oobe: false
+    wait: true
   - !powerShell:
     command: ".\\TASKBARPINS.ps1 'Firefox'"
     option: 'browser-firefox'
     exeDir: true
     oobe: false
+    wait: true
   - !powerShell:
     command: ".\\TASKBARPINS.ps1 'Google Chrome'"
     option: 'browser-chrome'
     exeDir: true
     oobe: false
+    wait: true
   - !powerShell:
     command: ".\\TASKBARPINS.ps1 'LibreWolf'"
     option: 'browser-librewolf'
     exeDir: true
     oobe: false
-  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
+    wait: true
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: true}

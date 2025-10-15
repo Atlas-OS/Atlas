@@ -5,27 +5,24 @@ if (!$module) {
     Install-Module -Name FXPSYaml -Force
     Import-Module -Name FXPSYaml
 }
-reg load "HKU\AME_UserHive_Default" "C:\Users\Default\NTUSER.DAT"
-
 $configurationFolder = Join-Path $PSScriptRoot "..\Configuration\tweaks"
 $yamlFiles = Get-ChildItem -Path $configurationFolder -Filter *.yml -Recurse
-$mountPoint = "HKU\AME_UserHive_Default"
 $RegistryPaths = @()
 foreach ($yamlFile in $yamlFiles) {
     $yamlContent = Get-Content $yamlFile.FullName -Raw
     $parsedYaml = ConvertFrom-Yaml $yamlContent
     foreach ($entry in $parsedYaml) {
         foreach ($value in $entry.actions.path) {
-            if ($value -like 'HKU\AME_UserHive_Default*' -and $value -notlike 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce') {
-                if (!$RegistryPaths.Contains($value.Substring(25))) { $RegistryPaths += $value.Substring(25) }
+            if ($value -like 'HKCU') {
+                if (!$RegistryPaths.Contains($value.Substring(4))) { $RegistryPaths += $value.Substring(4) }
             }
         }
     }
 }
 
 foreach ($path in $RegistryPaths) {
-    $source = "Registry::$mountPoint\$path"
-    $destination = "Registry::HKCU\$path"
+    $source = "Registry::HKCU\$path"
+    $destination = "Registry::HKU\AME_UserHive_Default\$path"
     $values = Get-ItemProperty -Path $source -ErrorAction SilentlyContinue
     if ($values) {
         foreach ($property in $values.PSObject.Properties) {
@@ -45,4 +42,3 @@ foreach ($path in $RegistryPaths) {
 }
 Remove-Module "FXPSYaml" -Force
 # Unload DefaultUser hive
-reg unload "HKU\AME_UserHive_Default"

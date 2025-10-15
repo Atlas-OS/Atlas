@@ -10,8 +10,7 @@ fltmc > nul 2>&1 || (
     exit /b
 )
 
- @REM set "script=%windir%\AtlasModules\Scripts\installToolbox.ps1"
-set "script=C:\Users\TheyCreeper\Documents\Dev\Atlas\src\playbook\Executables\AtlasModules\Scripts\installToolbox.ps1"
+set "script=%windir%\AtlasModules\Scripts\installToolbox.ps1"
 if not exist "%script%" (
 	echo Script not found.
 	echo "%script%"

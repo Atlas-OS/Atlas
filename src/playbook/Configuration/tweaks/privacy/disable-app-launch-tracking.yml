@@ -4,7 +4,7 @@ description: Prevents Windows from automatically tracking applications you use t
 actions:
     # https://www.tenforums.com/tutorials/82967-turn-off-app-launch-tracking-windows-10-a.html
   - !registryValue:
-    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     value: 'Start_TrackProgs'
     data: '0'
     type: REG_DWORD
