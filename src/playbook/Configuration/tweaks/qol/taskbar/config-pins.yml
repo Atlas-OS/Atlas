@@ -44,11 +44,11 @@ actions:
   #   type: REG_DWORD
 
 # Sets a temporary value for taskbar pins after oobe
-  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "Brave", type: REG_SZ, option: 'browser-brave', oobe: only}
-  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "Firefox", type: REG_SZ, option: 'browser-firefox', oobe: only}
-  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "Google Chrome", type: REG_SZ, option: 'browser-chrome', oobe: only}
-  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "LibreWolf", type: REG_SZ, option: 'browser-librewolf', oobe: only}
-  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\TempKey', value: 'browser', data: "", type: REG_SZ, option: 'browser-librewolf', oobe: only}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "Brave", type: REG_SZ, option: 'browser-brave'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "Firefox", type: REG_SZ, option: 'browser-firefox'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "Google Chrome", type: REG_SZ, option: 'browser-chrome'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "LibreWolf", type: REG_SZ, option: 'browser-librewolf'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "", type: REG_SZ, option: 'browser-librewolf'}
 
   - !powerShell:
     command: '.\TASKBARPINS.ps1'

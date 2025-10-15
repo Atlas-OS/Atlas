@@ -4,7 +4,7 @@ if (-not $isAdmin) {
     Start-Process powershell.exe -Verb RunAs -ArgumentList "-File `"$PSCommandPath`""
     exit
 }
-$rootPath = "HKLM:\SOFTWARE\AtlasOS\"
+$rootPath = "HKLM:\SOFTWARE\AtlasOS\Services"
 $registryKeys = Get-ChildItem -Path $rootPath -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.PSIsContainer }
 
 $valueName = "path"
