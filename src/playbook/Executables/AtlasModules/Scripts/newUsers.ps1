@@ -16,8 +16,6 @@ Write-Host $title -ForegroundColor Yellow
 Write-Host $('-' * ($title.length + 3)) -ForegroundColor Yellow
 Write-Host "You'll be logged out in 10 to 20 seconds, and once you login again, your new account will be ready for use."
 
-# Force close explorer.exe to prevent user action.
-cmd.exe /c "taskkill /F /IM explorer.exe"
 # Disable Windows 11 context menu & 'Gallery' in File Explorer
 if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
     & "$atlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd" /silent
@@ -28,7 +26,7 @@ if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
 }
 
 # Set lockscreen wallpaper
-Set-LockscreenImage
+Set-LockscreenImage -Wait
 
 
 # Disable 'Network' in navigation pane
@@ -42,13 +40,12 @@ Set-LockscreenImage
 
 # Set taskbar pins 
 $valueName = "Browser"
-$value = Get-ItemProperty -Path "HKLM:\SOFTWARE\AtlasOS\TempKey" -Name $valueName -ErrorAction Stop
+$value = Get-ItemProperty -Path "HKLM:\SOFTWARE\AtlasOS\SetupOptions" -Name $valueName -ErrorAction Stop
 $Browser = $value.$valueName
 $Browser
 
 & "$atlasModules\Scripts\taskbarPins.ps1" $Browser
 
-reg delete "HKLM\SOFTWARE\AtlasOS\ServicesTempKey" /f
-
 # Leave
 Start-Sleep 5 
+logoff
