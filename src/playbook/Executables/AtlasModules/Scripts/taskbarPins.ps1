@@ -126,4 +126,3 @@ foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
 }
 
 Stop-Process -Name explorer -Force
-Start-Process explorer

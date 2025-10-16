@@ -26,8 +26,7 @@ if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
 }
 
 # Set lockscreen wallpaper
-Set-LockscreenImage -Wait
-
+Set-LockscreenImage
 
 # Disable 'Network' in navigation pane
 & "$atlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" /silent
@@ -45,6 +44,7 @@ $Browser = $value.$valueName
 $Browser
 
 & "$atlasModules\Scripts\taskbarPins.ps1" $Browser
+Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 1
 
 # Leave
 Start-Sleep 5 
