@@ -9,7 +9,7 @@ $pattern = "\(default\)\.cmd"
 foreach ($script in $folderItems)
 {
   if ($script.PSChildName -match $pattern){
-    & $script.FullName /silent
+    Start-Process -FilePath $script.FullName -ArgumentList "/silent" -Wait
     Write-Host $script.PSChildName
   }
 }
