@@ -26,9 +26,10 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d 
 reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 powershell -EP Bypass -NoP -File "%script%"
-if "%~1"=="/silent" powershell -EP Bypass -NoP -File "%script%" -Silent
 if "%~1"=="/silent" exit /b
 
+choice /c:yn /n /m "Finished, would you like to restart now to apply the changes? [Y/N] "
+if %ERRORLEVEL% == 1 shutdown /r /t 0
 echo Finished, File Sharing is now enabled.
 pause > nul
 exit /b

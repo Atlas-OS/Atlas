@@ -13,3 +13,4 @@ foreach ($script in $folderItems)
     Write-Host $script.PSChildName
   }
 }
+exit 0
