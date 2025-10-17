@@ -5,7 +5,6 @@ actions:
   - !writeStatus: {status: 'Applying default Atlas Folder settings'}
   - !cmd:
     command: 'reg import .\DEFAULT.reg'
-    onUpgrade: true
     exeDir: true
     wait: true
     runas: currentUserElevated
