@@ -17,12 +17,12 @@ fltmc > nul 2>&1 || (
 )
 
 :: Update Registry (State and Path)
-reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% > nul
-reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 :: End of state and path update
 
-reg import "%windir%\AtlasModules\Scripts\Registry\TakeOwnership\remove.reg" > nul
+@REM reg import "%windir%\AtlasModules\Scripts\Registry\TakeOwnership\remove.reg" > nul
 if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
