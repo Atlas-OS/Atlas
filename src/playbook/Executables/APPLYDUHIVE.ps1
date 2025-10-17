@@ -40,5 +40,3 @@ foreach ($path in $RegistryPaths) {
         }
     }
 }
-Remove-Module "FXPSYaml" -Force
-# Unload DefaultUser hive

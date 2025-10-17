@@ -28,7 +28,7 @@ start explorer.exe
 
 if "%~1"=="/silent" exit /b
 
-echo]
+echo.
 echo Finished, changes are applied.
 echo Press any key to exit...
 pause > nul

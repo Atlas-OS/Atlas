@@ -6,9 +6,6 @@ actions:
     # PowerShell commands used:
     # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-' | clip
     # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-' | clip
-
-  - !taskKill: {name: 'explorer'}
-
     # Config pins
   - !registryKey:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
@@ -80,4 +77,3 @@ actions:
     exeDir: true
     oobe: false
     wait: true
-  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: true}

@@ -1,15 +1,25 @@
 ---
 title: Add Theme
 description: Adds and sets the Atlas themes by default
-onUpgrade: false
 actions:
     #Apply theme file and set recent themes
+  - !powerShell:
+    command: |
+      .\AtlasModules\initPowerShell.ps1
+      Set-ThemeMRU
+    wait: true
+    onUpgrade: true
+    oobe: false
+    exeDir: true
+    runas: curretUserElevated
+    
   - !powerShell:
     command: |
       .\AtlasModules\initPowerShell.ps1
       Set-Theme -Path """$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.4.x-dark.theme"""
       Set-ThemeMRU
     wait: true
+    onUpgrade: false
     exeDir: true
     runas: currentUserElevated
 
@@ -20,12 +30,13 @@ actions:
     value: 'LockScreenOverlaysDisabled'
     data: '1'
     type: REG_DWORD
+    onUpgrade: false
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'RotatingLockScreenEnabled'
     data: '0'
     type: REG_DWORD
-    
+    onUpgrade: false
   - !powerShell:
     command: |
       foreach ($userKey in (Get-ChildItem "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative").PsPath) {
@@ -33,6 +44,7 @@ actions:
       }
     exeDir: true
     wait: true
+    onUpgrade: false
   - !powerShell:
     command: |
       .\AtlasModules\initPowerShell.ps1
@@ -40,6 +52,7 @@ actions:
     exeDir: true
     wait: true
     runas: currentUserElevated
+    onUpgrade: false
 
     # Set Atlas theme as default for new users
   - !registryValue:
@@ -47,5 +60,6 @@ actions:
     value: 'ThemeFile'
     data: '%windir%\Resources\Themes\atlas-v0.4.x-dark.theme'
     type: REG_SZ
+    onUpgrade: true
     
     
