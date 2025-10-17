@@ -40,7 +40,7 @@ function Set-StorageSense{
         "08",
         "256"
     )
-    
+
     foreach ($value in $values){
         reg add $key /t REG_DWORD /v $value /d "0" /f
     }
@@ -52,7 +52,7 @@ function Set-StorageSense{
 }
 
 function Set-DisableStorageSense {
-    Write-Host "Disalbing Storage Sense"
+    Write-Host "Disabling Storage Sense"
     dism.exe /Online /Set-ReservedStorageState /State:Disabled
 }
 

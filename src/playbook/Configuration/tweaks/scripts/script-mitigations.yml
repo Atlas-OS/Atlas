@@ -1,6 +1,6 @@
 ---
 title: Disable Mitigations
-description: Disables mitigations in Windows dependant on the user's options
+description: Disables mitigations in Windows dependent on the user's options
 option: 'mitigations-disable'
 actions:
   - !cmd:

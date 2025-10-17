@@ -38,7 +38,7 @@ if "%~1" == "Firefox" set "associations=%baseAssociations% %firefoxAssociations%
 if "%~1" == "Google Chrome" set "associations=%baseAssociations% %chromeAssociations%"
 if exist "%ProgramFiles%\7-Zip\7zFM.exe" set sevenZip=y
 
-:: Set 7-Zip assocations
+:: Set 7-Zip associations
 if "%sevenZip%"=="y" call :7ZIPSYSTEM
 
 :: Make a temporary renamed PowerShell executable to bypass UCPD
