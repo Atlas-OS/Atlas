@@ -11,7 +11,7 @@ actions:
     onUpgrade: true
     oobe: false
     exeDir: true
-    runas: curretUserElevated
+    runas: currentUserElevated
     
   - !powerShell:
     command: |
