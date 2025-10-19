@@ -1,20 +1,65 @@
 {
-    "yaml.customTags": [
-        "!run: mapping",
-        "!registryKey: mapping",
-        "!registryValue: mapping",
-        "!appx: mapping",
-        "!file: mapping",
-        "!service: mapping",
-        "!scheduledTask: mapping",
-        "!taskKill: mapping",
-        "!systemPackage: mapping",
-        "!cmd: mapping",
-        "!powerShell: mapping",
-        "!writeStatus: mapping",
-        "!task: mapping"
-    ],
-    "files.associations": {
-        "playbook.conf": "xml"
-    }
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.detectIndentation": false,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 4,
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.tabSize": 2
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.tabSize": 2
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.tabSize": 2
+  },
+  "[powershell]": {
+    "editor.defaultFormatter": "ms-vscode.powershell",
+    "editor.tabSize": 4
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "vscode.markdown-language-features",
+    "editor.trimAutoWhitespace": false
+  },
+  "[shellscript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "foxundermoon.shell-format",
+    "editor.tabSize": 2
+  },
+  "[bat]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4
+  },
+  "[xml]": {
+    "editor.defaultFormatter": "redhat.vscode-xml",
+    "editor.tabSize": 2
+  },
+  "files.eol": "\n",
+  "files.encoding": "utf8",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "yaml.customTags": [
+    "!run: mapping",
+    "!registryKey: mapping",
+    "!registryValue: mapping",
+    "!appx: mapping",
+    "!file: mapping",
+    "!service: mapping",
+    "!scheduledTask: mapping",
+    "!taskKill: mapping",
+    "!systemPackage: mapping",
+    "!cmd: mapping",
+    "!powerShell: mapping",
+    "!writeStatus: mapping",
+    "!task: mapping"
+  ],
+  "files.associations": {
+    "playbook.conf": "xml"
+  }
 }

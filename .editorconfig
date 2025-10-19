@@ -1,0 +1,58 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_size = 2
+end_of_line = lf
+
+[*.json]
+indent_size = 2
+end_of_line = lf
+
+[*.jsonc]
+indent_size = 2
+end_of_line = lf
+
+[*.xml]
+indent_size = 2
+end_of_line = lf
+
+[*.conf]
+indent_size = 2
+end_of_line = lf
+
+[*.ps1]
+end_of_line = crlf
+
+[*.psm1]
+end_of_line = crlf
+
+[*.cmd]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+
+[*.bat]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+
+[*.sh]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.reg]
+end_of_line = crlf
+indent_style = space
+indent_size = 4
