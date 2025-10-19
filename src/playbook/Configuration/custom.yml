@@ -16,8 +16,11 @@ actions:
   - !powerShell:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
-      Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse
-      Remove-Item -LiteralPath "$windir\AtlasModules" -Force -Recurse
+      foreach ($folder in @("$windir\AtlasDesktop", "$windir\AtlasModules")) {
+        if (Test-Path -LiteralPath $folder) {
+          Remove-Item -LiteralPath $folder -Force -Recurse -ErrorAction SilentlyContinue
+        }
+      }
     wait: true
     exeDir: true
     oobe: false
@@ -35,8 +38,23 @@ actions:
           Copy-Item -Path $_ -Destination $windir -Force -Recurse
           if (!$?) { exit 2 }
       }
-      if (winget list --name "Process Explorer") {
-        Start-Process -FilePath "$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd" -ArgumentList "/silent"
+      if (Get-Command winget.exe -ErrorAction SilentlyContinue) {
+          $processExplorerInstalled = $false
+          try {
+              $null = & winget list --name "Process Explorer" 2>$null
+              if ($LASTEXITCODE -eq 0) {
+                  $processExplorerInstalled = $true
+              }
+          }
+          catch {
+              $processExplorerInstalled = $false
+          }
+          if ($processExplorerInstalled) {
+              $uninstallScript = Join-Path -Path $windir -ChildPath 'AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd'
+              if (Test-Path $uninstallScript) {
+                  Start-Process -FilePath $uninstallScript -ArgumentList "/silent"
+              }
+          }
       }
       Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
     weight: 10
@@ -90,7 +108,6 @@ actions:
     wait: true
     runas: currentUserElevated
 
-
   # Set all the correct paths if there are incorrect ones in the registry
   - !writeStatus: { status: "Cleaning up registry paths" }
   - !powerShell:
@@ -101,6 +118,9 @@ actions:
 
   # Unloading the hive
   - !powerShell:
-    command: 'reg unload HKU\AME_UserHive_Default'
+    command: |
+      if (Test-Path 'HKU:\AME_UserHive_Default') {
+        reg unload HKU\AME_UserHive_Default
+      }
     oobe: false
     wait: true
