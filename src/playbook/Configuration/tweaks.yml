@@ -63,7 +63,7 @@ actions:
   # - !task: {path: 'tweaks\performance\system\disable-paging.yml'}
   - !task: {path: 'tweaks\performance\system\optimize-ntfs.yml'}
   - !task: {path: 'tweaks\performance\system\disable-service-host-split.yml'}
-  - !task: {path: 'tweaks\performance\system\win32-priority-seperation.yml'}
+  - !task: {path: 'tweaks\performance\system\win32-priority-separation.yml'}
 
 
 
@@ -139,7 +139,7 @@ actions:
   #
   # QoL stands for Quality of Life, and are general
   # modifications designed for making Windows easier and
-  # more pleasent to use for more advanced general users.
+  # more pleasant to use for more advanced general users.
   #
   # QoL tweaks can be anything, but they are mostly to do
   # with modifying the graphical user interface (GUI).

@@ -19,7 +19,7 @@ echo]
 
 echo Enabling Copilot...
 
-:: Decide if Copilot is avaliable
+:: Decide if Copilot is available
 :: If not, it could be 24H2 (which replaces it with an app)
 set "appText= "
 reg query HKCU\Software\Microsoft\Windows\Shell\Copilot /v IsCopilotAvailable 2>&1 | find "0x0" > nul

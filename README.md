@@ -44,7 +44,7 @@ Some optional security features are:
 
 - Windows Defender & SmartScreen
 - Windows Update
-  - Automatic updates are togglable
+- Automatic updates are toggleable
 - CPU mitigations
 - User Account Control
 - Core isolation features

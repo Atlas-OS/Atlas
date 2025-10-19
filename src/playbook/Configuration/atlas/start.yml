@@ -8,8 +8,8 @@ actions:
     command: |
       function Add-ToPath ([array]$Paths) {
             $machine = [System.EnvironmentVariableTarget]::Machine
-            $seperator = [IO.Path]::PathSeparator
-            
+            $separator = [IO.Path]::PathSeparator
+
             $Paths | ForEach-Object {
                   if (!(Test-Path $_ -PathType Container)) {
                         Write-Error """Path '$_' doesn't exist as a container."""
@@ -17,12 +17,12 @@ actions:
             }
 
             $newPath = @()
-            $newPath += [Environment]::GetEnvironmentVariable('PATH', $machine) -split $seperator
+            $newPath += [Environment]::GetEnvironmentVariable('PATH', $machine) -split $separator
             if ($newPath.Count -eq 0) { Write-Warning 'The PATH variable is currently empty.' }
             $newPath += $Paths
             $newPath = $newPath | Where-Object { $_ } | Select-Object -Unique
 
-            [Environment]::SetEnvironmentVariable('PATH', """$($newPath -join $seperator)""", $machine)
+            [Environment]::SetEnvironmentVariable('PATH', """$($newPath -join $separator)""", $machine)
       }
 
       $modulesPath = """$([Environment]::GetFolderPath('Windows'))\AtlasModules"""
@@ -47,7 +47,7 @@ actions:
     wait: true
     weight: 150
     runas: currentUserElevated
-    
+
     #Toolbox
   - !writeStatus: {status: 'Installing AtlasOS Toolbox'}
   - !powerShell:

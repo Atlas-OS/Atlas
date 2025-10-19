@@ -2,7 +2,7 @@
 title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
-  # some changes requires default user access. lodaing the hive before everything else is required 
+  # some changes requires default user access. loading the hive before everything else is required
   - !powerShell:
     command: 'reg load HKU\AME_UserHive_Default C:\Users\Default\NTUSER.DAT'
     oobe: false
@@ -82,14 +82,14 @@ actions:
   - !task: { path: "tweaks.yml" }
 
   # Test hive applying. Not sure if this will work as intended
-  
+
   - !writeStatus: { status: "Applying hives..." }
   - !powerShell:
     command: '.\APPLYDUHIVE.ps1'
     exeDir: true
     wait: true
     runas: currentUserElevated
- 
+
 
   # Set all the correct paths if there are incorrect ones in the registry
   - !writeStatus: { status: "Cleaning up registry paths" }
@@ -99,7 +99,7 @@ actions:
     wait: true
     runas: currentUserElevated
 
-  # Unloading the hive 
+  # Unloading the hive
   - !powerShell:
     command: 'reg unload HKU\AME_UserHive_Default'
     oobe: false
