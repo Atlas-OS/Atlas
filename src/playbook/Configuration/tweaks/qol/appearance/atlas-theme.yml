@@ -9,14 +9,14 @@ actions:
       Set-ThemeMRU
     wait: true
     onUpgrade: true
-    oobe: false
+    oobe: true
     exeDir: true
     runas: currentUserElevated
     
   - !powerShell:
     command: |
       .\AtlasModules\initPowerShell.ps1
-      Set-Theme -Path """$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.4.x-dark.theme"""
+      Set-Theme -Path """$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.5.x-dark.theme"""
       Set-ThemeMRU
     wait: true
     onUpgrade: false
@@ -56,9 +56,9 @@ actions:
 
     # Set Atlas theme as default for new users
   - !registryValue:
-    path: 'HKCU\Software\Policies\Microsoft\Windows\Personalization'
+    path: 'HKU\AME_UserHive_Default\Software\Policies\Microsoft\Windows\Personalization'
     value: 'ThemeFile'
-    data: '%windir%\Resources\Themes\atlas-v0.4.x-dark.theme'
+    data: '%windir%\Resources\Themes\atlas-v0.5.x-dark.theme'
     type: REG_SZ
     onUpgrade: true
     

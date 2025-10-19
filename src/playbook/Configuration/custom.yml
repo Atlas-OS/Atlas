@@ -9,6 +9,11 @@ actions:
     wait: true
   - !writeStatus: { status: "Deleting old AtlasOS folders" }
   - !powerShell:
+    command: '.\STOPFOLDERPROC.ps1'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+  - !powerShell:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
       Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse
@@ -30,7 +35,9 @@ actions:
           Copy-Item -Path $_ -Destination $windir -Force -Recurse
           if (!$?) { exit 2 }
       }
-      Start-Process -FilePath "$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd" -ArgumentList "/silent"
+      if (winget list --name "Process Explorer") {
+        Start-Process -FilePath "$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd" -ArgumentList "/silent"
+      }
       Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
     weight: 10
     wait: true

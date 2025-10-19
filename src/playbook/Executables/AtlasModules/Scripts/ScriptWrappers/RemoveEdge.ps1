@@ -326,11 +326,11 @@ To perform an action, also type its number.
 				$InstallEdge = $true
 				$continue = $true
 			}
-			52 { # reinstall WebView (4)
+			51 { # reinstall WebView (4)
 				$InstallWebView = $true
 				$continue = $true
 			}
-			53 { # reinstall both (5)
+			52 { # reinstall both (5)
 				$InstallWebView = $true
 				$InstallEdge = $true
 				$continue = $true
