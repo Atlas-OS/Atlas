@@ -9,6 +9,11 @@ actions:
     wait: true
   - !writeStatus: { status: "Deleting old AtlasOS folders" }
   - !powerShell:
+    command: '.\STOPFOLDERPROC.ps1'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+  - !powerShell:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
       Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse
