@@ -7,8 +7,12 @@ actions:
     value: 'GestureVisualization'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\Control Panel\Cursors'
     value: 'ContactVisualization'
     data: '0'
     type: REG_DWORD
+    
+    

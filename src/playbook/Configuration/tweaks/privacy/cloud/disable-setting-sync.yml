@@ -29,28 +29,34 @@ actions:
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\BrowserSettings'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Credentials'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Accessibility'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows'
     value: 'Enabled'
     data: '0'
     type: REG_DWORD
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync'
     value: 'SyncPolicy'
     data: '5'
     type: REG_DWORD
+    

@@ -7,28 +7,40 @@ actions:
     value: 'DisableWindowsSpotlightFeatures'
     data: '1'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableWindowsSpotlightWindowsWelcomeExperience'
     data: '1'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableWindowsSpotlightOnActionCenter'
     data: '1'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableWindowsSpotlightOnSettings'
     data: '1'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableThirdPartySuggestions'
     data: '1'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanelt'
     value: '{2cc5ca98-6485-489a-920e-b3e88a6ccce3}'
     data: '1'
     type: REG_DWORD
+    
+    

@@ -7,3 +7,5 @@ actions:
     value: 'MultiTaskingAltTabFilter'
     data: '3'
     type: REG_DWORD
+    
+    

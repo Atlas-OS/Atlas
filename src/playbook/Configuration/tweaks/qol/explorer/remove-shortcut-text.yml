@@ -7,3 +7,5 @@ actions:
     value: 'ShortcutNameTemplate'
     data: '"%s.lnk"'
     type: REG_SZ
+    
+    

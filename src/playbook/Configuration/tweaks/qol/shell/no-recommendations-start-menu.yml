@@ -7,6 +7,8 @@ actions:
     value: 'Start_IrisRecommendations'
     data: '0'
     type: REG_DWORD
+    
+    
     builds: [ '>=22000' ]
 
   - !registryValue:
@@ -14,3 +16,5 @@ actions:
     value: 'Start_AccountNotifications'
     data: '0'
     type: REG_DWORD
+    
+    

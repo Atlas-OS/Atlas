@@ -8,3 +8,5 @@ actions:
     value: 'AmbientLightingEnabled'
     data: '0'
     type: REG_DWORD
+    
+    

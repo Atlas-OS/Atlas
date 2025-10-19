@@ -21,8 +21,9 @@
 
 ## 📚 **Important Documentation**
 - [Installation](https://docs.atlasos.net/getting-started/installation/)
-- [FAQ & Common Issues](https://docs.atlasos.net/faq-and-troubleshooting/removed-features/)
-- [Contribution Guidelines](https://docs.atlasos.net/contributions/)
+- [Install FAQ](https://docs.atlasos.net/install-faq/removed-features/)
+- [General FAQ](https://docs.atlasos.net/general-faq/atlas-and-security/)
+- [Contribution Guidelines](https://docs.atlasos.net/contributing/contribution-guidelines/)
 - [Branding](https://docs.atlasos.net/branding/)
 
 ## 🤔 What is Atlas?
@@ -43,7 +44,7 @@ Some optional security features are:
 
 - Windows Defender & SmartScreen
 - Windows Update
-  - Automatic updates are togglable
+- Automatic updates are toggleable
 - CPU mitigations
 - User Account Control
 - Core isolation features
@@ -53,14 +54,16 @@ Atlas applies many modifications and default settings to make Windows easier to 
 
 ### 🔍 Open Source and Transparent
 
-Unlike custom Windows ISOs, Atlas is more straightforward to audit due to the use of [AME Wizard](https://ameliorated.io). AME Wizard is controlled by Playbooks, a customizable script-esque system that can perform various tasks.
+Unlike custom Windows ISOs, Atlas is more straightforward to audit due to the use of [AME Wizard](https://amelabs.net). AME Wizard is controlled by Playbooks, a customizable script-esque system that can perform various tasks.
 
-Playbooks are renamed **.zip** archives, with the password [`malte`](https://docs.ameliorated.io/developers/getting-started/creation.html). As they primarily consist of plain text, Playbooks enable transparency, unlike custom Windows ISOs, which have many entry points for malicious activity. The few binaries in the Playbook are open source in our [`utilities` repository](https://github.com/Atlas-OS/utilities), with the [hashes listed here](https://github.com/Atlas-OS/Atlas/blob/main/src/playbook/Executables/AtlasModules/README.md).
+Playbooks are renamed **.zip** archives, with the password [`malte`](https://docs.amelabs.net/developers/getting-started/creation.html). As they primarily consist of plain text, Playbooks enable transparency, unlike custom Windows ISOs, which have many entry points for malicious activity. 
+
+The few binaries in the Playbook are open source in our [`utilities` repository](https://github.com/Atlas-OS/utilities), with the [hashes listed here](https://github.com/Atlas-OS/Atlas/blob/main/src/playbook/Executables/AtlasModules/README.md).
 
 Although the GUI is not open source for AME Wizard, AME Wizard's entire backend (called [TrustedUninstaller](https://github.com/Ameliorated-LLC/trusted-uninstaller-cli)) is open source under MIT, which contains each action used to run Atlas. The Atlas Playbook is open source under the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE).
 
 ### 🔒 Legal Compliance
-As Atlas doesn't redistribute a modified Windows ISO, it complies with [Windows's Usage Terms](https://www.microsoft.com/en-us/useterms/#areaheading-uid6738235). In addition, Atlas does not alter activation in Windows.
+As Atlas doesn't redistribute a modified Windows ISO, it complies with the [Microsoft Windows Usage Terms](https://www.microsoft.com/content/dam/microsoft/usetm/documents/windows/11/oem-(pre-installed)/UseTerms_OEM_Windows_11_English.pdf). In addition, Atlas does not alter activation in Windows.
 
 ## 🎨 Brand kit
 Want to create your own Atlas wallpaper with some original creative designs? Visit our [Branding Kit on Docs](https://docs.atlasos.net/branding/) and share your creations on our [GitHub Discussions](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)!

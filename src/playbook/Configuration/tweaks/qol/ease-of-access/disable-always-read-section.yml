@@ -7,8 +7,12 @@ actions:
     value: 'selfscan'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Ease of Access'
     value: 'selfvoice'
     data: '0'
     type: REG_DWORD
+    
+    

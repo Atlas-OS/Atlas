@@ -7,3 +7,5 @@ actions:
     value: 'EnthusiastMode'
     data: '1'
     type: REG_DWORD
+    
+    

@@ -7,22 +7,30 @@ actions:
     value: 'ContentDeliveryAllowed'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'FeatureManagementEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SubscribedContentEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
     # Ensure no settings get changed
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'RemediationRequired'
     data: '0'
     type: REG_DWORD
+    
+    
 
     # Prevent suggested app installs
     # https://www.tenforums.com/tutorials/68217-turn-off-automatic-installation-suggested-apps-windows-10-a.html
@@ -31,21 +39,29 @@ actions:
     value: 'OemPreInstalledAppsEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'PreInstalledAppsEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'PreInstalledAppsEverEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SilentInstalledAppsEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
 
     # Commented as these removals would likely break re-enabling content
     # Content would likely stay disabled anyways
@@ -60,6 +76,8 @@ actions:
     value: 'EnableAccountNotifications'
     data: '0'
     type: REG_DWORD
+    
+    
 
     # Windows welcome experience
     # https://winaero.com/disable-welcome-page-windows-10/
@@ -68,6 +86,8 @@ actions:
     value: 'SubscribedContent-310093Enabled'
     data: '0'
     type: REG_DWORD
+    
+    
 
     # Suggested content in the Settings app
     # https://www.tenforums.com/tutorials/100541-turn-off-suggested-content-settings-app-windows-10-a.html
@@ -76,21 +96,29 @@ actions:
     value: 'SubscribedContent-338393Enabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SubscribedContent-353694Enabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SubscribedContent-353696Enabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SystemPaneSuggestionsEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
 
     # "Get fun facts, tips, tricks, and more on your lock screen"
     # https://www.elevenforum.com/t/enable-or-disable-facts-tips-and-tricks-on-lock-screen-in-windows-11.7079/
@@ -99,11 +127,15 @@ actions:
     value: 'SubscribedContent-338387Enabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'RotatingLockScreenOverlayEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
 
     # Suggestions in Start
     # https://www.tenforums.com/tutorials/24117-turn-off-app-suggestions-start-windows-10-a.html
@@ -112,6 +144,8 @@ actions:
     value: 'SubscribedContent-338388Enabled'
     data: '0'
     type: REG_DWORD
+    
+    
 
     # "Get tips, tricks, and suggestions as you use Windows"
     # https://www.tenforums.com/tutorials/30869-turn-off-tip-trick-suggestion-notifications-windows-10-a.html
@@ -121,8 +155,12 @@ actions:
     value: 'SubscribedContent-338389Enabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
     value: 'SoftLandingEnabled'
     data: '0'
     type: REG_DWORD
+    
+    

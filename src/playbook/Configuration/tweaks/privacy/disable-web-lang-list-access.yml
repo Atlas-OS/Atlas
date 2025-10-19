@@ -7,3 +7,5 @@ actions:
     value: 'HttpAcceptLanguageOptOut'
     data: '1'
     type: REG_DWORD
+    
+    

@@ -7,3 +7,5 @@ actions:
     value: 'InfoWindow'
     data: '246 253 255'
     type: REG_SZ
+    
+    

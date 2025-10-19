@@ -8,26 +8,36 @@ actions:
     value: 'BingSearchEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'IsAADCloudSearchEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'IsDeviceSearchHistoryEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'IsMSACloudSearchEnabled'
     data: '0'
     type: REG_DWORD
+    
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     value: 'SafeSearchMode'
     data: '0'
     type: REG_DWORD
+    
+    
 
     # Policies
   - !registryValue:
@@ -57,10 +67,18 @@ actions:
     value: 'DisableSearchBoxSuggestions'
     data: '1'
     type: REG_DWORD
-
+    
+    
     # Set search as icon on taskbar
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
     value: 'SearchboxTaskbarMode'
     data: '1'
     type: REG_DWORD
+    
+    # Fallback for OOBE as it doesn't seem to work
+  - !powerShell:
+    command: 'reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /t REG_DWORD /v "SearchboxTaskbarMode" /d 1 /f > nul'
+    exeDir: true
+    oobe: only
+    

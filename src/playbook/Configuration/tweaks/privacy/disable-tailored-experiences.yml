@@ -7,8 +7,10 @@ actions:
     value: 'TailoredExperiencesWithDiagnosticDataEnabled'
     data: '0'
     type: REG_DWORD
+    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
     value: 'DisableTailoredExperiencesWithDiagnosticData'
     data: '1'
     type: REG_DWORD
+    

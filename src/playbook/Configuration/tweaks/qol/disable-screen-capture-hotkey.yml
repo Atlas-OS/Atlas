@@ -7,3 +7,5 @@ actions:
     value: 'PrintScreenKeyForSnippingEnabled'
     data: '0'
     type: REG_DWORD
+    
+    

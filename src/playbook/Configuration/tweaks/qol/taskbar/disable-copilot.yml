@@ -9,3 +9,5 @@ actions:
     value: 'TurnOffWindowsCopilot'
     data: '1'
     type: REG_DWORD
+    
+    

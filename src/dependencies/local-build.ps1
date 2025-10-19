@@ -214,6 +214,12 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 		Pop-Location
 	}
 
+	# Stupid hack because "The process cannot access the file because it is being used by another process." happens now and I have no idea why
+	$apbxTmpPath = $apbxPath + '.tmp'
+	if (Test-Path $apbxTmpPath) {
+		Remove-Item -Path $apbxPath
+		Rename-Item -Path $apbxTmpPath -NewName $apbxPath 
+	}
 	Write-Host "Built successfully! Path: `"$apbxPath`"" -ForegroundColor Green
 	if (!$DontOpenPbLocation) {
 		if ($IsLinux -or $IsMacOS) {

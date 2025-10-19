@@ -78,10 +78,11 @@ jobs:
 
           Write-Output "Making certificate..."
           $thumbprint = .\make-cert.ps1
-          
+
           $atlasSrcPath = '..\Atlas\src\'
           $packagePath = "$atlasSrcPath\playbook\Executables\AtlasModules\Packages"
           mkdir $packagePath -EA 0 | Out-Null
+
           Get-ChildItem "configs" -Filter *.yaml | ForEach-Object {
               Write-Output "`n`nProcessing $($_.Name)`n------------------------------------------------------"
               Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null

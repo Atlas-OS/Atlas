@@ -85,12 +85,12 @@ function Restart {
 
 function Finish($failedPackages) {
 	function GenerateText($text, $dashCount = 84) {
-		$seperator = "[ $('-' * $dashCount) ]"
+		$separator = "[ $('-' * $dashCount) ]"
 		$text = "[ $text $(' ' * ($dashCount - $text.Length - 1)) ]"
 		return @"
-$seperator
+$separator
 $text
-$seperator
+$separator
 "@
 	}
 
@@ -116,7 +116,7 @@ $seperator
 				'RunLevel'    = 'Highest'
 				'Action'      = New-ScheduledTaskAction -Execute 'cmd' -Argument $failedMsgArgs
 			}
-			Register-ScheduledTask @failedMsg	
+			Register-ScheduledTask @failedMsg
 
 			exit $script:errorLevel
 		}
@@ -274,7 +274,7 @@ Please note that if you chose to disable Windows Defender, it may still remain e
 if (!$matchedPackages) {
 	Write-Host "This will install specified CBS packages online, meaning live on your current install of Windows." -ForegroundColor Yellow
 	Read-Pause "Press Enter to continue"
-	
+
 	Write-Host "`n[INFO] Opening file dialog to select CBS package CAB..."
 	Add-Type -AssemblyName System.Windows.Forms
 	$openFileDialog = New-Object System.Windows.Forms.OpenFileDialog
@@ -324,7 +324,7 @@ function ProcessCab($cabPath) {
 		return $false
 	}
 
-	Write-Host "[INFO] Completed sucessfully."
+	Write-Host "[INFO] Completed successfully."
 	return $true
 }
 

@@ -7,3 +7,5 @@ actions:
     value: 'AutoEndTasks'
     data: '1'
     type: REG_SZ
+    
+    

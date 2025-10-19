@@ -8,3 +8,5 @@ actions:
     value: 'TaskbarAl'
     data: '0'
     type: REG_DWORD
+    
+    

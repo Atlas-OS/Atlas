@@ -2,31 +2,28 @@
 title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
-    # AME Wizard seemingly has a bug where it doesn't mount other user's Registry hives
-  - !writeStatus: {status: 'Preparing hives'}
+  # some changes requires default user access. loading the hive before everything else is required
+  - !powerShell:
+    command: 'reg load HKU\AME_UserHive_Default C:\Users\Default\NTUSER.DAT'
+    oobe: false
+    wait: true
+  - !writeStatus: { status: "Deleting old AtlasOS folders" }
+  - !powerShell:
+    command: '.\STOPFOLDERPROC.ps1'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
   - !powerShell:
     command: |
-      $profileList = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' -Name 'ProfilesDirectory', 'Default' -EA 0
-      $usersPath = if ([string]::IsNullOrEmpty($profileList.ProfilesDirectory)) { """$env:SystemDrive\Users""" } else { $profileList.ProfilesDirectory }
-      $defaultPath = if ([string]::IsNullOrEmpty($profileList.Default)) { """$usersPath\Default""" } else { $profileList.Default }
-
-      $count = 1
-      $prefix = 'HKU\AME_UserHive_'
-      foreach ($hive in (Get-ChildItem -Path $usersPath -Force -Depth 1 | ? { ($_.Name -eq 'NTUSER.DAT') -and ($_.Directory.Name -notlike 'defaultuser*')})) {
-          if (!$defaultFound -and ($hive.Directory.FullName -eq $defaultPath)) {
-              $defaultFound = $true
-              $name = """$prefix""" + """Default"""
-          } else {
-              $name = """$prefix""" + """$count"""
-          }
-
-          Write-Output """`nMounting $($hive.Directory.Name):"""
-          reg load """$name""" """$($hive.FullName)"""
-      }
-    weight: 10
+      $windir = [Environment]::GetFolderPath('Windows')
+      Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse
+      Remove-Item -LiteralPath "$windir\AtlasModules" -Force -Recurse
     wait: true
+    exeDir: true
+    oobe: false
+    onUpgrade: true
 
-  - !writeStatus: {status: 'Copying files'}
+  - !writeStatus: { status: "Copying files" }
   - !powerShell:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
@@ -38,31 +35,33 @@ actions:
           Copy-Item -Path $_ -Destination $windir -Force -Recurse
           if (!$?) { exit 2 }
       }
-
+      if (winget list --name "Process Explorer") {
+        Start-Process -FilePath "$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd" -ArgumentList "/silent"
+      }
       Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
     weight: 10
     wait: true
     exeDir: true
-    handleExitCodes: {'!0': halt}
+    handleExitCodes: { "!0": halt }
 
-    # Prevent annoying notifications during deployment
+  # Prevent annoying notifications during deployment
   - !cmd:
-    command: 'DISABLENOTIFS.cmd'
+    command: "DISABLENOTIFS.cmd"
     exeDir: true
     wait: true
     runas: currentUserElevated
-  - !taskKill: {name: 'explorer'}
-  - !taskKill: {name: 'ShellExperienceHost'}
-  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}
+  - !taskKill: { name: "explorer" }
+  - !taskKill: { name: "ShellExperienceHost" }
+  - !run: { exe: "explorer.exe", runas: "currentUser", wait: false }
 
   # Configure PowerShell first so that other PowerShell scripts work
   # NGEN - .NET assemblies PowerShell optimization
-  - !writeStatus: {status: 'Optimizing PowerShell'}
-  - !task: {path: 'tweaks\scripts\script-ngen.yml'}
-  - !task: {path: 'tweaks\qol\config-powershell.yml'}
+  - !writeStatus: { status: "Optimizing PowerShell" }
+  - !task: { path: 'tweaks\scripts\script-ngen.yml' }
+  - !task: { path: 'tweaks\qol\config-powershell.yml' }
 
   # Disk Cleanup is run first so it can run in the background
-  - !writeStatus: {status: 'Cleaning up'}
+  - !writeStatus: { status: "Cleaning up" }
   - !powerShell:
     command: '.\CLEANUP.ps1'
     exeDir: true
@@ -71,11 +70,37 @@ actions:
 
   # Set hidden Settings pages
   # Done before everything else as scripts will overwrite it
-  - !task: {path: 'tweaks\qol\set-hidden-settings-pages.yml'}
+  - !task: { path: 'tweaks\qol\set-hidden-settings-pages.yml' }
 
   # Main tasks
-  - !task: {path: 'atlas\start.yml'}
-  - !task: {path: 'atlas\services.yml'}
-  - !task: {path: 'atlas\components.yml'}
-  - !task: {path: 'atlas\appx.yml'}
-  - !task: {path: 'tweaks.yml'}
+  - !task: { path: 'atlas\start.yml' }
+  - !task: { path: 'atlas\services.yml' }
+  - !task: { path: 'atlas\components.yml' }
+  - !task: { path: 'atlas\appx.yml' }
+  - !task: { path: 'atlas\default.yml' }
+  - !task: { path: 'atlas\revert.yml' }
+  - !task: { path: "tweaks.yml" }
+
+  # Test hive applying. Not sure if this will work as intended
+
+  - !writeStatus: { status: "Applying hives..." }
+  - !powerShell:
+    command: '.\APPLYDUHIVE.ps1'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+
+
+  # Set all the correct paths if there are incorrect ones in the registry
+  - !writeStatus: { status: "Cleaning up registry paths" }
+  - !powerShell:
+    command: '.\SETPATHS.ps1'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+
+  # Unloading the hive
+  - !powerShell:
+    command: 'reg unload HKU\AME_UserHive_Default'
+    oobe: false
+    wait: true

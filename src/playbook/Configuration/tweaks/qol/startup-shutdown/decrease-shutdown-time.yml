@@ -7,11 +7,15 @@ actions:
     value: 'HungAppTimeout'
     data: '2000'
     type: REG_SZ
+    
+    
   - !registryValue:
     path: 'HKCU\Control Panel\Desktop'
     value: 'WaitToKillAppTimeOut'
     data: '2000'
     type: REG_SZ
+    
+    
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control'
     value: 'WaitToKillServiceTimeout'

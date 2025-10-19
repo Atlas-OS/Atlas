@@ -7,3 +7,5 @@ actions:
     value: 'MultipleInvokePromptMinimum'
     data: '100'
     type: REG_DWORD
+    
+    
