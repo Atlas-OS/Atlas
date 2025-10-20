@@ -14,10 +14,10 @@ fltmc > nul 2>&1 || (
 echo Disabling and uninstalling Copilot...
 
 powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.Copilot* | Remove-AppxPackage -AllUsers"
-taskkill /f /im explorer.exe > nul 2>&1
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowCopilotButton" /t REG_DWORD /d "0" /f > nul
 reg add "HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /t REG_DWORD /d "1" /f > nul
-start explorer.exe
+if /I not "%~2"=="/noAction" powershell -command "stop-process -name explorer –force"
+
 
 echo]
 echo Finished, changes are applied.

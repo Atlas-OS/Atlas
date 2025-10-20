@@ -38,8 +38,10 @@ pause
 reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul 2>&1
 
 :: delete icon exe
-taskkill /f /im explorer.exe > nul 2>&1
-start explorer.exe
+if /I not "%~2"=="/noAction" (
+        taskkill /f /im explorer.exe
+        start explorer.exe
+    )
 
 if "%~1"=="/silent" exit /b
 

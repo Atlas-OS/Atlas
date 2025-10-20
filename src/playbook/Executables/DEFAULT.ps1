@@ -10,7 +10,7 @@ foreach ($script in $folderItems)
 {
   if ($script.PSChildName -match $pattern) {
     Write-Host $script.PSChildName
-    Start-Process -FilePath $script.FullName -ArgumentList "/silent" -Wait
+    Start-Process -FilePath $script.FullName -ArgumentList "/silent /noAction" -Wait
   }
 }
 exit 0

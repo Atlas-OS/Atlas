@@ -41,9 +41,11 @@ echo Disabling recent items...
 ) > nul
 
 (
-    taskkill /f /im SettingsApp.exe
-    taskkill /f /im explorer.exe
-    start explorer.exe
+    if /I not "%~2"=="/noAction" (
+        taskkill /f /im explorer.exe
+        taskkill /f /im SettingsApp.exe
+        start explorer.exe
+    )
 ) > nul 2>&1
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide privacy-general

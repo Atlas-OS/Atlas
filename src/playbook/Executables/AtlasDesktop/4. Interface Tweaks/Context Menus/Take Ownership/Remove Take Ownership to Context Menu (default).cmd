@@ -22,7 +22,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 
 :: End of state and path update
 
-@REM reg import "%windir%\AtlasModules\Scripts\Registry\TakeOwnership\remove.reg" > nul
+reg import "%windir%\AtlasModules\Scripts\Registry\TakeOwnership\remove.reg" > nul
 if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.

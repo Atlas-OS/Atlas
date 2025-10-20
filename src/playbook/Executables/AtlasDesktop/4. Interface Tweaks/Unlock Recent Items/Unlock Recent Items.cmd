@@ -39,9 +39,11 @@ echo Unlocking recent items...
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Start_TrackProgs" /t REG_DWORD /d "1" /f
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Start_TrackDocs" /t REG_DWORD /d "1" /f
 
-    taskkill /f /im SettingsApp.exe
-    taskkill /f /im explorer.exe
-    start explorer.exe
+    if /I not "%~2"=="/noAction" (
+        taskkill /f /im explorer.exe
+        start explorer.exe
+        taskkill /f /im SettingsApp.exe
+    )
 ) > nul 2>&1
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide privacy-general

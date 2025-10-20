@@ -32,9 +32,12 @@ call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide search-permissions 
     reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d 1 /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "EnableDynamicContentInWSB" /t REG_DWORD /d 0 /f
     reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings" /v "IsDynamicSearchBoxEnabled" /t REG_DWORD /d 0 /f
-    taskkill /f /im explorer.exe
-    taskkill /f /im SearchHost.exe
-    start explorer.exe
+    
+    if /I not "%~2"=="/noAction" (
+        taskkill /f /im SearchHost.exe
+        taskkill /f /im explorer.exe
+        start explorer.exe
+    )
     powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.BingSearch* | Remove-AppxPackage -AllUsers"
 ) > nul 2>&1
 if "%~1"=="/silent" exit /b
