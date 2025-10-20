@@ -11,6 +11,7 @@ actions:
   - !powerShell:
     command: '.\STOPFOLDERPROC.ps1'
     exeDir: true
+    onUpgrade: true
     wait: true
     runas: currentUserElevated
   - !powerShell:
