@@ -36,9 +36,7 @@ actions:
           Copy-Item -Path $_ -Destination $windir -Force -Recurse
           if (!$?) { exit 2 }
       }
-      if (winget list --name "Process Explorer") {
-        Start-Process -FilePath "$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd" -ArgumentList "/silent"
-      }
+      Start-Process -FilePath "$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd" -ArgumentList "/silent" > nul
       Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
     weight: 10
     wait: true
@@ -82,15 +80,13 @@ actions:
   - !task: { path: 'atlas\revert.yml' }
   - !task: { path: "tweaks.yml" }
 
-  # Test hive applying. Not sure if this will work as intended
-
+  # Set hives to HKU default user
   - !writeStatus: { status: "Applying hives..." }
   - !powerShell:
     command: '.\APPLYDUHIVE.ps1'
     exeDir: true
     wait: true
     runas: currentUserElevated
-
 
   # Set all the correct paths if there are incorrect ones in the registry
   - !writeStatus: { status: "Cleaning up registry paths" }
