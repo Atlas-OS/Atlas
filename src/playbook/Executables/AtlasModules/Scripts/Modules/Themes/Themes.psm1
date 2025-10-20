@@ -15,8 +15,7 @@ function Set-Theme {
         throw "'$Path' is not a valid path to a theme file."
     }
     Stop-ThemeProcesses
-    Start-Process -filepath $path ; timeout /t 3; taskkill /im "systemsettings.exe" /f
-    Start-Sleep 10
+    Start-Process -filepath $path ; timeout /t 3; taskkill /im "systemsettings.exe" /f   
     Stop-ThemeProcesses
 }
 
@@ -26,8 +25,8 @@ function Set-ThemeMRU {
         Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes" -Name "ThemeMRU" -Value "$((@(
             "atlas-v0.4.x-dark.theme",
             "atlas-v0.4.x-light.theme",
-            "atlas-v0.3.x-dark.theme",
-            "atlas-v0.3.x-light.theme",
+            "atlas-v0.5.x-dark.theme",
+            "atlas-v0.5.x-light.theme",
             "dark.theme",
             "aero.theme"
         ) | ForEach-Object { "$windir\resources\Themes\$_" }) -join ';');" -Type String -Force
@@ -38,7 +37,7 @@ function Set-ThemeMRU {
 function Set-LockscreenImage {
     param (
         [ValidateNotNullOrEmpty()]
-        [string]$Path = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Wallpapers\lockscreen.png"
+        [string]$Path = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Wallpapers\lockscreen_dark.png"
     )
 
     if (!(Test-Path $Path)) {
@@ -53,10 +52,10 @@ function Set-LockscreenImage {
 
     # setup async
     $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? {
-            $_.Name -eq 'AsTask' -and
-            $_.GetParameters().Count -eq 1 -and
-            $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1'
-        })[0]
+        $_.Name -eq 'AsTask' -and
+        $_.GetParameters().Count -eq 1 -and
+        $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1'
+    })[0]
     Function Await($WinRtTask, $ResultType) {
         $asTask = $asTaskGeneric.MakeGenericMethod($ResultType)
         $netTask = $asTask.Invoke($null, @($WinRtTask))
@@ -72,13 +71,12 @@ function Set-LockscreenImage {
     # make image object
     [Windows.Storage.StorageFile, Windows.Storage, ContentType = WindowsRuntime] | Out-Null
     $image = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync($newImagePath)) ([Windows.Storage.StorageFile])
-
+    
     # execute
     AwaitAction ([Windows.System.UserProfile.LockScreen]::SetImageFileAsync($image))
-
+    
     # cleanup
     Remove-Item $newImagePath
 }
 
 Export-ModuleMember -Function Set-Theme, Set-ThemeMRU, Set-LockscreenImage
-No newline at end of file
