@@ -2,8 +2,7 @@ param (
     [string]$Browser
 )
 $windir = [Environment]::GetFolderPath('Windows')
-$atlasDesktop = "$windir\AtlasDesktop"
-Set-Location 'C:\Windows\AtlasModules\Scripts'
+Set-Location "$windir\AtlasModules\Scripts"
 ..\initPowerShell.ps1
 
 # The names are used for the shortcuts in the taskbar
@@ -105,7 +104,7 @@ foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
     }
     else {
         Write-Title "Setting '$Browser' taskbar shortcut for '$sid'..."
-        
+
         Write-Output "Clearing current shortcuts..."
         $taskBarAppData = "$appData\$taskBarLocation"
         if (Test-Path $taskBarAppData -PathType Leaf) {
