@@ -7,15 +7,11 @@ actions:
     value: 'EnableAutoShiftEngage'
     data: '0'
     type: REG_DWORD
-    
-    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
     value: 'EnableKeyAudioFeedback'
     data: '0'
     type: REG_DWORD
-    
-    
   # - !registryValue:
   #   path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
   #   value: 'EnableShiftLock'

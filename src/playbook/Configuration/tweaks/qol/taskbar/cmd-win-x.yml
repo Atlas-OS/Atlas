@@ -1,6 +1,6 @@
 ---
 title: Show Command Prompt on Win+X
-description: Shows Command Prompt instead of PowerShell on Windows + X, as it is what most users are familiar with
+description: Shows Command Prompt instead of PowerShell on Windows + X, as it is what most users are familar with
 actions:
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'

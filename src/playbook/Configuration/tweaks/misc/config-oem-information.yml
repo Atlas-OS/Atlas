@@ -31,3 +31,8 @@ actions:
     value: 'SupportPhone'
     data: 'https://github.com/Atlas-OS/Atlas'
     type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Atlas'
+    value: 'WinreFallbackFixed'
+    data: '1'
+    type: REG_SZ

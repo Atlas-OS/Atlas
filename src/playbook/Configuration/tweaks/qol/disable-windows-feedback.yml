@@ -7,8 +7,6 @@ actions:
     value: 'NumberOfSIUFInPeriod'
     data: '0'
     type: REG_DWORD
-    
-    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\Siuf\Rules'
     value: 'PeriodInNanoSeconds'

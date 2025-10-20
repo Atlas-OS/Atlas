@@ -11,5 +11,3 @@ actions:
     value: 'ShowTaskViewButton'
     data: '0'
     type: REG_DWORD
-    
-    

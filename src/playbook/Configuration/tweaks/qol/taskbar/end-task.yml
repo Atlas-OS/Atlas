@@ -8,5 +8,3 @@ actions:
     value: 'TaskbarEndTask'
     data: '1'
     type: REG_DWORD
-    
-    

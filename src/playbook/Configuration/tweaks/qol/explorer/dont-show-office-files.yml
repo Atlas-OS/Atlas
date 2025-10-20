@@ -8,5 +8,3 @@ actions:
     value: 'ShowCloudFilesInQuickAccess'
     data: '0'
     type: REG_DWORD
-    
-    

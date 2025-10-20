@@ -63,7 +63,7 @@ actions:
   # - !task: {path: 'tweaks\performance\system\disable-paging.yml'}
   - !task: {path: 'tweaks\performance\system\optimize-ntfs.yml'}
   - !task: {path: 'tweaks\performance\system\disable-service-host-split.yml'}
-  - !task: {path: 'tweaks\performance\system\win32-priority-separation.yml'}
+  - !task: {path: 'tweaks\performance\system\win32-priority-seperation.yml'}
 
 
 
@@ -139,7 +139,7 @@ actions:
   #
   # QoL stands for Quality of Life, and are general
   # modifications designed for making Windows easier and
-  # more pleasant to use for more advanced general users.
+  # more pleasent to use for more advanced general users.
   #
   # QoL tweaks can be anything, but they are mostly to do
   # with modifying the graphical user interface (GUI).
@@ -196,28 +196,12 @@ actions:
   - !task: {path: 'tweaks\qol\ease-of-access\disable-warning-sounds.yml'}
 
   # -------------------------------------------------------------------------- #
-  #  qol\taskbar                                                               #
-  # -------------------------------------------------------------------------- #
-  - !task: {path: 'tweaks\qol\taskbar\cmd-win-x.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-cloud-optimized-content.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-desktop-peek.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-news-and-interests.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-tablet-mode.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\hide-meet-now.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\hide-task-view.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\config-pins.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-copilot.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\disable-windows-chat.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\set-to-left.yml'}
-  - !task: {path: 'tweaks\qol\taskbar\end-task.yml'}
-
-  # -------------------------------------------------------------------------- #
   #  qol\explorer                                                              #
   # -------------------------------------------------------------------------- #
   - !task: {path: 'tweaks\qol\explorer\always-more-details-transfer.yml'}
   - !task: {path: 'tweaks\qol\explorer\disable-invalid-shortcuts-search.yml'}
   - !task: {path: 'tweaks\qol\explorer\disable-check-boxes.yml'}
-  #- !task: {path: 'tweaks\qol\explorer\disable-folders-this-pc.yml'}
+  - !task: {path: 'tweaks\qol\explorer\disable-folders-this-pc.yml'}
   - !task: {path: 'tweaks\qol\explorer\disable-network-navigation-pane.yml'}
   - !task: {path: 'tweaks\qol\explorer\full-context-on-more-than-15-items.yml'}
   - !task: {path: 'tweaks\qol\explorer\hide-frequently-used-items.yml'}
@@ -293,6 +277,23 @@ actions:
   - !task: {path: 'tweaks\qol\system\crash-control-qol.yml'}
   - !task: {path: 'tweaks\qol\system\disable-wpbt.yml'}
 
+  # -------------------------------------------------------------------------- #
+  #  qol\taskbar                                                               #
+  # -------------------------------------------------------------------------- #
+  - !task: {path: 'tweaks\qol\taskbar\cmd-win-x.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-cloud-optimized-content.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-desktop-peek.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-news-and-interests.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-tablet-mode.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\hide-meet-now.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\hide-task-view.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\config-pins.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-copilot.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\disable-windows-chat.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\set-to-left.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\end-task.yml'}
+
+
 
   # -----------------------------------------------------
   #                       Security
@@ -358,8 +359,8 @@ actions:
   - !task: {path: 'tweaks\misc\rebuild-perf-counters.yml'}
   - !task: {path: 'tweaks\misc\make-measuresleep-admin.yml'}
   - !task: {path: 'tweaks\misc\create-shortcuts.yml'}
-  - !task: {path: 'tweaks\misc\add-newUser-script.yml'}
   - !task: {path: 'tweaks\misc\add-music-videos-to-home.yml'}
+  - !task: {path: 'tweaks\misc\add-newUsers-script.yml'}
   - !task: {path: 'tweaks\scripts\script-power.yml'} # Done last on purpose
   - !task: {path: 'tweaks\misc\enable-notifications.yml'}
   - !task: {path: 'tweaks\misc\config-oem-information.yml'}

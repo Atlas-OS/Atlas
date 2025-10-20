@@ -7,5 +7,3 @@ actions:
     value: 'LaunchAT'
     data: '0'
     type: REG_DWORD
-    
-    

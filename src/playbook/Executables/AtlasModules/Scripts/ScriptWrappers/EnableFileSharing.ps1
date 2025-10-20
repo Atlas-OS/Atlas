@@ -47,4 +47,5 @@ if ($LASTEXITCODE -eq 1) {
 
 Write-Host "`nCompleted! " -ForegroundColor Green -NoNewLine
 Write-Host "You'll need to restart to apply the changes." -ForegroundColor Yellow
+$null = Read-Host "Press Enter to exit..."
 exit

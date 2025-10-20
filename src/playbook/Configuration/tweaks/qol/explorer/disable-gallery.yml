@@ -10,7 +10,7 @@ actions:
   #   data: '0'
   #   type: REG_DWORD
   - !cmd:
-    command: '"AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd" /silent'
+    command: 'reg import "AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg"'
     exeDir: true
     wait: true
     runas: currentUserElevated

@@ -15,8 +15,6 @@ actions:
     value: 'AcceptedPrivacyStatement'
     data: '1'
     type: REG_DWORD
-    
-    
 
     # Disable Windows Media Player diagnostics
   - !registryValue:
@@ -24,5 +22,3 @@ actions:
     value: 'UsageTracking'
     data: '0'
     type: REG_DWORD
-    
-    

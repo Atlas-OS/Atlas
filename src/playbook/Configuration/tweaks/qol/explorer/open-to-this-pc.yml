@@ -7,5 +7,3 @@ actions:
     value: 'LaunchTo'
     data: '1'
     type: REG_DWORD
-    
-    

@@ -1,0 +1,7 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked]
+"{b8cdcb65-b1bf-4b42-9428-1dfdb7ee92af}"=-
+"{BD472F60-27FA-11cf-B8B4-444553540000}"=-
+"{EE07CEF5-3441-4CFB-870A-4002C724783A}"=-
+"{D12E3394-DE4B-4777-93E9-DF0AC88F8584}"=-

@@ -145,9 +145,6 @@ init_item "OBS Studio" "OBSProject.OBSStudio"
 # https://winstall.app/apps/Guru3D.Afterburner
 init_item "MSI Afterburner" "Guru3D.Afterburner"
 
-# https://winstall.app/apps/TechPowerUp.NVCleanstall
-init_item "NVCleanstall" "TechPowerUp.NVCleanstall"
-
 # https://winstall.app/apps/CPUID.CPU-Z
 init_item "CPU-Z" "CPUID.CPU-Z"
 

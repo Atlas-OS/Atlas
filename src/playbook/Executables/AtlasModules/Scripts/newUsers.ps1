@@ -1,7 +1,3 @@
-if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) { 
-  Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs; exit 
-}
-
 $windir = [Environment]::GetFolderPath('Windows')
 & "$windir\AtlasModules\initPowerShell.ps1"
 $atlasDesktop = "$windir\AtlasDesktop"
@@ -22,11 +18,10 @@ Write-Host "You'll be logged out in 10 to 20 seconds, and once you login again, 
 
 # Disable Windows 11 context menu & 'Gallery' in File Explorer
 if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
-    & "$atlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd" /silent
-    & "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd" /silent
+    reg import "$atlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).reg" *>$null
+    reg import "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).reg" *>$null
 
     # Set ThemeMRU (recent themes)
-    Set-Theme -Path "$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.5.x-dark.theme"
     Set-ThemeMRU | Out-Null
 }
 
@@ -34,23 +29,29 @@ if ([System.Environment]::OSVersion.Version.Build -ge 22000) {
 Set-LockscreenImage
 
 # Disable 'Network' in navigation pane
-& "$atlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" /silent
+reg import "$atlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg" *>$null
 
 # Disable Automatic Folder Discovery
-& "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\Disable Automatic Folder Discovery (default).cmd" /silent
+reg import "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\Disable Automatic Folder Discovery (default).reg" *>$null
 
 # Set visual effects
 & "$atlasDesktop\4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd" /silent
 
-# Set taskbar pins 
-$valueName = "Browser"
-$value = Get-ItemProperty -Path "HKLM:\SOFTWARE\AtlasOS\SetupOptions" -Name $valueName -ErrorAction Stop
-$Browser = $value.$valueName
-$Browser
+# Pin 'Videos' and 'Music' folders to Home/Quick Acesss
+$o = new-object -com shell.application
+$currentPins = $o.Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}').Items() | ForEach-Object { $_.Path }
+foreach ($path in @(
+    [Environment]::GetFolderPath('MyVideos'),
+    [Environment]::GetFolderPath('MyMusic')
+)) {
+    if ($currentPins -notcontains $path) {
+        $o.Namespace($path).Self.InvokeVerb('pintohome')
+    }
+}
 
-& "$atlasModules\Scripts\taskbarPins.ps1" $Browser
+# Set taskbar search box to an icon
 Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 1
 
 # Leave
-Start-Sleep 5 
+Start-Sleep 5
 logoff

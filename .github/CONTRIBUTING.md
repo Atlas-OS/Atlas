@@ -1,1 +1,1 @@
-Contribution Guidelines are on our [Documentation](https://docs.atlasos.net/contributing/contribution-guidelines/).
+Contribution Guidelines is on our [Documentation](https://docs.atlasos.net/contributions/).

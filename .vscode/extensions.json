@@ -1,9 +1,8 @@
 {
-  "recommendations": [
-    "ms-vscode.powershell",
-    "ionutvmi.reg",
-    "redhat.vscode-xml",
-    "redhat.vscode-yaml",
-    "foxundermoon.shell-format"
-  ]
+	"recommendations": [
+		"ms-vscode.powershell",
+		"ionutvmi.reg",
+		"redhat.vscode-xml",
+		"redhat.vscode-yaml"
+	]
 }

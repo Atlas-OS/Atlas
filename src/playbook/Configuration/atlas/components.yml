@@ -1,7 +1,6 @@
 ---
 title: Components
 description: Removes certain Windows components
-onUpgrade: false
 actions:
     # Remove Security Center startup item
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
@@ -35,11 +34,6 @@ actions:
 
     # Windows components and Telemetry
   - !writeStatus: {status: 'Removing components'}
-  - !registryKey:
-    path: 'HKLM\OfflineSys\ControlSet001\Services\WdBoot'
-    operation: delete
-    option: 'defender-disable'
-    iso: only
   - !powerShell:
     command: >-
       & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""

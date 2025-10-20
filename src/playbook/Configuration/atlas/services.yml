@@ -1,17 +1,16 @@
 ---
 title: Services and Drivers
 description: Configures services and drivers to reduce background system resource utilization
-onUpgrade: false
 actions:
   # ----------------------------------
   # - Potential references           -
-  # - Mostly upon IoT recommendation -
+  # - Mostly upon IoT recommandation -
   # ----------------------------------
   # https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-vdi-recommendations-2004
   # https://learn.microsoft.com/en-us/windows-server/security/windows-services/security-guidelines-for-disabling-system-services-in-windows-server
   # https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/optimize/services
 
-  # Back up default Windows services & drivers
+  # Back up default Windows serivces & drivers
   - !powerShell:
     command: |
       .\BACKUP.ps1 -FilePath """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\winServices.reg"""
@@ -34,14 +33,12 @@ actions:
     command: '"AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd" /silent'
     exeDir: true
     wait: true
-    runas: currentUserElevated
 
   - !writeStatus: {status: 'Configuring Indexing'}
   - !cmd:
     command: '"AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd" /silent'
     exeDir: true
     wait: true
-    runas: currentUserElevated
 
   ##############################################################################################
   ## SERVICES                                                                                 ##
@@ -59,7 +56,7 @@ actions:
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
   - !service: {name: 'WerSvc', operation: change, startup: 4} 
 
-    # ------- Microsoft recommendation - 'No guidance' ------
+    # ------- Microsoft recommendation - 'No guideance' ------
   - !service: {name: 'wercplsupport', operation: change, startup: 4}
   - !service: {name: 'UCPD', operation: change, startup: 4}
 

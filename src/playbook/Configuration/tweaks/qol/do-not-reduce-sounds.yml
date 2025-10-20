@@ -7,5 +7,3 @@ actions:
     value: 'UserDuckingPreference'
     data: '3'
     type: REG_DWORD
-    
-    

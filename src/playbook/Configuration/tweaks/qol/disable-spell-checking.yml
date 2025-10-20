@@ -7,33 +7,23 @@ actions:
     value: 'EnableAutocorrection'
     data: '0'
     type: REG_DWORD
-    
-    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
     value: 'EnableDoubleTapSpace'
     data: '0'
     type: REG_DWORD
-    
-    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
     value: 'EnablePredictionSpaceInsertion'
     data: '0'
     type: REG_DWORD
-    
-    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
     value: 'EnableSpellchecking'
     data: '0'
     type: REG_DWORD
-    
-    
   - !registryValue:
     path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
     value: 'EnableTextPrediction'
     data: '0'
     type: REG_DWORD
-    
-    

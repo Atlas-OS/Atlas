@@ -7,4 +7,3 @@ actions:
     value: 'ScoobeSystemSettingEnabled'
     data: '0'
     type: REG_DWORD
-    

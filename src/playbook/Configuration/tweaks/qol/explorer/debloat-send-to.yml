@@ -7,4 +7,3 @@ actions:
       "AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Disable @('Documents', 'Mail Recipient', 'Fax recipient', 'Bluetooth')
     exeDir: true
     wait: true
-    runas: currentUserElevated

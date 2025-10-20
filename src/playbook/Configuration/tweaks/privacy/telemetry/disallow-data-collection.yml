@@ -9,7 +9,6 @@ actions:
     value: 'ShowedToastAtLevel'
     data: '1'
     type: REG_DWORD
-    
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
     value: 'AllowTelemetry'

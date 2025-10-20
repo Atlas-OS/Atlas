@@ -7,5 +7,3 @@ actions:
     value: 'MouseHoverTime'
     data: '20'
     type: REG_SZ
-    
-    
