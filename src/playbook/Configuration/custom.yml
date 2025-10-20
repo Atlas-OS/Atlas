@@ -79,3 +79,11 @@ actions:
   - !task: {path: 'atlas\components.yml'}
   - !task: {path: 'atlas\appx.yml'}
   - !task: {path: 'tweaks.yml'}
+
+  # Final summary or diagnostics report (saved to C:\Windows\AtlasModules\Logs\diagnostics.txt)
+  - !writeStatus: {status: 'Generating diagnostics summary'}
+  - !powerShell:
+    command: '.\\AtlasModules\\Scripts\\Diagnostics.ps1 -NoConsole'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
