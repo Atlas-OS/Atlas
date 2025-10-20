@@ -4,7 +4,28 @@ description: This happens after clean install without formatting the drive
 actions:
   - !powerShell:
     command: |
-     $efiPartition = Get-Partition -DiskNumber 0 -PartitionNumber 1
-      Remove-PartitionAccessPath -Partition $efiPartition -AccessPath $efiPartition.DriveLetter + ":\"
+      try {
+        # Find EFI System Partition on any disk
+        $efiPartition = Get-Partition | Where-Object { $_.GptType -eq '{C12A7328-F81F-11D2-BA4B-00A0C93EC93B}' } | Select-Object -First 1
+
+        if ($null -eq $efiPartition) {
+          Write-Output "No EFI partition found, skipping."
+          exit 0
+        }
+
+        if ([string]::IsNullOrEmpty($efiPartition.DriveLetter)) {
+          Write-Output "EFI partition has no drive letter, skipping."
+          exit 0
+        }
+
+        Write-Output "Removing drive letter '$($efiPartition.DriveLetter):' from EFI partition..."
+        Remove-PartitionAccessPath -DiskNumber $efiPartition.DiskNumber -PartitionNumber $efiPartition.PartitionNumber -AccessPath "$($efiPartition.DriveLetter):\"
+        Write-Output "Successfully removed EFI partition drive letter."
+      }
+      catch {
+        Write-Output "Failed to remove EFI partition drive letter: $_"
+        # Non-fatal error, continue installation
+        exit 0
+      }
     wait: true
     runas: currentUserElevated
