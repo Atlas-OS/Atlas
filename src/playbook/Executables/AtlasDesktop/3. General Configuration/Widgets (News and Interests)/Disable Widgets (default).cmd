@@ -23,8 +23,7 @@ echo Disabling News and Interests (called Widgets in Windows 11)...
 (
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" /v "EnableFeeds" /t REG_DWORD /d "0" /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Dsh" /v "AllowNewsAndInterests" /t REG_DWORD /d "0" /f
-    taskkill /f /im explorer.exe
-    start explorer.exe
+    powershell -command "stop-process -name explorer –force"
 ) > nul 2>&1
 if "%~1"=="/silent" exit /b
 
