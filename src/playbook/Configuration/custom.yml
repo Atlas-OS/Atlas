@@ -36,7 +36,7 @@ actions:
           Copy-Item -Path $_ -Destination $windir -Force -Recurse
           if (!$?) { exit 2 }
       }
-      Start-Process -FilePath "$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd" -ArgumentList "/silent" > nul
+      Start-Process -FilePath """$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd""" -ArgumentList "/silent" -WindowStyle Hidden
       Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
     weight: 10
     wait: true
@@ -101,3 +101,12 @@ actions:
     command: 'reg unload HKU\AME_UserHive_Default'
     oobe: false
     wait: true
+
+  # Set PowerShell execution policy to RemoteSigned from the previous "Unrestricted"
+  # This allows Atlas folder scripts (local) to run while requiring signatures for downloaded scripts
+  - !writeStatus: { status: "Securing PowerShell execution policy" }
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+    value: 'ExecutionPolicy'
+    data: 'RemoteSigned'
+    type: REG_SZ
