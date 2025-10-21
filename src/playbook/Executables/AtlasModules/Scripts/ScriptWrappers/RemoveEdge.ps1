@@ -229,6 +229,9 @@ Error: $_" -Level Critical -Exit -ExitCode 6
 
     Write-Status 'Installing Microsoft Edge...'
     Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i `"$msi`" /l `"$msiLog`" /quiet" -Wait
+    
+    Write-Status 'Repairing Microsoft Edge...'
+    Start-Process -FilePath 'msiexec.exe' -ArgumentList "/fa `"$msi`" /l `"$msiLog`" /quiet" -Wait
 
     if (!(Test-Path $msiLog)) {
         Write-Status "Couldn't find installer log at `"$msiLog`"! This likely means it failed." -Level Critical -Exit -ExitCode 7
