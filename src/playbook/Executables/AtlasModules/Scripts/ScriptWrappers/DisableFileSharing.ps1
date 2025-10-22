@@ -6,6 +6,25 @@ param (
 
 $fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
 
+function Invoke-FileSharingConfigScript {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$RelativePath
+    )
+
+    $scriptPath = Join-Path -Path $fileSharingConfigPath -ChildPath $RelativePath
+    if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
+        Write-Warning "Expected helper script not found: $scriptPath"
+        return
+    }
+
+    & $scriptPath '/silent' | Out-Null
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        Write-Warning "Helper script '$RelativePath' exited with code $exitCode."
+    }
+}
+
 # Disable network items
 Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr | Out-Null
 
@@ -29,8 +48,8 @@ Get-NetFirewallRule | Where-Object {
     $_.Profile -like "*Private*"
 } | Disable-NetFirewallRule
 
-reg import "$fileSharingConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).reg" | Out-Null
-reg import "$fileSharingConfigPath\Give Access To Menu\Disable Give Access To Menu (default).reg" | Out-Null
+Invoke-FileSharingConfigScript -RelativePath 'Network Navigation Pane\Disable Network Navigation Pane (default).cmd'
+Invoke-FileSharingConfigScript -RelativePath 'Give Access To Menu\Disable Give Access To Menu (default).cmd'
 
 if ($Silent) { exit }
 
