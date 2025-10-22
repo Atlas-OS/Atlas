@@ -4,12 +4,23 @@ description: As Remote Assistance is an unused and a potential vulnerable featur
 actions:
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
-    value: 'fAllowFullControl'
-    data: '0'
+    value: "fAllowFullControl"
+    data: "0"
     type: REG_DWORD
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
-    value: 'fAllowToGetHelp'
-    data: '0'
+    value: "fAllowToGetHelp"
+    data: "0"
     type: REG_DWORD
-  - !run: {exe: 'netsh', args: 'advfirewall firewall set rule group="Remote Assistance" new enable=no'}
+  # the remote assistance firewall group is localized, so we target the invariant resource identifier instead
+  - !run:
+    exe: "powershell"
+    args: >-
+      -NoProfile -ExecutionPolicy Bypass -Command "$group = '@FirewallAPI.dll,-33002';
+      if (Get-Command -Name Disable-NetFirewallRule -ErrorAction SilentlyContinue) {
+        $rules = Get-NetFirewallRule -Group $group -ErrorAction SilentlyContinue;
+        if ($rules) {
+          $null = $rules | Disable-NetFirewallRule -ErrorAction SilentlyContinue
+        }
+      }"
+    ignoreErrors: true
