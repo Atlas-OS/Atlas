@@ -1,4 +1,4 @@
-param (
+﻿param (
     [switch]$Chrome,
     [switch]$Brave,
     [switch]$Firefox,
@@ -7,227 +7,529 @@ param (
 
 .\AtlasModules\initPowerShell.ps1
 
-# ----------------------------------------------------------------------------------------------------------- #
-# Software is no longer installed with a package manager anymore to be as fast and as reliable as possible.   #
-# ----------------------------------------------------------------------------------------------------------- #
+$script:isArm64 = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 
-$timeouts = @("--connect-timeout", "10", "--retry", "5", "--retry-delay", "0", "--retry-all-errors")
-$msiArgs = "/qn /quiet /norestart ALLUSERS=1 REBOOT=ReallySuppress"
-$arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+$downloadTimeoutRaw = [Environment]::GetEnvironmentVariable('ATLAS_DOWNLOAD_TIMEOUT')
+if ([string]::IsNullOrWhiteSpace($downloadTimeoutRaw)) { $downloadTimeoutRaw = '45' }
+$downloadRetriesRaw = [Environment]::GetEnvironmentVariable('ATLAS_DOWNLOAD_RETRIES')
+if ([string]::IsNullOrWhiteSpace($downloadRetriesRaw)) { $downloadRetriesRaw = '4' }
+$downloadRetryDelayRaw = [Environment]::GetEnvironmentVariable('ATLAS_DOWNLOAD_RETRY_DELAY')
+if ([string]::IsNullOrWhiteSpace($downloadRetryDelayRaw)) { $downloadRetryDelayRaw = '5' }
 
-# Create a temporary directory
-function Remove-TempDirectory { Pop-Location; Remove-Item -Path $tempDir -Force -Recurse -EA 0 }
-$tempDir = Join-Path -Path $env:TEMP -ChildPath ([guid]::NewGuid().ToString())
-New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-Push-Location $tempDir
+$script:downloadSettings = @{
+    TimeoutSeconds    = [int]$downloadTimeoutRaw
+    Retries           = [int]$downloadRetriesRaw
+    RetryDelaySeconds = [int]$downloadRetryDelayRaw
+}
 
-# Toolbox
-if ($Toolbox) {
-    & curl.exe -LSs "https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe" -o "$tempDir\toolbox.exe" $timeouts
-    if (!$?) {
-        Write-Error "Downloading Toolbox failed."
-        exit 1
+$curlCommand = Get-Command -Name 'curl.exe' -ErrorAction SilentlyContinue
+$script:curlPath = if ($curlCommand) { $curlCommand.Source } else { $null }
+
+$script:msiArgs    = "/qn /quiet /norestart ALLUSERS=1 REBOOT=ReallySuppress"
+$script:legacyArgs = '/q /norestart'
+$script:modernArgs = "/install /quiet /norestart"
+
+# helper writes progress messages for playbook logs
+function Write-Step {
+    param([Parameter(Mandatory)] [string]$Message)
+    Write-Host $Message
+}
+
+# retry wrapper protects network operations from transient failures
+function Invoke-WithRetry {
+    param(
+        [Parameter(Mandatory)] [scriptblock]$Script,
+        [int]$Retries,
+        [int]$DelaySeconds
+    )
+
+    if (-not $Retries -or $Retries -lt 1) { $Retries = 1 }
+    if (-not $DelaySeconds -or $DelaySeconds -lt 1) { $DelaySeconds = 1 }
+
+    for ($attempt = 1; $attempt -le $Retries; $attempt++) {
+        try {
+            return & $Script
+        }
+        catch {
+            if ($attempt -ge $Retries) {
+                throw
+            }
+            Start-Sleep -Seconds $DelaySeconds
+        }
+    }
+}
+
+function Get-DownloadPath {
+    param(
+        [Parameter(Mandatory)] [string]$Uri,
+        [string]$Hint
+    )
+
+    $uriObject = [uri]$Uri
+    $hashSource = [Text.Encoding]::UTF8.GetBytes($uriObject.AbsoluteUri)
+    $hashBytes = [Security.Cryptography.MD5]::Create().ComputeHash($hashSource)
+    $hash = [BitConverter]::ToString($hashBytes).Replace('-', '')
+    $hashPrefix = $hash.Substring(0, 12)
+
+    $fileName = $Hint
+    if (-not $fileName) {
+        $fileName = [IO.Path]::GetFileName($uriObject.AbsolutePath)
+        if ([string]::IsNullOrWhiteSpace($fileName)) {
+            $fileName = 'payload.bin'
+        }
     }
 
-    Write-Output "Installing Toolbox..."
-    Start-Process -FilePath "$tempDir\toolbox.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"'
-
-    exit
-}
-
-
-# Brave
-if ($Brave) {
-    Write-Output "Downloading Brave..."
-    & curl.exe -LSs "https://laptop-updates.brave.com/latest/winx64" -o "$tempDir\BraveSetup.exe" $timeouts
-    if (!$?) {
-        Write-Error "Downloading Brave failed."
-        exit 1
+    if ($fileName.Length -gt 80) {
+        $fileName = $fileName.Substring($fileName.Length - 80)
     }
 
-    Write-Output "Installing Brave..."
-    Start-Process -FilePath "$tempDir\BraveSetup.exe" -WindowStyle Hidden -ArgumentList '/silent /install'
+    $basePath = if ($script:workspacePath) { $script:workspacePath } else { [IO.Path]::GetTempPath() }
+    $uniquePrefix = [Guid]::NewGuid().ToString('N').Substring(0, 12)
+    return Join-Path $basePath ("$uniquePrefix-$fileName")
+}
 
-    do {
-        $processesFound = Get-Process | Where-Object { "BraveSetup" -contains $_.Name } | Select-Object -ExpandProperty Name
-        if ($processesFound) {
-            Write-Output "Still running BraveSetup."
-            Start-Sleep -Seconds 2
+function Invoke-Download {
+    param(
+        [Parameter(Mandatory)] [string]$Uri,
+        [string]$Description,
+        [string]$Hint,
+        [switch]$Force
+    )
+
+    $destination = Get-DownloadPath -Uri $Uri -Hint $Hint
+
+    $downloadLabel = if ($Description) { $Description } else { $Uri }
+
+    $downloadAction = {
+        Write-Step "Downloading $downloadLabel..."
+        if ($script:curlPath) {
+            $curlArgs = @(
+                '-fL', '--silent', '--show-error',
+                '--max-time', [string]$script:downloadSettings.TimeoutSeconds,
+                '--retry', [string]$script:downloadSettings.Retries,
+                '--retry-delay', [string]$script:downloadSettings.RetryDelaySeconds,
+                '--retry-all-errors',
+                '--output', $destination,
+                $Uri
+            )
+
+            & $script:curlPath @curlArgs
+            if ($LASTEXITCODE -ne 0) {
+                throw "curl exited with code $LASTEXITCODE for $Uri."
+            }
         }
         else {
-            Remove-TempDirectory
+            Invoke-WebRequest -Uri $Uri -OutFile $destination -UseBasicParsing -TimeoutSec $script:downloadSettings.TimeoutSeconds
         }
-    } until (!$processesFound)
+    }
 
-    Stop-Process -Name "brave" -Force -EA 0
+    Invoke-WithRetry -Script $downloadAction -Retries $script:downloadSettings.Retries -DelaySeconds $script:downloadSettings.RetryDelaySeconds
 
-    exit
+    if (-not (Test-Path -LiteralPath $destination)) {
+        throw "Download failed for $Uri."
+    }
+
+    $downloaded = Get-Item -LiteralPath $destination -ErrorAction SilentlyContinue
+    if (-not $downloaded -or $downloaded.Length -le 0) {
+        throw "Downloaded file for $Uri is empty."
+    }
+
+    return $destination
 }
 
-
-# Firefox
-if ($Firefox) {
-    $firefoxArch = ('win64', 'win64-aarch64')[$arm]
-
-    Write-Output "Downloading Firefox..."
-    & curl.exe -LSs "https://download.mozilla.org/?product=firefox-latest-ssl&os=$firefoxArch&lang=en-US" -o "$tempDir\firefox.exe" $timeouts
-    Write-Output "Installing Firefox..."
-    Start-Process -FilePath "$tempDir\firefox.exe" -WindowStyle Hidden -ArgumentList '/S /ALLUSERS=1' -Wait
-
-    Remove-TempDirectory
-    exit
+function New-TemporaryWorkspace {
+    $path = Join-Path ([IO.Path]::GetTempPath()) ("Atlas-" + [guid]::NewGuid())
+    New-Item -Path $path -ItemType Directory -Force | Out-Null
+    Push-Location $path
+    $script:workspacePath = $path
+    return $path
 }
 
-# Chrome
-if ($Chrome) {
-    Write-Output "Downloading Google Chrome..."
-    $chromeArch = ('64', '_Arm64')[$arm]
-    & curl.exe -LSs "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise$chromeArch.msi" -o "$tempDir\chrome.msi" $timeouts
-    Write-Output "Installing Google Chrome..."
-    Start-Process -FilePath "$tempDir\chrome.msi" -WindowStyle Hidden -ArgumentList '/qn' -Wait
-
-    Remove-TempDirectory
-    exit
+function Remove-TemporaryWorkspace {
+    param([Parameter(Mandatory)] [string]$Path)
+    try { Pop-Location } catch { }
+    Remove-Item -Path $Path -Recurse -Force -ErrorAction SilentlyContinue
+    if ($script:workspacePath -and ($script:workspacePath -eq $Path)) {
+        $script:workspacePath = $null
+    }
 }
 
-#####################
-##    Utilities    ##
-#####################
+function Invoke-SilentProcess {
+    param(
+        [Parameter(Mandatory)] [string]$FilePath,
+        [string]$Arguments,
+        [switch]$Wait
+    )
 
-# Visual C++ Runtimes (referred to as vcredists for short)
-# https://learn.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist
-$legacyArgs = '/q /norestart'
-$modernArgs = "/install /quiet /norestart"
+    $parameters = @{
+        FilePath     = $FilePath
+        ArgumentList = $Arguments
+        WindowStyle  = 'Hidden'
+        ErrorAction  = 'Stop'
+    }
 
-$vcredists = [ordered] @{
-    # 2005 - version 8.0.50727.6195 (MSI 8.0.61000/8.0.61001) SP1
-    "https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x64.exe"       = @("2005-x64", "/c /q /t:")
-    "https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x86.exe"       = @("2005-x86", "/c /q /t:")
-    # 2008 - version 9.0.30729.6161 (EXE 9.0.30729.5677) SP1
-    "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe"       = @("2008-x64", "/q /extract:")
-    "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe"       = @("2008-x86", "/q /extract:")
-    # 2010 - version 10.0.40219.325 SP1
-    "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe"       = @("2010-x64", $legacyArgs)
-    "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe"       = @("2010-x86", $legacyArgs)
-    # 2012 - version 11.0.61030.0
-    "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe" = @("2012-x64", $modernArgs)
-    "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe" = @("2012-x86", $modernArgs)
-    # 2013 - version 12.0.40664.0
-    "https://aka.ms/highdpimfc2013x64enu"                                                                       = @("2013-x64", $modernArgs)
-    "https://aka.ms/highdpimfc2013x86enu"                                                                       = @("2013-x86", $modernArgs)
-    # 2015-2022 (2015+) - latest version
-    "https://aka.ms/vs/17/release/vc_redist.x64.exe"                                                            = @("2015+-x64", $modernArgs)
-    "https://aka.ms/vs/17/release/vc_redist.x86.exe"                                                            = @("2015+-x86", $modernArgs)
+    if ($Wait) { $parameters.Wait = $true }
+    Start-Process @parameters
 }
-foreach ($a in $vcredists.GetEnumerator()) {
-    $vcName = $a.Value[0]
-    $vcArgs = $a.Value[1]
-    $vcUrl = $a.Name
-    $vcExePath = "$tempDir\vcredist-$vcName.exe"
 
-    # curl is faster than Invoke-WebRequest
-    Write-Output "Downloading and installing Visual C++ Runtime $vcName..."
-    & curl.exe -LSs "$vcUrl" -o "$vcExePath" $timeouts
+function Test-Installed {
+    param(
+        [string[]]$DisplayNamePatterns,
+        [scriptblock]$CustomTest,
+        [string[]]$RegistryRoots
+    )
 
-    if ($vcArgs -match ":") {
-        $msiDir = "$tempDir\vcredist-$vcName"
-        Start-Process -FilePath $vcExePath -ArgumentList "$vcArgs`"$msiDir`"" -Wait -WindowStyle Hidden
+    if ($CustomTest) {
+        return & $CustomTest
+    }
 
-        $msiPaths = (Get-ChildItem -Path $msiDir -Filter *.msi -EA 0).FullName
-        if (!$msiPaths) {
-            Write-Output "Failed to extract MSI for $vcName, not installing."
-        }
-        else {
-            $msiPaths | ForEach-Object {
-                Start-Process -FilePath "msiexec.exe" -ArgumentList "/log `"$msiDir\logfile.log`" /i `"$_`" $msiArgs" -WindowStyle Hidden
+    if (-not $DisplayNamePatterns) { return $false }
+
+    if (-not $RegistryRoots) {
+        $RegistryRoots = @(
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+            'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+        )
+    }
+
+    foreach ($root in $RegistryRoots) {
+        $entries = Get-ItemProperty -Path $root -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName }
+        foreach ($entry in $entries) {
+            foreach ($pattern in $DisplayNamePatterns) {
+                if ($entry.DisplayName -like $pattern) {
+                    return $true
+                }
             }
         }
     }
-    else {
-        Start-Process -FilePath $vcExePath -ArgumentList $vcArgs -Wait -WindowStyle Hidden
-    }
+
+    return $false
 }
 
-
-# NanaZip / 7-Zip Installation
-function Install7Zip {
-    $website = 'https://7-zip.org/'
-    $7zipArch = ('x64', 'arm64')[$arm]
-    $download = $website + ((Invoke-WebRequest $website -UseBasicParsing).Links.href | Where-Object { $_ -like "a/7z*-$7zipArch.exe" })
-    Write-Output "Downloading 7-Zip..."
-    & curl.exe -LSs $download -o "$tempDir\7zip.exe" $timeouts
-    Write-Output "Installing 7-Zip..."
-    Start-Process -FilePath "$tempDir\7zip.exe" -WindowStyle Hidden -ArgumentList '/S' -Wait
-}
-
-$githubApi = Invoke-RestMethod "https://api.github.com/repos/M2Team/NanaZip/releases/latest" -EA 0
-$assets = $githubApi.Assets.browser_download_url | Select-String ".xml", ".msixbundle" | Select-Object -Unique -First 2
-
-function InstallNanaZip {
-    Write-Output "Downloading NanaZip..."
-    $path = New-Item "$tempDir\nanazip" -ItemType Directory
-    $assets | ForEach-Object {
-        $filename = $_ -split '/' | Select-Object -Last 1
-        Write-Output "Downloading '$filename'..."
-        & curl.exe -LSs $_ -o "$path\$filename" $timeouts
+function Install-Brave {
+    if (Test-Installed -DisplayNamePatterns 'Brave*') {
+        Write-Step 'Brave already installed - skipping.'
+        return
     }
 
-    Write-Output "Installing NanaZip..."
-    try {
-        $appxArgs = @{
-            "PackagePath" = (Get-ChildItem $path -Filter "*.msixbundle" | Select-Object -First 1).FullName
-            "LicensePath" = (Get-ChildItem $path -Filter "*.xml" | Select-Object -First 1).FullName
+    $architecture = if ($script:isArm64) { 'winarm64' } else { 'winx64' }
+    $uri = "https://laptop-updates.brave.com/latest/$architecture"
+    $installer = Invoke-Download -Uri $uri -Description 'Brave browser' -Hint "BraveSetup-$architecture.exe"
+
+    Write-Step 'Installing Brave...'
+    Invoke-SilentProcess -FilePath $installer -Arguments '/silent /install'
+
+    Start-Sleep -Seconds 2
+    while (Get-Process -Name 'BraveSetup' -ErrorAction SilentlyContinue) {
+        Start-Sleep -Seconds 2
+    }
+
+    Stop-Process -Name 'brave' -Force -ErrorAction SilentlyContinue
+    Write-Step 'Brave installation complete.'
+}
+
+function Install-Firefox {
+    if (Test-Installed -DisplayNamePatterns 'Mozilla Firefox*') {
+        Write-Step 'Firefox already installed - skipping.'
+        return
+    }
+
+    $archToken = if ($script:isArm64) { 'win64-aarch64' } else { 'win64' }
+    $uri = "https://download.mozilla.org/?product=firefox-latest-ssl&os=$archToken&lang=en-US"
+    $installer = Invoke-Download -Uri $uri -Description 'Firefox' -Hint "Firefox-$archToken.exe"
+
+    Write-Step 'Installing Firefox...'
+    Invoke-SilentProcess -FilePath $installer -Arguments '/S /ALLUSERS=1' -Wait
+    Write-Step 'Firefox installation complete.'
+}
+
+function Install-Chrome {
+    if (Test-Installed -DisplayNamePatterns 'Google Chrome*') {
+        Write-Step 'Google Chrome already installed - skipping.'
+        return
+    }
+
+    $archToken = if ($script:isArm64) { '_Arm64' } else { '64' }
+    $uri = "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise$archToken.msi"
+    $installer = Invoke-Download -Uri $uri -Description 'Google Chrome' -Hint "chrome$archToken.msi"
+
+    Write-Step 'Installing Google Chrome...'
+    Invoke-SilentProcess -FilePath 'msiexec.exe' -Arguments "/i `"$installer`" $script:msiArgs" -Wait
+    Write-Step 'Google Chrome installation complete.'
+}
+
+function Install-Toolbox {
+    if (Test-Installed -DisplayNamePatterns 'Atlas Toolbox*') {
+        Write-Step 'Atlas Toolbox already installed - skipping.'
+        return
+    }
+
+    $uri = 'https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe'
+    $installer = Invoke-Download -Uri $uri -Description 'Atlas Toolbox' -Hint 'AtlasToolbox-Setup.exe'
+
+    Write-Step 'Installing Atlas Toolbox...'
+    Invoke-SilentProcess -FilePath $installer -Arguments '/verysilent /install /MERGETASKS="desktopicon"'
+    Write-Step 'Atlas Toolbox install initiated.'
+}
+
+function Test-RedistributableInstalled {
+    param(
+        [string[]]$Patterns,
+        [string[]]$RegistryRoots,
+        [scriptblock]$CustomTest
+    )
+    return Test-Installed -DisplayNamePatterns $Patterns -RegistryRoots $RegistryRoots -CustomTest $CustomTest
+}
+
+function Install-VcRedistributables {
+    # visual c++ redistributables follow microsoft guidance: https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
+    $packages = @(
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2005 Redistributable (x64)'
+            Uri            = 'https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x64.exe'
+            Args           = '/c /q /t:'
+            ExtractsMsi    = $true
+            DetectPatterns = @('Microsoft Visual C++ 2005 Redistributable (x64)*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
         }
-        Add-AppxProvisionedPackage -Online @appxArgs | Out-Null
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2005 Redistributable (x86)'
+            Uri            = 'https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x86.exe'
+            Args           = '/c /q /t:'
+            ExtractsMsi    = $true
+            DetectPatterns = @('Microsoft Visual C++ 2005 Redistributable')
+            RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2008 Redistributable (x64)'
+            Uri            = 'https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe'
+            Args           = '/q /extract:'
+            ExtractsMsi    = $true
+            DetectPatterns = @('Microsoft Visual C++ 2008 Redistributable - x64*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2008 Redistributable (x86)'
+            Uri            = 'https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe'
+            Args           = '/q /extract:'
+            ExtractsMsi    = $true
+            DetectPatterns = @('Microsoft Visual C++ 2008 Redistributable - x86*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2010 Redistributable (x64)'
+            Uri            = 'https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe'
+            Args           = $script:legacyArgs
+            ExtractsMsi    = $false
+            DetectPatterns = @('Microsoft Visual C++ 2010  x64 Redistributable*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2010 Redistributable (x86)'
+            Uri            = 'https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe'
+            Args           = $script:legacyArgs
+            ExtractsMsi    = $false
+            DetectPatterns = @('Microsoft Visual C++ 2010  x86 Redistributable*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2012 Redistributable (x64)'
+            Uri            = 'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe'
+            Args           = $script:modernArgs
+            ExtractsMsi    = $false
+            DetectPatterns = @('Microsoft Visual C++ 2012 Redistributable (x64)*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2012 Redistributable (x86)'
+            Uri            = 'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe'
+            Args           = $script:modernArgs
+            ExtractsMsi    = $false
+            DetectPatterns = @('Microsoft Visual C++ 2012 Redistributable (x86)*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2013 Redistributable (x64)'
+            Uri            = 'https://aka.ms/highdpimfc2013x64enu'
+            Args           = $script:modernArgs
+            ExtractsMsi    = $false
+            DetectPatterns = @('Microsoft Visual C++ 2013 Redistributable (x64)*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2013 Redistributable (x86)'
+            Uri            = 'https://aka.ms/highdpimfc2013x86enu'
+            Args           = $script:modernArgs
+            ExtractsMsi    = $false
+            DetectPatterns = @('Microsoft Visual C++ 2013 Redistributable (x86)*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2015-2022 Redistributable (x64)'
+            Uri            = 'https://aka.ms/vs/17/release/vc_redist.x64.exe'
+            Args           = $script:modernArgs
+            ExtractsMsi    = $false
+            DetectPatterns = @('Microsoft Visual C++ 2015-2022 Redistributable (x64)*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+        [pscustomobject]@{
+            Name           = 'Microsoft Visual C++ 2015-2022 Redistributable (x86)'
+            Uri            = 'https://aka.ms/vs/17/release/vc_redist.x86.exe'
+            Args           = $script:modernArgs
+            ExtractsMsi    = $false
+            DetectPatterns = @('Microsoft Visual C++ 2015-2022 Redistributable (x86)*')
+            RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            CustomTest     = $null
+        }
+    )
 
-        Write-Output "Installed NanaZip!"
-    }
-    catch {
-        Write-Error "Failed to install NanaZip! Getting 7-Zip instead. $_"
-        Install7Zip
-    }
-}
+    foreach ($package in $packages) {
+        if (Test-RedistributableInstalled -Patterns $package.DetectPatterns -RegistryRoots $package.RegistryRoots -CustomTest $package.CustomTest) {
+            Write-Step ("{0} already present – skipping." -f $package.Name)
+            continue
+        }
 
-# Check if NanaZip is already installed
-$nanaZipInstalled = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like "*NanaZip*" }
+        $hintName = ($package.Name -replace '\s+', '-') + '.exe'
+        $installer = Invoke-Download -Uri $package.Uri -Description $package.Name -Hint $hintName
+        Write-Step ("Installing {0}..." -f $package.Name)
 
-if ($nanaZipInstalled) {
-    Write-Output "NanaZip is already installed, skipping installation."
-}
-elseif ($assets.Count -eq 2) {
-    $7zipRegistry = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip"
-    if (Test-Path $7zipRegistry) {
-        $Message = @'
-Would you like to uninstall 7-Zip and replace it with NanaZip?
+        if ($package.ExtractsMsi) {
+            $safeName = $package.Name -replace '[^\w]', '_'
+            $extractionDir = Join-Path (Get-Location).Path ($safeName + '_msi')
+            New-Item -Path $extractionDir -ItemType Directory -Force | Out-Null
+            Invoke-SilentProcess -FilePath $installer -Arguments ("{0}`"{1}`"" -f $package.Args, $extractionDir) -Wait
 
-NanaZip is a fork of 7-Zip with an updated user interface and extra features.
-'@
-
-        if ((Read-MessageBox -Title 'Installing NanaZip - Atlas' -Body $Message -Icon Question) -eq 'Yes') {
-            $7zipUninstall = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip" -Name "QuietUninstallString" -EA 0).QuietUninstallString
-            Write-Output "Uninstalling 7-Zip..."
-            Start-Process -FilePath "cmd" -WindowStyle Hidden -ArgumentList "/c $7zipUninstall" -Wait
-            InstallNanaZip
+            $msiFiles = Get-ChildItem -Path $extractionDir -Filter *.msi -ErrorAction SilentlyContinue
+            foreach ($msi in $msiFiles) {
+                Invoke-SilentProcess -FilePath 'msiexec.exe' -Arguments "/i `"$($msi.FullName)`" $script:msiArgs /log `"$extractionDir\install.log`"" -Wait
+            }
         }
         else {
-            Write-Output "Keeping existing 7-Zip installation."
+            Invoke-SilentProcess -FilePath $installer -Arguments $package.Args -Wait
+        }
+
+        Write-Step ("Finished installing {0}." -f $package.Name)
+    }
+}
+
+function Install-ArchiveUtility {
+    # prefer nanazip but cutely fallback to 7-zip when api access fails
+    $nanaZipInstalled = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like '*NanaZip*' }
+    if ($nanaZipInstalled) {
+        Write-Step 'NanaZip already provisioned - skipping archive setup.'
+        return
+    }
+
+    $nanazipAssets = @()
+    try {
+        $release = Invoke-WithRetry -Script { Invoke-RestMethod -Uri 'https://api.github.com/repos/M2Team/NanaZip/releases/latest' -UseBasicParsing } -Retries 3 -DelaySeconds 3
+        if ($release -and $release.assets) {
+            $nanazipAssets = $release.assets.browser_download_url | Where-Object { $_ -match '\.(msixbundle|xml)$' }
         }
     }
-    else {
-        InstallNanaZip
+    catch {
+        Write-Step "Unable to query NanaZip release API. Falling back to 7-Zip. $_"
     }
-}
-else {
-    Write-Error "Can't access GitHub API, downloading 7-Zip instead of NanaZip."
-    Install7Zip
+
+    if ($nanazipAssets.Count -ge 2) {
+        $stagingPath = Join-Path (Get-Location).Path 'NanaZip'
+        New-Item -ItemType Directory -Path $stagingPath -Force | Out-Null
+
+        foreach ($asset in ($nanazipAssets | Select-Object -Unique)) {
+            $fileName = Split-Path $asset -Leaf
+            $downloadPath = Invoke-Download -Uri $asset -Description "NanaZip asset $fileName" -Hint $fileName
+            Copy-Item -Path $downloadPath -Destination (Join-Path $stagingPath $fileName) -Force
+        }
+
+        try {
+            $packagePath = (Get-ChildItem -Path $stagingPath -Filter *.msixbundle -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+            $licensePath = (Get-ChildItem -Path $stagingPath -Filter *.xml -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+
+            if ($packagePath -and $licensePath) {
+                Write-Step 'Installing NanaZip...'
+                Add-AppxProvisionedPackage -Online -PackagePath $packagePath -LicensePath $licensePath | Out-Null
+                Write-Step 'NanaZip installation completed.'
+                return
+            }
+        }
+        catch {
+            Write-Step "NanaZip installation failed, falling back to 7-Zip. $_"
+        }
+    }
+
+    Write-Step 'Installing 7-Zip (fallback)...'
+    $rootUrl = 'https://www.7-zip.org/'
+    $archToken = if ($script:isArm64) { 'a/7z*-arm64.exe' } else { 'a/7z*-x64.exe' }
+    $downloadPage = Invoke-WithRetry -Script { Invoke-WebRequest -Uri $rootUrl -UseBasicParsing } -Retries 3 -DelaySeconds 3
+    $relativeLink = $downloadPage.Links.href | Where-Object { $_ -like $archToken } | Select-Object -First 1
+    if (-not $relativeLink) {
+        throw 'Unable to determine 7-Zip download link.'
+    }
+
+    $downloadUri = $rootUrl + $relativeLink
+    $installer = Invoke-Download -Uri $downloadUri -Description '7-Zip' -Hint (Split-Path $relativeLink -Leaf)
+    Invoke-SilentProcess -FilePath $installer -Arguments '/S' -Wait
+    Write-Step '7-Zip installed.'
 }
 
-# Legacy DirectX runtimes
-& curl.exe -LSs "https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe" -o "$tempDir\directx.exe" $timeouts
-Write-Output "Extracting legacy DirectX runtimes..."
-Start-Process -FilePath "$tempDir\directx.exe" -WindowStyle Hidden -ArgumentList "/q /c /t:`"$tempDir\directx`"" -Wait
-Write-Output "Installing legacy DirectX runtimes..."
-Start-Process -FilePath "$tempDir\directx\dxsetup.exe" -WindowStyle Hidden -ArgumentList '/silent' -Wait
+function Install-LegacyDirectX {
+    # legacy directx ensures compatibility with older games expecting june 2010 runtime
+    $uri = 'https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe'
+    $installer = Invoke-Download -Uri $uri -Description 'Legacy DirectX runtime' -Hint 'directx_Jun2010_redist.exe'
+    $extractRoot = Join-Path (Get-Location).Path 'DirectX'
+    New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
 
-# Remove temporary directory
-Remove-TempDirectory
+    Write-Step 'Extracting legacy DirectX runtimes...'
+    Invoke-SilentProcess -FilePath $installer -Arguments "/q /c /t:`"$extractRoot`"" -Wait
+
+    Write-Step 'Installing legacy DirectX runtimes...'
+    $dxSetup = Join-Path $extractRoot 'DXSETUP.exe'
+    Invoke-SilentProcess -FilePath $dxSetup -Arguments '/silent' -Wait
+    Write-Step 'Legacy DirectX runtimes installed.'
+}
+
+$workspace = New-TemporaryWorkspace
+try {
+    if ($Toolbox) {
+        Install-Toolbox
+        return
+    }
+
+    if ($Brave) {
+        Install-Brave
+        return
+    }
+
+    if ($Firefox) {
+        Install-Firefox
+        return
+    }
+
+    if ($Chrome) {
+        Install-Chrome
+        return
+    }
+
+    Write-Step 'Installing Visual C++ Redistributables...'
+    Install-VcRedistributables
+
+    Write-Step 'Ensuring archive utility is installed...'
+    Install-ArchiveUtility
+
+    Install-LegacyDirectX
+}
+finally {
+    Remove-TemporaryWorkspace -Path $workspace
+}
+
