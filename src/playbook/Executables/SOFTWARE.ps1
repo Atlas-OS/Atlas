@@ -1,4 +1,8 @@
-﻿param (
+# ----------------------------------------------------------------------------------------------------------- #
+# Software is no longer installed with a package manager anymore to be as fast and as reliable as possible.   #
+# ----------------------------------------------------------------------------------------------------------- #
+
+param (
     [switch]$Chrome,
     [switch]$Brave,
     [switch]$Firefox,
@@ -6,6 +10,10 @@
 )
 
 .\AtlasModules\initPowerShell.ps1
+
+# ----------------------------------------------------------------------------------------------------------- #
+# Shared environment detection and download policy configuration                                             #
+# ----------------------------------------------------------------------------------------------------------- #
 
 $script:isArm64 = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 
@@ -28,6 +36,10 @@ $script:curlPath = if ($curlCommand) { $curlCommand.Source } else { $null }
 $script:msiArgs    = "/qn /quiet /norestart ALLUSERS=1 REBOOT=ReallySuppress"
 $script:legacyArgs = '/q /norestart'
 $script:modernArgs = "/install /quiet /norestart"
+
+# ----------------------------------------------------------------------------------------------------------- #
+# Shared helper functions used across installer routines                                                      #
+# ----------------------------------------------------------------------------------------------------------- #
 
 # helper writes progress messages for playbook logs
 function Write-Step {
@@ -54,11 +66,15 @@ function Invoke-WithRetry {
             if ($attempt -ge $Retries) {
                 throw
             }
+            # give remote endpoints a breather before the next attempt
             Start-Sleep -Seconds $DelaySeconds
         }
     }
 }
 
+# ----------------------------------------------------------------------------------------------------------- #
+# Hashed staging path prevents collisions when vendors reuse identical file names                              #
+# ----------------------------------------------------------------------------------------------------------- #
 function Get-DownloadPath {
     param(
         [Parameter(Mandatory)] [string]$Uri,
@@ -80,6 +96,7 @@ function Get-DownloadPath {
     }
 
     if ($fileName.Length -gt 80) {
+        # favor keeping the trailing portion so version/build info remains visible
         $fileName = $fileName.Substring($fileName.Length - 80)
     }
 
@@ -88,6 +105,9 @@ function Get-DownloadPath {
     return Join-Path $basePath ("$uniquePrefix-$fileName")
 }
 
+# ----------------------------------------------------------------------------------------------------------- #
+# Central download primitive funnels all network transfers through retry/timeout policy                        #
+# ----------------------------------------------------------------------------------------------------------- #
 function Invoke-Download {
     param(
         [Parameter(Mandatory)] [string]$Uri,
@@ -137,6 +157,9 @@ function Invoke-Download {
     return $destination
 }
 
+# ----------------------------------------------------------------------------------------------------------- #
+# Workspace helpers isolate installers from polluting host directories                                         #
+# ----------------------------------------------------------------------------------------------------------- #
 function New-TemporaryWorkspace {
     $path = Join-Path ([IO.Path]::GetTempPath()) ("Atlas-" + [guid]::NewGuid())
     New-Item -Path $path -ItemType Directory -Force | Out-Null
@@ -154,6 +177,9 @@ function Remove-TemporaryWorkspace {
     }
 }
 
+# ----------------------------------------------------------------------------------------------------------- #
+# Process wrapper hides UI and optionally waits for completion                                                 #
+# ----------------------------------------------------------------------------------------------------------- #
 function Invoke-SilentProcess {
     param(
         [Parameter(Mandatory)] [string]$FilePath,
@@ -172,6 +198,9 @@ function Invoke-SilentProcess {
     Start-Process @parameters
 }
 
+# ----------------------------------------------------------------------------------------------------------- #
+# Generic detection pipeline lets installers skip work when software already present                           #
+# ----------------------------------------------------------------------------------------------------------- #
 function Test-Installed {
     param(
         [string[]]$DisplayNamePatterns,
@@ -206,6 +235,9 @@ function Test-Installed {
     return $false
 }
 
+# ----------------------------------------------------------------------------------------------------------- #
+# Browser installers reuse shared helpers but target vendor-specific endpoints                                 #
+# ----------------------------------------------------------------------------------------------------------- #
 function Install-Brave {
     if (Test-Installed -DisplayNamePatterns 'Brave*') {
         Write-Step 'Brave already installed - skipping.'
@@ -221,6 +253,7 @@ function Install-Brave {
 
     Start-Sleep -Seconds 2
     while (Get-Process -Name 'BraveSetup' -ErrorAction SilentlyContinue) {
+        # brave bootstrapper spawns a background installer, poll until it exits
         Start-Sleep -Seconds 2
     }
 
@@ -272,6 +305,9 @@ function Install-Toolbox {
     Write-Step 'Atlas Toolbox install initiated.'
 }
 
+# ----------------------------------------------------------------------------------------------------------- #
+# Thin wrapper exposes redistributable detection via the generic Test-Installed helper                         #
+# ----------------------------------------------------------------------------------------------------------- #
 function Test-RedistributableInstalled {
     param(
         [string[]]$Patterns,
@@ -282,8 +318,12 @@ function Test-RedistributableInstalled {
 }
 
 function Install-VcRedistributables {
-    # visual c++ redistributables follow microsoft guidance: https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
+    # ----------------------------------------------------------------------------------------------------------- #
+    # Visual C++ Redistributables (2005-2022) follow Microsoft guidance:                                          #
+    # https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist                                    #
+    # ----------------------------------------------------------------------------------------------------------- #
     $packages = @(
+        # 2005 legacy runtimes (extract embedded MSI)
         [pscustomobject]@{
             Name           = 'Microsoft Visual C++ 2005 Redistributable (x64)'
             Uri            = 'https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x64.exe'
@@ -302,6 +342,7 @@ function Install-VcRedistributables {
             RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
             CustomTest     = $null
         }
+        # 2008 runtimes (extract embedded MSI)
         [pscustomobject]@{
             Name           = 'Microsoft Visual C++ 2008 Redistributable (x64)'
             Uri            = 'https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe'
@@ -320,6 +361,7 @@ function Install-VcRedistributables {
             RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
             CustomTest     = $null
         }
+        # 2010 runtimes (legacy installer switches)
         [pscustomobject]@{
             Name           = 'Microsoft Visual C++ 2010 Redistributable (x64)'
             Uri            = 'https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe'
@@ -338,6 +380,7 @@ function Install-VcRedistributables {
             RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
             CustomTest     = $null
         }
+        # 2012 runtimes (modern installer pipeline)
         [pscustomobject]@{
             Name           = 'Microsoft Visual C++ 2012 Redistributable (x64)'
             Uri            = 'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe'
@@ -356,6 +399,7 @@ function Install-VcRedistributables {
             RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
             CustomTest     = $null
         }
+        # 2013 runtimes (High DPI / MFC updates)
         [pscustomobject]@{
             Name           = 'Microsoft Visual C++ 2013 Redistributable (x64)'
             Uri            = 'https://aka.ms/highdpimfc2013x64enu'
@@ -374,6 +418,7 @@ function Install-VcRedistributables {
             RegistryRoots  = @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
             CustomTest     = $null
         }
+        # Unified 2015-2022 runtime (supports 2015 through 2022 toolsets)
         [pscustomobject]@{
             Name           = 'Microsoft Visual C++ 2015-2022 Redistributable (x64)'
             Uri            = 'https://aka.ms/vs/17/release/vc_redist.x64.exe'
@@ -396,7 +441,8 @@ function Install-VcRedistributables {
 
     foreach ($package in $packages) {
         if (Test-RedistributableInstalled -Patterns $package.DetectPatterns -RegistryRoots $package.RegistryRoots -CustomTest $package.CustomTest) {
-            Write-Step ("{0} already present – skipping." -f $package.Name)
+            # keep existing runtimes untouched instead of reinstalling them
+            Write-Step ("{0} already present - skipping." -f $package.Name)
             continue
         }
 
@@ -408,10 +454,12 @@ function Install-VcRedistributables {
             $safeName = $package.Name -replace '[^\w]', '_'
             $extractionDir = Join-Path (Get-Location).Path ($safeName + '_msi')
             New-Item -Path $extractionDir -ItemType Directory -Force | Out-Null
+            # older redistributables wrap real MSI payloads, so unpack them first
             Invoke-SilentProcess -FilePath $installer -Arguments ("{0}`"{1}`"" -f $package.Args, $extractionDir) -Wait
 
             $msiFiles = Get-ChildItem -Path $extractionDir -Filter *.msi -ErrorAction SilentlyContinue
             foreach ($msi in $msiFiles) {
+                # run each MSI silently and capture output for troubleshooting
                 Invoke-SilentProcess -FilePath 'msiexec.exe' -Arguments "/i `"$($msi.FullName)`" $script:msiArgs /log `"$extractionDir\install.log`"" -Wait
             }
         }
@@ -424,7 +472,9 @@ function Install-VcRedistributables {
 }
 
 function Install-ArchiveUtility {
-    # prefer nanazip but cutely fallback to 7-zip when api access fails
+    # ----------------------------------------------------------------------------------------------------------- #
+    # Prefer NanaZip via Microsoft Store packaging but fall back to 7-Zip when API access fails                   #
+    # ----------------------------------------------------------------------------------------------------------- #
     $nanaZipInstalled = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like '*NanaZip*' }
     if ($nanaZipInstalled) {
         Write-Step 'NanaZip already provisioned - skipping archive setup.'
@@ -447,6 +497,7 @@ function Install-ArchiveUtility {
         New-Item -ItemType Directory -Path $stagingPath -Force | Out-Null
 
         foreach ($asset in ($nanazipAssets | Select-Object -Unique)) {
+            # download both the package and license the provisioning cmdlet expects
             $fileName = Split-Path $asset -Leaf
             $downloadPath = Invoke-Download -Uri $asset -Description "NanaZip asset $fileName" -Hint $fileName
             Copy-Item -Path $downloadPath -Destination (Join-Path $stagingPath $fileName) -Force
@@ -484,7 +535,9 @@ function Install-ArchiveUtility {
 }
 
 function Install-LegacyDirectX {
-    # legacy directx ensures compatibility with older games expecting june 2010 runtime
+    # ----------------------------------------------------------------------------------------------------------- #
+    # Legacy DirectX (June 2010) ensures compatibility with older games expecting deprecated runtimes             #
+    # ----------------------------------------------------------------------------------------------------------- #
     $uri = 'https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe'
     $installer = Invoke-Download -Uri $uri -Description 'Legacy DirectX runtime' -Hint 'directx_Jun2010_redist.exe'
     $extractRoot = Join-Path (Get-Location).Path 'DirectX'
@@ -499,6 +552,9 @@ function Install-LegacyDirectX {
     Write-Step 'Legacy DirectX runtimes installed.'
 }
 
+# ----------------------------------------------------------------------------------------------------------- #
+# Main execution path prioritizes targeted switches before baseline stack                                      #
+# ----------------------------------------------------------------------------------------------------------- #
 $workspace = New-TemporaryWorkspace
 try {
     if ($Toolbox) {
