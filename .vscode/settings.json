@@ -44,6 +44,7 @@
   "files.encoding": "utf8",
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
+  "yaml.format.singleQuote": true,
   "yaml.customTags": [
     "!run: mapping",
     "!registryKey: mapping",
