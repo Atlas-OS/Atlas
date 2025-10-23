@@ -15,6 +15,22 @@ function Separator {
 	return $args -replace '\\', "$([IO.Path]::DirectorySeparatorChar)"
 }
 
+$buildTimer = [System.Diagnostics.Stopwatch]::StartNew()
+
+function Write-BuildStatus {
+	param (
+		[Parameter(Mandatory = $true)][string]$Message,
+		[string]$Color = 'Cyan'
+	)
+
+	$timestamp = Get-Date -Format 'HH:mm:ss'
+	Write-Host "[$timestamp] $Message" -ForegroundColor $Color
+}
+
+$isWindowsPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)
+$isLinuxPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Linux)
+$isMacPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::OSX)
+
 # Adds Atlas PSModulesPath to profile for the PowerShell Extension
 $userEnv = [System.EnvironmentVariableTarget]::User
 if ($psEditor.Workspace.Path -and ([Environment]::GetEnvironmentVariable('LOCALBUILD_DONT_ASK_FOR_MODULES', $userEnv) -ne "$true")) {
@@ -62,7 +78,7 @@ if (Get-Command '7z' -EA 0) {
 	$7zPath = '7z'
 } elseif (Get-Command '7zz' -EA 0) {
 	$7zPath = '7zz'
-} elseif (!$IsLinux -and !$IsMacOS -and (Test-Path "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe")) {
+} elseif ($isWindowsPlatform -and (Test-Path "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe")) {
 	$7zPath = "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe"
 } else {
 	throw "This script requires 7-Zip or NanaZip to be installed to continue."
@@ -101,6 +117,8 @@ if ($replaceOldPlaybook -and (Test-Path -LiteralPath $apbxFileName)) {
 	GetNewName
 }
 $apbxPath = Separator "$PWD\$apbxFileName"
+
+Write-BuildStatus "Starting local build for '$FileName' -> $(Split-Path -Path $apbxPath -Leaf)" -Color 'Yellow'
 
 function Invoke-ArchiveCommand {
 	param (
@@ -196,12 +214,180 @@ function Wait-ForFileAccess {
 	throw "Timed out waiting for '$Path' to be created."
 }
 
+function Copy-WorkspaceContent {
+	param (
+		[Parameter(Mandatory = $true)][string]$Source,
+		[Parameter(Mandatory = $true)][string]$Destination,
+		[string[]]$Exclude = @()
+	)
+
+	if (!(Test-Path -LiteralPath $Destination -PathType Container)) {
+		New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+	}
+
+	if ($isWindowsPlatform -and (Get-Command 'robocopy' -ErrorAction SilentlyContinue)) {
+		$robocopyArgs = @($Source, $Destination, '/E', '/MT:16', '/NFL', '/NDL', '/NJH', '/NJS', '/R:1', '/W:1')
+
+		foreach ($pattern in $Exclude) {
+			$robocopyArgs += '/XF'
+			$robocopyArgs += $pattern
+		}
+
+		& robocopy @robocopyArgs | Out-Null
+		$exitCode = $LASTEXITCODE
+		if ($exitCode -ge 8) {
+			throw "Robocopy failed while staging workspace files (exit code $exitCode)."
+		}
+
+		return
+	}
+
+	$copyParams = @{
+		Path        = (Join-Path $Source '*')
+		Destination = $Destination
+		Recurse     = $true
+		Force       = $true
+		Container   = $true
+	}
+
+	if ($Exclude.Count -gt 0) {
+		$copyParams['Exclude'] = $Exclude
+	}
+
+	Copy-Item @copyParams
+}
+
+function Open-ExplorerSelection {
+	param (
+		[Parameter(Mandatory = $true)][string]$Path,
+		[Alias('CloseExisting')]
+		[switch]$FocusExisting
+	)
+
+	if (-not $isWindowsPlatform) {
+		Write-Warning "File Explorer automation is only supported on Windows. Output: $Path"
+		return $false
+	}
+
+	try {
+		$fullPath = [System.IO.Path]::GetFullPath($Path)
+	} catch {
+		Write-Warning "Unable to resolve build output path '$Path'. $($_.Exception.Message)"
+		return $false
+	}
+
+	if (!(Test-Path -LiteralPath $fullPath)) {
+		Write-Warning "Build output not found on disk: $fullPath"
+		return $false
+	}
+
+	$directory = Split-Path -Path $fullPath -Parent
+
+	if ($FocusExisting) {
+		$shellApp = $null
+		try {
+			$shellApp = New-Object -ComObject Shell.Application
+			$existingWindow = $shellApp.Windows() | Where-Object {
+				$_.Document -and $_.Document.Folder -and $_.Document.Folder.Self -and ($_.Document.Folder.Self.Path -eq $directory)
+			} | Select-Object -First 1
+
+			if ($existingWindow) {
+				Write-Verbose "Reusing existing Explorer window for '$directory'."
+				try {
+					$folderView = $existingWindow.Document
+					$fileName = [System.IO.Path]::GetFileName($fullPath)
+					if ($folderView -and $folderView.SelectItem) {
+						$item = $folderView.Folder.ParseName($fileName)
+						if ($item) {
+							$folderView.SelectItem($item, 1)
+						}
+					}
+					$existingWindow.Visible = $true
+					$existingWindow.Document.Focus()
+				} catch {
+					Write-Verbose "Unable to focus existing window for '$directory'. $($_.Exception.Message)"
+				}
+				return $true
+			}
+		} catch {
+			Write-Verbose "Failed to inspect existing Explorer windows for '$directory'. $($_.Exception.Message)"
+		} finally {
+			if ($shellApp) {
+				try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shellApp) | Out-Null } catch { }
+			}
+		}
+	}
+
+	$attempts = @(
+		@{
+			Description = 'select build output';
+			Action      = {
+				Start-Process -FilePath 'explorer.exe' -ArgumentList "/n,/select,`"$fullPath`"" -WorkingDirectory $directory -WindowStyle Normal -ErrorAction Stop | Out-Null
+			}
+		},
+		@{
+			Description = 'highlight via Shell.Application';
+			Action      = {
+				$folderShell = New-Object -ComObject Shell.Application
+				try {
+					$explorerFolder = $folderShell.Namespace($directory)
+					if ($explorerFolder) {
+						$item = $explorerFolder.ParseName([System.IO.Path]::GetFileName($fullPath))
+						if ($item) {
+							$item.InvokeVerb('open')
+						} else {
+							throw "Shell couldn't resolve item."
+						}
+					} else {
+						throw "Shell couldn't open directory."
+					}
+				} finally {
+					if ($folderShell) {
+						try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($folderShell) | Out-Null } catch { }
+					}
+				}
+			}
+		},
+		@{
+			Description = 'open build output with Invoke-Item';
+			Action      = { Invoke-Item -LiteralPath $fullPath -ErrorAction Stop }
+		},
+		@{
+			Description = 'open containing directory in Explorer';
+			Action      = { Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$directory`"" -WorkingDirectory $directory -ErrorAction Stop | Out-Null }
+		},
+		@{
+			Description = 'fallback cmd /c start';
+			Action      = { Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'start', '', "`"$directory`"" -WorkingDirectory $directory -ErrorAction Stop | Out-Null }
+		}
+	)
+
+	foreach ($attempt in $attempts) {
+		try {
+			& $attempt.Action
+			Write-Verbose "Explorer open succeeded using '$($attempt.Description)'."
+			return $true
+		} catch {
+			Write-Verbose "Explorer attempt to $($attempt.Description) failed. $($_.Exception.Message)"
+		}
+	}
+
+	Write-Warning "Unable to launch File Explorer for $fullPath. Please open it manually."
+	return $false
+}
+
 # make temp directories
-$rootTemp = New-Item (Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $([System.Guid]::NewGuid())) -ItemType Directory -Force
-if (!(Test-Path -Path "$rootTemp")) { throw "Failed to create temporary directory!" }
-$playbookTemp = New-Item $(Separator "$rootTemp\playbook") -Type Directory
+$rootTemp = (New-Item (Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $([System.Guid]::NewGuid())) -ItemType Directory -Force).FullName
+if (!(Test-Path -Path $rootTemp)) { throw "Failed to create temporary directory!" }
+$playbookTemp = (New-Item (Separator "$rootTemp\playbook") -ItemType Directory).FullName
+
+Write-BuildStatus "Using temporary workspace at $rootTemp" -Color 'DarkGray'
 
 try {
+	Write-BuildStatus "Applying requested configuration overrides..." -Color 'Cyan'
+	if ($Removals) {
+		Write-BuildStatus "Requested removals: $($Removals -join ', ')" -Color 'DarkGray'
+	}
 	# remove entries in playbook config that make it awkward for testing
 	$patterns = @()
 	# 0.6.5 has a bug where it will crash without the 'Requirements' field, but all of the requirements are removed
@@ -212,12 +398,14 @@ try {
 
 	$tempPbConfPath = Separator "$playbookTemp\playbook.conf"
 	if ($patterns.Count -gt 0) {
+		Write-BuildStatus "Applying playbook.conf sanitization rules..." -Color 'DarkGray'
 		Get-Content -Encoding "utf8" "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') } | Set-Content -Encoding "utf8" $tempPbConfPath
 	}
 
 	$customYmlPath = Separator "Configuration\custom.yml"
 	$tempCustomYmlPath = Separator "$playbookTemp\$customYmlPath"
 	if ($AddLiveLog) {
+		Write-BuildStatus "Adding live log launcher to custom.yml..." -Color 'DarkGray'
 		if (Test-Path $customYmlPath -PathType Leaf) {
 			New-Item (Split-Path $tempCustomYmlPath -Parent) -ItemType Directory -Force | Out-Null
 			Copy-Item -Path $customYmlPath -Destination $tempCustomYmlPath -Force
@@ -245,6 +433,7 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 	$startYmlPath = Separator "Configuration\atlas\start.yml"
 	$tempStartYmlPath = Separator "$playbookTemp\$startYmlPath"
 	if ($removeDependencies) {
+		Write-BuildStatus "Removing dependency actions from start.yml..." -Color 'DarkGray'
 		if (Test-Path $startYmlPath -PathType Leaf) {
 			New-Item (Split-Path $tempStartYmlPath -Parent) -ItemType Directory -Force | Out-Null
 			Copy-Item -Path $startYmlPath -Destination $tempStartYmlPath -Force
@@ -264,6 +453,7 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 	$oemYmlPath = Separator "Configuration\tweaks\misc\config-oem-information.yml"
 	$tempOemYmlPath = Separator "$playbookTemp\$oemYmlPath"
 	if (Test-Path $oemYmlPath -PathType Leaf) {
+		Write-BuildStatus "Updating OEM metadata to match playbook.conf..." -Color 'DarkGray'
 		$confXml = ([xml](Get-Content "playbook.conf" -Raw -EA 0)).Playbook
 		if ($confXml.Version -match '^(0|[1-9]\d*)(\.(0|[1-9]\d*)){0,2}$') {
 			$version = "v$($confXml.Version)"
@@ -290,6 +480,7 @@ while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sl
 	}
 
 # stage files for packaging
+Write-BuildStatus "Staging playbook files..." -Color 'Cyan'
 $excludeFiles = @(
 	"local-build.*",
 	"*.apbx"
@@ -297,23 +488,14 @@ $excludeFiles = @(
 if (Test-Path $tempCustomYmlPath) { $excludeFiles += "custom.yml" }
 if (Test-Path $tempStartYmlPath) { $excludeFiles += "start.yml" }
 if (Test-Path $tempPbConfPath) { $excludeFiles += "playbook.conf" }
-$stagePath = New-Item (Separator "$rootTemp\stage") -ItemType Directory -Force
+$stagePath = (New-Item (Separator "$rootTemp\stage") -ItemType Directory -Force).FullName
 $workspaceRoot = (Get-Location).ProviderPath
-(Get-ChildItem -File -Exclude $excludeFiles -Recurse) | ForEach-Object {
-	$relativePath = $_.FullName.Substring($workspaceRoot.Length + 1)
-	$destination = Separator (Join-Path $stagePath $relativePath)
-	New-Item (Split-Path $destination -Parent) -ItemType Directory -Force | Out-Null
-	Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
-}
+Copy-WorkspaceContent -Source $workspaceRoot -Destination $stagePath -Exclude $excludeFiles
 
-if (Test-Path $(Separator "$playbookTemp\*")) {
+if (Test-Path (Join-Path $playbookTemp '*')) {
+	Write-BuildStatus "Merging temporary overrides..." -Color 'Cyan'
 	$playbookTempRoot = (Resolve-Path $playbookTemp).ProviderPath
-	Get-ChildItem -LiteralPath $playbookTempRoot -File -Recurse | ForEach-Object {
-		$relativeTempPath = $_.FullName.Substring($playbookTempRoot.Length + 1)
-		$destination = Separator (Join-Path $stagePath $relativeTempPath)
-		New-Item (Split-Path $destination -Parent) -ItemType Directory -Force | Out-Null
-		Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
-	}
+	Copy-WorkspaceContent -Source $playbookTempRoot -Destination $stagePath
 }
 
 if (!$NoPassword) { $pass = '-pmalte' }
@@ -326,6 +508,9 @@ if (Test-Path -LiteralPath $apbxTmpPath) {
 $createArgs = @('a', '-spf', '-y', '-mx1')
 if ($pass) { $createArgs += $pass }
 $createArgs += '-tzip'
+
+Write-BuildStatus "Packaging playbook archive..." -Color 'Cyan'
+
 Push-Location $stagePath
 try {
 	$createArgs += $apbxPath
@@ -345,20 +530,31 @@ if (Test-Path -LiteralPath $apbxTmpPath -PathType Leaf) {
 	Move-ItemSafely -Source $apbxTmpPath -Destination $apbxPath
 }
 
-Write-Host "Built successfully! Path: `"$apbxPath`"" -ForegroundColor Green
+$apbxFullPath = [System.IO.Path]::GetFullPath($apbxPath)
+$apbxDirectory = Split-Path -Path $apbxFullPath -Parent
+
+if ($buildTimer.IsRunning) { $buildTimer.Stop() }
+$elapsed = $buildTimer.Elapsed
+if ($elapsed.TotalSeconds -lt 60) {
+	$elapsedText = "{0:N2}s" -f $elapsed.TotalSeconds
+} else {
+	$elapsedText = $elapsed.ToString('hh\:mm\:ss')
+}
+Write-BuildStatus "Build completed in $elapsedText. Output: `"$apbxFullPath`"" -Color 'Green'
 	if (!$DontOpenPbLocation) {
-		if ($IsLinux -or $IsMacOS) {
+		if (-not $isWindowsPlatform) {
 			Write-Warning "Can't open to APBX directory as the system isn't Windows."
 		} else {
-			# Kill old instances
-			# Would use SetForegroundWindow but it doesn't always work, so opening a new window is most reliable :/
-			$openWindows = ((New-Object -Com Shell.Application).Windows() | Where-Object { $_.Document.Folder.Self.Path -eq "$(Split-Path -Path $apbxPath)" })
-			if ($openWindows.Count -ne 0) { $openWindows.Quit() }
-
-			explorer /select,"$apbxPath"
+			Write-BuildStatus "Opening output location in File Explorer..." -Color 'DarkGray'
+			if (Open-ExplorerSelection -Path $apbxFullPath -FocusExisting) {
+				Write-BuildStatus "Explorer window opened for $apbxFullPath." -Color 'DarkGray'
+			} else {
+				Write-Warning "Couldn't automatically open File Explorer to $apbxFullPath."
+			}
 		}
 	}
 } finally {
+	if ($buildTimer.IsRunning) { $buildTimer.Stop() }
 	Remove-Item $rootTemp -Force -EA 0 -Recurse | Out-Null
 	if ($currentDir) { Set-Location $currentDir }
 }
