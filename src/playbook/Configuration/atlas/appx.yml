@@ -3,8 +3,8 @@ title: AppX
 description: Removes AppX packages and prevents them from being reinstalled
 onUpgrade: false
 actions:
-  - !writeStatus: {status: 'Removing AppX packages'}
-  
+  - !writeStatus: { status: 'Removing AppX packages' }
+
   # The reason of removing those applications is that they might be sending user data,
   # showing unwanted content and using hardware resources. They can also simply be annoyances
   # that are never used. However, most of these applications can be reinstalled via
@@ -17,57 +17,73 @@ actions:
   # Get current AppX packages to deprovision removed ones afterward
   - !powerShell:
     command: |
-      (Get-AppxPackage).PackageFamilyName |
-        Out-File """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
+      $atlasModulesRoot = Join-Path $env:windir 'AtlasModules'
+      $snapshotPath = Join-Path $atlasModulesRoot 'AtlasPackagesOld.txt'
+      if (-not (Test-Path -LiteralPath $atlasModulesRoot)) {
+        New-Item -Path $atlasModulesRoot -ItemType Directory -Force | Out-Null
+      }
+      Get-AppxPackage |
+        ForEach-Object { $_.PackageFamilyName } |
+        Sort-Object -Unique |
+        Set-Content -Path $snapshotPath -Encoding UTF8
     runas: currentUserElevated
     wait: true
 
   # AppX Microsoft Teams
   # Seems legacy - not in 23H2
-  - !taskKill: {name: 'msteams*', ignoreErrors: true}
-  - !appx: {name: 'MicrosoftTeams*', type: family}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications', value: 'ConfigureChatAutoInstall', data: '0', type: REG_DWORD}
+  - !taskKill: { name: 'msteams*', ignoreErrors: true }
+  - !appx: { name: 'MicrosoftTeams*', type: family }
+  - !registryValue: {
+      path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications',
+      value: 'ConfigureChatAutoInstall',
+      data: '0',
+      type: REG_DWORD,
+    }
 
   # New AppX Teams in 24H2
-  - !taskKill: {name: 'ms-teams*', ignoreErrors: true}
-  - !appx: {name: 'MSTeams*', type: family}
+  - !taskKill: { name: 'ms-teams*', ignoreErrors: true }
+  - !appx: { name: 'MSTeams*', type: family }
   # 24H2 Copilot app
-  - !appx: {name: 'Microsoft.Copilot*', type: family}
+  - !appx: { name: 'Microsoft.Copilot*', type: family }
 
   # Other apps
-  - !appx: {name: 'Clipchamp.Clipchamp*', type: family}
-  - !appx: {name: 'Disney.37853FC22B2CE*', type: family}
-  - !appx: {name: 'SpotifyAB.SpotifyMusic*', type: family}
-  - !appx: {name: 'Microsoft.549981C3F5F10*', type: family} # Cortana
-  - !appx: {name: 'Microsoft.XboxApp*', type: family} # Xbox Console Companion (deprecated)
-  - !appx: {name: 'microsoft.windowscommunicationsapps*', type: family} # Mail and Calendar
-  - !appx: {name: 'Microsoft.MSPaint*', type: family} # Paint 3D
-  - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips (deprecated)
-  - !appx: {name: 'Microsoft.ZuneVideo*', type: family} # Films & TV
-  - !appx: {name: 'MicrosoftCorporationII.MicrosoftFamily*', type: family}
-  - !appx: {name: 'Microsoft.MixedReality.Portal*', type: family}
-  - !appx: {name: 'Microsoft.Windows.DevHome*', type: family}
-  - !appx: {name: 'Microsoft.BingWeather*', type: family}
-  - !appx: {name: 'Microsoft.BingNews*', type: family}
-  - !appx: {name: 'Microsoft.BingSearch*', type: family}
-  - !appx: {name: 'Microsoft.OutlookForWindows*', type: family}
-  - !appx: {name: 'Microsoft.GetHelp*', type: family}
-  - !appx: {name: 'Microsoft.Microsoft3DViewer*', type: family}
-  - !appx: {name: 'Microsoft.MicrosoftOfficeHub*', type: family}
-  - !appx: {name: 'Microsoft.MicrosoftSolitaireCollection*', type: family}
-  - !appx: {name: 'Microsoft.MicrosoftStickyNotes*', type: family}
-  - !appx: {name: 'Microsoft.Office.OneNote*', type: family}
-  - !appx: {name: 'Microsoft.People*', type: family}
-  - !appx: {name: 'Microsoft.PowerAutomateDesktop*', type: family}
-  - !appx: {name: 'Microsoft.ScreenSketch*', type: family, option: 'remove-snipping-tool'}
-  - !appx: {name: 'Microsoft.SkypeApp*', type: family}
-  - !appx: {name: 'Microsoft.Todos*', type: family}
-  - !appx: {name: 'Microsoft.WindowsAlarms*', type: family}
-  - !appx: {name: 'Microsoft.WindowsCamera*', type: family}
-  - !appx: {name: 'Microsoft.WindowsFeedbackHub*', type: family}
-  - !appx: {name: 'Microsoft.WindowsMaps*', type: family}
-  - !appx: {name: 'Microsoft.WindowsSoundRecorder*', type: family}
-  - !appx: {name: 'Ink.Handwriting.Main.Store.en-US1.0', type: family}
+  - !appx: { name: 'Clipchamp.Clipchamp*', type: family }
+  - !appx: { name: 'Disney.37853FC22B2CE*', type: family }
+  - !appx: { name: 'SpotifyAB.SpotifyMusic*', type: family }
+  - !appx: { name: 'Microsoft.549981C3F5F10*', type: family } # Cortana
+  - !appx: { name: 'Microsoft.XboxApp*', type: family } # Xbox Console Companion (deprecated)
+  - !appx: { name: 'microsoft.windowscommunicationsapps*', type: family } # Mail and Calendar
+  - !appx: { name: 'Microsoft.MSPaint*', type: family } # Paint 3D
+  - !appx: { name: 'Microsoft.Getstarted*', type: family } # Tips (deprecated)
+  - !appx: { name: 'Microsoft.ZuneVideo*', type: family } # Films & TV
+  - !appx: { name: 'MicrosoftCorporationII.MicrosoftFamily*', type: family }
+  - !appx: { name: 'Microsoft.MixedReality.Portal*', type: family }
+  - !appx: { name: 'Microsoft.Windows.DevHome*', type: family }
+  - !appx: { name: 'Microsoft.BingWeather*', type: family }
+  - !appx: { name: 'Microsoft.BingNews*', type: family }
+  - !appx: { name: 'Microsoft.BingSearch*', type: family }
+  - !appx: { name: 'Microsoft.OutlookForWindows*', type: family }
+  - !appx: { name: 'Microsoft.GetHelp*', type: family }
+  - !appx: { name: 'Microsoft.Microsoft3DViewer*', type: family }
+  - !appx: { name: 'Microsoft.MicrosoftOfficeHub*', type: family }
+  - !appx: { name: 'Microsoft.MicrosoftSolitaireCollection*', type: family }
+  - !appx: { name: 'Microsoft.MicrosoftStickyNotes*', type: family }
+  - !appx: { name: 'Microsoft.Office.OneNote*', type: family }
+  - !appx: { name: 'Microsoft.People*', type: family }
+  - !appx: { name: 'Microsoft.PowerAutomateDesktop*', type: family }
+  - !appx: {
+      name: 'Microsoft.ScreenSketch*',
+      type: family,
+      option: 'remove-snipping-tool',
+    }
+  - !appx: { name: 'Microsoft.SkypeApp*', type: family }
+  - !appx: { name: 'Microsoft.Todos*', type: family }
+  - !appx: { name: 'Microsoft.WindowsAlarms*', type: family }
+  - !appx: { name: 'Microsoft.WindowsCamera*', type: family }
+  - !appx: { name: 'Microsoft.WindowsFeedbackHub*', type: family }
+  - !appx: { name: 'Microsoft.WindowsMaps*', type: family }
+  - !appx: { name: 'Microsoft.WindowsSoundRecorder*', type: family }
+  - !appx: { name: 'Ink.Handwriting.Main.Store.en-US1.0', type: family }
   # Removing using AME Wizard causes issues with Cross Device Experience Host installing
   # - !appx: {name: 'Microsoft.YourPhone*', type: family}
   - !powerShell:
@@ -81,16 +97,29 @@ actions:
   # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
   - !powerShell:
     command: |
-      $a = """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
-      (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | 
-        Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force };
-      Remove-Item $a -Force
+      $snapshotPath = Join-Path $env:windir 'AtlasModules\AtlasPackagesOld.txt'
+      if (-not (Test-Path -LiteralPath $snapshotPath)) {
+        return
+      }
+      $deprovisionKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned'
+      $previousPackages = Get-Content -Path $snapshotPath -ErrorAction Stop
+      $currentPackages = Get-AppxPackage | ForEach-Object { $_.PackageFamilyName } | Sort-Object -Unique
+      $removedPackages = Compare-Object -ReferenceObject $previousPackages -DifferenceObject $currentPackages -PassThru |
+        Where-Object SideIndicator -EQ '<=' |
+        Select-Object -Unique
+      foreach ($package in $removedPackages) {
+        $packageKey = Join-Path $deprovisionKey $package
+        if (-not (Test-Path -LiteralPath $packageKey)) {
+          New-Item -Path $deprovisionKey -Name $package -Force | Out-Null
+        }
+      }
+      Remove-Item -Path $snapshotPath -Force
     runas: currentUserElevated
     wait: true
 
   # Clear caches of Client.CBS and more
   # Start menu cache is cleared later
-  - !writeStatus: {status: 'Clearing AppX caches'}
-  - !appx: {operation: clearCache, name: '*MicrosoftWindows.Client.CBS*'}
-  - !appx: {operation: clearCache, name: '*Microsoft.Windows.Search*'}
-  - !appx: {operation: clearCache, name: '*Microsoft.Windows.SecHealthUI*'}
+  - !writeStatus: { status: 'Clearing AppX caches' }
+  - !appx: { operation: clearCache, name: '*MicrosoftWindows.Client.CBS*' }
+  - !appx: { operation: clearCache, name: '*Microsoft.Windows.Search*' }
+  - !appx: { operation: clearCache, name: '*Microsoft.Windows.SecHealthUI*' }
