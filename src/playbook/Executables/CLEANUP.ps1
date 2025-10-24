@@ -1,7 +1,93 @@
 .\AtlasModules\initPowerShell.ps1
+
+function Remove-FileSystemItem {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.IO.FileSystemInfo]$Item
+    )
+
+    try {
+        $attributeMask = [System.IO.FileAttributes]::ReadOnly -bor [System.IO.FileAttributes]::System -bor [System.IO.FileAttributes]::Hidden
+        $item.Attributes = $item.Attributes -band (-bnot $attributeMask)
+
+        if ($item -is [System.IO.DirectoryInfo]) {
+            $item.Delete($true)
+        }
+        else {
+            $item.Delete()
+        }
+    }
+    catch {
+        if ($item -is [System.IO.DirectoryInfo]) {
+            Remove-Item -LiteralPath $item.FullName -Force -Recurse -ErrorAction SilentlyContinue
+        }
+        else {
+            Remove-Item -LiteralPath $item.FullName -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Clear-DirectoryContents {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [string[]]$ExcludeNames = @(),
+        [switch]$IncludeHidden
+    )
+
+    try {
+        $directory = [System.IO.DirectoryInfo]::new($Path)
+    }
+    catch {
+        return
+    }
+
+    if (-not $directory.Exists) { return }
+
+    $excludeSet = $null
+    if ($ExcludeNames.Count -gt 0) {
+        $excludeSet = New-Object System.Collections.Generic.HashSet[string] ([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($name in $ExcludeNames) {
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            [void]$excludeSet.Add($name)
+        }
+    }
+
+    foreach ($item in $directory.EnumerateFileSystemInfos()) {
+        if ($excludeSet -and $excludeSet.Contains($item.Name)) { continue }
+
+        $attributes = $item.Attributes
+        if (-not $IncludeHidden -and (($attributes -band [System.IO.FileAttributes]::Hidden) -or ($attributes -band [System.IO.FileAttributes]::System))) {
+            continue
+        }
+
+        Remove-FileSystemItem -Item $item
+    }
+}
+
+function Get-ExistingDirectory {
+    param([string[]]$Candidates)
+
+    foreach ($candidate in $Candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        try {
+            $resolved = [System.IO.Path]::GetFullPath($candidate)
+        }
+        catch {
+            continue
+        }
+
+        if (Test-Path -LiteralPath $resolved -PathType Container) {
+            return $resolved
+        }
+    }
+
+    return $null
+}
+
 function Invoke-AtlasDiskCleanup {
     # Kill running cleanmgr instances, as they will prevent new cleanmgr from starting
-    Get-Process -Name cleanmgr -EA 0 | Stop-Process -Force -EA 0
+    Get-Process -Name cleanmgr -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     # Disk Cleanup preset
     # 2 = enabled
     # 0 = disabled
@@ -30,14 +116,38 @@ function Invoke-AtlasDiskCleanup {
         "Temporary Sync Files"                  = 2
         "Device Driver Packages"                = 2
     }
-    foreach ($entry in $regValues.GetEnumerator()) {
-        $key = "$baseKey\$($entry.Key)"
 
-        if (!(Test-Path $key)) {
-            Write-Output "'$key' not found, not configuring it."
+    $existingKeys = @()
+    try {
+        $existingKeys = Get-ChildItem -Path $baseKey -ErrorAction Stop | Select-Object -ExpandProperty PSChildName
+    }
+    catch {
+        $existingKeys = @()
+    }
+
+    $keyLookup = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($keyName in $existingKeys) {
+        [void]$keyLookup.Add($keyName)
+    }
+
+    foreach ($entry in $regValues.GetEnumerator()) {
+        $childKey = Join-Path -Path $baseKey -ChildPath $entry.Key
+
+        if (-not $keyLookup.Contains($entry.Key)) {
+            Write-Output "'$childKey' not found, not configuring it."
+            continue
         }
-        else {
-            Set-ItemProperty -Path "$baseKey\$($entry.Key)" -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
+
+        $currentValue = $null
+        try {
+            $currentValue = Get-ItemPropertyValue -Path $childKey -Name 'StateFlags0064' -ErrorAction Stop
+        }
+        catch {
+            $currentValue = $null
+        }
+
+        if ($currentValue -ne $entry.Value) {
+            Set-ItemProperty -Path $childKey -Name 'StateFlags0064' -Value $entry.Value -Type DWORD
         }
     }
 
@@ -48,10 +158,13 @@ function Invoke-AtlasDiskCleanup {
 
 # Check for other installations of Windows
 # If so, don't cleanup as it will also cleanup other drives, which will be slow, and we don't want to touch other data
+$systemDrivePattern = [regex]::Escape($(Get-SystemDrive))
 $noCleanmgr = $false
-$drives = (Get-PSDrive -PSProvider FileSystem).Root | Where-Object { $_ -notmatch $(Get-SystemDrive) }
-foreach ($drive in $drives) {
-    if (Test-Path -Path $(Join-Path -Path $drive -ChildPath 'Windows') -PathType Container) {
+foreach ($drive in Get-PSDrive -PSProvider FileSystem) {
+    if ($drive.Root -match $systemDrivePattern) { continue }
+
+    $candidate = Join-Path -Path $drive.Root -ChildPath 'Windows'
+    if (Test-Path -LiteralPath $candidate -PathType Container) {
         Write-Output "Not running Disk Cleanup, other Windows drives found."
         $noCleanmgr = $true
         break
@@ -64,35 +177,26 @@ if (!$noCleanmgr) {
 }
 
 # Clear the user temp folder
-foreach ($path in @($env:temp, $env:tmp, "$env:localappdata\Temp")) {
-    if (Test-Path $path -PathType Container) {
-        $userTemp = $path
-        break
-    }
-}
+$localAppDataTemp = if ($env:LOCALAPPDATA) { Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Temp' } else { $null }
+$userTemp = Get-ExistingDirectory @($env:TEMP, $env:TMP, $localAppDataTemp)
 if ($userTemp) {
     Write-Output "Cleaning user TEMP folder..."
-    Get-ChildItem -Path $userTemp | Where-Object { $_.Name -ne 'AME' } | Remove-Item -Force -Recurse -EA 0
+    Clear-DirectoryContents -Path $userTemp -ExcludeNames 'AME'
 }
 else {
     Write-Error "User temp folder not found!"
 }
 
 # Clear the system temp folder
-$machine = [System.EnvironmentVariableTarget]::Machine
-foreach ($path in @(
-        [System.Environment]::GetEnvironmentVariable("Temp", $machine),
-        [System.Environment]::GetEnvironmentVariable("Tmp", $machine),
-        "$([Environment]::GetFolderPath('Windows'))\Temp"
-    )) {
-    if (Test-Path $path -PathType Container) {
-        $sysTemp = $path
-        break
-    }
-}
-if ($sysTemp) {
+$machineTarget = [System.EnvironmentVariableTarget]::Machine
+$systemTemp = Get-ExistingDirectory @(
+    [System.Environment]::GetEnvironmentVariable("Temp", $machineTarget),
+    [System.Environment]::GetEnvironmentVariable("Tmp", $machineTarget),
+    (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'Temp')
+)
+if ($systemTemp) {
     Write-Output "Cleaning system TEMP folder..."
-    Remove-Item -Path "$sysTemp\*" -Force -Recurse -EA 0
+    Clear-DirectoryContents -Path $systemTemp -IncludeHidden
 }
 else {
     Write-Error "System temp folder not found!"
