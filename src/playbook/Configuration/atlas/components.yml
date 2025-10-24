@@ -3,8 +3,12 @@ title: Components
 description: Removes certain Windows components
 onUpgrade: false
 actions:
-    # Remove Security Center startup item
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
+  # Remove Security Center startup item
+  - !registryValue: {
+      path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run',
+      value: 'SecurityHealth',
+      operation: delete,
+    }
 
     # Disable Smart App Control
     # Causes slow app loading issues and sends data to Microsoft
@@ -15,47 +19,78 @@ actions:
     type: REG_DWORD
 
     # Microsoft Edge
-  - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
+  - !writeStatus: {
+      status: 'Removing Microsoft Edge',
+      option: 'uninstall-edge',
+    }
   - !powerShell:
-    command: '& """.\AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive'
+    command: |
+      $ErrorActionPreference = 'Stop'
+      $scriptRoot = (Get-Location).Path
+      $removeEdgeScript = Join-Path $scriptRoot 'AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1'
+      if (-not (Test-Path -LiteralPath $removeEdgeScript)) {
+        throw "RemoveEdge script missing at $removeEdgeScript"
+      }
+      & $removeEdgeScript -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive
     runas: currentUserElevated
     option: 'uninstall-edge'
     wait: true
     exeDir: true
     # AppX uninstallation in the script seems to fail, therefore it's not used and AME Wizard is used instead
     # Note that AppX Edge is removed from the latest builds of Windows, but people could be running a non-updated version
-  - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge'}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
+  - !appx: {
+      name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe',
+      type: family,
+      option: 'uninstall-edge',
+    }
+  - !registryKey: {
+      path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe',
+      operation: add,
+      option: 'uninstall-edge',
+    }
+  - !registryKey: {
+      path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge_8wekyb3d8bbwe',
+      operation: add,
+      option: 'uninstall-edge',
+    }
 
     # OneDrive
     # The actual OneDrive setup in Windows is stripped at a component-level in the miscellaneous package
-  - !writeStatus: {status: 'Removing OneDrive'}
-  - !run: {exeDir: true, exe: 'ONED.cmd'}
+  - !writeStatus: { status: 'Removing OneDrive' }
+  - !run: { exeDir: true, exe: 'ONED.cmd' }
 
     # Windows components and Telemetry
-  - !writeStatus: {status: 'Removing components'}
+  - !writeStatus: { status: 'Removing components' }
   - !registryKey:
     path: 'HKLM\OfflineSys\ControlSet001\Services\WdBoot'
     operation: delete
     option: 'defender-disable'
     iso: only
   - !powerShell:
-    command: >-
-      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
-      -InstallPackages @('*Z-Atlas-NoDefender-Package*',
+    command: |
+      $ErrorActionPreference = 'Stop'
+      $packageInstaller = Join-Path $env:windir 'AtlasModules\Scripts\packageInstall.ps1'
+      if (-not (Test-Path -LiteralPath $packageInstaller)) {
+        throw "packageInstall.ps1 missing at $packageInstaller"
+      }
+      $packagesToInstall = @(
+        '*Z-Atlas-NoDefender-Package*'
         '*Z-Atlas-NoTelemetry-Package*'
       )
-      -NoInteraction
+      & $packageInstaller -InstallPackages $packagesToInstall -NoInteraction
     option: 'defender-disable'
     wait: true
     exeDir: true
   - !powerShell:
-    command: >-
-      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
-      -InstallPackages @('*Z-Atlas-NoTelemetry-Package*')
-      -UninstallPackages @('*Z-Atlas-NoDefender-Package*')
-      -NoInteraction
+    command: |
+      $ErrorActionPreference = 'Stop'
+      $packageInstaller = Join-Path $env:windir 'AtlasModules\Scripts\packageInstall.ps1'
+      if (-not (Test-Path -LiteralPath $packageInstaller)) {
+        throw "packageInstall.ps1 missing at $packageInstaller"
+      }
+      $packagesToInstall = @('*Z-Atlas-NoTelemetry-Package*')
+      $packagesToRemove = @('*Z-Atlas-NoDefender-Package*')
+      & $packageInstaller -InstallPackages $packagesToInstall -UninstallPackages $packagesToRemove -NoInteraction
     option: 'defender-enable'
     wait: true
     exeDir: true
