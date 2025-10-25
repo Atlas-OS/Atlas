@@ -485,10 +485,18 @@ try {
     }
 
     # use store mode for speed and keep 7-zip output quiet
-    $archiveArgs = @('a', '-tzip', '-spf', '-y', '-mx1', '-bso0', '-bse0', '-bsp0')
+    $archiveArgs = @('a', '-tzip', '-y', '-mx1', '-bso0', '-bse0', '-bsp0')
+    if ($IsWindowsPlatform) {
+        $archiveArgs += '-spf'
+    }
     $archiveArgs += $passwordArgs
     $archiveArgs += $apbxPath
-    $archiveArgs += '@"{0}"' -f $filesListPath
+    if ($IsWindowsPlatform) {
+        $archiveArgs += '@"{0}"' -f $filesListPath
+    } else {
+        # p7zip refuses -spf with relative paths so use plain @$list
+        $archiveArgs += "@$filesListPath"
+    }
 
     Invoke-SevenZip -ArgumentList $archiveArgs -ErrorContext 'Creating APBX archive' -ArchivePath $apbxPath
 
