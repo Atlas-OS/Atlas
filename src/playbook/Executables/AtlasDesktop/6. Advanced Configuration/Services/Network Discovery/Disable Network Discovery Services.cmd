@@ -23,7 +23,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 if not "%~1"=="/silent" call "%windir%\AtlasModules\Scripts\serviceWarning.cmd" %*
 
 :: Unpin 'Network' from Explorer sidebar
-reg import "%windir%\AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).reg" > nul
+call "%windir%\AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" > nul
 
 call setSvc.cmd fdPHost 4
 call setSvc.cmd FDResPub 4
