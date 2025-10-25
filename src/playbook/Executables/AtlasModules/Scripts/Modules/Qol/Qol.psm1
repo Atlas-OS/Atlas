@@ -124,7 +124,7 @@ function Hide-RecentItems {
 
 # Function to minimize mouse hover time for item info
 function Set-MouseHoverTimeForItemInfo {
-    reg add "HKCU\Control Panel\Desktop" /v "MouseHoverTime" /t REG_SZ /d "20" /f
+    reg add "HKCU\Control Panel\Mouse" /v "MouseHoverTime" /t REG_SZ /d "20" /f
 }
 
 # Function to configure File Explorer to open to This PC
@@ -162,10 +162,10 @@ function Disable-ShowEdgeTabsInAltTab {
 # Function to disable AutoRun
 function Disable-AutoRun {
     reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" /v "DisableAutoplay" /t REG_DWORD /d 1 /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\CameraAlternate" /v "MSTakeNoAction" /t REG_NONE /d "" /f /f 
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\StorageOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\CameraAlternate\ShowPicturesOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f /f 
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\StorageOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f /f
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\CameraAlternate" /v "MSTakeNoAction" /t REG_NONE /d "" /f
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\StorageOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\CameraAlternate\ShowPicturesOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\StorageOnArrival" /v "MSTakeNoAction" /t REG_NONE /d "" /f
 }
 
 # Function to disable Aero Shake
@@ -180,7 +180,7 @@ function Disable-LowDiskSpaceChecks {
 
 # Function to disable menu hover delay
 function Disable-MenuHoverDelay {
-    reg add "HKCU\Control Panel\Desktop" /v "MenuShowDelay" /t REG_SZ /d 0 /f
+    reg add "HKCU\Control Panel\Desktop" /v "MenuShowDelay" /t REG_SZ /d "0" /f
 }
 
 # Function to disable shared experiences
@@ -207,16 +207,16 @@ function Set-UnpinnedControlCenterItems {
 
     if ((Get-WmiObject -Class Win32_OperatingSystem).Version -like "10.0.19045"){
         # Windows 10
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Connect" /t REG_NONE /d "" /f /f
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Location" /t REG_NONE /d "" /f /f 
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f /f
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false" /f /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Connect" /t REG_NONE /d "" /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Location" /t REG_NONE /d "" /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.ScreenClipping" /t REG_NONE /d "" /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false" /f
     }
     else{
         # Windows 11
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Cast" /t REG_NONE /d "" /f /f
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.NearShare" /t REG_NONE /d "" /f /f
-        reg add "HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false" /f /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.Cast" /t REG_NONE /d "" /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\Unpinned" /v "Microsoft.QuickAction.NearShare" /t REG_NONE /d "" /f
+        reg add "HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture" /v "Toggles" /t REG_SZ /d "Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false" /f
     }
 
 
@@ -268,7 +268,7 @@ function Hide-TabletMode {
 # Function to disable Windows Chat
 function Disable-WindowsChat {
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat" /v "ChatIcon" /t REG_DWORD /d 3 /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarMn" /t REG_DWORD /d 0 /f 
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarMn" /t REG_DWORD /d 0 /f
 }
 
 # Function to add 'End task' to the taskbar
@@ -312,24 +312,24 @@ function Set-StartMenu {
     foreach ($userKey in (Get-RegUserPaths).PsPath) {
         $default = if ($userKey -match 'AME_UserHive_Default') { $true }
         $sid = Split-Path $userKey -Leaf
-    
+
         # Get Local AppData
         $appData = if ($default) {
             Get-UserPath -Folder 'F1B32785-6FBA-4FCF-9D55-7B8E7F157091'
         } else {
             (Get-ItemProperty "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name 'Local AppData' -EA 0).'Local AppData'
         }
-        
+
         Write-Title "Configuring Start Menu for '$sid'..."
         if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData)) {
             Write-Error "Couldn't find AppData value for $sid!"
         } else {
             Write-Output "Copying default layout XML"
             Copy-Item -Path "$windir\AtlasModules\Other\Layout.xml" -Destination "$appdata\Microsoft\Windows\Shell\LayoutModification.xml" -Force
-            
+
             if (!$default) {
                 Write-Output "Clearing Start Menu pinned items"
-    
+
                 $packages = Get-ChildItem -Path "$appdata\Packages" -Directory | Where-Object { $_.Name -match "Microsoft.Windows.StartMenuExperienceHost" }
                 foreach ($package in $packages) {
                     $bins = Get-ChildItem -Path "$appdata\Packages\$($package.Name)\LocalState" -File | Where-Object { $_.Name -like "start*.bin" }
@@ -339,15 +339,15 @@ function Set-StartMenu {
                 }
             }
         }
-        
+
         if (!$default) {
             Write-Output "Clearing default 'tilegrid'"
-            $tilegrid = Get-ChildItem -Path "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\CloudStore\Store\Cache\DefaultAccount" -Recurse | Where-Object { $_.Name -match "start.tilegrid" }    
+            $tilegrid = Get-ChildItem -Path "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\CloudStore\Store\Cache\DefaultAccount" -Recurse | Where-Object { $_.Name -match "start.tilegrid" }
             foreach ($key in $tilegrid) {
                 Remove-Item -Path $key.PSPath -Force
             }
         }
-    
+
         Write-Output "Removing advertisements/stubs from Start Menu (23H2+)"
         Remove-ItemProperty -Path "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Start" -Name 'Config' -Force -EA 0
     }

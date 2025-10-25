@@ -26,7 +26,7 @@ reg query HKCU\Software\Microsoft\Windows\Shell\Copilot /v IsCopilotAvailable 2>
 if %errorlevel%==0 (call :app) else (reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowCopilotButton" /t REG_DWORD /d "1" /f > nul)
 
 reg delete "HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /f > nul 2>&1
-if /I not "%~2"=="/noAction" powershell -command "stop-process -name explorer –force"
+if /I not "%~2"=="/noAction" powershell -command "stop-process -name explorer -force"
 
 :finish
 echo]
