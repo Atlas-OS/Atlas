@@ -38,10 +38,11 @@ reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Executi
 del /f /q "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk" > nul
 
 :: Check if Task Manager is still broken
+
 taskmgr.exe > nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo Warning: Task Manager is still not working, applying fallback fix...
-    
+
     reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /f > nul
     del /f /q "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk" > nul
     winget uninstall -e --id Microsoft.Sysinternals.ProcessExplorer --force --purge --disable-interactivity --accept-source-agreements -h > nul 2>&1
@@ -50,7 +51,10 @@ if %ERRORLEVEL% NEQ 0 (
     echo Fallback fix applied. Please restart your computer for the changes to take effect.
     pause
 )
-if "%~1"=="/silent" exit /b
+if "%~1"=="/silent" (
+    exit /b
+    taskkill /IM taskmgr.exe
+)
 echo Finished, changes have been applied.
 pause
 exit /b
