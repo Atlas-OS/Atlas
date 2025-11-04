@@ -40,7 +40,7 @@ reg add "%_uxKey%" /v HideMCTLink /t REG_DWORD /d 1 /f > nul
 reg add "%_uxKey%" /v RestartNotificationsAllowed2 /t REG_DWORD /d 0 /f > nul
 reg add "HKLM\SYSTEM\Setup\UpgradeNotification" /v UpgradeAvailable /t REG_DWORD /d 0 /f > nul
 
-echo Done. Windows Update deferral has been set.
+echo Done. Windows Updates have been paused.
 if "%~1"=="/silent" exit /b
 pause
 

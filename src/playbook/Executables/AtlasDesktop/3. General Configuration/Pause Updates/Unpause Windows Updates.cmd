@@ -51,6 +51,6 @@ reg delete "%_uxKey%" /v HideMCTLink /f > nul 2>&1
 reg delete "%_uxKey%" /v RestartNotificationsAllowed2 /f > nul 2>&1
 reg delete "HKLM\SYSTEM\Setup\UpgradeNotification" /v UpgradeAvailable /f > nul 2>&1
 
-echo Done. Windows Update pause policies have been reset to normal.
+echo Done. Updates have been unpaused.
 if "%~1"=="/silent" exit /b
 pause

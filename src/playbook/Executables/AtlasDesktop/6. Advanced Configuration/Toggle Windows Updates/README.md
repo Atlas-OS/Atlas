@@ -2,11 +2,12 @@
 USE WITH CAUTION ⚠️⚠️⚠️
 
 ‼️‼️‼️
-Users should use the file found at
+ALL USERS ARE ADVISED TO USE THE FILE FOUND AT
 %windir%\AtlasDesktop\3. General Configuration\Pause Updates\Pause Windows Updates.cmd
+TO PAUSE UPDATES. THIS WILL NOT BREAK OTHER SERVICES
 ‼️‼️‼️
 
-⚠️ This should only be used for Advanced Users who know what they are doing.
+⚠️ This should only be used for **Advanced Users** who know what they are doing.
 
 This file breaks:
 - Windows updates completely (Toggle will fix, but may fail [unlikely])
