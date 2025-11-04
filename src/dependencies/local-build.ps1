@@ -468,16 +468,13 @@ try {
             $relative = $file.Name
         }
 
-        if ($IsLinuxPlatform -or $IsMacOSPlatform) {
-            # normalize slashes for non-windows platforms
-            $relative = $relative -replace '\\', '/'
-        }
+        $relative = $relative -replace '\\', '/'
 
         $relative
     }
 
-    # write the file list so 7-zip can work through the tree efficiently
-    $relativePaths | Set-Content -Path $filesListPath -Encoding UTF8
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllLines($filesListPath, $relativePaths, $utf8NoBom)
 
     $passwordArgs = @()
     if (-not $NoPassword) {
@@ -491,12 +488,8 @@ try {
     }
     $archiveArgs += $passwordArgs
     $archiveArgs += $apbxPath
-    if ($IsWindowsPlatform) {
-        $archiveArgs += '@"{0}"' -f $filesListPath
-    } else {
-        # p7zip refuses -spf with relative paths so use plain @$list
-        $archiveArgs += "@$filesListPath"
-    }
+    # dont add extra quotes around the @ syntax as it breaks 7z parser
+    $archiveArgs += "@$filesListPath"
 
     Invoke-SevenZip -ArgumentList $archiveArgs -ErrorContext 'Creating APBX archive' -ArchivePath $apbxPath
 
