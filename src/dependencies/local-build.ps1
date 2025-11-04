@@ -1,239 +1,594 @@
-param (
-	[switch]$AddLiveLog,
-	[switch]$ReplaceOldPlaybook,
-	[switch]$DontOpenPbLocation,
-	[switch]$NoPassword,
-	[ValidateSet('Dependencies', 'Requirements', 'WinverRequirement', 'Verification', IgnoreCase = $true)]
-	[array]$Removals,
-	[string]$FileName = "Atlas Test"
+Param(
+    [switch]$AddLiveLog,
+    [switch]$ReplaceOldPlaybook,
+    [switch]$DontOpenPbLocation,
+    [switch]$NoPassword,
+    [ValidateSet('Dependencies', 'Requirements', 'WinverRequirement', 'Verification', IgnoreCase = $true)]
+    [string[]]$Removals,
+    [string]$FileName = 'Atlas Test'
 )
 
-$removals | % { Set-Variable -Name "remove$_" -Value $true }
+Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
 
-# Convert paths for convenience, needed for Linux/macOS
-function Separator {
-	return $args -replace '\\', "$([IO.Path]::DirectorySeparatorChar)"
+$removeDependencies = $false
+$removeRequirements = $false
+$removeWinverRequirement = $false
+$removeVerification = $false
+# track build time cuz why not
+$buildStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+if ($Removals) {
+    foreach ($removal in $Removals) {
+        switch ($removal.ToLowerInvariant()) {
+            'dependencies' { $removeDependencies = $true }
+            'requirements' { $removeRequirements = $true }
+            'winverrequirement' { $removeWinverRequirement = $true }
+            'verification' { $removeVerification = $true }
+        }
+    }
 }
 
-# Adds Atlas PSModulesPath to profile for the PowerShell Extension
-$userEnv = [System.EnvironmentVariableTarget]::User
-if ($psEditor.Workspace.Path -and ([Environment]::GetEnvironmentVariable('LOCALBUILD_DONT_ASK_FOR_MODULES', $userEnv) -ne "$true")) {
-	function DontAsk {
-		[Environment]::SetEnvironmentVariable('LOCALBUILD_DONT_ASK_FOR_MODULES', $true, $userEnv)
-	}
+$runtimeInformation = [System.Runtime.InteropServices.RuntimeInformation]
+$osPlatform = [System.Runtime.InteropServices.OSPlatform]
+$IsWindowsPlatform = $runtimeInformation::IsOSPlatform($osPlatform::Windows)
+$IsLinuxPlatform = $runtimeInformation::IsOSPlatform($osPlatform::Linux)
+$IsMacOSPlatform = $runtimeInformation::IsOSPlatform($osPlatform::OSX)
+# lazy temp staging so we only touch disk when needed
+$rootTempDir = $null
+$playbookTempPath = $null
+$filesListPath = $null
 
-	$title = 'Adding to PowerShell profile'
-	$description = @"
+# create temp playbook tree only when we patch files
+function Get-PlaybookTempPath {
+    if (-not $script:rootTempDir) {
+        $script:rootTempDir = New-TemporaryDirectory
+        $script:playbookTempPath = Join-Path -Path $script:rootTempDir.FullName -ChildPath 'playbook'
+        New-Item -ItemType Directory -Path $script:playbookTempPath -Force | Out-Null
+    }
+
+    return $script:playbookTempPath
+}
+
+function Set-ParentDirectory {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    $parent = Split-Path -Path $Path -Parent
+    if ($parent -and -not (Test-Path -LiteralPath $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+}
+
+function Resolve-SevenZipPath {
+    # look for 7-zip or nanazip, fall back to the installed copy on windows
+    $candidates = @('7z', '7zz')
+
+    foreach ($candidate in $candidates) {
+        $commandInfo = Get-Command -Name $candidate -ErrorAction SilentlyContinue
+        if ($commandInfo) {
+            return $commandInfo.Source
+        }
+    }
+
+    if ($IsWindowsPlatform) {
+        $programFiles = [Environment]::GetFolderPath('ProgramFiles')
+        if ($programFiles) {
+            $installedPath = Join-Path -Path $programFiles -ChildPath '7-Zip\7z.exe'
+            if (Test-Path -LiteralPath $installedPath) {
+                return $installedPath
+            }
+        }
+    }
+
+    throw 'This script requires 7-Zip or NanaZip to be installed to continue.'
+}
+
+function Invoke-SevenZip {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$ArgumentList,
+        [string]$ErrorContext = '7-Zip operation',
+        [string]$ArchivePath
+    )
+
+    $previousErrorPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $processOutput = & $script:SevenZipPath @ArgumentList 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorPreference
+    }
+    $recovered = $false
+
+    if ($ArchivePath) {
+        # cleanup
+        $archiveDirectory = Split-Path -Path $ArchivePath -Parent
+        $archiveLeaf = Split-Path -Path $ArchivePath -Leaf
+        $primaryTempPath = "$ArchivePath.tmp"
+
+        $candidateItems = @()
+        if (Test-Path -LiteralPath $primaryTempPath) {
+            $candidateItems += Get-Item -LiteralPath $primaryTempPath
+        }
+
+        if ($archiveDirectory) {
+            $additionalCandidates = Get-ChildItem -LiteralPath $archiveDirectory -Filter "$archiveLeaf.tmp*" -ErrorAction SilentlyContinue
+            foreach ($item in $additionalCandidates) {
+                if ($primaryTempPath -and ($item.FullName -eq $primaryTempPath)) {
+                    continue
+                }
+                $candidateItems += $item
+            }
+        }
+
+        if ($candidateItems) {
+            $candidateItems = $candidateItems | Sort-Object LastWriteTime -Descending
+            $targetName = $archiveLeaf
+
+            foreach ($candidate in $candidateItems) {
+                for ($attempt = 0; $attempt -lt 5 -and -not $recovered; $attempt++) {
+                    try {
+                        Remove-Item -LiteralPath $ArchivePath -Force -ErrorAction SilentlyContinue
+                        Rename-Item -LiteralPath $candidate.FullName -NewName $targetName -Force
+                        $recovered = $true
+                        break
+                    }
+                    catch {
+                        if ($attempt -eq 4) {
+                            $warningMessage = "Failed to recover archive from temporary file '{0}': {1}" -f $candidate.FullName, $_.Exception.Message
+                            Write-Warning $warningMessage
+                        }
+                        Start-Sleep -Milliseconds 200
+                    }
+                }
+
+                if ($recovered) {
+                    break
+                }
+            }
+
+            if (Test-Path -LiteralPath $ArchivePath) {
+                foreach ($candidate in $candidateItems) {
+                    if (Test-Path -LiteralPath $candidate.FullName) {
+                        Remove-Item -LiteralPath $candidate.FullName -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            }
+        }
+    }
+
+    if ($exitCode -ne 0 -and $recovered) {
+        $exitCode = 0
+    }
+
+    if ($exitCode -ne 0) {
+        $message = "$ErrorContext failed with exit code $exitCode while executing '$script:SevenZipPath'."
+        if ($processOutput) {
+            $message += " Output:`n$($processOutput -join [Environment]::NewLine)"
+        }
+        throw $message
+    }
+
+    return $processOutput
+}
+
+function New-TemporaryDirectory {
+    $tempPath = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath ([guid]::NewGuid().Guid)
+    return New-Item -ItemType Directory -Path $tempPath -Force
+}
+
+function Get-AvailableArchiveName {
+    param(
+        [Parameter(Mandatory = $true)][string]$BaseName,
+        [Parameter(Mandatory = $true)][string]$WorkingDirectory,
+        [Parameter(Mandatory = $true)][string]$DisplayName,
+        [switch]$AllowReplace
+    )
+
+    $candidate = $BaseName
+
+    if ($AllowReplace -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+        try {
+            $archiveFullPath = [IO.Path]::Combine($WorkingDirectory, $candidate)
+            $stream = [IO.File]::Open($archiveFullPath, 'Open', 'Read', 'Write')
+            $stream.Close()
+            Remove-Item -LiteralPath $candidate -Force
+        }
+        catch {
+            Write-Warning "Couldn't replace '$candidate', it's in use."
+            $AllowReplace = $false
+        }
+    }
+
+    $counter = 1
+    while ((-not $AllowReplace) -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+        $candidate = "{0} ({1}).apbx" -f $DisplayName, $counter
+        $counter++
+    }
+
+    return $candidate
+}
+
+function Set-PowerShellModulesProfileEntry {
+    $psEditorVariable = Get-Variable -Name psEditor -Scope Global -ErrorAction SilentlyContinue
+    if (-not $psEditorVariable) {
+        return
+    }
+
+    $psEditorValue = $psEditorVariable.Value
+    if (-not $psEditorValue) {
+        return
+    }
+
+    $workspacePath = $psEditorValue.Workspace.Path
+    if (-not $workspacePath) {
+        return
+    }
+
+    $userEnvTarget = [System.EnvironmentVariableTarget]::User
+    if ([Environment]::GetEnvironmentVariable('LOCALBUILD_DONT_ASK_FOR_MODULES', $userEnvTarget) -eq "$true") {
+        return
+    }
+
+    $title = 'Adding to PowerShell profile'
+    $description = @"
 Atlas includes some PowerShell modules by default that aren't usually recognised by the VSCode PowerShell extension.
 Would you like to add to your PowerShell profile to automatically recognise these modules when developing Atlas?`n`n
 "@
-	switch ($host.ui.PromptForChoice($title, $description, ('&Yes', '&No', "&Don't ask me again"), 0)) {
-		0 {
-			if (!(Test-Path $PROFILE)) {
-				New-Item -Path $PROFILE -ItemType File -Force | Out-Null
-			}
 
-			Add-Content -Path $PROFILE -Value @'
+    $choice = $Host.UI.PromptForChoice($title, $description, ('&Yes', '&No', "&Don't ask me again"), 0)
+    $setDontAsk = {
+        [Environment]::SetEnvironmentVariable('LOCALBUILD_DONT_ASK_FOR_MODULES', $true, $userEnvTarget)
+    }
+
+    switch ($choice) {
+        0 {
+            if (-not (Test-Path -LiteralPath $PROFILE)) {
+                Set-ParentDirectory -Path $PROFILE
+                New-Item -Path $PROFILE -ItemType File -Force | Out-Null
+            }
+
+            $profileContent = if (Test-Path -LiteralPath $PROFILE) {
+                Get-Content -Path $PROFILE -Raw -Encoding UTF8
+            }
+            else {
+                ''
+            }
+
+            if ($profileContent -notmatch '#--LOCAL-BUILD-MODULES-START--#') {
+                Add-Content -Path $PROFILE -Value @'
 #--LOCAL-BUILD-MODULES-START--#
 $workspace = $psEditor.Workspace.Path
 $modulesFile = "$workspace\.atlasPsModulesPath"
 if ([bool](Test-Path 'Env:\VSCODE_*') -and (Test-Path $workspace -EA 0) -and (Test-Path $modulesFile -EA 0)) {
-	$modulePath = Join-Path $workspace (Get-Content $modulesFile -Raw)
-	if (!(Test-Path $modulePath -PathType Container)) {
-		Write-Warning "Couldn't find module path specified in '$modulesFile', no Atlas modules can be loaded."
-	} else {
-		$env:PSModulePath += [IO.Path]::PathSeparator + $modulePath
-	}
+    $modulePath = Join-Path $workspace (Get-Content $modulesFile -Raw)
+    if (!(Test-Path $modulePath -PathType Container)) {
+        Write-Warning "Couldn't find module path specified in '$modulesFile', no Atlas modules can be loaded."
+    } else {
+        $env:PSModulePath += [IO.Path]::PathSeparator + $modulePath
+    }
 }
 #--LOCAL-BUILD-MODULES-END--#
 '@
+            }
 
-			DontAsk
-			& $PROFILE
-		}
-		2 {
-			DontAsk
-		}
-	}
+            & $PROFILE
+            & $setDontAsk
+        }
+        2 {
+            & $setDontAsk
+        }
+    }
 }
 
-# check 7z
-if (Get-Command '7z' -EA 0) {
-	$7zPath = '7z'
-} elseif (Get-Command '7zz' -EA 0) {
-	$7zPath = '7zz'
-} elseif (!$IsLinux -and !$IsMacOS -and (Test-Path "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe")) {
-	$7zPath = "$([Environment]::GetFolderPath('ProgramFiles'))\7-Zip\7z.exe"
-} else {
-	throw "This script requires 7-Zip or NanaZip to be installed to continue."
-}
+$script:SevenZipPath = Resolve-SevenZipPath
+Set-PowerShellModulesProfileEntry
 
-# check if playbook dir
-if (!(Test-Path playbook.conf -PathType Leaf)) {
-	if (Test-Path playbook -PathType Container) {
-		$currentDir = $PWD
-		Set-Location playbook
-		if (!(Test-Path playbook.conf -PathType Leaf)) { throw "playbook.conf file not found in playbook directory." }
-	} else {
-		throw "playbook.conf file not found in the current directory."
-	}
-}
-
-# check if old files are in use
-$apbxFileName = "$fileName.apbx"
-function GetNewName {
-	while (Test-Path -Path $apbxFileName) {
-		$num++
-		$script:apbxFileName = "$fileName ($num).apbx"
-	}
-}
-if ($replaceOldPlaybook -and (Test-Path -Path $apbxFileName)) {
-	try {
-		$stream = [System.IO.File]::Open($(Separator "$PWD\$apbxFileName"), 'Open', 'Read', 'Write')
-		$stream.Close()
-		Remove-Item -Path $apbxFileName -Force -EA 0
-	} catch {
-		Write-Warning "Couldn't replace '$apbxFileName', it's in use."
-		GetNewName
-	}
-} elseif (Test-Path -Path $apbxFileName) {
-	GetNewName
-}
-$apbxPath = Separator "$PWD\$apbxFileName"
-
-# make temp directories
-$rootTemp = New-Item (Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $([System.Guid]::NewGuid())) -ItemType Directory -Force
-if (!(Test-Path -Path "$rootTemp")) { throw "Failed to create temporary directory!" }
-$playbookTemp = New-Item $(Separator "$rootTemp\playbook") -Type Directory
+$enteredPlaybookDirectory = $false
+$rootTempDir = $null
 
 try {
-	# remove entries in playbook config that make it awkward for testing
-	$patterns = @()
-	# 0.6.5 has a bug where it will crash without the 'Requirements' field, but all of the requirements are removed
-	# "<Requirements>" and # "</Requirements>"
-	if ($removeRequirements) {$patterns += "<Requirement>"}
-	if ($removeWinverRequirement) {$patterns += "<string>", "</SupportedBuilds>", "<SupportedBuilds>"}
-	if ($removeVerification) {$patterns += "<ProductCode>"}
+    # make sure we actually sitting on a playbook
+    if (-not (Test-Path -LiteralPath 'playbook.conf' -PathType Leaf)) {
+        if (Test-Path -LiteralPath 'playbook' -PathType Container) {
+            Push-Location -LiteralPath 'playbook'
+            $enteredPlaybookDirectory = $true
+            if (-not (Test-Path -LiteralPath 'playbook.conf' -PathType Leaf)) {
+                throw 'playbook.conf file not found in playbook directory.'
+            }
+        }
+        else {
+            throw 'playbook.conf file not found in the current directory.'
+        }
+    }
 
-	$tempPbConfPath = Separator "$playbookTemp\playbook.conf"
-	if ($patterns.Count -gt 0) {
-		Get-Content -Encoding "utf8" "playbook.conf" | Where-Object { $_ -notmatch ($patterns -join '|') } | Set-Content -Encoding "utf8" $tempPbConfPath
-	}
+    $currentLocation = Get-Location
+    $workingDirectory = $currentLocation.ProviderPath
 
-	$customYmlPath = Separator "Configuration\custom.yml"
-	$tempCustomYmlPath = Separator "$playbookTemp\$customYmlPath"
-	if ($AddLiveLog) {
-		if (Test-Path $customYmlPath -PathType Leaf) {
-			New-Item (Split-Path $tempCustomYmlPath -Parent) -ItemType Directory -Force | Out-Null
-			Copy-Item -Path $customYmlPath -Destination $tempCustomYmlPath -Force
-			$customYml = Get-Content -Path $tempCustomYmlPath
+    $apbxFileName = Get-AvailableArchiveName -BaseName "$FileName.apbx" -WorkingDirectory $workingDirectory -DisplayName $FileName -AllowReplace:$ReplaceOldPlaybook.IsPresent
+    $apbxPath = Join-Path -Path $workingDirectory -ChildPath $apbxFileName
 
-			$liveLogScript = {
-$a = Join-Path (Get-ChildItem (Join-Path $([Environment]::GetFolderPath('CommonApplicationData')) '\AME\Logs') -Directory |
-Sort-Object LastWriteTime -Descending |
-Select-Object -First 1).FullName '\OutputBuffer.txt';
-while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sleep 1 }
+    $playbookConfPatternTokens = @()
+    if ($removeRequirements) { $playbookConfPatternTokens += '<Requirement>' }
+    if ($removeWinverRequirement) { $playbookConfPatternTokens += '<string>', '</SupportedBuilds>', '<SupportedBuilds>' }
+    if ($removeVerification) { $playbookConfPatternTokens += '<ProductCode>' }
+
+    $stagedPlaybookConf = $false
+    if ($playbookConfPatternTokens.Count -gt 0) {
+        $playbookTempPath = Get-PlaybookTempPath
+        $tempPlaybookConfPath = Join-Path -Path $playbookTempPath -ChildPath 'playbook.conf'
+        $pattern = [string]::Join('|', $playbookConfPatternTokens)
+        Get-Content -Path 'playbook.conf' -Encoding UTF8 | Where-Object { $_ -notmatch $pattern } | Set-Content -Path $tempPlaybookConfPath -Encoding UTF8
+        $stagedPlaybookConf = Test-Path -LiteralPath $tempPlaybookConfPath
+    }
+
+    $customYmlRelativePath = Join-Path -Path 'Configuration' -ChildPath 'custom.yml'
+    # copy custom.yml so we can sneak in live log entry without touching real file
+    $stagedCustomYml = $false
+    if ($AddLiveLog) {
+        if (Test-Path -LiteralPath $customYmlRelativePath -PathType Leaf) {
+            $playbookTempPath = Get-PlaybookTempPath
+            $tempCustomYmlPath = Join-Path -Path $playbookTempPath -ChildPath $customYmlRelativePath
+            Set-ParentDirectory -Path $tempCustomYmlPath
+            Copy-Item -Path $customYmlRelativePath -Destination $tempCustomYmlPath -Force
+
+            $customYml = Get-Content -Path $tempCustomYmlPath
+            $actionsIndex = $customYml.IndexOf('actions:')
+            if ($actionsIndex -ge 0) {
+                $liveLogScript = {
+                    $a = Join-Path (Get-ChildItem (Join-Path $([Environment]::GetFolderPath('CommonApplicationData')) '\AME\Logs') -Directory |
+                        Sort-Object LastWriteTime -Descending |
+                        Select-Object -First 1).FullName '\OutputBuffer.txt';
+                    while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sleep 1 }
+                }
+                $liveLogText = [string]$liveLogScript
+                $liveLogText = $liveLogText -replace '"', '"""'
+                $liveLogText = $liveLogText -replace "'", "''"
+                $liveLogText = $liveLogText.Trim() -replace "`r?`n", ' '
+
+                $liveLogAction = "  - !cmd: {command: 'start `"AME Wizard Live Log`" PowerShell -NoP -C `"$liveLogText`"'}"
+
+                $preActions = @()
+                if ($actionsIndex -ge 0) {
+                    $preActions = $customYml[0..$actionsIndex]
+                }
+
+                $postActions = @()
+                if ($actionsIndex + 1 -lt $customYml.Count) {
+                    $postActions = $customYml[($actionsIndex + 1)..($customYml.Count - 1)]
+                }
+
+                $updatedCustomYml = @()
+                $updatedCustomYml += $preActions
+                $updatedCustomYml += $liveLogAction
+                $updatedCustomYml += $postActions
+
+                $updatedCustomYml | Set-Content -Path $tempCustomYmlPath -Encoding UTF8
+                $stagedCustomYml = $true
+            }
+            else {
+                Write-Warning "Can't find 'actions:' in '$customYmlRelativePath', not adding live log."
+                Remove-Item -LiteralPath $tempCustomYmlPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+        else {
+            Write-Warning "Can't find '$customYmlRelativePath', not adding live log."
+        }
+    }
+
+    $startYmlRelativePath = Join-Path -Path (Join-Path -Path 'Configuration' -ChildPath 'atlas') -ChildPath 'start.yml'
+    # clone start.yml when we strip the dependency block for local builds
+    $stagedStartYml = $false
+    if ($removeDependencies) {
+        if (Test-Path -LiteralPath $startYmlRelativePath -PathType Leaf) {
+            $playbookTempPath = Get-PlaybookTempPath
+            $tempStartYmlPath = Join-Path -Path $playbookTempPath -ChildPath $startYmlRelativePath
+            Set-ParentDirectory -Path $tempStartYmlPath
+            Copy-Item -Path $startYmlRelativePath -Destination $tempStartYmlPath -Force
+
+            $startYmlContent = Get-Content -Path $tempStartYmlPath -Raw -Encoding UTF8
+            $blockPattern = '  ################ NO LOCAL BUILD ################.*?  ################ END NO LOCAL BUILD ################\r?\n?'
+            $updatedStartYml = [regex]::Replace($startYmlContent, $blockPattern, '', 'Singleline')
+
+            if ($updatedStartYml -ne $startYmlContent) {
+                Set-Content -Path $tempStartYmlPath -Value $updatedStartYml -Encoding UTF8
+                $stagedStartYml = $true
+            }
+            else {
+                Write-Warning "Couldn't find NO LOCAL BUILD block in '$startYmlRelativePath', not removing dependencies section."
+                Remove-Item -LiteralPath $tempStartYmlPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+        else {
+            Write-Warning "Can't find '$startYmlRelativePath', not removing dependencies section."
+        }
+    }
+
+    # update the oem version so the wizard displays the correct build tag
+    $oemYmlRelativePath = Join-Path -Path (Join-Path -Path 'Configuration' -ChildPath 'tweaks') -ChildPath (Join-Path -Path 'misc' -ChildPath 'config-oem-information.yml')
+    if (Test-Path -LiteralPath $oemYmlRelativePath -PathType Leaf) {
+        try {
+            $confXml = [xml](Get-Content -Path 'playbook.conf' -Raw -Encoding UTF8)
+            $playbookNode = $confXml.Playbook
+
+            if ($playbookNode -and $playbookNode.Version -match '^(0|[1-9]\d*)(\.(0|[1-9]\d*)){0,2}$') {
+                $versionLabel = "v$($playbookNode.Version)"
+                if ($playbookNode.Title -match '\(dev\)') {
+                    $versionLabel += ' (dev)'
+                }
+
+                $oemContent = Get-Content -Path $oemYmlRelativePath -Raw -Encoding UTF8
+                $updatedOemContent = $oemContent -replace 'AtlasVersionUndefined', $versionLabel
+
+                if ($updatedOemContent -ne $oemContent) {
+                    $playbookTempPath = Get-PlaybookTempPath
+                    $tempOemYmlPath = Join-Path -Path $playbookTempPath -ChildPath $oemYmlRelativePath
+                    Set-ParentDirectory -Path $tempOemYmlPath
+                    Set-Content -Path $tempOemYmlPath -Value $updatedOemContent -Encoding UTF8
+                }
+                else {
+                    Write-Warning "Couldn't find OEM string 'AtlasVersionUndefined', not updating OEM version."
+                }
+            }
+            else {
+                Write-Warning "Invalid version format in 'playbook.conf', not setting OEM version."
+            }
+        }
+        catch {
+            Write-Warning "Failed to process OEM information: $($_.Exception.Message)"
+        }
+    }
+    else {
+        Write-Warning "Can't find '$oemYmlRelativePath', not setting OEM version."
+    }
+
+    # skip local script + staged overrides so we dont pack duplicates
+    $excludeFiles = @('local-build.*', '*.apbx')
+    if ($stagedCustomYml) { $excludeFiles += 'custom.yml' }
+    if ($stagedStartYml) { $excludeFiles += 'start.yml' }
+    if ($stagedPlaybookConf) { $excludeFiles += 'playbook.conf' }
+
+    $filesListPath = [IO.Path]::GetTempFileName()
+    $rootPathNormalized = $workingDirectory.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $rootPrefix = $rootPathNormalized + [IO.Path]::DirectorySeparatorChar
+
+    $filesToInclude = Get-ChildItem -File -Exclude $excludeFiles -Recurse
+    $relativePaths = foreach ($file in $filesToInclude) {
+        $fullName = $file.FullName
+        if ($fullName.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            $relative = $fullName.Substring($rootPrefix.Length)
+        }
+        elseif ($fullName.StartsWith($rootPathNormalized, [StringComparison]::OrdinalIgnoreCase)) {
+            $relative = $fullName.Substring($rootPathNormalized.Length).TrimStart([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+        }
+        else {
+            $relative = $file.Name
+        }
+
+        if ($IsLinuxPlatform -or $IsMacOSPlatform) {
+            # normalize slashes for non-windows platforms
+            $relative = $relative -replace '\\', '/'
+        }
+
+        $relative
+    }
+
+    # write the file list so 7-zip can work through the tree efficiently
+    $relativePaths | Set-Content -Path $filesListPath -Encoding UTF8
+
+    $passwordArgs = @()
+    if (-not $NoPassword) {
+        $passwordArgs += '-pmalte'
+    }
+
+    # use store mode for speed and keep 7-zip output quiet
+    $archiveArgs = @('a', '-tzip', '-y', '-mx1', '-bso0', '-bse0', '-bsp0')
+    if ($IsWindowsPlatform) {
+        $archiveArgs += '-spf'
+    }
+    $archiveArgs += $passwordArgs
+    $archiveArgs += $apbxPath
+    if ($IsWindowsPlatform) {
+        $archiveArgs += '@"{0}"' -f $filesListPath
+    } else {
+        # p7zip refuses -spf with relative paths so use plain @$list
+        $archiveArgs += "@$filesListPath"
+    }
+
+    Invoke-SevenZip -ArgumentList $archiveArgs -ErrorContext 'Creating APBX archive' -ArchivePath $apbxPath
+
+    if ($playbookTempPath -and (Test-Path -LiteralPath $playbookTempPath)) {
+        $stagedFiles = Get-ChildItem -Path $playbookTempPath -File -Recurse -ErrorAction SilentlyContinue
+        if ($stagedFiles) {
+            Push-Location -LiteralPath $playbookTempPath
+            try {
+                $updateArgs = @('u', '-bso0', '-bse0', '-bsp0')
+                $updateArgs += $passwordArgs
+                $updateArgs += $apbxPath
+                $updateArgs += '*'
+
+                Invoke-SevenZip -ArgumentList $updateArgs -ErrorContext 'Adding staged overrides' -ArchivePath $apbxPath
+            }
+            finally {
+                Pop-Location
+            }
+        }
+    }
+
+    $apbxTmpPath = "$apbxPath.tmp"
+    if (Test-Path -LiteralPath $apbxTmpPath) {
+        Remove-Item -LiteralPath $apbxPath -Force -ErrorAction SilentlyContinue
+        Rename-Item -LiteralPath $apbxTmpPath -NewName (Split-Path -Path $apbxPath -Leaf)
+    }
+
+    if ($buildStopwatch.IsRunning) {
+        $buildStopwatch.Stop()
+    }
+
+    $elapsedSeconds = [Math]::Round($buildStopwatch.Elapsed.TotalSeconds, 2)
+    Write-Host ("Built successfully in {0}s! Path: `"{1}`"" -f $elapsedSeconds, $apbxPath) -ForegroundColor Green
+
+    if (-not $DontOpenPbLocation) {
+        if (-not $IsWindowsPlatform) {
+            Write-Warning "Can't open the APBX directory because the system isn't Windows."
+        }
+        else {
+            try {
+                # ping explorer to highlight the fresh build and close old windows
+                $targetDirectory = Split-Path -Path $apbxPath
+                $shellApp = New-Object -ComObject Shell.Application
+                $matchingWindows = @()
+
+                foreach ($window in $shellApp.Windows()) {
+                    try {
+                        $folderPath = $window.Document.Folder.Self.Path
+                        if ($folderPath -and ($folderPath -eq $targetDirectory)) {
+                            $matchingWindows += $window
+                        }
+                    }
+                    catch {
+                        continue
+                    }
+                }
+
+                foreach ($window in $matchingWindows) {
+                    try {
+                        $window.Quit()
+                    }
+                    catch {
+                        continue
+                    }
+                }
+            }
+            catch {
+                Write-Warning "Unable to close existing File Explorer windows: $($_.Exception.Message)"
+            }
+
+            Start-Process -FilePath 'explorer.exe' -ArgumentList "/select,`"$apbxPath`""
+        }
+    }
 }
-			[string]$liveLogText = ($liveLogScript -replace '"','"""' -replace "'","''").Trim() -replace "`r?`n", " "
-			
-			$actionsIndex = $customYml.IndexOf('actions:')
-			$newCustomYml = $customYml[0..$actionsIndex] + `
-				"  - !cmd: {command: 'start `"AME Wizard Live Log`" PowerShell -NoP -C `"$liveLogText`"'}" + `
-				$customYml[($actionsIndex + 1)..($customYml.Count)]
+finally {
+    if ($filesListPath -and (Test-Path -LiteralPath $filesListPath)) {
+        Remove-Item -LiteralPath $filesListPath -Force -ErrorAction SilentlyContinue
+    }
 
-			Set-Content -Path $tempCustomYmlPath -Value $newCustomYml
-		} else {
-			Write-Error "Can't find '$customYmlPath', not adding live log."
-		}
-	}
+    if ($rootTempDir -and (Test-Path -LiteralPath $rootTempDir.FullName)) {
+        Remove-Item -LiteralPath $rootTempDir.FullName -Force -Recurse -ErrorAction SilentlyContinue
+    }
 
-	$startYmlPath = Separator "Configuration\atlas\start.yml"
-	$tempStartYmlPath = Separator "$playbookTemp\$startYmlPath"
-	if ($removeDependencies) {
-		if (Test-Path $startYmlPath -PathType Leaf) {
-			New-Item (Split-Path $tempStartYmlPath -Parent) -ItemType Directory -Force | Out-Null
-			Copy-Item -Path $startYmlPath -Destination $tempStartYmlPath -Force
-			$startYml = Get-Content -Path $tempStartYmlPath
+    if ($enteredPlaybookDirectory) {
+        Pop-Location
+    }
 
-			$noLocalBuildStart = $startYml.IndexOf('  ################ NO LOCAL BUILD ################')
-			$noLocalBuildEnd = $startYml.IndexOf('  ################ END NO LOCAL BUILD ################')
-			$newStartYml = $startYml[0..($noLocalBuildStart - 1)] + `
-				$startYml[($noLocalBuildEnd + 1)..($startYml.Count)]
+    if ($buildStopwatch.IsRunning) {
+        $buildStopwatch.Stop()
+    }
 
-			Set-Content -Path $tempStartYmlPath -Value $newStartYml
-		} else {
-			Write-Error "Can't find '$startYmlPath', not removing dependencies."
-		}
-	}
-
-	$oemYmlPath = Separator "Configuration\tweaks\misc\config-oem-information.yml"
-	$tempOemYmlPath = Separator "$playbookTemp\$oemYmlPath"
-	if (Test-Path $oemYmlPath -PathType Leaf) {
-		$confXml = ([xml](Get-Content "playbook.conf" -Raw -EA 0)).Playbook
-		if ($confXml.Version -match '^(0|[1-9]\d*)(\.(0|[1-9]\d*)){0,2}$') {
-			$version = "v$($confXml.Version)"
-
-			if ($confXml.Title | Select-String '(dev)' -Quiet) {
-				$version = $version + ' (dev)'
-			}
-
-			$oemToReplace = 'AtlasVersionUndefined'
-			$oemYml = Get-Content -Path $oemYmlPath -Raw
-			$tempOemYml = $oemYml -replace $oemToReplace, $version
-			
-			if ($tempOemYml -eq $oemYml) {
-				Write-Error "Couldn't find OEM string '$oemToReplace'."
-			} else {
-				New-Item (Split-Path $tempOemYmlPath) -ItemType Directory -Force | Out-Null
-				Set-Content -Path $tempOemYmlPath -Value $tempOemYml
-			}
-		} else {
-			Write-Error "Invalid version format in 'playbook.conf', not setting OEM version."
-		}
-	} else {
-		Write-Error "Can't find '$oemYmlPath', not setting OEM version."
-	}
-
-	# exclude files
-	$excludeFiles = @(
-		"local-build.*",
-		"*.apbx"
-	)
-	if (Test-Path $tempCustomYmlPath) { $excludeFiles += "custom.yml" }
-	if (Test-Path $tempStartYmlPath) { $excludeFiles += "start.yml" }
-	if (Test-Path $tempPbConfPath) { $excludeFiles += "playbook.conf" }
-	$files = Separator "$rootTemp\7zFiles.txt"
-	(Get-ChildItem -File -Exclude $excludeFiles -Recurse).FullName | Resolve-Path -Relative | ForEach-Object {$_.Substring(2)} | Out-File $files -Encoding utf8
-
-	if (!$NoPassword) { $pass = '-pmalte' }
-	& $7zPath a -spf -y -mx1 $pass -tzip "$apbxPath" `@"$files" | Out-Null
-	# add edited files
-	if (Test-Path $(Separator "$playbookTemp\*")) {
-		Push-Location "$playbookTemp"
-		& $7zPath u $pass "$apbxPath" * | Out-Null
-		Pop-Location
-	}
-
-	# Stupid hack because "The process cannot access the file because it is being used by another process." happens now and I have no idea why
-	$apbxTmpPath = $apbxPath + '.tmp'
-	if (Test-Path $apbxTmpPath) {
-		Remove-Item -Path $apbxPath
-		Rename-Item -Path $apbxTmpPath -NewName $apbxPath 
-	}
-	Write-Host "Built successfully! Path: `"$apbxPath`"" -ForegroundColor Green
-	if (!$DontOpenPbLocation) {
-		if ($IsLinux -or $IsMacOS) {
-			Write-Warning "Can't open to APBX directory as the system isn't Windows."
-		} else {
-			# Kill old instances
-			# Would use SetForegroundWindow but it doesn't always work, so opening a new window is most reliable :/
-			$openWindows = ((New-Object -Com Shell.Application).Windows() | Where-Object { $_.Document.Folder.Self.Path -eq "$(Split-Path -Path $apbxPath)" })
-			if ($openWindows.Count -ne 0) { $openWindows.Quit() }
-
-			explorer /select,"$apbxPath"
-		}
-	}
-} finally {
-	Remove-Item $rootTemp -Force -EA 0 -Recurse | Out-Null
-	if ($currentDir) { Set-Location $currentDir }
+    $rootTempDir = $null
+    $playbookTempPath = $null
+    $filesListPath = $null
 }
