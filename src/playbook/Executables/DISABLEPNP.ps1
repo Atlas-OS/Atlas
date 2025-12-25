@@ -1,27 +1,44 @@
 # Disable PnP (plug and play) devices
-$devices = @(
-	"AMD PSP",
-	"AMD SMBus",
-	"Base System Device",
-	"Composite Bus Enumerator",
-	"Direct memory access controller"
-	"High precision event timer",
-	"Intel Management Engine",
-	"Intel SMBus",
-	"Legacy device",
-	"Microsoft Kernel Debug Network Adapter",
-	"Motherboard resources",
-	"Numeric Data Processor",
-	"PCI Data Acquisition and Signal Processing Controller",
-	"PCI Encryption/Decryption Controller",
-	"PCI Memory Controller",
-	"PCI Simple Communications Controller",
-	"PCI standard RAM Controller",
-	"SM Bus Controller",
-	"System CMOS/real time clock",
-	"System Speaker",
-	"System Timer"
+# This is a questionable tweak
+# It disables core Plug and Play / ACPI / PCI system devices that Windows relies on to correctly understand and manage the hardware.
+
+$devicePatterns = @(
+    "ROOT\KDNIC\*",                             # Microsoft Kernel Debug Network Adapter
+    "ROOT\COMPOSITEBUS\*",                      # Composite Bus Enumerator
+    "ACPI\PNP0103\*",                           # High precision event timer
+    "ACPI\PNP0B00\*",                           # System CMOS/real time clock
+    "ACPI\PNP0800\*",                           # System Speaker
+    "ACPI\PNP0100\*",                           # System Timer
+    "ACPI\PNP0200\*",                           # Direct memory access controller
+    "ACPI\PNP0C02\*",                           # Motherboard resources (multiple instances)
+    "ACPI\INT0800\*",                           # Legacy device (Intel)
+    "ACPI\PNP0C04\*"                            # Numeric Data Processor
 )
 
+$deviceNames = @(
+    "AMD PSP*",                                 # AMD
+    "AMD SMBus",                                # AMD
+    "Intel*Management Engine*",                 # Intel
+    "Intel*SMBus",								# Intel
+    "Base System Device",						# Intel
+    "PCI Data Acquisition and Signal Processing Controller", # Intel
+    "PCI Encryption/Decryption Controller",				     # Intel
+    "PCI Memory Controller",                                 # Intel
+    "PCI Simple Communications Controller",                  # Intel
+    "PCI standard RAM Controller",                           # Intel
+    "SM Bus Controller"                                      # Intel
+)
+
+# Disable devices by InstanceId pattern
 # No errors as some devices may not have an option to be disabled
-Get-PnpDevice -FriendlyName $devices -ErrorAction Ignore | Disable-PnpDevice -Confirm:$false -ErrorAction Ignore
+foreach ($pattern in $devicePatterns) {
+    Get-PnpDevice | Where-Object { $_.InstanceId -like $pattern } |
+    Disable-PnpDevice -Confirm:$false -ErrorAction Ignore
+}
+
+# Disable devices by FriendlyName
+# No errors as some devices may not have an option to be disabled
+foreach ($name in $deviceNames) {
+    Get-PnpDevice | Where-Object { $_.FriendlyName -like $name } |
+    Disable-PnpDevice -Confirm:$false -ErrorAction Ignore
+}
