@@ -4,7 +4,7 @@ $devices = @(
 	"AMD SMBus",
 	"Base System Device",
 	"Composite Bus Enumerator",
-	"Direct memory access controller"
+	"Direct memory access controller",
 	"High precision event timer",
 	"Intel Management Engine",
 	"Intel SMBus",
