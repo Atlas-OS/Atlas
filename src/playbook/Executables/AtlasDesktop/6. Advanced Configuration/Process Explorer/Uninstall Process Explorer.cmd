@@ -52,8 +52,8 @@ if %ERRORLEVEL% NEQ 0 (
     pause
 )
 if "%~1"=="/silent" (
-    exit /b
     taskkill /IM taskmgr.exe
+    exit /b
 )
 echo Finished, changes have been applied.
 pause
