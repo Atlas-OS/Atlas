@@ -48,7 +48,8 @@ actions:
   - !appx: {name: 'Microsoft.MixedReality.Portal*', type: family}
   - !appx: {name: 'Microsoft.Windows.DevHome*', type: family}
   - !appx: {name: 'Microsoft.BingWeather*', type: family}
-  - !appx: {name: 'Microsoft.BingNews*', type: family}
+  # Caused errors in MS Store.
+  # - !appx: {name: 'Microsoft.BingNews*', type: family}
   - !appx: {name: 'Microsoft.BingSearch*', type: family}
   - !appx: {name: 'Microsoft.OutlookForWindows*', type: family}
   - !appx: {name: 'Microsoft.GetHelp*', type: family}
