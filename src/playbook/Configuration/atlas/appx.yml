@@ -39,7 +39,7 @@ actions:
      errorAction: Ignore
      weight: 48
      command: >-
-       .\APPX-REMOVER.ps1 -Packages @(
+       .\REMOVEAPPX.ps1 -Packages @(
          'Clipchamp.Clipchamp*'
          'Disney.37853FC22B2CE*'
          'SpotifyAB.SpotifyMusic*'

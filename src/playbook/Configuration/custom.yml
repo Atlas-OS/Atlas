@@ -16,6 +16,14 @@ actions:
     runas: currentUserElevated
   - !powerShell:
     command: |
+      Start-Process -FilePath """$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd""" -ArgumentList "/silent" -WindowStyle Hidden
+      taskkill /IM taskmgr.exe
+    weight: 2
+    wait: true
+    exeDir: true
+    onUpgrade: true
+  - !powerShell:
+    command: |
       $windir = [Environment]::GetFolderPath('Windows')
       Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse
       Remove-Item -LiteralPath "$windir\AtlasModules" -Force -Recurse
@@ -36,7 +44,6 @@ actions:
           Copy-Item -Path $_ -Destination $windir -Force -Recurse
           if (!$?) { exit 2 }
       }
-      Start-Process -FilePath """$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd""" -ArgumentList "/silent" -WindowStyle Hidden
       Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
     weight: 10
     wait: true
