@@ -1,10 +1,37 @@
-# Load DefaultUser hive
-$module = Get-Module -Name "FXPSYaml"
-if (!$module) {
-    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
-    Install-Module -Name FXPSYaml -Force
-    Import-Module -Name FXPSYaml
+# Load YamlDotNet for YAML parsing
+# YamlDotNet by Antoine Aubry - https://github.com/aaubry/YamlDotNet (MIT License)
+Add-Type -Path "$PSScriptRoot\YamlDotNet.dll"
+
+function ConvertFrom-Yaml {
+    param([string]$YamlString)
+    $reader = New-Object System.IO.StringReader($YamlString)
+    $yamlStream = New-Object YamlDotNet.RepresentationModel.YamlStream
+    $yamlStream.Load($reader)
+    $reader.Close()
+
+    function ConvertNode($node) {
+        if ($node -is [YamlDotNet.RepresentationModel.YamlMappingNode]) {
+            $ht = @{}
+            foreach ($pair in $node.Children) {
+                $ht[$pair.Key.Value] = ConvertNode $pair.Value
+            }
+            return $ht
+        }
+        elseif ($node -is [YamlDotNet.RepresentationModel.YamlSequenceNode]) {
+            $arr = @()
+            foreach ($item in $node.Children) {
+                $arr += ConvertNode $item
+            }
+            return $arr
+        }
+        else {
+            return $node.Value
+        }
+    }
+
+    return ConvertNode $yamlStream.Documents[0].RootNode
 }
+
 $configurationFolder = Join-Path $PSScriptRoot "..\Configuration\tweaks"
 $yamlFiles = Get-ChildItem -Path $configurationFolder -Filter *.yml -Recurse
 $RegistryPaths = @()
