@@ -2,10 +2,9 @@
 title: Disable Windows 11 Settings Banner
 description: Disables the Windows 11 Settings banner (ValueBanner), which normally displays 'advertisements' such as Microsoft 365 on non-Enterprise editions
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\ValueBanner.IdealStateFeatureControlProvider'; Value = 'ActivationType'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\ValueBanner.IdealStateFeatureControlProvider'
+    value: 'ActivationType'
+    data: '0'
+    type: REG_DWORD
     builds: [ '>=22000' ]

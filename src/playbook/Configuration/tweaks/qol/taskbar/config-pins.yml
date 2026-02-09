@@ -12,53 +12,40 @@ actions:
   - !registryKey:
     path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
     operation: add
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'; Value = 'FavoritesVersion'; Data = '3'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Value = 'MailPin'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Value = 'CopilotPWAPin'; Data = '0'; Type = 'REG_DWORD' }
-        # Not sure what this does
-        # @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Value = 'TFLPin'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    value: 'FavoritesVersion'
+    data: '3'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    value: 'MailPin'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    value: 'CopilotPWAPin'
+    data: '0'
+    type: REG_DWORD
+    
+    
+    # Not sure what this does
+  # - !registryValue:
+  #   path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+  #   value: 'TFLPin'
+  #   data: '0'
+  #   type: REG_DWORD
 
 # Sets a temporary value for taskbar pins after oobe
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\AtlasOS\SetupOptions'; Value = 'browser'; Data = 'Brave'; Type = 'REG_SZ' }
-      )
-    option: 'browser-brave'
-    wait: true
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\AtlasOS\SetupOptions'; Value = 'browser'; Data = 'Firefox'; Type = 'REG_SZ' }
-      )
-    option: 'browser-firefox'
-    wait: true
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\AtlasOS\SetupOptions'; Value = 'browser'; Data = 'Google Chrome'; Type = 'REG_SZ' }
-      )
-    option: 'browser-chrome'
-    wait: true
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\AtlasOS\SetupOptions'; Value = 'browser'; Data = 'LibreWolf'; Type = 'REG_SZ' }
-      )
-    option: 'browser-librewolf'
-    wait: true
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\AtlasOS\SetupOptions'; Value = 'browser'; Data = ''; Type = 'REG_SZ' }
-      )
-    option: 'browser-librewolf'
-    wait: true
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "Brave", type: REG_SZ, option: 'browser-brave'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "Firefox", type: REG_SZ, option: 'browser-firefox'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "Google Chrome", type: REG_SZ, option: 'browser-chrome'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "LibreWolf", type: REG_SZ, option: 'browser-librewolf'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "", type: REG_SZ, option: 'browser-librewolf'}
 
   - !powerShell:
     command: '.\TASKBARPINS.ps1'

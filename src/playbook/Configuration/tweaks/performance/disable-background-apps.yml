@@ -2,11 +2,15 @@
 title: Disable Background Apps
 description: Disables background apps so there's minimal resources used in the background
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'; Value = 'GlobalUserDisabled'; Data = '1'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Value = 'BackgroundAppGlobalToggle'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'
+    value: 'GlobalUserDisabled'
+    data: '1'
+    type: REG_DWORD
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+    value: 'BackgroundAppGlobalToggle'
+    data: '0'
+    type: REG_DWORD
     

@@ -2,10 +2,10 @@
 title: Remove Shortcut Text
 description: Removes '- Shortcut' text appended onto the end of shortcuts for QoL
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\NamingTemplates'; Value = 'ShortcutNameTemplate'; Data = '"%s.lnk"'; Type = 'REG_SZ' }
-      )
-    wait: true
-
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\NamingTemplates'
+    value: 'ShortcutNameTemplate'
+    data: '"%s.lnk"'
+    type: REG_SZ
+    
+    

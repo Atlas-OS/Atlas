@@ -2,9 +2,8 @@
 title: Disable Resultant Set of Policy (RSoP) Logging
 description: Disables logging of Group Policy settings (RSoP) for privacy
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'; Value = 'RSoPLogging'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'RSoPLogging'
+    data: '0'
+    type: REG_DWORD

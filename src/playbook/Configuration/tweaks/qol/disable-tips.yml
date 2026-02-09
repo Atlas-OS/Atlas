@@ -3,9 +3,8 @@ title: Disable Tips
 description: Disables tips for QoL and privacy
 actions:
   # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.CloudContent::DisableSoftLanding
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Value = 'DisableSoftLanding'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableSoftLanding'
+    data: '1'
+    type: REG_DWORD

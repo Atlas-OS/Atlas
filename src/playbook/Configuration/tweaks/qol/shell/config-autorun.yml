@@ -2,15 +2,38 @@
 title: Disable AutoRun
 description: Disables AutoRun, also known as AutoPlay, for optimal QoL
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers'; Value = 'DisableAutoplay'; Data = '1'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\CameraAlternate'; Value = 'MSTakeNoAction'; Data = ''; Type = 'REG_NONE' },
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\StorageOnArrival'; Value = 'MSTakeNoAction'; Data = ''; Type = 'REG_NONE' },
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\CameraAlternate\ShowPicturesOnArrival'; Value = 'MSTakeNoAction'; Data = ''; Type = 'REG_NONE' },
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\StorageOnArrival'; Value = 'MSTakeNoAction'; Data = ''; Type = 'REG_NONE' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers'
+    value: 'DisableAutoplay'
+    data: '1'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\CameraAlternate'
+    value: 'MSTakeNoAction'
+    data: ''
+    type: REG_NONE
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\StorageOnArrival'
+    value: 'MSTakeNoAction'
+    data: ''
+    type: REG_NONE
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\CameraAlternate\ShowPicturesOnArrival'
+    value: 'MSTakeNoAction'
+    data: ''
+    type: REG_NONE
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\StorageOnArrival'
+    value: 'MSTakeNoAction'
+    data: ''
+    type: REG_NONE
     
     

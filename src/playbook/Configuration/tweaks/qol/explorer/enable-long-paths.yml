@@ -2,9 +2,8 @@
 title: Enable Long Paths
 description: Disables the default path length limit.
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\FileSystem'; Value = 'LongPathsEnabled'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\FileSystem'
+    value: 'LongPathsEnabled'
+    data: '1'
+    type: REG_DWORD

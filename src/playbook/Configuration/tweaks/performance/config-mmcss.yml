@@ -2,12 +2,11 @@
 title: Configure the Multimedia Class Scheduler Service
 description: Configures MMCSS for the best performance
 actions:
-  - !powerShell:
-    command: |
-      # Set system responsiveness to 10%
-      # Allocates less CPU resources to tasks that request it such as browsers, so that other applications will not be impacted as much
-      # https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service#registry-settings
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'; Value = 'SystemResponsiveness'; Data = '10'; Type = 'REG_DWORD' }
-      )
-    wait: true
+    # Set system responsiveness to 10%
+    # Allocates less CPU resources to tasks that request it such as browsers, so that other applications will not be impacted as much
+    # https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service#registry-settings
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
+    value: 'SystemResponsiveness'
+    data: '10'
+    type: REG_DWORD

@@ -2,9 +2,8 @@
 title: Respect Power Modes Windows Search Indexing
 description: Respects current power mode for indexing to prevent battery drainage
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\Software\Microsoft\Windows Search\Gather\Windows\SystemIndex'; Value = 'RespectPowerModes'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue: 
+    path: 'HKLM\Software\Microsoft\Windows Search\Gather\Windows\SystemIndex'
+    value: 'RespectPowerModes'
+    data: '1'
+    type: REG_DWORD

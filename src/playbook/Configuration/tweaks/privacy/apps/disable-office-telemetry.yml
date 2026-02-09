@@ -2,13 +2,22 @@
 title: Disable Office Telemetry
 description: Disables Microsoft Office telemetry for privacy
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\Software\Policies\Microsoft\office\16.0\common'; Value = 'sendcustomerdata'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Software\Policies\Microsoft\office\common\clienttelemetry'; Value = 'sendtelemetry'; Data = '3'; Type = 'REG_DWORD' },
-        # Customer Experience Program
-        @{ Path = 'HKCU\Software\Policies\Microsoft\office\16.0\common'; Value = 'qmenable'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\Software\Policies\Microsoft\office\16.0\common'
+    value: 'sendcustomerdata'
+    data: '0'
+    type: REG_DWORD
+    
+  - !registryValue:
+    path: 'HKCU\Software\Policies\Microsoft\office\common\clienttelemetry'
+    value: 'sendtelemetry'
+    data: '3'
+    type: REG_DWORD
+    
+    # Customer Experience Program
+  - !registryValue:
+    path: 'HKCU\Software\Policies\Microsoft\office\16.0\common'
+    value: 'qmenable'
+    data: '0'
+    type: REG_DWORD
     

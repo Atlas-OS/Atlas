@@ -2,11 +2,10 @@
 title: Do Not Reduce Sounds While in a Call
 description: Makes it so that Windows does not reduce sounds in a call for QoL, as people generally wouldn't want this behavior
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Multimedia\Audio'; Value = 'UserDuckingPreference'; Data = '3'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Multimedia\Audio'
+    value: 'UserDuckingPreference'
+    data: '3'
+    type: REG_DWORD
     
     

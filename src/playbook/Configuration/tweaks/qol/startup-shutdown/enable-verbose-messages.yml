@@ -2,9 +2,8 @@
 title: Enable verbose startup, shutdown, logon, and logoff status messages
 description: Enables verbose status messages so users can have more insight on exactly what's happening on startup, shutdown, logon, and logoff
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'; Value = 'verbosestatus'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'verbosestatus'
+    data: '1'
+    type: REG_DWORD

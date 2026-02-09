@@ -2,10 +2,10 @@
 title: Show More Details by Default on Transfers
 description: Shows more details by default on file transfers such as exact speed of files copying, moving, deleting, etc.
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\OperationStatusManager'; Value = 'EnthusiastMode'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
-
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\OperationStatusManager'
+    value: 'EnthusiastMode'
+    data: '1'
+    type: REG_DWORD
+    
+    

@@ -2,12 +2,13 @@
 title: Disable Online Speech Recognition
 description: Disables online speech recognition for privacy purposes
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy'; Value = 'HasAccepted'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy'
+    value: 'HasAccepted'
+    data: '0'
+    type: REG_DWORD
+    
+    
     # Allow user to enable it in case they need to
   # - !registryValue:
   #   path: 'HKLM\SOFTWARE\Policies\Microsoft\InputPersonalization'

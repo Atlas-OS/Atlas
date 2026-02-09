@@ -2,11 +2,15 @@
 title: Do Not Use Diagnostic Data For Tailored Experiences
 description: Prevents Windows from using diagnostic data for tailored experiences for privacy, also labeled as "Let Microsoft provide more tailored experiences with relevant tips and recommendations by using your diagnostic data"
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'; Value = 'TailoredExperiencesWithDiagnosticDataEnabled'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Value = 'DisableTailoredExperiencesWithDiagnosticData'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'
+    value: 'TailoredExperiencesWithDiagnosticDataEnabled'
+    data: '0'
+    type: REG_DWORD
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableTailoredExperiencesWithDiagnosticData'
+    data: '1'
+    type: REG_DWORD
     

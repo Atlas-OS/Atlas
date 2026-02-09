@@ -2,16 +2,27 @@
 title: Configure Windows Media Player
 description: Configures Windows Media Player for the optimal privacy, security and usability. As a note, WMP is old, and you probably shouldn't use it.
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        # Prevent Windows Media DRM internet access
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\WMDRM'; Value = 'DisableOnline'; Data = '1'; Type = 'REG_DWORD' },
-        # Disable Windows Media Player wizard on first run
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences'; Value = 'AcceptedPrivacyStatement'; Data = '1'; Type = 'REG_DWORD' },
-        # Disable Windows Media Player diagnostics
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences'; Value = 'UsageTracking'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+    # Prevent Windows Media DRM internet access
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\WMDRM'
+    value: 'DisableOnline'
+    data: '1'
+    type: REG_DWORD
+
+    # Disable Windows Media Player wizard on first run
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences'
+    value: 'AcceptedPrivacyStatement'
+    data: '1'
+    type: REG_DWORD
+    
+    
+
+    # Disable Windows Media Player diagnostics
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences'
+    value: 'UsageTracking'
+    data: '0'
+    type: REG_DWORD
     
     

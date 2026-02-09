@@ -2,10 +2,13 @@
 title: Disable Customer Experience Improvement Program
 description: Disables Customer Experience Improvement Program (CEIP) as it is related to telemetry, for privacy
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\AppV\CEIP'; Value = 'CEIPEnable'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\SQMClient\Windows'; Value = 'CEIPEnable'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\AppV\CEIP'
+    value: 'CEIPEnable'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\SQMClient\Windows'
+    value: 'CEIPEnable'
+    data: '0'
+    type: REG_DWORD

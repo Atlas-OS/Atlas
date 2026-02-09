@@ -3,11 +3,10 @@ title: Disable Dynamic Lighting
 description: Disables Dynamic Lighting by default
 builds: [ '>=22000' ]
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\Software\Microsoft\Lighting'; Value = 'AmbientLightingEnabled'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Lighting'
+    value: 'AmbientLightingEnabled'
+    data: '0'
+    type: REG_DWORD
     
     

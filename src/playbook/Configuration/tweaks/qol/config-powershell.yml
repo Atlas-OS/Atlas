@@ -9,9 +9,8 @@ actions:
     # This allows all Atlas installation scripts to run without signature verification
     # At the end of installation, this will be changed to RemoteSigned for better security
     # RemoteSigned allows local Atlas folder scripts to run while requiring signatures for downloaded scripts
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'; Value = 'ExecutionPolicy'; Data = 'Unrestricted'; Type = 'REG_SZ' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+    value: 'ExecutionPolicy'
+    data: 'Unrestricted'
+    type: REG_SZ

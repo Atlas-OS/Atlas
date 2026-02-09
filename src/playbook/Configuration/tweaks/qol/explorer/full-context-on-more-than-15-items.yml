@@ -2,10 +2,10 @@
 title: Always Show the Full Context Menu On Items
 description: Fixes context menu items missing when more than 15 files are selected, this sets it to 100 items instead of 15, where some context menu items disappear
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'; Value = 'MultipleInvokePromptMinimum'; Data = '100'; Type = 'REG_DWORD' }
-      )
-    wait: true
-
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
+    value: 'MultipleInvokePromptMinimum'
+    data: '100'
+    type: REG_DWORD
+    
+    

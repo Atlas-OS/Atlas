@@ -2,10 +2,9 @@
 title: Disable Low Disk Space Checks
 description: DIsables low disk space checks, meaning that there will not be a low disk space warning for QoL
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'; Value = 'NoLowDiskSpaceChecks'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'NoLowDiskSpaceChecks'
+    data: '1'
+    type: REG_DWORD
 

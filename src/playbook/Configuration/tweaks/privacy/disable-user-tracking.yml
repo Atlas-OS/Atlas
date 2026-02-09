@@ -2,11 +2,10 @@
 title: Disable Most Frequently Used Applications
 description: Disables the most frequently used applications in the start menu for privacy
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'; Value = 'NoInstrumentation'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'NoInstrumentation'
+    data: '1'
+    type: REG_DWORD
     
     

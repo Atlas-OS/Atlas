@@ -2,9 +2,8 @@
 title: Disallow Message Service Cloud Sync
 description: Disallows the Message service (which should be disabled anyways) from syncing with the cloud, as that potentially harms privacy
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Messaging'; Value = 'AllowMessageSync'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Messaging'
+    value: 'AllowMessageSync'
+    data: '0'
+    type: REG_DWORD

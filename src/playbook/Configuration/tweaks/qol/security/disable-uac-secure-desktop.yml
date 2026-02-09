@@ -2,9 +2,8 @@
 title: Disable UAC Secure Desktop
 description: Disables switching to the Secure Desktop when prompting for elevation. An application would need admin privileges to control the mouse and keyboard to accept the UAC prompt anyways. As a note, UAC is not designed to save you from malware, UAC can easily be bypassed on admin accounts (e.g. check GitHub)
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'; Value = 'PromptOnSecureDesktop'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'PromptOnSecureDesktop'
+    data: '0'
+    type: REG_DWORD

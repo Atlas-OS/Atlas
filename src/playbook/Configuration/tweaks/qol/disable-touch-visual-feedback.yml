@@ -2,12 +2,17 @@
 title: Disable Touch Visual Feedback
 description: Disables touch visual feedback for QoL
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\Control Panel\Cursors'; Value = 'GestureVisualization'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Control Panel\Cursors'; Value = 'ContactVisualization'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\Control Panel\Cursors'
+    value: 'GestureVisualization'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Cursors'
+    value: 'ContactVisualization'
+    data: '0'
+    type: REG_DWORD
     
     

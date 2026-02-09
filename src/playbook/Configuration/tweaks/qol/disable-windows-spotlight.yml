@@ -2,16 +2,45 @@
 title: Disable Windows Spotlight
 description: Windows Spotlight provides lockscreen messages like 'Like what you see?', and are disabled for QoL and privacy
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Value = 'DisableWindowsSpotlightFeatures'; Data = '1'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Value = 'DisableWindowsSpotlightWindowsWelcomeExperience'; Data = '1'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Value = 'DisableWindowsSpotlightOnActionCenter'; Data = '1'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Value = 'DisableWindowsSpotlightOnSettings'; Data = '1'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Value = 'DisableThirdPartySuggestions'; Data = '1'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanelt'; Value = '{2cc5ca98-6485-489a-920e-b3e88a6ccce3}'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableWindowsSpotlightFeatures'
+    data: '1'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableWindowsSpotlightWindowsWelcomeExperience'
+    data: '1'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableWindowsSpotlightOnActionCenter'
+    data: '1'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableWindowsSpotlightOnSettings'
+    data: '1'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableThirdPartySuggestions'
+    data: '1'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanelt'
+    value: '{2cc5ca98-6485-489a-920e-b3e88a6ccce3}'
+    data: '1'
+    type: REG_DWORD
     
     

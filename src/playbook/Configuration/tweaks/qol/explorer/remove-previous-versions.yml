@@ -10,10 +10,5 @@ actions:
   - !registryKey: {path: 'HKCR\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'}
   - !registryKey: {path: 'HKCR\Directory\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'}
   - !registryKey: {path: 'HKCR\Drive\shellex\ContextMenuHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'}
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'; Value = 'NoPreviousVersionsPage'; Operation = 'delete' },
-        @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\PreviousVersions'; Value = 'DisableLocalPage'; Operation = 'delete' }
-      )
-    wait: true
+  - !registryValue: {path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer', value: 'NoPreviousVersionsPage', operation: delete}
+  - !registryValue: {path: 'HKCU\SOFTWARE\Policies\Microsoft\PreviousVersions', value: 'DisableLocalPage', operation: delete}

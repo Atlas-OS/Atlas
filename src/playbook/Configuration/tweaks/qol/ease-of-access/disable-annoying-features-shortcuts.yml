@@ -2,22 +2,72 @@
 title: Disable Commonly Annoying Features and Shortcuts
 description: Disables commonly annoying features such as pressing shift 5 times for sticky keys.
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\Control Panel\Accessibility\HighContrast'; Value = 'Flags'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Control Panel\Accessibility\Keyboard Response'; Value = 'Flags'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Control Panel\Accessibility\MouseKeys'; Value = 'Flags'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Control Panel\Accessibility\StickyKeys'; Value = 'Flags'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Control Panel\Accessibility\ToggleKeys'; Value = 'Flags'; Data = '0'; Type = 'REG_DWORD' },
-        # Disable language bar shortcuts
-        @{ Path = 'HKCU\Keyboard Layout\Toggle'; Value = 'Layout Hotkey'; Data = '3'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Keyboard Layout\Toggle'; Value = 'Language Hotkey'; Data = '3'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Keyboard Layout\Toggle'; Value = 'Hotkey'; Data = '3'; Type = 'REG_DWORD' },
-        # Disable Narrator shortcut
-        @{ Path = 'HKCU\Software\Microsoft\Narrator\NoRoam'; Value = 'WinEnterLaunchEnabled'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
-  # Disable language bar shortcuts
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\HighContrast'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\Keyboard Response'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\MouseKeys'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\StickyKeys'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\ToggleKeys'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+
+    # Disable language bar shortcuts
   - !registryKey:
     path: 'HKCU\Control Panel\Input Method\Hot Keys\00000104'
+  - !registryValue:
+    path: 'HKCU\Keyboard Layout\Toggle'
+    value: 'Layout Hotkey'
+    data: '3'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Keyboard Layout\Toggle'
+    value: 'Language Hotkey'
+    data: '3'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Keyboard Layout\Toggle'
+    value: 'Hotkey'
+    data: '3'
+    type: REG_DWORD
+    
+    
+
+    # Disable Narrator shortcut  
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Narrator\NoRoam'
+    value: 'WinEnterLaunchEnabled'
+    data: '0'
+    type: REG_DWORD
+    
+    

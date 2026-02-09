@@ -3,10 +3,15 @@ title: Disable Windows Chat
 description: Disables Windows Chat as it's not commonly used
 builds: [ '>=22000' ]
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat'; Value = 'ChatIcon'; Data = '3'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Value = 'TaskbarMn'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat'
+    value: 'ChatIcon'
+    data: '3'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'TaskbarMn'
+    data: '0'
+    type: REG_DWORD
+    
+    

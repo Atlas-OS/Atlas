@@ -2,26 +2,80 @@
 title: Configure Search on the Taskbar
 description: Configures search for the optimal usability and privacy, such as disabling online features to make it more minimal and snappy
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        # Configure search permissions
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Value = 'BingSearchEnabled'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Value = 'IsAADCloudSearchEnabled'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Value = 'IsDeviceSearchHistoryEnabled'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Value = 'IsMSACloudSearchEnabled'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Value = 'SafeSearchMode'; Data = '0'; Type = 'REG_DWORD' },
-        # Policies
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Value = 'ConnectedSearchUseWeb'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Value = 'DisableWebSearch'; Data = '1'; Type = 'REG_DWORD' },
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Value = 'AllowSearchToUseLocation'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Value = 'EnableDynamicContentInWSB'; Data = '0'; Type = 'REG_DWORD' },
-        # Disable online search and don't include web results from Bing
-        @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer'; Value = 'DisableSearchBoxSuggestions'; Data = '1'; Type = 'REG_DWORD' },
-        # Set search as icon on taskbar
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Value = 'SearchboxTaskbarMode'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+    # Configure search permissions
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+    value: 'BingSearchEnabled'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
+    value: 'IsAADCloudSearchEnabled'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
+    value: 'IsDeviceSearchHistoryEnabled'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
+    value: 'IsMSACloudSearchEnabled'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
+    value: 'SafeSearchMode'
+    data: '0'
+    type: REG_DWORD
+    
+    
+
+    # Policies
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'ConnectedSearchUseWeb'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'DisableWebSearch'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'AllowSearchToUseLocation'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'EnableDynamicContentInWSB'
+    data: '0'
+    type: REG_DWORD
+
+    # Disable online search and don't include web results from Bing
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'DisableSearchBoxSuggestions'
+    data: '1'
+    type: REG_DWORD
+    
+    
+    # Set search as icon on taskbar
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+    value: 'SearchboxTaskbarMode'
+    data: '1'
+    type: REG_DWORD
+    
     # Fallback for OOBE as it doesn't seem to work
   - !powerShell:
     command: 'reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /t REG_DWORD /v "SearchboxTaskbarMode" /d 1 /f > nul'

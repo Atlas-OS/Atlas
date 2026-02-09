@@ -3,9 +3,10 @@ title: Add 'End task' to the taskbar
 description: Adds 'End task' as a right-click option on taskbar for QoL
 builds: [ '>22000' ]
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings'; Value = 'TaskbarEndTask'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings'
+    value: 'TaskbarEndTask'
+    data: '1'
+    type: REG_DWORD
+    
+    

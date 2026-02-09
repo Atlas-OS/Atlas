@@ -2,11 +2,14 @@
 title: Disable Remote Assistance
 description: As Remote Assistance is an unused and a potential vulnerable feature, it is disabled
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'; Value = 'fAllowFullControl'; Data = '0'; Type = 'REG_DWORD' },
-        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'; Value = 'fAllowToGetHelp'; Data = '0'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
+    value: 'fAllowFullControl'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance'
+    value: 'fAllowToGetHelp'
+    data: '0'
+    type: REG_DWORD
   - !run: {exe: 'netsh', args: 'advfirewall firewall set rule group="Remote Assistance" new enable=no'}

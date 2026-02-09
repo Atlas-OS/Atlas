@@ -5,12 +5,7 @@ actions:
   # - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferFeatureUpdates', data: '1', type: REG_DWORD}
   # - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'DeferFeatureUpdatesPeriodInDays', data: '365', type: REG_DWORD}
     # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.WindowsUpdate::TargetReleaseVersion
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'; Value = 'TargetReleaseVersion'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'TargetReleaseVersion', data: '1', type: REG_DWORD}
   - !powerShell:
     command: 'if ((Get-CimInstance -Class Win32_OperatingSystem).Caption -match 11) {$a = ''Windows 11''} else {$a = ''Windows 10''}; New-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'' -Name ''ProductVersion'' -Value $a -PropertyType String -Force'
     wait: true

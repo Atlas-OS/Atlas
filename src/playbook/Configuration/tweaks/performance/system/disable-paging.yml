@@ -2,10 +2,13 @@
 title: Disable Paging Settings
 description: Disables memory paging settings for the best performance
 actions:
-  - !powerShell:
-    command: |
-      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
-        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'; Value = 'DisablePagingExecutive'; Data = '1'; Type = 'REG_DWORD' },
-        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'; Value = 'DisablePageCombining'; Data = '1'; Type = 'REG_DWORD' }
-      )
-    wait: true
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
+    value: 'DisablePagingExecutive'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
+    value: 'DisablePageCombining'
+    data: '1'
+    type: REG_DWORD
