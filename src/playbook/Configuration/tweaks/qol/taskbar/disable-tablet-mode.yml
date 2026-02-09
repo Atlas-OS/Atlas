@@ -2,10 +2,9 @@
 title: Never Use Tablet Mode
 description: Makes Windows never use tablet mode for QoL
 actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ImmersiveShell'
-    value: 'SignInMode'
-    data: '1'
-    type: REG_DWORD
-    
-    
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ImmersiveShell'; Value = 'SignInMode'; Data = '1'; Type = 'REG_DWORD' }
+      )
+    wait: true

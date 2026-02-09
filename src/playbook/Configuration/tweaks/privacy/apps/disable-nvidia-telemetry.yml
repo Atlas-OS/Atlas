@@ -2,9 +2,10 @@
 title: Disable NVIDIA Control Panel Telemetry
 description: Disables NVIDIA Control Panel telemetry for privacy
 actions:
-  - !registryValue:
-    path: 'HKCU\Software\NVIDIA Corporation\NVControlPanel2\Client'
-    value: 'OptInOrOutPreference'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\Software\NVIDIA Corporation\NVControlPanel2\Client'; Value = 'OptInOrOutPreference'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
     

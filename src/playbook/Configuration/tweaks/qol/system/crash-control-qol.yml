@@ -2,28 +2,13 @@
 title: Configure Crash Control
 description: Configures the BSoD for having the most useful information and not leaving behind dumps (which most people will not look into anyways)
 actions:
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'
-    value: 'AutoReboot'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'
-    value: 'CrashDumpEnabled'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'
-    value: 'LogEvent'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'
-    value: 'DisplayParameters'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl\StorageTelemetry'
-    value: 'DeviceDumpEnabled'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'; Value = 'AutoReboot'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'; Value = 'CrashDumpEnabled'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'; Value = 'LogEvent'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl'; Value = 'DisplayParameters'; Data = '1'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\CrashControl\StorageTelemetry'; Value = 'DeviceDumpEnabled'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true

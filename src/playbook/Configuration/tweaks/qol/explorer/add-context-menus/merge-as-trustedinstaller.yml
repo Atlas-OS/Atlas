@@ -2,18 +2,11 @@
 title: Add 'Merge as TrustedInstaller' to Context Menu
 description: Adds 'Merge as TrustedInstaller' to context menu for registry files
 actions:
-  - !registryValue:
-    path: 'HKCR\regfile\Shell\RunAs'
-    value: ''
-    data: 'Merge As TrustedInstaller'
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKCR\regfile\Shell\RunAs'
-    value: 'HasLUAShield'
-    data: '1'
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKCR\regfile\Shell\RunAs\Command'
-    value: ''
-    data: 'cmd /c "%windir%\AtlasModules\Scripts\RunAsTI.cmd" "%1"'
-    type: REG_SZ
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCR\regfile\Shell\RunAs'; Value = ''; Data = 'Merge As TrustedInstaller'; Type = 'REG_SZ' },
+        @{ Path = 'HKCR\regfile\Shell\RunAs'; Value = 'HasLUAShield'; Data = '1'; Type = 'REG_SZ' },
+        @{ Path = 'HKCR\regfile\Shell\RunAs\Command'; Value = ''; Data = 'cmd /c "%windir%\AtlasModules\Scripts\RunAsTI.cmd" "%1"'; Type = 'REG_SZ' }
+      )
+    wait: true

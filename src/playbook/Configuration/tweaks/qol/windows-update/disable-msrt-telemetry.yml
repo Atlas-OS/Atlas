@@ -2,7 +2,12 @@
 title: Disable MSRT telemetry
 description: Disables MSRT's (Malicious Software Removal Tool) telemetry features
 actions:
-    # Disable MSRT telemetry
-  - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\MRT', value: 'DontReportInfectionInformation', type: REG_DWORD, data: '1'}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears', value: 'HeartbeatTrackingIndex', type: REG_DWORD, data: '0'}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears', value: 'SpyNetReportingLocation', type: REG_MULTI_SZ, data: ''}
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        # Disable MSRT telemetry
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\MRT'; Value = 'DontReportInfectionInformation'; Type = 'REG_DWORD'; Data = '1' },
+        @{ Path = 'HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears'; Value = 'HeartbeatTrackingIndex'; Type = 'REG_DWORD'; Data = '0' },
+        @{ Path = 'HKLM\SOFTWARE\Microsoft\RemovalTools\MpGears'; Value = 'SpyNetReportingLocation'; Type = 'REG_MULTI_SZ'; Data = '' }
+      )
+    wait: true

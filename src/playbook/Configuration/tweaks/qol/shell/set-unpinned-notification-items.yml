@@ -5,63 +5,26 @@ actions:
   - !taskKill: {name: 'explorer'}
 
     # Windows 10
-  - !registryValue:
-    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
-    value: 'Microsoft.QuickAction.Connect'
-    data: ''
-    type: REG_NONE
-    
-    
-    builds: [ '<22000' ]
-  - !registryValue:
-    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
-    value: 'Microsoft.QuickAction.Location'
-    data: ''
-    type: REG_NONE
-    
-    
-    builds: [ '<22000' ]
-  - !registryValue:
-    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
-    value: 'Microsoft.QuickAction.ScreenClipping'
-    data: ''
-    type: REG_NONE
-    
-    
-    builds: [ '<22000' ]
-  - !registryValue:
-    path: 'HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture'
-    value: 'Toggles'
-    data: 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false'
-    type: REG_SZ
-    
-    
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'; Value = 'Microsoft.QuickAction.Connect'; Data = ''; Type = 'REG_NONE' },
+        @{ Path = 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'; Value = 'Microsoft.QuickAction.Location'; Data = ''; Type = 'REG_NONE' },
+        @{ Path = 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'; Value = 'Microsoft.QuickAction.ScreenClipping'; Data = ''; Type = 'REG_NONE' },
+        @{ Path = 'HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture'; Value = 'Toggles'; Data = 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false'; Type = 'REG_SZ' }
+      )
+    wait: true
     builds: [ '<22000' ]
 
     # Windows 11
-  - !registryValue:
-    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
-    value: 'Microsoft.QuickAction.Cast'
-    data: ''
-    type: REG_NONE
-    
-    
-    builds: [ '>=22000' ]
-  - !registryValue:
-    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
-    value: 'Microsoft.QuickAction.NearShare'
-    data: ''
-    type: REG_NONE
-    
-    
-    builds: [ '>=22000' ]
-  - !registryValue:
-    path: 'HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture'
-    value: 'Toggles'
-    data: 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false'
-    type: REG_SZ
-    
-    
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'; Value = 'Microsoft.QuickAction.Cast'; Data = ''; Type = 'REG_NONE' },
+        @{ Path = 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'; Value = 'Microsoft.QuickAction.NearShare'; Data = ''; Type = 'REG_NONE' },
+        @{ Path = 'HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture'; Value = 'Toggles'; Data = 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false'; Type = 'REG_SZ' }
+      )
+    wait: true
     builds: [ '>=22000' ]
 
   - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}

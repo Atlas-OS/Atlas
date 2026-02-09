@@ -3,10 +3,10 @@ title: Don't Show Office Files
 description: Don't show Office files in Quick Access (Home)
 builds: [ '>=22000' ]
 actions:
-  - !registryValue:
-    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer'
-    value: 'ShowCloudFilesInQuickAccess'
-    data: '0'
-    type: REG_DWORD
-    
-    
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer'; Value = 'ShowCloudFilesInQuickAccess'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
+

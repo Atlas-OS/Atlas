@@ -2,22 +2,11 @@
 title: Decrease Shutdown Time
 description: Makes it so that Windows is less tolerable to hung apps, and tries to kill them as fast as possible on shutdown
 actions:
-  - !registryValue:
-    path: 'HKCU\Control Panel\Desktop'
-    value: 'HungAppTimeout'
-    data: '2000'
-    type: REG_SZ
-    
-    
-  - !registryValue:
-    path: 'HKCU\Control Panel\Desktop'
-    value: 'WaitToKillAppTimeOut'
-    data: '2000'
-    type: REG_SZ
-    
-    
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control'
-    value: 'WaitToKillServiceTimeout'
-    data: '2000'
-    type: REG_SZ
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\Control Panel\Desktop'; Value = 'HungAppTimeout'; Data = '2000'; Type = 'REG_SZ' },
+        @{ Path = 'HKCU\Control Panel\Desktop'; Value = 'WaitToKillAppTimeOut'; Data = '2000'; Type = 'REG_SZ' },
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control'; Value = 'WaitToKillServiceTimeout'; Data = '2000'; Type = 'REG_SZ' }
+      )
+    wait: true

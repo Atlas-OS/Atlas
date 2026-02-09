@@ -2,33 +2,14 @@
 title: Disable Program Compatibility Assistant (PCA)
 description: Disables PCA for QoL and privacy
 actions:
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
-    value: 'AITEnable'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
-    value: 'AllowTelemetry'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
-    value: 'DisableEngine'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
-    value: 'DisableInventory'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
-    value: 'DisablePCA'
-    data: '1'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'
-    value: 'DisableUAR'
-    data: '1'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'; Value = 'AITEnable'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'; Value = 'AllowTelemetry'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'; Value = 'DisableEngine'; Data = '1'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'; Value = 'DisableInventory'; Data = '1'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'; Value = 'DisablePCA'; Data = '1'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat'; Value = 'DisableUAR'; Data = '1'; Type = 'REG_DWORD' }
+      )
+    wait: true

@@ -2,8 +2,9 @@
 title: Disable Aero Shake
 description: Disables Aero Shake, which is where you shake a window and all other Windows minimise, as most of the time it is accidentally triggered
 actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-    value: 'DisallowShaking'
-    data: '1'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Value = 'DisallowShaking'; Data = '1'; Type = 'REG_DWORD' }
+      )
+    wait: true

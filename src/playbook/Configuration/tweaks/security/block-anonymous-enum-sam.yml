@@ -2,9 +2,10 @@
 title: Blocks Anonymous Enumeration of SAM Accounts
 description: Blocks the anonymous enumeration of SAM accounts to prevent the ability to list the potential points of attack to the system
 actions:
-   # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220929
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa'
-    value: 'RestrictAnonymousSAM'
-    data: '1'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220929
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa'; Value = 'RestrictAnonymousSAM'; Data = '1'; Type = 'REG_DWORD' }
+      )
+    wait: true

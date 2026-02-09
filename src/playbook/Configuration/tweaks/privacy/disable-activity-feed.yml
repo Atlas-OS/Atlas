@@ -2,8 +2,9 @@
 title: Disable Activity Feed
 description: Disables Activity Feed in Task View for privacy and QoL
 actions:
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
-    value: 'EnableActivityFeed'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'; Value = 'EnableActivityFeed'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true

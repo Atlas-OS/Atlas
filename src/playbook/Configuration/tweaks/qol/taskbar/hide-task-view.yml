@@ -2,14 +2,10 @@
 title: Disable Task View on Taskbar
 description: Disables the Task View button on the taskbar for QoL, as it can be accessed with Win + Tab anyways
 actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultiTaskingView\AllUpView'
-    value: 'Enabled'
-    operation: delete
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-    value: 'ShowTaskViewButton'
-    data: '0'
-    type: REG_DWORD
-    
-    
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultiTaskingView\AllUpView'; Value = 'Enabled'; Operation = 'delete' },
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Value = 'ShowTaskViewButton'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true

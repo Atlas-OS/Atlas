@@ -4,8 +4,9 @@ description: Disables WPBT with an undocumented Registry value, which is an ACPI
 actions:
     # https://github.com/Jamesits/dropWPBT
     # https://download.microsoft.com/download/8/A/2/8A2FB72D-9B96-4E2D-A559-4A27CF905A80/windows-platform-binary-table.docx
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager'
-    value: 'DisableWpbtExecution'
-    data: '1'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager'; Value = 'DisableWpbtExecution'; Data = '1'; Type = 'REG_DWORD' }
+      )
+    wait: true

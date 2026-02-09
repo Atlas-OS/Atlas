@@ -4,15 +4,12 @@ description: Disables News and Interests on the taskbar for privacy (lots of thi
 actions:
   - !taskKill: {name: 'explorer'}
 
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds'
-    value: 'EnableFeeds'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Dsh'
-    value: 'AllowNewsAndInterests'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds'; Value = 'EnableFeeds'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Dsh'; Value = 'AllowNewsAndInterests'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
 
   - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}

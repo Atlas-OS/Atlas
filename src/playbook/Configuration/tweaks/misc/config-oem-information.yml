@@ -16,18 +16,11 @@ actions:
       # Shows in winver
       Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'RegisteredOrganization' -Value $reportedVer -Force
     wait: true
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
-    value: 'Manufacturer'
-    data: 'Atlas Team'
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
-    value: 'SupportURL'
-    data: 'https://discord.atlasos.net'
-    type: REG_SZ
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
-    value: 'SupportPhone'
-    data: 'https://github.com/Atlas-OS/Atlas'
-    type: REG_SZ
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'; Value = 'Manufacturer'; Data = 'Atlas Team'; Type = 'REG_SZ' },
+        @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'; Value = 'SupportURL'; Data = 'https://discord.atlasos.net'; Type = 'REG_SZ' },
+        @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'; Value = 'SupportPhone'; Data = 'https://github.com/Atlas-OS/Atlas'; Type = 'REG_SZ' }
+      )
+    wait: true

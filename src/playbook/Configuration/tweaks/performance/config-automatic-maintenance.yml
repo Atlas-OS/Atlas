@@ -14,9 +14,10 @@ actions:
   #   data: '0'
   #   type: REG_DWORD
 
-    # https://www.elevenforum.com/t/enable-or-disable-automatic-maintenance-to-wake-up-computer-in-windows-11.16690/
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Task Scheduler\Maintenance'
-    value: 'WakeUp'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      # https://www.elevenforum.com/t/enable-or-disable-automatic-maintenance-to-wake-up-computer-in-windows-11.16690/
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Task Scheduler\Maintenance'; Value = 'WakeUp'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true

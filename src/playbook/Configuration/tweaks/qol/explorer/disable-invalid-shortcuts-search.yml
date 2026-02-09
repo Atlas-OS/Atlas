@@ -2,15 +2,10 @@
 title: Disable Searching for Invalid Shortcuts
 description: Disables searching drives or using NTFS file system tracking for shortcuts that have invalid/non-existent paths for responsiveness
 actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-    value: 'NoResolveSearch'
-    data: '1'
-    type: REG_DWORD
-
-
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-    value: 'NoResolveTrack'
-    data: '1'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'; Value = 'NoResolveSearch'; Data = '1'; Type = 'REG_DWORD' },
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'; Value = 'NoResolveTrack'; Data = '1'; Type = 'REG_DWORD' }
+      )
+    wait: true

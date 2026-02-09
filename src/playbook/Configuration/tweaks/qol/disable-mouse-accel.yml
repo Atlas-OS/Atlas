@@ -2,24 +2,13 @@
 title: Disable Mouse Acceleration
 description: Disables mouse acceleration (also called 'Enhance Pointer Precision') for 1:1 mouse movement, which is what most gamers would want
 actions:
-  - !registryValue:
-    path: 'HKCU\Control Panel\Mouse'
-    value: 'MouseSpeed'
-    data: '0'
-    type: REG_SZ
-    
-    
-  - !registryValue:
-    path: 'HKCU\Control Panel\Mouse'
-    value: 'MouseThreshold1'
-    data: '0'
-    type: REG_SZ
-    
-    
-  - !registryValue:
-    path: 'HKCU\Control Panel\Mouse'
-    value: 'MouseThreshold2'
-    data: '0'
-    type: REG_SZ
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\Control Panel\Mouse'; Value = 'MouseSpeed'; Data = '0'; Type = 'REG_SZ' },
+        @{ Path = 'HKCU\Control Panel\Mouse'; Value = 'MouseThreshold1'; Data = '0'; Type = 'REG_SZ' },
+        @{ Path = 'HKCU\Control Panel\Mouse'; Value = 'MouseThreshold2'; Data = '0'; Type = 'REG_SZ' }
+      )
+    wait: true
     
     

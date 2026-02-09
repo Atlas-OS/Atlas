@@ -17,7 +17,10 @@ actions:
 
     # A/B testing usage reports
   - !scheduledTask: {path: '\Microsoft\Windows\Flighting\FeatureConfig\UsageDataReporting', operation: disable, ignoreErrors: true}
-  - !registryValue:
-    path: 'HKLM\System\CurrentControlSet\Control\Ubpm'
-    value: 'CriticalMaintenance_UsageDataReporting' # Remove from automatic maintenance
-    operation: delete
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        # Remove from automatic maintenance
+        @{ Path = 'HKLM\System\CurrentControlSet\Control\Ubpm'; Value = 'CriticalMaintenance_UsageDataReporting'; Operation = 'delete' }
+      )
+    wait: true

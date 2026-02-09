@@ -4,54 +4,20 @@ description: Disallows telemetry and data collection to improve privacy
 actions:
     # Stop DiagTrack service to add the changes
   - !service: {name: 'DiagTrack', operation: stop, ignoreErrors: true}
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
-    value: 'ShowedToastAtLevel'
-    data: '1'
-    type: REG_DWORD
-    
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
-    value: 'AllowTelemetry'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
-    value: 'MaxTelemetryAllowed'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'
-    value: 'AllowTelemetry'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
-    value: 'AllowTelemetry'
-    data: '0'
-    type: REG_DWORD
-
-    # Misc
-  - !registryValue:
-    path: 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'
-    value: 'EnableEventTranscript'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'
-    value: 'MiniTraceSlotEnabled'
-    data: '0'
-    type: REG_DWORD
-  - !registryValue:
-    path: 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'
-    value: 'AllowDeviceNameInTelemetry'
-    data: '0'
-    type: REG_DWORD
-
-    # Disable & clear logger
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diagtrack-Listener'
-    value: 'Start'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'; Value = 'ShowedToastAtLevel'; Data = '1'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'; Value = 'AllowTelemetry'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'; Value = 'MaxTelemetryAllowed'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'; Value = 'AllowTelemetry'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection'; Value = 'AllowTelemetry'; Data = '0'; Type = 'REG_DWORD' },
+        # Misc
+        @{ Path = 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'; Value = 'EnableEventTranscript'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'; Value = 'MiniTraceSlotEnabled'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'; Value = 'AllowDeviceNameInTelemetry'; Data = '0'; Type = 'REG_DWORD' },
+        # Disable & clear logger
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diagtrack-Listener'; Value = 'Start'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
   - !cmd: {command: 'del "%ProgramData%\Microsoft\Diagnosis\ETLLogs\AutoLogger\DiagTrack*" "%ProgramData%\Microsoft\Diagnosis\ETLLogs\ShutdownLogger\DiagTrack*" > nul 2>&1'}

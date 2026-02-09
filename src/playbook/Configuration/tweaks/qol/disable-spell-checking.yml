@@ -2,38 +2,15 @@
 title: Disable Spell Checking
 description: Disables spell checking for QoL
 actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnableAutocorrection'
-    data: '0'
-    type: REG_DWORD
-    
-    
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnableDoubleTapSpace'
-    data: '0'
-    type: REG_DWORD
-    
-    
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnablePredictionSpaceInsertion'
-    data: '0'
-    type: REG_DWORD
-    
-    
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnableSpellchecking'
-    data: '0'
-    type: REG_DWORD
-    
-    
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnableTextPrediction'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'; Value = 'EnableAutocorrection'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'; Value = 'EnableDoubleTapSpace'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'; Value = 'EnablePredictionSpaceInsertion'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'; Value = 'EnableSpellchecking'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'; Value = 'EnableTextPrediction'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
     
     

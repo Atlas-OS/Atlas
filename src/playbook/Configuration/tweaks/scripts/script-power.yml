@@ -12,11 +12,12 @@ actions:
     option: 'disable-power-saving'
 
     # Disable Fast Startup
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power'
-    value: 'HiberbootEnabled'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power'; Value = 'HiberbootEnabled'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
 
     # Disable Hibernation
     # Disabling makes NTFS accessible outside of Windows

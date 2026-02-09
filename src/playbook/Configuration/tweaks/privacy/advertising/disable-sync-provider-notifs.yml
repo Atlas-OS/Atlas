@@ -2,9 +2,10 @@
 title: Disable Sync Provider Notifications
 description: Disables notifications within File Explorer from OneDrive or other sync providers to avoid advertisements
 actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-    value: 'ShowSyncProviderNotifications'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Value = 'ShowSyncProviderNotifications'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
     

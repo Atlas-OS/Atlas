@@ -2,22 +2,11 @@
 title: Disable Unnecessary Touch Keyboard Settings
 description: Disable unnecessary touch keyboard settings for QoL
 actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnableAutoShiftEngage'
-    data: '0'
-    type: REG_DWORD
-    
-    
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-    value: 'EnableKeyAudioFeedback'
-    data: '0'
-    type: REG_DWORD
-    
-    
-  # - !registryValue:
-  #   path: 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'
-  #   value: 'EnableShiftLock'
-  #   data: '0'
-  #   type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'; Value = 'EnableAutoShiftEngage'; Data = '0'; Type = 'REG_DWORD' },
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'; Value = 'EnableKeyAudioFeedback'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
+  # @{ Path = 'HKCU\SOFTWARE\Microsoft\TabletTip\1.7'; Value = 'EnableShiftLock'; Data = '0'; Type = 'REG_DWORD' }

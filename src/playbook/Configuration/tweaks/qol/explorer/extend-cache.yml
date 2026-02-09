@@ -2,8 +2,9 @@
 title: Extend Icon Cache
 description: Extends the icon cache to 4MB for better explorer responsiveness
 actions:
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'
-    value: 'Max Cached Icons'
-    data: '4096'
-    type: REG_SZ
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'; Value = 'Max Cached Icons'; Data = '4096'; Type = 'REG_SZ' }
+      )
+    wait: true

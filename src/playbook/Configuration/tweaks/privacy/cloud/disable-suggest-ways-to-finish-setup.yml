@@ -2,9 +2,10 @@
 title: Disable Suggested Ways to Finish Setting Up Your Device
 description: Disables suggested ways to finish setting up your device, as it will mostly anony you to use cloud features
 actions:
-  - !registryValue:
-    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\UserProfileEngagement'
-    value: 'ScoobeSystemSettingEnabled'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\UserProfileEngagement'; Value = 'ScoobeSystemSettingEnabled'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
     

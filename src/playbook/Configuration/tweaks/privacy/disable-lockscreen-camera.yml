@@ -2,8 +2,9 @@
 title: Disable Lockscreen Camera
 description: Disables camera access on the lockscreen
 actions:
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
-    value: 'NoLockScreenCamera'
-    data: '1'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'; Value = 'NoLockScreenCamera'; Data = '1'; Type = 'REG_DWORD' }
+      )
+    wait: true

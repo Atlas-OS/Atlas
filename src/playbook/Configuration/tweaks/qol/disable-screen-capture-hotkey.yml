@@ -2,10 +2,11 @@
 title: Disable Screen Capture Hotkey
 description: Disables using the print screen key to open Screen Capture when Snipping Tool is removed
 actions:
-  - !registryValue:
-    path: 'HKCU\Control Panel\Keyboard'
-    value: 'PrintScreenKeyForSnippingEnabled'
-    data: '0'
-    type: REG_DWORD
+  - !powerShell:
+    command: |
+      . "$env:windir\AtlasModules\Scripts\regHelp.ps1" -RegistryObjects @(
+        @{ Path = 'HKCU\Control Panel\Keyboard'; Value = 'PrintScreenKeyForSnippingEnabled'; Data = '0'; Type = 'REG_DWORD' }
+      )
+    wait: true
     
     
