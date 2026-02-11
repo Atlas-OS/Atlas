@@ -1,16 +1,24 @@
-if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) { 
-  Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs; exit 
+$registryPath = 'HKLM:\SOFTWARE\AtlasOS\Services'
+
+if (-not (Test-Path $registryPath)) {
+    Write-Host "Registry path '$registryPath' not found, skipping." -ForegroundColor Yellow
+    exit 0
 }
 
-$windir = [Environment]::GetFolderPath('Windows')
-$folderItems = Get-ChildItem -Path "$windir\AtlasDesktop\*" -File -Recurse 
-$pattern = "\(default\)\.cmd"
+Get-ChildItem -Path $registryPath | ForEach-Object {
+    $subkey = $_
+    $state = Get-ItemProperty -Path $subkey.PSPath -Name 'state' -ErrorAction SilentlyContinue
+    $path  = Get-ItemProperty -Path $subkey.PSPath -Name 'path'  -ErrorAction SilentlyContinue
 
-foreach ($script in $folderItems)
-{
-  if ($script.PSChildName -match $pattern) {
-    Write-Host $script.PSChildName
-    Start-Process -FilePath $script.FullName -ArgumentList "/silent /noAction" -Wait
-  }
+    if ($null -eq $state -or $null -eq $path) { return }
+
+    if ($state.state -eq 1) {
+        $scriptPath = $path.path
+        if (Test-Path $scriptPath) {
+            Write-Host "Running: $scriptPath" -ForegroundColor Cyan
+            & $scriptPath
+        } else {
+            Write-Host "Script not found: $scriptPath" -ForegroundColor Red
+        }
+    }
 }
-exit 0
