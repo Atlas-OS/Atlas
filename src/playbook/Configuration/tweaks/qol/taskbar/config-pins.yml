@@ -51,29 +51,34 @@ actions:
     command: '.\TASKBARPINS.ps1'
     option: '!install-another-browser'
     exeDir: true
+    onUpgrade: false
     oobe: false
     wait: true
   - !powerShell:
     command: ".\\TASKBARPINS.ps1 'Brave'"
     option: 'browser-brave'
     exeDir: true
+    onUpgrade: false
     oobe: false
     wait: true
   - !powerShell:
     command: ".\\TASKBARPINS.ps1 'Firefox'"
     option: 'browser-firefox'
     exeDir: true
+    onUpgrade: false
     oobe: false
     wait: true
   - !powerShell:
     command: ".\\TASKBARPINS.ps1 'Google Chrome'"
     option: 'browser-chrome'
     exeDir: true
+    onUpgrade: false
     oobe: false
     wait: true
   - !powerShell:
     command: ".\\TASKBARPINS.ps1 'LibreWolf'"
     option: 'browser-librewolf'
     exeDir: true
+    onUpgrade: false
     oobe: false
     wait: true
