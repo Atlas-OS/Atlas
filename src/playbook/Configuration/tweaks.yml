@@ -1,6 +1,7 @@
 ---
 title: Tweaks Root Playbook File
 description: Runs all of the Atlas playbook tweaks
+onUpgrade: false
 actions:
   # ------------------------- NOTES ------------------------- #
 

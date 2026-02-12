@@ -76,7 +76,7 @@ actions:
 
   # Set hidden Settings pages
   # Done before everything else as scripts will overwrite it
-  - !task: { path: 'tweaks\qol\set-hidden-settings-pages.yml' }
+  - !task: { path: 'tweaks\qol\set-hidden-settings-pages.yml', onUpgrade: false }
 
   # Main tasks
   - !task: { path: 'atlas\start.yml' }

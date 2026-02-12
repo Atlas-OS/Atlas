@@ -45,6 +45,7 @@ actions:
     command: '.\SOFTWARE.ps1'
     exeDir: true
     wait: true
+    onUpgrade: false
     weight: 150
     runas: currentUserElevated
 

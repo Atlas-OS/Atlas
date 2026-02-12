@@ -5,6 +5,7 @@ privilege: TrustedInstaller
 onUpgrade: true
 actions:
   - !writeStatus: {status: "Reverting old changes"}
+  - !appx: {name: 'Microsoft.GamingServices*', type: family}
   - !powerShell:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
