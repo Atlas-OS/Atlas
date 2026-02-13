@@ -1,6 +1,12 @@
 <# : batch section
 @echo off & setlocal enabledelayedexpansion
 
+:: Parse /silent argument
+set "silent=0"
+for %%A in (%*) do (
+    if /i "%%~A"=="/silent" set "silent=1"
+)
+
 :: Check if running as TrustedInstaller (re-entry point)
 whoami /user | find /i "S-1-5-18" > nul 2>&1 && (
     goto :main
@@ -15,12 +21,18 @@ if %errorlevel% equ 0 (
     echo   Gaming Services removed.
 )
 
-call %SYSTEMROOT%\AtlasModules\Scripts\RunAsTI.cmd "%~f0" !gamingServicesInstalled!
+set "silentArg="
+if "!silent!"=="1" set "silentArg=/silent"
+call %SYSTEMROOT%\AtlasModules\Scripts\RunAsTI.cmd "%~f0" !silentArg!
 
 exit /b
 
 :main
-start /wait "Fix Store Issues" powershell -NoProfile -ExecutionPolicy Bypass -Command "iex((gc '%~f0' -Raw))" 
+if "!silent!"=="1" (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$env:SILENT='1'; iex((gc '%~f0' -Raw))"
+) else (
+    start /wait "Fix Store Issues" powershell -NoProfile -ExecutionPolicy Bypass -Command "iex((gc '%~f0' -Raw))"
+)
 exit /b
 #>
 
@@ -40,6 +52,8 @@ $mode = 0
 [void][Win32.Console]::GetConsoleMode($handle, [ref]$mode)
 $mode = $mode -band (-bnot 0x0040) # Remove ENABLE_QUICK_EDIT_MODE
 [void][Win32.Console]::SetConsoleMode($handle, $mode)
+
+$Silent = $env:SILENT -eq '1'
 
 $TargetFile = 'C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Deployment.srd'
 $RootServices = @('ClipSVC','AppXSvc', 'StateRepository')
@@ -214,5 +228,7 @@ if ($hasFailed) {
     Write-Host "`n=== Done. ===" -ForegroundColor Green
 }
 
-Write-Host ""
-pause
+if (-not $Silent) {
+    Write-Host ""
+    pause
+}

@@ -9,7 +9,7 @@ actions:
   - !powerShell:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
-      Start-Process -FilePath """$windir\AtlasModules\Scripts\fixStoreIssues.cmd""" -WindowStyle Hidden
+      Start-Process -FilePath """$windir\AtlasModules\Scripts\fixStoreIssues.cmd"""-ArgumentList "/silent" -WindowStyle Hidden
     weight: 2
     wait: true
     exeDir: true
