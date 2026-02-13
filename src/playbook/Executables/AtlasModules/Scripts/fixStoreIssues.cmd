@@ -26,6 +26,21 @@ exit /b
 
 # ======================== PowerShell ========================
 
+Add-Type -MemberDefinition @"
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern IntPtr GetStdHandle(int nStdHandle);
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+"@ -Name "Console" -Namespace "Win32" -PassThru | Out-Null
+
+$handle = [Win32.Console]::GetStdHandle(-10) # STD_INPUT_HANDLE
+$mode = 0
+[void][Win32.Console]::GetConsoleMode($handle, [ref]$mode)
+$mode = $mode -band (-bnot 0x0040) # Remove ENABLE_QUICK_EDIT_MODE
+[void][Win32.Console]::SetConsoleMode($handle, $mode)
+
 $TargetFile = 'C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Deployment.srd'
 $RootServices = @('ClipSVC','AppXSvc', 'StateRepository')
 
