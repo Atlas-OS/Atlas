@@ -3,15 +3,12 @@
 
 :: Check if running as TrustedInstaller (re-entry point)
 whoami /user | find /i "S-1-5-18" > nul 2>&1 && (
-    set "gamingServicesInstalled=%~1"
     goto :main
 )
 
 :: Check if Gaming Services is installed
-set "gamingServicesInstalled=0"
 sc query GamingServices >nul 2>&1
 if %errorlevel% equ 0 (
-    set "gamingServicesInstalled=1"
     echo === Checking Gaming Services ===
     echo   Gaming Services is installed, removing...
     winget uninstall 9MWPM2CQNLHN --silent
@@ -19,12 +16,6 @@ if %errorlevel% equ 0 (
 )
 
 call %SYSTEMROOT%\AtlasModules\Scripts\RunAsTI.cmd "%~f0" !gamingServicesInstalled!
-
-:: Back in non-admin context - reinstall Gaming Services if needed
-if "!gamingServicesInstalled!"=="1" (
-    echo === Reinstalling Gaming Services ===
-    winget install 9MWPM2CQNLHN --silent --accept-package-agreements --accept-source-agreements
-)
 
 exit /b
 
