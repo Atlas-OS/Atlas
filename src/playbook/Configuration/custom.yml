@@ -76,7 +76,10 @@ actions:
 
   # Set hidden Settings pages
   # Done before everything else as scripts will overwrite it
-  - !task: { path: 'tweaks\qol\set-hidden-settings-pages.yml', onUpgrade: false }
+  - !task: {
+      path: 'tweaks\qol\set-hidden-settings-pages.yml',
+      onUpgrade: false,
+    }
 
   # Main tasks
   - !task: { path: 'atlas\start.yml' }
@@ -86,6 +89,9 @@ actions:
   - !task: { path: 'atlas\default.yml' }
   - !task: { path: 'atlas\revert.yml' }
   - !task: { path: "tweaks.yml" }
+
+  # Branding for upgrades
+  - !task: { path: 'tweaks\misc\config-oem-information.yml', onUpgrade: true }
 
   # Set hives to HKU default user
   - !writeStatus: { status: "Applying hives..." }
