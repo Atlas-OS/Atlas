@@ -45,9 +45,9 @@ reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" 
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002" /v "MUIVerb" /t REG_SZ /d "Disable NVIDIA Display Container LS" /f > nul
 reg add "HKCR\DesktopBackground\shell\NVIDIAContainer\shell\NVIDIAContainer002\command" /ve /t REG_SZ /d "\"%windir%\AtlasDesktop\6. Advanced Configuration\Services\NVIDIA Display Container\Disable NVIDIA Display Container LS.cmd"" /f > nul
 
+if "%~1"=="/silent" exit /b
 taskkill /f /im explorer.exe > nul 2>&1
 start explorer.exe
-if "%~1"=="/silent" exit /b
 
 echo]
 echo Finished, changes have been applied.
