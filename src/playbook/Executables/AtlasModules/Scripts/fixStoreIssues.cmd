@@ -37,6 +37,28 @@ exit /b
 #>
 
 # ======================== PowerShell ========================
+# ======================== Force GamingServicesNet ========================
+# Attempt to forcibly remove GamingServicesNet service
+$gamingService = 'GamingServicesNet'
+$svcRegPath = "HKLM\\SYSTEM\\CurrentControlSet\\Services\\$gamingService"
+Write-Host "`n=== Attempting to forcibly remove GamingServicesNet ===" -ForegroundColor Magenta
+try {
+    # Stop the service if running
+    $svc = Get-Service -Name $gamingService -ErrorAction SilentlyContinue
+    if ($svc -and $svc.Status -ne 'Stopped') {
+        Stop-Service -Name $gamingService -Force -ErrorAction SilentlyContinue
+        Write-Host "  Stopped GamingServicesNet." -ForegroundColor Green
+    }
+    # Remove service using sc.exe
+    $null = & cmd.exe /c "sc.exe delete $gamingService"
+    Write-Host "  Issued sc delete command for GamingServicesNet." -ForegroundColor Green
+    # Remove registry key
+    $null = & cmd.exe /c "reg.exe delete \"$svcRegPath\" /f"
+    Write-Host "  Deleted registry key for GamingServicesNet." -ForegroundColor Green
+} catch {
+    Write-Host "  WARNING: Could not forcibly remove GamingServicesNet: $($_.Exception.Message)" -ForegroundColor Yellow
+}
+
 
 Add-Type -MemberDefinition @"
 [DllImport("kernel32.dll", SetLastError = true)]
@@ -56,7 +78,7 @@ $mode = $mode -band (-bnot 0x0040) # Remove ENABLE_QUICK_EDIT_MODE
 $Silent = $env:SILENT -eq '1'
 
 $TargetFile = 'C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Deployment.srd'
-$RootServices = @('ClipSVC','AppXSvc', 'StateRepository')
+$RootServices = @('GamingServicesNet', 'ClipSVC','AppXSvc', 'StateRepository')
 
 function Get-AllDependents {
     param([string]$ServiceName)
@@ -99,6 +121,10 @@ foreach ($root in $RootServices) {
         [void]$allServiceNames.Add($dep)
     }
 }
+# Remove GamingServicesNet and GamingServices from the list if forcibly handled
+$allServiceNames.Remove('GamingServicesNet') | Out-Null
+$allServiceNames.Remove('GamingServices') | Out-Null
+
 
 $originalStartTypes = @{}
 foreach ($svc in $allServiceNames) {
