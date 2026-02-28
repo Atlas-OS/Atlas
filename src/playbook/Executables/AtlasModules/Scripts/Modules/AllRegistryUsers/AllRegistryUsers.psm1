@@ -6,13 +6,13 @@ function Get-RegUserPaths {
 
     $regPattern = 'Volatile Environment|AME_UserHive_'
     if ($NoDefault) {$regPattern = "$regPattern[1-9].*"}
-    $initPaths = Get-ChildItem -Path "Registry::HKU" | Where-Object { $_.Name -match "S-[0-9-]+(?!.*_)|$regPattern" }
+    $initPaths = Get-ChildItem -Path "Registry::HKU" -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "S-[0-9-]+(?!.*_)|$regPattern" }
 
     # If the 'Volatile Environment' key exists, that means it is a proper user. Built in accounts/SIDs don't have this key
     $paths = @()
     if (!$DontCheckEnv) {
         foreach ($userKey in $initPaths) {
-            if ((Get-ChildItem -Path $userKey.PsPath | Where-Object { $_ -match $regPattern }).Count -ne 0) {
+            if ((Get-ChildItem -Path $userKey.PsPath -ErrorAction SilentlyContinue | Where-Object { $_.Name -match $regPattern }).Count -ne 0) {
                 $paths += $userKey
             }
         }
