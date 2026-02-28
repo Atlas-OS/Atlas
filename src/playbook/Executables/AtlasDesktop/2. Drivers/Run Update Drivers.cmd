@@ -18,7 +18,7 @@ if not exist "%script%" (
     exit /b 1
 )
 
-powershell -ExecutionPolicy Bypass -NoProfile -File "%script%"
+powershell -ExecutionPolicy RemoteSigned -NoProfile -File "%script%"
 
 echo.
 pause > null

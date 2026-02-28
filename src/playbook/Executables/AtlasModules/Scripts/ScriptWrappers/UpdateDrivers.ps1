@@ -1,16 +1,28 @@
 [CmdletBinding()]
 param (
-    [switch]$RestartAfterUpdate
+    [switch]$RestartAfterUpdate,
+    [switch]$Silent
 )
-
-$script:SelectedUpdates = @()
 
 function Test-Admin {
     $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal   = New-Object System.Security.Principal.WindowsPrincipal($currentUser)
+    $principal = New-Object System.Security.Principal.WindowsPrincipal($currentUser)
     if (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Write-Host "Restarting script with administrator privileges..."
-        Start-Process -FilePath "powershell" -ArgumentList "-ExecutionPolicy Bypass -NoProfile -File `"$PSCommandPath`"" -Verb RunAs
+
+        $arguments = @(
+            "-ExecutionPolicy RemoteSigned",
+            "-NoProfile",
+            "-File `"$PSCommandPath`""
+        )
+        if ($RestartAfterUpdate) {
+            $arguments += "-RestartAfterUpdate"
+        }
+        if ($Silent) {
+            $arguments += "-Silent"
+        }
+
+        Start-Process -FilePath "powershell" -ArgumentList ($arguments -join " ") -Verb RunAs
         exit
     }
 }
@@ -37,89 +49,132 @@ function Show-DriverSelection {
     param (
         [array]$Updates
     )
+
     if ($Updates.Count -eq 0) {
         return @()
     }
-    
+
     Add-Type -AssemblyName PresentationFramework
 
-    $Window = New-Object System.Windows.Window
-    $Window.Title = "Select drivers to install"
-    $Window.Width = 500
-    $Window.Height = 400
-    $Window.WindowStartupLocation = "CenterScreen"
+    $window = New-Object System.Windows.Window
+    $window.Title = "Select drivers to install"
+    $window.Width = 500
+    $window.Height = 400
+    $window.WindowStartupLocation = "CenterScreen"
 
-    $StackPanel = New-Object System.Windows.Controls.StackPanel
+    $stackPanel = New-Object System.Windows.Controls.StackPanel
 
-    $ListBox = New-Object System.Windows.Controls.ListBox
-    $ListBox.SelectionMode = "Extended"
+    $listBox = New-Object System.Windows.Controls.ListBox
+    $listBox.SelectionMode = "Extended"
     foreach ($update in $Updates) {
         $item = New-Object System.Windows.Controls.ListBoxItem
         $item.Content = $update.Title.ToString().Trim()
-        $ListBox.Items.Add($item) | Out-Null
+        $listBox.Items.Add($item) | Out-Null
     }
-    $StackPanel.Children.Add($ListBox) | Out-Null
+    $stackPanel.Children.Add($listBox) | Out-Null
 
-    $OKButton = New-Object System.Windows.Controls.Button
-    $OKButton.Content = "OK"
-    $OKButton.Margin = "10,10,10,10"
-    $OKButton.Add_Click({
-        $Window.Tag = $ListBox.SelectedItems
-        $Window.Close()
-    })
-    $StackPanel.Children.Add($OKButton) | Out-Null
+    $okButton = New-Object System.Windows.Controls.Button
+    $okButton.Content = "OK"
+    $okButton.Margin = "10,10,10,10"
+    $okButton.Add_Click({
+            $window.Tag = $listBox.SelectedItems
+            $window.Close()
+        })
+    $stackPanel.Children.Add($okButton) | Out-Null
 
-    $Window.Content = $StackPanel
-    $Window.ShowDialog() | Out-Null
+    $window.Content = $stackPanel
+    $window.ShowDialog() | Out-Null
 
     $selectedUpdates = @()
-    foreach ($selected in $Window.Tag) {
+    foreach ($selected in $window.Tag) {
         $title = $selected.Content
         $update = $Updates | Where-Object { $_.Title.ToString().Trim() -eq $title }
         if ($update) {
             $selectedUpdates += $update
         }
     }
+
     return $selectedUpdates
 }
 
 function Update-Drivers {
     Write-Host "Checking for driver updates..."
-    $Updates = Get-WUList -MicrosoftUpdate -Category "Drivers"
-    
-    if ($Updates.Count -gt 0) {
-        Write-Host "Available driver updates:"
-        $selection = Show-DriverSelection -Updates $Updates
+    try {
+        $updates = @(Get-WUList -MicrosoftUpdate -Category "Drivers" -ErrorAction Stop)
+    }
+    catch {
+        Write-Error "Failed to query driver updates: $($_.Exception.Message)"
+        return $false
+    }
 
-        $selection = @($selection)
-        
-        if ($selection.Count -gt 0) {
-            Write-Host "Installing selected driver updates..."
-            $selection | Format-Table ComputerName, Status, KB, Size, Title -AutoSize
-            $selection | Get-WUInstall -AcceptAll -IgnoreReboot -Confirm:$false | Out-Null
-            Write-Host "Driver updates installed successfully!"
+    if ($updates.Count -eq 0) {
+        Write-Host "No driver updates found."
+        return $true
+    }
 
-            $restartChoice = Read-Host "Do you want to restart now? (Y/N)"
-            if ($restartChoice -match "^[Yy]$") {
-                Write-Host "Restarting the system in 10 seconds..."
-                Start-Sleep -Seconds 10
-                Restart-Computer -Force
-            }
-        }
-        else {
-            Write-Host "No drivers were selected for update."
-        }
+    Write-Host "Available driver updates:"
+
+    if ($Silent) {
+        Write-Host "Silent mode enabled; selecting all available driver updates."
+        $selection = $updates
     }
     else {
-        Write-Host "No driver updates found."
+        $selection = @(Show-DriverSelection -Updates $updates)
     }
+
+    if ($selection.Count -eq 0) {
+        Write-Host "No drivers were selected for update."
+        return $true
+    }
+
+    Write-Host "Installing selected driver updates..."
+    $selection | Format-Table ComputerName, Status, KB, Size, Title -AutoSize
+
+    try {
+        $selection | Get-WUInstall -AcceptAll -IgnoreReboot -Confirm:$false -ErrorAction Stop | Out-Null
+    }
+    catch {
+        Write-Error "Driver update installation failed: $($_.Exception.Message)"
+        return $false
+    }
+
+    Write-Host "Driver updates installed successfully!"
+
+    if ($RestartAfterUpdate) {
+        Write-Host "RestartAfterUpdate is enabled. Restarting the system in 10 seconds..."
+        Start-Sleep -Seconds 10
+        Restart-Computer -Force
+        return $true
+    }
+
+    if (-not $Silent) {
+        $restartChoice = Read-Host "Do you want to restart now? (Y/N)"
+        if ($restartChoice -match "^[Yy]$") {
+            Write-Host "Restarting the system in 10 seconds..."
+            Start-Sleep -Seconds 10
+            Restart-Computer -Force
+        }
+    }
+
+    return $true
 }
 
-Install-PSWindowsUpdateModule
-Enable-MicrosoftUpdate
-Update-Drivers
+$scriptSucceeded = $false
+try {
+    Install-PSWindowsUpdateModule
+    Enable-MicrosoftUpdate
+    $scriptSucceeded = Update-Drivers
+}
+catch {
+    Write-Error "Driver update process failed: $($_.Exception.Message)"
+    exit 1
+}
 
-if (-not $PSCmdlet.MyInvocation.BoundParameters.ContainsKey('Silent')) {
+if (-not $scriptSucceeded) {
+    exit 1
+}
+
+if (-not $Silent) {
     Write-Host "Press any key to exit..."
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }

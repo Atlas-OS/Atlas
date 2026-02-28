@@ -12,6 +12,8 @@ param (
 	[switch]$FailMessage
 )
 
+Set-StrictMode -Version 3.0
+
 if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18')) {
 	throw "This script must be ran as TrustedInstaller/SYSTEM."
 }
@@ -45,14 +47,13 @@ function Write-BulletPoint($message) {
 function SafeMode {
 	param (
 		[switch]$Enable,
-		[switch]$FailMessage,
 		[array]$FailedPackageList,
 		[string]$FailedPackageListPath = $safeModePackageList
 	)
 
 	if ($Enable) {
 		$bcdeditArgs = '/set {current} safeboot minimal'
-		$shellValue = "explorer.exe,cmd /c RunAsTI powershell -NoP -EP Unrestricted -File `"$PSCommandPath`" -SafeMode"
+		$shellValue = "explorer.exe,cmd /c RunAsTI powershell -NoP -EP RemoteSigned -File `"$PSCommandPath`" -SafeMode"
 
 		if ($FailedPackageList) {
 			Set-Content -Path $FailedPackageListPath -Value $FailedPackageList
@@ -62,7 +63,7 @@ function SafeMode {
 		$shellValue = 'explorer.exe'
 	}
 
-	if ($bcdeditArgs) { Start-Process -FilePath "bcdedit" -ArgumentList $bcdeditArgs -WindowStyle Hidden }
+	if ($bcdeditArgs) { Start-Process -FilePath "bcdedit" -ArgumentList $bcdeditArgs -WindowStyle Hidden -Wait }
 	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name Shell -Value $shellValue -Force
 }
 if (
@@ -84,6 +85,8 @@ function Restart {
 }
 
 function Finish($failedPackages) {
+	$failedPackages = @($failedPackages | Where-Object { $_ })
+
 	function GenerateText($text, $dashCount = 84) {
 		$separator = "[ $('-' * $dashCount) ]"
 		$text = "[ $text $(' ' * ($dashCount - $text.Length - 1)) ]"
@@ -106,7 +109,7 @@ $separator
 
 			$failedMsgTitle = 'AtlasFailedComponentMsgBox'
 			$failedMsgArgs = "/c title Finalizing Installation - Atlas & echo Do not close this window. & schtasks /delete /tn `"$failedMsgTitle`" /f > nul & " `
-			+ "PowerShell -NoP -NonI -W Hidden -EP Bypass -C `"& '$PSCommandPath' -FailMessage`""
+			+ "PowerShell -NoP -NonI -W Hidden -EP RemoteSigned -C `"& '$PSCommandPath' -FailMessage`""
 			$failedMsg = @{
 				'TaskName'    = $failedMsgTitle
 				'Settings'    = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
@@ -178,8 +181,8 @@ if ($UninstallPackages) {
 		Write-Host "[WARN] '$UninstallPackages' matched no installed packages, nothing to do." -ForegroundColor Yellow
 		$script:warningLevel++
 	} else {
-		if ($notMatchedPackages.Count -gt 0) {
-			Write-Host "[WARN] Some packages not found to uninstall: $notMatchedPackages" -ForegroundColor Yellow
+		if ($notInstalledPackages.Count -gt 0) {
+			Write-Host "[WARN] Some packages not found to uninstall: $notInstalledPackages" -ForegroundColor Yellow
 			$script:warningLevel++
 		}
 
@@ -236,7 +239,7 @@ if ($SafeMode) {
 		}
 	}
 
-	$matchedPackages = Get-Content $safeModePackageList
+	$matchedPackages = @(Get-Content $safeModePackageList)
 
 	if ($matchedPackages.Count -le 0) {
 		Write-Host "[ERROR] Safe Mode package list not found! Please report this to Atlas." -ForegroundColor Red
@@ -295,12 +298,21 @@ function ProcessCab($cabPath) {
 	Write-Host ("-" * 84) -ForegroundColor Magenta
 
 	Write-Host "[INFO] Checking certificate..."
+	$certificateValidated = $false
 	try {
-		$cert = (Get-AuthenticodeSignature $cabPath).SignerCertificate
-		if ($cert.Extensions.EnhancedKeyUsages.Value -ne "1.3.6.1.4.1.311.10.3.6") {
-			Write-Host "[ERROR] Cert doesn't have proper key usages, can't continue." -ForegroundColor Red
-			$script:errorLevel++
-			return $false
+		$cert = (Get-AuthenticodeSignature -FilePath $cabPath).SignerCertificate
+		if ($null -eq $cert) {
+			throw "No signer certificate was found."
+		}
+
+		$ekuValues = @(
+			$cert.Extensions |
+				Where-Object { $_ -is [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension] } |
+				ForEach-Object { $_.EnhancedKeyUsages | ForEach-Object { $_.Value } }
+		)
+
+		if ($ekuValues -notcontains "1.3.6.1.4.1.311.10.3.6") {
+			throw "Cert doesn't have proper key usages, can't continue."
 		}
 
 		# add test cert
@@ -309,18 +321,28 @@ function ProcessCab($cabPath) {
 		if (!(Test-Path "$certRegPath")) {
 			New-Item -Path $certRegPath -Force | Out-Null
 		}
+
+		$certificateValidated = $true
 	} catch {
 		Write-Host "[ERROR] Cert error from '$cabPath': $_" -ForegroundColor Red
 		$script:errorLevel++
+	}
+
+	if (-not $certificateValidated) {
 		return $false
 	}
 
 	Write-Host "[INFO] Adding package..."
+	$packageAdded = $true
 	try {
 		Add-WindowsPackage -Online -PackagePath $cabPath -NoRestart -IgnoreCheck -LogLevel 1 *>$null
 	} catch {
 		Write-Host "[ERROR] Error when adding package '$cabPath': $_" -ForegroundColor Red
 		$script:errorLevel++
+		$packageAdded = $false
+	}
+
+	if (-not $packageAdded) {
 		return $false
 	}
 
@@ -341,7 +363,7 @@ function MakeRepairSource {
 
 	# get list of Atlas manifests
 	Write-Host "[INFO] Getting manifests..."
-	$manifests = Get-ChildItem "$windir\WinSxS\Manifests" -File -Filter "*$version*"
+	$manifests = @(Get-ChildItem "$windir\WinSxS\Manifests" -File -Filter "*$version*")
 	if ($manifests.Count -eq 0) {
 		Write-Host "[WARN] No manifests found! Can't create repair source." -ForegroundColor Yellow
 		return $false
