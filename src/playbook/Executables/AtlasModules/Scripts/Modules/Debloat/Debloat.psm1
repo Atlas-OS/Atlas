@@ -63,12 +63,4 @@ function Set-DisabledScheduledTasks {
     Disable-ScheduledTask -TaskPath "\Microsoft\Windows\Flighting\FeatureConfig\" -TaskName "UsageDataReporting" -ErrorAction SilentlyContinue
 }
 
-function Invoke-AllDebloatOptimizations {
-    Write-Host "Running debloat optimizations"
-    Set-ContentDelivery
-    Set-StorageSense
-    Set-DisableStorageSense
-    Set-DisabledScheduledTasks
-}
-
-Export-ModuleMember -Function Invoke-AllDebloatOptimizations
+Export-ModuleMember -Function @()

@@ -30,13 +30,4 @@ function Reset-PerformanceCounters {
     winmgmt /resyncperf
 }
 
-function Invoke-AllMiscSystemUtilities {
-    Write-Host "Add-MusicVideosToHome"
-    Add-MusicVideosToHome
-    Write-Host "set time servers"
-    Set-TimeServers
-    Write-Host "Resetting performance counter"
-    Reset-PerformanceCounters
-}
-
-Export-ModuleMember -Function Invoke-AllMiscSystemUtilities
+Export-ModuleMember -Function @()

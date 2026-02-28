@@ -2,24 +2,41 @@
 # PowerShell Module for Executing System Scripts
 # ==============================
 
+Set-StrictMode -Version 3.0
+
 # Backup Atlas Services and Drivers
 $windir = $([Environment]::GetFolderPath('Windows'))
 function Backup-AtlasServices {
 $filePath = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\atlasServices.reg"
-if (Test-Path $FilePath) { exit }
+if (Test-Path $FilePath) { return }
 
 $content = [System.Collections.Generic.List[string]]::new()
 $content.Add("Windows Registry Editor Version 5.00")
-Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | ForEach-Object {
-	try {
-		$values = Get-ItemProperty -Path $_.PSPath -Name 'Start', 'Description' -EA Stop
-		if ($values.Description -notmatch 'Windows Defender') {
-			$content.Add("`n[$($_.Name)]")
-			$content.Add('"Start"=dword:0000000' + $values.Start)	
-		} else {
-			Write-Output "Excluding $($_.Name)..."
-		}
-	} catch {}
+foreach ($serviceKey in (Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services")) {
+	$serviceProps = Get-ItemProperty -Path $serviceKey.PSPath -ErrorAction SilentlyContinue
+	if ($null -eq $serviceProps) {
+		continue
+	}
+
+	$startProperty = $serviceProps.PSObject.Properties['Start']
+	if ($null -eq $startProperty) {
+		continue
+	}
+	$startValue = $startProperty.Value
+
+	$description = $null
+	$descriptionProperty = $serviceProps.PSObject.Properties['Description']
+	if ($null -ne $descriptionProperty) {
+		$description = [string]$descriptionProperty.Value
+	}
+
+	if (($null -ne $description) -and ($description -match 'Windows Defender')) {
+		Write-Output "Excluding $($serviceKey.Name)..."
+		continue
+	}
+
+	$content.Add("`n[$($serviceKey.Name)]")
+	$content.Add('"Start"=dword:0000000' + $startValue)
 }
 
 # Set-Content can only do UTF8 with BOM, which doesn't work with reg.exe
@@ -40,10 +57,10 @@ function Update-ClientCBS {
 $windir = [Environment]::GetFolderPath('Windows')
 $settingsExtensions = (Get-ChildItem "$windir\SystemApps" -Recurse).FullName | Where-Object { $_ -like '*wsxpacks\Account\SettingsExtensions.json*' }
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
-if ($settingsExtensions.Count -eq 0) {
+if (($null -eq $settingsExtensions) -or ($settingsExtensions.Count -eq 0)) {
     Write-Output "Settings extensions ($settingsExtensions) not found."
     Write-Output "User is likely on Windows 10, nothing to do. Exiting..."
-    exit
+    return
 }
 
 # Finds velocity IDs listed in 'Accounts' wsxpack
@@ -72,9 +89,9 @@ foreach ($settingsJson in $settingsExtensions) {
 }
 
 # No IDs check
-if ($ids.Count -le 0) {
+if (($null -eq $ids) -or ($ids.Count -le 0)) {
     Write-Output "No velocity IDs were found. Exiting."
-    exit 1
+    throw "No velocity IDs were found."
 }
 
 # Hide 'Microsoft account' page in Settings that appears
@@ -176,7 +193,7 @@ function Disable-Mitigations {
 function Optimize-PowerShellStartup {
     # speeds up powershell startup time by 10x
     $env:path = "$([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory());" + $env:path
-    [AppDomain]::CurrentDomain.GetAssemblies().Location | ? {$_} | % {
+    [AppDomain]::CurrentDomain.GetAssemblies().Location | Where-Object { $_ } | ForEach-Object {
         Write-Host "NGENing: $(Split-Path $_ -Leaf)" -ForegroundColor Yellow
         ngen install $_ | Out-Null
     }
