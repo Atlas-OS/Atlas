@@ -91,6 +91,8 @@ actions:
   # Clear caches of Client.CBS and more
   # Start menu cache is cleared later
   - !writeStatus: {status: 'Clearing AppX caches'}
+  - !taskKill: {name: 'SearchHost*', ignoreErrors: true}
+  - !taskKill: {name: 'SearchApp*', ignoreErrors: true}
   - !appx: {operation: clearCache, name: '*MicrosoftWindows.Client.CBS*'}
   - !appx: {operation: clearCache, name: '*Microsoft.Windows.Search*'}
   - !appx: {operation: clearCache, name: '*Microsoft.Windows.SecHealthUI*'}

@@ -4,6 +4,8 @@ param (
     [switch]$Silent
 )
 
+Set-StrictMode -Version 3.0
+
 $fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
 
 # Disable network items
@@ -24,13 +26,15 @@ Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Public
 # Disable network discovery firewall rules
 Get-NetFirewallRule | Where-Object {
     # File and Printer Sharing, Network Discovery
-    ($_.Group -eq "@FirewallAPI.dll,-28502" -or $_.Group -eq "@FirewallAPI.dll,-32752") -or
-    ($_.DisplayGroup -eq "File and Printer Sharing" -or $_.DisplayGroup -eq "Network Discovery") -and
-    $_.Profile -like "*Private*"
+    (
+        ($_.Group -eq "@FirewallAPI.dll,-28502" -or $_.Group -eq "@FirewallAPI.dll,-32752") -or
+        ($_.DisplayGroup -eq "File and Printer Sharing" -or $_.DisplayGroup -eq "Network Discovery")
+    ) -and
+    ($_.Profile -like "*Private*")
 } | Disable-NetFirewallRule
 
-reg import "$fileSharingConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).reg" | Out-Null
-reg import "$fileSharingConfigPath\Give Access To Menu\Disable Give Access To Menu (default).reg" | Out-Null
+& "$fileSharingConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" /silent
+& "$fileSharingConfigPath\Give Access To Menu\Disable Give Access To Menu (default).cmd" /silent
 
 if ($Silent) { exit }
 

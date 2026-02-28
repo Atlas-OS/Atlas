@@ -4,7 +4,7 @@ description: Run default AtlasFolder scripts
 actions:
   - !writeStatus: {status: 'Applying default Atlas Folder settings'}
   - !cmd:
-    command: 'reg import .\DEFAULT.reg'
+    command: 'cmd /c "reg import .\DEFAULT.reg > nul 2>&1"'
     exeDir: true
     wait: true
     onUpgrade: false

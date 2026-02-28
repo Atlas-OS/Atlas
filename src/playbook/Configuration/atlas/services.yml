@@ -30,15 +30,17 @@ actions:
     runas: currentUserElevated
 
   - !writeStatus: {status: 'Disabling Location'}
-  - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd" /silent'
+  - !powerShell:
+    command: |
+      & "$env:windir\AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd" /silent
     exeDir: true
     wait: true
     runas: currentUserElevated
 
   - !writeStatus: {status: 'Configuring Indexing'}
-  - !cmd:
-    command: '"AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd" /silent'
+  - !powerShell:
+    command: |
+      & "$env:windir\AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd" /silent
     exeDir: true
     wait: true
     runas: currentUserElevated
@@ -57,7 +59,7 @@ actions:
 
     # ------ Microsoft recommendation - 'Do not disable' -----
   - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
-  - !service: {name: 'WerSvc', operation: change, startup: 4} 
+  - !service: {name: 'WerSvc', operation: change, startup: 4}
 
     # ------- Microsoft recommendation - 'No guidance' ------
   - !service: {name: 'wercplsupport', operation: change, startup: 4}
