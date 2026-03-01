@@ -14,6 +14,7 @@ param (
 $timeouts = @("--connect-timeout", "10", "--retry", "5", "--retry-delay", "0", "--retry-all-errors")
 $msiArgs = "/qn /quiet /norestart ALLUSERS=1 REBOOT=ReallySuppress"
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+$toolboxDownloadLatest = "https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe"
 
 # Create a temporary directory
 function Remove-TempDirectory { Pop-Location; Remove-Item -Path $tempDir -Force -Recurse -EA 0 }
@@ -23,14 +24,16 @@ Push-Location $tempDir
 
 # Toolbox
 if ($Toolbox) {
-    & curl.exe -LSs "https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe" -o "$tempDir\toolbox.exe" $timeouts
+    Write-Output "Downloading Toolbox..."
+    & curl.exe -LSs $toolboxDownloadLatest -o "$tempDir\toolbox.exe" $timeouts
+
     if (!$?) {
         Write-Error "Downloading Toolbox failed."
         exit 1
     }
 
     Write-Output "Installing Toolbox..."
-    Start-Process -FilePath "$tempDir\toolbox.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"'
+    Start-Process -FilePath "$tempDir\toolbox.exe" -WindowStyle Hidden -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"' -Wait
 
     exit
 }
@@ -46,18 +49,9 @@ if ($Brave) {
     }
 
     Write-Output "Installing Brave..."
-    Start-Process -FilePath "$tempDir\BraveSetup.exe" -WindowStyle Hidden -ArgumentList '/silent /install'
+    Start-Process -FilePath "$tempDir\BraveSetup.exe" -WindowStyle Hidden -ArgumentList '/silent /install' -Wait
 
-    do {
-        $processesFound = Get-Process | Where-Object { "BraveSetup" -contains $_.Name } | Select-Object -ExpandProperty Name
-        if ($processesFound) {
-            Write-Output "Still running BraveSetup."
-            Start-Sleep -Seconds 2
-        }
-        else {
-            Remove-TempDirectory
-        }
-    } until (!$processesFound)
+    Remove-TempDirectory
 
     Stop-Process -Name "brave" -Force -EA 0
 
@@ -139,7 +133,7 @@ foreach ($a in $vcredists.GetEnumerator()) {
         }
         else {
             $msiPaths | ForEach-Object {
-                Start-Process -FilePath "msiexec.exe" -ArgumentList "/log `"$msiDir\logfile.log`" /i `"$_`" $msiArgs" -WindowStyle Hidden
+                Start-Process -FilePath "msiexec.exe" -ArgumentList "/log `"$msiDir\logfile.log`" /i `"$_`" $msiArgs" -WindowStyle Hidden -Wait
             }
         }
     }

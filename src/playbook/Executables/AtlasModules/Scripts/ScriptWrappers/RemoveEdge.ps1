@@ -38,15 +38,18 @@ param (
     [switch]$NonInteractive
 )
 
+Set-StrictMode -Version 3.0
+
 $version = '1.9.5'
 
 $ProgressPreference = 'SilentlyContinue'
 $sys32 = [Environment]::GetFolderPath('System')
 $windir = [Environment]::GetFolderPath('Windows')
 $env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
-$baseKey = 'HKLM:\SOFTWARE' + $(if ([Environment]::Is64BitOperatingSystem) { '\WOW6432Node' }) + '\Microsoft'
-$msedgeExe = "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application\msedge.exe"
-$edgeUWP = "$windir\SystemApps\Microsoft.MicrosoftEdge_8wekyb3d8bbwe"
+$msedgeExePaths = @(
+    "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application\msedge.exe",
+    "$([Environment]::GetFolderPath('ProgramFiles'))\Microsoft\Edge\Application\msedge.exe"
+)
 
 if ($NonInteractive -and (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView)) {
     $NonInteractive = $false
@@ -113,7 +116,13 @@ function DeleteIfExist($Path) {
 
 # True if it's installed
 function EdgeInstalled {
-    Test-Path $msedgeExe
+    foreach ($msedgeExe in $msedgeExePaths) {
+        if (Test-Path $msedgeExe) {
+            return $true
+        }
+    }
+
+    return $false
 }
 
 function KillEdgeProcesses {
@@ -136,6 +145,7 @@ function InstallEdgeChromium {
     $temp = mkdir (Join-Path $([System.IO.Path]::GetTempPath()) $(New-Guid))
     $msi = "$temp\edge.msi"
     $msiLog = "$temp\edgeMsi.log"
+    $link = 'Undefined'
 
     if ([Environment]::Is64BitOperatingSystem) {
         $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
@@ -155,7 +165,7 @@ function InstallEdgeChromium {
 Error: $_" -Level Critical -Exit -ExitCode 4
         }
 
-        $edgeItem = ($edgeUpdateApi | ? { $_.Product -eq 'Stable' }).Releases |
+        $edgeItem = ($edgeUpdateApi | Where-Object { $_.Product -eq 'Stable' }).Releases |
         Where-Object { $_.Platform -eq 'Windows' -and $_.Architecture -eq $archString } |
         Where-Object { $_.Artifacts.Count -ne 0 } | Select-Object -First 1
 
@@ -163,7 +173,7 @@ Error: $_" -Level Critical -Exit -ExitCode 4
             Write-Status 'Failed to parse EdgeUpdate API! No matching artifacts found.' -Level Critical -Exit
         }
 
-        $hashAlg = $edgeItem.Artifacts.HashAlgorithm | % { if ([string]::IsNullOrEmpty($_)) { 'SHA256' } else { $_ } }
+        $hashAlg = $edgeItem.Artifacts.HashAlgorithm | ForEach-Object { if ([string]::IsNullOrEmpty($_)) { 'SHA256' } else { $_ } }
         foreach ($var in @{
                 link     = $edgeItem.Artifacts.Location
                 hash     = $edgeItem.Artifacts.Hash
@@ -223,7 +233,7 @@ Error: $_" -Level Critical -Exit -ExitCode 6
             Write-Status 'Verified the Microsoft Edge installer!' -Level Success
         }
         else {
-            Write-Status 'Edge installer hash does not match. The installer might be corrupted. Continuing anyways...' -Level Error
+            Write-Status 'Edge installer hash does not match. Refusing to continue with an untrusted installer.' -Level Critical -Exit -ExitCode 10
         }
     }
 
@@ -280,7 +290,7 @@ Please relaunch this script under a regular admin account." -Level Critical -Exi
 else {
     if (!([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
         if ($PSBoundParameters.Count -le 0 -and !$args) {
-            Start-Process cmd "/c PowerShell -NoP -EP Bypass -File `"$PSCommandPath`"" -Verb RunAs
+            Start-Process cmd "/c PowerShell -NoP -EP RemoteSigned -File `"$PSCommandPath`"" -Verb RunAs
             exit
         }
         else {
@@ -293,6 +303,7 @@ $edgeInstalled = EdgeInstalled
 if (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView) {
     $host.UI.RawUI.WindowTitle = "AtlasOS EdgeRemover"
 
+    $continue = $false
     $RemoveEdgeData = $false
     while (!$continue) {
         Clear-Host
@@ -346,31 +357,82 @@ To perform an action, also type its number.
     Clear-Host
 }
 
-# Project originally made by ShadowWhisperer and is licensed under CC0-1.0 License
-# https://github.com/ShadowWhisperer/Remove-MS-Edge
-# https://api.github.com/repos/ShadowWhisperer/Remove-MS-Edge/contents/Batch/Edge.bat
 if ($UninstallEdge) {
-    Write-Status "Uninstalling Edge Chromium..."
-    try {
-        $tempDirectory = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
-        New-Item -ItemType Directory -Path $tempDirectory | Out-Null
+    Write-Status 'Uninstalling Edge Chromium...'
+    KillEdgeProcesses
 
-        & curl.exe -LSs "https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/main/Batch/Edge.bat" -o "$tempDirectory\Edge.bat"
-        if (!$?) {
-            Write-Error "Downloading script failed."
-            exit 1
+    $setupCandidates = @()
+    foreach ($root in @(
+            "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application",
+            "$([Environment]::GetFolderPath('ProgramFiles'))\Microsoft\Edge\Application"
+        )) {
+        if (Test-Path $root) {
+            $setupCandidates += Get-ChildItem -Path $root -Filter 'setup.exe' -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+
+    $setupCandidates = @($setupCandidates | Sort-Object -Property FullName -Unique)
+    if ($setupCandidates.Count -gt 0) {
+        foreach ($setup in $setupCandidates) {
+            Write-Status "Running uninstaller at '$($setup.FullName)'..."
+            $process = Start-Process -FilePath $setup.FullName -ArgumentList '--uninstall --msedge --system-level --verbose-logging --force-uninstall' -WindowStyle Hidden -Wait -PassThru
+            if (($process.ExitCode -eq 0) -or (-not (EdgeInstalled))) {
+                break
+            }
+
+            Write-Status "Edge uninstaller exited with code $($process.ExitCode); trying fallback methods." -Level Info
+        }
+    }
+    elseif (EdgeInstalled) {
+        Write-Status 'Could not locate a local Edge installer to perform uninstallation.' -Level Warning
+    }
+
+    KillEdgeProcesses
+    if (EdgeInstalled) {
+        $legacyRemoved = $false
+        try {
+            $legacyTempDirectory = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
+            New-Item -ItemType Directory -Path $legacyTempDirectory -Force | Out-Null
+            $legacyScript = Join-Path $legacyTempDirectory 'Edge.bat'
+
+            # Project originally made by ShadowWhisperer and licensed under CC0-1.0.
+            # https://github.com/ShadowWhisperer/Remove-MS-Edge
+            Write-Status 'Trying legacy Edge removal fallback...'
+            if ($null -ne (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
+                & curl.exe -LSs "https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/main/Batch/Edge.bat" -o "$legacyScript"
+            }
+            else {
+                Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/main/Batch/Edge.bat' -OutFile $legacyScript -UseBasicParsing -ErrorAction Stop
+            }
+
+            if (Test-Path $legacyScript) {
+                Start-Process -FilePath $legacyScript -WindowStyle Hidden -Wait -ArgumentList '-auto' | Out-Null
+                KillEdgeProcesses
+                $legacyRemoved = -not (EdgeInstalled)
+            }
+        }
+        catch {
+            if (EdgeInstalled) {
+                Write-Status "Legacy fallback failed: $($_.Exception.Message)" -Level Warning
+            }
         }
 
-        Start-Process -FilePath "$tempDirectory\Edge.bat" -WindowStyle Hidden -Wait -ArgumentList '-auto'
-        Write-Output "Successfully removed Microsoft Edge..."
-        Write-Output "Press any key to exit"
-        Read-Host
-        exit
+        if ((-not $legacyRemoved) -and (EdgeInstalled)) {
+            if ($KeepAppX -or $NonInteractive) {
+                Write-Status 'Edge binaries were not fully removed. Continuing so playbook cleanup can finish.' -Level Warning
+            }
+            else {
+                Write-Status 'Failed to uninstall Microsoft Edge using all available removal methods.' -Level Critical -Exit -ExitCode 12
+            }
+        }
+        else {
+            Write-Status 'Successfully removed Microsoft Edge.' -Level Success
+        }
     }
-    catch {
-        Write-Warning "An error occurred: $_"
-        return $false
+    else {
+        Write-Status 'Edge is already uninstalled.' -Level Success
     }
+
     Write-Output ""
 }
 

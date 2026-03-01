@@ -8,9 +8,12 @@ else {
     try {
         $tempDirectory = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
         New-Item -ItemType Directory -Path $tempDirectory | Out-Null
+        $timeouts = @("--connect-timeout", "10", "--retry", "5", "--retry-delay", "0", "--retry-all-errors")
+        $toolboxDownloadLatest = "https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe"
 
         Write-Output "Downloading Toolbox..."
-        & curl.exe -LSs "https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe" -o "$tempDirectory\toolbox.exe"
+        & curl.exe -LSs $toolboxDownloadLatest -o "$tempDirectory\toolbox.exe" $timeouts
+
         if (!$?) {
             Write-Error "Downloading Toolbox failed."
             exit 1
