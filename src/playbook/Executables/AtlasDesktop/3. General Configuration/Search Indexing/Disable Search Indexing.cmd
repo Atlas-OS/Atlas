@@ -3,10 +3,20 @@ set "settingName=Indexing"
 set "stateValue=0"
 set "scriptPath=%~f0"
 set indexConfPath="%windir%\AtlasModules\Scripts\indexConf.cmd"
+set "silentMode=0"
 
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-    call RunAsTI.cmd "%~f0" %*
-    exit /b
+echo %* | findstr /i /c:"/silent" /c:"-silent" /c:"/quiet" > nul 2>&1 && set "silentMode=1"
+
+if "%silentMode%"=="1" (
+    fltmc > nul 2>&1 || (
+        call RunAsTI.cmd "%~f0" %*
+        exit /b
+    )
+) else (
+    whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
+        call RunAsTI.cmd "%~f0" %*
+        exit /b
+    )
 )
 
 if not exist "%indexConfPath%" (
@@ -22,6 +32,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 echo.
 echo Disabling search indexing...
 %indexConf% /stop
+
+if "%silentMode%"=="1" exit /b
 
 echo.
 echo Search Indexing has been disabled.

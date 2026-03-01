@@ -1,12 +1,15 @@
 #Requires -RunAsAdministrator
 
+Set-StrictMode -Version 3.0
+
 $networkDiscoveryConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\6. Advanced Configuration\Services\Network Discovery"
+$fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
 
 # Enable network items
 Enable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr | Out-Null
 
 # Enable Network Discovery services and its dependencies
-Start-Process -FilePath "$networkDiscoveryConfigPath\Enable Network Discovery Services (default).cmd" -ArgumentList "/silent" -WindowStyle Hidden
+& "$networkDiscoveryConfigPath\Enable Network Discovery Services (default).cmd" /silent
 
 # Enable NetBios over TCP/IP
 $interfaces = Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" -Recurse | Where-Object { $_.GetValue("NetbiosOptions") -ne $null }
@@ -25,9 +28,11 @@ if ($LASTEXITCODE -eq 1) {
     # Disable network discovery firewall rules
     Get-NetFirewallRule | Where-Object {
         # File and Printer Sharing, Network Discovery
-        ($_.Group -eq "@FirewallAPI.dll,-28502" -or $_.Group -eq "@FirewallAPI.dll,-32752") -or
-        ($_.DisplayGroup -eq "File and Printer Sharing" -or $_.DisplayGroup -eq "Network Discovery") -and
-        $_.Profile -like "*Private*"
+        (
+            ($_.Group -eq "@FirewallAPI.dll,-28502" -or $_.Group -eq "@FirewallAPI.dll,-32752") -or
+            ($_.DisplayGroup -eq "File and Printer Sharing" -or $_.DisplayGroup -eq "Network Discovery")
+        ) -and
+        ($_.Profile -like "*Private*")
     } | Enable-NetFirewallRule
 
     # Set up network connected devices automatically
@@ -37,12 +42,12 @@ if ($LASTEXITCODE -eq 1) {
 
 choice /c:yn /n /m "Would you like to add the Network Navigation Pane to the Explorer sidebar? [Y/N] "
 if ($LASTEXITCODE -eq 1) {
-    reg import "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\User Network Navigation Pane choice.reg" | Out-Null
+    & "$fileSharingConfigPath\Network Navigation Pane\User Network Navigation Pane choice.cmd" /silent
 }
 
 choice /c:yn /n /m "Would you like to restore the 'Give access to' context menu in Explorer? [Y/N] "
 if ($LASTEXITCODE -eq 1) {
-    reg import "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing\Give Access To Menu\Enable Give Access To Menu.reg" | Out-Null
+    & "$fileSharingConfigPath\Give Access To Menu\Enable Give Access To Menu.cmd" /silent
 }
 
 Write-Host "`nCompleted! " -ForegroundColor Green -NoNewLine

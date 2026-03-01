@@ -26,6 +26,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
     reg add "HKEY_CLASSES_ROOT\UserLibraryFolder\shellex\ContextMenuHandlers\Sharing" /ve /t REG_SZ /d "{f81e9010-6ea4-11ce-a7ff-00aa003ca9f6}" /f
 ) > nul 2>&1
 
+if "%~1"=="/silent" exit /b
+
 echo Finished, 'Give Access To' menu is now enabled.
 pause > nul
 exit /b

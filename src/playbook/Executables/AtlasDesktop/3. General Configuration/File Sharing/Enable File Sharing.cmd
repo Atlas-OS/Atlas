@@ -25,7 +25,7 @@ fltmc > nul 2>&1 || (
 reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
 reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
-powershell -EP Bypass -NoP -File "%script%"
+powershell -EP RemoteSigned -NoP -File "%script%"
 if "%~1"=="/silent" exit /b
 
 choice /c:yn /n /m "Finished, would you like to restart now to apply the changes? [Y/N] "
