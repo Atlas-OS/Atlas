@@ -16,6 +16,7 @@ on:
 
 env:
   SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
+  SXSC_REF: "a351a94f0feeab200032a41d7577bd150b0c05e2"
 
 jobs:
   build:
@@ -23,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.ref }}
           token: ${{ secrets.RUNNER_SECRET }}
@@ -33,7 +34,7 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v46.0.1
+        uses: tj-actions/changed-files@v47.0.4
         with:
           files_yaml: |
             sxsc:
@@ -67,6 +68,8 @@ jobs:
       - name: Clone the sxsc repository
         run: |
           git clone --depth=1 ${{ env.SXSC_REPO }}
+          git -C sxsc fetch --depth=1 origin ${{ env.SXSC_REF }}
+          git -C sxsc checkout --detach ${{ env.SXSC_REF }}
           Copy-Item -Path "configs" -Destination ".\sxsc\configs" -Recurse -Force
         working-directory: ..
         if: env.runSxsc == 'true'
@@ -133,7 +136,7 @@ jobs:
         working-directory: src\playbook
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.0
         if: ${{ steps.create-pb.outcome != 'skipped' }}
         with:
           name: Atlas Playbook
