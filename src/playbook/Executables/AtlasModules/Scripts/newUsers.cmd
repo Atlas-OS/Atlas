@@ -12,6 +12,6 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
     exit /b
 )
 
-powershell -ExecutionPolicy Bypass -NoProfile -File "%script%"
+powershell -ExecutionPolicy RemoteSigned -NoProfile -File "%script%"
 
 pause
