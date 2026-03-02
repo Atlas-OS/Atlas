@@ -1,3 +1,5 @@
+Set-StrictMode -Version 3.0
+
 $windir = [Environment]::GetFolderPath('Windows')
 
 function Stop-ThemeProcesses {
@@ -11,7 +13,8 @@ function Set-Theme {
         [string]$Path
     )
 
-    if (!((Get-Item $Path -EA 0).Extension -eq '.theme')) {
+    $themeItem = Get-Item -Path $Path -ErrorAction SilentlyContinue
+    if (($null -eq $themeItem) -or ($themeItem.Extension -ne '.theme')) {
         throw "'$Path' is not a valid path to a theme file."
     }
     
@@ -111,7 +114,7 @@ function Set-LockscreenImage {
     [Windows.System.UserProfile.LockScreen, Windows.System.UserProfile, ContentType = WindowsRuntime] | Out-Null
 
     # setup async
-    $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? {
+    $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
             $_.Name -eq 'AsTask' -and
             $_.GetParameters().Count -eq 1 -and
             $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1'
@@ -123,7 +126,7 @@ function Set-LockscreenImage {
         $netTask.Result
     }
     Function AwaitAction($WinRtAction) {
-        $asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and !$_.IsGenericMethod })[0]
+        $asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and !$_.IsGenericMethod })[0]
         $netTask = $asTask.Invoke($null, @($WinRtAction))
         $netTask.Wait(-1) | Out-Null
     }

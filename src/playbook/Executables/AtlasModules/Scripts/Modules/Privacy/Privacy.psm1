@@ -111,26 +111,4 @@ function Disable-UserActivityUpload {
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "UploadUserActivities" /t REG_DWORD /d 0 /f
 }
 
-# Executes all privacy-related optimizations
-function Invoke-AllPrivacyOptimizations {
-    Write-Host "Running privacy optimizations"
-    Disable-AdvertisingID
-    Disable-SyncProviderNotifications
-    Disable-NvidiaTelemetry
-    Disable-OfficeTelemetry
-    Disable-DeviceSetupSuggestions
-    Disable-NETCLITelemetry
-    Disable-InputTelemetry
-    Set-WindowsMediaPlayer
-    Disable-AppLaunchTracking
-    Disable-OnlineSpeechRecognition
-    Disable-UserActivityUpload
-    Set-SearchPrivacy
-    Disable-RecallSnapshots
-    Disable-TailoredExperiences
-    Disable-FrequentApps
-    Disable-LanguageListAccess
-    Disable-ErrorReporting
-}
-
-Export-ModuleMember -Function Invoke-AllPrivacyOptimizations
+Export-ModuleMember -Function @()

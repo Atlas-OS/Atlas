@@ -53,18 +53,4 @@ function Disable-SleepStudy {
     schtasks /Change /TN "\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem" /Disable
 }
 
-# Executes all optimizations in sequence
-function Invoke-AllPerformanceOptimizations {
-    Write-Host "Optimizing NTFS"
-    Optimize-NTFS
-    Write-Host "disabling auto folder discovery"
-    Disable-AutoFolderDiscovery
-    Write-Host "disabling background apps"
-    Disable-BackgroundApps
-    Write-Host "disabling game bar"
-    Disable-GameBar
-    Write-Host "disabling sleep study"
-    Disable-SleepStudy
-}
-
-Export-ModuleMember -Function Invoke-AllPerformanceOptimizations
+Export-ModuleMember -Function @()
