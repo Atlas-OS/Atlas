@@ -47,7 +47,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management
 powershell -NonI -NoP -C "$proc = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name; $env:CPU = if ($proc | sls 'Intel' -Quiet) {'0'} elseif ($proc | sls 'AMD' -Quiet) {'64'}"
 if "%CPU%" neq "" (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "FeatureSettingsOverride" /t REG_DWORD /d "%CPU%" /f > nul
-) 
+)
 
 :: Enable Structured Exception Handling Overwrite Protection (SEHOP)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "DisableExceptionChainValidation" /t REG_DWORD /d "0" /f > nul
@@ -78,6 +78,8 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "ProtectionMo
 
 :: Enable for Hyper-V
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization" /v "MinVmVersionForCpuBasedMitigations" /t REG_SZ /d "1.0" /f > nul
+
+if "%~1" == "/silent" exit /b
 
 echo Finished, please reboot your device for changes to apply.
 pause
