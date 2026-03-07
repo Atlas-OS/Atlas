@@ -107,18 +107,10 @@ try {
     # ========================================================
     Write-Host "`n=== Disabling all services ===" -ForegroundColor Cyan
 
+    $setSvc = "$env:SYSTEMROOT\AtlasModules\Scripts\setSvc.cmd"
+
     foreach ($svc in $allServiceNames) {
-        sc.exe config $svc start= disabled | Out-Null
-        if ($LASTEXITCODE -eq 5) {
-            # Access denied - save original SD, grant access, retry, then restore SD
-            $sdOutput = (sc.exe sdshow $svc | Where-Object { $_ -match '^D:' }) -join ''
-            $defaultSD = 'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)'
-            sc.exe sdset $svc $defaultSD | Out-Null
-            sc.exe config $svc start= $scValue | Out-Null
-            if ($sdOutput) {
-                sc.exe sdset $svc $sdOutput | Out-Null
-            }
-        }
+        & $setSvc $svc 4 | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "Failed to disable $svc" }
         Write-Host "  Disabled: $svc"
     }
@@ -211,33 +203,25 @@ finally {
     Write-Host "`n=== Restoring original start types ===" -ForegroundColor Cyan
 
     $startTypeMap = @{
-        'Automatic' = 'auto'
-        'Manual'    = 'demand'
-        'Disabled'  = 'disabled'
-        'Boot'      = 'boot'
-        'System'    = 'system'
+        'Automatic' = 2
+        'Manual'    = 3
+        'Disabled'  = 4
+        'Boot'      = 0
+        'System'    = 1
     }
+
+    $setSvc = "$env:SYSTEMROOT\AtlasModules\Scripts\setSvc.cmd"
 
     foreach ($svc in $allServiceNames) {
         $origValue = $originalStartTypes[$svc]
-        $scValue = $startTypeMap[$origValue.ToString()]
-        if (-not $scValue) {
+        $startValue = $startTypeMap[$origValue.ToString()]
+        if ($null -eq $startValue) {
             Write-Host "  FAILED to restore ${svc}: unknown start type '$origValue'" -ForegroundColor Red
             continue
         }
-        sc.exe config $svc start= $scValue | Out-Null
-        if ($LASTEXITCODE -eq 5) {
-            # Access denied - save original SD, grant access, retry, then restore SD
-            $sdOutput = (sc.exe sdshow $svc | Where-Object { $_ -match '^D:' }) -join ''
-            $defaultSD = 'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)'
-            sc.exe sdset $svc $defaultSD | Out-Null
-            sc.exe config $svc start= $scValue | Out-Null
-            if ($sdOutput) {
-                sc.exe sdset $svc $sdOutput | Out-Null
-            }
-        }
+        & $setSvc $svc $startValue | Out-Null
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "  FAILED to restore ${svc} (sc.exe exit code $LASTEXITCODE)" -ForegroundColor Red
+            Write-Host "  FAILED to restore ${svc} (setSvc exit code $LASTEXITCODE)" -ForegroundColor Red
         } else {
             Write-Host "  Restored: $svc  ->  StartType = $origValue"
         }
