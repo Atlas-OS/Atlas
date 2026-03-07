@@ -1,5 +1,11 @@
 @echo off
 
+set "assocScript=%~dp0ASSOC.ps1"
+if not exist "%assocScript%" (
+    echo ASSOC.ps1 not found: "%assocScript%"
+    exit /b 1
+)
+
 set baseAssociations=".url:InternetShortcut"
 
 set braveAssociations="Proto:https:BraveHTML"^
@@ -54,7 +60,7 @@ for /f "usebackq tokens=2 delims=\" %%a in (`reg query HKU ^| findstr /r /x /c:"
     reg query "HKU\%%a" | findstr /c:"Volatile Environment" /c:"AME_UserHive_" > nul && (
         echo Setting associations for "%%a"...
         if "%sevenZip%"=="y" call :7ZIPUSER "%%a"
-        "%powershellTemp%" -NoP -NonI -EP Bypass -File ASSOC.ps1 "Placeholder" "%%a" %associations%
+        "%powershellTemp%" -NoP -NonI -EP Bypass -File "%assocScript%" "Placeholder" "%%a" %associations%
     )
 )
 
