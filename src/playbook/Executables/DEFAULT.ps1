@@ -12,7 +12,7 @@ Get-ChildItem -Path $registryPath | ForEach-Object {
 
     if ($null -eq $state -or $null -eq $path) { return }
 
-    if ($state.state -eq 1) {
+    if ($state.state -eq 1 -or $state.state -ne 0) {
         $scriptPath = $path.path
         if (Test-Path $scriptPath) {
             Write-Host "Running: $scriptPath" -ForegroundColor Cyan
