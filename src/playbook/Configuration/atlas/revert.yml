@@ -4,11 +4,11 @@ description: Reverts changes from past versions
 privilege: TrustedInstaller
 onUpgrade: true
 actions:
-  - !writeStatus: {status: "Reverting old changes"}
+  - !writeStatus: { status: "Reverting old changes" }
   - !powerShell:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
-      Start-Process -FilePath """$windir\AtlasModules\Scripts\fixStoreIssues.cmd"""-ArgumentList "/silent" -WindowStyle Hidden
+      Start-Process -FilePath """$windir\AtlasDesktop\9. Troubleshooting\Fix MS Store Issues.cmd"""-ArgumentList "/silent" -WindowStyle Hidden
     weight: 2
     wait: true
     exeDir: true
