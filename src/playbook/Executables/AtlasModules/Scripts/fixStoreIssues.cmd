@@ -1,65 +1,26 @@
 <# : batch section
 @echo off & setlocal enabledelayedexpansion
 
-:: Parse /silent argument
-set "silent=0"
-for %%A in (%*) do (
-    if /i "%%~A"=="/silent" set "silent=1"
-)
+:: Check if running as TrustedInstaller
+whoami /user | find /i "S-1-5-18" > nul 2>&1 && goto :main
 
-:: Check if running as TrustedInstaller (re-entry point)
-whoami /user | find /i "S-1-5-18" > nul 2>&1 && (
-    goto :main
-)
-
-:: Check if Gaming Services is installed
 sc query GamingServices >nul 2>&1
 if %errorlevel% equ 0 (
-    echo === Checking Gaming Services ===
-    echo   Gaming Services is installed, removing...
-    winget uninstall 9MWPM2CQNLHN --silent
-    echo   Gaming Services removed.
+  echo === Checking Gaming Services ===
+  echo  Gaming Services is installed, removing...
+  winget uninstall 9MWPM2CQNLHN --silent
+  echo  Gaming Services removed.
 )
 
-set "silentArg="
-if "!silent!"=="1" set "silentArg=/silent"
-call %SYSTEMROOT%\AtlasModules\Scripts\RunAsTI.cmd "%~f0" !silentArg!
-
+call %SYSTEMROOT%\AtlasModules\Scripts\RunAsTI.cmd "%~f0" %*
 exit /b
 
 :main
-if "!silent!"=="1" (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$env:SILENT='1'; iex((gc '%~f0' -Raw))"
-) else (
-    start /wait "Fix Store Issues" powershell -NoProfile -ExecutionPolicy Bypass -Command "iex((gc '%~f0' -Raw))"
-)
+start /wait "Fix Store Issues" powershell -NoProfile -ExecutionPolicy Bypass -Command "iex((gc '%~f0' -Raw))"
 exit /b
 #>
 
 # ======================== PowerShell ========================
-# ======================== Force GamingServicesNet ========================
-# Attempt to forcibly remove GamingServicesNet service
-$gamingService = 'GamingServicesNet'
-$svcRegPath = "HKLM\\SYSTEM\\CurrentControlSet\\Services\\$gamingService"
-Write-Host "`n=== Attempting to forcibly remove GamingServicesNet ===" -ForegroundColor Magenta
-try {
-    # Stop the service if running
-    $svc = Get-Service -Name $gamingService -ErrorAction SilentlyContinue
-    if ($svc -and $svc.Status -ne 'Stopped') {
-        Stop-Service -Name $gamingService -Force -ErrorAction SilentlyContinue
-        Write-Host "  Stopped GamingServicesNet." -ForegroundColor Green
-    }
-    # Remove service using sc.exe
-    $null = & cmd.exe /c "sc.exe delete $gamingService"
-    Write-Host "  Issued sc delete command for GamingServicesNet." -ForegroundColor Green
-    # Remove registry key
-    $null = & cmd.exe /c "reg.exe delete \"$svcRegPath\" /f"
-    Write-Host "  Deleted registry key for GamingServicesNet." -ForegroundColor Green
-} catch {
-    Write-Host "  WARNING: Could not forcibly remove GamingServicesNet: $($_.Exception.Message)" -ForegroundColor Yellow
-}
-
-
 Add-Type -MemberDefinition @"
 [DllImport("kernel32.dll", SetLastError = true)]
 public static extern IntPtr GetStdHandle(int nStdHandle);
@@ -75,10 +36,14 @@ $mode = 0
 $mode = $mode -band (-bnot 0x0040) # Remove ENABLE_QUICK_EDIT_MODE
 [void][Win32.Console]::SetConsoleMode($handle, $mode)
 
+$Desktop = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders' -Name 'Common Desktop').'Common Desktop'
+$LogFile = "$Desktop\fixStoreIssues.txt"
+Start-Transcript -Path $LogFile -Force | Out-Null
+
 $Silent = $env:SILENT -eq '1'
 
 $TargetFile = 'C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Deployment.srd'
-$RootServices = @('GamingServicesNet', 'ClipSVC','AppXSvc', 'StateRepository')
+$RootServices = @('ClipSVC', 'AppXSvc', 'StateRepository')
 
 function Get-AllDependents {
     param([string]$ServiceName)
@@ -93,7 +58,7 @@ function Get-AllDependents {
     while ($queue.Count -gt 0) {
         $current = $queue.Dequeue()
         $deps = Get-Service -Name $current -ErrorAction SilentlyContinue |
-                Select-Object -ExpandProperty DependentServices
+        Select-Object -ExpandProperty DependentServices
 
         foreach ($dep in $deps) {
             if ($result.Add($dep.Name)) {
@@ -121,9 +86,6 @@ foreach ($root in $RootServices) {
         [void]$allServiceNames.Add($dep)
     }
 }
-# Remove GamingServicesNet and GamingServices from the list if forcibly handled
-$allServiceNames.Remove('GamingServicesNet') | Out-Null
-$allServiceNames.Remove('GamingServices') | Out-Null
 
 
 $originalStartTypes = @{}
@@ -141,15 +103,25 @@ $hasFailed = $false
 try {
 
     # ========================================================
-    # 2. Disable every service via Set-Service
+    # 2. Disable every service via sc.exe
     # ========================================================
     Write-Host "`n=== Disabling all services ===" -ForegroundColor Cyan
 
     foreach ($svc in $allServiceNames) {
-        Set-Service -Name $svc -StartupType Disabled -ErrorAction Stop
+        sc.exe config $svc start= disabled | Out-Null
+        if ($LASTEXITCODE -eq 5) {
+            # Access denied - save original SD, grant access, retry, then restore SD
+            $sdOutput = (sc.exe sdshow $svc | Where-Object { $_ -match '^D:' }) -join ''
+            $defaultSD = 'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)'
+            sc.exe sdset $svc $defaultSD | Out-Null
+            sc.exe config $svc start= $scValue | Out-Null
+            if ($sdOutput) {
+                sc.exe sdset $svc $sdOutput | Out-Null
+            }
+        }
+        if ($LASTEXITCODE -ne 0) { throw "Failed to disable $svc" }
         Write-Host "  Disabled: $svc"
     }
-
     # ========================================================
     # 3. Stop every service — dependents first, then roots.
     # ========================================================
@@ -163,18 +135,18 @@ try {
         $s.Refresh()
         if ($s.Status -eq 'Stopped') { continue }
         Write-Host "  Sending stop to dependent: $name ..."
-        try { Stop-Service $s } catch {
+        try { sc.exe stop $name | Out-Null } catch {
             Write-Host "    Warning: $($_.Exception.InnerException.Message)" -ForegroundColor Yellow
         }
     }
-    
+
     foreach ($name in $RootServices) {
         $s = Get-Service -Name $name -ErrorAction SilentlyContinue
         if ($null -eq $s) { continue }
         $s.Refresh()
         if ($s.Status -eq 'Stopped') { continue }
         Write-Host "  Sending stop to root: $name ..."
-        try { Stop-Service $s } catch {
+        try { sc.exe stop $name | Out-Null } catch {
             Write-Host "    Warning: $($_.Exception.InnerException.Message)" -ForegroundColor Yellow
         }
     }
@@ -188,14 +160,23 @@ try {
         if ($null -eq $s) { continue }
         $s.Refresh()
         if ($s.Status -eq 'Stopped') { continue }
-        Write-Warning "$name is still $($s.Status) - waiting up to 30s ..."
-        try {
-            $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30))
-        } catch {
-            $s.Refresh()
-            if ($s.Status -ne 'Stopped') {
-                $stubborn += $name
-                Write-Host "  FAILED: $name did not stop ($($s.Status))" -ForegroundColor Red
+        while ($s.Status -ne 'Stopped') {
+            Write-Warning "$name is still $($s.Status) - waiting up to 10s ..."
+            try {
+                $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(10))
+            }
+            catch {
+                $s.Refresh()
+                if ($s.Status -ne 'Stopped') {
+                    Write-Host "  $name still running, attempting to stop again..." -ForegroundColor Yellow
+                    try { sc.exe stop $name | Out-Null } catch {}
+                    Start-Sleep -Seconds 5
+                    $s.Refresh()
+                    if ($s.Status -ne 'Stopped') {
+                        $stubborn += $name
+                        Write-Host "  FAILED: $name did not stop ($($s.Status))" -ForegroundColor Red
+                    }
+                }
             }
         }
     }
@@ -212,27 +193,53 @@ try {
     if (Test-Path -LiteralPath $TargetFile) {
         Remove-Item -LiteralPath $TargetFile -Force -ErrorAction Stop
         Write-Host "  Deleted: $TargetFile" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "  File not found (already absent): $TargetFile" -ForegroundColor Yellow
     }
 
-} catch {
+}
+catch {
     $hasFailed = $true
     Write-Host "`n!!! ERROR: $($_.Exception.Message)" -ForegroundColor Red
-} finally {
+}
+finally {
 
     # ========================================================
     # 5. ALWAYS restore original start types via Set-Service
     # ========================================================
     Write-Host "`n=== Restoring original start types ===" -ForegroundColor Cyan
 
+    $startTypeMap = @{
+        'Automatic' = 'auto'
+        'Manual'    = 'demand'
+        'Disabled'  = 'disabled'
+        'Boot'      = 'boot'
+        'System'    = 'system'
+    }
+
     foreach ($svc in $allServiceNames) {
         $origValue = $originalStartTypes[$svc]
-        try {
-            Set-Service -Name $svc -StartupType $origValue -ErrorAction Stop
+        $scValue = $startTypeMap[$origValue.ToString()]
+        if (-not $scValue) {
+            Write-Host "  FAILED to restore ${svc}: unknown start type '$origValue'" -ForegroundColor Red
+            continue
+        }
+        sc.exe config $svc start= $scValue | Out-Null
+        if ($LASTEXITCODE -eq 5) {
+            # Access denied - save original SD, grant access, retry, then restore SD
+            $sdOutput = (sc.exe sdshow $svc | Where-Object { $_ -match '^D:' }) -join ''
+            $defaultSD = 'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)'
+            sc.exe sdset $svc $defaultSD | Out-Null
+            sc.exe config $svc start= $scValue | Out-Null
+            if ($sdOutput) {
+                sc.exe sdset $svc $sdOutput | Out-Null
+            }
+        }
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  FAILED to restore ${svc} (sc.exe exit code $LASTEXITCODE)" -ForegroundColor Red
+        } else {
             Write-Host "  Restored: $svc  ->  StartType = $origValue"
-        } catch {
-            Write-Host "  FAILED to restore ${svc}: $($_.Exception.Message)" -ForegroundColor Red
         }
     }
 
@@ -243,16 +250,32 @@ try {
     try {
         Start-Service -Name 'StateRepository' -ErrorAction Stop
         Write-Host "  StateRepository is running." -ForegroundColor Green
-    } catch {
+    }
+    catch {
         Write-Host "  FAILED to start StateRepository: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
 if ($hasFailed) {
     Write-Host "`n=== Finished WITH ERRORS. Review output above. ===" -ForegroundColor Red
-} else {
+}
+else {
+    # ========================================================
+    # 7. Run wsreset.exe -i to reinstall Store
+    # ========================================================
+    Write-Host "`n=== Running wsreset.exe -i (this may take a moment) ===" -ForegroundColor Cyan
+    $wsresetProcess = Start-Process -FilePath 'wsreset.exe' -ArgumentList '-i' -PassThru -Wait
+    if ($wsresetProcess.ExitCode -ne 0) {
+        Write-Host "  wsreset.exe -i exited with code $($wsresetProcess.ExitCode)" -ForegroundColor Yellow
+    } else {
+        Write-Host "  wsreset.exe -i completed successfully." -ForegroundColor Green
+    }
+
     Write-Host "`n=== Done. ===" -ForegroundColor Green
 }
+
+Stop-Transcript | Out-Null
+Write-Host "  Log saved to: $LogFile"
 
 if (-not $Silent) {
     Write-Host ""
