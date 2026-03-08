@@ -74,7 +74,8 @@ function Get-AllDependents {
 # 1. Collect every service and save original start types
 #    (nothing is modified yet — safe to fail here)
 # ============================================================
-Write-Host "`n=== Collecting services and saving original start types ===" -ForegroundColor Cyan
+Write-Host "`n=== Collecting services and saving original start types  ===" -ForegroundColor Cyan
+Write-Host "`n=== DO NOT CLOSE THIS SCRIPT!!!!===" -ForegroundColor Red
 
 $allServiceNames = [System.Collections.Generic.HashSet[string]]::new(
     [StringComparer]::OrdinalIgnoreCase
@@ -106,6 +107,7 @@ try {
     # 2. Disable every service via sc.exe
     # ========================================================
     Write-Host "`n=== Disabling all services ===" -ForegroundColor Cyan
+    Write-Host "`n=== DO NOT CLOSE THIS SCRIPT!!!!===" -ForegroundColor Red
 
     $setSvc = "$env:SYSTEMROOT\AtlasModules\Scripts\setSvc.cmd"
 
@@ -144,6 +146,7 @@ try {
     }
 
     Write-Host "  Waiting for services to stop ..."
+    Write-Host "`nDO NOT CLOSE THIS SCRIPT!!!!" -ForegroundColor Red
     Start-Sleep -Seconds 5
 
     $stubborn = @()
@@ -153,14 +156,14 @@ try {
         $s.Refresh()
         if ($s.Status -eq 'Stopped') { continue }
         while ($s.Status -ne 'Stopped') {
-            Write-Warning "$name is still $($s.Status) - waiting up to 10s ..."
+            Write-Warning "$name is still $($s.Status) - waiting up to 5s ... DO NOT CLOSE THIS SCRIPT!!!!"
             try {
-                $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(10))
+                $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(5))
             }
             catch {
                 $s.Refresh()
                 if ($s.Status -ne 'Stopped') {
-                    Write-Host "  $name still running, attempting to stop again..." -ForegroundColor Yellow
+                    Write-Host "  $name still running, attempting to stop again... DO NOT CLOSE THIS SCRIPT" -ForegroundColor Yellow
                     try { sc.exe stop $name | Out-Null } catch {}
                     Start-Sleep -Seconds 5
                     $s.Refresh()
@@ -201,6 +204,7 @@ finally {
     # 5. ALWAYS restore original start types via Set-Service
     # ========================================================
     Write-Host "`n=== Restoring original start types ===" -ForegroundColor Cyan
+    Write-Host "`n=== DO NOT CLOSE THIS SCRIPT!!!!===" -ForegroundColor Red
 
     $startTypeMap = @{
         'Automatic' = 2
@@ -231,6 +235,7 @@ finally {
     # 6. Start StateRepository back up
     # ========================================================
     Write-Host "`n=== Starting StateRepository ===" -ForegroundColor Cyan
+    Write-Host "`n=== DO NOT CLOSE THIS SCRIPT!!!!===" -ForegroundColor Red
     try {
         Start-Service -Name 'StateRepository' -ErrorAction Stop
         Write-Host "  StateRepository is running." -ForegroundColor Green
@@ -256,6 +261,7 @@ else {
     }
 
     Write-Host "`n=== Done. ===" -ForegroundColor Green
+    Write-Host "`n=== You can now close this script ===" -ForegroundColor Green
 }
 
 Stop-Transcript | Out-Null
