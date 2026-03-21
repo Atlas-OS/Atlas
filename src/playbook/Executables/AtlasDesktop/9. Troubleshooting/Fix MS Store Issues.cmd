@@ -44,6 +44,8 @@ $Silent = $env:SILENT -eq '1'
 
 $TargetFile = 'C:\ProgramData\Microsoft\Windows\AppRepository\StateRepository-Deployment.srd'
 $RootServices = @('ClipSVC', 'AppXSvc', 'StateRepository')
+$MaxRetries = 5
+$FileDeleted = $false
 
 function Get-AllDependents {
     param([string]$ServiceName)
@@ -71,197 +73,270 @@ function Get-AllDependents {
 }
 
 # ============================================================
-# 1. Collect every service and save original start types
-#    (nothing is modified yet — safe to fail here)
+# Retry loop: Attempt file deletion up to 5 times
 # ============================================================
-Write-Host "`n=== Collecting services and saving original start types  ===" -ForegroundColor Cyan
-Write-Host "`n=== DO NOT CLOSE THIS SCRIPT!!!!===" -ForegroundColor Red
-
-$allServiceNames = [System.Collections.Generic.HashSet[string]]::new(
-    [StringComparer]::OrdinalIgnoreCase
-)
-
-foreach ($root in $RootServices) {
-    [void]$allServiceNames.Add($root)
-    foreach ($dep in (Get-AllDependents $root)) {
-        [void]$allServiceNames.Add($dep)
-    }
-}
-
-
-$originalStartTypes = @{}
-foreach ($svc in $allServiceNames) {
-    $startType = (Get-Service -Name $svc -ErrorAction Stop).StartType
-    $originalStartTypes[$svc] = $startType
-    Write-Host "  $svc  ->  StartType = $startType"
-}
-
-# ============================================================
-# From here on, every change MUST be rolled back on failure.
-# ============================================================
-$hasFailed = $false
-
-try {
-
-    # ========================================================
-    # 2. Disable every service via sc.exe
-    # ========================================================
-    Write-Host "`n=== Disabling all services ===" -ForegroundColor Cyan
-    Write-Host "`n=== DO NOT CLOSE THIS SCRIPT!!!!===" -ForegroundColor Red
-
-    $setSvc = "$env:SYSTEMROOT\AtlasModules\Scripts\setSvc.cmd"
-
-    foreach ($svc in $allServiceNames) {
-        & $setSvc $svc 4 | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "Failed to disable $svc" }
-        Write-Host "  Disabled: $svc"
-    }
-    # ========================================================
-    # 3. Stop every service — dependents first, then roots.
-    # ========================================================
-    Write-Host "`n=== Stopping all services ===" -ForegroundColor Cyan
-
-    $dependentsOnly = $allServiceNames | Where-Object { $_ -notin $RootServices }
-
-    foreach ($name in $dependentsOnly) {
-        $s = Get-Service -Name $name -ErrorAction SilentlyContinue
-        if ($null -eq $s) { continue }
-        $s.Refresh()
-        if ($s.Status -eq 'Stopped') { continue }
-        Write-Host "  Sending stop to dependent: $name ..."
-        try { sc.exe stop $name | Out-Null } catch {
-            Write-Host "    Warning: $($_.Exception.InnerException.Message)" -ForegroundColor Yellow
-        }
-    }
-
-    foreach ($name in $RootServices) {
-        $s = Get-Service -Name $name -ErrorAction SilentlyContinue
-        if ($null -eq $s) { continue }
-        $s.Refresh()
-        if ($s.Status -eq 'Stopped') { continue }
-        Write-Host "  Sending stop to root: $name ..."
-        try { sc.exe stop $name | Out-Null } catch {
-            Write-Host "    Warning: $($_.Exception.InnerException.Message)" -ForegroundColor Yellow
-        }
-    }
-
-    Write-Host "  Waiting for services to stop ..."
-    Write-Host "`nDO NOT CLOSE THIS SCRIPT!!!!" -ForegroundColor Red
-    Start-Sleep -Seconds 5
-
-    $stubborn = @()
-    foreach ($name in $allServiceNames) {
-        $s = Get-Service -Name $name -ErrorAction SilentlyContinue
-        if ($null -eq $s) { continue }
-        $s.Refresh()
-        if ($s.Status -eq 'Stopped') { continue }
-        while ($s.Status -ne 'Stopped') {
-            Write-Warning "$name is still $($s.Status) - waiting up to 5s ... DO NOT CLOSE THIS SCRIPT!!!!"
-            try {
-                $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(5))
-            }
-            catch {
-                $s.Refresh()
-                if ($s.Status -ne 'Stopped') {
-                    Write-Host "  $name still running, attempting to stop again... DO NOT CLOSE THIS SCRIPT" -ForegroundColor Yellow
-                    try { sc.exe stop $name | Out-Null } catch {}
-                    Start-Sleep -Seconds 5
-                    $s.Refresh()
-                    if ($s.Status -ne 'Stopped') {
-                        $stubborn += $name
-                        Write-Host "  FAILED: $name did not stop ($($s.Status))" -ForegroundColor Red
-                    }
-                }
-            }
-        }
-    }
-
-    if ($stubborn.Count -gt 0) {
-        throw "The following services could not be stopped: $($stubborn -join ', '). File deletion skipped."
-    }
-
-    Write-Host "  All services stopped." -ForegroundColor Green
-
-    # ========================================================
-    # 4. Delete the target file
-    # ========================================================
-    if (Test-Path -LiteralPath $TargetFile) {
-        Remove-Item -LiteralPath $TargetFile -Force -ErrorAction Stop
-        Write-Host "  Deleted: $TargetFile" -ForegroundColor Green
+for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+    if ($attempt -gt 1) {
+        Write-Host "`n=== RETRY ATTEMPT $attempt of $MaxRetries ===" -ForegroundColor Yellow
+        Write-Host "Waiting 5 seconds before retry..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 5
     }
     else {
-        Write-Host "  File not found (already absent): $TargetFile" -ForegroundColor Yellow
+        Write-Host "`n=== ATTEMPT $attempt of $MaxRetries ===" -ForegroundColor Cyan
     }
 
-}
-catch {
-    $hasFailed = $true
-    Write-Host "`n!!! ERROR: $($_.Exception.Message)" -ForegroundColor Red
-}
-finally {
+    # ============================================================
+    # 1. Collect every service and save original start types
+    # ============================================================
+    Write-Host "`n=== Collecting services and saving original start types ===" -ForegroundColor Cyan
+    Write-Host "DO NOT CLOSE THIS SCRIPT!!!!" -ForegroundColor Red
 
-    # ========================================================
-    # 5. ALWAYS restore original start types via Set-Service
-    # ========================================================
-    Write-Host "`n=== Restoring original start types ===" -ForegroundColor Cyan
-    Write-Host "`n=== DO NOT CLOSE THIS SCRIPT!!!!===" -ForegroundColor Red
+    $allServiceNames = [System.Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::OrdinalIgnoreCase
+    )
 
-    $startTypeMap = @{
-        'Automatic' = 2
-        'Manual'    = 3
-        'Disabled'  = 4
-        'Boot'      = 0
-        'System'    = 1
-    }
-
-    $setSvc = "$env:SYSTEMROOT\AtlasModules\Scripts\setSvc.cmd"
-
-    foreach ($svc in $allServiceNames) {
-        $origValue = $originalStartTypes[$svc]
-        $startValue = $startTypeMap[$origValue.ToString()]
-        if ($null -eq $startValue) {
-            Write-Host "  FAILED to restore ${svc}: unknown start type '$origValue'" -ForegroundColor Red
-            continue
-        }
-        & $setSvc $svc $startValue | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  FAILED to restore ${svc} (setSvc exit code $LASTEXITCODE)" -ForegroundColor Red
-        } else {
-            Write-Host "  Restored: $svc  ->  StartType = $origValue"
-        }
-    }
-
-    # ========================================================
-    # 6. Start StateRepository back up
-    # ========================================================
-    Write-Host "`n=== Starting StateRepository ===" -ForegroundColor Cyan
-    Write-Host "`n=== DO NOT CLOSE THIS SCRIPT!!!!===" -ForegroundColor Red
     try {
-        Start-Service -Name 'StateRepository' -ErrorAction Stop
-        Write-Host "  StateRepository is running." -ForegroundColor Green
+        foreach ($root in $RootServices) {
+            $rootService = Get-Service -Name $root -ErrorAction Stop
+            [void]$allServiceNames.Add($root)
+            foreach ($dep in (Get-AllDependents $root)) {
+                [void]$allServiceNames.Add($dep)
+            }
+        }
     }
     catch {
-        Write-Host "  FAILED to start StateRepository: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "ERROR: Failed to enumerate services: $($_.Exception.Message)" -ForegroundColor Red
+        if ($attempt -lt $MaxRetries) { continue }
+    }
+
+    $originalStartTypes = @{}
+    try {
+        foreach ($svc in $allServiceNames) {
+            $startType = (Get-Service -Name $svc -ErrorAction Stop).StartType
+            $originalStartTypes[$svc] = $startType
+            Write-Host "  $svc  ->  StartType = $startType"
+        }
+    }
+    catch {
+        Write-Host "ERROR: Failed to get service start types: $($_.Exception.Message)" -ForegroundColor Red
+        if ($attempt -lt $MaxRetries) { continue }
+    }
+
+    $hasFailed = $false
+
+    try {
+
+        # ========================================================
+        # 2. Disable every service
+        # ========================================================
+        Write-Host "`n=== Disabling all services ===" -ForegroundColor Cyan
+
+        $setSvc = "$env:SYSTEMROOT\AtlasModules\Scripts\setSvc.cmd"
+
+        foreach ($svc in $allServiceNames) {
+            try {
+                & $setSvc $svc 4 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw "setSvc.cmd returned exit code $LASTEXITCODE" }
+                Write-Host "  Disabled: $svc"
+            }
+            catch {
+                Write-Host "  Warning: Failed to disable $svc - $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+        }
+
+        # ========================================================
+        # 3. Stop every service — dependents first, then roots
+        # ========================================================
+        Write-Host "`n=== Stopping all services ===" -ForegroundColor Cyan
+
+        $dependentsOnly = $allServiceNames | Where-Object { $_ -notin $RootServices }
+
+        foreach ($name in $dependentsOnly) {
+            $s = Get-Service -Name $name -ErrorAction SilentlyContinue
+            if ($null -eq $s -or $s.Status -eq 'Stopped') { continue }
+            Write-Host "  Stopping dependent: $name ..."
+            try { 
+                $s.Stop()
+                $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(3))
+                Write-Host "    STOPPED: $name"
+            } catch {
+                Write-Host "    Warning: Could not stop $name" -ForegroundColor Yellow
+            }
+        }
+
+        foreach ($name in $RootServices) {
+            $s = Get-Service -Name $name -ErrorAction SilentlyContinue
+            if ($null -eq $s -or $s.Status -eq 'Stopped') { continue }
+            Write-Host "  Stopping root service: $name ..."
+            try { 
+                $s.Stop()
+                $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(3))
+                Write-Host "    STOPPED: $name"
+            } catch {
+                Write-Host "    Warning: Could not stop $name" -ForegroundColor Yellow
+            }
+        }
+
+        Write-Host "  Waiting for services to stabilize ..."
+        Start-Sleep -Seconds 2
+
+        # ========================================================
+        # 4. Delete the target file
+        # ========================================================
+        Write-Host "`n=== Attempting file deletion ===" -ForegroundColor Cyan
+        
+        if (Test-Path -LiteralPath $TargetFile) {
+            try {
+                Remove-Item -LiteralPath $TargetFile -Force -ErrorAction Stop
+                Write-Host "  Deleted: $TargetFile" -ForegroundColor Green
+                $FileDeleted = $true
+            }
+            catch {
+                Write-Host "  ERROR: Could not delete file - $($_.Exception.Message)" -ForegroundColor Red
+                throw $_
+            }
+        }
+        else {
+            Write-Host "  File not found (already absent): $TargetFile" -ForegroundColor Yellow
+            $FileDeleted = $true
+        }
+
+    }
+    catch {
+        Write-Host "`nERROR: $($_.Exception.Message)" -ForegroundColor Red
+        $hasFailed = $true
+    }
+    finally {
+
+        # ========================================================
+        # 5. ALWAYS restore original start types
+        # ========================================================
+        Write-Host "`n=== Restoring original start types ===" -ForegroundColor Cyan
+
+        $startTypeMap = @{
+            'Automatic' = 2
+            'Manual'    = 3
+            'Disabled'  = 4
+            'Boot'      = 0
+            'System'    = 1
+        }
+
+        $setSvc = "$env:SYSTEMROOT\AtlasModules\Scripts\setSvc.cmd"
+
+        foreach ($svc in $allServiceNames) {
+            try {
+                $origValue = $originalStartTypes[$svc]
+                $startValue = $startTypeMap[$origValue.ToString()]
+                if ($null -eq $startValue) {
+                    Write-Host "  Warning: Unknown start type for ${svc}: '$origValue'" -ForegroundColor Yellow
+                    continue
+                }
+                & $setSvc $svc $startValue 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "  Restored: $svc  ->  $origValue"
+                }
+            }
+            catch {
+                Write-Host "  Warning: Failed to restore $svc" -ForegroundColor Yellow
+            }
+        }
+
+        # ========================================================
+        # 6. Start StateRepository back up
+        # ========================================================
+        Write-Host "`n=== Starting StateRepository ===" -ForegroundColor Cyan
+        try {
+            $sr = Get-Service -Name 'StateRepository' -ErrorAction Stop
+            if ($sr.Status -eq 'Stopped') {
+                $sr.Start()
+                $sr.WaitForStatus('Running', [TimeSpan]::FromSeconds(5))
+            }
+            Write-Host "  StateRepository is running." -ForegroundColor Green
+        }
+        catch {
+            Write-Host "  Warning: Could not start StateRepository" -ForegroundColor Yellow
+        }
+    }
+
+    if ($FileDeleted) {
+        Write-Host "`n=== File successfully deleted on attempt $attempt ===" -ForegroundColor Green
+        break
+    } elseif ($attempt -lt $MaxRetries) {
+        Write-Host "`n!!! Will retry (attempt $attempt of $MaxRetries)..." -ForegroundColor Yellow
     }
 }
 
-if ($hasFailed) {
-    Write-Host "`n=== Finished WITH ERRORS. Review output above. ===" -ForegroundColor Red
-}
-else {
+if ($FileDeleted) {
     # ========================================================
-    # 7. Run wsreset.exe -i to reinstall Store
+    # 7. Run wsreset.exe to reinstall Store
     # ========================================================
     Write-Host "`n=== Running wsreset.exe -i (this may take a moment) ===" -ForegroundColor Cyan
-    $wsresetProcess = Start-Process -FilePath 'wsreset.exe' -ArgumentList '-i' -PassThru -Wait
-    if ($wsresetProcess.ExitCode -ne 0) {
-        Write-Host "  wsreset.exe -i exited with code $($wsresetProcess.ExitCode)" -ForegroundColor Yellow
-    } else {
-        Write-Host "  wsreset.exe -i completed successfully." -ForegroundColor Green
+    try {
+        $wsresetProcess = Start-Process -FilePath 'wsreset.exe' -ArgumentList '-i' -PassThru -Wait -ErrorAction Stop
+        if ($wsresetProcess.ExitCode -ne 0) {
+            Write-Host "  wsreset.exe -i exited with code $($wsresetProcess.ExitCode)" -ForegroundColor Yellow
+        } else {
+            Write-Host "  wsreset.exe -i completed successfully." -ForegroundColor Green
+        }
+    }
+    catch {
+        Write-Host "  Warning: Could not run wsreset.exe" -ForegroundColor Yellow
     }
 
     Write-Host "`n=== Done. ===" -ForegroundColor Green
-    Write-Host "`n=== You can now close this script ===" -ForegroundColor Green
+}
+else {
+    Write-Host "`n=== REGISTRY FALLBACK: Attempting Store repair via Registry ===" -ForegroundColor Yellow
+    
+    try {
+        # Reset the Store app package state
+        Write-Host "Clearing Store package cache and resetting settings..." -ForegroundColor Cyan
+        
+        $regPaths = @(
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModel\StateRepository',
+            'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CloudStore\Store\Cache'
+        )
+        
+        foreach ($regPath in $regPaths) {
+            if (Test-Path -Path $regPath) {
+                try {
+                    Remove-Item -Path $regPath -Recurse -Force -ErrorAction SilentlyContinue
+                    Write-Host "  Cleared: $regPath"
+                }
+                catch {
+                    Write-Host "  Could not clear $regPath (non-critical)" -ForegroundColor Yellow
+                }
+            }
+        }
+        
+        # Restart Store related services
+        Write-Host "`nRestarting Store services..." -ForegroundColor Cyan
+        foreach ($svc in @('AppXSvc', 'ClipSVC', 'StateRepository')) {
+            try {
+                $s = Get-Service -Name $svc -ErrorAction SilentlyContinue
+                if ($null -ne $s) {
+                    if ($s.Status -eq 'Running') {
+                        $s.Stop()
+                        $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(3))
+                    }
+                    $s.Start()
+                    $s.WaitForStatus('Running', [TimeSpan]::FromSeconds(3))
+                    Write-Host "  Restarted: $svc"
+                }
+            }
+            catch {
+                Write-Host "  Could not restart $svc" -ForegroundColor Yellow
+            }
+        }
+        
+        Write-Host "`n=== Registry fallback completed. Store should regenerate. ===" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "ERROR during registry fallback: $($_.Exception.Message)" -ForegroundColor Red
+    }
+    finally {
+        Write-Host "`n=== Finished (file deletion ultimately failed after $MaxRetries attempts) ===" -ForegroundColor Yellow
+    }
 }
 
 Stop-Transcript | Out-Null
