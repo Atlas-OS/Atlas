@@ -5,10 +5,9 @@ privilege: TrustedInstaller
 onUpgrade: true
 actions:
   - !writeStatus: { status: "Reverting old changes" }
-  - !powerShell:
-    command: |
-      $windir = [Environment]::GetFolderPath('Windows')
-      Start-Process -FilePath """$windir\AtlasDesktop\9. Troubleshooting\Fix MS Store Issues.cmd"""-ArgumentList "/silent" -WindowStyle Hidden
+  - !run:
+    exe: "%windir%\\AtlasModules\\Tools\\StoreFixer.exe"
+    args: "silent"
     weight: 2
     wait: true
     exeDir: true
