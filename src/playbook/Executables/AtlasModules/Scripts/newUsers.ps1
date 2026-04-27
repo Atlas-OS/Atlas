@@ -1,3 +1,4 @@
+# Exit early if this SID was already set up — prevents re-running after an accidental profile reset
 $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 if ((Get-ItemProperty 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Name $sid -EA SilentlyContinue).$sid -eq 1) { exit }
 
@@ -76,6 +77,7 @@ if ([string]::IsNullOrWhiteSpace($browser)) {
 & "$atlasModules\Scripts\taskbarPins.ps1" $browser
 & reg.exe add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d 1 /f *> $null
 
+# Mark this SID as set up so the guard above triggers on any future re-run
 New-Item 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Force | Out-Null
 Set-ItemProperty 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Name $sid -Value 1 -Type DWord -Force
 
