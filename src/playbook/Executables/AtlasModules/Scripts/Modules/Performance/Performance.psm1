@@ -1,6 +1,8 @@
 # Optimizes NTFS for performance
 function Optimize-NTFS {
+    # Stop tracking last-access timestamps on files; reduces unnecessary disk writes
     fsutil behavior set disablelastaccess 1
+    # Disable 8.3 short filename generation; speeds up directory operations on large folders
     fsutil behavior set disable8dot3 1
 }
 
@@ -11,46 +13,46 @@ function Disable-AutoFolderDiscovery {
 
 # Disables background apps to reduce resource usage
 function Disable-BackgroundApps {
-    $key1 = "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications"
-    reg add $key1 /v "GlobalUserDisabled" /t REG_DWORD /d 1 /f
+    # Prevents all UWP apps from running in the background globally for this user
+    $key1 = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'
+    $null = New-Item -Path $key1 -Force -ErrorAction SilentlyContinue
+    Set-ItemProperty -Path $key1 -Name 'GlobalUserDisabled' -Value 1 -Type DWord -Force
 
-    $key2 = "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search"
-    reg add $key2 /v "BackgroundAppGlobalToggle" /t REG_DWORD /d 0 /f
+    # Stops the Windows Search indexer from running background tasks
+    $key2 = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+    $null = New-Item -Path $key2 -Force -ErrorAction SilentlyContinue
+    Set-ItemProperty -Path $key2 -Name 'BackgroundAppGlobalToggle' -Value 0 -Type DWord -Force
 }
 
 # Disables Xbox Game Bar and related settings
 function Disable-GameBar {
-    $keys = @(
-        "HKCU\System\GameConfigStore",
-        "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR",
-        "HKCU\SOFTWARE\Microsoft\GameBar",
-        "HKLM\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter",
-        "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR",
-        "HKLM\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR"
-    )
-    
-    $values = @(
-        @{ Key = $keys[0]; Name = "GameDVR_Enabled"; Data = 0 },
-        @{ Key = $keys[1]; Name = "AppCaptureEnabled"; Data = 0 },
-        @{ Key = $keys[2]; Name = "GamePanelStartupTipIndex"; Data = 3 },
-        @{ Key = $keys[2]; Name = "ShowStartupPanel"; Data = 0 },
-        @{ Key = $keys[2]; Name = "UseNexusForGameBarEnabled"; Data = 0 },
-        @{ Key = $keys[3]; Name = "ActivationType"; Data = 0 },
-        @{ Key = $keys[4]; Name = "AllowGameDVR"; Data = 0 },
-        @{ Key = $keys[5]; Name = "value"; Data = 0 }
+    # New-Item -Force is required before Set-ItemProperty; it silently succeeds if the key already exists
+    $entries = @(
+        @{ Path = 'HKCU:\System\GameConfigStore'; Name = 'GameDVR_Enabled'; Value = 0 },
+        @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'; Name = 'AppCaptureEnabled'; Value = 0 },
+        @{ Path = 'HKCU:\SOFTWARE\Microsoft\GameBar'; Name = 'GamePanelStartupTipIndex'; Value = 3 },
+        @{ Path = 'HKCU:\SOFTWARE\Microsoft\GameBar'; Name = 'ShowStartupPanel'; Value = 0 },
+        @{ Path = 'HKCU:\SOFTWARE\Microsoft\GameBar'; Name = 'UseNexusForGameBarEnabled'; Value = 0 },
+        @{ Path = 'HKLM:\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter'; Name = 'ActivationType'; Value = 0 },
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR'; Name = 'AllowGameDVR'; Value = 0 },
+        @{ Path = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR'; Name = 'value'; Value = 0 }
     )
 
-    foreach ($entry in $values) {
-        reg add $entry.Key /v $entry.Name /t REG_DWORD /d $entry.Data /f
+    foreach ($entry in $entries) {
+        $null = New-Item -Path $entry.Path -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $entry.Path -Name $entry.Name -Value $entry.Value -Type DWord -Force
     }
 }
 
 # Disables Modern Standby's SleepStudy feature
 function Disable-SleepStudy {
-    Start-Process -FilePath "wevtutil.exe" -ArgumentList 'set-log "Microsoft-Windows-SleepStudy/Diagnostic" /e:false' -NoNewWindow -Wait
-    Start-Process -FilePath "wevtutil.exe" -ArgumentList 'set-log "Microsoft-Windows-Kernel-Processor-Power/Diagnostic" /e:false' -NoNewWindow -Wait
-    Start-Process -FilePath "wevtutil.exe" -ArgumentList 'set-log "Microsoft-Windows-UserModePowerService/Diagnostic" /e:false' -NoNewWindow -Wait
-    schtasks /Change /TN "\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem" /Disable
+    # wevtutil must be called via Start-Process because it does not have a PowerShell equivalent
+    # These three event logs are used by SleepStudy to track power activity; disabling them stops the logging
+    Start-Process -FilePath 'wevtutil.exe' -ArgumentList 'set-log "Microsoft-Windows-SleepStudy/Diagnostic" /e:false' -NoNewWindow -Wait
+    Start-Process -FilePath 'wevtutil.exe' -ArgumentList 'set-log "Microsoft-Windows-Kernel-Processor-Power/Diagnostic" /e:false' -NoNewWindow -Wait
+    Start-Process -FilePath 'wevtutil.exe' -ArgumentList 'set-log "Microsoft-Windows-UserModePowerService/Diagnostic" /e:false' -NoNewWindow -Wait
+    # AnalyzeSystem runs on every boot to generate power reports; not useful on a tuned system
+    Disable-ScheduledTask -TaskPath '\Microsoft\Windows\Power Efficiency Diagnostics\' -TaskName 'AnalyzeSystem' -ErrorAction SilentlyContinue
 }
 
 Export-ModuleMember -Function @()

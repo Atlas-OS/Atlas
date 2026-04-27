@@ -18,7 +18,7 @@ foreach ($interface in $interfaces) {
 }
 
 # Disable NetBIOS service
-sc.exe config NetBT start=disabled | Out-Null
+Set-Service -Name NetBT -StartupType Disabled
 
 # Set network profile to 'Public Network'
 Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Public

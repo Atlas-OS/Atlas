@@ -18,7 +18,7 @@ foreach ($interface in $interfaces) {
 }
 
 # Enable NetBIOS service
-sc.exe config NetBT start=system | Out-Null
+Set-Service -Name NetBT -StartupType System
 
 choice /c:yn /n /m "Would you like to change your network profile to 'Private'? [Y/N] "
 if ($LASTEXITCODE -eq 1) {
@@ -36,7 +36,7 @@ if ($LASTEXITCODE -eq 1) {
     } | Enable-NetFirewallRule
 
     # Set up network connected devices automatically
-    New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" -Force -EA SilentlyContinue | Out-Null
+    New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" -Force -ErrorAction SilentlyContinue | Out-Null
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" -Name "AutoSetup" -Value 1 | Out-Null
 }
 
