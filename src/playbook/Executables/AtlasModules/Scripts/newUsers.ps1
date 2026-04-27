@@ -71,7 +71,8 @@ if ([string]::IsNullOrWhiteSpace($browser)) {
 }
 
 & "$atlasModules\Scripts\taskbarPins.ps1" $browser
-& reg.exe add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d 1 /f *> $null
+$null = New-Item -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -Force -ErrorAction SilentlyContinue
+Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -Name 'SearchboxTaskbarMode' -Value 1 -Type DWord -Force
 
 # Leave
 Start-Sleep 5 
