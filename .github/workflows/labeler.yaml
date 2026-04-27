@@ -10,4 +10,5 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/labeler@v6.0.1
+    # gh api repos/actions/labeler/commits/v6.0.1 --jq '.sha'
+    - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
