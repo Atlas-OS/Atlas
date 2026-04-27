@@ -1,0 +1,47 @@
+name: Lint PowerShell
+
+on:
+  push:
+    paths:
+      - "src/**/*.ps1"
+      - "src/**/*.psm1"
+      - ".github/linters/PSScriptAnalyzerSettings.psd1"
+      - ".github/workflows/lint-powershell.yml"
+  pull_request:
+    paths:
+      - "src/**/*.ps1"
+      - "src/**/*.psm1"
+      - ".github/linters/PSScriptAnalyzerSettings.psd1"
+      - ".github/workflows/lint-powershell.yml"
+  workflow_dispatch:
+
+jobs:
+  psscriptanalyzer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        # gh api repos/actions/checkout/commits/v4 --jq '.sha'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          # Pin to a specific version so results are reproducible
+          # Update RequiredVersion when a new release ships on PowerShell Gallery
+          Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $settings = '.github/linters/PSScriptAnalyzerSettings.psd1'
+          $results = Get-ChildItem -Path 'src' -Recurse -Include '*.ps1','*.psm1' |
+              Invoke-ScriptAnalyzer -Settings $settings
+
+          if ($results) {
+              $results | Format-Table -AutoSize
+              Write-Host "::error::PSScriptAnalyzer found $($results.Count) issue(s)."
+              exit 1
+          }
+
+          Write-Host "No issues found."
