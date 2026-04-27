@@ -1,3 +1,6 @@
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+if ((Get-ItemProperty 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Name $sid -EA SilentlyContinue).$sid -eq 1) { exit }
+
 $windir = [Environment]::GetFolderPath('Windows')
 & "$windir\AtlasModules\initPowerShell.ps1"
 $atlasDesktop = "$windir\AtlasDesktop"
@@ -73,6 +76,9 @@ if ([string]::IsNullOrWhiteSpace($browser)) {
 & "$atlasModules\Scripts\taskbarPins.ps1" $browser
 & reg.exe add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d 1 /f *> $null
 
+New-Item 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Force | Out-Null
+Set-ItemProperty 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Name $sid -Value 1 -Type DWord -Force
+
 # Leave
-Start-Sleep 5 
+Start-Sleep 5
 logoff
