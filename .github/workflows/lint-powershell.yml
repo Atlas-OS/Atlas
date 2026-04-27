@@ -21,8 +21,8 @@ jobs:
 
     steps:
       - name: Checkout code
-        # gh api repos/actions/checkout/commits/v4 --jq '.sha'
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        # gh api repos/actions/checkout/commits/v6.0.2 --jq '.sha'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install PSScriptAnalyzer
         shell: pwsh
