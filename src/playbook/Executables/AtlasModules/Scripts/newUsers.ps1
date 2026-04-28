@@ -82,7 +82,8 @@ if ([string]::IsNullOrWhiteSpace($browser)) {
 }
 
 & "$atlasModules\Scripts\taskbarPins.ps1" $browser
-& reg.exe add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d 1 /f *> $null
+$null = New-Item -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -Force -ErrorAction SilentlyContinue
+Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -Name 'SearchboxTaskbarMode' -Value 1 -Type DWord -Force
 
 # Write the per-SID completion marker so the guard at the top of this script triggers on any
 # future re-run. The key is created if it does not exist yet. If writing fails for any reason
