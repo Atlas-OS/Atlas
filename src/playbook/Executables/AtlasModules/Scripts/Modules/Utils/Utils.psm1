@@ -15,8 +15,10 @@ function Read-Pause {
         [switch]$NewLine
     )
 
-    if ($NewLine) { Write-Output "" }
-    $null = Read-Host $Message
+    process {
+        if ($NewLine) { Write-Output "" }
+        $null = Read-Host $Message
+    }
 }
 
 enum MsgIcon {
@@ -106,6 +108,7 @@ function Stop-TasksUnderRoots {
     }
     catch {
         # Module may not be available on older systems; continue with fallbacks.
+        $null = $_
     }
 
     $tasks = @()
@@ -156,6 +159,7 @@ function Stop-TasksUnderRoots {
         }
         catch {
             # Ignore and fall back to schtasks below.
+            $null = $_
         }
     }
 

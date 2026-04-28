@@ -50,6 +50,7 @@ function Stop-TasksUnderRoots {
     }
     catch {
         # Module may not be available on older systems; continue with fallbacks.
+        $null = $_
     }
 
     $tasks = @()
@@ -100,6 +101,7 @@ function Stop-TasksUnderRoots {
         }
         catch {
             # Ignore and fall back to schtasks below.
+            $null = $_
         }
     }
 
