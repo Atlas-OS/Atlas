@@ -1,3 +1,14 @@
+# Guard against re-running after a profile reset. Windows 24H2/25H2 can recreate a user profile
+# from the Default template after sleep/wake, which causes RunOnce to fire this script again.
+# We track per-SID completion in HKLM (survives profile resets, unlike HKCU) and exit early if
+# this user was already set up. -ErrorAction Stop ensures real errors are not silently swallowed.
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+try {
+    if ((Get-ItemProperty 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Name $sid -ErrorAction Stop).$sid -eq 1) { exit }
+} catch {
+    # Key or property does not exist yet - this is the first run, continue normally
+}
+
 $windir = [Environment]::GetFolderPath('Windows')
 & "$windir\AtlasModules\initPowerShell.ps1"
 $atlasDesktop = "$windir\AtlasDesktop"
@@ -71,8 +82,21 @@ if ([string]::IsNullOrWhiteSpace($browser)) {
 }
 
 & "$atlasModules\Scripts\taskbarPins.ps1" $browser
-& reg.exe add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d 1 /f *> $null
+$null = New-Item -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -Force -ErrorAction SilentlyContinue
+Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -Name 'SearchboxTaskbarMode' -Value 1 -Type DWord -Force
+
+# Write the per-SID completion marker so the guard at the top of this script triggers on any
+# future re-run. The key is created if it does not exist yet. If writing fails for any reason
+# (e.g. permissions), a warning is shown so the failure is visible rather than silent.
+try {
+    if (-not (Test-Path 'HKLM:\SOFTWARE\AtlasOS\UserSetup')) {
+        New-Item 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Force | Out-Null
+    }
+    Set-ItemProperty 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Name $sid -Value 1 -Type DWord -Force
+} catch {
+    Write-Warning "Failed to write setup marker for SID '$sid': $($_.Exception.Message)"
+}
 
 # Leave
-Start-Sleep 5 
+Start-Sleep 5
 logoff
