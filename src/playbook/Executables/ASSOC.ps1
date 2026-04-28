@@ -156,7 +156,7 @@ function Get-Time {
   Write-Output $dateTimeHex
 }
 
-function Delete-UserChoiceKey {
+function Remove-UserChoiceKey {
   param (
     [Parameter( Position = 0, Mandatory = $True )]
     [String]
@@ -229,7 +229,7 @@ for ($i = 2; $i -lt $args.Length; $i++) {
     New-Item -Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\$($splitArg[1])" -Force | Out-Null
     }
     If (Test-Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\$($splitArg[1])\UserChoice") {
-    Delete-UserChoiceKey "$Hive\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\$($splitArg[1])\UserChoice"
+    Remove-UserChoiceKey "$Hive\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\$($splitArg[1])\UserChoice"
     }
     If (-NOT (Test-Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts")) {
     New-Item -Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" -Force | Out-Null
@@ -246,7 +246,7 @@ for ($i = 2; $i -lt $args.Length; $i++) {
     New-Item -Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$($splitArg[0])" -Force | Out-Null
     }
     If (Test-Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$($splitArg[0])\UserChoice") {
-    Delete-UserChoiceKey "$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$($splitArg[0])\UserChoice"
+    Remove-UserChoiceKey "$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$($splitArg[0])\UserChoice"
     }
     If (-NOT (Test-Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts")) {
     New-Item -Path "HKU:\$Hive\SOFTWARE\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" -Force | Out-Null

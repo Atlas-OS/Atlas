@@ -32,8 +32,6 @@ if ($Removals) {
 $runtimeInformation = [System.Runtime.InteropServices.RuntimeInformation]
 $osPlatform = [System.Runtime.InteropServices.OSPlatform]
 $IsWindowsPlatform = $runtimeInformation::IsOSPlatform($osPlatform::Windows)
-$IsLinuxPlatform = $runtimeInformation::IsOSPlatform($osPlatform::Linux)
-$IsMacOSPlatform = $runtimeInformation::IsOSPlatform($osPlatform::OSX)
 # lazy temp staging so we only touch disk when needed
 $rootTempDir = $null
 $playbookTempPath = $null
