@@ -8,24 +8,20 @@ actions:
 # Playbook
 
 playbook:
-- src/**/*
+- src/playbook/**/*
 
 appx:
-- src/Configuration/atlas/appx.yml
+- src/playbook/Configuration/atlas/appx.yml
 
 components:
-- src/Configuration/atlas/components.yml
-- src/Configuration/atlas/packages.yml
-
-config:
-- src/Configuration/atlas/config.yml
+- src/playbook/Configuration/atlas/components.yml
 
 services:
-- src/Configuration/atlas/services.yml
+- src/playbook/Configuration/atlas/services.yml
 
 tweaks:
-- src/Configuration/tweaks.yml
-- src/Configuration/tweaks/**/*
+- src/playbook/Configuration/tweaks.yml
+- src/playbook/Configuration/tweaks/**/*
 
 desktop folder:
-- src/Executables/AtlasDesktop/**/*
+- src/playbook/Executables/AtlasDesktop/**/*
