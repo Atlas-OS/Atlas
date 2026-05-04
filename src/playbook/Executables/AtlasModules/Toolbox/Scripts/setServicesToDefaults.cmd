@@ -6,13 +6,13 @@ if not exist "%servicesPath%" (
 	if "%*"=="" pause
 	exit /b 1
 )
-if "%~1"=="/silent" goto main
-
 :: TI required for full services restore
 whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call RunAsTI.cmd "%~f0" %*
+	call "%windir%\AtlasModules\Scripts\RunAsTI.cmd" "%~f0" %*
 	exit /b
 )
+
+if "%~1"=="/silent" goto main
 
 echo This will reset the configuration of services in the Atlas folder.
 echo Disabling services often breaks features, and if you're experiencing an issue, this might help.
