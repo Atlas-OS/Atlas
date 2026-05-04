@@ -30,9 +30,11 @@ for /f "usebackq tokens=*" %%a in (`dir /b /s "%windir%\AtlasDesktop\6. Advanced
 set "atlasOther=%windir%\AtlasModules\Other"
 set "winServices=%atlasOther%\winServices.reg"
 set "atlasServices=%atlasOther%\atlasServices.reg"
+if /i "%~1"=="/silent" goto afterFullRestore
 if exist "%winServices%" (
 	if exist "%atlasServices%" call :fullRestore
 )
+:afterFullRestore
 
 %title% "Finished."
 if "%~1"=="/silent" exit /b
