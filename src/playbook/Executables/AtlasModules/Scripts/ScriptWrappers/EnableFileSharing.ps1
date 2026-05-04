@@ -14,7 +14,7 @@ Enable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdi
 # Enable NetBios over TCP/IP
 $interfaces = Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" -Recurse | Where-Object { $_.GetValue("NetbiosOptions") -ne $null }
 foreach ($interface in $interfaces) {
-    Set-ItemProperty -Path $interface.PSPath -Name "NetbiosOptions" -Value 2 | Out-Null
+    Set-ItemProperty -Path $interface.PSPath -Name "NetbiosOptions" -Value 1 | Out-Null
 }
 
 # Enable NetBIOS service
