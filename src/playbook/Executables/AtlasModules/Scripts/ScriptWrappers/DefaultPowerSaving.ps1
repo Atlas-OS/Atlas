@@ -11,7 +11,9 @@ Write-Host "`nRestoring default power schemes..." -ForegroundColor Yellow
 powercfg /restoredefaultschemes | Out-Null
 
 Write-Host "Enabling power-saving ACPI devices..." -ForegroundColor Yellow
-& toggleDev.cmd -Enable '@("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI")' | Out-Null
+foreach ($device in @("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI")) {
+    & "$windir\AtlasModules\Scripts\toggleDev.cmd" -Silent -Enable -Devices "$device" | Out-Null
+}
 
 Write-Host "Enabling device power-saving..." -ForegroundColor Yellow
 $keys = Get-ChildItem -Path "HKLM:\SYSTEM\CurrentControlSet\Enum" -Recurse -EA 0
