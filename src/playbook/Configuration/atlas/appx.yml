@@ -82,7 +82,9 @@ actions:
   - !powerShell:
     command: |
       $a = """$([Environment]::GetFolderPath('Windows'))\AtlasModules\AtlasPackagesOld.txt"""
-      (diff (gc $a) ((Get-AppxPackage).PackageFamilyName)).InputObject | 
+      Compare-Object -ReferenceObject (Get-Content $a) -DifferenceObject ((Get-AppxPackage).PackageFamilyName) |
+        Where-Object { $_.SideIndicator -eq '<=' } |
+        Select-Object -ExpandProperty InputObject |
         Foreach-Object { New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned" -Name $_ -Force };
       Remove-Item $a -Force
     runas: currentUserElevated
