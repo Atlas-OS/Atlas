@@ -16,6 +16,24 @@ actions:
 
     # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
+  - !service: {name: 'edgeupdate', operation: stop, option: 'uninstall-edge', ignoreErrors: true}
+  - !service: {name: 'edgeupdatem', operation: stop, option: 'uninstall-edge', ignoreErrors: true}
+  - !service: {name: 'MicrosoftEdgeUpdate', operation: stop, option: 'uninstall-edge', ignoreErrors: true}
+  - !service: {name: 'MicrosoftEdgeElevationService', operation: stop, option: 'uninstall-edge', ignoreErrors: true}
+  - !service: {name: 'edgeupdate', operation: change, startup: 4, option: 'uninstall-edge', ignoreErrors: true}
+  - !service: {name: 'edgeupdatem', operation: change, startup: 4, option: 'uninstall-edge', ignoreErrors: true}
+  - !service: {name: 'MicrosoftEdgeUpdate', operation: change, startup: 4, option: 'uninstall-edge', ignoreErrors: true}
+  - !service: {name: 'MicrosoftEdgeElevationService', operation: change, startup: 4, option: 'uninstall-edge', ignoreErrors: true}
+  - !cmd:
+    command: 'schtasks /delete /tn "MicrosoftEdgeUpdateTaskMachineCore" /f > nul 2>&1 || exit /b 0'
+    runas: currentUserElevated
+    option: 'uninstall-edge'
+    wait: true
+  - !cmd:
+    command: 'schtasks /delete /tn "MicrosoftEdgeUpdateTaskMachineUA" /f > nul 2>&1 || exit /b 0'
+    runas: currentUserElevated
+    option: 'uninstall-edge'
+    wait: true
   - !powerShell:
     command: '& """.\AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive'
     runas: currentUserElevated

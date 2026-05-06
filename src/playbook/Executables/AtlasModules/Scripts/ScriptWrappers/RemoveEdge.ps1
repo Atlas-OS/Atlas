@@ -139,6 +139,52 @@ function KillEdgeProcesses {
     $ErrorActionPreference = 'Continue'
 }
 
+function DisableEdgeUpdateInfrastructure {
+    $serviceNames = @(
+        'edgeupdate',
+        'edgeupdatem',
+        'MicrosoftEdgeUpdate',
+        'MicrosoftEdgeElevationService'
+    )
+
+    try {
+        $serviceNames += Get-CimInstance Win32_Service -ErrorAction Stop |
+        Where-Object {
+            ($_.Name -like '*edge*' -and $_.DisplayName -like '*Microsoft Edge*') -or
+            ($_.PathName -like '*\Microsoft\EdgeUpdate\*') -or
+            ($_.PathName -like '*\Microsoft\Edge\Application\*')
+        } |
+        Select-Object -ExpandProperty Name
+    }
+    catch {
+        Write-Status "Failed to discover Edge services: $($_.Exception.Message)" -Level Warning
+    }
+
+    foreach ($serviceName in @($serviceNames | Where-Object { $_ } | Sort-Object -Unique)) {
+        $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+        if ($null -eq $service) {
+            continue
+        }
+
+        try {
+            if ($service.Status -ne 'Stopped') {
+                Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
+            }
+            Set-Service -Name $serviceName -StartupType Disabled -ErrorAction Stop
+        }
+        catch {
+            Write-Status "Failed to disable Edge update service '$serviceName': $($_.Exception.Message)" -Level Warning
+        }
+    }
+
+    foreach ($taskName in @(
+            'MicrosoftEdgeUpdateTaskMachineCore',
+            'MicrosoftEdgeUpdateTaskMachineUA'
+        )) {
+        & schtasks.exe /delete /tn $taskName /f 1>$null 2>$null
+    }
+}
+
 function InstallEdgeChromium {
     InternetCheck
 
@@ -360,6 +406,7 @@ To perform an action, also type its number.
 if ($UninstallEdge) {
     Write-Status 'Uninstalling Edge Chromium...'
     KillEdgeProcesses
+    DisableEdgeUpdateInfrastructure
 
     $setupCandidates = @()
     foreach ($root in @(
