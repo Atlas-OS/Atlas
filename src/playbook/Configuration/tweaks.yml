@@ -155,6 +155,7 @@ actions:
   - !task: {path: 'tweaks\qol\disable-settings-tips.yml'}
   - !task: {path: 'tweaks\qol\disable-spell-checking.yml'}
   - !task: {path: 'tweaks\qol\disable-store-auto-updates.yml'}
+  - !task: {path: 'tweaks\qol\disable-store-search-recommendations.yml'}
   - !task: {path: 'tweaks\qol\disable-touch-keyboard-features.yml'}
   - !task: {path: 'tweaks\qol\disable-touch-visual-feedback.yml'}
   - !task: {path: 'tweaks\qol\disable-usb-issues-notifications.yml'}
@@ -236,6 +237,7 @@ actions:
   - !task: {path: 'tweaks\qol\explorer\dont-show-office-files.yml'}
   - !task: {path: 'tweaks\qol\explorer\use-compact-mode.yml'}
   - !task: {path: 'tweaks\qol\explorer\disable-gallery.yml'}
+  - !task: {path: 'tweaks\qol\explorer\disable-home.yml'}
   - !task: {path: 'tweaks\qol\explorer\debloat-send-to.yml'}
   - !task: {path: 'tweaks\qol\explorer\enable-long-paths.yml'}
 
@@ -322,6 +324,7 @@ actions:
   - !task: {path: 'tweaks\debloat\config-content-delivery.yml'}
   - !task: {path: 'tweaks\debloat\disable-reserved-storage.yml'}
   - !task: {path: 'tweaks\debloat\disable-scheduled-tasks.yml'}
+  - !task: {path: 'tweaks\debloat\block-razer-installs.yml'}
   - !task: {path: 'tweaks\debloat\hide-unused-security-pages.yml'}
   - !task: {path: 'tweaks\debloat\config-storage-sense.yml'}
 

@@ -1,0 +1,17 @@
+---
+title: Disable Microsoft Store Recommended Search Results
+description: Disables recommended Microsoft Store apps in Start Menu
+actions:
+  - !powerShell:
+    command: |
+      $storeDb = "$env:LocalAppData\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalState\store.db"
+      $storeDbParent = Split-Path -Path $storeDb -Parent
+
+      New-Item -Path $storeDbParent -ItemType Directory -Force | Out-Null
+      if (!(Test-Path -LiteralPath $storeDb)) {
+          New-Item -Path $storeDb -ItemType File -Force | Out-Null
+      }
+
+      icacls $storeDb /deny "*S-1-1-0:F" | Out-Null
+    runas: currentUserElevated
+    wait: true
