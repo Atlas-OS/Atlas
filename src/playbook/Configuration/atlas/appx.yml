@@ -4,7 +4,7 @@ description: Removes AppX packages and prevents them from being reinstalled
 onUpgrade: false
 actions:
   - !writeStatus: {status: 'Removing AppX packages'}
-  
+
   # The reason of removing those applications is that they might be sending user data,
   # showing unwanted content and using hardware resources. They can also simply be annoyances
   # that are never used. However, most of these applications can be reinstalled via
@@ -41,13 +41,19 @@ actions:
   - !appx: {name: 'Microsoft.XboxApp*', type: family} # Xbox Console Companion (deprecated)
   - !appx: {name: 'microsoft.windowscommunicationsapps*', type: family} # Mail and Calendar
   - !appx: {name: 'Microsoft.MSPaint*', type: family} # Paint 3D
+  - !appx: {name: 'Microsoft.Paint*', type: family}
   - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips (deprecated)
+  - !appx: {name: 'Microsoft.WindowsBackup*', type: family}
   - !appx: {name: 'Microsoft.ZuneVideo*', type: family} # Films & TV
+  - !appx: {name: 'Microsoft.ZuneMusic*', type: family} # Media Player
   - !appx: {name: 'MicrosoftCorporationII.MicrosoftFamily*', type: family}
+  - !appx: {name: 'MicrosoftCorporationII.QuickAssist*', type: family}
   - !appx: {name: 'Microsoft.MixedReality.Portal*', type: family}
   - !appx: {name: 'Microsoft.Windows.DevHome*', type: family}
   - !appx: {name: 'Microsoft.BingWeather*', type: family}
   - !appx: {name: 'Microsoft.BingNews*', type: family}
+  - !appx: {name: 'Microsoft.BingFinance*', type: family}
+  - !appx: {name: 'Microsoft.BingSports*', type: family}
   - !appx: {name: 'Microsoft.BingSearch*', type: family}
   - !appx: {name: 'Microsoft.OutlookForWindows*', type: family}
   - !appx: {name: 'Microsoft.GetHelp*', type: family}
@@ -55,21 +61,25 @@ actions:
   - !appx: {name: 'Microsoft.MicrosoftOfficeHub*', type: family}
   - !appx: {name: 'Microsoft.MicrosoftSolitaireCollection*', type: family}
   - !appx: {name: 'Microsoft.MicrosoftStickyNotes*', type: family}
+  - !appx: {name: 'Microsoft.StickyNotesPreview*', type: family}
   - !appx: {name: 'Microsoft.Office.OneNote*', type: family}
+  - !appx: {name: 'Microsoft.OneConnect*', type: family}
   - !appx: {name: 'Microsoft.People*', type: family}
   - !appx: {name: 'Microsoft.PowerAutomateDesktop*', type: family}
   - !appx: {name: 'Microsoft.ScreenSketch*', type: family, option: 'remove-snipping-tool'}
   - !appx: {name: 'Microsoft.SkypeApp*', type: family}
   - !appx: {name: 'Microsoft.Todos*', type: family}
+  - !appx: {name: 'Microsoft.Wallet*', type: family}
+  - !appx: {name: 'Microsoft.Whiteboard*', type: family}
   - !appx: {name: 'Microsoft.WindowsAlarms*', type: family}
   - !appx: {name: 'Microsoft.WindowsCamera*', type: family}
   - !appx: {name: 'Microsoft.WindowsFeedbackHub*', type: family}
   - !appx: {name: 'Microsoft.WindowsMaps*', type: family}
   - !appx: {name: 'Microsoft.WindowsSoundRecorder*', type: family}
+  - !appx: {name: 'Microsoft.StartExperiencesApp*', type: family}
   - !appx: {name: 'Ink.Handwriting.Main.Store.en-US1.0', type: family}
   # Removing using AME Wizard causes issues with Cross Device Experience Host installing
   # - !appx: {name: 'Microsoft.YourPhone*', type: family}
-      
   - !powerShell:
     command: |
       Get-AppxPackage Microsoft.YourPhone* | Remove-AppxPackage
