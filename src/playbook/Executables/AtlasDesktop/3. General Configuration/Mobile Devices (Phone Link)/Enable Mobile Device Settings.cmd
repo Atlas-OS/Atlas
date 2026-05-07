@@ -19,6 +19,9 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 
 reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "NoConnectedUser" /f > nul 2>&1
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableWindowsConsumerFeatures" /f > nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\CrossDeviceResume\Configuration" /v "IsResumeAllowed" /t REG_DWORD /d "1" /f > nul
+reg add "HKCU\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\DisableCrossDeviceResume" /v "Value" /t REG_DWORD /d "0" /f > nul
+call "%windir%\AtlasModules\Scripts\setSvc.cmd" CDPSvc 3 > nul 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate" /v "AutoDownload" /t REG_DWORD /d "4" /f > nul
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide mobile-devices
 

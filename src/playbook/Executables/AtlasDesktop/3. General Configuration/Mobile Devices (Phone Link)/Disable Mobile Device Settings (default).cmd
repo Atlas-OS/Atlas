@@ -18,11 +18,22 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d 
 reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "NoConnectedUser" /t REG_DWORD /d "1" /f > nul
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\CrossDeviceResume\Configuration" /v "IsResumeAllowed" /t REG_DWORD /d "0" /f > nul
+reg add "HKCU\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\DisableCrossDeviceResume" /v "Value" /t REG_DWORD /d "1" /f > nul
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\CDP" /v "NearShareChannelUserAuthzPolicy" /t REG_DWORD /d "0" /f > nul
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\CDP" /v "CdpSessionUserAuthzPolicy" /t REG_DWORD /d "1" /f > nul
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\CDP\SettingsPage" /v "BluetoothLastDisabledNearShare" /t REG_DWORD /d "0" /f > nul
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /hide mobile-devices
+call "%windir%\AtlasModules\Scripts\setSvc.cmd" CDPSvc 4 > nul 2>&1
+
+taskkill /f /im RuntimeBroker.exe > nul 2>&1
+taskkill /f /im PhoneExperienceHost.exe > nul 2>&1
+powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.YourPhone* | Remove-AppxPackage -AllUsers"
+powershell -NoP -NonI "Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -eq 'Microsoft.YourPhone' } | Remove-AppxProvisionedPackage -Online"
 
 if "%~1"=="/silent" exit /b
 
-choice /c:yn /n /m "Would you like to remove the 'Phone Link' app? [Y/N] "
+choice /c:yn /n /m "Would you like to attempt Phone Link removal again? [Y/N] "
 if %errorlevel%==1 powershell -NoP -NonI "Get-AppxPackage -AllUsers Microsoft.YourPhone* | Remove-AppxPackage -AllUsers"
 
 choice /c:yn /n /m "Would you like to disable Store auto-updates? [Y/N] "
