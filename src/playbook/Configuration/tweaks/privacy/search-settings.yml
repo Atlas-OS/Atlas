@@ -78,7 +78,9 @@ actions:
     
     # Fallback for OOBE as it doesn't seem to work
   - !powerShell:
-    command: 'reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /t REG_DWORD /v "SearchboxTaskbarMode" /d 1 /f > nul'
+    command: |
+      New-Item -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search -Force | Out-Null
+      Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search -Name SearchboxTaskbarMode -Value 1 -Type DWord -Force
     exeDir: true
     oobe: only
     

@@ -439,9 +439,16 @@ function Set-StartMenu {
             (Get-ItemProperty "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name 'Local AppData' -ErrorAction SilentlyContinue).'Local AppData'
         }
 
+        if (!$default -and ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData -PathType Container))) {
+            $profilePath = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$sid" -Name ProfileImagePath -ErrorAction SilentlyContinue).ProfileImagePath
+            if (![string]::IsNullOrEmpty($profilePath)) {
+                $appData = Join-Path ([Environment]::ExpandEnvironmentVariables($profilePath)) 'AppData\Local'
+            }
+        }
+
         Write-Title "Configuring Start Menu for '$sid'..."
-        if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData)) {
-            Write-Error "Couldn't find AppData value for $sid!"
+        if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData -PathType Container)) {
+            Write-Warning "Couldn't find Local AppData path for $sid; skipping Start Menu file cleanup."
         } else {
             Write-Output "Copying default layout XML"
             Copy-Item -Path "$windir\AtlasModules\Other\Layout.xml" -Destination "$appdata\Microsoft\Windows\Shell\LayoutModification.xml" -Force

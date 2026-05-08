@@ -138,7 +138,9 @@ function Disable-CoreIsolation {
 
 # Disable Unneeded Devices
 function Disable-Devices {
-    Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr
+    Get-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lldp, ms_lltdio, ms_rspndr -ErrorAction SilentlyContinue |
+        Disable-NetAdapterBinding -ErrorAction SilentlyContinue |
+        Out-Null
     # Disable PnP (plug and play) devices
     $devices = @(
     	"AMD PSP",

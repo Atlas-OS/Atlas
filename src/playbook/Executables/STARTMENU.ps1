@@ -1,5 +1,20 @@
 .\AtlasModules\initPowerShell.ps1
 
+function Get-ProfilePathFromSid {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Sid
+    )
+
+    $profileListPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$Sid"
+    $profilePath = (Get-ItemProperty -Path $profileListPath -Name ProfileImagePath -ErrorAction SilentlyContinue).ProfileImagePath
+    if ([string]::IsNullOrEmpty($profilePath)) {
+        return $null
+    }
+
+    return [Environment]::ExpandEnvironmentVariables($profilePath)
+}
+
 foreach ($userKey in (Get-RegUserPaths).PsPath) {
     $default = if ($userKey -match 'AME_UserHive_Default') { $true }
     $sid = Split-Path $userKey -Leaf
@@ -10,10 +25,17 @@ foreach ($userKey in (Get-RegUserPaths).PsPath) {
     } else {
         (Get-ItemProperty "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name 'Local AppData' -EA 0).'Local AppData'
     }
+
+    if (!$default -and ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData -PathType Container))) {
+        $profilePath = Get-ProfilePathFromSid -Sid $sid
+        if (![string]::IsNullOrEmpty($profilePath)) {
+            $appData = Join-Path $profilePath 'AppData\Local'
+        }
+    }
     
     Write-Title "Configuring Start Menu for '$sid'..."
-    if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData)) {
-        Write-Error "Couldn't find AppData value for $sid!"
+    if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData -PathType Container)) {
+        Write-Warning "Couldn't find Local AppData path for $sid; skipping Start Menu file cleanup."
     } else {
         Write-Output "Copying default layout XML"
         Copy-Item -Path "Layout.xml" -Destination "$appdata\Microsoft\Windows\Shell\LayoutModification.xml" -Force

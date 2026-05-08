@@ -4,7 +4,7 @@ description: Disables recommended Microsoft Store apps in Start Menu
 actions:
   - !powerShell:
     command: |
-      $storeDb = "$env:LocalAppData\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalState\store.db"
+      $storeDb = Join-Path $env:LocalAppData 'Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalState\store.db'
       $storeDbParent = Split-Path -Path $storeDb -Parent
 
       New-Item -Path $storeDbParent -ItemType Directory -Force | Out-Null

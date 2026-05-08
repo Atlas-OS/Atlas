@@ -32,7 +32,7 @@ actions:
   - !writeStatus: {status: 'Disabling Location'}
   - !powerShell:
     command: |
-      & "$env:windir\AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd" /silent
+      Start-Process -FilePath (Join-Path $env:windir 'AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd') -ArgumentList '/silent' -Wait
     exeDir: true
     wait: true
     runas: currentUserElevated
@@ -40,7 +40,7 @@ actions:
   - !writeStatus: {status: 'Configuring Indexing'}
   - !powerShell:
     command: |
-      & "$env:windir\AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd" /silent
+      Start-Process -FilePath (Join-Path $env:windir 'AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd') -ArgumentList '/silent' -Wait
     exeDir: true
     wait: true
     runas: currentUserElevated

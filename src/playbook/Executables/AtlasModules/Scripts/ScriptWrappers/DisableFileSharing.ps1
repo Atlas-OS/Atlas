@@ -9,7 +9,9 @@ Set-StrictMode -Version 3.0
 $fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
 
 # Disable network items
-Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr | Out-Null
+Get-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr -ErrorAction SilentlyContinue |
+    Disable-NetAdapterBinding -ErrorAction SilentlyContinue |
+    Out-Null
 
 # Disable NetBios over TCP/IP
 $interfaces = Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" -Recurse | Where-Object { $_.GetValue("NetbiosOptions") -ne $null }
