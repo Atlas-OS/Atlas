@@ -6,5 +6,5 @@ actions:
     path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
     value: 'RunScript'
     data: |
-      cmd /c ""%windir%\AtlasModules\Scripts\newUsers.cmd""
+      cmd /d /c ""%windir%\AtlasModules\Scripts\newUsers.cmd""
     type: REG_SZ

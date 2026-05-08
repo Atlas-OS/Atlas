@@ -94,7 +94,8 @@ Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' 
 try {
     $null = New-Item -Path 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Force -ErrorAction SilentlyContinue
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\AtlasOS\UserSetup' -Name $sid -Value 1 -Type DWord -Force
-} catch {
+}
+catch {
     Write-Warning "Failed to write setup marker for SID '$sid': $($_.Exception.Message)"
 }
 
