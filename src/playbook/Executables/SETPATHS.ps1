@@ -1,22 +1,16 @@
-$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
-
-if (-not $isAdmin) {
-    Start-Process powershell.exe -Verb RunAs -ArgumentList "-File `"$PSCommandPath`""
-    exit
+$internalScript = Join-Path -Path $PSScriptRoot -ChildPath 'AtlasModules\Scripts\Internal\SetPaths.ps1'
+if (-not (Test-Path -LiteralPath $internalScript -PathType Leaf)) {
+    Write-Error "Atlas internal path migration script '$internalScript' is missing."
+    exit 1
 }
 
-$windir = [Environment]::GetFolderPath('Windows')
-$rootPath = "HKLM:\SOFTWARE\AtlasOS\Services"
-$registryKeys = Get-ChildItem -Path $rootPath -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.PSIsContainer }
-
-$valueName = "path"
-foreach ($key in $registryKeys) {
-    $path = (Get-ItemProperty -Path $key.PSPath -Name $valueName).$valueName
-    Write-Output($path)
-    if ($path -notlike "$windir\AtlasDesktop\*") {
-        $marker = "AtlasDesktop\"
-        $index = $path.IndexOf($marker)
-        $result = $path.Substring($index + $marker.Length)
-        Set-ItemProperty -Path $key.PSPath -Name $valueName -Value "$windir\AtlasDesktop\$result"
-    }
+& $internalScript @args
+if (-not $?) {
+    exit 1
 }
+
+if ($null -ne $LASTEXITCODE) {
+    exit $LASTEXITCODE
+}
+
+exit 0
