@@ -405,9 +405,11 @@ try {
         }
     }
 
-    # update the oem version so the wizard displays the correct build tag
+    # update the oem version so Settings/winver display the correct build tag
     $oemYmlRelativePath = Join-Path -Path (Join-Path -Path 'Configuration' -ChildPath 'tweaks') -ChildPath (Join-Path -Path 'misc' -ChildPath 'config-oem-information.yml')
-    if (Test-Path -LiteralPath $oemYmlRelativePath -PathType Leaf) {
+    $oemScriptRelativePath = Join-Path -Path (Join-Path -Path (Join-Path -Path 'Executables' -ChildPath 'AtlasModules') -ChildPath 'Scripts') -ChildPath (Join-Path -Path 'Tasks' -ChildPath 'Set-OemInformation.ps1')
+    $oemVersionFiles = @($oemYmlRelativePath, $oemScriptRelativePath)
+    if ($oemVersionFiles | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }) {
         try {
             $confXml = [xml](Get-Content -Path 'playbook.conf' -Raw -Encoding UTF8)
             $playbookNode = $confXml.Playbook
@@ -418,16 +420,25 @@ try {
                     $versionLabel += ' (dev)'
                 }
 
-                $oemContent = Get-Content -Path $oemYmlRelativePath -Raw -Encoding UTF8
-                $updatedOemContent = $oemContent -replace 'AtlasVersionUndefined', $versionLabel
+                $updatedOemVersion = $false
+                foreach ($oemVersionFile in $oemVersionFiles) {
+                    if (-not (Test-Path -LiteralPath $oemVersionFile -PathType Leaf)) {
+                        continue
+                    }
 
-                if ($updatedOemContent -ne $oemContent) {
-                    $playbookTempPath = Get-PlaybookTempPath
-                    $tempOemYmlPath = Join-Path -Path $playbookTempPath -ChildPath $oemYmlRelativePath
-                    Set-ParentDirectory -Path $tempOemYmlPath
-                    Set-Content -Path $tempOemYmlPath -Value $updatedOemContent -Encoding UTF8
+                    $oemContent = Get-Content -Path $oemVersionFile -Raw -Encoding UTF8
+                    $updatedOemContent = $oemContent -replace 'AtlasVersionUndefined', $versionLabel
+
+                    if ($updatedOemContent -ne $oemContent) {
+                        $playbookTempPath = Get-PlaybookTempPath
+                        $tempOemPath = Join-Path -Path $playbookTempPath -ChildPath $oemVersionFile
+                        Set-ParentDirectory -Path $tempOemPath
+                        Set-Content -Path $tempOemPath -Value $updatedOemContent -Encoding UTF8
+                        $updatedOemVersion = $true
+                    }
                 }
-                else {
+
+                if (-not $updatedOemVersion) {
                     Write-Warning "Couldn't find OEM string 'AtlasVersionUndefined', not updating OEM version."
                 }
             }
@@ -440,7 +451,7 @@ try {
         }
     }
     else {
-        Write-Warning "Can't find '$oemYmlRelativePath', not setting OEM version."
+        Write-Warning "Can't find an OEM version file, not setting OEM version."
     }
 
     # skip local script + staged overrides so we dont pack duplicates
