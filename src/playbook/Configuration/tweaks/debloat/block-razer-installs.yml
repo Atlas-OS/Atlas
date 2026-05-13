@@ -15,14 +15,6 @@ actions:
     type: REG_DWORD
 
   - !powerShell:
-    command: |
-      $razerPath = Join-Path $env:windir 'Installer\Razer'
-
-      New-Item -Path $razerPath -ItemType Directory -Force | Out-Null
-      Get-ChildItem -LiteralPath $razerPath -Force -ErrorAction SilentlyContinue |
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-
-      $denyRule = '*S-1-1-0:(W)'
-      icacls $razerPath /deny $denyRule | Out-Null
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tasks\Block-RazerInstaller.ps1'')'
     runas: currentUserElevated
     wait: true

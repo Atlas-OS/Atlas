@@ -7,8 +7,5 @@ actions:
     # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.WindowsUpdate::TargetReleaseVersion
   - !registryValue: {path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate', value: 'TargetReleaseVersion', data: '1', type: REG_DWORD}
   - !powerShell:
-    command: 'if ((Get-CimInstance -Class Win32_OperatingSystem).Caption -match 11) {$a = ''Windows 11''} else {$a = ''Windows 10''}; New-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'' -Name ''ProductVersion'' -Value $a -PropertyType String -Force'
-    wait: true
-  - !powerShell:
-    command: '$ver = (Get-ItemProperty ''HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'').DisplayVersion; New-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'' -Name ''TargetReleaseVersion'' -Value $ver -PropertyType String -Force'
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tasks\Set-FeatureUpdateTarget.ps1'')'
     wait: true
