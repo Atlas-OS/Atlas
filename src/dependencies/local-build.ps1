@@ -429,7 +429,8 @@ try {
                     Set-Content -Path $tempOemScriptPath -Value $updatedOemContent -Encoding UTF8
                     $stagedOemScript = $true
                 }
-                else {
+
+                if (-not $updatedOemVersion) {
                     Write-Warning "Couldn't find OEM string 'AtlasVersionUndefined', not updating OEM version."
                 }
             }
