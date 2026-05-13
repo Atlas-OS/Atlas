@@ -15,18 +15,13 @@ actions:
     wait: true
     runas: currentUserElevated
   - !powerShell:
-    command: |
-      Start-Process -FilePath """$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd""" -ArgumentList "/silent" -WindowStyle Hidden
-      taskkill /IM taskmgr.exe
+    command: '& ".\AtlasModules\Scripts\Tasks\Stop-ProcessExplorerUpgrade.ps1"'
     weight: 2
     wait: true
     exeDir: true
     onUpgrade: true
   - !powerShell:
-    command: |
-      $windir = [Environment]::GetFolderPath('Windows')
-      Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse
-      Remove-Item -LiteralPath "$windir\AtlasModules" -Force -Recurse
+    command: '& ".\AtlasModules\Scripts\Tasks\Remove-PreviousAtlasInstall.ps1"'
     wait: true
     exeDir: true
     oobe: false
@@ -34,17 +29,7 @@ actions:
 
   - !writeStatus: { status: "Copying files" }
   - !powerShell:
-    command: |
-      $windir = [Environment]::GetFolderPath('Windows')
-      @(
-          'AtlasModules',
-          'AtlasDesktop'
-      ) | ForEach-Object {
-          if (!(Test-Path $_)) { exit 1 }
-          Copy-Item -Path $_ -Destination $windir -Force -Recurse
-          if (!$?) { exit 2 }
-      }
-      Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
+    command: '& ".\AtlasModules\Scripts\Tasks\Copy-AtlasPayload.ps1"'
     weight: 10
     wait: true
     exeDir: true

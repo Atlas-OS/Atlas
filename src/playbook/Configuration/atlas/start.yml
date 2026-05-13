@@ -5,28 +5,7 @@ actions:
   - !writeStatus: {status: 'Setting the environment'}
   - !powerShell:
     wait: true
-    command: |
-      function Add-ToPath ([array]$Paths) {
-            $machine = [System.EnvironmentVariableTarget]::Machine
-            $separator = [IO.Path]::PathSeparator
-
-            $Paths | ForEach-Object {
-                  if (!(Test-Path $_ -PathType Container)) {
-                        Write-Error """Path '$_' doesn't exist as a container."""
-                  }
-            }
-
-            $newPath = @()
-            $newPath += [Environment]::GetEnvironmentVariable('PATH', $machine) -split $separator
-            if ($newPath.Count -eq 0) { Write-Warning 'The PATH variable is currently empty.' }
-            $newPath += $Paths
-            $newPath = $newPath | Where-Object { $_ } | Select-Object -Unique
-
-            [Environment]::SetEnvironmentVariable('PATH', """$($newPath -join $separator)""", $machine)
-      }
-
-      $modulesPath = """$([Environment]::GetFolderPath('Windows'))\AtlasModules"""
-      Add-ToPath """$modulesPath""", """$modulesPath\Tools""", """$modulesPath\Scripts"""
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tasks\Initialize-AtlasPath.ps1'')'
 
   ################ NO LOCAL BUILD ################
 

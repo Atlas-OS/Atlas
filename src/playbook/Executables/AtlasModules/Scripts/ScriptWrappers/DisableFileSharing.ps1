@@ -1,45 +1,16 @@
-#Requires -RunAsAdministrator
-
-param (
-    [switch]$Silent
-)
-
-Set-StrictMode -Version 3.0
-
-$fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
-
-# Disable network items
-Get-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr -ErrorAction SilentlyContinue |
-    Disable-NetAdapterBinding -ErrorAction SilentlyContinue |
-    Out-Null
-
-# Disable NetBios over TCP/IP
-$interfaces = Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces" -Recurse | Where-Object { $_.GetValue("NetbiosOptions") -ne $null }
-foreach ($interface in $interfaces) {
-    Set-ItemProperty -Path $interface.PSPath -Name "NetbiosOptions" -Value 2 | Out-Null
+$internalScript = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Internal\DisableFileSharing.ps1'
+if (-not (Test-Path -LiteralPath $internalScript -PathType Leaf)) {
+    Write-Error "Atlas internal script '$internalScript' is missing."
+    exit 1
 }
 
-# Disable NetBIOS service
-Set-Service -Name NetBT -StartupType Disabled
+& $internalScript @args
+if (-not $?) {
+    exit 1
+}
 
-# Set network profile to 'Public Network'
-Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Public
+if ($null -ne $LASTEXITCODE) {
+    exit $LASTEXITCODE
+}
 
-# Disable network discovery firewall rules
-Get-NetFirewallRule | Where-Object {
-    # File and Printer Sharing, Network Discovery
-    (
-        ($_.Group -eq "@FirewallAPI.dll,-28502" -or $_.Group -eq "@FirewallAPI.dll,-32752") -or
-        ($_.DisplayGroup -eq "File and Printer Sharing" -or $_.DisplayGroup -eq "Network Discovery")
-    ) -and
-    ($_.Profile -like "*Private*")
-} | Disable-NetFirewallRule
-
-& "$fileSharingConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" /silent
-& "$fileSharingConfigPath\Give Access To Menu\Disable Give Access To Menu (default).cmd" /silent
-
-if ($Silent) { exit }
-
-Write-Host "`nCompleted! " -ForegroundColor Green -NoNewLine
-Write-Host "You'll need to restart to apply the changes." -ForegroundColor Yellow
-exit
+exit 0

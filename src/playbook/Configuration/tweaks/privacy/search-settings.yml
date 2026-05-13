@@ -75,12 +75,18 @@ actions:
     value: 'SearchboxTaskbarMode'
     data: '1'
     type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+    value: 'SearchboxTaskbarModeCache'
+    data: '1'
+    type: REG_DWORD
     
     # Fallback for OOBE as it doesn't seem to work
   - !powerShell:
     command: |
       New-Item -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search -Force | Out-Null
       Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search -Name SearchboxTaskbarMode -Value 1 -Type DWord -Force
+      Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search -Name SearchboxTaskbarModeCache -Value 1 -Type DWord -Force
     exeDir: true
     oobe: only
     

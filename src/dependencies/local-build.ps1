@@ -405,11 +405,10 @@ try {
         }
     }
 
-    # update the oem version so Settings/winver display the correct build tag
-    $oemYmlRelativePath = Join-Path -Path (Join-Path -Path 'Configuration' -ChildPath 'tweaks') -ChildPath (Join-Path -Path 'misc' -ChildPath 'config-oem-information.yml')
-    $oemScriptRelativePath = Join-Path -Path (Join-Path -Path (Join-Path -Path 'Executables' -ChildPath 'AtlasModules') -ChildPath 'Scripts') -ChildPath (Join-Path -Path 'Tasks' -ChildPath 'Set-OemInformation.ps1')
-    $oemVersionFiles = @($oemYmlRelativePath, $oemScriptRelativePath)
-    if ($oemVersionFiles | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }) {
+    # update the OEM version in the runtime task so Windows reports the correct build tag
+    $oemScriptRelativePath = Join-Path -Path (Join-Path -Path (Join-Path -Path (Join-Path -Path 'Executables' -ChildPath 'AtlasModules') -ChildPath 'Scripts') -ChildPath 'Tasks') -ChildPath 'Set-OemInformation.ps1'
+    $stagedOemScript = $false
+    if (Test-Path -LiteralPath $oemScriptRelativePath -PathType Leaf) {
         try {
             $confXml = [xml](Get-Content -Path 'playbook.conf' -Raw -Encoding UTF8)
             $playbookNode = $confXml.Playbook
@@ -420,22 +419,15 @@ try {
                     $versionLabel += ' (dev)'
                 }
 
-                $updatedOemVersion = $false
-                foreach ($oemVersionFile in $oemVersionFiles) {
-                    if (-not (Test-Path -LiteralPath $oemVersionFile -PathType Leaf)) {
-                        continue
-                    }
+                $oemContent = Get-Content -Path $oemScriptRelativePath -Raw -Encoding UTF8
+                $updatedOemContent = $oemContent -replace 'AtlasVersionUndefined', $versionLabel
 
-                    $oemContent = Get-Content -Path $oemVersionFile -Raw -Encoding UTF8
-                    $updatedOemContent = $oemContent -replace 'AtlasVersionUndefined', $versionLabel
-
-                    if ($updatedOemContent -ne $oemContent) {
-                        $playbookTempPath = Get-PlaybookTempPath
-                        $tempOemPath = Join-Path -Path $playbookTempPath -ChildPath $oemVersionFile
-                        Set-ParentDirectory -Path $tempOemPath
-                        Set-Content -Path $tempOemPath -Value $updatedOemContent -Encoding UTF8
-                        $updatedOemVersion = $true
-                    }
+                if ($updatedOemContent -ne $oemContent) {
+                    $playbookTempPath = Get-PlaybookTempPath
+                    $tempOemScriptPath = Join-Path -Path $playbookTempPath -ChildPath $oemScriptRelativePath
+                    Set-ParentDirectory -Path $tempOemScriptPath
+                    Set-Content -Path $tempOemScriptPath -Value $updatedOemContent -Encoding UTF8
+                    $stagedOemScript = $true
                 }
 
                 if (-not $updatedOemVersion) {
@@ -451,7 +443,7 @@ try {
         }
     }
     else {
-        Write-Warning "Can't find an OEM version file, not setting OEM version."
+        Write-Warning "Can't find '$oemScriptRelativePath', not setting OEM version."
     }
 
     # skip local script + staged overrides so we dont pack duplicates
@@ -459,6 +451,7 @@ try {
     if ($stagedCustomYml) { $excludeFiles += 'custom.yml' }
     if ($stagedStartYml) { $excludeFiles += 'start.yml' }
     if ($stagedPlaybookConf) { $excludeFiles += 'playbook.conf' }
+    if ($stagedOemScript) { $excludeFiles += 'Set-OemInformation.ps1' }
 
     $filesListPath = [IO.Path]::GetTempFileName()
     $rootPathNormalized = $workingDirectory.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
