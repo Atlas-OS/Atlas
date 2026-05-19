@@ -16,7 +16,11 @@ Get-ChildItem -Path $registryPath | ForEach-Object {
         $scriptPath = $path.path
         if (Test-Path $scriptPath) {
             Write-Host "Running: $scriptPath" -ForegroundColor Cyan
-            & $scriptPath /silent
+            if ($scriptPath -like '*.ps1') {
+                & $scriptPath -Silent
+            } else {
+                & $scriptPath /silent
+            }
         } else {
             Write-Host "Script not found: $scriptPath" -ForegroundColor Red
         }
