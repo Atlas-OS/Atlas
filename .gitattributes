@@ -1,6 +1,6 @@
-# perform crlf normalization on batch and cmd files
-*.ps1 eol=crlf
-*.psm1 eol=crlf
-*.bat eol=crlf
-*.cmd eol=crlf
-*.sh eol=lf
+# Line ending normalization
+*.ps1  eol=lf
+*.psm1 eol=lf
+*.bat  eol=lf
+*.cmd  eol=lf
+*.sh   eol=lf
