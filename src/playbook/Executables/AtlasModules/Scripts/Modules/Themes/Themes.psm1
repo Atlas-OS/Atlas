@@ -1,6 +1,5 @@
 Set-StrictMode -Version 3.0
 
-$windir = [Environment]::GetFolderPath('Windows')
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(
