@@ -8,6 +8,6 @@ function Set-ThemeMRU {
             "atlas-v0.5.x-light.theme",
             "dark.theme",
             "aero.theme"
-        ) | ForEach-Object { "$windir\resources\Themes\$_" }) -join ';');" -Type String -Force
+        ) | ForEach-Object { "$env:SystemRoot\resources\Themes\$_" }) -join ';');" -Type String -Force
     }
 }
