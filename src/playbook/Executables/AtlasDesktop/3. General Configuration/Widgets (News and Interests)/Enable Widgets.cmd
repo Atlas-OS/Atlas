@@ -24,10 +24,10 @@ echo]
 echo Enabling News and Interests (called Widgets in Windows 11)...
 
 (
-    reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" /v "EnableFeeds" /f
-    reg delete "HKLM\SOFTWARE\Policies\Microsoft\Dsh" /v "AllowNewsAndInterests" /f
-    powershell -command "stop-process -name explorer –force"
-) > nul 2>&1
+    reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" /v "EnableFeeds" /f > nul
+    reg delete "HKLM\SOFTWARE\Policies\Microsoft\Dsh" /v "AllowNewsAndInterests" /f > nul
+    powershell -command "stop-process -name explorer -force"
+) > nul
 
 timeout /t 3 /nobreak > nul
 start ms-settings:taskbar

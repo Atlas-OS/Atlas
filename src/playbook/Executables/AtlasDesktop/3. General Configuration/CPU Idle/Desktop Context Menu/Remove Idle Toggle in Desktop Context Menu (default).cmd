@@ -17,7 +17,7 @@ fltmc > nul 2>&1 || (
 reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
 reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
-reg delete "HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle" /f
+reg delete "HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle" /f > nul
 if "%~1"=="/silent" exit /b
 
 echo.
