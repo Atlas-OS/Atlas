@@ -15,11 +15,21 @@ setlocal EnableDelayedExpansion
 
 :: Remove lower filters for rdyboost driver
 set "key=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
-for /f "skip=1 tokens=3*" %%a in ('reg query !key! /v "LowerFilters"') do (set val=%%a)
-set val=!val:rdyboost\0=!
-set val=!val:\0rdyboost=!
-set val=!val:rdyboost=!
-reg add "!key!" /v "LowerFilters" /t REG_MULTI_SZ /d "!val!" /f > nul
+set "val="
+for /f "skip=1 tokens=3*" %%a in ('reg query "!key!" /v "LowerFilters" 2^>nul') do (
+    set "val=%%a"
+    if not "%%b"=="" set "val=!val! %%b"
+)
+if defined val (
+    set val=!val:rdyboost\0=!
+    set val=!val:\0rdyboost=!
+    set val=!val:rdyboost=!
+    if defined val (
+        reg add "!key!" /v "LowerFilters" /t REG_MULTI_SZ /d "!val!" /f > nul
+    ) else (
+        reg delete "!key!" /v "LowerFilters" /f > nul 2>&1
+    )
+)
 
 :: Disable ReadyBoost
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "Start" /t REG_DWORD /d "4" /f > nul
@@ -28,4 +38,4 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "Start" /t REG_DWOR
 reg delete "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}" /f > nul 2>&1
 
 :: Disable SysMain (Prefetch, Memory Management features)
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f > nul 
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "4" /f > nul

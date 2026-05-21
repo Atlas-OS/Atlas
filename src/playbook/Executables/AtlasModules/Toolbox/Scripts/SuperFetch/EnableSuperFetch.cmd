@@ -18,12 +18,19 @@ setlocal EnableDelayedExpansion
 
 :: Add lower filters for rdyboost driver
 set "key=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
-for /f "skip=1 tokens=3*" %%a in ('reg query "!key!" /v "LowerFilters"') do (set val=%%a)
+set "val="
+for /f "skip=1 tokens=3*" %%a in ('reg query "!key!" /v "LowerFilters" 2^>nul') do (
+    set "val=%%a"
+    if not "%%b"=="" set "val=!val! %%b"
+)
 
-echo "!val!" > nul | findstr /c:"rdyboost"
-if !errorlevel! NEQ 0 (
-	set "val=!val!\0rdyboost"
-	reg add "!key!" /v "LowerFilters" /t REG_MULTI_SZ /d "!val!" /f
+if not defined val (
+    reg add "!key!" /v "LowerFilters" /t REG_MULTI_SZ /d "rdyboost" /f > nul
+) else (
+    echo "!val!" | findstr /c:"rdyboost" > nul
+    if !errorlevel! NEQ 0 (
+        reg add "!key!" /v "LowerFilters" /t REG_MULTI_SZ /d "!val!\0rdyboost" /f > nul
+    )
 )
 
 :: Enable ReadyBoost
