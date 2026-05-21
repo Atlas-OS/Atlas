@@ -51,13 +51,13 @@ mode con: cols=46 lines=13
 
 echo.
 echo %ESC%[32m         Hyper Threading/SMT Detected
-echo   ──────────────────────────────────────────%ESC%[0m
+echo   ------------------------------------------%ESC%[0m
 echo   You %ESC%[1mshould not disable idle states %ESC%[0mwhen
 echo   this feature is enabled as it makes the
 echo   overall CPU performance much worse.
 echo.
 echo   It can be disabled by using BIOS.
-echo   Instead of disabling idle, consider 
+echo   Instead of disabling idle, consider
 echo   disabling C-states in BIOS.
 echo.
 echo            %ESC%[1m%ESC%[33mPress any key to exit...      %ESC%[?25l

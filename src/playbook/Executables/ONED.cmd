@@ -69,7 +69,7 @@ reg delete "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\N
 reg delete "HKU\%~1\Environment" /v "OneDrive" /f > nul 2>&1
 reg delete "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f > nul 2>&1
 
-:: Fix folder redirection — this sometimes persists after uninstallation for whatever reason
+:: Fix folder redirection - this sometimes persists after uninstallation for whatever reason
 set "___sf=HKU\%~1\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
 reg add "%___sf%" /v "{F42EE2D3-909F-4907-8871-4C22FC0BF756}" /t REG_EXPAND_SZ /d "%%USERPROFILE%%\Documents" /f > nul 2>&1
 reg add "%___sf%" /v "Personal" /t REG_EXPAND_SZ /d "%%USERPROFILE%%\Documents" /f > nul 2>&1

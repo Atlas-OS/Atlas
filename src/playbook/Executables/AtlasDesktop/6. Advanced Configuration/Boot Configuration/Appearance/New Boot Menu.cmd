@@ -37,12 +37,12 @@ if %ERRORLEVEL% == 1 (
 
 :disable
 bcdedit /set {default} bootmenupolicy legacy > nul
-reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_SZ /d "0" /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d "0" /f > nul
 goto finish
 
 :enable
 bcdedit /set {default} bootmenupolicy standard > nul 2>&1
-reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_SZ /d "1" /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d "1" /f > nul
 goto finish
 
 :finish
