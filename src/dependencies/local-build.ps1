@@ -430,7 +430,7 @@ try {
                     $stagedOemScript = $true
                 }
 
-                if (-not $updatedOemVersion) {
+                if (-not $stagedOemScript) {
                     Write-Warning "Couldn't find OEM string 'AtlasVersionUndefined', not updating OEM version."
                 }
             }
