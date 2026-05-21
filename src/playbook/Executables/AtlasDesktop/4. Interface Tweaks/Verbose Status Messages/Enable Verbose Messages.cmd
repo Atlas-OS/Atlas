@@ -1,6 +1,6 @@
 @echo off
 :: Change to match the setting name (e.g., Sleep, Indexing, etc.)
-set "settingName=VerboseStatusMessage"
+set "settingName=VerboseMessages"
 :: Change to 0 (Disabled) or 1 (Enabled/Minimal) etc
 set "stateValue=1"
 set "scriptPath=%~f0"
