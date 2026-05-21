@@ -1,5 +1,5 @@
 @echo off
-set "settingName=AutomaticUpdates"
+set "settingName=CpuIdleContextMenu"
 set "stateValue=1"
 set "scriptPath=%~f0"
 
@@ -31,13 +31,10 @@ reg add "HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle\Shell\Disable Idle\Co
 reg add "HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle\Shell\Enable Idle" /v "MUIVerb" /d "Enable Idle" /f
 reg add "HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle\Shell\Enable Idle\Command" /d "cmd /c \"\"%%windir%%\\AtlasDesktop\\3. General Configuration\\CPU Idle\\Enable Idle (default).cmd\"\" /silent" /f
 
-
-:: Breaks 'Receive updates for other Microsoft products'
-:: reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v "NoAutoUpdate" /f > nul 2>&1
 if "%~1"=="/silent" exit /b
 
 echo.
-echo Automatic Updates have been enabled.
+echo CPU Idle desktop context menu has been added.
 echo Press any key to exit...
 pause > nul
 exit /b

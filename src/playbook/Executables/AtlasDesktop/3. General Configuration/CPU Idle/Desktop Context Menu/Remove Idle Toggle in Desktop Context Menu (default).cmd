@@ -1,6 +1,6 @@
 @echo off
-set "settingName=AutomaticUpdates"
-set "stateValue=1"
+set "settingName=CpuIdleContextMenu"
+set "stateValue=0"
 set "scriptPath=%~f0"
 
 set "___args="%~f0" %*"
@@ -18,13 +18,10 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d 
 reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 reg delete "HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle" /f
-
-:: Breaks 'Receive updates for other Microsoft products'
-:: reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v "NoAutoUpdate" /f > nul 2>&1
 if "%~1"=="/silent" exit /b
 
 echo.
-echo Automatic Updates have been enabled.
+echo CPU Idle desktop context menu has been removed.
 echo Press any key to exit...
 pause > nul
 exit /b
