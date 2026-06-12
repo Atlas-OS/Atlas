@@ -7,7 +7,7 @@ actions:
   - !writeStatus: { status: "Reverting old changes" }
   - !run:
     exe: "%windir%\\AtlasModules\\Tools\\StoreFixer.exe"
-    args: "silent"
+    args: "silent isSetScheduledTaskOnCrash noRestart"
     weight: 2
     wait: true
     exeDir: true
