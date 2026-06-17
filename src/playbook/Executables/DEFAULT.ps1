@@ -12,17 +12,20 @@ Get-ChildItem -Path $registryPath | ForEach-Object {
 
     if ($null -eq $state -or $null -eq $path) { return }
 
+    $scriptPath = $path.path
+
+    if (-not (Test-Path $scriptPath)) {
+        Write-Host "Script not found, cleaning up obsolete registry key: $scriptPath" -ForegroundColor Yellow
+        Remove-Item -Path $subkey.PSPath -Force -Recurse -ErrorAction SilentlyContinue
+        return
+    }
+
     if ($state.state -eq 1 -or $state.state -ne 0) {
-        $scriptPath = $path.path
-        if (Test-Path $scriptPath) {
-            Write-Host "Running: $scriptPath" -ForegroundColor Cyan
-            if ($scriptPath -like '*.ps1') {
-                & $scriptPath -Silent
-            } else {
-                & $scriptPath /silent
-            }
+        Write-Host "Running: $scriptPath" -ForegroundColor Cyan
+        if ($scriptPath -like '*.ps1') {
+            & $scriptPath -Silent
         } else {
-            Write-Host "Script not found: $scriptPath" -ForegroundColor Red
+            & $scriptPath /silent
         }
     }
 }
