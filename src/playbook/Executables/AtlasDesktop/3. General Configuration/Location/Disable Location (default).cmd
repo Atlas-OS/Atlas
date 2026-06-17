@@ -44,5 +44,5 @@ if "%~1"=="/silent" exit /b
 echo.
 echo Location services have been disabled.
 echo Press any key to exit...
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

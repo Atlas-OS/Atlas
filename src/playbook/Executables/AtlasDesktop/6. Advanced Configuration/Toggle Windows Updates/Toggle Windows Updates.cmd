@@ -29,6 +29,15 @@ if /i "!WUState!"=="DISABLED" (
 )
 
 :menu
+if /i "%~1"=="-silent" set "silent=1"
+if /i "%~1"=="/silent" set "silent=1"
+if defined silent (
+    for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state 2^>nul ^| find /i "state"') do set "regState=%%a"
+    if "!regState!"=="0x1" goto enable
+    if "!regState!"=="0x0" goto disable
+    exit /b
+)
+
 cls
 echo Windows Update Toggle
 echo 1. Disable Windows Updates !disableState!
@@ -99,6 +108,7 @@ call :askReboot
 goto :eof
 
 :askReboot
+if defined silent exit /b
 echo.
 set /p reboot=Would you like to reboot now to apply changes? (Y/N):
 if /i "%reboot%"=="Y" (

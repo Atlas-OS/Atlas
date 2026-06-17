@@ -24,6 +24,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 echo This tweak allows you to disable/enable the new boot menu.
 echo However, it is slower and more annoying than the legacy Windows 7 boot menu.
 echo]
+if /i "%~1"=="/silent" goto disable
+
 echo What would you like to do?
 echo [1] Disable the new boot menu (default)
 echo [2] Enable the new boot menu
@@ -48,5 +50,5 @@ goto finish
 :finish
 echo]
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

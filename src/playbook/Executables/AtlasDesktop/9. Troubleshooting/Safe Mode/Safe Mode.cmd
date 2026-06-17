@@ -25,5 +25,5 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 bcdedit /set {current} safeboot minimal > nul
 
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

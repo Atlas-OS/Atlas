@@ -26,5 +26,5 @@ bcdedit /set {current} safeboot minimal > nul
 bcdedit /set {current} safebootalternateshell yes > nul
 
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

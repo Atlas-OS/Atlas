@@ -22,7 +22,7 @@ echo]
 winget install -e --id Open-Shell.Open-Shell-Menu --override "/qn ADDLOCAL=StartMenu" -h --accept-source-agreements --accept-package-agreements --force > nul
 if %ERRORLEVEL% NEQ 0 (
     echo error: Open-Shell installation with WinGet failed.
-    pause
+    if /i not "%~1"=="/silent" pause
     exit /b 1
 )
 
@@ -43,7 +43,7 @@ start explorer.exe
 
 echo]
 echo Finished, changes have been applied.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b
 
 :fluentError

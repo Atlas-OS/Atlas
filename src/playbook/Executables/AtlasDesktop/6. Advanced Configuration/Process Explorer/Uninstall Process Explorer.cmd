@@ -49,12 +49,12 @@ if %ERRORLEVEL% NEQ 0 (
     sc config pcw start=boot > nul
 
     echo Fallback fix applied. Please restart your computer for the changes to take effect.
-    pause
+    if /i not "%~1"=="/silent" pause
 )
 if "%~1"=="/silent" (
     taskkill /IM taskmgr.exe
     exit /b
 )
 echo Finished, changes have been applied.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

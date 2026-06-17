@@ -18,7 +18,7 @@ whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
 if not exist "%indexConfPath%" (
     if "%silentMode%"=="0" (
         echo The 'indexConf.cmd' script wasn't found in AtlasModules.
-        pause
+        if /i not "%~1"=="/silent" pause
     )
     exit /b 1
 )

@@ -61,5 +61,5 @@ reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetoo
 if "%~1" == "/silent" exit
 
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

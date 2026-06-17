@@ -6,7 +6,7 @@ echo Running as Trusted Installer
 if not exist "%windir%\AtlasModules\Tools\StoreFixer.exe" (
   echo ERROR: StoreFixer.exe not found!
   echo Please ensure StoreFixer.exe is in the same directory as this script.
-  pause
+  if /i not "%~1"=="/silent" pause
   exit /b 1
 )
 if "%~1"=="/silent" (
@@ -18,4 +18,4 @@ if "%~1"=="/silent" (
 echo Running StoreFixer.exe...
 RunAsTi.cmd "%windir%\AtlasModules\Tools\StoreFixer.exe" -wait
 echo StoreFixer.exe completed.
-pause
+if /i not "%~1"=="/silent" pause

@@ -19,5 +19,5 @@ schtasks /delete /tn "Force Timer Resolution" /f > nul 2>&1
 if "%~1"=="/silent" exit /b
 
 echo Finished, changes have been applied.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

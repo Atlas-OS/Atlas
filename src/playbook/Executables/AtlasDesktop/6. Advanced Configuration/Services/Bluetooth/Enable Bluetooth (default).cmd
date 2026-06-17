@@ -60,5 +60,5 @@ if %ERRORLEVEL% == 1 call "%windir%\AtlasDesktop\4. Interface Tweaks\Context Men
 if %ERRORLEVEL% == 2 call "%windir%\AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd" -Disable @('Bluetooth')
 
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

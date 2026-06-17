@@ -26,5 +26,5 @@ if "%~1"=="/silent" exit /b
 echo.
 echo Workplace settings page has been restored.
 start ms-settings:workplace
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

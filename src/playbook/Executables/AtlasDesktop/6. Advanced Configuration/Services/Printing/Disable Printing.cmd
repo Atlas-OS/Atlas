@@ -88,5 +88,5 @@ if "%~1" == "/silent" exit /b
 
 echo]
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

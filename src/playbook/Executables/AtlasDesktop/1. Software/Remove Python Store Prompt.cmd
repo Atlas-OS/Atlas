@@ -5,5 +5,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -Path \"$env
 
 echo -----------------------------------------
 echo Cleanup completed.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

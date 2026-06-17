@@ -93,5 +93,5 @@ if "%errorlevel%"=="1" dism /Online /Add-Capability /CapabilityName:"Print.Fax.S
 
 echo]
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

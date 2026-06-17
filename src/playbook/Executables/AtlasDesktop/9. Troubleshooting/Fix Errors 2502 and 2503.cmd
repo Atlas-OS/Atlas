@@ -12,7 +12,7 @@ set "folder=%windir%\Temp"
 echo This script will fix errors 2502 and 2503 with Windows installers by resetting the Windows TEMP folder permissions.
 echo This issue is not related to Atlas.
 echo]
-pause
+if /i not "%~1"=="/silent" pause
 echo]
 
 echo Taking ownership of TEMP folder as SYSTEM...
@@ -37,5 +37,5 @@ del /s /f /q "%folder%\*.*" > nul 2>&1
 
 echo]
 echo Completed.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

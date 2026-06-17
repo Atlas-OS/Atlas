@@ -25,5 +25,5 @@ if "%~1"=="/silent" exit /b
 
 echo.
 echo Workplace settings page has been hidden.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

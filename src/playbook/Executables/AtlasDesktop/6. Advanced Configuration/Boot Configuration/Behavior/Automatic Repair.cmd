@@ -23,6 +23,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 
 echo Automatic repair mostly does not do anything to help, and could cause issues.
 echo]
+if /i "%~1"=="/silent" goto enable
+
 echo What would you like to do?
 echo [1] Disable automatic repair
 echo [2] Enable automatic repair (default)
@@ -47,5 +49,5 @@ goto finish
 :finish
 echo]
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

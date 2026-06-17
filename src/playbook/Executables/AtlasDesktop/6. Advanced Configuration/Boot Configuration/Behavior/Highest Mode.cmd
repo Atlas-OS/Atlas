@@ -24,6 +24,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 echo Enables boot applications to use the highest graphical mode exposed by the firmware.
 echo Makes safe mode and booting use the highest resolution.
 echo]
+if /i "%~1"=="/silent" goto disable
+
 echo What would you like to do?
 echo [1] Disable (default)
 echo [2] Enable
@@ -48,5 +50,5 @@ goto finish
 :finish
 echo]
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

@@ -27,12 +27,12 @@ reg query "HKCR\DesktopBackground\shell\NVIDIAContainer" > nul 2>&1 || (
     echo The context menu does not exist, thus you cannot continue.
 	if "%~1"=="/silent" exit /b
     echo]
-    pause
+    if /i not "%~1"=="/silent" pause
     exit /b 1
 )
 
 echo Explorer will be restarted to ensure that the context menu is removed.
-pause
+if /i not "%~1"=="/silent" pause
 
 :main
 reg delete "HKCR\DesktopBackground\Shell\NVIDIAContainer" /f > nul 2>&1
@@ -46,5 +46,5 @@ if /I not "%~2"=="/noAction" (
 if "%~1"=="/silent" exit /b
 
 echo Finished, changes have been applied.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

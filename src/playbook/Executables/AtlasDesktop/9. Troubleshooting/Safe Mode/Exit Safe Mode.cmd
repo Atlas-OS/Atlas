@@ -26,5 +26,5 @@ bcdedit /deletevalue {current} safeboot > nul 2>&1
 bcdedit /deletevalue {current} safebootalternateshell > nul 2>&1
 
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

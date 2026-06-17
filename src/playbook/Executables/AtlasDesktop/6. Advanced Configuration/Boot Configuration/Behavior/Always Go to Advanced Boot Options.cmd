@@ -24,6 +24,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 
 echo This tweak enables the advanced boot options to be shown on each boot.
 echo]
+if /i "%~1"=="/silent" goto disable
+
 echo What would you like to do?
 echo [1] Disable always going to the advanced boot options (default)
 echo [2] Enable always going to the advanced boot options
@@ -48,5 +50,5 @@ goto finish
 :finish
 echo]
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

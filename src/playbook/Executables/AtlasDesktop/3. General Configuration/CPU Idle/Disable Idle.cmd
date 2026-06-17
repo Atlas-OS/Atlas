@@ -24,7 +24,7 @@ if "%~1" neq "/silent" (
     echo Task Manager will display CPU usage as 100%% always, due to how Task Manager calculates CPU percentage.
     echo It does not occur in other tools such as Process Explorer, System Informer or Process Hacker.
     echo.
-    pause
+    if /i not "%~1"=="/silent" pause
     cls
 )
 
@@ -37,7 +37,7 @@ powercfg /setactive scheme_current
 if "%~1"=="/silent" exit /b
 
 echo Finished, changes have been applied.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b
 
 :hyperThreading

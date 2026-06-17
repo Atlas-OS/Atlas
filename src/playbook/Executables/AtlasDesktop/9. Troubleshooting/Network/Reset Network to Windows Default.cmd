@@ -36,5 +36,5 @@ PowerShell -NoP -C "foreach ($dev in Get-PnpDevice -Class Net -Status 'OK') { pn
 pnputil /scan-devices > nul
 
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

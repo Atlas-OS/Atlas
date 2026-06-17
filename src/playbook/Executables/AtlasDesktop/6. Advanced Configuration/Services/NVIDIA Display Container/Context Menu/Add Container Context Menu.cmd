@@ -27,12 +27,12 @@ reg query "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem
     echo The NVIDIA Display Container LS service does not exist, you cannot continue.
 	echo You may not have NVIDIA drivers installed.
 	echo]
-    pause
+    if /i not "%~1"=="/silent" pause
     exit /b 1
 )
 
 echo Explorer will be restarted to ensure that the context menu works.
-pause
+if /i not "%~1"=="/silent" pause
 
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "Icon" /t REG_SZ /d "NVIDIA.ico,0" /f > nul
 reg add "HKCR\DesktopBackground\Shell\NVIDIAContainer" /v "MUIVerb" /t REG_SZ /d "NVIDIA Container" /f > nul
@@ -51,5 +51,5 @@ start explorer.exe
 
 echo]
 echo Finished, changes have been applied.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

@@ -18,7 +18,7 @@ fltmc > nul 2>&1 || (
 if not exist "%script%" (
     echo Script not found.
     echo "%script%"
-    pause
+    if /i not "%~1"=="/silent" pause
     exit /b 1
 )
 

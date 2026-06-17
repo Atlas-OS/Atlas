@@ -25,6 +25,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 
 echo You can specify additional boot options for the Windows kernel at boot time.
 echo]
+if /i "%~1"=="/silent" goto disable
+
 echo What would you like to do?
 echo [1] Disable editing of kernel parameters on startup (default)
 echo [2] Enable editing of kernel parameters on startup
@@ -49,5 +51,5 @@ goto finish
 :finish
 echo]
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

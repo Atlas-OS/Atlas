@@ -27,7 +27,7 @@ reg query "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem
     echo The NVIDIA Display Container LS service does not exist, you cannot continue.
 	echo You may not have NVIDIA drivers installed.
     echo]
-    pause
+    if /i not "%~1"=="/silent" pause
     exit /b 1
 )
 
@@ -40,12 +40,12 @@ echo Additionally, you can add a context menu to the desktop with another script
 echo]
 echo See 'Must Read First' for more info.
 echo]
-pause
+if /i not "%~1"=="/silent" pause
 
 call setSvc.cmd NVDisplay.ContainerLocalSystem 4
 sc stop NVDisplay.ContainerLocalSystem > nul 2>&1
 if "%~1"=="/silent" exit /b
 
 echo Finished, changes have been applied.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

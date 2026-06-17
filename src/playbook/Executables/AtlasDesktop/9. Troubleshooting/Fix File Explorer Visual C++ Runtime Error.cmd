@@ -18,7 +18,7 @@ if not defined silent (
 	echo This will remove the legacy File Explorer search redirect used by older Atlas builds.
 	echo It can fix blank Microsoft Visual C++ Runtime Library errors from explorer.exe.
 	echo]
-	pause
+	if /i not "%~1"=="/silent" pause
 	cls
 )
 
@@ -40,7 +40,7 @@ start "" "%windir%\explorer.exe"
 
 echo Finished.
 if defined silent exit /b
-pause
+if /i not "%~1"=="/silent" pause
 exit /b
 
 :deleteKey

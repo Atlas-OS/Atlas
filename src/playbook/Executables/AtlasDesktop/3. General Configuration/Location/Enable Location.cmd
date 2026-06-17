@@ -48,5 +48,5 @@ echo.
 echo Location services have been enabled.
 start ms-settings:privacy-location
 echo Press any key to exit...
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

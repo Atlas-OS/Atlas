@@ -30,7 +30,7 @@ echo Installing Process Explorer...
 winget install -e --id Microsoft.Sysinternals.ProcessExplorer --uninstall-previous -l "%windir%\AtlasModules\Apps\ProcessExplorer" -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity > nul
 if %ERRORLEVEL% NEQ 0 (
     echo error: Process Explorer installation with WinGet failed.
-    pause
+    if /i not "%~1"=="/silent" pause
     exit /b 1
 )
 
@@ -53,5 +53,5 @@ sc config pcw start=disabled > nul
 
 echo]
 echo Finished, changes have been applied.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b
