@@ -22,7 +22,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 
 :: End of state and path update
 
-reg delete "HKCR\exefile\shell\Priority" /f > nul
+reg delete "HKCR\exefile\shell\Priority" /f > nul 2>&1
 
 if "%~1"=="/silent" exit /b
 

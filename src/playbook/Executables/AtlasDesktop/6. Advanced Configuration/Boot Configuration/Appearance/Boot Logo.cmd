@@ -21,6 +21,8 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 :: End of state and path update
 :: https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings
 
+if /i "%~1"=="/silent" goto enable
+
 echo What would you like to do?
 echo [1] Disable the boot logo
 echo [2] Enable the boot logo (default)
@@ -45,5 +47,5 @@ goto finish
 :finish
 echo]
 echo Finished, please reboot your device for changes to apply.
-pause
+if /i not "%~1"=="/silent" pause
 exit /b

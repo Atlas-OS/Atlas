@@ -43,7 +43,7 @@ taskmgr.exe > nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo Warning: Task Manager is still not working, applying fallback fix...
 
-    reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /f > nul
+    reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe" /v "Debugger" /f > nul 2>&1
     del /f /q "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Process Explorer.lnk" > nul
     winget uninstall -e --id Microsoft.Sysinternals.ProcessExplorer --force --purge --disable-interactivity --accept-source-agreements -h > nul 2>&1
     sc config pcw start=boot > nul

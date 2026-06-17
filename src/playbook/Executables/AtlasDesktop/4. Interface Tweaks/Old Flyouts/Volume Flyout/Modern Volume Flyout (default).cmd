@@ -22,7 +22,7 @@ reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%sc
 
 :: End of state and path update
 
-reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\MTCUVC" /v EnableMtcUvc /f > nul
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\MTCUVC" /v EnableMtcUvc /f > nul 2>&1
 if "%~1"=="/silent" exit /b
 
 echo Changes applied successfully.
