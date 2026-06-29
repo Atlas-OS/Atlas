@@ -87,7 +87,7 @@ function Menu {
 
         # Documentation
         3 {
-            Start-Process "https://docs.atlasos.net/getting-started/post-installation/atlas-folder/security/#defender"
+            Start-Process "https://docs.atlasos.net/docs/atlas-configuration/security/#defender"
             Menu
         }
 

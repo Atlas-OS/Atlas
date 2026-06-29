@@ -20,15 +20,15 @@
 </p>
 
 ## 📚 **Important Documentation**
-- [Installation](https://docs.atlasos.net/getting-started/installation/)
-- [Install FAQ](https://docs.atlasos.net/install-faq/removed-features/)
-- [General FAQ](https://docs.atlasos.net/general-faq/atlas-and-security/)
-- [Contribution Guidelines](https://docs.atlasos.net/contributing/contribution-guidelines/)
-- [Branding](https://docs.atlasos.net/branding/)
+- [Installation](https://docs.atlasos.net/docs/install/playbook/)
+- [Install FAQ](https://docs.atlasos.net/docs/faq/installation/#what-was-removed-from-windows)
+- [General FAQ](https://docs.atlasos.net/docs/faq/general/#security-and-atlasos)
+- [Contribution Guidelines](https://docs.atlasos.net/docs/contributing/)
+- [Branding](https://docs.atlasos.net/docs/branding/)
 
 ## 🤔 What is Atlas?
 
-AtlasOS, or Atlas, is an open-source project that enhances Windows by conveniently applying privacy, usability, and performance optimizations, all while maintaining functionality and [customizability](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/general-configuration/).
+AtlasOS, or Atlas, is an open-source project that enhances Windows by conveniently applying privacy, usability, and performance optimizations, all while maintaining functionality and [customizability](https://docs.atlasos.net/docs/atlas-configuration/settings/).
 
 ## 👀 Why Atlas?
 ### 🔒 Enhanced Privacy
@@ -38,7 +38,7 @@ Atlas removes the majority of telemetry embedded within Windows and implements n
 Atlas strikes a balance between performance and compatibility. It implements numerous meaningful changes to improve Windows performance and responsiveness without breaking essential features. Atlas will not do tweaks for a placebo effect or marginal gains, making Atlas more stable and compatible.
 
 ### 🛡️ Security Features
-Most Windows modifications remove key security features most users need to maintain a secure system. On the other hand, Atlas allows users to customize their security at their own risk while informing users about each option's [pros and cons](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/security/).
+Most Windows modifications remove key security features most users need to maintain a secure system. On the other hand, Atlas allows users to customize their security at their own risk while informing users about each option's [pros and cons](https://docs.atlasos.net/docs/atlas-configuration/security/).
 
 Some optional security features are:
 
@@ -66,7 +66,7 @@ Although the GUI is not open source for AME Wizard, AME Wizard's entire backend 
 As Atlas doesn't redistribute a modified Windows ISO, it complies with the [Microsoft Windows Usage Terms](https://www.microsoft.com/content/dam/microsoft/usetm/documents/windows/11/oem-(pre-installed)/UseTerms_OEM_Windows_11_English.pdf). In addition, Atlas does not alter activation in Windows.
 
 ## 🎨 Brand kit
-Want to create your own Atlas wallpaper with some original creative designs? Visit our [Branding Kit on Docs](https://docs.atlasos.net/branding/) and share your creations on our [GitHub Discussions](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)!
+Want to create your own Atlas wallpaper with some original creative designs? Visit our [Branding Kit on Docs](https://docs.atlasos.net/docs/branding/) and share your creations on our [GitHub Discussions](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)!
 
 ## 💙 Contributors
 <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors" target="_blank"><img src="https://contrib.rocks/image?repo=Atlas-OS/Atlas&columns=18" alt="Avatars of all contributors"></a>
