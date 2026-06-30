@@ -1,0 +1,9 @@
+---
+title: Disable Cloud Optimized Content on Taskbar
+description: Disables cloud optimized content in the taskbar for QoL, which pins items dependent on things like having linked phone or Xbox Live - seems to break Windows Spotlight
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableCloudOptimizedContent'
+    data: '1'
+    type: REG_DWORD

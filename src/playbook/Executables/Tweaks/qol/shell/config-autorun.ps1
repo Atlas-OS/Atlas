@@ -1,0 +1,39 @@
+---
+title: Disable AutoRun
+description: Disables AutoRun, also known as AutoPlay, for optimal QoL
+actions:
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers'
+    value: 'DisableAutoplay'
+    data: '1'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\CameraAlternate'
+    value: 'MSTakeNoAction'
+    data: ''
+    type: REG_NONE
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\StorageOnArrival'
+    value: 'MSTakeNoAction'
+    data: ''
+    type: REG_NONE
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\CameraAlternate\ShowPicturesOnArrival'
+    value: 'MSTakeNoAction'
+    data: ''
+    type: REG_NONE
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\UserChosenExecuteHandlers\StorageOnArrival'
+    value: 'MSTakeNoAction'
+    data: ''
+    type: REG_NONE
+    
+    

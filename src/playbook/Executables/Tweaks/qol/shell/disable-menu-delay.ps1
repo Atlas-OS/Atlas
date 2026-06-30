@@ -1,0 +1,11 @@
+---
+title: Disable Menu Hover Delay
+description: Makes hovering over sub-menus in menus instant, instead of having a slight delay on hover
+actions:
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'MenuShowDelay'
+    data: '0'
+    type: REG_SZ
+    
+    

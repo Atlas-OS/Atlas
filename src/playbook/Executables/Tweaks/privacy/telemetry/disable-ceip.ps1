@@ -1,0 +1,14 @@
+---
+title: Disable Customer Experience Improvement Program
+description: Disables Customer Experience Improvement Program (CEIP) as it is related to telemetry, for privacy
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\AppV\CEIP'
+    value: 'CEIPEnable'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\SQMClient\Windows'
+    value: 'CEIPEnable'
+    data: '0'
+    type: REG_DWORD

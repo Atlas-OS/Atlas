@@ -1,0 +1,61 @@
+---
+title: Disable Windows Error Reporting
+description: Disables Windows Error Reporting for privacy and QoL
+actions:
+  # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.InternetCommunicationManagement::PCH_DoNotReport
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'Disabled'
+    data: '1'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting'
+    value: 'DoReport'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'Disabled'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'DontShowUI'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\PCHealth\ErrorReporting'
+    value: 'ShowUI'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'LoggingDisabled'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'
+    value: 'DontSendAdditionalData'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing'
+    value: 'DisableWerReporting'
+    data: '1'
+    type: REG_DWORD
+
+  # Do not send a Windows error report when a generic driver is installed on a device
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings'
+    value: 'DisableSendGenericDriverNotFoundToWER'
+    data: '1'
+    type: REG_DWORD
+
+  # Prevent Windows from sending an error report when a device driver requests additional software during installation
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings'
+    value: 'DisableSendRequestAdditionalSoftwareToWER'
+    data: '1'
+    type: REG_DWORD

@@ -1,0 +1,11 @@
+---
+title: Disable Wallpaper Compression
+description: Disables wallpaper compression so that your wallpaper is always in its full quality
+actions:
+  - !registryValue:
+    path: 'HKCU\Control Panel\Desktop'
+    value: 'JPEGImportQuality'
+    data: '100'
+    type: REG_DWORD
+    
+    

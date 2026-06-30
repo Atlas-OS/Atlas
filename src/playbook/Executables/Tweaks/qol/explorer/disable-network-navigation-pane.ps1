@@ -1,0 +1,15 @@
+---
+title: Disable Network Navigation Pane in Explorer
+description: Disables the network navigation pane/item in the Explorer sidebar for QoL by default, as it is mostly unused
+actions:
+    # Use this instead once AME fixes hives issue
+  # - !registryValue:
+  #   path: 'HKCU\SOFTWARE\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}'
+  #   value: 'System.IsPinnedToNameSpaceTree'
+  #   data: '0'
+  #   type: REG_DWORD
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" /silent'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated

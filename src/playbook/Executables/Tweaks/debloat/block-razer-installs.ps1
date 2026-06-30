@@ -1,0 +1,23 @@
+---
+title: Block Razer Software Auto Install
+description: Blocks automatic Razer software installation on newly connected Razer devices or fresh install
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching'
+    value: 'SearchOrderConfig'
+    data: '0'
+    type: REG_DWORD
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Installer'
+    value: 'DisableCoInstallers'
+    data: '1'
+    type: REG_DWORD
+
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tasks\Block-RazerInstaller.ps1'')'
+    runas: currentUserElevated
+    wait: true
+Invoke-SetRegistry -KeyPath 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching' -ValueName 'SearchOrderConfig' -ValueData '0' -Type REG_DWORD
+Invoke-SetRegistry -KeyPath 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Installer' -ValueName 'DisableCoInstallers' -ValueData '1' -Type REG_DWORD
+Invoke-RunTask -

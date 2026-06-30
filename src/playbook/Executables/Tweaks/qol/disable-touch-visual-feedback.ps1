@@ -1,0 +1,18 @@
+---
+title: Disable Touch Visual Feedback
+description: Disables touch visual feedback for QoL
+actions:
+  - !registryValue:
+    path: 'HKCU\Control Panel\Cursors'
+    value: 'GestureVisualization'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Cursors'
+    value: 'ContactVisualization'
+    data: '0'
+    type: REG_DWORD
+    
+    

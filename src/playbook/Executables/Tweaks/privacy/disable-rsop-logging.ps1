@@ -1,0 +1,9 @@
+---
+title: Disable Resultant Set of Policy (RSoP) Logging
+description: Disables logging of Group Policy settings (RSoP) for privacy
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'RSoPLogging'
+    data: '0'
+    type: REG_DWORD

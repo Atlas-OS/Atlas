@@ -1,0 +1,9 @@
+---
+title: Disable Delivery Optimization
+description: Disables Delivery Optimization to make sure that no bandwidth is used in the background for peer-to-peer Windows Updates
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization'
+    value: 'DODownloadMode'
+    data: '0'
+    type: REG_DWORD

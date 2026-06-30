@@ -1,0 +1,46 @@
+---
+title: Configure Start Menu
+description: Configures the Start Menu's settings for QoL
+actions:
+    # Configure default Windows 11 pins
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Start'
+    value: 'ConfigureStartPins'
+    type: REG_SZ
+    data: '{"pinnedList":[{"packagedAppId":"windows.immersivecontrolpanel_cw5n1h2txyewy!microsoft.windows.immersivecontrolpanel"},{"packagedAppId":"Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"},{"desktopAppLink":"%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\File Explorer.lnk"},{"packagedAppId":"Microsoft.WindowsStore_8wekyb3d8bbwe!App"},{"packagedAppId":"Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App"},{"packagedAppId":"Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"},{"packagedAppId":"Microsoft.WindowsNotepad_8wekyb3d8bbwe!App"},{"packagedAppId":"Microsoft.Paint_8wekyb3d8bbwe!App"},{"packagedAppId":"Microsoft.SecHealthUI_8wekyb3d8bbwe!SecHealthUI"}]}'
+
+    # Set start menu pins
+  - !taskKill: {name: 'StartMenuExperienceHost', ignoreErrors: true}
+  - !powerShell:
+    command: '.\STARTMENU.ps1'
+    exeDir: true
+    wait: true
+  - !appx: {operation: clearCache, name: 'Microsoft.Windows.StartMenuExperienceHost*'}
+
+    # Remove frequent programs list from the Start Menu 
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'NoStartMenuMFUprogramsList'
+    data: '1'
+    type: REG_DWORD
+    # Hide "Most used" list from Start menu
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'ShowOrHideMostUsedApps'
+    data: '2'
+    type: REG_DWORD
+
+    # Remove "Recently added" list from Start Menu
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'HideRecentlyAddedApps'
+    data: '1'
+    type: REG_DWORD
+
+    # Remove Personalized Website Recommendations from the Recommended section in the Start Menu
+    # https://www.elevenforum.com/t/add-or-remove-recommended-websites-on-start-menu-in-windows-11.10667/
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'HideRecommendedPersonalizedSites'
+    data: '1'
+    type: REG_DWORD

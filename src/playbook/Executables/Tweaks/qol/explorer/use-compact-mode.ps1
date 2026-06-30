@@ -1,0 +1,12 @@
+---
+title: Use Compact Mode
+description: Sets compact mode in File Explorer
+builds: [ '>=22000' ]
+actions:
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'UseCompactMode'
+    data: '1'
+    type: REG_DWORD
+    
+    

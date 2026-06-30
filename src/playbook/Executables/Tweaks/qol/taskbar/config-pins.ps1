@@ -1,0 +1,84 @@
+---
+title: Configure Taskbar Pins
+description: Configures taskbar pins for QoL, puts the browser first (if there is one) and Explorer next
+onUpgrade: false
+actions:
+    # PowerShell commands used:
+    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "FavoritesResolve").FavoritesResolve) -replace '-' | clip
+    # [BitConverter]::ToString($(Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -Name "Favorites").Favorites) -replace '-' | clip
+    # Config pins
+  - !registryKey:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+  - !registryKey:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    operation: add
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+    value: 'FavoritesVersion'
+    data: '3'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    value: 'MailPin'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+    value: 'CopilotPWAPin'
+    data: '0'
+    type: REG_DWORD
+    
+    
+    # Not sure what this does
+  # - !registryValue:
+  #   path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'
+  #   value: 'TFLPin'
+  #   data: '0'
+  #   type: REG_DWORD
+
+# Sets a temporary value for taskbar pins after oobe
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "Brave", type: REG_SZ, option: 'browser-brave'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "Firefox", type: REG_SZ, option: 'browser-firefox'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "Google Chrome", type: REG_SZ, option: 'browser-chrome'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "LibreWolf", type: REG_SZ, option: 'browser-librewolf'}
+  - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "", type: REG_SZ, option: '!install-another-browser'}
+
+  - !powerShell:
+    command: '.\TASKBARPINS.ps1'
+    option: '!install-another-browser'
+    exeDir: true
+    onUpgrade: false
+    oobe: false
+    wait: true
+  - !powerShell:
+    command: ".\\TASKBARPINS.ps1 'Brave'"
+    option: 'browser-brave'
+    exeDir: true
+    onUpgrade: false
+    oobe: false
+    wait: true
+  - !powerShell:
+    command: ".\\TASKBARPINS.ps1 'Firefox'"
+    option: 'browser-firefox'
+    exeDir: true
+    onUpgrade: false
+    oobe: false
+    wait: true
+  - !powerShell:
+    command: ".\\TASKBARPINS.ps1 'Google Chrome'"
+    option: 'browser-chrome'
+    exeDir: true
+    onUpgrade: false
+    oobe: false
+    wait: true
+  - !powerShell:
+    command: ".\\TASKBARPINS.ps1 'LibreWolf'"
+    option: 'browser-librewolf'
+    exeDir: true
+    onUpgrade: false
+    oobe: false
+    wait: true

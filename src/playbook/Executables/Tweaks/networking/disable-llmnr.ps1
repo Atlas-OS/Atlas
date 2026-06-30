@@ -1,0 +1,10 @@
+---
+title: Disable LLMNR Protocol
+description: Disable Link-Local Multicast Name Resolution (LLMNR) protocol as it is vulnerable and has been replaced by DNS
+actions:
+    # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.DNSClient::Turn_Off_Multicast
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient'
+    value: 'EnableMulticast'
+    data: '0'
+    type: REG_DWORD

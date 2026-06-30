@@ -1,0 +1,12 @@
+---
+title: Disable Dynamic Lighting
+description: Disables Dynamic Lighting by default
+builds: [ '>=22000' ]
+actions:
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Lighting'
+    value: 'AmbientLightingEnabled'
+    data: '0'
+    type: REG_DWORD
+    
+    

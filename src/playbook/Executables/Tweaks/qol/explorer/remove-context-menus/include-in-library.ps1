@@ -1,0 +1,5 @@
+---
+title: Remove 'Include in Library' from Context Menu
+description: Removes 'Include in Library' from context menu
+actions:
+  - !registryKey: {path: 'HKCR\Folder\ShellEx\ContextMenuHandlers\Library Location'}

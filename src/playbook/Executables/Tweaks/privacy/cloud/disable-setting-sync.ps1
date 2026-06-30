@@ -1,0 +1,62 @@
+---
+title: Disable Settings Sync
+description: Disables Settings Sync (labeled as 'Windows Backup' in Windows 10) for QoL and privacy
+actions:
+    # Policies don't disable the toggles in the UI, doesn't seem like much can be done about it
+    # Whole Settings page is hidden anyways
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'
+    value: 'DisableSettingSync'
+    data: '2'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'
+    value: 'DisableSettingSyncUserOverride'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'
+    value: 'DisableSyncOnPaidNetwork'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'
+    value: 'DisableWindowsSettingSync'
+    data: '2'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Personalization'
+    value: 'Enabled'
+    data: '0'
+    type: REG_DWORD
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\BrowserSettings'
+    value: 'Enabled'
+    data: '0'
+    type: REG_DWORD
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Credentials'
+    value: 'Enabled'
+    data: '0'
+    type: REG_DWORD
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Accessibility'
+    value: 'Enabled'
+    data: '0'
+    type: REG_DWORD
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Windows'
+    value: 'Enabled'
+    data: '0'
+    type: REG_DWORD
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync'
+    value: 'SyncPolicy'
+    data: '5'
+    type: REG_DWORD
+    

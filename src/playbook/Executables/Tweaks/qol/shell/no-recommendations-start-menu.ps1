@@ -1,0 +1,20 @@
+---
+title: Disable Recommendations in the Start Menu
+description: Do not show recommendations for tips, shortcuts, new apps, and more in the Start Menu
+actions:
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'Start_IrisRecommendations'
+    data: '0'
+    type: REG_DWORD
+    
+    
+    builds: [ '>=22000' ]
+
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'Start_AccountNotifications'
+    data: '0'
+    type: REG_DWORD
+    
+    

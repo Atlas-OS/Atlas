@@ -1,0 +1,9 @@
+---
+title: Disable Activity Feed
+description: Disables Activity Feed in Task View for privacy and QoL
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'EnableActivityFeed'
+    data: '0'
+    type: REG_DWORD

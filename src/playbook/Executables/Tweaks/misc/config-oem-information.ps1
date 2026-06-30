@@ -1,0 +1,22 @@
+---
+title: Configure OEM Information
+description: Configures OEM information to contain the Atlas version and the Atlas Discord server
+actions:
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tasks\Set-OemInformation.ps1'')'
+    wait: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
+    value: 'Manufacturer'
+    data: 'Atlas Team'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
+    value: 'SupportURL'
+    data: 'https://discord.atlasos.net'
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
+    value: 'SupportPhone'
+    data: 'https://github.com/Atlas-OS/Atlas'
+    type: REG_SZ

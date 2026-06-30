@@ -1,0 +1,14 @@
+---
+title: Add Registry Entries to 'New' Context Menu
+description: Adds registry entries (.reg) to 'New' context menu
+actions:
+  - !registryValue:
+    path: 'HKCR\.reg\ShellNew'
+    value: 'NullFile'
+    data: ''
+    type: REG_SZ
+  - !registryValue:
+    path: 'HKCR\.reg\ShellNew'
+    value: 'ItemName'
+    data: '%windir%\regedit.exe,-309'
+    type: REG_EXPAND_SZ

@@ -1,0 +1,9 @@
+---
+title: Disable Device Health Attestation Monitoring and Reporting
+description: Disables Device Health Attestation Monitoring and Reporting on startup for privacy
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\DeviceHealthAttestationService'
+    value: 'EnableDeviceHealthAttestationService'
+    data: '0'
+    type: REG_DWORD

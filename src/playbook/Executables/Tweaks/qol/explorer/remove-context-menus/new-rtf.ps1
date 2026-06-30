@@ -1,0 +1,5 @@
+---
+title: Remove Rich Text Document from 'New' Context Menu
+description: Removes rich text document from 'New' context menu
+actions:
+  - !registryKey: {path: 'HKCR\.rtf\ShellNew'}

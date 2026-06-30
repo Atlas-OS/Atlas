@@ -1,0 +1,57 @@
+---
+title: Disallow Telemetry and Data Collection
+description: Disallows telemetry and data collection to improve privacy
+actions:
+    # Stop DiagTrack service to add the changes
+  - !service: {name: 'DiagTrack', operation: stop, ignoreErrors: true}
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
+    value: 'ShowedToastAtLevel'
+    data: '1'
+    type: REG_DWORD
+    
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
+    value: 'AllowTelemetry'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
+    value: 'MaxTelemetryAllowed'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'
+    value: 'AllowTelemetry'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection'
+    value: 'AllowTelemetry'
+    data: '0'
+    type: REG_DWORD
+
+    # Misc
+  - !registryValue:
+    path: 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'
+    value: 'EnableEventTranscript'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'
+    value: 'MiniTraceSlotEnabled'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'
+    value: 'AllowDeviceNameInTelemetry'
+    data: '0'
+    type: REG_DWORD
+
+    # Disable & clear logger
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diagtrack-Listener'
+    value: 'Start'
+    data: '0'
+    type: REG_DWORD
+  - !cmd: {command: 'del "%ProgramData%\Microsoft\Diagnosis\ETLLogs\AutoLogger\DiagTrack*" "%ProgramData%\Microsoft\Diagnosis\ETLLogs\ShutdownLogger\DiagTrack*" > nul 2>&1'}

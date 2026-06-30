@@ -1,0 +1,65 @@
+---
+title: Add Theme
+description: Adds and sets the Atlas themes by default
+actions:
+    #Apply theme file and set recent themes
+  - !powerShell:
+    command: |
+      .\AtlasModules\initPowerShell.ps1
+      Set-ThemeMRU
+    wait: true
+    onUpgrade: true
+    oobe: true
+    exeDir: true
+    runas: currentUserElevated
+    
+  - !powerShell:
+    command: |
+      .\AtlasModules\initPowerShell.ps1
+      Set-Theme -Path """$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.5.x-dark.theme"""
+      Set-ThemeMRU
+    wait: true
+    onUpgrade: false
+    exeDir: true
+    runas: currentUserElevated
+
+    # Applies Atlas lockscreen background & wallpaper 
+    # Also disables fun facts, tips, tricks, and more on lockscreen - only on Enterprise/Education
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
+    value: 'LockScreenOverlaysDisabled'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: false
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'RotatingLockScreenEnabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: false
+  - !powerShell:
+    command: |
+      foreach ($userKey in (Get-ChildItem "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative").PsPath) {
+          Set-ItemProperty -Path $userKey -Name 'RotatingLockScreenEnabled' -Type DWORD -Value 0 -Force
+      }
+    exeDir: true
+    wait: true
+    onUpgrade: false
+  - !powerShell:
+    command: |
+      .\AtlasModules\initPowerShell.ps1
+      Set-LockscreenImage
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+    onUpgrade: false
+
+    # Set Atlas theme as default for new users
+  - !registryValue:
+    path: 'HKU\AME_UserHive_Default\Software\Policies\Microsoft\Windows\Personalization'
+    value: 'ThemeFile'
+    data: '%windir%\Resources\Themes\atlas-v0.5.x-dark.theme'
+    type: REG_SZ
+    onUpgrade: true
+    
+    

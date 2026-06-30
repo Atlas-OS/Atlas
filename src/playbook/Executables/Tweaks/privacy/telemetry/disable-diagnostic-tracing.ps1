@@ -1,0 +1,9 @@
+---
+title: Disable Diagnostic Tracing
+description: Disables diagnostic tracing (system activities, events or errors) for privacy reasons
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Diagnostics\Performance'
+    value: 'DisableDiagnosticTracing'
+    data: '1'
+    type: REG_DWORD

@@ -1,0 +1,9 @@
+---
+title: Restore Old Context Menu
+description: Restores the old context menu in Windows 11
+builds: [ '>=22000' ]
+actions:
+  - !cmd:
+    command: 'reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /t REG_SZ /d "" /f > nul'
+    runas: currentUserElevated
+    wait: true

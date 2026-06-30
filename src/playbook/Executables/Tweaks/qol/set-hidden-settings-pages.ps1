@@ -1,0 +1,21 @@
+---
+title: Set Hidden Pages
+description: Hides Settings pages that are either broken or unused
+actions:
+    # https://learn.microsoft.com/en-us/windows/uwp/launch-resume/launch-settings-app
+
+    # Windows 10
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'SettingsPageVisibility'
+    data: 'hide:recovery;maps;maps-downloadmaps;privacy;privacy-speechtyping;privacy-speech;privacy-feedback;privacy-activityhistory;search-permissions;privacy-general;sync;mobile-devices;mobile-devices-addphone;workplace;backup'
+    type: REG_SZ
+    builds: [ '<22000' ]
+
+    # Windows 11
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'SettingsPageVisibility'
+    data: 'hide:recovery;maps;maps-downloadmaps;privacy;privacy-feedback;privacy-activityhistory;search-permissions;privacy-general;sync;mobile-devices;mobile-devices-addphone;workplace;family-group;deviceusage;home'
+    type: REG_SZ
+    builds: [ '>=22000' ]

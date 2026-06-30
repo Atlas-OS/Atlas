@@ -1,0 +1,11 @@
+---
+title: Change the Tooltip Color to Blue
+description: Changes the tooltip color to blue
+actions:
+  - !registryValue:
+    path: 'HKCU\Control Panel\Colors'
+    value: 'InfoWindow'
+    data: '246 253 255'
+    type: REG_SZ
+    
+    

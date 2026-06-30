@@ -1,0 +1,18 @@
+---
+title: Disable 'Notify About USB Issues'
+description: Disables 'Notify me if there are issues connecting to USB devices' as this is prone to false positives, for QoL
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Shell\USB'
+    value: 'NotifyOnUsbErrors'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Shell\USB'
+    value: 'NotifyOnWeakCharger'
+    data: '0'
+    type: REG_DWORD
+    
+    

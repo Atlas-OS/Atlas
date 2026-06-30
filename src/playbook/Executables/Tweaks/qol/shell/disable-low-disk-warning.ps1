@@ -1,0 +1,10 @@
+---
+title: Disable Low Disk Space Checks
+description: DIsables low disk space checks, meaning that there will not be a low disk space warning for QoL
+actions:
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    value: 'NoLowDiskSpaceChecks'
+    data: '1'
+    type: REG_DWORD
+

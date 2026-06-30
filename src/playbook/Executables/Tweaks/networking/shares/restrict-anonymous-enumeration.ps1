@@ -1,0 +1,10 @@
+---
+title: Restrict Anonymous Enumeration of Shares
+description: Restricts anonymous enumeration of shares
+actions:
+  # https://www.stigviewer.com/stig/microsoft_windows_10/2022-04-08/finding/V-220930
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa'
+    value: 'RestrictAnonymous'
+    data: '1'
+    type: REG_DWORD

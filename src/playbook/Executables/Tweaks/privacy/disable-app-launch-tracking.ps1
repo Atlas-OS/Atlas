@@ -1,0 +1,12 @@
+---
+title: Disable App Launch Tracking
+description: Prevents Windows from automatically tracking applications you use the most for improved privacy
+actions:
+    # https://www.tenforums.com/tutorials/82967-turn-off-app-launch-tracking-windows-10-a.html
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'Start_TrackProgs'
+    data: '0'
+    type: REG_DWORD
+    
+    

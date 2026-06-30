@@ -1,0 +1,9 @@
+---
+title: Remove 'Extract' from Context Menu
+description: Removes 'Extract' from Context Menu
+actions:
+  - !cmd:
+    command: '"AtlasDesktop\4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).cmd" /silent'
+    exeDir: true
+    wait: true
+    runas: currentUserElevated

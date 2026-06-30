@@ -1,0 +1,12 @@
+---
+title: Set Taskbar to Align Left
+description: Sets taskbar to align left instead of centered
+builds: [ '>=22000' ]
+actions:
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'TaskbarAl'
+    data: '0'
+    type: REG_DWORD
+    
+    

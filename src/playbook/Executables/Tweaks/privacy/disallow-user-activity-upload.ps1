@@ -1,0 +1,14 @@
+---
+title: Disallow Upload and Publish of User Activities
+description: Disables the upload and publish of user activities for privacy
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'UploadUserActivities'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'PublishUserActivities'
+    data: '0'
+    type: REG_DWORD

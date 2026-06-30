@@ -1,0 +1,13 @@
+---
+title: Disable Microsoft Copilot
+description: Disables Microsoft Copilot as it depends on Edge, as well it collecting data and not being used by most users
+builds: [ '>=22000' ]
+actions:
+    # Doesn't work with HKLM
+  - !registryValue:
+    path: 'HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot'
+    value: 'TurnOffWindowsCopilot'
+    data: '1'
+    type: REG_DWORD
+    
+    

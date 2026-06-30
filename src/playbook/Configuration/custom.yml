@@ -2,6 +2,13 @@
 title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
+  # required for powershell module tasks
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\AtlasOS'
+    value: "IsUpdate"
+    data: "1"
+    type: DWORD
+    onUpdate: true
   # some changes requires default user access. loading the hive before everything else is required
   - !powerShell:
     command: 'reg load HKU\AME_UserHive_Default $env:HOMEDRIVE\Users\Default\NTUSER.DAT'
@@ -108,3 +115,9 @@ actions:
     value: "ExecutionPolicy"
     data: "RemoteSigned"
     type: REG_SZ
+  # cleanup
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\AtlasOS'
+    value: "IsUpdate"
+    onUpdate: true
+    operation: delete

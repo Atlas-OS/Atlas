@@ -1,0 +1,73 @@
+---
+title: Disable Commonly Annoying Features and Shortcuts
+description: Disables commonly annoying features such as pressing shift 5 times for sticky keys.
+actions:
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\HighContrast'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\Keyboard Response'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\MouseKeys'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\StickyKeys'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Control Panel\Accessibility\ToggleKeys'
+    value: 'Flags'
+    data: '0'
+    type: REG_DWORD
+    
+    
+
+    # Disable language bar shortcuts
+  - !registryKey:
+    path: 'HKCU\Control Panel\Input Method\Hot Keys\00000104'
+  - !registryValue:
+    path: 'HKCU\Keyboard Layout\Toggle'
+    value: 'Layout Hotkey'
+    data: '3'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Keyboard Layout\Toggle'
+    value: 'Language Hotkey'
+    data: '3'
+    type: REG_DWORD
+    
+    
+  - !registryValue:
+    path: 'HKCU\Keyboard Layout\Toggle'
+    value: 'Hotkey'
+    data: '3'
+    type: REG_DWORD
+    
+    
+
+    # Disable Narrator shortcut  
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Narrator\NoRoam'
+    value: 'WinEnterLaunchEnabled'
+    data: '0'
+    type: REG_DWORD
+    
+    

@@ -1,0 +1,18 @@
+---
+title: Disable News and Interests
+description: Disables News and Interests on the taskbar for privacy (lots of third party connections) and QoL
+actions:
+  - !taskKill: {name: 'explorer'}
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds'
+    value: 'EnableFeeds'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Dsh'
+    value: 'AllowNewsAndInterests'
+    data: '0'
+    type: REG_DWORD
+
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}

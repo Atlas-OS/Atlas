@@ -1,0 +1,67 @@
+---
+title: Set Unpinned Control Center Items
+description: Disables unused control center items by default for QoL
+actions:
+  - !taskKill: {name: 'explorer'}
+
+    # Windows 10
+  - !registryValue:
+    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
+    value: 'Microsoft.QuickAction.Connect'
+    data: ''
+    type: REG_NONE
+    
+    
+    builds: [ '<22000' ]
+  - !registryValue:
+    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
+    value: 'Microsoft.QuickAction.Location'
+    data: ''
+    type: REG_NONE
+    
+    
+    builds: [ '<22000' ]
+  - !registryValue:
+    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
+    value: 'Microsoft.QuickAction.ScreenClipping'
+    data: ''
+    type: REG_NONE
+    
+    
+    builds: [ '<22000' ]
+  - !registryValue:
+    path: 'HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture'
+    value: 'Toggles'
+    data: 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false'
+    type: REG_SZ
+    
+    
+    builds: [ '<22000' ]
+
+    # Windows 11
+  - !registryValue:
+    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
+    value: 'Microsoft.QuickAction.Cast'
+    data: ''
+    type: REG_NONE
+    
+    
+    builds: [ '>=22000' ]
+  - !registryValue:
+    path: 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'
+    value: 'Microsoft.QuickAction.NearShare'
+    data: ''
+    type: REG_NONE
+    
+    
+    builds: [ '>=22000' ]
+  - !registryValue:
+    path: 'HKCU\Control Panel\Quick Actions\Control Center\QuickActionsStateCapture'
+    value: 'Toggles'
+    data: 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.Accessibility:false,Microsoft.QuickAction.ProjectL2:false'
+    type: REG_SZ
+    
+    
+    builds: [ '>=22000' ]
+
+  - !run: {exe: 'explorer.exe', runas: 'currentUser', wait: false}

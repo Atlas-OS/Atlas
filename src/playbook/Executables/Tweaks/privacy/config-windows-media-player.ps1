@@ -1,0 +1,28 @@
+---
+title: Configure Windows Media Player
+description: Configures Windows Media Player for the optimal privacy, security and usability. As a note, WMP is old, and you probably shouldn't use it.
+actions:
+    # Prevent Windows Media DRM internet access
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\WMDRM'
+    value: 'DisableOnline'
+    data: '1'
+    type: REG_DWORD
+
+    # Disable Windows Media Player wizard on first run
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences'
+    value: 'AcceptedPrivacyStatement'
+    data: '1'
+    type: REG_DWORD
+    
+    
+
+    # Disable Windows Media Player diagnostics
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\MediaPlayer\Preferences'
+    value: 'UsageTracking'
+    data: '0'
+    type: REG_DWORD
+    
+    
