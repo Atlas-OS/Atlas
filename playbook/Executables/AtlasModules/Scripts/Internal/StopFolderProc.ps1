@@ -1,12 +1,14 @@
 $ErrorActionPreference = 'Stop'
 
+# Runs before the payload copy on upgrades, so the module is imported from the
+# extracted playbook directory rather than the (stale) copy in %windir%.
 $executablesRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-$utilsModule = Join-Path -Path $executablesRoot -ChildPath 'AtlasModules\Scripts\Modules\Utils\Utils.psm1'
-if (-not (Test-Path -LiteralPath $utilsModule -PathType Leaf)) {
-    throw "Atlas utility module '$utilsModule' is missing."
+$coreModule = Join-Path -Path $executablesRoot -ChildPath 'AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1'
+if (-not (Test-Path -LiteralPath $coreModule -PathType Leaf)) {
+    throw "Atlas core module '$coreModule' is missing."
 }
 
-Import-Module $utilsModule -Force
+Import-Module $coreModule -Force
 
 $windir = [Environment]::GetFolderPath('Windows')
 $targetRoots = @(

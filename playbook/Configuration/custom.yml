@@ -35,6 +35,40 @@ actions:
     exeDir: true
     handleExitCodes: { "!0": halt }
 
+  # ---- Context capture: AME Wizard decisions -> PowerShell framework ----
+  # AME evaluates option/onUpgrade/oobe gating in YAML only. These flag files are how
+  # the PowerShell framework reads those decisions (Atlas.Core: Test-AtlasOption,
+  # Get-AtlasContext). Stale flags from a previous install are cleared first.
+  - !powerShell:
+    command: '$f = "$env:windir\AtlasModules\Flags"; New-Item -Path $f -ItemType Directory -Force | Out-Null; Remove-Item -Path "$f\*.flag" -Force -ErrorAction SilentlyContinue'
+    wait: true
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\Upgrade.flag" -ItemType File -Force | Out-Null', wait: true, onUpgrade: true }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\Interactive.flag" -ItemType File -Force | Out-Null', wait: true, oobe: false }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-auto-updates-default.flag" -ItemType File -Force | Out-Null', wait: true, option: 'auto-updates-default' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-auto-updates-disable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'auto-updates-disable' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-brave.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-brave' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-chrome.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-chrome' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-firefox.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-firefox' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-librewolf.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-librewolf' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-defender-disable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'defender-disable' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-defender-enable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'defender-enable' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-disable-core-isolation.flag" -ItemType File -Force | Out-Null', wait: true, option: 'disable-core-isolation' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-disable-hibernation.flag" -ItemType File -Force | Out-Null', wait: true, option: 'disable-hibernation' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-disable-power-saving.flag" -ItemType File -Force | Out-Null', wait: true, option: 'disable-power-saving' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-install-another-browser.flag" -ItemType File -Force | Out-Null', wait: true, option: 'install-another-browser' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-install-toolbox.flag" -ItemType File -Force | Out-Null', wait: true, option: 'install-toolbox' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-mitigations-default.flag" -ItemType File -Force | Out-Null', wait: true, option: 'mitigations-default' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-mitigations-disable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'mitigations-disable' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-remove-snipping-tool.flag" -ItemType File -Force | Out-Null', wait: true, option: 'remove-snipping-tool' }
+  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-uninstall-edge.flag" -ItemType File -Force | Out-Null', wait: true, option: 'uninstall-edge' }
+
+  # Validates the PowerShell install orchestrator under AME. The phases are stubs while
+  # the migration is in progress; the legacy task chain below still performs the work.
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase PreInstall'
+    wait: true
+    handleExitCodes: { "!0": halt }
+
   # Prevent annoying notifications during deployment
   - !cmd:
     command: "DISABLENOTIFS.cmd"
