@@ -139,6 +139,33 @@ Describe 'Test-AtlasTweakSchema' {
     }
 }
 
+Describe 'Shipped tweak definitions' {
+    BeforeAll {
+        $script:shippedTweaksRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Tweaks')).Path
+    }
+
+    It 'every shipped tweak passes schema validation' {
+        $problems = @(Test-AtlasTweakSchema -Path $script:shippedTweaksRoot)
+        $report = @($problems | ForEach-Object { "$($_.Path): $($_.Problem)" }) -join "`n"
+        $report | Should -BeNullOrEmpty
+    }
+
+    It 'every manifest entry resolves to a shipped tweak file' {
+        $manifest = Get-AtlasTweakManifest -Path (Join-Path -Path $script:shippedTweaksRoot -ChildPath 'tweaks.manifest.psd1')
+
+        $missing = foreach ($category in $manifest.Categories) {
+            foreach ($tweak in $category.Tweaks) {
+                $tweakFile = Join-Path -Path $script:shippedTweaksRoot -ChildPath (Join-Path -Path $category.Name -ChildPath "$tweak.psd1")
+                if (-not (Test-Path -LiteralPath $tweakFile -PathType Leaf)) {
+                    "$($category.Name)/$tweak"
+                }
+            }
+        }
+
+        @($missing) -join "`n" | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Test-AtlasTweakApplicable' {
     BeforeEach {
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock }

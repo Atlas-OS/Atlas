@@ -26,11 +26,12 @@ jobs:
 
       - name: Windows PowerShell 5.1 parse gate
         # The payload runs under Windows PowerShell 5.1 on target machines; this catches
-        # PowerShell-7-only syntax before it ships.
+        # PowerShell-7-only syntax before it ships. Includes .psd1 so a broken tweak
+        # definition or module manifest cannot ship and fail (or get skipped) at runtime.
         shell: powershell
         run: |
           $failed = $false
-          Get-ChildItem -Path 'playbook' -Recurse -Include '*.ps1','*.psm1' | ForEach-Object {
+          Get-ChildItem -Path 'playbook' -Recurse -Include '*.ps1','*.psm1','*.psd1' | ForEach-Object {
               $tokens = $null
               $errors = $null
               [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
