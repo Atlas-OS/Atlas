@@ -1,4 +1,6 @@
 # Features phase.
-# Stub: the legacy YAML task chain still performs this phase's work. Real logic moves
-# here as the corresponding YAML is retired during the PowerShell migration.
-Write-AtlasLog -Message 'Features phase stub executed; work currently handled by the legacy YAML chain.'
+# Intentionally still a stub: the Windows optional-feature work (DISM DirectPlay /
+# StepsRecorder removal, component cleanup) remains in atlas\start.yml as AME actions
+# and has not been ported to PowerShell yet. Nothing runs here until that DISM work is
+# migrated out of YAML.
+Write-AtlasLog -Message 'Features phase is a stub; the DISM feature work still lives in atlas\start.yml (YAML).'

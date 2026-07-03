@@ -62,35 +62,31 @@ actions:
   - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-remove-snipping-tool.flag" -ItemType File -Force | Out-Null', wait: true, option: 'remove-snipping-tool' }
   - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-uninstall-edge.flag" -ItemType File -Force | Out-Null', wait: true, option: 'uninstall-edge' }
 
-  # Validates the PowerShell install orchestrator under AME. The phases are stubs while
-  # the migration is in progress; the legacy task chain below still performs the work.
+  # PreInstall phase (AtlasModules\Scripts\Phases\Invoke-PreInstallPhase.ps1): disables
+  # notifications so they do not fire during deployment, then runs Disk Cleanup so it can
+  # work in the background. Runs elevated so HKCU resolves to the interactive user; halts
+  # on failure. Absorbs the old DISABLENOTIFS.cmd and CLEANUP.ps1 actions.
+  - !writeStatus: { status: "Cleaning up" }
   - !powerShell:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase PreInstall'
     wait: true
+    weight: 3
+    runas: currentUserElevated
     handleExitCodes: { "!0": halt }
 
-  # Prevent annoying notifications during deployment
-  - !cmd:
-    command: "DISABLENOTIFS.cmd"
-    exeDir: true
-    wait: true
-    runas: currentUserElevated
   - !taskKill: { name: "explorer" }
   - !taskKill: { name: "ShellExperienceHost" }
   - !run: { exe: "explorer.exe", runas: "currentUser", wait: false }
 
-  # Configure PowerShell first so that other PowerShell scripts work
-  # NGEN - .NET assemblies PowerShell optimization
+  # Environment phase (AtlasModules\Scripts\Phases\Invoke-EnvironmentPhase.ps1): NGEN of
+  # the loaded .NET assemblies plus the temporary Unrestricted execution policy and the
+  # PowerShell telemetry opt-out. Done before the main tasks so other PowerShell scripts
+  # run. Absorbs the old script-ngen.yml and config-powershell.yml task includes.
   - !writeStatus: { status: "Optimizing PowerShell" }
-  - !task: { path: 'tweaks\scripts\script-ngen.yml' }
-  - !task: { path: 'tweaks\qol\config-powershell.yml' }
-
-  # Disk Cleanup is run first so it can run in the background
-  - !writeStatus: { status: "Cleaning up" }
   - !powerShell:
-    command: '.\CLEANUP.ps1'
-    exeDir: true
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Environment'
     wait: true
+    weight: 3
     runas: currentUserElevated
 
   # Set hidden Settings pages
@@ -115,23 +111,19 @@ actions:
     wait: true
     onUpgrade: true
 
-  # Set hives to HKU default user
+  # Finalize phase (AtlasModules\Scripts\Phases\Invoke-FinalizePhase.ps1): mirrors the
+  # recorded HKCU keys into the still-loaded default-user hive (the APPLYDUHIVE.ps1
+  # replacement) and corrects stale registry launcher paths (was SETPATHS.ps1). MUST run
+  # while HKU\AME_UserHive_Default is loaded, i.e. before the 'reg unload' below.
   - !writeStatus: { status: "Applying hives..." }
   - !powerShell:
-    command: '.\APPLYDUHIVE.ps1'
-    exeDir: true
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Finalize'
     wait: true
-    runas: currentUserElevated
-
-  # Set all the correct paths if there are incorrect ones in the registry
-  - !writeStatus: { status: "Cleaning up registry paths" }
-  - !powerShell:
-    command: '.\SETPATHS.ps1'
-    exeDir: true
-    wait: true
+    weight: 2
     runas: currentUserElevated
 
   # Unloading the hive
+  - !writeStatus: { status: "Cleaning up registry paths" }
   - !powerShell:
     command: 'reg unload HKU\AME_UserHive_Default'
     oobe: false

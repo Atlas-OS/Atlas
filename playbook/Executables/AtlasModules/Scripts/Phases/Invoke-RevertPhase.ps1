@@ -1,4 +1,5 @@
 # Revert phase.
-# Stub: the legacy YAML task chain still performs this phase's work. Real logic moves
-# here as the corresponding YAML is retired during the PowerShell migration.
-Write-AtlasLog -Message 'Revert phase stub executed; work currently handled by the legacy YAML chain.'
+# Intentionally still a stub: the upgrade-only StoreFixer revert still lives in
+# atlas\revert.yml as AME actions and has not been ported to PowerShell yet. Nothing
+# runs here until that work is migrated out of YAML.
+Write-AtlasLog -Message 'Revert phase is a stub; the StoreFixer revert still lives in atlas\revert.yml (YAML).'
