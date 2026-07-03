@@ -1,9 +1,7 @@
 # Toggle: Global timer resolution (scheduled task that forces a high timer resolution).
-# Converted from 'AtlasDesktop\3. General Configuration\Timer Resolution\*.cmd'.
 #
-# The original launchers never set a settingName and never wrote the AtlasOS\Services state
-# (so upgrades never re-applied them); NoStateRecord preserves that exactly. The scheduled
-# task is (re)created from the shipped XML at AtlasModules\Other\Force Timer Resolution.xml.
+# The scheduled task is (re)created from the shipped XML at
+# AtlasModules\Other\Force Timer Resolution.xml.
 @{
     Name          = 'TimerResolution'
     Elevation     = 'Admin'

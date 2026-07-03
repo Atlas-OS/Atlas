@@ -1,5 +1,4 @@
 # Toggle: SuperFetch / SysMain and ReadyBoost.
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Services\Superfetch\*.cmd'.
 @{
     Name      = 'SuperFetch'
     Elevation = 'Admin'

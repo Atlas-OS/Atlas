@@ -1,5 +1,4 @@
 # Toggle: Visual effects / animations (Atlas minimal set vs Windows defaults).
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Visual Effects (Animations)\*.cmd'.
 @{
     Name      = 'Animation'
     Elevation = 'Admin'

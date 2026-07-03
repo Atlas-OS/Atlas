@@ -1,10 +1,8 @@
 # Toggle: Microsoft Copilot (taskbar button / app + policy).
-# Converted from 'AtlasDesktop\3. General Configuration\AI Features\Microsoft Copilot\*.cmd'.
 #
 # Both launchers restart Explorer to refresh the taskbar (Reboot='RestartExplorer'); the
-# engine skips that restart when invoked with /noAction, matching the original's
-# 'if /I not "%~2"=="/noAction"' guard. The Enable path reuses the existing Test-EdgeState.cmd /
-# Test-Winget.cmd helpers exactly as the batch did (Copilot needs Edge, and on 24H2 it is
+# engine skips that restart when invoked with /noAction. The Enable path uses the
+# Test-EdgeState.cmd / Test-Winget.cmd helpers (Copilot needs Edge, and on 24H2 it is
 # delivered as a Store app installed via winget).
 @{
     Name      = 'Copilot'

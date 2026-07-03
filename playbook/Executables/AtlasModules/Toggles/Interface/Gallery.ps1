@@ -1,5 +1,4 @@
 # Toggle: Gallery item in the File Explorer navigation pane.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\*.cmd'.
 @{
     Name      = 'Gallery'
     Elevation = 'Admin'

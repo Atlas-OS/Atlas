@@ -1,11 +1,8 @@
 # Toggle: Network reset (Atlas adapter defaults vs. Windows defaults).
-# Converted from 'AtlasDesktop\9. Troubleshooting\Network\Reset Network to *.cmd'.
 #
 # AtlasDefault sets known latency-affecting NIC advanced properties to 0 on every PCI
-# network adapter's driver class key. (The source batch overwrote its key variable in a
-# loop and so only touched the last adapter; this applies to every adapter, which is the
-# evident intent.) WindowsDefault runs the netsh reset stack and removes NIC devices so
-# Windows redetects them with stock settings.
+# network adapter's driver class key. WindowsDefault runs the netsh reset stack and
+# removes NIC devices so Windows redetects them with stock settings.
 @{
     Name      = 'DefaultAtlasNetwork'
     Elevation = 'Admin'

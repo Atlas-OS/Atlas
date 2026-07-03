@@ -1,6 +1,6 @@
 # Sets the default ('') registry values for the 'Merge as TrustedInstaller' verb on
 # .reg files. The declarative Registry schema requires a value name, so these are set
-# here. %windir% is intentionally left unexpanded, matching the legacy REG_SZ data.
+# here. %windir% is intentionally left unexpanded.
 $ErrorActionPreference = 'Stop'
 
 $defaultValues = @(

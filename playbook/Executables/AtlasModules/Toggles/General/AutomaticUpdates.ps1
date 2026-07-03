@@ -1,5 +1,4 @@
 # Toggle: Automatic Updates (WindowsUpdate AU AUOptions policy).
-# Converted from 'AtlasDesktop\3. General Configuration\Automatic Updates\*.cmd'.
 @{
     Name      = 'AutomaticUpdates'
     Elevation = 'Admin'

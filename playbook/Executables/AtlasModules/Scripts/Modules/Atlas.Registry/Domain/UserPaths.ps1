@@ -1,6 +1,6 @@
 # Atlas.Registry domain: known-folder and system-drive helpers.
-# Port of the former UserPaths module; the function names are an internal contract for
-# scripts that resolve them through PSModulePath auto-loading (SHORTCUTS, STARTMENU, ...).
+# The unprefixed function names are an internal contract for the scripts that resolve
+# them through PSModulePath auto-loading - do not rename them.
 
 function Get-UserPath {
     <#

@@ -1,20 +1,14 @@
 # Toggle: Exploit / process mitigations (disable all / Windows default / enable all).
-# Converted from 'AtlasDesktop\7. Security\Mitigations\{Disable All Mitigations,
-# Set Windows Default Mitigations,Enable All Mitigations}.cmd'.
-#
 # One setting ('Mitigations') with three launchers, so this is a three-state definition
 # (each launcher records its own StateValue: Disable=0, WindowsDefault=1, Enable=2).
 #
-# REG_BINARY bitmask parity: the batch scripts read the existing MitigationAuditOptions
-# REG_BINARY value (a hex string via 'reg query') and replaced every hex nibble with '1'
-# (enable all) or '2' (disable all), i.e. every byte becomes 0x11 or 0x22, then wrote that
-# same-length blob back to MitigationAuditOptions and MitigationOptions. This is reproduced
-# here with a byte[] of the existing value's length filled with 0x11 / 0x22. Set-Process-
-# Mitigation -System is called first (as in the batch) so the value exists before it's read.
+# REG_BINARY bitmask: a byte[] of the existing MitigationAuditOptions value's length is
+# filled with 0x11 (enable all) or 0x22 (disable all) and written back to both
+# MitigationAuditOptions and MitigationOptions. Set-ProcessMitigation -System is called
+# first so the value exists before it's read.
 #
-# Elevation is TrustedInstaller (a superset): 'Enable All' relaunched via RunAsTI in the
-# original, and TI can perform everything the Admin-only 'Disable'/'Windows Default'
-# launchers did (all writes are HKLM/system, no HKCU), so behavior is preserved.
+# Elevation is TrustedInstaller for all three states: 'Enable All' needs it, and TI
+# covers everything the other states do (all writes are HKLM/system, no HKCU).
 @{
     Name      = 'Mitigations'
     Elevation = 'TrustedInstaller'
@@ -38,7 +32,7 @@
                 # Disable Structured Exception Handling Overwrite Protection (SEHOP)
                 New-ItemProperty -LiteralPath $kernel -Name 'DisableExceptionChainValidation' -Value 1 -PropertyType DWord -Force | Out-Null
 
-                # Initialize the mitigation bit mask in the registry (parity with the batch)
+                # Initialize the mitigation bit mask in the registry so it exists before being read
                 Set-ProcessMitigation -System -Disable CFG -ErrorAction SilentlyContinue
 
                 # Read the existing mask and set every nibble to 2 (disable all mitigations)

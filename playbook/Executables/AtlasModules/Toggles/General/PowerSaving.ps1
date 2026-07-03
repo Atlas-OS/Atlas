@@ -1,9 +1,7 @@
 # Toggle: Power-saving (Atlas power scheme vs. default Windows schemes).
-# Converted from 'AtlasDesktop\3. General Configuration\Power-saving\*.cmd'.
 #
-# The original launchers were thin wrappers that ran the ScriptWrappers\*PowerSaving.ps1
-# scripts, which simply forward to the Internal\*PowerSaving.ps1 scripts. This definition
-# calls the Internal scripts directly (their real implementation).
+# Calls the Internal\*PowerSaving.ps1 scripts directly (the real implementation behind
+# the ScriptWrappers\*PowerSaving.ps1 passthroughs).
 @{
     Name      = 'PowerSaving'
     Elevation = 'Admin'

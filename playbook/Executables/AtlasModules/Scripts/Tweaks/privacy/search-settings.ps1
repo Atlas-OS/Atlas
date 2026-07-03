@@ -1,6 +1,5 @@
 # Companion of search-settings.psd1: OOBE-only fallback for the SearchboxTaskbarMode
-# values, as applying them declaratively doesn't seem to work during OOBE installs
-# (legacy YAML ran this PowerShell action with 'oobe: only').
+# values, as applying them declaratively doesn't seem to work during OOBE installs.
 $ErrorActionPreference = 'Stop'
 
 # Only applies during OOBE: the shim writes Interactive.flag for normal installs.

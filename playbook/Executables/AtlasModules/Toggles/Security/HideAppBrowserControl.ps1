@@ -1,5 +1,4 @@
 # Toggle: Hide/show the App and Browser Control page in Windows Security.
-# Converted from 'AtlasDesktop\7. Security\Defender\Hide App and Browser Control\*.cmd'.
 @{
     Name      = 'HideAppBrowserControl'
     Elevation = 'Admin'

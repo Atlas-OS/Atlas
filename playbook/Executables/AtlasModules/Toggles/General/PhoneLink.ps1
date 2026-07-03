@@ -1,8 +1,6 @@
 # Toggle: Mobile Devices / Phone Link (CDPSvc, cross-device resume, YourPhone appx).
-# Converted from 'AtlasDesktop\3. General Configuration\Mobile Devices (Phone Link)\*.cmd'.
 #
-# Parity note: the original Enable launcher ran 'start ms-settings:mobile-devices' before its
-# /silent early-exit; the settings page is only opened interactively here so upgrade re-apply
+# The ms-settings:mobile-devices page is only opened interactively so upgrade re-apply
 # stays headless.
 @{
     Name      = 'PhoneLink'

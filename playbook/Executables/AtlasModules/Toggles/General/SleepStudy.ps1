@@ -1,5 +1,4 @@
 # Toggle: Sleep Study diagnostic event logs and the Power Efficiency Diagnostics task.
-# Converted from 'AtlasDesktop\3. General Configuration\Sleep Study\*.cmd'.
 @{
     Name      = 'SleepStudy'
     Elevation = 'Admin'

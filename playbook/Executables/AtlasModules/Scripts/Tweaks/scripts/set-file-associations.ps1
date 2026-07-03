@@ -1,9 +1,9 @@
-# Companion of set-file-associations.psd1 (was Configuration\tweaks\scripts\script-file-associations.yml).
+# Companion of set-file-associations.psd1.
 # The launcher enumerates the loaded user hives itself, so it is TrustedInstaller-safe.
 $ErrorActionPreference = 'Stop'
 $launcher = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Set-FileAssociationsLauncher.cmd'
 
-# Base associations, unless Edge is being uninstalled (was option: '!uninstall-edge').
+# Base associations, unless Edge is being uninstalled.
 if (-not (Test-AtlasOption -Name 'uninstall-edge')) {
     & $launcher
 }

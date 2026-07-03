@@ -1,5 +1,4 @@
 # Toggle: application icon overlays on File Explorer thumbnails.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\File Explorer Customization\App Icons on Thumbnails\*.cmd'.
 @{
     Name      = 'AppIconThumbnail'
     Elevation = 'Admin'

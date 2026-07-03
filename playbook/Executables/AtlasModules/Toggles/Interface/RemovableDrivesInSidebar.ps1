@@ -1,11 +1,4 @@
 # Toggle: Removable drives in the File Explorer navigation pane.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Removable
-# Drives in Sidebar\*.cmd'.
-#
-# Source-bug note: the Enable launcher wrote the DelegateFolders default value with
-# '/t REG_DWORD /d "Removable Drives"', which reg.exe rejects (invalid DWORD data) so the
-# original Enable was effectively a no-op. The corrected, working REG_SZ default value is
-# written here (the value Windows expects to surface removable drives in the sidebar).
 @{
     Name      = 'RemovableDrivesInSidebar'
     Elevation = 'Admin'

@@ -1,8 +1,4 @@
 # Toggle: Hibernation (powercfg /h + Start flyout hibernate option).
-# Converted from 'AtlasDesktop\3. General Configuration\Hibernation\*.cmd'.
-#
-# The Disable launcher asked "reboot now? (Y/N)" and ran shutdown, so the engine handles
-# that prompt via Reboot='Prompt'.
 @{
     Name      = 'Hibernation'
     Elevation = 'Admin'

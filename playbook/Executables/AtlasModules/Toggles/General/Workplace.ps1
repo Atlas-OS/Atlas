@@ -1,8 +1,6 @@
 # Toggle: Workplace (Access work or school) settings page visibility.
-# Converted from 'AtlasDesktop\3. General Configuration\Workplace\*.cmd'.
 #
-# The original called serviceWarning.cmd (skipped under /silent); that is the engine's
-# Warning surface. ms-settings:workplace is opened interactively only.
+# ms-settings:workplace is opened interactively only.
 @{
     Name      = 'Workplace'
     Elevation = 'Admin'

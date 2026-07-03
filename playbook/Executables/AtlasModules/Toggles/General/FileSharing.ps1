@@ -1,10 +1,8 @@
 # Toggle: File Sharing (network discovery, SMB, NetBIOS bindings).
-# Converted from 'AtlasDesktop\3. General Configuration\File Sharing\*.cmd'.
 #
-# The original launchers were thin wrappers that ran the ScriptWrappers\*FileSharing.ps1
-# scripts, which simply forward to the Internal\*FileSharing.ps1 scripts. This definition
-# calls the Internal scripts directly (their real implementation), then the engine handles
-# the "restart now?" prompt (Reboot = 'Prompt').
+# Calls the Internal\*FileSharing.ps1 scripts directly (the real implementation behind
+# the ScriptWrappers\*FileSharing.ps1 passthroughs); the engine handles the
+# "restart now?" prompt (Reboot = 'Prompt').
 @{
     Name      = 'FileSharing'
     Elevation = 'Admin'

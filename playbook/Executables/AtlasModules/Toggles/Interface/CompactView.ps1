@@ -1,5 +1,4 @@
 # Toggle: compact view (reduced item spacing) in File Explorer.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Compact View\*.cmd'.
 @{
     Name      = 'CompactView'
     Elevation = 'Admin'

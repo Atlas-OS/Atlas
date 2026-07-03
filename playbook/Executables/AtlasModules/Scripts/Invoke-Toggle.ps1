@@ -13,7 +13,7 @@
 .NOTES
     Exit codes: 0 = success, 1 = failure.
 #>
-# PositionalBinding is disabled so bare legacy flags (e.g. a menu launcher invoked as
+# PositionalBinding is disabled so bare launcher flags (e.g. a menu launcher invoked as
 # '... -Name BootLogo -LauncherPath "..." /silent') fall through to $Rest instead of
 # binding positionally to -State.
 [CmdletBinding(PositionalBinding = $false)]
@@ -30,7 +30,7 @@ param(
 
 Set-StrictMode -Version 3.0
 
-# Normalize legacy flags forwarded by the launcher's %*.
+# Normalize the flags forwarded by the launcher's %*.
 $silent = $false
 $justContext = $false
 $noExplorerRestart = $false
@@ -45,7 +45,7 @@ foreach ($token in @($Rest)) {
         'justcontext' { $justContext = $true }
         'noaction' { $noExplorerRestart = $true }
         default {
-            # Unknown extra arguments are ignored for batch parity.
+            # Unknown extra arguments are ignored; launchers forward %* verbatim.
         }
     }
 }

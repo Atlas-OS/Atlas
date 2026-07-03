@@ -1,9 +1,8 @@
 # Toggle: CPU Idle desktop context menu (HKCR DesktopBackground shell entry).
-# Converted from 'AtlasDesktop\3. General Configuration\CPU Idle\Desktop Context Menu\*.cmd'.
 #
 # The 'Add' state writes the DesktopBackground\Shell\CpuIdle context-menu tree, whose Command
-# values invoke the CPU Idle launchers (stored verbatim as REG_SZ, %windir% left unexpanded
-# exactly as the batch stored it).
+# values invoke the CPU Idle launchers (stored as REG_SZ, with %windir% intentionally left
+# unexpanded).
 @{
     Name      = 'CpuIdleContextMenu'
     Elevation = 'Admin'

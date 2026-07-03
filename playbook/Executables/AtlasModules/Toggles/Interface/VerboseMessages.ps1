@@ -1,5 +1,4 @@
 # Toggle: Verbose (detailed) startup/shutdown status messages.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Verbose Status Messages\*.cmd'.
 @{
     Name      = 'VerboseMessages'
     Elevation = 'Admin'

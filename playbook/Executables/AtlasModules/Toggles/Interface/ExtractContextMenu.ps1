@@ -1,5 +1,4 @@
 # Toggle: Extract entry in the file context menu (unblocks the archive shell extensions).
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Context Menus\Extract\*.cmd'.
 @{
     Name      = 'ExtractContextMenu'
     Elevation = 'Admin'

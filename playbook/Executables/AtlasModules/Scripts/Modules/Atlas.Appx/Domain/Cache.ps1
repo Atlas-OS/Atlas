@@ -1,9 +1,8 @@
 # Atlas.Appx domain: package cache clearing.
 #
-# Port of the AME Wizard '!appx: {operation: clearCache}' action (ame-assassin
-# -ClearCache): for every user profile's package folder matching the name pattern,
-# processes running from the package are stopped, the TempState folder is emptied and
-# every '*Cache*' folder under LocalState is emptied (keeping SettingsCache.txt).
+# For every user profile's package folder matching the name pattern, processes running
+# from the package are stopped, the TempState folder is emptied and every '*Cache*'
+# folder under LocalState is emptied (keeping SettingsCache.txt).
 
 function Stop-AtlasAppxPackageProcess {
     param(

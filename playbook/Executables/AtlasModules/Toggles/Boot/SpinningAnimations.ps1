@@ -1,6 +1,4 @@
 # Toggle: Boot spinning animation (single-launcher menu).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Boot Configuration\Appearance\Spinning Animation.cmd'.
-# SilentDefault mirrors the original '/silent goto enable' behavior.
 # https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings
 @{
     Name          = 'SpinningAnimations'

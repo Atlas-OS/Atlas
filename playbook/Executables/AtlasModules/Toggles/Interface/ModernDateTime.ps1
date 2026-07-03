@@ -1,5 +1,4 @@
 # Toggle: Modern vs old (Windows 8-style) date/time (tray clock) flyout.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Old Flyouts\Date and Time Flyout\*.cmd'.
 @{
     Name      = 'ModernDateTime'
     Elevation = 'Admin'

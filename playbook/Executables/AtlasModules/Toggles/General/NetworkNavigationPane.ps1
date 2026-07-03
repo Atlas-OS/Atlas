@@ -1,5 +1,4 @@
 # Toggle: Network item in the File Explorer navigation pane.
-# Converted from 'AtlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\*.cmd'.
 @{
     Name      = 'NetworkNavigationPane'
     Elevation = 'Admin'

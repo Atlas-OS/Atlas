@@ -1,6 +1,5 @@
 # Toggle: Fix installer errors 2502 and 2503 by resetting the Windows TEMP folder permissions
-# (no state recording). Converted from 'AtlasDesktop\9. Troubleshooting\Fix Errors 2502 and 2503.cmd',
-# which ran as TrustedInstaller (RunAsTI).
+# (no state recording).
 @{
     Name          = 'FixErrors2502and2503'
     Elevation     = 'TrustedInstaller'

@@ -1,9 +1,4 @@
 # Toggle: Windows boot logo (single-launcher menu).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Boot Configuration\Appearance\Boot Logo.cmd'.
-#
-# The original script recorded 'state' correctly but never declared a stateValue up
-# front; the per-state StateValue keys below make the recorded state explicit.
-# SilentDefault mirrors the original '/silent goto enable' behavior for upgrades.
 # https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings
 @{
     Name          = 'BootLogo'

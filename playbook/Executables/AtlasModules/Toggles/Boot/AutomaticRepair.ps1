@@ -1,6 +1,4 @@
 # Toggle: Windows Automatic Repair at boot (single-launcher menu).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Boot Configuration\Behavior\Automatic Repair.cmd'.
-# SilentDefault mirrors the original '/silent goto enable' behavior.
 # https://winaero.com/how-to-disable-automatic-repair-at-windows-10-boot
 @{
     Name          = 'AutomaticRepair'

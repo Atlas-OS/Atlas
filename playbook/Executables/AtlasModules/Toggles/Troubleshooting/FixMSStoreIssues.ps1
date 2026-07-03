@@ -1,6 +1,4 @@
 # Toggle: Fix Microsoft Store issues by running StoreFixer.exe (no state recording).
-# Converted from 'AtlasDesktop\9. Troubleshooting\Fix MS Store Issues.cmd', which launched
-# '%windir%\AtlasModules\Tools\StoreFixer.exe' as TrustedInstaller.
 @{
     Name          = 'FixMSStoreIssues'
     Elevation     = 'TrustedInstaller'

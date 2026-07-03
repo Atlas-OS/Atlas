@@ -1,13 +1,12 @@
 # Components phase.
-# Removes Windows components that atlas\components.yml previously carried as YAML
-# actions: the Security Center startup item, Smart App Control, Microsoft Edge (option
-# gated), OneDrive and the CBS component packages (option gated). Runs as
-# TrustedInstaller; CBS package failures throw so AME Wizard halts the install
-# (handleExitCodes on the phase call).
+# Removes Windows components: the Security Center startup item, Smart App Control,
+# Microsoft Edge (option gated), OneDrive and the CBS component packages (option
+# gated). Runs as TrustedInstaller; CBS package failures throw so AME Wizard halts
+# the install (handleExitCodes on the phase call).
 #
-# Kept in atlas\components.yml (AME-only): the 'iso: only' OfflineSys WdBoot delete.
-# Moved to atlas\appx.yml: Edge's !appx family removal (AME's provisioned AppX removal
-# is battle-tested where Remove-AppxPackage documented-fails).
+# Not handled here: the 'iso: only' OfflineSys WdBoot delete (AME-only, in
+# atlas\components.yml) and Edge's !appx family removal (in atlas\appx.yml - AME's
+# provisioned AppX removal is battle-tested where Remove-AppxPackage documented-fails).
 
 Assert-AtlasPrivilege -TrustedInstaller
 

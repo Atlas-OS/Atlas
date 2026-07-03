@@ -1,6 +1,4 @@
 # Toggle: Always go to the advanced boot options on each boot (single-launcher menu).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Boot Configuration\Behavior\Always Go to Advanced Boot Options.cmd'.
-# SilentDefault mirrors the original '/silent goto disable' behavior.
 @{
     Name          = 'AdvancedBootOptions'
     Elevation     = 'Admin'

@@ -1,5 +1,4 @@
 # Toggle: NVIDIA Display Container desktop context menu (enable/disable the service from the desktop).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\*.cmd'.
 @{
     Name      = 'NVidiaDisplayContainerContextMenu'
     Elevation = 'Admin'

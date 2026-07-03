@@ -1,8 +1,7 @@
 # Restores the old (Windows 10) context menu on Windows 11 by setting the DEFAULT
 # value of the InprocServer32 key to an empty string. The declarative Registry schema
 # cannot write default ('') values, and the key is per-user, so it is written here for
-# every loaded user hive (including the AME default-user hives so new accounts inherit
-# it), replacing the legacy 'reg add HKCU\...' that ran as 'currentUserElevated'.
+# every loaded user hive (including the AME default-user hives so new accounts inherit it).
 $ErrorActionPreference = 'Stop'
 
 if (-not (Get-Command -Name 'Get-RegUserPaths' -ErrorAction SilentlyContinue)) {

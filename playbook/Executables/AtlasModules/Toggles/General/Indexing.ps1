@@ -1,8 +1,7 @@
 # Toggle: Windows Search Indexing (disabled / minimal / full).
-# Converted from 'AtlasDesktop\3. General Configuration\Search Indexing\*.cmd'.
 #
-# Runs as TrustedInstaller like the original scripts (they relaunched via RunAsTI.cmd)
-# because the indexer policy keys and WSearch service reconfiguration require it.
+# Runs as TrustedInstaller because the indexer policy keys and WSearch service
+# reconfiguration require it.
 @{
     Name      = 'Indexing'
     Elevation = 'TrustedInstaller'

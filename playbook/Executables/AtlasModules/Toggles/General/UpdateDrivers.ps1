@@ -1,8 +1,4 @@
 # Toggle: Run Update Drivers (plain action launcher, no state recording).
-# Converted from 'AtlasDesktop\2. Drivers\Run Update Drivers.cmd'.
-#
-# The original launcher ended with 'pause > null', creating a stray file named 'null'
-# in the working directory; the engine's interactive pause replaces it.
 @{
     Name          = 'UpdateDrivers'
     Elevation     = 'Admin'

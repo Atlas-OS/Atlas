@@ -1,10 +1,4 @@
 # Toggle: Windows lock screen (policy show / hide).
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Lock Screen\{Hide Lock Screen,
-# Show Lock Screen (default)}.ps1'.
-#
-# The originals were loose .ps1 files in the user-visible folder, so double-clicking them
-# opened Notepad instead of running. They are replaced by generated .cmd launchers (paths
-# below) + this definition; the old .ps1 files are removed.
 @{
     Name      = 'LockScreen'
     Elevation = 'Admin'

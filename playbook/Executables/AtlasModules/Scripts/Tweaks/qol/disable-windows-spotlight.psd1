@@ -7,7 +7,7 @@
         @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Name = 'DisableWindowsSpotlightOnActionCenter'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Name = 'DisableWindowsSpotlightOnSettings'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Name = 'DisableThirdPartySuggestions'; Type = 'DWord'; Data = 1 }
-        # 'NewStartPanelt' is preserved verbatim from the legacy playbook.
+        # 'NewStartPanelt' (sic) is deliberate; do not rename it to 'NewStartPanel'.
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanelt'; Name = '{2cc5ca98-6485-489a-920e-b3e88a6ccce3}'; Type = 'DWord'; Data = 1 }
     )
 }

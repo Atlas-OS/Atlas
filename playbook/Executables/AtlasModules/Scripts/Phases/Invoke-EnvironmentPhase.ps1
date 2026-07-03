@@ -1,7 +1,5 @@
 # Environment phase.
-# Configures PowerShell before the rest of the install runs, replacing the
-# tweaks\scripts\script-ngen.yml (NGEN.ps1) and tweaks\qol\config-powershell.yml tasks
-# that custom.yml used to include:
+# Configures PowerShell before the rest of the install runs:
 #   - NGEN the loaded .NET assemblies (speeds up PowerShell startup ~10x)
 #   - Set the temporary Unrestricted execution policy (Finalize/custom.yml tightens it
 #     back to RemoteSigned at the end of the install)

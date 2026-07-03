@@ -1,8 +1,7 @@
 # Services phase.
 # Backs up the default Windows services, applies the scripted network/search
-# configuration and disables the services/drivers that atlas\services.yml previously
-# carried as !service actions. atlas\services.yml gates this phase (onUpgrade: false)
-# and runs it as TrustedInstaller.
+# configuration and disables the curated set of services/drivers. atlas\services.yml
+# gates this phase (onUpgrade: false) and runs it as TrustedInstaller.
 #
 # ----------------------------------
 # - Potential references           -

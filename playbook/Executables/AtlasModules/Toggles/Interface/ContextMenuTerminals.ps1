@@ -1,5 +1,4 @@
 # Toggle: 'Terminals' context menu (removed / full / no Windows Terminal).
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Context Menus\Terminals\*.cmd'.
 #
 # One setting ('ContextMenuTerminals') with three launchers, each importing a verbatim .reg
 # file: Remove=0 -> disabled.reg, Add=1 -> enabled.reg, AddNoWindowsTerminal=2 -> minimal.reg.

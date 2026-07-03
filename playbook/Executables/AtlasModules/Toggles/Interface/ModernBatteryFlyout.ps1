@@ -1,5 +1,4 @@
 # Toggle: Modern vs old (Windows 8-style) battery flyout.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Old Flyouts\Battery Flyout\*.cmd'.
 @{
     Name      = 'ModernBatteryFlyout'
     Elevation = 'Admin'

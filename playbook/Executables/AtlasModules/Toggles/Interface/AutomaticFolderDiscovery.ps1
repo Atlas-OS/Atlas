@@ -1,5 +1,4 @@
 # Toggle: automatic folder type discovery in File Explorer.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\*.cmd'.
 @{
     Name      = 'AutomaticFolderDiscovery'
     Elevation = 'Admin'

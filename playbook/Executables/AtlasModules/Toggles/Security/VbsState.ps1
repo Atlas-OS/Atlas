@@ -1,5 +1,4 @@
 # Toggle: Virtualization-Based Security (Core Isolation / memory integrity).
-# Converted from 'AtlasDesktop\7. Security\Core Isolation (VBS)\Disable VBS.cmd' and 'Enable VBS.cmd'.
 @{
     Name      = 'VbsState'
     Elevation = 'Admin'

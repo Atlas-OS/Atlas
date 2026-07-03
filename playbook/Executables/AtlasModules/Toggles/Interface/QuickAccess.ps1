@@ -1,5 +1,4 @@
 # Toggle: Quick Access in File Explorer (HubMode hides it).
-# Converted from 'AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Quick Access\*.cmd'.
 @{
     Name      = 'QuickAccess'
     Elevation = 'Admin'

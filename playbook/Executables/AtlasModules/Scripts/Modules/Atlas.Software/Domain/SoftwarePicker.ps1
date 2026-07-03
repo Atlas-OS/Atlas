@@ -1,9 +1,7 @@
 # Atlas.Software domain: interactive WinGet software picker.
 #
-# Ported from Internal\Install-Software.ps1 ("Install Software" in the Atlas folder).
-# The old script-scoped state machine (column/lastPos/index globals) is replaced by a
-# precomputed layout and form-attached state ($form.Tag), so no shared mutable
-# variables are needed.
+# The layout is precomputed and UI state lives on the form ($form.Tag), so no shared
+# mutable variables are needed.
 
 function Get-AtlasSoftwarePickerItem {
     <#

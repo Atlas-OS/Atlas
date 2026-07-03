@@ -1,6 +1,4 @@
 # Toggle: New (Windows 8+) boot menu vs. the legacy Windows 7 boot menu (single-launcher menu).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Boot Configuration\Appearance\New Boot Menu.cmd'.
-# SilentDefault mirrors the original '/silent goto disable' behavior.
 @{
     Name          = 'NewBootMenu'
     Elevation     = 'Admin'

@@ -1,5 +1,4 @@
 # Toggle: Microsoft Store automatic app archiving.
-# Converted from 'AtlasDesktop\3. General Configuration\Store App Archiving\*.cmd'.
 @{
     Name      = 'AppStoreArchiving'
     Elevation = 'Admin'

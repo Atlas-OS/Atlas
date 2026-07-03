@@ -1,4 +1,4 @@
-# Companion of backup-services.psd1 (was Configuration\tweaks\scripts\script-backup2.yml).
+# Companion of backup-services.psd1.
 $ErrorActionPreference = 'Stop'
 
 & (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\initPowerShell.ps1')

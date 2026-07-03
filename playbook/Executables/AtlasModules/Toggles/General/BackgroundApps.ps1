@@ -1,5 +1,4 @@
 # Toggle: Background Apps (per-user global background app access).
-# Converted from 'AtlasDesktop\3. General Configuration\Background Apps\*.cmd'.
 @{
     Name      = 'BackgroundApps'
     Elevation = 'Admin'

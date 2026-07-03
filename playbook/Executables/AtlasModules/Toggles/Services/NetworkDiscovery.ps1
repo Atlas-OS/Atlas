@@ -1,5 +1,4 @@
 # Toggle: Network Discovery services.
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Services\Network Discovery\*.cmd'.
 #
 # Disable also unpins 'Network' from the Explorer sidebar (NetworkNavigationPane toggle);
 # Enable first enables its Lanman Workstation (SMB) dependency. NlaSvc uses startup type 2

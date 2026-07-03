@@ -1,6 +1,4 @@
 # Toggle: Install Software (plain action launcher, no state recording).
-# Converted from 'AtlasDesktop\1. Software\Install Software.cmd', which thinly launched
-# 'ScriptWrappers\Install-Software.ps1' (a passthrough to 'Internal\Install-Software.ps1').
 @{
     Name          = 'InstallSoftware'
     Elevation     = 'None'

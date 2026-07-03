@@ -1,5 +1,4 @@
 # Toggle: " - Shortcut" text suffix on newly created shortcuts.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Shortcut Text\*.cmd'.
 @{
     Name      = 'ShortcutText'
     Elevation = 'Admin'

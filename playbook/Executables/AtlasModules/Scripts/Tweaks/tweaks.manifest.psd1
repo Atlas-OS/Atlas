@@ -20,7 +20,7 @@
             Tweaks = @(
                 'config-mmcss'
                 'disable-auto-folder-discovery'
-                # 'disable-game-bar'  # disabled in legacy tweaks.yml (no reason recorded)
+                # 'disable-game-bar'  # disabled: no reason recorded
                 'config-automatic-maintenance'
                 'disable-background-apps'
                 'disable-fth'
@@ -129,7 +129,7 @@
                 'explorer/always-more-details-transfer'
                 'explorer/disable-invalid-shortcuts-search'
                 'explorer/disable-check-boxes'
-                # 'explorer/disable-folders-this-pc'  # disabled in legacy tweaks.yml (no reason recorded)
+                # 'explorer/disable-folders-this-pc'  # disabled: no reason recorded
                 'explorer/disable-network-navigation-pane'
                 'explorer/full-context-on-more-than-15-items'
                 'explorer/hide-frequently-used-items'
@@ -177,11 +177,10 @@
                 'startup-shutdown/decrease-shutdown-time'
                 'startup-shutdown/disable-startup-delay'
                 # 'startup-shutdown/force-end-shutdown-apps'  # disabled: it confused people
-                # 'startup-shutdown/enable-verbose-messages'  # disabled in legacy tweaks.yml (no reason recorded)
+                # 'startup-shutdown/enable-verbose-messages'  # disabled: no reason recorded
                 'system/crash-control-qol'
                 'system/disable-wpbt'
-                # Applied last: these restart shell components (Start Menu / Explorer) and
-                # ran after the qol phase in the legacy tweaks.yml.
+                # Applied last: these restart shell components (Start Menu / Explorer).
                 'config-start-menu'
                 'taskbar/config-pins'
             )

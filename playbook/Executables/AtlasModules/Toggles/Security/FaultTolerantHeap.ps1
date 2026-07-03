@@ -1,5 +1,4 @@
 # Toggle: Fault Tolerant Heap (FTH) mitigation.
-# Converted from 'AtlasDesktop\7. Security\Mitigations\Fault Tolerant Heap\*.cmd'.
 @{
     Name      = 'FaultTolerantHeap'
     Elevation = 'Admin'

@@ -1,5 +1,4 @@
 # Toggle: Recall / Windows AI data analysis (DisableAIDataAnalysis policy).
-# Converted from 'AtlasDesktop\3. General Configuration\AI Features\Recall\*.cmd'.
 @{
     Name      = 'Recall'
     Elevation = 'Admin'

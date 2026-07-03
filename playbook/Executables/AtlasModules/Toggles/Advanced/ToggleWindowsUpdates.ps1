@@ -1,12 +1,9 @@
 # Toggle: Windows Update services, scheduled tasks and policies (single-launcher menu).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Toggle Windows Updates\Toggle Windows Updates.cmd'.
 #
-# Single .cmd with an in-script Disable/Enable menu, so this is a Menu definition. The
-# original showed a "(current)" marker computed from the live service state; the engine's
-# generic menu can't render that, so static labels are used (cosmetic only). On /silent the
-# original re-applied the recorded state; the engine does the same via the recorded state
-# (upgrade re-apply only re-runs state != 0, i.e. Enable), so no SilentDefault is declared -
-# a bare silent call with no recorded state is a no-op path that never occurs for a menu.
+# The engine's generic menu can't render a "(current)" marker computed from the live
+# service state, so static labels are used (cosmetic only). No SilentDefault is declared:
+# upgrade re-apply only re-runs the recorded state (state != 0, i.e. Enable), and a bare
+# silent call with no recorded state is a no-op path that never occurs for a menu.
 @{
     Name      = 'ToggleWindowsUpdates'
     Elevation = 'Admin'

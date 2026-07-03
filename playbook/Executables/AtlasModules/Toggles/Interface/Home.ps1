@@ -1,5 +1,4 @@
 # Toggle: Home item in the File Explorer navigation pane (and its default launch target).
-# Converted from 'AtlasDesktop\4. Interface Tweaks\File Explorer Customization\Home\*.cmd'.
 @{
     Name      = 'Home'
     Elevation = 'Admin'

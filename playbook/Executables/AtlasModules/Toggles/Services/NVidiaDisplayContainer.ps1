@@ -1,5 +1,4 @@
 # Toggle: NVIDIA Display Container LS service.
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Services\NVIDIA Display Container\*.cmd'.
 @{
     Name      = 'NVidiaDisplayContainer'
     Elevation = 'Admin'

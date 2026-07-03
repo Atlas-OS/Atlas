@@ -1,5 +1,4 @@
 # Toggle: Remove the Microsoft Store "Python" app-execution alias stubs (no state recording).
-# Converted from 'AtlasDesktop\1. Software\Remove Python Store Prompt.cmd'.
 @{
     Name          = 'RemovePythonStorePrompt'
     Elevation     = 'None'

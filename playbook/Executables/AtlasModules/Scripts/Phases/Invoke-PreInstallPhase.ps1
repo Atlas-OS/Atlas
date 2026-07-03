@@ -1,10 +1,9 @@
 # PreInstall phase.
 # Prepares the machine before the main install runs: disables notifications so they do
 # not fire mid-deployment, then runs disk cleanup so it can work in the background.
-# Replaces the DISABLENOTIFS.cmd !cmd and the CLEANUP.ps1 !powerShell actions that
-# custom.yml used to carry. Runs elevated (runas: currentUserElevated) so HKCU resolves
-# to the interactive user and the cleanup has the rights it needs. Cleanup failing must
-# not abort the install, so each step is wrapped and downgraded to a warning.
+# Runs elevated (runas: currentUserElevated) so HKCU resolves to the interactive user
+# and the cleanup has the rights it needs. Cleanup failing must not abort the install,
+# so each step is wrapped and downgraded to a warning.
 
 Assert-AtlasPrivilege -Administrator
 

@@ -1,9 +1,7 @@
 # Toggle: Pause Windows Updates (WindowsUpdate UX / UpdatePolicy pause dates).
-# Converted from 'AtlasDesktop\3. General Configuration\Pause Updates\*.cmd'.
 #
-# The 'Pause' launcher recorded a 'days' value under the AtlasOS\Services key which some UI
-# reads, so it is reproduced here (the engine still records state/path separately). Only the
-# Pause launcher invoked serviceWarning.cmd; the engine shows the definition-level Warning.
+# Pause also records a 'days' value under the AtlasOS\Services key, which some UI reads
+# (the engine still records state/path separately).
 @{
     Name      = 'PauseUpdates'
     Elevation = 'Admin'

@@ -1,7 +1,7 @@
 @{
     Name        = 'Hide Folders from This PC'
     Description = 'Hides folders from ''This PC'' as they are also in Quick Access to reduce clutter and QoL'
-    # NOTE: disabled (commented out) in the legacy tweaks.yml (no reason recorded).
+    # NOTE: intentionally not enabled (no reason recorded).
     # Keep it commented out in the tweak manifest.
     Registry    = @(
         @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{31C0DD25-9439-4F12-BF41-7FF4EDA38722}\PropertyBag'; Name = 'ThisPCPolicy'; Type = 'String'; Data = 'Hide' }

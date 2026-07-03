@@ -1,9 +1,7 @@
 # Toggle: Widgets / News and Interests feeds.
-# Converted from 'AtlasDesktop\3. General Configuration\Widgets (News and Interests)\*.cmd'.
 #
-# Parity note: the original Enable launcher ran Test-EdgeState.cmd (which prompts to install Edge)
-# and opened ms-settings:taskbar unconditionally; both are gated to interactive mode here so
-# upgrade re-apply never blocks.
+# Test-EdgeState.cmd (which prompts to install Edge) and the ms-settings:taskbar page are
+# gated to interactive mode so upgrade re-apply never blocks.
 @{
     Name      = 'Widgets'
     Elevation = 'Admin'

@@ -1,5 +1,4 @@
 # Toggle: Windows Update restart notifications.
-# Converted from 'AtlasDesktop\3. General Configuration\Update Notifications\*.cmd'.
 @{
     Name      = 'UpdateNotifications'
     Elevation = 'Admin'

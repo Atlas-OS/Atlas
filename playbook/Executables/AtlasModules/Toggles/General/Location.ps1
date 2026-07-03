@@ -1,10 +1,7 @@
 # Toggle: Location services (lfsvc / MapsBroker) and Find My Device.
-# Converted from 'AtlasDesktop\3. General Configuration\Location\*.cmd'.
 #
-# Parity note: the original Enable launcher ran the "Unlock Find My Device" choice prompt
-# unconditionally (even under /silent, where it would block). The prompt is guarded here so
-# silent/upgrade re-apply never hangs; in silent mode Find My Device is left disabled, which
-# matches the original default posture.
+# The Enable path's "Unlock Find My Device" prompt is interactive-only so silent/upgrade
+# re-apply never hangs; in silent mode Find My Device is left disabled.
 @{
     Name      = 'Location'
     Elevation = 'Admin'

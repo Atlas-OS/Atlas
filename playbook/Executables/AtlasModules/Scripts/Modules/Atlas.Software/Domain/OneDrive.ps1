@@ -1,9 +1,9 @@
 # Atlas.Software domain: OneDrive removal.
 #
-# Faithful port of Executables\ONED.cmd. Everything is best-effort (the batch silenced
-# every command), because most of these leftovers only exist in some configurations.
-# The actual OneDrive setup in Windows is stripped at a component level in the
-# miscellaneous CBS package; this removes the preinstalled client and its leftovers.
+# Everything is best-effort because most of these leftovers only exist in some
+# configurations. The actual OneDrive setup in Windows is stripped at a component level
+# in the miscellaneous CBS package; this removes the preinstalled client and its
+# leftovers.
 
 function Remove-AtlasOneDriveItem {
     param([Parameter(Mandatory = $true)][string[]]$Path)

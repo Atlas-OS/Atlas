@@ -1,7 +1,4 @@
 # Toggle: Telemetry Components (plain action launcher, no state recording).
-# Converted from 'AtlasDesktop\9. Troubleshooting\Telemetry Components.cmd', which ran as
-# TrustedInstaller and thinly launched 'ScriptWrappers\Remove-TelemetryComponents.ps1'
-# (a passthrough to 'Internal\Remove-TelemetryComponents.ps1').
 @{
     Name          = 'TelemetryComponents'
     Elevation     = 'TrustedInstaller'

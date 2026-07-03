@@ -1,4 +1,4 @@
-# Companion of disable-pnp.psd1 (was Configuration\tweaks\scripts\script-devices.yml).
+# Companion of disable-pnp.psd1.
 $windir = [Environment]::GetFolderPath('Windows')
 
 # Disable rarely-needed network adapter bindings to cut background usage.

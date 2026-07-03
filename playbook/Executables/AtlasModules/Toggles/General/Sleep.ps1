@@ -1,8 +1,7 @@
 # Toggle: Sleep (power-scheme sleep settings + optional hibernation follow-up).
-# Converted from 'AtlasDesktop\3. General Configuration\Sleep\*.cmd'.
 #
-# The source offered to also toggle hibernation; that is reproduced as an interactive
-# Read-Host that calls the Hibernation toggle. Silent runs skip the prompt.
+# An interactive Read-Host offers to also toggle hibernation via the Hibernation toggle;
+# silent runs skip the prompt.
 @{
     Name      = 'Sleep'
     Elevation = 'Admin'

@@ -1,5 +1,4 @@
 # Toggle: View the current boot configuration values (read-only info action).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Boot Configuration\View Current Values.cmd'.
 # Purely prints 'bcdedit /enum {current}' output; records no state.
 @{
     Name          = 'ViewCurrentValues'

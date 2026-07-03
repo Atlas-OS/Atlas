@@ -1,8 +1,8 @@
-# Companion of config-pins.psd1 (was Configuration\tweaks\qol\taskbar\config-pins.yml).
+# Companion of config-pins.psd1.
 $ErrorActionPreference = 'Stop'
 $windir = [Environment]::GetFolderPath('Windows')
 
-# Resolve the user's chosen browser from the install options (was per-action option gates).
+# Resolve the user's chosen browser from the install options.
 $browser = ''
 if (Test-AtlasOption -Name 'install-another-browser') {
     if (Test-AtlasOption -Name 'browser-brave') { $browser = 'Brave' }
@@ -18,7 +18,7 @@ if (-not (Test-Path -LiteralPath $setupOptions)) {
 }
 New-ItemProperty -LiteralPath $setupOptions -Name 'browser' -Value $browser -PropertyType String -Force | Out-Null
 
-# Apply the taskbar pins to existing users, but not during OOBE (was oobe: false).
+# Apply the taskbar pins to existing users, but not during OOBE.
 if (-not (Get-AtlasContext).IsOobe) {
     $taskbarPins = Join-Path -Path $windir -ChildPath 'AtlasModules\Scripts\Internal\Set-TaskbarPins.ps1'
     $location = Get-Location

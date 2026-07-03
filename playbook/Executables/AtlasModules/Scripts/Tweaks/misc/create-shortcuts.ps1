@@ -1,3 +1,3 @@
-# Companion of create-shortcuts.psd1 (was Configuration\tweaks\misc\create-shortcuts.yml).
+# Companion of create-shortcuts.psd1.
 $ErrorActionPreference = 'Stop'
 & (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Internal\New-AtlasShortcutSet.ps1')

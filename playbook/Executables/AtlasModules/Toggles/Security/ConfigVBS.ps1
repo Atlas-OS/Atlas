@@ -1,6 +1,4 @@
 # Toggle: Show the current Core Isolation (VBS) configuration (info only, no state recorded).
-# Converted from 'AtlasDesktop\7. Security\Core Isolation (VBS)\Current Configuration.cmd', which
-# thinly launched 'ScriptWrappers\Set-VbsConfiguration.ps1' (a passthrough to 'Internal\Set-VbsConfiguration.ps1').
 @{
     Name          = 'ConfigVBS'
     Elevation     = 'None'

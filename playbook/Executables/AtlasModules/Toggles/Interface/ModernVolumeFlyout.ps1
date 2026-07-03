@@ -1,5 +1,4 @@
 # Toggle: Modern vs old (Windows 8-style) volume flyout.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Old Flyouts\Volume Flyout\*.cmd'.
 @{
     Name      = 'ModernVolumeFlyout'
     Elevation = 'Admin'

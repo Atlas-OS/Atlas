@@ -1,5 +1,4 @@
 # Toggle: Microsoft Store (remove/reinstall the Store app package).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Microsoft Store\*.cmd'.
 @{
     Name      = 'MicrosoftStore'
     Elevation = 'Admin'

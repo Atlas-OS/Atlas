@@ -1,8 +1,4 @@
 # Toggle: Repair Windows components / system files (DISM RestoreHealth + SFC, no state).
-# Converted from 'AtlasDesktop\9. Troubleshooting\Repair Windows Components.cmd' (also surfaced
-# in the Toolbox). The original had no settingName header and recorded no AtlasOS\Services
-# state, so this is a NoStateRecord single-action ('Run') toggle. The pre-run confirmation is
-# the engine's Warning surface (skipped under /silent, like the original's guarded pause).
 @{
     Name          = 'RepairWindowsComponents'
     Elevation     = 'Admin'

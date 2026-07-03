@@ -1,5 +1,4 @@
 # Toggle: 'Give access to' (Sharing) context menu entries.
-# Converted from 'AtlasDesktop\3. General Configuration\File Sharing\Give Access To Menu\*.cmd'.
 @{
     Name      = 'GiveAccessToMenu'
     Elevation = 'Admin'

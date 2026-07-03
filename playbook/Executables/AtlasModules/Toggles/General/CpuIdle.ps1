@@ -1,14 +1,12 @@
 # Toggle: CPU Idle (processor idle-disable power setting).
-# Converted from 'AtlasDesktop\3. General Configuration\CPU Idle\*.cmd'.
 #
 # The powercfg processor setting is inverted relative to the toggle:
 #   "Disable Idle" (state 0) sets the idle-disable value to 1 (idle off),
 #   "Enable Idle"  (state 1) sets it to 0 (idle on).
-# On Hyper-Threading/SMT systems the source refused to disable idle (it harms
-# performance); this reproduces that guard by warning and leaving idle untouched.
-# Deviation from the batch: the engine records the toggle state before the Action
-# runs, so on an SMT machine the state is recorded but the powercfg value is left
-# unchanged (the batch recorded nothing). Re-apply is self-correcting.
+# On Hyper-Threading/SMT systems disabling idle harms performance, so the action
+# only warns and leaves idle untouched. The engine records the toggle state before
+# the Action runs, so on an SMT machine the state is recorded but the powercfg
+# value is left unchanged; re-apply is self-correcting.
 @{
     Name      = 'CpuIdle'
     Elevation = 'Admin'

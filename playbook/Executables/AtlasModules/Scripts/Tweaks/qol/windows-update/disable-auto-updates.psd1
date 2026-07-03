@@ -10,7 +10,7 @@
 
         # Prevent random apps from installing, including Widgets or advertisements
         # Commented until it's proven that this helps - deleting these values is irreversible
-        # (preserved verbatim from the legacy YAML playbook):
+        # (in YAML form):
         # - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\Settings', value: 'STOREBIZCRITICALAPPS', operation: delete}
         # - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\InstallService\State\CategoryCache', value: '48caba8a-2e62-2097-dcd8-4255c637b32dUS', operation: delete}
         # - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell\Update\Packages\Components', value: 'AccountsService', operation: delete}

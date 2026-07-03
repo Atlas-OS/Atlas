@@ -1,5 +1,4 @@
 # Toggle: Snap Layouts / Snap Assist flyout and bar.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Snap Layouts\*.cmd'.
 @{
     Name      = 'SnapLayouts'
     Elevation = 'Admin'

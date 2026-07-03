@@ -1,5 +1,4 @@
 # Toggle: Recent Items / app & document usage tracking.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Unlock Recent Items\*.cmd'.
 @{
     Name      = 'RecentItems'
     Elevation = 'Admin'

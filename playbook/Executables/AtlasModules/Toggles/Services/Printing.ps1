@@ -1,5 +1,4 @@
 # Toggle: Printing services, features and 'Print' context menu entries.
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Services\Printing\*.cmd'.
 #
 # The ContextAction handles only the 'Print' context menu entries so that callers can use
 # /justcontext (e.g. the "Remove 'Printing' from Context Menus" tweak) without touching
@@ -79,7 +78,7 @@
             ContextAction = {
                 param($Toggle)
 
-                # Batch parity: silent mode skipped the context menu prompt entirely.
+                # Silent mode skips the context menu prompt entirely.
                 if ($Toggle.Silent) {
                     return
                 }

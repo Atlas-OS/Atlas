@@ -1,9 +1,7 @@
 # Toggle: Bluetooth (drivers, services, devices, Send To entry, policy).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Services\Bluetooth\*.cmd'.
 #
-# The source showed the shared service warning on non-silent runs; the engine's Warning
-# field reproduces that. Devices are toggled through Internal\Set-DeviceState.ps1 and the
-# 'Bluetooth' Send To entry through Internal\Set-SendToContextMenu.ps1.
+# Devices are toggled through Internal\Set-DeviceState.ps1 and the 'Bluetooth' Send To
+# entry through Internal\Set-SendToContextMenu.ps1.
 @{
     Name      = 'Bluetooth'
     Elevation = 'Admin'

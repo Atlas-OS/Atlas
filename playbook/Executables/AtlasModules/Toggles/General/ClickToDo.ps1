@@ -1,5 +1,4 @@
 # Toggle: Click To Do (Windows AI 'Click To Do' policy).
-# Converted from 'AtlasDesktop\3. General Configuration\AI Features\Click To Do\*.cmd'.
 @{
     Name      = 'ClickToDo'
     Elevation = 'Admin'

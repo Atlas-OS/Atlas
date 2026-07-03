@@ -1,9 +1,7 @@
 # Toggle: Process Explorer (replace Task Manager with Sysinternals Process Explorer).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Process Explorer\*.cmd'.
 #
-# Source-bug fix: the Install script echoed a "disable the pcw service?" prompt but then
-# disabled pcw unconditionally (the choice result was never read). Here the prompt is
-# honoured; silent installs disable pcw to match the effective old behaviour.
+# Interactive installs prompt before disabling the pcw service; silent installs
+# disable it unconditionally.
 @{
     Name      = 'ProcessExplorer'
     Elevation = 'Admin'

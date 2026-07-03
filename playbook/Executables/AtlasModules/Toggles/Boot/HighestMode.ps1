@@ -1,6 +1,4 @@
 # Toggle: Highest graphical mode for boot applications (single-launcher menu).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Boot Configuration\Behavior\Highest Mode.cmd'.
-# SilentDefault mirrors the original '/silent goto disable' behavior.
 # https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings
 @{
     Name          = 'HighestMode'

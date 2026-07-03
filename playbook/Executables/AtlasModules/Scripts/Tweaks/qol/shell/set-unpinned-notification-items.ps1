@@ -32,6 +32,5 @@ else {
         -Data 'Toggles,Microsoft.QuickAction.BlueLightReduction:false,Microsoft.QuickAction.AllSettings:false,Microsoft.QuickAction.Project:false'
 }
 
-# The legacy action ran explorer.exe as 'currentUser'; the tweak engine restarts it
-# from the installer's context instead.
+# The tweak engine restarts explorer from the installer's context.
 Start-Process -FilePath 'explorer.exe'

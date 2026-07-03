@@ -1,5 +1,4 @@
 # Toggle: 'Take Ownership' context menu entries.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Context Menus\Take Ownership\*.cmd'.
 # Each state imports the matching verbatim .reg file via Atlas.Registry's Import-AtlasRegFile.
 @{
     Name      = 'TakeOwnership'

@@ -1,6 +1,4 @@
 # Toggle: Editing of kernel parameters on startup (single-launcher menu).
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Boot Configuration\Behavior\Editing Kernel Parameters on Startup.cmd'.
-# SilentDefault mirrors the original '/silent goto disable' behavior.
 @{
     Name          = 'KernelParameters'
     Elevation     = 'Admin'

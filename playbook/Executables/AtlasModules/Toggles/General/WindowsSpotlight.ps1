@@ -1,5 +1,4 @@
 # Toggle: Windows Spotlight (lock screen, tips, suggestions, spotlight content).
-# Converted from 'AtlasDesktop\3. General Configuration\Windows Spotlight\*.cmd'.
 #
 # The HKLM CloudContent policy uses plain cmdlets; all per-user (HKCU) values go through
 # Atlas.Registry so they resolve the real user under elevation.

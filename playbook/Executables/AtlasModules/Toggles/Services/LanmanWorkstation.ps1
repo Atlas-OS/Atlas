@@ -1,8 +1,6 @@
 # Toggle: Lanman Workstation / SMB services and the SmbDirect feature.
-# Converted from 'AtlasDesktop\6. Advanced Configuration\Services\Lanman Workstation (SMB)\*.cmd'.
 #
-# The original called serviceWarning.cmd (skipped under /silent) -> the engine's Warning
-# surface. Services are set via the SetServiceStartup helper (the setSvc.cmd replacement).
+# Services are set via the SetServiceStartup helper.
 @{
     Name      = 'LanmanWorkstation'
     Elevation = 'Admin'

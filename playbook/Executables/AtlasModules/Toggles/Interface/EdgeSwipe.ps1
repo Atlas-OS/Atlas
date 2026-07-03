@@ -1,5 +1,4 @@
 # Toggle: Edge Swipe gesture (touch screen edge swipe).
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Edge Swipe\*.cmd'.
 @{
     Name      = 'EdgeSwipe'
     Elevation = 'Admin'

@@ -1,5 +1,4 @@
 # Toggle: System Restore.
-# Converted from 'AtlasDesktop\3. General Configuration\System Restore\*.cmd'.
 @{
     Name      = 'SystemRestore'
     Elevation = 'Admin'

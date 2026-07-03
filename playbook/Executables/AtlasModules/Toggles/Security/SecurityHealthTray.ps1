@@ -1,5 +1,4 @@
 # Toggle: Windows Security (Defender) tray icon startup entry.
-# Converted from 'AtlasDesktop\7. Security\Defender\Security Health Tray\*.cmd'.
 # Each state imports the matching verbatim .reg file via Atlas.Registry's Import-AtlasRegFile.
 @{
     Name      = 'SecurityHealthTray'

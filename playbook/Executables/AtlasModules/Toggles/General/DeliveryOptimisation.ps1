@@ -1,5 +1,4 @@
 # Toggle: Delivery Optimization (DODownloadMode policy).
-# Converted from 'AtlasDesktop\3. General Configuration\Delivery Optimization\*.cmd'.
 @{
     Name      = 'DeliveryOptimisation'
     Elevation = 'Admin'

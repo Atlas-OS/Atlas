@@ -1,5 +1,4 @@
 # Toggle: 'Run with priority' cascading entry in the .exe context menu.
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Context Menus\Run With Priority\*.cmd'.
 # Note: the stored command strings keep the literal '%1' shell placeholder verbatim.
 @{
     Name      = 'RunWithPriority'

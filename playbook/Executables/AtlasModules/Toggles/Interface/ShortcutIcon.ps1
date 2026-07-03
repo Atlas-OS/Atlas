@@ -1,5 +1,4 @@
 # Toggle: Shortcut overlay icon (default arrow / classic arrow / none).
-# Converted from 'AtlasDesktop\4. Interface Tweaks\Shortcut Icon\*.cmd'.
 @{
     Name      = 'ShortcutIcon'
     Elevation = 'Admin'

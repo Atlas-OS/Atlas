@@ -1,10 +1,9 @@
 # Toggle: Web Search / Search Highlights.
-# Converted from 'AtlasDesktop\3. General Configuration\Web Search (includes Search Highlights)\*.cmd'.
 #
 # Explorer/SearchHost are restarted unless the launcher was called with /noAction
-# (engine -NoExplorerRestart). HKCU writes run as the interactive elevated user, matching
-# the source's `reg add HKCU`. Enable installs the Bing search provider via winget and, on
-# Windows 11 with search indexing stopped, offers to enable indexing (a graphical-bug fix).
+# (engine -NoExplorerRestart). HKCU writes run as the interactive elevated user. Enable
+# installs the Bing search provider via winget and, on Windows 11 with search indexing
+# stopped, offers to enable indexing (a graphical-bug fix).
 @{
     Name      = 'WebSearch'
     Elevation = 'Admin'
