@@ -2,7 +2,7 @@
 #
 # This is the mirror of RunAsTI.cmd: where that elevates to TrustedInstaller, this drops
 # from SYSTEM/TrustedInstaller down to the logged-on interactive user. It is the technique
-# AME Wizard's backend (TrustedUninstaller) uses for `runas: currentUser` — grab the active
+# AME Wizard's backend (TrustedUninstaller) uses for `runas: currentUser` - grab the active
 # console session's user token with WTSQueryUserToken and CreateProcessAsUser onto the
 # interactive desktop (winsta0\default), which shell COM (theme apply, pin-to-Home) needs.
 #
