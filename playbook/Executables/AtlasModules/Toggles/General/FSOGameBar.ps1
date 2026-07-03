@@ -1,5 +1,4 @@
 # Toggle: Fullscreen Optimizations (FSO) and Game Bar / Game DVR support.
-# Converted from 'AtlasDesktop\3. General Configuration\FSO and Game Bar\*.cmd'.
 #
 # TrustedInstaller elevation is required to write the Windows.Gaming ActivatableClassId key.
 # HKCU writes go through Atlas.Registry so they hit the real user under TI elevation. The
@@ -48,7 +47,9 @@
                 Set-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_Enabled' -Type DWord -Data 0
                 Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR' -Name 'AppCaptureEnabled' -Type DWord -Data 0
 
-                Get-AppxPackage '*xboxgamingoverlay*' | Remove-AppxPackage -Confirm:$false -ErrorAction SilentlyContinue
+                # -AllUsers on both ends: under TrustedInstaller/SYSTEM a plain Get-AppxPackage
+                # only sees SYSTEM's (empty) package list, so the overlay would never be removed.
+                Get-AppxPackage -AllUsers '*xboxgamingoverlay*' | Remove-AppxPackage -AllUsers -Confirm:$false -ErrorAction SilentlyContinue
 
                 if (-not $Toggle.Silent) { Write-Host 'FSO and Game Bar have been disabled.' }
             }
@@ -87,7 +88,18 @@
                 Set-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_Enabled' -Type DWord -Data 1
                 Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR' -Name 'AppCaptureEnabled'
 
-                & winget install 9NZKPSTSNW4P --accept-package-agreements --accept-source-agreements --silent
+                # winget is non-functional under SYSTEM/TrustedInstaller, so run the Game Bar
+                # install in the interactive user's session (Invoke-AtlasAsUser, Atlas.Core).
+                try {
+                    $wingetArguments = '/c winget install 9NZKPSTSNW4P --accept-package-agreements --accept-source-agreements --silent'
+                    $wingetExitCode = Invoke-AtlasAsUser -FilePath (Join-Path -Path $Toggle.WinDir -ChildPath 'System32\cmd.exe') -Arguments $wingetArguments
+                    if ($wingetExitCode -ne 0) {
+                        Write-AtlasLog -Level Warning -Message "FSOGameBar: winget Xbox Game Bar install exited with code $wingetExitCode."
+                    }
+                }
+                catch {
+                    Write-AtlasLog -Level Warning -Message "FSOGameBar: could not install Xbox Game Bar as the interactive user: $($_.Exception.Message)"
+                }
 
                 if (-not $Toggle.Silent) { Write-Host 'FSO and Game Bar have been enabled.' }
             }
