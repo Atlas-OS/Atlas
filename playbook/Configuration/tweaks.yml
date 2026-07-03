@@ -10,9 +10,9 @@ actions:
   # engine invocation; per-tweak order and enable/disable live in
   # Scripts\Tweaks\tweaks.manifest.psd1 (comment a line out to disable it).
   #
-  # Every tweak is now PowerShell - there are no !task includes. Tweaks needing the
-  # interactive user (theme/lock-screen and pin-to-Home COM) run via RunAs in their
-  # .psd1 (the engine bounces them to the user session with Invoke-AtlasAsUser).
+  # Every tweak is now PowerShell - there are no !task includes. Per-user shell COM
+  # (theme, lock-screen, pin-to-Home) is applied by Initialize-NewUser at first logon,
+  # not from these SYSTEM-context phases.
   #
   # ----------------------- END NOTES ----------------------- #
 

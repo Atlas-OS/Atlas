@@ -99,7 +99,8 @@
                 'disable-auto-app-archival'
                 'add-sharing-settings-shortcut'
                 'appearance/blue-tooltips'
-                # Theme/lock-screen COM runs in the user session via RunAs (Invoke-AtlasAsUser).
+                # atlas-theme sets lock-screen policy; the theme itself is applied by
+                # Initialize-NewUser at first logon (interactive shell COM).
                 'appearance/atlas-theme'
                 'appearance/atlas-theme-upgrade'
                 'appearance/disallow-theme-changes'
@@ -213,8 +214,7 @@
                 'set-profile-pictures'
                 'backup-services'
                 'update-client-cbs'
-                # set-power-settings runs LAST, invoked directly from tweaks.yml after the
-                # add-music-videos COM task (kept out of the phase run so it stays "done last").
+                # set-power-settings runs LAST, invoked directly from tweaks.yml.
             )
         }
         @{
@@ -227,11 +227,8 @@
                 'add-newUser-script'
                 'config-oem-information'
                 'create-shortcuts'
-                # Shell "pin to Home" COM runs in the user session via RunAs (Invoke-AtlasAsUser).
-                'add-music-videos-to-home'
-                # enable-notifications runs LAST of all tweaks, invoked directly from tweaks.yml
-                # after the add-music-videos COM task, so notifications re-enable only after
-                # everything else.
+                # enable-notifications runs LAST of all tweaks, invoked directly from tweaks.yml,
+                # so notifications re-enable only after everything else.
             )
         }
     )

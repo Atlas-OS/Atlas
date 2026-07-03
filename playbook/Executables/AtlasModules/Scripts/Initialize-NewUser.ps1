@@ -161,6 +161,16 @@ if ($setupMarker -lt 1) {
             # Set ThemeMRU (recent themes)
             Set-AtlasTheme -Path "$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.5.x-dark.theme"
             Set-AtlasThemeMru | Out-Null
+
+            # Re-pin Music & Videos to File Explorer Home (they drop off once recent files
+            # are disabled). Shell COM against the running explorer, so it runs here at
+            # first logon rather than from the SYSTEM install phase.
+            try {
+                & (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Tasks\Add-MusicVideosToHome.ps1')
+            }
+            catch {
+                Write-Warning "Failed to pin Music & Videos to Home: $($_.Exception.Message)"
+            }
         }
 
         # Set lockscreen wallpaper
