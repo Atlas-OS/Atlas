@@ -1,4 +1,6 @@
-.\AtlasModules\initPowerShell.ps1
+& (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\initPowerShell.ps1')
+
+$layoutXml = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Other\Layout.xml'
 
 function Get-ProfilePathFromSid {
     param (
@@ -38,7 +40,7 @@ foreach ($userKey in (Get-RegUserPaths).PsPath) {
         Write-Warning "Couldn't find Local AppData path for $sid; skipping Start Menu file cleanup."
     } else {
         Write-Output "Copying default layout XML"
-        Copy-Item -Path "Layout.xml" -Destination "$appdata\Microsoft\Windows\Shell\LayoutModification.xml" -Force
+        Copy-Item -Path $layoutXml -Destination "$appdata\Microsoft\Windows\Shell\LayoutModification.xml" -Force
         
         if (!$default) {
             Write-Output "Clearing Start Menu pinned items"

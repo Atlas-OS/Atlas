@@ -4,8 +4,6 @@
     # - Tweaks run top to bottom within a category; paths are relative to the
     #   category folder, without the .psd1 extension.
     # - Disable a tweak by commenting out its line (keep a short reason).
-    # - The legacy 'scripts' category still runs from YAML (Configuration/tweaks.yml)
-    #   until its Executables scripts move into AtlasModules.
     Categories = @(
         @{
             Name   = 'networking'
@@ -79,7 +77,6 @@
             Tweaks = @(
                 'bcdedit-tweaks'
                 'best-wallpaper-quality'
-                # config-start-menu is still YAML (invokes Internal\Set-StartLayout.ps1)
                 'config-windows-ink-workspace'
                 'disable-mouse-accel'
                 'disable-settings-tips'
@@ -123,7 +120,6 @@
                 'taskbar/disable-tablet-mode'
                 'taskbar/hide-meet-now'
                 'taskbar/hide-task-view'
-                # taskbar/config-pins is still YAML (invokes Internal\Set-TaskbarPins.ps1)
                 'taskbar/disable-copilot'
                 'taskbar/disable-windows-chat'
                 'taskbar/set-to-left'
@@ -182,6 +178,10 @@
                 # 'startup-shutdown/enable-verbose-messages'  # disabled in legacy tweaks.yml (no reason recorded)
                 'system/crash-control-qol'
                 'system/disable-wpbt'
+                # Applied last: these restart shell components (Start Menu / Explorer) and
+                # ran after the qol phase in the legacy tweaks.yml.
+                'config-start-menu'
+                'taskbar/config-pins'
             )
         }
         @{
@@ -203,17 +203,33 @@
             )
         }
         @{
+            Name   = 'scripts'
+            Tweaks = @(
+                'set-file-associations'
+                'disable-core-isolation'
+                'disable-mitigations'
+                'disable-pnp'
+                'set-profile-pictures'
+                'backup-services'
+                'update-client-cbs'
+                # set-power-settings runs LAST, invoked directly from tweaks.yml after the
+                # add-music-videos COM task (kept out of the phase run so it stays "done last").
+            )
+        }
+        @{
             Name   = 'misc'
             Tweaks = @(
                 'config-time'
                 'delete-windows-specific-files'
                 'rebuild-perf-counters'
                 'make-measuresleep-admin'
-                # create-shortcuts is still YAML (invokes Internal\New-AtlasShortcutSet.ps1)
                 'add-newUser-script'
-                # add-music-videos-to-home is still YAML (needs unelevated user-context Shell COM)
-                # enable-notifications is still YAML (invokes Internal\Set-NotificationState.ps1 -Mode Enable)
                 'config-oem-information'
+                'create-shortcuts'
+                # add-music-videos-to-home stays YAML (needs unelevated user-context Shell COM).
+                # enable-notifications runs LAST of all tweaks, invoked directly from tweaks.yml
+                # after the add-music-videos COM task, so notifications re-enable only after
+                # everything else.
             )
         }
     )

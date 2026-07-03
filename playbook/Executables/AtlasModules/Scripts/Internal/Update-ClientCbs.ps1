@@ -61,7 +61,8 @@ if ($ids.Count -le 0) {
 
 # Extract ViVeTool https://github.com/thebookisclosed/ViVe
 # Not done in PowerShell as it's too complicated, it's just easiest to use the actual tool
-$viveZip = Get-ChildItem "ViVeTool-*.zip" -Name
+$viveZip = Get-ChildItem -Path "$windir\AtlasModules\Tools\ViVeTool-*.zip" -File -ErrorAction SilentlyContinue |
+    Select-Object -ExpandProperty FullName
 if ($arm) {
     $viveZip = $viveZip | Where-Object { $_ -match '-ARM64CLR' }
 } else {
@@ -70,10 +71,11 @@ if ($arm) {
 
 # Extract & setup ViVeTool
 if ($viveZip) {
-    $viveFolder = Join-Path -Path (Get-Location) -ChildPath "vivetool"
-    if (!(Test-Path -Path $viveFolder)) {
-        New-Item -ItemType Directory -Path $viveFolder | Out-Null
+    $viveFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "AtlasViVeTool"
+    if (Test-Path -Path $viveFolder) {
+        Remove-Item -Path $viveFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
+    New-Item -ItemType Directory -Path $viveFolder -Force | Out-Null
     Expand-Archive -Path $viveZip -DestinationPath $viveFolder -Force
 } else {
     throw "ViVeTool not found!"

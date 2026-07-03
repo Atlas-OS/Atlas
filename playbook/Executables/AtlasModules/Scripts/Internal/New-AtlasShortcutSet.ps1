@@ -1,5 +1,5 @@
-.\AtlasModules\initPowerShell.ps1
 $windir = [Environment]::GetFolderPath('Windows')
+& (Join-Path -Path $windir -ChildPath 'AtlasModules\initPowerShell.ps1')
 
 function Get-ProfilePathFromSid {
     param (

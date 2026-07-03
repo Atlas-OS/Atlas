@@ -1,5 +1,6 @@
 Add-Type -AssemblyName System.Drawing
-$img = [System.Drawing.Image]::FromFile((Get-Item '.\user.png'))
+$userPng = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Other\user.png'
+$img = [System.Drawing.Image]::FromFile((Get-Item -LiteralPath $userPng))
 
 $resolutions = @{
     "user.png" = 448

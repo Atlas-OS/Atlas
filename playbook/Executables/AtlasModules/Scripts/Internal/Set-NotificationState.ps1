@@ -22,6 +22,41 @@ function Write-AtlasRegistryValue {
     New-ItemProperty -LiteralPath $Path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
 }
 
+function Get-AtlasNotificationUserRoot {
+    # Per-user (HKCU) notification values must be written into every loaded real user
+    # hive, not the ambient HKCU: drive: when this runs as TrustedInstaller (the Tweaks
+    # phase) HKCU: resolves to SYSTEM's hive, so the interactive user's settings would be
+    # missed. Mirrors the hive-enumeration pattern used by the other Atlas Internal scripts.
+    $roots = @()
+    try {
+        $roots = @(Get-RegUserPaths | ForEach-Object { $_.PSPath })
+    }
+    catch {
+        $roots = @()
+    }
+
+    if (@($roots).Count -eq 0) {
+        # Fallback for a plain interactive/elevated-user context where the ambient hive is
+        # already correct (or no user hive is loaded under HKU).
+        $roots = @('HKCU:')
+    }
+
+    return $roots
+}
+
+function Write-AtlasNotificationUserValue {
+    param (
+        [Parameter(Mandatory = $true)][string]$SubPath,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)]$Value,
+        [Parameter(Mandatory = $true)][Microsoft.Win32.RegistryValueKind]$Type
+    )
+
+    foreach ($root in Get-AtlasNotificationUserRoot) {
+        Write-AtlasRegistryValue -Path (Join-Path -Path $root -ChildPath $SubPath) -Name $Name -Value $Value -Type $Type
+    }
+}
+
 function Invoke-AtlasRegistryValueRemoval {
     param (
         [Parameter(Mandatory = $true)][string]$Path,
@@ -69,8 +104,8 @@ function Invoke-AtlasSettingsPageVisibilityChange {
 }
 
 if ($Mode -eq 'Disable') {
-    Write-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener' -Name 'Value' -Value 'Deny' -Type String
-    Write-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings' -Name 'NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND' -Value 0 -Type DWord
+    Write-AtlasNotificationUserValue -SubPath 'SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener' -Name 'Value' -Value 'Deny' -Type String
+    Write-AtlasNotificationUserValue -SubPath 'SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings' -Name 'NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND' -Value 0 -Type DWord
     Write-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications' -Name 'ToastEnabled' -Value 0 -Type DWord
     Write-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications' -Name 'NoCloudApplicationNotification' -Value 1 -Type DWord
     Write-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer' -Name 'DisableNotificationCenter' -Value 1 -Type DWord
@@ -94,8 +129,8 @@ if ($Mode -eq 'Disable') {
 }
 
 Invoke-AtlasRegistryValueRemoval -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer' -Name 'DisableNotificationCenter'
-Write-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener' -Name 'Value' -Value 'Allow' -Type String
-Write-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings' -Name 'NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND' -Value 1 -Type DWord
+Write-AtlasNotificationUserValue -SubPath 'SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userNotificationListener' -Name 'Value' -Value 'Allow' -Type String
+Write-AtlasNotificationUserValue -SubPath 'SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings' -Name 'NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND' -Value 1 -Type DWord
 Write-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications' -Name 'ToastEnabled' -Value 1 -Type DWord
 Invoke-AtlasRegistryValueRemoval -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications' -Name 'NoCloudApplicationNotification'
 

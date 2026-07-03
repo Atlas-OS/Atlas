@@ -30,14 +30,11 @@ The root of the file paths listed here starts in `playbook\Executables`.
 
 ## ViVeTool
 
-> [!NOTE]  
-> This is included in the Playbook and isn't in the AtlasModules.
-
-- Path: `Executables\ViVeTool-v0.3.3.zip`
+- Path: `\AtlasModules\Tools\ViVeTool-v0.3.3.zip`
     - SHA256 hash: `59D1E792EDCC001A319C16435A03D203975BF50EB38BD55CA34370900606F9F0`
     - Source: https://github.com/thebookisclosed/ViVe/releases/download/v0.3.3/ViVeTool-v0.3.3.zip
     - Version: v0.3.3
-- Path: `Executables\ViVeTool-v0.3.3-ARM64CLR.zip`
+- Path: `\AtlasModules\Tools\ViVeTool-v0.3.3-ARM64CLR.zip`
     - SHA256 hash: `37708C95C5053539CD068460E28E565D6B25A33C87F09B6B91A4F82A18E30132`
     - Source: https://github.com/thebookisclosed/ViVe/releases/download/v0.3.3/ViVeTool-v0.3.3-ARM64CLR.zip
     - Version: v0.3.3
