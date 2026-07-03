@@ -125,19 +125,21 @@ else {
     Write-Error 'System temp folder not found!'
 }
 
-$vssadminOutput = & vssadmin.exe delete shadows /all /quiet 2>&1
-$vssadminExitCode = $LASTEXITCODE
-if ($vssadminOutput) {
-    $vssadminOutput | Write-Output
+# vssadmin returns non-zero (with a localized message) when there are simply no restore
+# points to delete, so detect the benign case up front via CIM instead of parsing the
+# output text.
+$shadowCopyCount = @(Get-CimInstance -ClassName Win32_ShadowCopy -ErrorAction SilentlyContinue).Count
+if ($shadowCopyCount -eq 0) {
+    Write-Output 'No restore points found, skipping shadow copy deletion.'
 }
-
-if ($vssadminExitCode -ne 0) {
-    $noRestorePoints = $vssadminOutput -match 'No items found that satisfy the query'
-    if ($noRestorePoints) {
-        Write-Output 'No restore points found, skipping shadow copy deletion.'
-        $global:LASTEXITCODE = 0
+else {
+    $vssadminOutput = & vssadmin.exe delete shadows /all /quiet 2>&1
+    $vssadminExitCode = $LASTEXITCODE
+    if ($vssadminOutput) {
+        $vssadminOutput | Write-Output
     }
-    else {
+
+    if ($vssadminExitCode -ne 0) {
         throw "vssadmin.exe failed to delete restore points with exit code $vssadminExitCode."
     }
 }
