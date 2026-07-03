@@ -29,10 +29,13 @@ indent_size = 2
 end_of_line = lf
 
 [*.ps1]
-end_of_line = crlf
+end_of_line = lf
 
 [*.psm1]
-end_of_line = crlf
+end_of_line = lf
+
+[*.psd1]
+end_of_line = lf
 
 [*.cmd]
 indent_style = space
