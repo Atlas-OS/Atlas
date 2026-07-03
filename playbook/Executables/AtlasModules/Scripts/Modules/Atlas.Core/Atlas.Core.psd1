@@ -20,6 +20,7 @@
         'Test-AtlasTrustedInstaller'
         'Assert-AtlasPrivilege'
         'Invoke-AtlasTrustedInstaller'
+        'Invoke-AtlasAsUser'
         # UI (absorbed from the former Utils module)
         'Write-Title'
         'Read-Pause'

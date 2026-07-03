@@ -39,6 +39,7 @@ All keys are optional except `Name`. Keys are applied in the order listed below.
 | `Arch` | `'X64'` or `'ARM64'` | Only apply on this architecture. |
 | `OnUpgrade` | `'Both'` (default), `'Skip'` or `'Only'` | `Skip` = fresh installs only, `Only` = upgrade installs only, `Both` = always. The default matches the legacy YAML semantics (actions without an `onUpgrade` gate ran on fresh installs and upgrades). |
 | `Oobe` | bool | When `$false`, the tweak is skipped during OOBE installs. |
+| `RunAs` | `'User'` or `'UserElevated'` | Runs the companion `Script` in the interactive user's session (via `Invoke-AtlasAsUser`) instead of in the TrustedInstaller engine process. For tweaks that drive the running shell (theme apply, pin-to-Home COM) or must act as the real user. Only affects `Script`; the other keys still run in the engine context. Requires the Tweaks phase (SYSTEM); if there is no interactive session the step is skipped with a warning. |
 | `Registry` | array of hashtables | Registry operations, see below. |
 | `Services` | array of hashtables | `@{ Name; StartupType (int 0-4); Operation }`. `Operation` is `'Change'` (default; writes the service key's `Start` value directly so protected services work), `'Stop'` or `'Start'`. `StartupType` is required for `Change`: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled. |
 | `ScheduledTasks` | array of hashtables | `@{ Path; Operation }` with `Operation` = `'Disable'` (default) or `'Enable'`, applied via `schtasks.exe /Change`. A missing task only logs a warning. |

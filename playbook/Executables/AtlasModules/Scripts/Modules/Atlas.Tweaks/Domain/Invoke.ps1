@@ -331,8 +331,21 @@ function Invoke-AtlasTweak {
             Write-AtlasLog -Message "Tweak '$tweakName': companion script '$scriptPath' is missing." -Level Warning
         }
         else {
+            $runAs = [string](Get-AtlasTweakEntryValue -Entry $tweak -Key 'RunAs' -Default '')
             try {
-                & $scriptPath
+                if ($runAs -eq 'User' -or $runAs -eq 'UserElevated') {
+                    # Run the companion in the interactive user's session (shell COM, per-user
+                    # profile). The engine runs as TrustedInstaller, so this bounces down to the
+                    # logged-on user; if there is no interactive session it throws and we warn.
+                    $arguments = '-NoProfile -NoLogo -ExecutionPolicy Bypass -File "{0}"' -f $scriptPath
+                    $exitCode = Invoke-AtlasAsUser -FilePath (Join-Path -Path $context.WinDir -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe') -Arguments $arguments -Elevated:($runAs -eq 'UserElevated')
+                    if ($exitCode -ne 0) {
+                        Write-AtlasLog -Message "Tweak '$tweakName': companion script (RunAs=$runAs) exited with code $exitCode." -Level Warning
+                    }
+                }
+                else {
+                    & $scriptPath
+                }
             }
             catch {
                 Write-AtlasLog -Message "Tweak '$tweakName': companion script failed: $($_.Exception.Message)" -Level Warning

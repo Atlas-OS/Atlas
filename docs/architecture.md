@@ -100,7 +100,15 @@ log under `C:\Windows\AtlasModules\Logs\install`.
 | **Atlas.TasksProcs** | scheduled task and process helpers |
 | **Atlas.Software** | software/browser installs, CBS packages, OneDrive removal |
 | **Atlas.Toggles** | the AtlasDesktop toggle engine and upgrade re-apply |
-| **Shortcuts / Themes** | shortcut creation and theme application (retained from before the rewrite) |
+| **Atlas.Shortcuts / Atlas.Themes** | shortcut creation and theme application |
+
+`Atlas.Core` also provides `Invoke-AtlasAsUser`, the inverse of the vendored `RunAsTI.cmd`:
+from a SYSTEM/TrustedInstaller phase it grabs the active console session's token
+(`WTSQueryUserToken`) and runs a process as the interactive user on the interactive desktop
+(`CreateProcessAsUser`) — the same technique AME Wizard's backend uses for
+`runas: currentUser`. Tweaks that must touch the running shell (theme apply, pin-to-Home)
+set `RunAs = 'User'` / `'UserElevated'` and the engine bounces their companion script
+through it.
 
 ### The HKCU redirection rule
 
@@ -120,9 +128,9 @@ for the schema). `tweaks.manifest.psd1` defines category order and per-tweak ena
 — commenting out a manifest line disables a tweak, mirroring the old "comment out the
 `!task` include" workflow. The Tweaks phase applies one category per call.
 
-A handful of tweaks stay in YAML because they need an AME `runas` context the
-TrustedInstaller engine cannot provide (theme application, Shell COM pinning) or invoke a
-top-level Executables script not yet migrated (start menu, taskbar pins, shortcuts).
+Every tweak is now a `.psd1` — `tweaks.yml` contains no `!task` includes. Tweaks that need
+the interactive user (theme/lock-screen and pin-to-Home COM) use the `RunAs` key described
+above rather than an AME `runas` YAML action.
 
 ## AtlasDesktop toggles
 

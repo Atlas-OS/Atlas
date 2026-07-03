@@ -8,6 +8,7 @@ foreach ($domainModule in @(
     'Ui.ps1'
     'Processes.ps1'
     'ScheduledTasks.ps1'
+    'RunAsUser.ps1'
 )) {
     $domainPath = Join-Path -Path $domainRoot -ChildPath $domainModule
     if (-not (Test-Path -LiteralPath $domainPath -PathType Leaf)) {
@@ -20,7 +21,7 @@ foreach ($domainModule in @(
 Export-ModuleMember -Function @(
     'Get-AtlasContext', 'Test-AtlasOption', 'New-AtlasFlag', 'Test-AtlasFlag',
     'Write-AtlasLog', 'Start-AtlasPhase', 'Stop-AtlasPhase',
-    'Test-AtlasAdmin', 'Test-AtlasTrustedInstaller', 'Assert-AtlasPrivilege', 'Invoke-AtlasTrustedInstaller',
+    'Test-AtlasAdmin', 'Test-AtlasTrustedInstaller', 'Assert-AtlasPrivilege', 'Invoke-AtlasTrustedInstaller', 'Invoke-AtlasAsUser',
     'Write-Title', 'Read-Pause', 'Read-MessageBox',
     'Stop-ProcessesUnderRoots', 'Stop-TasksUnderRoots'
 )

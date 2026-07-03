@@ -1,7 +1,7 @@
 # Atlas.Tweaks domain: tweak schema validation (used by CI and locally before builds).
 
 $script:AtlasTweakTopLevelKeys = @(
-    'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'Oobe',
+    'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'Oobe', 'RunAs',
     'Registry', 'Services', 'ScheduledTasks', 'StopProcesses', 'Run', 'RemovePaths', 'Script'
 )
 
@@ -102,6 +102,15 @@ function Test-AtlasTweakFileSchema {
 
     if ($tweak.ContainsKey('Oobe') -and -not ($tweak['Oobe'] -is [bool])) {
         Add-Problem -Problem "'Oobe' must be a boolean."
+    }
+
+    if ($tweak.ContainsKey('RunAs')) {
+        if ($tweak['RunAs'] -notin @('User', 'UserElevated')) {
+            Add-Problem -Problem "'RunAs' must be 'User' or 'UserElevated', got '$($tweak['RunAs'])'."
+        }
+        if (-not $tweak.ContainsKey('Script')) {
+            Add-Problem -Problem "'RunAs' only applies to the 'Script' key, but no 'Script' is present."
+        }
     }
 
     if ($tweak.ContainsKey('Registry')) {

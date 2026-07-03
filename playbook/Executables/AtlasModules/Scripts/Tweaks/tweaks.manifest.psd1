@@ -99,7 +99,9 @@
                 'disable-auto-app-archival'
                 'add-sharing-settings-shortcut'
                 'appearance/blue-tooltips'
-                # appearance/atlas-theme is still YAML (needs user-context COM/WinRT execution)
+                # Theme/lock-screen COM runs in the user session via RunAs (Invoke-AtlasAsUser).
+                'appearance/atlas-theme'
+                'appearance/atlas-theme-upgrade'
                 'appearance/disallow-theme-changes'
                 'windows-update/disable-nagging'
                 'windows-update/disable-insider'
@@ -226,7 +228,8 @@
                 'add-newUser-script'
                 'config-oem-information'
                 'create-shortcuts'
-                # add-music-videos-to-home stays YAML (needs unelevated user-context Shell COM).
+                # Shell "pin to Home" COM runs in the user session via RunAs (Invoke-AtlasAsUser).
+                'add-music-videos-to-home'
                 # enable-notifications runs LAST of all tweaks, invoked directly from tweaks.yml
                 # after the add-music-videos COM task, so notifications re-enable only after
                 # everything else.

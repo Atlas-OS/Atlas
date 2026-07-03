@@ -10,9 +10,9 @@ actions:
   # engine invocation; per-tweak order and enable/disable live in
   # Scripts\Tweaks\tweaks.manifest.psd1 (comment a line out to disable it).
   #
-  # The only remaining !task includes are the two COM/interactive-user tweaks
-  # (atlas-theme, add-music-videos-to-home) that need an AME runas context the
-  # engine cannot provide; a later task migrates those.
+  # Every tweak is now PowerShell - there are no !task includes. Tweaks needing the
+  # interactive user (theme/lock-screen and pin-to-Home COM) run via RunAs in their
+  # .psd1 (the engine bounces them to the user session with Invoke-AtlasAsUser).
   #
   # ----------------------- END NOTES ----------------------- #
 
@@ -39,8 +39,6 @@ actions:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Tweaks -Category qol'
     wait: true
     weight: 200
-  # Still YAML: theme/lockscreen application needs the elevated user context, not TrustedInstaller
-  - !task: {path: 'tweaks\qol\appearance\atlas-theme.yml'}
 
   - !writeStatus: {status: 'Running security tweaks'}
   - !powerShell:
@@ -65,9 +63,7 @@ actions:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Tweaks -Category misc'
     wait: true
     weight: 18
-  # Still YAML: Shell COM pinning must run unelevated as the interactive user
-  - !task: {path: 'tweaks\misc\add-music-videos-to-home.yml'}
-  # Done last on purpose, after the COM pinning task above: power settings
+  # Done last on purpose, after the misc category (which now includes the pin-to-Home COM tweak): power settings
   - !powerShell:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module Atlas.Tweaks; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\scripts\set-power-settings.psd1'')'
     wait: true

@@ -215,6 +215,46 @@ Describe 'Invoke-AtlasTweak' {
         $key.GetValue('ArmOnly', $null) | Should -BeNullOrEmpty
     }
 
+    It 'runs a RunAs=User companion script via Invoke-AtlasAsUser instead of in-process' {
+        Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 0 }
+        $companion = Join-Path -Path $TestDrive -ChildPath 'runas.ps1'
+        'New-Item -Path (Join-Path $env:TEMP "atlas-runas-should-not-exist.txt") -Force | Out-Null' | Set-Content -Path $companion
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'runas-tweak.psd1'
+        @'
+@{
+    Name   = 'RunAs Tweak'
+    RunAs  = 'User'
+    Script = 'runas.ps1'
+}
+'@ | Set-Content -Path $tweakFile
+
+        Invoke-AtlasTweak -Path $tweakFile
+
+        # The engine must delegate to Invoke-AtlasAsUser (mocked) and NOT dot-source the
+        # companion into the current process.
+        Should -Invoke -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -Times 1
+        Test-Path (Join-Path $env:TEMP 'atlas-runas-should-not-exist.txt') | Should -BeFalse
+    }
+
+    It 'runs a companion without RunAs in-process' {
+        Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 0 }
+        $marker = Join-Path -Path $TestDrive -ChildPath 'inproc.txt'
+        $companion = Join-Path -Path $TestDrive -ChildPath 'inproc.ps1'
+        "New-Item -Path '$marker' -Force | Out-Null" | Set-Content -Path $companion
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'inproc-tweak.psd1'
+        @'
+@{
+    Name   = 'In-Process Tweak'
+    Script = 'inproc.ps1'
+}
+'@ | Set-Content -Path $tweakFile
+
+        Invoke-AtlasTweak -Path $tweakFile
+
+        Should -Invoke -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -Times 0
+        Test-Path $marker | Should -BeTrue
+    }
+
     It 'expands {windir} in Run entry Exe and Args' {
         $marker = Join-Path -Path $TestDrive -ChildPath 'windir-out.txt'
         $tweakFile = Join-Path -Path $TestDrive -ChildPath 'run-tweak.psd1'
