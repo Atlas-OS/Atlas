@@ -130,9 +130,23 @@ function KillEdgeProcesses {
     foreach ($service in (Get-Service -Name '*edge*' | Where-Object { $_.DisplayName -like '*Microsoft Edge*' }).Name) {
         Stop-Service -Name $service -Force
     }
+
+    # Only match actual Edge components - matching all of '\Microsoft\*' would also kill
+    # unrelated software like classic Teams, x86 Office and OneDrive.
+    $edgePathPatterns = @()
+    foreach ($programFiles in @([Environment]::GetFolderPath('ProgramFilesX86'), [Environment]::GetFolderPath('ProgramFiles'))) {
+        foreach ($edgeComponent in @('Edge', 'EdgeUpdate', 'EdgeWebView', 'EdgeCore')) {
+            $edgePathPatterns += "$programFiles\Microsoft\$edgeComponent*"
+        }
+    }
+
     foreach (
         $process in
-        (Get-Process | Where-Object { ($_.Path -like "$([Environment]::GetFolderPath('ProgramFilesX86'))\Microsoft\*") -or ($_.Name -like '*msedge*') }).Id
+        (Get-Process | Where-Object {
+            $processPath = $_.Path
+            (@($edgePathPatterns | Where-Object { $processPath -like $_ }).Count -gt 0) -or
+            ($_.Name -match '^(msedge|MicrosoftEdge|edgeupdate)')
+        }).Id
     ) {
         Stop-Process -Id $process -Force
     }
@@ -228,7 +242,8 @@ Error: $_" -Level Critical -Exit -ExitCode 4
                 released = Get-Date $edgeItem.PublishedTime
             }.GetEnumerator()) {
             $val = $var.Value | Select-Object -First 1
-            if ($val.Length -le 0) {
+            # Values can be non-strings (e.g. DateTime/double), so avoid .Length under strict mode.
+            if ([string]::IsNullOrEmpty([string]$val)) {
                 Set-Variable -Name $var.Key -Value 'Undefined'
                 if ($var.Key -eq 'link') { throw 'Failed to parse download link!' }
             }
@@ -258,7 +273,7 @@ Error: $_" -Level Critical -Exit -ExitCode 5
     try {
         if ($null -eq (Get-Command curl.exe -EA 0)) {
             Write-Status "Couldn't find cURL, using Invoke-WebRequest, which is slower..." -Level Warning
-            Invoke-WebRequest -Uri $link -Output $msi -UseBasicParsing
+            Invoke-WebRequest -Uri $link -OutFile $msi -UseBasicParsing
         }
         else {
             curl.exe -#L "$link" -o "$msi"
@@ -294,7 +309,7 @@ Error: $_" -Level Critical -Exit -ExitCode 6
     }
 
     Write-Status -Text "Installer log path: `"$msiLog`""
-    if ($null -eq ($(Get-Content $msiLog) -like '*Product: Microsoft Edge -- * completed successfully.*')) {
+    if (@($(Get-Content $msiLog) -like '*Product: Microsoft Edge -- * completed successfully.*').Count -eq 0) {
         Write-Status "Can't find success string from Edge install log - it seems like the install was a failure." -Level Error -Exit -ExitCode 8
     }
 
@@ -311,7 +326,7 @@ function InstallWebView {
     try {
         if ($null -eq (Get-Command curl.exe -EA 0)) {
             Write-Status "Couldn't find cURL, using Invoke-WebRequest, which is slower..." -Level Warning
-            Invoke-WebRequest -Uri $link -Output $dlPath -UseBasicParsing
+            Invoke-WebRequest -Uri $link -OutFile $dlPath -UseBasicParsing
         }
         else {
             curl.exe -Ls "$link" -o "$dlPath"
@@ -328,7 +343,7 @@ Error: $_" -Level Critical -Exit -ExitCode 9
     Write-Status 'Installed Edge WebView!' -Level Success
 }
 
-# SYSTEM check - using SYSTEM previously caused issues
+# Running as TrustedInstaller/SYSTEM breaks parts of the removal
 if ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18') {
     Write-Status "This script can't be ran as TrustedInstaller/SYSTEM.
 Please relaunch this script under a regular admin account." -Level Critical -Exit
@@ -444,18 +459,32 @@ if ($UninstallEdge) {
 
             # Project originally made by ShadowWhisperer and licensed under CC0-1.0.
             # https://github.com/ShadowWhisperer/Remove-MS-Edge
+            #
+            # Pinned to commit b9172d5 (2026-06-04) so an upstream change can't silently run
+            # different code as admin; the hash is the SHA-256 of Batch/Edge.bat at that commit.
+            # To update: pick a new commit SHA on that repo, download
+            # https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/<sha>/Batch/Edge.bat
+            # and recompute its hash with 'Get-FileHash -Algorithm SHA256'.
+            $legacyScriptUrl = 'https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/b9172d58bfe95f46cbe01fafdf661fa526623bb7/Batch/Edge.bat'
+            $legacyScriptSha256 = 'F8F14F71A4978DC03D27EE3A0B7036D30E46DD0C2225FACB3B13E1BC7D26BC06'
+
             Write-Status 'Trying legacy Edge removal fallback...'
             if ($null -ne (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
-                & curl.exe -LSs "https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/main/Batch/Edge.bat" -o "$legacyScript"
+                & curl.exe -LSs "$legacyScriptUrl" -o "$legacyScript"
             }
             else {
-                Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/main/Batch/Edge.bat' -OutFile $legacyScript -UseBasicParsing -ErrorAction Stop
+                Invoke-WebRequest -Uri $legacyScriptUrl -OutFile $legacyScript -UseBasicParsing -ErrorAction Stop
             }
 
             if (Test-Path $legacyScript) {
-                Start-Process -FilePath $legacyScript -WindowStyle Hidden -Wait -ArgumentList '-auto' | Out-Null
-                KillEdgeProcesses
-                $legacyRemoved = -not (EdgeInstalled)
+                if ((Get-FileHash -LiteralPath $legacyScript -Algorithm SHA256).Hash -ne $legacyScriptSha256) {
+                    Write-Status 'Legacy Edge removal script failed its hash check - refusing to run an untrusted script and skipping this fallback.' -Level Warning
+                }
+                else {
+                    Start-Process -FilePath $legacyScript -WindowStyle Hidden -Wait -ArgumentList '-auto' | Out-Null
+                    KillEdgeProcesses
+                    $legacyRemoved = -not (EdgeInstalled)
+                }
             }
         }
         catch {
