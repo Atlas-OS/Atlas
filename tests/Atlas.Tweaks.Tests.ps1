@@ -164,6 +164,24 @@ Describe 'Shipped tweak definitions' {
 
         @($missing) -join "`n" | Should -BeNullOrEmpty
     }
+
+    It 'no tweak invokes a toggle with /justcontext but without /silent' {
+        # A tweak runs unattended, so a /justcontext launcher call must also pass /silent -
+        # otherwise the toggle engine pauses for "Press Enter to exit" and hangs the install.
+        $offenders = foreach ($file in Get-ChildItem -Path $script:shippedTweaksRoot -Recurse -Filter '*.psd1') {
+            if ($file.Name -eq 'tweaks.manifest.psd1') { continue }
+            $tweak = Import-AtlasDataFile -LiteralPath $file.FullName
+            if (-not $tweak.ContainsKey('Run')) { continue }
+            foreach ($entry in @($tweak['Run'])) {
+                $entryArgs = [string]$entry['Args']
+                if ($entryArgs -match '/justcontext' -and $entryArgs -notmatch '/silent') {
+                    "$($file.Name): $entryArgs"
+                }
+            }
+        }
+
+        @($offenders) -join "`n" | Should -BeNullOrEmpty
+    }
 }
 
 Describe 'Test-AtlasTweakApplicable' {
