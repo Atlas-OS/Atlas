@@ -30,7 +30,9 @@ function Get-AtlasTweakSkipReason {
         }
     }
 
-    $onUpgrade = 'Skip'
+    # Default 'Both' matches the legacy YAML semantics: actions without an explicit
+    # onUpgrade gate ran on fresh installs AND upgrades.
+    $onUpgrade = 'Both'
     if ($Tweak.ContainsKey('OnUpgrade') -and $Tweak['OnUpgrade']) {
         $onUpgrade = [string]$Tweak['OnUpgrade']
     }

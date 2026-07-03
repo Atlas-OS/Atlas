@@ -160,11 +160,12 @@ Describe 'Test-AtlasTweakApplicable' {
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; Arch = 'X64' } | Should -BeFalse
     }
 
-    It 'defaults OnUpgrade to Skip' {
+    It 'defaults OnUpgrade to Both, matching legacy YAML semantics' {
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T' } | Should -BeTrue
 
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -IsUpgrade $true }
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T' } | Should -BeFalse
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T' } | Should -BeTrue
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; OnUpgrade = 'Skip' } | Should -BeFalse
     }
 
     It 'honors OnUpgrade Only and Both' {

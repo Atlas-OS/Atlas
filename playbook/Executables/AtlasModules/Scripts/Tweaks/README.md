@@ -37,7 +37,7 @@ All keys are optional except `Name`. Keys are applied in the order listed below.
 | `Description` | string | What the tweak does and why. |
 | `Option` | string | Only apply when the user selected this FeaturePage option. Known values: `auto-updates-default`, `auto-updates-disable`, `browser-brave`, `browser-chrome`, `browser-firefox`, `browser-librewolf`, `defender-disable`, `defender-enable`, `disable-core-isolation`, `disable-hibernation`, `disable-power-saving`, `install-another-browser`, `install-toolbox`, `mitigations-default`, `mitigations-disable`, `remove-snipping-tool`, `uninstall-edge`. |
 | `Arch` | `'X64'` or `'ARM64'` | Only apply on this architecture. |
-| `OnUpgrade` | `'Skip'` (default), `'Only'` or `'Both'` | `Skip` = fresh installs only, `Only` = upgrade installs only, `Both` = always. |
+| `OnUpgrade` | `'Both'` (default), `'Skip'` or `'Only'` | `Skip` = fresh installs only, `Only` = upgrade installs only, `Both` = always. The default matches the legacy YAML semantics (actions without an `onUpgrade` gate ran on fresh installs and upgrades). |
 | `Oobe` | bool | When `$false`, the tweak is skipped during OOBE installs. |
 | `Registry` | array of hashtables | Registry operations, see below. |
 | `Services` | array of hashtables | `@{ Name; StartupType (int 0-4); Operation }`. `Operation` is `'Change'` (default; writes the service key's `Start` value directly so protected services work), `'Stop'` or `'Start'`. `StartupType` is required for `Change`: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled. |
@@ -75,7 +75,7 @@ resolve it.
     Description    = 'Stops Windows silently shimming applications after crashes.'
     Option         = 'defender-disable'   # only when the user picked this option
     Arch           = 'X64'
-    OnUpgrade      = 'Skip'
+    OnUpgrade      = 'Skip'               # fresh installs only ('Both' is the default)
     Oobe           = $true
     Registry       = @(
         @{ Path = 'HKLM:\SOFTWARE\Microsoft\FTH'; Name = 'Enabled'; Type = 'DWord'; Data = 0 }
