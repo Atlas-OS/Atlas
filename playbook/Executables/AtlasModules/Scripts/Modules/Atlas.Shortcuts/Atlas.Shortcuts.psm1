@@ -1,4 +1,4 @@
-function New-Shortcut {
+function New-AtlasShortcut {
     [CmdletBinding()]
 	param (
         [Parameter(Mandatory = $True)][ValidateNotNullOrEmpty()][string]$Source,
@@ -34,4 +34,4 @@ function New-Shortcut {
 	$Shortcut.Save()
 }
 
-Export-ModuleMember -Function New-Shortcut
+Export-ModuleMember -Function New-AtlasShortcut

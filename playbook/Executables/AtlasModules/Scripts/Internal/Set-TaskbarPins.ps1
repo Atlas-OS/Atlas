@@ -75,14 +75,14 @@ if ($Browser) {
 
 # Init shortcuts
 $tmp = New-Item (Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $([System.Guid]::NewGuid())) -ItemType Directory -Force
-New-Shortcut -Source $($shortcuts.$explorer.Path) -Destination "$tmp\$explorer.lnk"
+New-AtlasShortcut -Source $($shortcuts.$explorer.Path) -Destination "$tmp\$explorer.lnk"
 
 # Decide Registry Favorites
 if ([string]::IsNullOrEmpty($Browser)) {
     # If Edge exists, pin it, otherwise, pin only File Explorer
     $edgePath = $shortcuts.$edge.Path
     if (Test-Path $edgePath) {
-        New-Shortcut -Source $edgePath -Destination "$tmp\$edge.lnk"
+        New-AtlasShortcut -Source $edgePath -Destination "$tmp\$edge.lnk"
         $Browser = $edge
         $regTaskbar = $shortcuts.$edge
     }
@@ -94,7 +94,7 @@ if ([string]::IsNullOrEmpty($Browser)) {
 }
 else {
     # Browser options
-    New-Shortcut -Source $($shortcuts.$Browser.Path) -Destination "$tmp\$Browser.lnk"
+    New-AtlasShortcut -Source $($shortcuts.$Browser.Path) -Destination "$tmp\$Browser.lnk"
     $regTaskbar = $shortcuts.$Browser
 }
 

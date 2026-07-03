@@ -2,7 +2,7 @@ function Stop-ThemeProcesses {
     Get-Process 'SystemSettings', 'control' -EA 0 | Stop-Process -Force -EA 0
 }
 
-function Set-Theme {
+function Set-AtlasTheme {
     param (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]

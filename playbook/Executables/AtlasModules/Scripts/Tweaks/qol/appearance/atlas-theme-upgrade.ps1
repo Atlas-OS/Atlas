@@ -6,4 +6,4 @@ $ErrorActionPreference = 'Continue'
 & (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\initPowerShell.ps1')
 Import-Module Atlas.Themes -ErrorAction SilentlyContinue
 
-Set-ThemeMRU
+Set-AtlasThemeMru

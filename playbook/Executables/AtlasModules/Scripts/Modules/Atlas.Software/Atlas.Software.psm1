@@ -2,13 +2,13 @@
 Set-StrictMode -Version 3.0
 
 # Atlas.Core supplies Write-AtlasLog/Get-AtlasContext/Assert-AtlasPrivilege and the UI
-# helpers (Read-Pause, Read-MessageBox); Atlas.Shortcuts supplies New-Shortcut. Import
+# helpers (Read-Pause, Read-MessageBox); Atlas.Shortcuts supplies New-AtlasShortcut. Import
 # them explicitly so standalone entry points (Install-AtlasPackage.ps1, the software picker)
 # work without initPowerShell.ps1 having populated PSModulePath first.
 if (-not (Get-Command -Name 'Write-AtlasLog' -ErrorAction SilentlyContinue)) {
     Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1')
 }
-if (-not (Get-Command -Name 'New-Shortcut' -ErrorAction SilentlyContinue)) {
+if (-not (Get-Command -Name 'New-AtlasShortcut' -ErrorAction SilentlyContinue)) {
     Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Shortcuts\Atlas.Shortcuts.psd1')
 }
 

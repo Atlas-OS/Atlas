@@ -134,7 +134,7 @@ function Install-AtlasLibreWolfBrowser {
     }
 
     Write-Host 'Creating LibreWolf Desktop shortcut'
-    New-Shortcut -Source "$librewolfPath\librewolf.exe" -Destination "$desktop\LibreWolf.lnk" -WorkingDir $librewolfPath
+    New-AtlasShortcut -Source "$librewolfPath\librewolf.exe" -Destination "$desktop\LibreWolf.lnk" -WorkingDir $librewolfPath
 
     Write-Host 'Getting the latest LibreWolf-WinUpdater download link'
     $librewolfUpdaterURI = 'https://codeberg.org/api/v1/repos/ltguillaume/librewolf-winupdater/releases?draft=false&pre-release=false&page=1&limit=1'
@@ -159,7 +159,7 @@ function Install-AtlasLibreWolfBrowser {
     }
 
     Write-Host 'Adding LibreWolf WinUpdater shortcut'
-    New-Shortcut -Source "$updaterPath\Librewolf-WinUpdater.exe" -Destination "$startMenu\LibreWolf\LibreWolf WinUpdater.lnk" -WorkingDir $librewolfPath
+    New-AtlasShortcut -Source "$updaterPath\Librewolf-WinUpdater.exe" -Destination "$startMenu\LibreWolf\LibreWolf WinUpdater.lnk" -WorkingDir $librewolfPath
 }
 
 function Install-AtlasVisualCppRuntimes {

@@ -6,9 +6,9 @@
     Description       = 'Theme and lock-screen application (COM IThemeManager with an explorer fallback).'
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
-        'Set-Theme'
-        'Set-ThemeMRU'
-        'Set-LockscreenImage'
+        'Set-AtlasTheme'
+        'Set-AtlasThemeMru'
+        'Set-AtlasLockscreenImage'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

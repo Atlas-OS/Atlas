@@ -6,7 +6,7 @@
     Description       = 'Shell shortcut (.lnk) creation helper.'
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
-        'New-Shortcut'
+        'New-AtlasShortcut'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

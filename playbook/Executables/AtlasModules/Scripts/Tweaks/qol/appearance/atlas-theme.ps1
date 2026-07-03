@@ -8,9 +8,9 @@ $ErrorActionPreference = 'Continue'
 Import-Module Atlas.Themes -ErrorAction SilentlyContinue
 
 $themePath = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'Resources\Themes\atlas-v0.5.x-dark.theme'
-Set-Theme -Path $themePath
-Set-ThemeMRU
-Set-LockscreenImage
+Set-AtlasTheme -Path $themePath
+Set-AtlasThemeMru
+Set-AtlasLockscreenImage
 
 # Disable the rotating lock-screen "fun facts" for every provisioned account
 # (Enterprise/Education only). Dynamic subkeys, so it can't be a static Registry entry.

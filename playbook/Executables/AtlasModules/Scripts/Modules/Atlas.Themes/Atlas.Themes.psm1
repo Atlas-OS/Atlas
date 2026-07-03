@@ -15,4 +15,4 @@ foreach ($domainModule in @(
     . $domainPath
 }
 
-Export-ModuleMember -Function Set-Theme, Set-ThemeMRU, Set-LockscreenImage
+Export-ModuleMember -Function Set-AtlasTheme, Set-AtlasThemeMru, Set-AtlasLockscreenImage

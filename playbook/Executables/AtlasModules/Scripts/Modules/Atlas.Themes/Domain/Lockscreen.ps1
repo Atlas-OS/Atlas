@@ -1,4 +1,4 @@
-function Set-LockscreenImage {
+function Set-AtlasLockscreenImage {
     param (
         [ValidateNotNullOrEmpty()]
         [string]$Path = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Wallpapers\lockscreen_dark.png"

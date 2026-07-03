@@ -6,7 +6,7 @@
 # HKLM survives profile resets; HKCU lives inside the profile folder and would be wiped along with it.
 # Standard users cannot create HKLM keys, so HKCU is used as a compatibility fallback.
 #
-# The marker key is the user's SID (Security Identifier) — a unique, permanent ID assigned to each
+# The marker key is the user's SID (Security Identifier) - a unique, permanent ID assigned to each
 # Windows account. Unlike a username, the SID never changes even if the profile is deleted and
 # recreated. Using it as the key name lets us track setup state per user on shared machines.
 param([switch]$FinalizeSearch)
@@ -159,13 +159,13 @@ if ($setupMarker -lt 1) {
             & "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd" /silent
 
             # Set ThemeMRU (recent themes)
-            Set-Theme -Path "$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.5.x-dark.theme"
-            Set-ThemeMRU | Out-Null
+            Set-AtlasTheme -Path "$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.5.x-dark.theme"
+            Set-AtlasThemeMru | Out-Null
         }
 
         # Set lockscreen wallpaper
         try {
-            Set-LockscreenImage
+            Set-AtlasLockscreenImage
         }
         catch {
             Write-Warning "Failed to set lockscreen image: $($_.Exception.Message)"
