@@ -3,10 +3,13 @@ title: Root Playbook File
 description: Runs all of the Playbook files
 actions:
   # some changes requires default user access. loading the hive before everything else is required
+  # (SystemDrive because the admin's home drive can differ from the OS drive; a failed
+  # load would silently lose every default-user mirror, so it halts)
   - !powerShell:
-    command: 'reg load HKU\AME_UserHive_Default $env:HOMEDRIVE\Users\Default\NTUSER.DAT'
+    command: 'reg load HKU\AME_UserHive_Default $env:SystemDrive\Users\Default\NTUSER.DAT'
     oobe: false
     wait: true
+    handleExitCodes: { "!0": halt }
   - !writeStatus: { status: "Deleting old AtlasOS folders" }
   - !powerShell:
     command: '& ".\AtlasModules\Scripts\Internal\Stop-AtlasFolderProcess.ps1"'
