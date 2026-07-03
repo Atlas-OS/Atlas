@@ -1,5 +1,14 @@
+# Atlas.Registry domain: known-folder and system-drive helpers.
+# Port of the former UserPaths module; the function names are an internal contract for
+# scripts that resolve them through PSModulePath auto-loading (SHORTCUTS, STARTMENU, ...).
+
 function Get-UserPath {
-    param (
+    <#
+    .SYNOPSIS
+        Resolves a known folder (default: the desktop) for the default or current user
+        via SHGetKnownFolderPath.
+    #>
+    param(
         # https://learn.microsoft.com/windows/win32/shell/knownfolderid
         [string]$FolderID = 'B4BFCC3A-DB2C-424C-B029-7FE99A87C641',
         # Default user
@@ -11,11 +20,12 @@ function Get-UserPath {
 
     $guid = [guid]::new($FolderID)
     if ($null -eq $guid) {
-        throw "Failed to convert provided FolderID!"
+        throw 'Failed to convert provided FolderID!'
     }
 
-    # https://learn.microsoft.com/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
-    Add-Type @'
+    if (-not ('KnownFolder' -as [type])) {
+        # https://learn.microsoft.com/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
+        Add-Type @'
 using System;
 using System.Runtime.InteropServices;
 
@@ -30,27 +40,34 @@ public class KnownFolder
     );
 }
 '@
+    }
 
     $pszPath = [IntPtr]::Zero
     $result = [KnownFolder]::SHGetKnownFolderPath($guid, $Flags, $Token, [ref]$pszPath)
 
     if ($result -eq 0 -and $pszPath -ne [IntPtr]::Zero) {
-        $desktopPath = [Runtime.InteropServices.Marshal]::PtrToStringUni($pszPath)
+        $folderPath = [Runtime.InteropServices.Marshal]::PtrToStringUni($pszPath)
         [Runtime.InteropServices.Marshal]::FreeCoTaskMem($pszPath)
-        return $desktopPath
-    } else {
+        return $folderPath
+    }
+    else {
         throw "Failed to retrieve $guid. Error code: $result"
     }
 }
 
 function Get-SystemDrive {
+    <#
+    .SYNOPSIS
+        Returns the system drive letter (e.g. 'C:'), preferring the environment and
+        falling back to CIM, then 'C:'.
+    #>
     $drive = $null
     foreach ($letter in @(
         $env:SystemDrive,
         (Get-CimInstance -ClassName Win32_OperatingSystem).SystemDrive,
-        "C:"
+        'C:'
     )) {
-        if ($letter -and ($letter.Length -eq 2) -and (Test-Path $letter -PathType Container)) {
+        if ($letter -and ($letter.Length -eq 2) -and (Test-Path -LiteralPath $letter -PathType Container)) {
             $drive = $letter
             break
         }
@@ -58,9 +75,8 @@ function Get-SystemDrive {
 
     if ($drive) {
         return $drive
-    } else {
-        throw "Failed to find the system drive!"
+    }
+    else {
+        throw 'Failed to find the system drive!'
     }
 }
-
-Export-ModuleMember -Function Get-UserPath, Get-SystemDrive
