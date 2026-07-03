@@ -1,0 +1,61 @@
+name: Test
+
+on:
+  push:
+    paths:
+      - "playbook/**"
+      - "tools/**"
+      - "tests/**"
+      - ".github/workflows/test.yml"
+  pull_request:
+    paths:
+      - "playbook/**"
+      - "tools/**"
+      - "tests/**"
+      - ".github/workflows/test.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        # gh api repos/actions/checkout/commits/v6.0.2 --jq '.sha'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Windows PowerShell 5.1 parse gate
+        # The payload runs under Windows PowerShell 5.1 on target machines; this catches
+        # PowerShell-7-only syntax before it ships.
+        shell: powershell
+        run: |
+          $failed = $false
+          Get-ChildItem -Path 'playbook' -Recurse -Include '*.ps1','*.psm1' | ForEach-Object {
+              $tokens = $null
+              $errors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+              if ($errors) {
+                  $failed = $true
+                  foreach ($parseError in $errors) {
+                      Write-Host "::error file=$($_.FullName),line=$($parseError.Extent.StartLineNumber)::$($parseError.Message)"
+                  }
+              }
+          }
+
+          if ($failed) { exit 1 }
+          Write-Host "All payload scripts parse under Windows PowerShell 5.1."
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          # Pinned for reproducible results
+          Install-Module -Name Pester -RequiredVersion 5.7.1 -Force -Scope CurrentUser
+
+      - name: Run Pester tests
+        shell: pwsh
+        run: |
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'tests'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config

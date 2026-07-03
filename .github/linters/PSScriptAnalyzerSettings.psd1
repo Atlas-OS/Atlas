@@ -1,20 +1,13 @@
 @{
+    # Strict profile for build tooling (tools/**) and tests (tests/**), which run under
+    # PowerShell 5.1 or 7 on developer machines and CI. The shipped payload uses the more
+    # lenient PSScriptAnalyzerSettings.Payload.psd1.
     Severity = @('Error', 'Warning')
 
     ExcludeRules = @(
-        # Atlas scripts use Write-Host intentionally for colored playbook output
+        # Build scripts print progress/results intentionally with colors
         'PSAvoidUsingWriteHost',
-        # Positional parameters are common in short Atlas helper calls
-        'PSAvoidUsingPositionalParameters',
-        # Internal Atlas scripts are not published cmdlets; ShouldProcess is not applicable
-        'PSUseShouldProcessForStateChangingFunctions',
-        # Internal function names do not need to follow module-publishing conventions
-        'PSUseSingularNouns',
-        # InstallSoftware.ps1 uses global vars intentionally for its progress display state machine
-        'PSAvoidGlobalVars',
-        # BOM handling is a per-file encoding decision, not enforced project-wide
-        'PSUseBOMForUnicodeEncodedFile',
-        # Script-level params used inside nested functions trigger a false positive in PSSA
-        'PSReviewUnusedParameter'
+        # Internal tooling functions are not published cmdlets; ShouldProcess is not applicable
+        'PSUseShouldProcessForStateChangingFunctions'
     )
 }

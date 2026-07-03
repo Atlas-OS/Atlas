@@ -1,12 +1,12 @@
-name: Create and Validate Atlas Playbook
+name: Build Playbook
 
 on:
   push:
     paths:
       - "playbook/**"
       - "tools/**"
-      - "**/*.yaml"
-      - "**/*.yml"
+      - ".yamllint.yml"
+      - ".github/workflows/build.yml"
   workflow_dispatch:
     inputs:
       branch:
@@ -14,6 +14,9 @@ on:
         required: true
         default: 'main'
         type: string
+
+permissions:
+  contents: write # CAB packages are committed back to the repository
 
 env:
   SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
@@ -29,10 +32,11 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.ref }}
-          token: ${{ secrets.RUNNER_SECRET }}
 
       - name: Validate YAML files
-        run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable, new-lines: {type: platform}}}" .'
+        run: |
+          pip install yamllint | Out-Null
+          yamllint -c .yamllint.yml .
 
       - name: Get changed files
         id: changed-files
@@ -118,11 +122,14 @@ jobs:
         if: env.runSxsc == 'true'
 
       - name: Commit and push changes
+        # Uses the workflow's GITHUB_TOKEN: pushes made with it cannot retrigger
+        # workflows, so this is loop-safe without a personal access token.
         run: |
-          git config --local user.email "141822421+atlasos-admin@users.noreply.github.com"
-          git config --local user.name "atlasos-admin"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           git add -A
           git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
+          git pull --rebase origin $env:GITHUB_REF_NAME
           git push
         working-directory: playbook\Executables\AtlasModules\Packages
         if: env.runSxsc == 'true'
@@ -133,10 +140,15 @@ jobs:
         run: |
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
           $pbName = "Atlas Playbook $($env:GITHUB_SHA.Substring(0,8))"
-          & ..\tools\build\Build-Playbook.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName
+          & .\tools\build\Build-Playbook.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName -DontOpenPbLocation
           echo "Move the .apbx playbook into 'Release ZIP' to be released as an artifact with the additional files..."
-          Move-Item "$pbName.apbx" "../tools/release-zip"
-        working-directory: playbook
+          Move-Item "playbook\$pbName.apbx" "tools\release-zip"
+
+      - name: Verify playbook package
+        if: ${{ steps.create-pb.outcome == 'success' }}
+        run: |
+          $apbx = Get-ChildItem "tools\release-zip" -Filter *.apbx | Select-Object -First 1
+          & .\tools\build\Test-Apbx.ps1 -Path $apbx.FullName
 
       - name: Upload artifact
         # gh api repos/actions/upload-artifact/commits/v7.0.0 --jq '.sha'
