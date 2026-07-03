@@ -4,9 +4,10 @@
 # documented-fails). Runs elevated (runas: currentUserElevated, matching the old
 # snapshot/deprovision actions), invoked twice:
 #   -Category Snapshot  before the !appx block: package snapshot + Teams process kills
-#                       + Teams chat auto-install prevention
 #   -Category Cleanup   after the !appx block: Phone Link removal, deprovisioning of
 #                       everything removed since the snapshot, and AppX cache clearing
+# The Teams chat auto-install prevention stays in atlas\appx.yml: its Communications
+# key is TrustedInstaller-protected, out of reach of this phase's admin context.
 param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('Snapshot', 'Cleanup')]
@@ -25,13 +26,6 @@ switch ($Category) {
 
         # Kill Teams so the !appx removals succeed (legacy AppX Teams + 24H2 MSTeams)
         Stop-AtlasProcess -Name 'msteams*', 'ms-teams*'
-
-        # Prevent the Teams chat auto-install
-        $communicationsKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications'
-        if (-not (Test-Path -LiteralPath $communicationsKey)) {
-            New-Item -Path $communicationsKey -Force | Out-Null
-        }
-        Set-ItemProperty -LiteralPath $communicationsKey -Name 'ConfigureChatAutoInstall' -Value 0 -Type DWord -Force
     }
     'Cleanup' {
         # Removing Phone Link using AME Wizard causes issues with Cross Device
