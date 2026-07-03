@@ -3,7 +3,8 @@ name: Create and Validate Atlas Playbook
 on:
   push:
     paths:
-      - "src/**"
+      - "playbook/**"
+      - "tools/**"
       - "**/*.yaml"
       - "**/*.yml"
   workflow_dispatch:
@@ -40,11 +41,11 @@ jobs:
         with:
           files_yaml: |
             sxsc:
-              - 'src/sxsc/*.yaml'
+              - 'tools/sxsc/*.yaml'
 
       - name: Copy modified .yamls
         run: |
-          $sxsc = '.\src\sxsc'
+          $sxsc = '.\tools\sxsc'
           $configs = '..\configs'
           mkdir $configs | Out-Null
 
@@ -53,7 +54,7 @@ jobs:
           } elseif (Test-Path "$sxsc\regenAllConfigs") {
               Write-Output "Regenerating all configs..."
               Remove-Item -Path "$sxsc\regenAllConfigs" -Force
-              Remove-Item -Path ".\src\playbook\Executables\AtlasModules\Packages\*.cab" -Force -Recurse
+              Remove-Item -Path ".\playbook\Executables\AtlasModules\Packages\*.cab" -Force -Recurse
               $changedFiles = Get-ChildItem $sxsc -Filter *.yaml
           } else {
               Write-Output "Not building any packages, no sxsc config changes detected."
@@ -84,15 +85,15 @@ jobs:
           Write-Output "Making certificate..."
           $thumbprint = .\make-cert.ps1
 
-          $atlasSrcPath = '..\Atlas\src\'
-          $packagePath = "$atlasSrcPath\playbook\Executables\AtlasModules\Packages"
+          $atlasRepoPath = '..\Atlas'
+          $packagePath = "$atlasRepoPath\playbook\Executables\AtlasModules\Packages"
           mkdir $packagePath -EA 0 | Out-Null
 
           Get-ChildItem "configs" -Filter *.yaml | ForEach-Object {
               Write-Output "`n`nProcessing $($_.Name)`n------------------------------------------------------"
               Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
 
-              $folderDir = ".\$atlasSrcPath\sxsc\$($_.Name -replace '-Arm','')"
+              $folderDir = "$atlasRepoPath\tools\sxsc\$($_.Name -replace '-Arm','')"
               if (Test-Path $folderDir -PathType Container) {
                   Write-Output "Copying $($_.Name)'s files..."
                   Copy-Item -Path "$folderDir\*" -Destination '.\' -Recurse -Force | Out-Null
@@ -123,7 +124,7 @@ jobs:
           git add -A
           git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
           git push
-        working-directory: src\playbook\Executables\AtlasModules\Packages
+        working-directory: playbook\Executables\AtlasModules\Packages
         if: env.runSxsc == 'true'
 
       - name: Create playbook (ZIP/APBX password is malte)
@@ -132,10 +133,10 @@ jobs:
         run: |
           echo "Making a renamed password protected (malte) ZIP of playbook files..."
           $pbName = "Atlas Playbook $($env:GITHUB_SHA.Substring(0,8))"
-          & ..\dependencies\local-build.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName
+          & ..\tools\build\Build-Playbook.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName
           echo "Move the .apbx playbook into 'Release ZIP' to be released as an artifact with the additional files..."
-          Move-Item "$pbName.apbx" "../release-zip"
-        working-directory: src\playbook
+          Move-Item "$pbName.apbx" "../tools/release-zip"
+        working-directory: playbook
 
       - name: Upload artifact
         # gh api repos/actions/upload-artifact/commits/v7.0.0 --jq '.sha'
@@ -144,5 +145,5 @@ jobs:
         with:
           name: Atlas Playbook
           path: |
-            src/release-zip/*
+            tools/release-zip/*
           if-no-files-found: error

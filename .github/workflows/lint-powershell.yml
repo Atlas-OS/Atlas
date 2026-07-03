@@ -3,14 +3,18 @@ name: Lint PowerShell
 on:
   push:
     paths:
-      - "src/**/*.ps1"
-      - "src/**/*.psm1"
+      - "playbook/**/*.ps1"
+      - "playbook/**/*.psm1"
+      - "tools/**/*.ps1"
+      - "tools/**/*.psm1"
       - ".github/linters/PSScriptAnalyzerSettings.psd1"
       - ".github/workflows/lint-powershell.yml"
   pull_request:
     paths:
-      - "src/**/*.ps1"
-      - "src/**/*.psm1"
+      - "playbook/**/*.ps1"
+      - "playbook/**/*.psm1"
+      - "tools/**/*.ps1"
+      - "tools/**/*.psm1"
       - ".github/linters/PSScriptAnalyzerSettings.psd1"
       - ".github/workflows/lint-powershell.yml"
   workflow_dispatch:
@@ -35,7 +39,7 @@ jobs:
         shell: pwsh
         run: |
           $settings = '.github/linters/PSScriptAnalyzerSettings.psd1'
-          $results = Get-ChildItem -Path 'src' -Recurse -Include '*.ps1','*.psm1' |
+          $results = Get-ChildItem -Path 'playbook','tools' -Recurse -Include '*.ps1','*.psm1' |
               Invoke-ScriptAnalyzer -Settings $settings
 
           if ($results) {

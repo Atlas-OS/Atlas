@@ -1,7 +1,7 @@
 # Sources
 Some of the Playbook contains binary executables. This file provides some verification for those files, by listing the SHA256 hashes, sources, and when each was last verified/checked. Hashes were collected using `Get-FileHash` in PowerShell.
 
-The root of the file paths listed here starts in `src\playbook\Executables`.
+The root of the file paths listed here starts in `playbook\Executables`.
 
 ### Multi-Choice
 
