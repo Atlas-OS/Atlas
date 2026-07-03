@@ -143,6 +143,70 @@ Describe 'Set-AtlasToggleState / Get-AtlasToggleState' {
     }
 }
 
+Describe 'Invoke-AtlasToggleReapply' {
+    BeforeEach {
+        Remove-Item -Path $StateRoot -Recurse -Force -ErrorAction SilentlyContinue
+
+        $script:ReapplyTogglesRoot = Join-Path $TestDrive 'ReapplyToggles'
+        Remove-Item -Path $script:ReapplyTogglesRoot -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -Path $script:ReapplyTogglesRoot -ItemType Directory -Force | Out-Null
+
+        # A launcher that records that it ran, so tests can assert replay vs skip.
+        $script:ReapplyMarker = Join-Path $TestDrive 'reapply-marker.txt'
+        Remove-Item -Path $script:ReapplyMarker -Force -ErrorAction SilentlyContinue
+        $script:ReapplyLauncher = Join-Path $TestDrive 'ReapplyLauncher.ps1'
+        Set-Content -Path $script:ReapplyLauncher -Value "param([switch]`$Silent)`nSet-Content -Path '$script:ReapplyMarker' -Value 'ran'" -Encoding Ascii
+    }
+
+    It 'replays a recorded non-zero state through its launcher' {
+        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -LauncherPath $script:ReapplyLauncher -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
+
+        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $StateRoot 'ReplayToggle') | Should -BeTrue
+    }
+
+    It 'does not replay state 0' {
+        Set-AtlasToggleState -Name 'ReplayToggle' -State 0 -LauncherPath $script:ReapplyLauncher -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
+
+        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
+    }
+
+    It 'cleans up a record whose launcher no longer exists' {
+        Set-AtlasToggleState -Name 'GhostToggle' -State 1 -LauncherPath (Join-Path $TestDrive 'gone.cmd') -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
+
+        Test-Path -LiteralPath (Join-Path $StateRoot 'GhostToggle') | Should -BeFalse
+    }
+
+    It 'cleans up and never replays a record for a NoStateRecord toggle (stale SafeMode hazard)' {
+        # Regression: a stale recorded state (e.g. SafeMode = 3 from an older Atlas)
+        # must not be re-applied on upgrade - the machine would boot into safe mode.
+        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'NoRecordToggle.ps1' -Content @'
+@{
+    Name          = 'NoRecordToggle'
+    Elevation     = 'None'
+    NoStateRecord = $true
+    States        = [ordered]@{
+        Enter = @{ StateValue = 3; Action = { param($Toggle) } }
+        Exit  = @{ StateValue = 0; Action = { param($Toggle) } }
+    }
+}
+'@
+
+        Set-AtlasToggleState -Name 'NoRecordToggle' -State 3 -LauncherPath $script:ReapplyLauncher -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
+
+        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $StateRoot 'NoRecordToggle') | Should -BeFalse
+    }
+}
+
 Describe 'Invoke-AtlasToggle' {
     BeforeAll {
         $script:TogglesRoot = Join-Path $TestDrive 'Toggles'
@@ -219,6 +283,23 @@ Describe 'Invoke-AtlasToggle' {
     }
 }
 '@
+
+        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'FailingToggle.ps1' -Content @'
+@{
+    Name      = 'FailingToggle'
+    Elevation = 'None'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            Reboot     = 'None'
+            Action     = {
+                param($Toggle)
+                throw 'deliberate failure'
+            }
+        }
+    }
+}
+'@
     }
 
     AfterAll {
@@ -241,6 +322,19 @@ Describe 'Invoke-AtlasToggle' {
         $recorded = Get-AtlasToggleState -Name 'MarkerToggle' -StateRoot $StateRoot
         $recorded.State | Should -Be 1
         $recorded.Path | Should -Be $launcher
+    }
+
+    It 'does not record state when the action fails (upgrade re-apply must not replay a lie)' {
+        # Recording before/despite a failed action would leave a record that
+        # Invoke-AtlasToggleReapply replays on the next upgrade.
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+
+        Invoke-AtlasToggle -Name 'FailingToggle' -State 'On' -Silent `
+            -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
+            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
+
+        Get-AtlasToggleState -Name 'FailingToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -ParameterFilter { $Message -like '*state was not recorded because its action failed*' }
     }
 
     It 'runs ContextAction before Action and stops after it with -JustContext' {

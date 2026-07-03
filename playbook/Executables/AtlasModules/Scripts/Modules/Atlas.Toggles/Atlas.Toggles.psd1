@@ -14,7 +14,7 @@
         'Set-AtlasToggleState'
         # Interaction
         'Show-AtlasStateMenu'
-        # Upgrade re-apply (port of the legacy Executables\DEFAULT.ps1)
+        # Upgrade re-apply
         'Invoke-AtlasToggleReapply'
     )
     CmdletsToExport   = @()

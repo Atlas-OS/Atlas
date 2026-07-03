@@ -1,10 +1,11 @@
 # Toggle: Safe Mode boot configuration.
-# Converted from 'AtlasDesktop\9. Troubleshooting\Safe Mode\*.cmd' -- four separate .cmd files that
-# all share settingName 'SafeMode', so they become one state-launcher definition (per-state Launcher
-# and StateValue), like a multi-state EdgeSwipe.
 @{
     Name      = 'SafeMode'
     Elevation = 'Admin'
+    # Safe mode is a transient troubleshooting state: never record it, so an upgrade's
+    # toggle re-apply can never silently boot the machine back into safe mode (e.g. when
+    # the user entered via this launcher but exited via msconfig, leaving a stale record).
+    NoStateRecord = $true
     States    = [ordered]@{
         Minimal       = @{
             StateValue = 3
