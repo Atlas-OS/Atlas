@@ -1,7 +1,7 @@
 # Atlas.Tweaks domain: tweak schema validation (used by CI and locally before builds).
 
 $script:AtlasTweakTopLevelKeys = @(
-    'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'Oobe', 'RunAs',
+    'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'Oobe', 'RunAs', 'MinBuild', 'MaxBuild',
     'Registry', 'Services', 'ScheduledTasks', 'StopProcesses', 'Run', 'RemovePaths', 'Script'
 )
 
@@ -102,6 +102,15 @@ function Test-AtlasTweakFileSchema {
 
     if ($tweak.ContainsKey('Oobe') -and -not ($tweak['Oobe'] -is [bool])) {
         Add-Problem -Problem "'Oobe' must be a boolean."
+    }
+
+    foreach ($buildKey in @('MinBuild', 'MaxBuild')) {
+        if ($tweak.ContainsKey($buildKey)) {
+            $buildValue = $tweak[$buildKey]
+            if (-not (($buildValue -is [int]) -or ($buildValue -is [long]))) {
+                Add-Problem -Problem "'$buildKey' must be an integer Windows build number."
+            }
+        }
     }
 
     if ($tweak.ContainsKey('RunAs')) {

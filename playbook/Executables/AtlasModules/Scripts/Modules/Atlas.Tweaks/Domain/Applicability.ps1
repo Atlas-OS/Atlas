@@ -30,8 +30,6 @@ function Get-AtlasTweakSkipReason {
         }
     }
 
-    # Default 'Both' matches the legacy YAML semantics: actions without an explicit
-    # onUpgrade gate ran on fresh installs AND upgrades.
     $onUpgrade = 'Both'
     if ($Tweak.ContainsKey('OnUpgrade') -and $Tweak['OnUpgrade']) {
         $onUpgrade = [string]$Tweak['OnUpgrade']
@@ -45,6 +43,17 @@ function Get-AtlasTweakSkipReason {
 
     if ($Tweak.ContainsKey('Oobe') -and $Tweak['Oobe'] -eq $false -and $context.IsOobe) {
         return 'skipped during OOBE installs'
+    }
+
+    # Windows build gating (inclusive). A build of 0 means the number could not be read;
+    # the gate is then not enforced rather than silently skipping every gated tweak.
+    if ($context.WindowsBuild -gt 0) {
+        if ($Tweak.ContainsKey('MinBuild') -and $Tweak['MinBuild'] -and $context.WindowsBuild -lt [int]$Tweak['MinBuild']) {
+            return "requires Windows build $($Tweak['MinBuild']) or newer"
+        }
+        if ($Tweak.ContainsKey('MaxBuild') -and $Tweak['MaxBuild'] -and $context.WindowsBuild -gt [int]$Tweak['MaxBuild']) {
+            return "requires Windows build $($Tweak['MaxBuild']) or older"
+        }
     }
 
     return $null

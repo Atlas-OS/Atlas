@@ -10,7 +10,8 @@ BeforeAll {
         param(
             [bool]$IsArm64 = $false,
             [bool]$IsUpgrade = $false,
-            [bool]$IsOobe = $false
+            [bool]$IsOobe = $false,
+            [int]$WindowsBuild = 26100
         )
 
         [pscustomobject]@{
@@ -19,7 +20,7 @@ BeforeAll {
             FlagsPath        = 'C:\Windows\AtlasModules\Flags'
             LogsPath         = Join-Path -Path $TestDrive -ChildPath 'Logs'
             IsArm64          = $IsArm64
-            WindowsBuild     = 26100
+            WindowsBuild     = $WindowsBuild
             IsUpgrade        = $IsUpgrade
             IsOobe           = $IsOobe
         }
@@ -44,6 +45,8 @@ Describe 'Test-AtlasTweakSchema' {
     Arch           = 'X64'
     OnUpgrade      = 'Both'
     Oobe           = $false
+    MinBuild       = 22000
+    MaxBuild       = 26200
     Registry       = @(
         @{ Path = 'HKLM:\SOFTWARE\Test'; Name = 'Value'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKCU\Software\Test'; Name = 'Old'; Operation = 'Delete'; IgnoreErrors = $true }
@@ -80,6 +83,7 @@ Describe 'Test-AtlasTweakSchema' {
     Option      = 'not-a-real-option'
     Arch        = 'X86'
     OnUpgrade   = 'Sometimes'
+    MinBuild    = 'notanumber'
     Bogus       = $true
     Registry    = @(
         @{ Name = 'MissingPath'; Type = 'DWord'; Data = 1 }
@@ -104,6 +108,7 @@ Describe 'Test-AtlasTweakSchema' {
         $problemText | Should -Match "Unknown 'Option'"
         $problemText | Should -Match "'Arch' must be"
         $problemText | Should -Match "'OnUpgrade' must be"
+        $problemText | Should -Match "'MinBuild' must be an integer"
         $problemText | Should -Match 'Registry entry is missing its Path'
         $problemText | Should -Match "needs a Type"
         $problemText | Should -Match "is missing its Data"
@@ -184,6 +189,43 @@ Describe 'Test-AtlasTweakApplicable' {
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; Oobe = $false } | Should -BeFalse
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; Oobe = $true } | Should -BeTrue
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T' } | Should -BeTrue
+    }
+
+    It 'gates on MinBuild inclusively (legacy builds: [>=N])' {
+        # Windows 11 22H2 build; a MinBuild = 22000 tweak applies, a MinBuild = 26200 does not.
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22621 }
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22000 } | Should -BeTrue
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 26200 } | Should -BeFalse
+
+        # Exactly at the boundary still applies (inclusive).
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22000 }
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22000 } | Should -BeTrue
+
+        # Windows 10 build is below the gate.
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 19045 }
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22000 } | Should -BeFalse
+    }
+
+    It "maps the end-task 'builds: [>22000]' gate via MinBuild = 22001" {
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22000 }
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22001 } | Should -BeFalse
+
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22621 }
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22001 } | Should -BeTrue
+    }
+
+    It 'gates on MaxBuild inclusively (legacy builds: [<N] / [<=N])' {
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 19045 }
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MaxBuild = 21999 } | Should -BeTrue
+
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22621 }
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MaxBuild = 21999 } | Should -BeFalse
+    }
+
+    It 'does not enforce build gates when the build could not be read (WindowsBuild = 0)' {
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 0 }
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22000 } | Should -BeTrue
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MaxBuild = 19999 } | Should -BeTrue
     }
 }
 
