@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # create the GitHub Release
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        # gh api repos/actions/checkout/commits/v6 --jq '.sha'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Verify tag matches playbook version
+        shell: pwsh
+        run: |
+          $conf = [xml](Get-Content -Path 'playbook/playbook.conf' -Raw)
+          $version = $conf.Playbook.Version
+          $tag = '${{ github.ref_name }}'
+          if ($tag -ne "v$version") {
+              Write-Host "::error::Tag '$tag' does not match playbook.conf version 'v$version'."
+              exit 1
+          }
+          Write-Host "Tag matches playbook version v$version."
+
+      - name: Build playbook
+        shell: pwsh
+        run: |
+          # A release build: no dev removals, no live log.
+          & ./tools/build/Build-Playbook.ps1 -FileName "Atlas ${{ github.ref_name }}" -DontOpenPbLocation
+
+      - name: Verify playbook package
+        shell: pwsh
+        run: |
+          $apbx = Get-ChildItem 'playbook' -Filter *.apbx | Select-Object -First 1
+          & ./tools/build/Test-Apbx.ps1 -Path $apbx.FullName
+
+      - name: Assemble release ZIP
+        shell: pwsh
+        run: |
+          $staging = Join-Path $env:RUNNER_TEMP 'release'
+          New-Item -ItemType Directory -Path $staging -Force | Out-Null
+          Get-ChildItem 'playbook' -Filter *.apbx | Copy-Item -Destination $staging
+          Get-ChildItem 'tools/release-zip' -File | Copy-Item -Destination $staging
+          $zipPath = "Atlas ${{ github.ref_name }}.zip"
+          Compress-Archive -Path "$staging/*" -DestinationPath $zipPath -Force
+          "ZIP_PATH=$zipPath" >> $env:GITHUB_ENV
+
+      - name: Create draft release
+        # gh api repos/softprops/action-gh-release/commits/v2.4.1 --jq '.sha'
+        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.4.1
+        with:
+          draft: true
+          name: Atlas ${{ github.ref_name }}
+          files: |
+            playbook/*.apbx
+            ${{ env.ZIP_PATH }}
