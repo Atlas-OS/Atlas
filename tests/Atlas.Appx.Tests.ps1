@@ -58,6 +58,23 @@ Describe 'Set-AtlasAppxDeprovisioned' {
         Test-Path -LiteralPath $snapshotPath | Should -BeFalse
     }
 
+    It 'preserves pre-existing deprovisioned entries (Edge keys written by the Components phase)' {
+        # New-Item -Force on an existing registry key destroys its subkeys; the
+        # Deprovisioned key must only be created when missing so the Edge/OEM entries
+        # registered before this runs survive.
+        New-Item -Path "$script:deprovisionedKey\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe" -Force | Out-Null
+
+        $snapshotPath = Join-Path -Path $TestDrive -ChildPath 'AtlasPackagesOld.txt'
+        Set-Content -LiteralPath $snapshotPath -Value @('Pkg.Removed_abc')
+
+        Set-AtlasAppxDeprovisioned -SnapshotPath $snapshotPath `
+            -DeprovisionedKeyPath $script:deprovisionedKey `
+            -CurrentPackages @()
+
+        Test-Path -LiteralPath "$script:deprovisionedKey\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe" | Should -BeTrue
+        Test-Path -LiteralPath "$script:deprovisionedKey\Pkg.Removed_abc" | Should -BeTrue
+    }
+
     It 'throws when the snapshot is missing' {
         $missingSnapshot = Join-Path -Path $TestDrive -ChildPath 'DoesNotExist.txt'
 

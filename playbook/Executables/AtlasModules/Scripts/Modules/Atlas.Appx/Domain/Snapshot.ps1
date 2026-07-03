@@ -70,7 +70,11 @@ function Set-AtlasAppxDeprovisioned {
         throw "AppX package snapshot '$SnapshotPath' was not found. Save-AtlasAppxSnapshot must run before deprovisioning."
     }
 
-    New-Item -Path $DeprovisionedKeyPath -Force | Out-Null
+    # No -Force on an existing key: recreating it would destroy every entry already
+    # registered (the Components phase's Edge keys, OEM entries from the factory image).
+    if (-not (Test-Path -LiteralPath $DeprovisionedKeyPath)) {
+        New-Item -Path $DeprovisionedKeyPath -Force | Out-Null
+    }
 
     $oldPackages = @(Get-Content -LiteralPath $SnapshotPath -ErrorAction Stop)
     foreach ($family in (Get-AtlasAppxRemovedPackage -Snapshot $oldPackages -Current $CurrentPackages)) {
