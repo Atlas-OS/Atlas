@@ -1,23 +1,4 @@
 @echo off
-
-set "___args="%~f0" %*"
-fltmc > nul 2>&1 || (
-	echo Administrator privileges are required.
-	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
-		echo You must run this script as admin.
-		if "%*"=="" pause
-		exit /b 1
-	)
-	exit /b
-)
-
-if not "%~1"=="/silent" call "%windir%\AtlasModules\Scripts\serviceWarning.cmd" %*
-
-reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "GlobalTimerResolutionRequests" /f > nul 2>&1
-taskkill /f /im SetTimerResolution.exe > nul 2>&1
-schtasks /delete /tn "Force Timer Resolution" /f > nul 2>&1
-if "%~1"=="/silent" exit /b
-
-echo Finished, changes have been applied.
-if /i not "%~1"=="/silent" pause
-exit /b
+title Disable timer resolution (default)
+powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%windir%\AtlasModules\Scripts\invokeToggle.ps1" -Name TimerResolution -State Disable -LauncherPath "%~f0" %*
+exit /b %errorlevel%
