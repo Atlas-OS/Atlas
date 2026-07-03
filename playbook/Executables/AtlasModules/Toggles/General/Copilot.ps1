@@ -12,8 +12,9 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
-            Launcher   = '3. General Configuration\AI Features\Microsoft Copilot\Disable Microsoft Copilot (default).cmd'
-            Reboot     = 'RestartExplorer'
+            Launcher        = '3. General Configuration\AI Features\Microsoft Copilot\Disable Microsoft Copilot (default).cmd'
+            ToolboxLauncher = 'Scripts\Copilot\DisableMicrosoftCopilot.cmd'
+            Reboot          = 'RestartExplorer'
             Action     = {
                 param($Toggle)
 
@@ -28,8 +29,9 @@
         }
         Enable  = @{
             StateValue = 1
-            Launcher   = '3. General Configuration\AI Features\Microsoft Copilot\Enable Microsoft Copilot.cmd'
-            Reboot     = 'RestartExplorer'
+            Launcher        = '3. General Configuration\AI Features\Microsoft Copilot\Enable Microsoft Copilot.cmd'
+            ToolboxLauncher = 'Scripts\Copilot\Enable Microsoft Copilot.cmd'
+            Reboot          = 'RestartExplorer'
             Action     = {
                 param($Toggle)
 

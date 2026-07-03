@@ -8,8 +8,9 @@
     States    = [ordered]@{
         Minimal       = @{
             StateValue = 3
-            Launcher   = '9. Troubleshooting\Safe Mode\Safe Mode.cmd'
-            Reboot     = 'Recommend'
+            Launcher        = '9. Troubleshooting\Safe Mode\Safe Mode.cmd'
+            ToolboxLauncher = 'ConfigurationServices\SafeMode\SafeMode_3.cmd'
+            Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
                 & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{current}' safeboot minimal | Out-Null
@@ -17,8 +18,9 @@
         }
         CommandPrompt = @{
             StateValue = 1
-            Launcher   = '9. Troubleshooting\Safe Mode\Safe Mode with Command Prompt.cmd'
-            Reboot     = 'Recommend'
+            Launcher        = '9. Troubleshooting\Safe Mode\Safe Mode with Command Prompt.cmd'
+            ToolboxLauncher = 'ConfigurationServices\SafeMode\SafeMode_1.cmd'
+            Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
                 & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{current}' safeboot minimal | Out-Null
@@ -27,8 +29,9 @@
         }
         Networking    = @{
             StateValue = 2
-            Launcher   = '9. Troubleshooting\Safe Mode\Safe Mode with Networking.cmd'
-            Reboot     = 'Recommend'
+            Launcher        = '9. Troubleshooting\Safe Mode\Safe Mode with Networking.cmd'
+            ToolboxLauncher = 'ConfigurationServices\SafeMode\SafeMode_2.cmd'
+            Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
                 & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{current}' safeboot network | Out-Null
@@ -36,8 +39,9 @@
         }
         Exit          = @{
             StateValue = 0
-            Launcher   = '9. Troubleshooting\Safe Mode\Exit Safe Mode.cmd'
-            Reboot     = 'Recommend'
+            Launcher        = '9. Troubleshooting\Safe Mode\Exit Safe Mode.cmd'
+            ToolboxLauncher = 'ConfigurationServices\SafeMode\SafeMode_0.cmd'
+            Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
                 & "$($Toggle.WinDir)\System32\bcdedit.exe" /deletevalue '{current}' safeboot 2>$null | Out-Null

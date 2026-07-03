@@ -1,9 +1,4 @@
 @echo off
-set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\ConfigVBS.ps1"
-if not exist "%script%" (
-	echo Script not found.
-	echo "%script%"
-	pause
-	exit /b 1
-)
-powershell -EP Bypass -NoP ^& """$env:script""" %*
+title vbsCurrentConfig
+powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%windir%\AtlasModules\Scripts\invokeToggle.ps1" -Name ConfigVBS -State Run -LauncherPath "%~f0" %*
+exit /b %errorlevel%

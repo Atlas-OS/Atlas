@@ -21,8 +21,9 @@
     States    = [ordered]@{
         Disable        = @{
             StateValue = 0
-            Launcher   = '7. Security\Mitigations\Disable All Mitigations.cmd'
-            Reboot     = 'Recommend'
+            Launcher        = '7. Security\Mitigations\Disable All Mitigations.cmd'
+            ToolboxLauncher = 'ConfigurationServices\Mitigations\Mitigations_0.cmd'
+            Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
 
@@ -66,8 +67,9 @@
         }
         WindowsDefault = @{
             StateValue = 1
-            Launcher   = '7. Security\Mitigations\Set Windows Default Mitigations.cmd'
-            Reboot     = 'Recommend'
+            Launcher        = '7. Security\Mitigations\Set Windows Default Mitigations.cmd'
+            ToolboxLauncher = 'ConfigurationServices\Mitigations\Mitigations_2.cmd'
+            Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
 
@@ -99,8 +101,9 @@
         }
         Enable         = @{
             StateValue = 2
-            Launcher   = '7. Security\Mitigations\Enable All Mitigations.cmd'
-            Reboot     = 'Recommend'
+            Launcher        = '7. Security\Mitigations\Enable All Mitigations.cmd'
+            ToolboxLauncher = 'ConfigurationServices\Mitigations\Mitigations_1.cmd'
+            Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
 

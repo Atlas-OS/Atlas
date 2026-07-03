@@ -11,8 +11,9 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
-            Launcher   = '3. General Configuration\File Sharing\Disable File Sharing (default).cmd'
-            Reboot     = 'Prompt'
+            Launcher        = '3. General Configuration\File Sharing\Disable File Sharing (default).cmd'
+            ToolboxLauncher = 'ConfigurationServices\FIleSharing\disable.cmd'
+            Reboot          = 'Prompt'
             Action     = {
                 param($Toggle)
 
@@ -31,8 +32,9 @@
         }
         Enable  = @{
             StateValue = 1
-            Launcher   = '3. General Configuration\File Sharing\Enable File Sharing.cmd'
-            Reboot     = 'Prompt'
+            Launcher        = '3. General Configuration\File Sharing\Enable File Sharing.cmd'
+            ToolboxLauncher = 'ConfigurationServices\FIleSharing\enable.cmd'
+            Reboot          = 'Prompt'
             Action     = {
                 param($Toggle)
 

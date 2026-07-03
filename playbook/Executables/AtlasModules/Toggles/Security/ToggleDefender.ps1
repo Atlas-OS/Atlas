@@ -12,8 +12,9 @@
     NoStateRecord = $true
     States        = [ordered]@{
         Run = @{
-            Launcher = '7. Security\Defender\Toggle Defender.cmd'
-            Reboot   = 'None'
+            Launcher        = '7. Security\Defender\Toggle Defender.cmd'
+            ToolboxLauncher = 'Scripts\toggleDefender.cmd'
+            Reboot          = 'None'
             Action   = {
                 param($Toggle)
 

@@ -33,6 +33,10 @@ if (-not $RepoRoot) {
 
 $togglesRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasModules\Toggles'
 $desktopRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasDesktop'
+# The AtlasToolbox GUI invokes Toolbox\**\*.cmd by hard-coded path; toggles that are also
+# surfaced there declare a 'ToolboxLauncher' (Toolbox-relative path) and get a launcher
+# generated under this root, exactly like their AtlasDesktop launcher.
+$toolboxRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasModules\Toolbox'
 
 if (-not (Test-Path -LiteralPath $togglesRoot -PathType Container)) {
     Write-Error "Toggle definitions root '$togglesRoot' does not exist."
@@ -40,6 +44,10 @@ if (-not (Test-Path -LiteralPath $togglesRoot -PathType Container)) {
 }
 if (-not (Test-Path -LiteralPath $desktopRoot -PathType Container)) {
     Write-Error "AtlasDesktop root '$desktopRoot' does not exist."
+    exit 1
+}
+if (-not (Test-Path -LiteralPath $toolboxRoot -PathType Container)) {
+    Write-Error "AtlasToolbox root '$toolboxRoot' does not exist."
     exit 1
 }
 
@@ -86,10 +94,14 @@ function Add-ExpectedLauncher {
         [string]$StateName,
 
         [Parameter(Mandatory = $true)]
-        [string]$Source
+        [string]$Source,
+
+        # Root the launcher is relative to; defaults to the AtlasDesktop tree, overridden to
+        # the Toolbox tree for ToolboxLauncher declarations.
+        [string]$RootPath = $desktopRoot
     )
 
-    $launcherPath = Join-Path -Path $desktopRoot -ChildPath $LauncherRelative
+    $launcherPath = Join-Path -Path $RootPath -ChildPath $LauncherRelative
     $key = $launcherPath.ToLowerInvariant()
     if ($expected.ContainsKey($key)) {
         $problems.Add("Duplicate launcher target '$LauncherRelative' (declared by '$Source' and '$($expected[$key].Source)').")
@@ -130,6 +142,10 @@ foreach ($definitionFile in @(Get-ChildItem -LiteralPath $togglesRoot -Recurse -
     if ($definition.Contains('Launcher') -and $definition.Launcher) {
         Add-ExpectedLauncher -LauncherRelative ([string]$definition.Launcher) -ToggleName $toggleName -Source $definitionFile.FullName
     }
+    # Definition-level Toolbox launcher (single-launcher / Menu toggles surfaced in the Toolbox).
+    if ($definition.Contains('ToolboxLauncher') -and $definition.ToolboxLauncher) {
+        Add-ExpectedLauncher -LauncherRelative ([string]$definition.ToolboxLauncher) -ToggleName $toggleName -Source $definitionFile.FullName -RootPath $toolboxRoot
+    }
 
     foreach ($stateName in @($definition.States.Keys)) {
         $stateEntry = $definition.States[$stateName]
@@ -139,6 +155,9 @@ foreach ($definitionFile in @(Get-ChildItem -LiteralPath $togglesRoot -Recurse -
         }
         if ($stateEntry.Contains('Launcher') -and $stateEntry.Launcher) {
             Add-ExpectedLauncher -LauncherRelative ([string]$stateEntry.Launcher) -ToggleName $toggleName -StateName ([string]$stateName) -Source $definitionFile.FullName
+        }
+        if ($stateEntry.Contains('ToolboxLauncher') -and $stateEntry.ToolboxLauncher) {
+            Add-ExpectedLauncher -LauncherRelative ([string]$stateEntry.ToolboxLauncher) -ToggleName $toggleName -StateName ([string]$stateName) -Source $definitionFile.FullName -RootPath $toolboxRoot
         }
     }
 }
@@ -157,11 +176,14 @@ if ($Validate) {
         }
     }
 
-    # Orphans: launcher-style .cmd files pointing at invokeToggle.ps1 with no definition.
-    foreach ($cmdFile in @(Get-ChildItem -LiteralPath $desktopRoot -Recurse -File -Filter '*.cmd')) {
-        $content = [System.IO.File]::ReadAllText($cmdFile.FullName)
-        if ($content -match 'invokeToggle\.ps1' -and -not $expected.ContainsKey($cmdFile.FullName.ToLowerInvariant())) {
-            $problems.Add("Orphan launcher: '$($cmdFile.FullName)' calls invokeToggle.ps1 but no toggle definition declares it.")
+    # Orphans: launcher-style .cmd files pointing at invokeToggle.ps1 with no definition
+    # (checked across both the AtlasDesktop and Toolbox trees).
+    foreach ($orphanRoot in @($desktopRoot, $toolboxRoot)) {
+        foreach ($cmdFile in @(Get-ChildItem -LiteralPath $orphanRoot -Recurse -File -Filter '*.cmd')) {
+            $content = [System.IO.File]::ReadAllText($cmdFile.FullName)
+            if ($content -match 'invokeToggle\.ps1' -and -not $expected.ContainsKey($cmdFile.FullName.ToLowerInvariant())) {
+                $problems.Add("Orphan launcher: '$($cmdFile.FullName)' calls invokeToggle.ps1 but no toggle definition declares it.")
+            }
         }
     }
 

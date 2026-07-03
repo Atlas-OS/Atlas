@@ -1,45 +1,4 @@
 @echo off
-
-if "%~1"=="/silent" goto main
-
-set "___args="%~f0" %*"
-fltmc > nul 2>&1 || (
-	echo Administrator privileges are required.
-	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
-		echo You must run this script as admin.
-		if "%*"=="" pause
-		exit /b 1
-	)
-	exit /b
-)
-
-:main
-setlocal EnableDelayedExpansion
-
-:: Add lower filters for rdyboost driver
-set "key=HKLM\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}"
-set "val="
-for /f "skip=1 tokens=3*" %%a in ('reg query "!key!" /v "LowerFilters" 2^>nul') do (
-    set "val=%%a"
-    if not "%%b"=="" set "val=!val! %%b"
-)
-
-if not defined val (
-    reg add "!key!" /v "LowerFilters" /t REG_MULTI_SZ /d "rdyboost" /f > nul
-) else (
-    echo "!val!" | findstr /c:"rdyboost" > nul
-    if !errorlevel! NEQ 0 (
-        reg add "!key!" /v "LowerFilters" /t REG_MULTI_SZ /d "!val!\0rdyboost" /f > nul
-    )
-)
-
-:: Enable ReadyBoost
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\rdyboost" /v "Start" /t REG_DWORD /d "0" /f > nul
-
-:: Add ReadyBoost tab
-reg add "HKCR\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}" /f > nul
-
-:: Enable SysMain (Prefetch, Memory Management features)
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\SysMain" /v "Start" /t REG_DWORD /d "2" /f > nul
-
-if "%~1"=="/silent" exit /b
+title EnableSuperFetch
+powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%windir%\AtlasModules\Scripts\invokeToggle.ps1" -Name SuperFetch -State Enable -LauncherPath "%~f0" %*
+exit /b %errorlevel%

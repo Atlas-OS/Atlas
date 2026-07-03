@@ -7,8 +7,9 @@
     NoStateRecord = $true
     States        = [ordered]@{
         View = @{
-            Launcher = '6. Advanced Configuration\Boot Configuration\View Current Values.cmd'
-            Reboot   = 'None'
+            Launcher        = '6. Advanced Configuration\Boot Configuration\View Current Values.cmd'
+            ToolboxLauncher = 'Scripts\viewBootValues.cmd'
+            Reboot          = 'None'
             Action   = {
                 param($Toggle)
 

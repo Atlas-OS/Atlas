@@ -7,8 +7,9 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
-            Launcher   = '6. Advanced Configuration\Services\NVIDIA Display Container\Disable NVIDIA Display Container LS.cmd'
-            Reboot     = 'None'
+            Launcher        = '6. Advanced Configuration\Services\NVIDIA Display Container\Disable NVIDIA Display Container LS.cmd'
+            ToolboxLauncher = 'Scripts\NVidia\DisableNVIDIADisplayContainerLS.cmd'
+            Reboot          = 'None'
             Action     = {
                 param($Toggle)
 
@@ -38,8 +39,9 @@
         }
         Enable  = @{
             StateValue = 1
-            Launcher   = '6. Advanced Configuration\Services\NVIDIA Display Container\Enable NVIDIA Display Container LS (default).cmd'
-            Reboot     = 'None'
+            Launcher        = '6. Advanced Configuration\Services\NVIDIA Display Container\Enable NVIDIA Display Container LS (default).cmd'
+            ToolboxLauncher = 'Scripts\NVidia\EnableNVIDIADisplayContainerLS.cmd'
+            Reboot          = 'None'
             Action     = {
                 param($Toggle)
 

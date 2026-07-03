@@ -1,7 +1,4 @@
 @echo off
-
-for /f "skip=3 delims=" %%a in ('bcdedit /enum {current}') do (echo %%a)
-echo]
-echo Press any key to exit...
-pause > nul
-exit /b
+title viewBootValues
+powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%windir%\AtlasModules\Scripts\invokeToggle.ps1" -Name ViewCurrentValues -State View -LauncherPath "%~f0" %*
+exit /b %errorlevel%

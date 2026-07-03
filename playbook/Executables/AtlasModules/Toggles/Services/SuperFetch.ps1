@@ -7,8 +7,9 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
-            Launcher   = '6. Advanced Configuration\Services\Superfetch\Disable SuperFetch.cmd'
-            Reboot     = 'Recommend'
+            Launcher        = '6. Advanced Configuration\Services\Superfetch\Disable SuperFetch.cmd'
+            ToolboxLauncher = 'Scripts\SuperFetch\DisableSuperFetch.cmd'
+            Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
 
@@ -37,8 +38,9 @@
         }
         Enable  = @{
             StateValue = 1
-            Launcher   = '6. Advanced Configuration\Services\Superfetch\Enable SuperFetch (default).cmd'
-            Reboot     = 'Recommend'
+            Launcher        = '6. Advanced Configuration\Services\Superfetch\Enable SuperFetch (default).cmd'
+            ToolboxLauncher = 'Scripts\SuperFetch\EnableSuperFetch.cmd'
+            Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
 

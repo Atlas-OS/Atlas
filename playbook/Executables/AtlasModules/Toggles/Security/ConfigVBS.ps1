@@ -7,8 +7,9 @@
     NoStateRecord = $true
     States        = [ordered]@{
         Run = @{
-            Launcher = '7. Security\Core Isolation (VBS)\Current Configuration.cmd'
-            Reboot   = 'None'
+            Launcher        = '7. Security\Core Isolation (VBS)\Current Configuration.cmd'
+            ToolboxLauncher = 'Scripts\vbsCurrentConfig.cmd'
+            Reboot          = 'None'
             Action   = {
                 param($Toggle)
 

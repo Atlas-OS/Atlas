@@ -7,8 +7,9 @@
     NoStateRecord = $true
     States        = [ordered]@{
         Run = @{
-            Launcher = '9. Troubleshooting\Fix Errors 2502 and 2503.cmd'
-            Reboot   = 'None'
+            Launcher        = '9. Troubleshooting\Fix Errors 2502 and 2503.cmd'
+            ToolboxLauncher = 'Scripts\Troubleshooting\Fix Errors 2502 and 2503.cmd'
+            Reboot          = 'None'
             Action   = {
                 param($Toggle)
 
