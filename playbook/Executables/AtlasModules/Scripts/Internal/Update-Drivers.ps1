@@ -130,8 +130,18 @@ function Update-Drivers {
     Write-Host "Installing selected driver updates..."
     $selection | Format-Table ComputerName, Status, KB, Size, Title -AutoSize
 
+    # Get-WUInstall does not bind update objects from the pipeline - piping $selection in
+    # would trigger a fresh scan and install everything pending, ignoring the selection.
+    # Scope the install to exactly the selected updates by their UpdateIDs and keep the
+    # Microsoft Update service + driver category scoping used by the scan.
+    $updateIds = @($selection | ForEach-Object { $_.Identity.UpdateID } | Where-Object { $_ })
+    if ($updateIds.Count -ne $selection.Count) {
+        Write-Error "Could not resolve the UpdateID of every selected driver update; aborting instead of installing unselected updates."
+        return $false
+    }
+
     try {
-        $selection | Get-WUInstall -AcceptAll -IgnoreReboot -Confirm:$false -ErrorAction Stop | Out-Null
+        Get-WUInstall -MicrosoftUpdate -Category "Drivers" -UpdateID $updateIds -AcceptAll -IgnoreReboot -Confirm:$false -ErrorAction Stop | Out-Null
     }
     catch {
         Write-Error "Driver update installation failed: $($_.Exception.Message)"
