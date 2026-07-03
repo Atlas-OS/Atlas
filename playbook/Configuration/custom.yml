@@ -110,6 +110,15 @@ actions:
     wait: true
     onUpgrade: true
 
+  # Re-enable notifications on upgrades. The PreInstall phase disables them
+  # unconditionally, but tweaks.yml (whose last action re-enables them on fresh
+  # installs) is onUpgrade: false - without this, an upgrade would leave
+  # notifications permanently off.
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module Atlas.Tweaks; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\enable-notifications.psd1'')'
+    wait: true
+    onUpgrade: true
+
   # Finalize phase (AtlasModules\Scripts\Phases\Invoke-FinalizePhase.ps1): mirrors the
   # recorded HKCU keys into the still-loaded default-user hive (the APPLYDUHIVE.ps1
   # replacement) and corrects stale registry launcher paths (was SETPATHS.ps1). MUST run
