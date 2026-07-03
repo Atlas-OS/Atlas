@@ -10,6 +10,12 @@ default-user-hive mirroring, architecture gating and per-entry error handling.
 
 Validate any file or folder with `Test-AtlasTweakSchema -Path <path>` (also run by CI).
 
+**Naming:** tweak files are kebab-case (`set-hidden-settings-pages.psd1`), deliberately
+unlike the `Verb-Noun` scripts elsewhere: these are data definitions addressed by manifest
+slug, not invokable commands, and each name maps 1:1 to the legacy YAML tweak it was
+converted from (so `git log --follow` and system-state triage reach the original). A
+companion `Script` shares its definition's basename. Do not rename them to PascalCase.
+
 ## Manifest schema (`tweaks.manifest.psd1`)
 
 ```powershell

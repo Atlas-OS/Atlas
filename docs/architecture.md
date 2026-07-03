@@ -11,7 +11,7 @@ This document describes how the repository is laid out and how an install runs.
 │  ├─ playbook.conf          AME Wizard manifest (metadata, requirements, FeaturePages)
 │  ├─ Configuration/         The YAML shim (thin; orchestration only)
 │  │  ├─ custom.yml          Entry point: hive lifecycle + phase calls
-│  │  ├─ tweaks.yml          Per-category Tweaks phase calls + the few YAML-only tweaks
+│  │  ├─ tweaks.yml          Per-category Tweaks phase calls (every tweak is PowerShell)
 │  │  └─ atlas/              start / services / components / appx / default / revert
 │  └─ Executables/           Payload deployed to C:\Windows (AtlasModules, AtlasDesktop, Themes)
 │     └─ AtlasModules/Scripts/
@@ -74,14 +74,14 @@ privilege it needs and delegates to the framework modules.
 | --- | --- | --- |
 | PreInstall | Administrator | disable notifications, disk cleanup |
 | Environment | Administrator | NGEN, temporary execution policy, PS telemetry opt-out |
-| Features | (YAML) | DISM features/capabilities (still in `atlas/start.yml`) |
+| Features | Administrator | DISM features/capabilities (needs online sources) |
 | Software | Administrator | utilities, browser, toolbox (option-gated) |
 | Services | TrustedInstaller | service backup + hardening |
 | Components | TrustedInstaller | Edge/OneDrive removal, CBS packages |
 | AppxSupport | Administrator | AppX snapshot / deprovision / cache clear |
-| Tweaks | TrustedInstaller | one call per category (see below) |
 | Defaults | Administrator | DEFAULT.reg (fresh) / toggle re-apply (upgrade) |
-| Revert | (YAML) | StoreFixer (still in `atlas/revert.yml`) |
+| Revert | TrustedInstaller | StoreFixer (upgrade-only) |
+| Tweaks | TrustedInstaller | one call per category (see below) |
 | Finalize | Administrator | default-user-hive sync, registry path fixup |
 
 **Exit code contract** (consumed by AME `handleExitCodes`): `0` success, `1` fatal, `2`
