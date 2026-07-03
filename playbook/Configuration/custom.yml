@@ -101,11 +101,36 @@ actions:
 
   # Main tasks
   - !task: { path: 'atlas\start.yml' }
-  - !task: { path: 'atlas\services.yml' }
+
+  # Services phase (AtlasModules\Scripts\Phases\Invoke-ServicesPhase.ps1): services
+  # backup, file sharing/location/indexing configuration and the service startup list.
+  # Fresh installs only; runs as TrustedInstaller.
+  - !writeStatus: {status: 'Disabling File Sharing', onUpgrade: false}
+  - !writeStatus: {status: 'Disabling Location', onUpgrade: false}
+  - !writeStatus: {status: 'Configuring Indexing', onUpgrade: false}
+  - !writeStatus: {status: 'Configuring services', onUpgrade: false}
+  - !writeStatus: {status: 'Configuring drivers', onUpgrade: false}
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Services'
+    wait: true
+    weight: 15
+    onUpgrade: false
+    handleExitCodes: { "!0": halt }
+
   - !task: { path: 'atlas\components.yml' }
   - !task: { path: 'atlas\appx.yml' }
   - !task: { path: 'atlas\default.yml' }
-  - !task: { path: 'atlas\revert.yml' }
+
+  # Revert phase (AtlasModules\Scripts\Phases\Invoke-RevertPhase.ps1): StoreFixer undoes
+  # Store breakage left by older Atlas versions. Upgrades only; runs as TrustedInstaller.
+  - !writeStatus: { status: "Reverting old changes", onUpgrade: true }
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Revert'
+    weight: 2
+    wait: true
+    onUpgrade: true
+    handleExitCodes: { "!0": halt }
+
   - !task: { path: "tweaks.yml" }
 
   # Branding for upgrades (fresh installs get it via the misc tweak category)

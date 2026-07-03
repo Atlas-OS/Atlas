@@ -17,7 +17,8 @@ components:
 - playbook/Configuration/atlas/components.yml
 
 services:
-- playbook/Configuration/atlas/services.yml
+- playbook/Executables/AtlasModules/Scripts/Phases/Invoke-ServicesPhase.ps1
+- playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Services/**/*
 
 tweaks:
 - playbook/Configuration/tweaks.yml

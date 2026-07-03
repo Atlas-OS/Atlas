@@ -12,7 +12,7 @@ This document describes how the repository is laid out and how an install runs.
 │  ├─ Configuration/         The YAML shim (thin; orchestration only)
 │  │  ├─ custom.yml          Entry point: hive lifecycle + phase calls
 │  │  ├─ tweaks.yml          Per-category Tweaks phase calls (every tweak is PowerShell)
-│  │  └─ atlas/              start / services / components / appx / default / revert
+│  │  └─ atlas/              start / components / appx / default (AME-only actions)
 │  └─ Executables/           Payload deployed to C:\Windows (AtlasModules, AtlasDesktop, Themes)
 │     └─ AtlasModules/Scripts/
 │        ├─ Invoke-AtlasInstall.ps1   Install orchestrator (one call per phase)
