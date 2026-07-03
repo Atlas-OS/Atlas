@@ -9,7 +9,7 @@ actions:
     wait: true
   - !writeStatus: { status: "Deleting old AtlasOS folders" }
   - !powerShell:
-    command: '.\STOPFOLDERPROC.ps1'
+    command: '& ".\AtlasModules\Scripts\Internal\StopFolderProc.ps1"'
     exeDir: true
     onUpgrade: true
     wait: true

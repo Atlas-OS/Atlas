@@ -3,26 +3,21 @@ title: Set File Associations
 description: Sets file associations for the user-selected web browser and other apps
 actions:
   - !run:
-    exe: 'FILEASSOC.cmd'
-    exeDir: true
+    exe: '%windir%\AtlasModules\Scripts\fileAssoc.cmd'
     option: '!uninstall-edge'
   - !run:
-    exe: 'FILEASSOC.cmd'
+    exe: '%windir%\AtlasModules\Scripts\fileAssoc.cmd'
     args: '"Brave"'
     option: 'browser-brave'
-    exeDir: true
   - !run:
-    exe: 'FILEASSOC.cmd'
+    exe: '%windir%\AtlasModules\Scripts\fileAssoc.cmd'
     args: '"LibreWolf"'
     option: 'browser-librewolf'
-    exeDir: true
   - !run:
-    exe: 'FILEASSOC.cmd'
+    exe: '%windir%\AtlasModules\Scripts\fileAssoc.cmd'
     args: '"Firefox"'
     option: 'browser-firefox'
-    exeDir: true
   - !run:
-    exe: 'FILEASSOC.cmd'
+    exe: '%windir%\AtlasModules\Scripts\fileAssoc.cmd'
     args: '"Google Chrome"'
     option: 'browser-chrome'
-    exeDir: true

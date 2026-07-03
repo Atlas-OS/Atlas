@@ -1,5 +1,5 @@
 @echo off
-set "script=%windir%\AtlasModules\Scripts\ScriptWrappers\DebloatSendToContextMenu.ps1"
+set "script=%windir%\AtlasModules\Scripts\Internal\DebloatSendToContextMenu.ps1"
 
 if not exist "%script%" (
 	echo Script not found.

@@ -4,6 +4,5 @@ description: Disables Core Isolation (VBS) based on the user's options
 option: 'disable-core-isolation'
 actions:
   - !powerShell:
-    command: '& """.\AtlasModules\Scripts\ScriptWrappers\ConfigVBS.ps1""" -DisableAllVBS'
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\ConfigVBS.ps1'') -DisableAllVBS'
     wait: true
-    exeDir: true

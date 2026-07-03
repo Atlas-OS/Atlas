@@ -39,9 +39,9 @@ actions:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Tweaks -Category qol'
     wait: true
     weight: 200
-  # Still YAML: invokes the top-level STARTMENU.ps1 from the playbook directory
+  # Still YAML: invokes Internal\StartMenu.ps1 (needs Layout.xml from the payload directory)
   - !task: {path: 'tweaks\qol\config-start-menu.yml'}
-  # Still YAML: invokes the top-level TASKBARPINS.ps1 and uses negated option gates
+  # Still YAML: invokes Internal\TaskbarPins.ps1 and uses negated option gates
   - !task: {path: 'tweaks\qol\taskbar\config-pins.yml'}
   # Still YAML: theme/lockscreen application needs the elevated user context, not TrustedInstaller
   - !task: {path: 'tweaks\qol\appearance\atlas-theme.yml'}
@@ -78,11 +78,11 @@ actions:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Tweaks -Category misc'
     wait: true
     weight: 18
-  # Still YAML: invokes the top-level SHORTCUTS.ps1 from the playbook directory
+  # Still YAML: invokes Internal\CreateShortcuts.ps1 from the payload directory
   - !task: {path: 'tweaks\misc\create-shortcuts.yml'}
   # Still YAML: Shell COM pinning must run unelevated as the interactive user
   - !task: {path: 'tweaks\misc\add-music-videos-to-home.yml'}
   # Done last on purpose
   - !task: {path: 'tweaks\scripts\script-power.yml'}
-  # Still YAML: invokes the top-level ENABLENOTIFS.cmd from the playbook directory
+  # Still YAML: invokes Internal\Notifications.ps1 -Mode Enable
   - !task: {path: 'tweaks\misc\enable-notifications.yml'}

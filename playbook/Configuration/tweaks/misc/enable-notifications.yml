@@ -2,8 +2,7 @@
 title: Enable Notifications
 description: Notifications were turned off at the start of the Playbook to prevent random notifications from interfering with the process. This task re-enables notifications.
 actions:
-  - !cmd:
-    command: 'ENABLENOTIFS.cmd'
-    exeDir: true
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\Notifications.ps1'') -Mode Enable'
     wait: true
     runas: currentUserElevated

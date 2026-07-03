@@ -12,7 +12,7 @@ actions:
     # Set start menu pins
   - !taskKill: {name: 'StartMenuExperienceHost', ignoreErrors: true}
   - !powerShell:
-    command: '.\STARTMENU.ps1'
+    command: '& ".\AtlasModules\Scripts\Internal\StartMenu.ps1"'
     exeDir: true
     wait: true
   - !appx: {operation: clearCache, name: 'Microsoft.Windows.StartMenuExperienceHost*'}
