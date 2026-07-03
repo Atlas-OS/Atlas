@@ -22,6 +22,32 @@ function Get-AtlasTweakEntryValue {
     return $Default
 }
 
+function Test-AtlasArchMatch {
+    <#
+    .SYNOPSIS
+        Returns whether an entry's optional Arch gate ('X64' or 'ARM64') matches the
+        current machine architecture. An absent gate always matches. (Module-private
+        twin of the identical Atlas.Registry helper - private functions do not cross
+        module boundaries.)
+    #>
+    param(
+        [string]$Arch,
+
+        [Parameter(Mandatory = $true)]
+        [bool]$IsArm64
+    )
+
+    if ([string]::IsNullOrEmpty($Arch)) {
+        return $true
+    }
+
+    switch ($Arch.ToUpperInvariant()) {
+        'ARM64' { return $IsArm64 }
+        'X64' { return -not $IsArm64 }
+        default { throw "Unknown architecture gate '$Arch' (expected 'X64' or 'ARM64')." }
+    }
+}
+
 function Invoke-AtlasTweakServiceEntries {
     param(
         [Parameter(Mandatory = $true)]
@@ -116,7 +142,10 @@ function Invoke-AtlasTweakRunEntries {
         [hashtable[]]$Entries,
 
         [Parameter(Mandatory = $true)]
-        [bool]$IsArm64
+        [bool]$IsArm64,
+
+        [Parameter(Mandatory = $true)]
+        [string]$WinDir
     )
 
     foreach ($entry in $Entries) {
@@ -132,9 +161,11 @@ function Invoke-AtlasTweakRunEntries {
             if (-not $exe) {
                 throw 'Run entry has no Exe.'
             }
+            $exe = $exe -replace '\{windir\}', $WinDir
 
             $wait = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'Wait' -Default $true)
             $arguments = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Args' -Default '')
+            $arguments = $arguments -replace '\{windir\}', $WinDir
 
             $startParams = @{
                 FilePath = $exe
@@ -223,7 +254,7 @@ function Invoke-AtlasTweak {
         throw "Tweak file not found: '$Path'."
     }
 
-    $tweak = Import-PowerShellDataFile -LiteralPath $Path
+    $tweak = Import-AtlasDataFile -LiteralPath $Path
     if (-not $tweak.ContainsKey('Name') -or [string]::IsNullOrWhiteSpace([string]$tweak['Name'])) {
         throw "Tweak file '$Path' has no 'Name' key."
     }
@@ -278,7 +309,7 @@ function Invoke-AtlasTweak {
 
     if ($tweak.ContainsKey('Run') -and $tweak['Run']) {
         try {
-            Invoke-AtlasTweakRunEntries -Entries $tweak['Run'] -IsArm64 ([bool]$context.IsArm64)
+            Invoke-AtlasTweakRunEntries -Entries $tweak['Run'] -IsArm64 ([bool]$context.IsArm64) -WinDir ([string]$context.WinDir)
         }
         catch {
             Write-AtlasLog -Message "Tweak '$tweakName': Run step failed: $($_.Exception.Message)" -Level Warning

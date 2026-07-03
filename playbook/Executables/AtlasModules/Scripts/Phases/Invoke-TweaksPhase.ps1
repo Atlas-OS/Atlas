@@ -1,8 +1,15 @@
 # Tweaks phase.
-# Stub: the legacy YAML task chain still performs this phase's work. Real logic moves
-# here as the corresponding YAML is retired during the PowerShell migration.
+# Applies one category of declarative tweak definitions (Scripts\Tweaks\<category>).
+# Runs as TrustedInstaller so ACL-protected keys and HKCU redirection behave exactly
+# like the AME !registryValue actions this replaces.
 param(
+    [Parameter(Mandatory = $true)]
     [string]$Category
 )
 
-Write-AtlasLog -Message "Tweaks phase stub executed for category '$Category'; work currently handled by the legacy YAML chain."
+Assert-AtlasPrivilege -TrustedInstaller
+
+Import-Module Atlas.Registry -Force
+Import-Module Atlas.Tweaks -Force
+
+Invoke-AtlasTweakCategory -Name $Category

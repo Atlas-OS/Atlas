@@ -4,6 +4,7 @@ Set-StrictMode -Version 3.0
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(
+    'DataFile.ps1'
     'Manifest.ps1'
     'Applicability.ps1'
     'Invoke.ps1'

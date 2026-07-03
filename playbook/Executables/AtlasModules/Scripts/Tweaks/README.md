@@ -43,7 +43,7 @@ All keys are optional except `Name`. Keys are applied in the order listed below.
 | `Services` | array of hashtables | `@{ Name; StartupType (int 0-4); Operation }`. `Operation` is `'Change'` (default; writes the service key's `Start` value directly so protected services work), `'Stop'` or `'Start'`. `StartupType` is required for `Change`: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled. |
 | `ScheduledTasks` | array of hashtables | `@{ Path; Operation }` with `Operation` = `'Disable'` (default) or `'Enable'`, applied via `schtasks.exe /Change`. A missing task only logs a warning. |
 | `StopProcesses` | array of strings | Process names (wildcards allowed, no `.exe`) stopped with `-Force`; missing processes are ignored. |
-| `Run` | array of hashtables | `@{ Exe; Args; Arch; IgnoreErrors; Wait }`. `Wait` defaults to `$true`; when waiting, a non-zero exit code other than 3010 (reboot required, e.g. DISM) is a failure. |
+| `Run` | array of hashtables | `@{ Exe; Args; Arch; IgnoreErrors; Wait }`. `Wait` defaults to `$true`; when waiting, a non-zero exit code other than 3010 (reboot required, e.g. DISM) is a failure. `{windir}` in `Exe` and `Args` expands to the Windows directory. |
 | `RemovePaths` | array of hashtables | `@{ Path; Arch }`; paths are removed recursively, `{windir}` expands to the Windows directory, missing paths are ignored. |
 | `Script` | string | Relative path to a companion `.ps1` next to the tweak file, invoked after all other keys for genuinely imperative work. |
 

@@ -109,8 +109,11 @@ actions:
   - !task: { path: 'atlas\revert.yml' }
   - !task: { path: "tweaks.yml" }
 
-  # Branding for upgrades
-  - !task: { path: 'tweaks\misc\config-oem-information.yml', onUpgrade: true }
+  # Branding for upgrades (fresh installs get it via the misc tweak category)
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module Atlas.Tweaks; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\config-oem-information.psd1'')'
+    wait: true
+    onUpgrade: true
 
   # Set hives to HKU default user
   - !writeStatus: { status: "Applying hives..." }

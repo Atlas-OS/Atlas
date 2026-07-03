@@ -67,7 +67,7 @@ function Test-AtlasTweakFileSchema {
 
     $tweak = $null
     try {
-        $tweak = Import-PowerShellDataFile -LiteralPath $FilePath -ErrorAction Stop
+        $tweak = Import-AtlasDataFile -LiteralPath $FilePath
     }
     catch {
         Add-Problem -Problem "File does not load as a PowerShell data file: $($_.Exception.Message)"

@@ -1,0 +1,7 @@
+@{
+    Name        = 'Disable UAC Secure Desktop'
+    Description = 'Disables switching to the Secure Desktop when prompting for elevation. An application would need admin privileges to control the mouse and keyboard to accept the UAC prompt anyways. As a note, UAC is not designed to save you from malware, UAC can easily be bypassed on admin accounts (e.g. check GitHub)'
+    Registry    = @(
+        @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'; Name = 'PromptOnSecureDesktop'; Type = 'DWord'; Data = 0 }
+    )
+}

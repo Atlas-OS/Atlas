@@ -21,7 +21,7 @@ function Get-AtlasTweakManifest {
         throw "Tweak manifest not found: '$Path'."
     }
 
-    $manifest = Import-PowerShellDataFile -LiteralPath $Path
+    $manifest = Import-AtlasDataFile -LiteralPath $Path
     if (-not $manifest.ContainsKey('Categories')) {
         throw "Tweak manifest '$Path' has no 'Categories' key."
     }

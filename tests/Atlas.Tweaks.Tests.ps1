@@ -215,6 +215,24 @@ Describe 'Invoke-AtlasTweak' {
         $key.GetValue('ArmOnly', $null) | Should -BeNullOrEmpty
     }
 
+    It 'expands {windir} in Run entry Exe and Args' {
+        $marker = Join-Path -Path $TestDrive -ChildPath 'windir-out.txt'
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'run-tweak.psd1'
+        @"
+@{
+    Name = 'Run Tweak'
+    Run  = @(
+        @{ Exe = 'cmd.exe'; Args = '/c echo {windir}> "$marker"' }
+    )
+}
+"@ | Set-Content -Path $tweakFile
+
+        Invoke-AtlasTweak -Path $tweakFile
+
+        Test-Path $marker | Should -BeTrue
+        (Get-Content $marker -Raw).Trim() | Should -Be ([Environment]::GetFolderPath('Windows'))
+    }
+
     It 'skips a tweak whose option is not selected' {
         Mock -CommandName Test-AtlasOption -ModuleName Atlas.Tweaks -MockWith { $false }
 
