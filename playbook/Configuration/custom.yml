@@ -89,12 +89,11 @@ actions:
     weight: 3
     runas: currentUserElevated
 
-  # Set hidden Settings pages
-  # Done before everything else as scripts will overwrite it
-  - !task: {
-      path: 'tweaks\qol\set-hidden-settings-pages.yml',
-      onUpgrade: false,
-    }
+  # Set hidden Settings pages - done before the tweak categories so later tweaks do not
+  # overwrite SettingsPageVisibility (the tweak's OnUpgrade='Skip' keeps it fresh-only).
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module Atlas.Tweaks; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\qol\set-hidden-settings-pages.psd1'')'
+    wait: true
 
   # Main tasks
   - !task: { path: 'atlas\start.yml' }

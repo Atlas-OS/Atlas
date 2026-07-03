@@ -9,13 +9,14 @@ actions:
 
   ################ NO LOCAL BUILD ################
 
-  - !writeStatus: {status: 'Enabling DirectPlay'}
-  - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart /All', weight: 30}
-
-  - !run: {exe: 'DISM.exe', args: '/Online /Remove-Capability /CapabilityName:"App.StepsRecorder~~~~0.0.1.0" /NoRestart', weight: 30, onUpgrade: false}
-
-  - !writeStatus: {status: 'Cleaning the component store'}
-  - !run: {exe: 'DISM.exe', args: '/Online /Cleanup-Image /StartComponentCleanup', weight: 50}
+  # Windows optional features via DISM (needs online sources, hence inside this block).
+  - !writeStatus: {status: 'Configuring Windows features'}
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Features'
+    wait: true
+    weight: 110
+    runas: currentUserElevated
+    handleExitCodes: { "!0": halt }
 
     # Initial software (7-Zip/NanaZip, Visual C++ Runtimes, DirectX), the Toolbox and
     # the selected browser. The Software phase
@@ -33,5 +34,6 @@ actions:
     wait: true
     weight: 730
     runas: currentUserElevated
+    handleExitCodes: { "!0": halt }
 
   ################ END NO LOCAL BUILD ################

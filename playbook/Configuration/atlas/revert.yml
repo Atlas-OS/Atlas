@@ -5,10 +5,9 @@ privilege: TrustedInstaller
 onUpgrade: true
 actions:
   - !writeStatus: { status: "Reverting old changes" }
-  - !run:
-    exe: "%windir%\\AtlasModules\\Tools\\StoreFixer.exe"
-    args: "silent isSetScheduledTaskOnCrash noRestart"
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Revert'
     weight: 2
     wait: true
-    exeDir: true
     onUpgrade: true
+    handleExitCodes: { "!0": halt }
