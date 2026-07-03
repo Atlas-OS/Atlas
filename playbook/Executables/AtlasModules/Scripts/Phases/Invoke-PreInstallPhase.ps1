@@ -12,7 +12,7 @@ $internalRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'I
 
 # Prevent annoying notifications during deployment
 try {
-    & (Join-Path -Path $internalRoot -ChildPath 'Notifications.ps1') -Mode Disable
+    & (Join-Path -Path $internalRoot -ChildPath 'Set-NotificationState.ps1') -Mode Disable
 }
 catch {
     Write-AtlasLog -Level Warning -Message "Disabling notifications failed: $($_.Exception.Message)"
@@ -20,7 +20,7 @@ catch {
 
 # Disk Cleanup (kicks off cleanmgr in the background and clears temp/shadow copies)
 try {
-    & (Join-Path -Path $internalRoot -ChildPath 'Cleanup.ps1')
+    & (Join-Path -Path $internalRoot -ChildPath 'Invoke-DiskCleanup.ps1')
 }
 catch {
     Write-AtlasLog -Level Warning -Message "Disk cleanup failed: $($_.Exception.Message)"

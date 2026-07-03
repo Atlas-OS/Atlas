@@ -2,7 +2,7 @@
 Set-StrictMode -Version 3.0
 
 # Atlas.Core supplies Write-AtlasLog/Get-AtlasContext. Import it explicitly so that
-# standalone entry points (setSvc.cmd, Internal\SetServiceStartup.ps1) work without
+# standalone entry points (setSvc.cmd, Internal\Set-ServiceStartup.ps1) work without
 # initPowerShell.ps1 having populated PSModulePath first.
 if (-not (Get-Command -Name 'Write-AtlasLog' -ErrorAction SilentlyContinue)) {
     Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1')

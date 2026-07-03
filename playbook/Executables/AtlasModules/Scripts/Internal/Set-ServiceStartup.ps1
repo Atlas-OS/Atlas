@@ -1,4 +1,4 @@
-# Thin forwarder kept for its callers (setSvc.cmd, Internal\Notifications.ps1 and the
+# Thin forwarder kept for its callers (setSvc.cmd, Internal\Set-NotificationState.ps1 and the
 # Printing toggle); the logic lives in the Atlas.Services module
 # (Set-AtlasServiceStartup). Exit codes: 0 = success, 1 = missing service or failure
 # (preserved from the original script's contract).

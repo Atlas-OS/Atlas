@@ -14,9 +14,9 @@
             Action     = {
                 param($Toggle)
 
-                $indexConf = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'indexConf.cmd'
+                $indexConf = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Set-IndexConfiguration.cmd'
                 if (-not (Test-Path -LiteralPath $indexConf -PathType Leaf)) {
-                    Write-Host "The 'indexConf.cmd' script wasn't found in AtlasModules." -ForegroundColor Red
+                    Write-Host "The 'Set-IndexConfiguration.cmd' script wasn't found in AtlasModules." -ForegroundColor Red
                     return
                 }
 
@@ -37,9 +37,9 @@
             Action     = {
                 param($Toggle)
 
-                $indexConf = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'indexConf.cmd'
+                $indexConf = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Set-IndexConfiguration.cmd'
                 if (-not (Test-Path -LiteralPath $indexConf -PathType Leaf)) {
-                    Write-Host "The 'indexConf.cmd' script wasn't found in AtlasModules." -ForegroundColor Red
+                    Write-Host "The 'Set-IndexConfiguration.cmd' script wasn't found in AtlasModules." -ForegroundColor Red
                     return
                 }
 
@@ -73,9 +73,9 @@
             Action     = {
                 param($Toggle)
 
-                $indexConf = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'indexConf.cmd'
+                $indexConf = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Set-IndexConfiguration.cmd'
                 if (-not (Test-Path -LiteralPath $indexConf -PathType Leaf)) {
-                    Write-Host "The 'indexConf.cmd' script wasn't found in AtlasModules." -ForegroundColor Red
+                    Write-Host "The 'Set-IndexConfiguration.cmd' script wasn't found in AtlasModules." -ForegroundColor Red
                     return
                 }
 

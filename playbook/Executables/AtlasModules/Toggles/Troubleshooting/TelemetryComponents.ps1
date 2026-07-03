@@ -1,7 +1,7 @@
 # Toggle: Telemetry Components (plain action launcher, no state recording).
 # Converted from 'AtlasDesktop\9. Troubleshooting\Telemetry Components.cmd', which ran as
-# TrustedInstaller and thinly launched 'ScriptWrappers\TelemetryComponents.ps1'
-# (a passthrough to 'Internal\TelemetryComponents.ps1').
+# TrustedInstaller and thinly launched 'ScriptWrappers\Remove-TelemetryComponents.ps1'
+# (a passthrough to 'Internal\Remove-TelemetryComponents.ps1').
 @{
     Name          = 'TelemetryComponents'
     Elevation     = 'TrustedInstaller'
@@ -14,7 +14,7 @@
             Action   = {
                 param($Toggle)
 
-                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\TelemetryComponents.ps1'
+                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Remove-TelemetryComponents.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
                     Write-Host "Script not found: `"$script`"" -ForegroundColor Red
                     return

@@ -15,7 +15,7 @@
             Action     = {
                 param($Toggle)
 
-                $wingetCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'wingetCheck.cmd'
+                $wingetCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Test-Winget.cmd'
                 & "$env:ComSpec" /c "call `"$wingetCheck`""
                 if ($LASTEXITCODE -ne 0) {
                     Write-AtlasLog -Level Warning -Message 'ProcessExplorer: winget is not functional; cannot install.'
@@ -65,7 +65,7 @@
             Action     = {
                 param($Toggle)
 
-                $wingetCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'wingetCheck.cmd'
+                $wingetCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Test-Winget.cmd'
                 & "$env:ComSpec" /c "call `"$wingetCheck`" /silent"
                 if ($LASTEXITCODE -eq 0) {
                     winget uninstall -e --id Microsoft.Sysinternals.ProcessExplorer --force --purge --disable-interactivity --accept-source-agreements -h | Out-Null

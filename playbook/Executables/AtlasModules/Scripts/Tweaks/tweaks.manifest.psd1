@@ -79,7 +79,7 @@
             Tweaks = @(
                 'bcdedit-tweaks'
                 'best-wallpaper-quality'
-                # config-start-menu is still YAML (invokes Internal\StartMenu.ps1)
+                # config-start-menu is still YAML (invokes Internal\Set-StartLayout.ps1)
                 'config-windows-ink-workspace'
                 'disable-mouse-accel'
                 'disable-settings-tips'
@@ -123,7 +123,7 @@
                 'taskbar/disable-tablet-mode'
                 'taskbar/hide-meet-now'
                 'taskbar/hide-task-view'
-                # taskbar/config-pins is still YAML (invokes Internal\TaskbarPins.ps1)
+                # taskbar/config-pins is still YAML (invokes Internal\Set-TaskbarPins.ps1)
                 'taskbar/disable-copilot'
                 'taskbar/disable-windows-chat'
                 'taskbar/set-to-left'
@@ -209,10 +209,10 @@
                 'delete-windows-specific-files'
                 'rebuild-perf-counters'
                 'make-measuresleep-admin'
-                # create-shortcuts is still YAML (invokes Internal\CreateShortcuts.ps1)
+                # create-shortcuts is still YAML (invokes Internal\New-AtlasShortcutSet.ps1)
                 'add-newUser-script'
                 # add-music-videos-to-home is still YAML (needs unelevated user-context Shell COM)
-                # enable-notifications is still YAML (invokes Internal\Notifications.ps1 -Mode Enable)
+                # enable-notifications is still YAML (invokes Internal\Set-NotificationState.ps1 -Mode Enable)
                 'config-oem-information'
             )
         }

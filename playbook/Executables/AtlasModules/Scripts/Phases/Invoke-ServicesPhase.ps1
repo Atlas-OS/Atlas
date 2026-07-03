@@ -24,7 +24,7 @@ Export-AtlasServicesBackup
 
 # Disable File Sharing
 try {
-    & (Join-Path -Path $internalRoot -ChildPath 'DisableFileSharing.ps1') -Silent
+    & (Join-Path -Path $internalRoot -ChildPath 'Disable-FileSharing.ps1') -Silent
 }
 catch {
     Write-AtlasLog -Level Warning -Message "Disabling file sharing failed: $($_.Exception.Message)"

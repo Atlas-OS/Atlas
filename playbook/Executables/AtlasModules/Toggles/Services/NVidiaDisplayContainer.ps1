@@ -32,7 +32,7 @@
                     Write-Host "See 'Must Read First' for more info."
                 }
 
-                $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setServiceStartup -Name 'NVDisplay.ContainerLocalSystem' -Start 4
                 & "$($Toggle.WinDir)\System32\sc.exe" stop 'NVDisplay.ContainerLocalSystem' 2>$null | Out-Null
             }
@@ -53,7 +53,7 @@
                     return
                 }
 
-                $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setServiceStartup -Name 'NVDisplay.ContainerLocalSystem' -Start 2
                 & "$($Toggle.WinDir)\System32\sc.exe" start 'NVDisplay.ContainerLocalSystem' 2>$null | Out-Null
             }

@@ -4,6 +4,6 @@ description: Sets the default Atlas profile pictures
 onUpgrade: false
 actions:
   - !powerShell:
-    command: '& ".\AtlasModules\Scripts\Internal\ProfilePictures.ps1"'
+    command: '& ".\AtlasModules\Scripts\Internal\Set-ProfilePictures.ps1"'
     exeDir: true
     wait: true

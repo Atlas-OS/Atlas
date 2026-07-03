@@ -5,7 +5,7 @@
     Generated .cmd launchers call this script as:
 
         powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File
-            "%windir%\AtlasModules\Scripts\invokeToggle.ps1"
+            "%windir%\AtlasModules\Scripts\Invoke-Toggle.ps1"
             -Name <SettingName> [-State <State>] -LauncherPath "%~f0" %*
 
     Remaining arguments keep the legacy flag surface working unchanged: /silent (and
@@ -66,7 +66,7 @@ try {
     Import-Module -Name 'Atlas.Toggles' -Force -ErrorAction Stop
 
     if ([string]::IsNullOrWhiteSpace($Name)) {
-        throw 'invokeToggle.ps1 requires -Name <SettingName>.'
+        throw 'Invoke-Toggle.ps1 requires -Name <SettingName>.'
     }
 
     $invokeParams = @{

@@ -21,7 +21,7 @@
                 param($Toggle)
 
                 Write-Host 'Disabling Windows Update service and scheduled tasks...'
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 $sc = "$($Toggle.WinDir)\System32\sc.exe"
                 $schtasks = "$($Toggle.WinDir)\System32\schtasks.exe"
 
@@ -50,7 +50,7 @@
                 if (-not (Test-Path -LiteralPath $wuAu)) { New-Item -Path $wuAu -Force | Out-Null }
                 New-ItemProperty -LiteralPath $wuAu -Name 'NoAutoUpdate' -Value 1 -PropertyType DWord -Force | Out-Null
 
-                & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1') hide windowsupdate -Silent:$Toggle.Silent
+                & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1') hide windowsupdate -Silent:$Toggle.Silent
 
                 if (-not $Toggle.Silent) {
                     Write-Host 'Windows Updates have been disabled.'
@@ -65,7 +65,7 @@
                 param($Toggle)
 
                 Write-Host 'Enabling Windows Update service and scheduled tasks...'
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 $sc = "$($Toggle.WinDir)\System32\sc.exe"
                 $schtasks = "$($Toggle.WinDir)\System32\schtasks.exe"
 
@@ -91,7 +91,7 @@
                 Remove-ItemProperty -LiteralPath $wu -Name 'DoNotConnectToWindowsUpdateInternetLocations' -Force -ErrorAction SilentlyContinue
                 Remove-ItemProperty -LiteralPath "$wu\AU" -Name 'NoAutoUpdate' -Force -ErrorAction SilentlyContinue
 
-                & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1') unhide windowsupdate -Silent:$Toggle.Silent
+                & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1') unhide windowsupdate -Silent:$Toggle.Silent
 
                 if (-not $Toggle.Silent) {
                     Write-Host 'Windows Updates have been enabled.'

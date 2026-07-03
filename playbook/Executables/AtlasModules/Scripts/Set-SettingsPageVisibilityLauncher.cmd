@@ -1,5 +1,5 @@
 @echo off
-set "script=%~dp0Internal\SettingsPages.ps1"
+set "script=%~dp0Internal\Set-SettingsPageVisibility.ps1"
 
 if not exist "%script%" (
     echo Script not found: "%script%"

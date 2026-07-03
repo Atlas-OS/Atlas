@@ -1,7 +1,7 @@
 # Toggle: Widgets / News and Interests feeds.
 # Converted from 'AtlasDesktop\3. General Configuration\Widgets (News and Interests)\*.cmd'.
 #
-# Parity note: the original Enable launcher ran edgeCheck.cmd (which prompts to install Edge)
+# Parity note: the original Enable launcher ran Test-EdgeState.cmd (which prompts to install Edge)
 # and opened ms-settings:taskbar unconditionally; both are gated to interactive mode here so
 # upgrade re-apply never blocks.
 @{
@@ -46,7 +46,7 @@
                 param($Toggle)
 
                 if (-not $Toggle.Silent) {
-                    $edgeCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'edgeCheck.cmd'
+                    $edgeCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Test-EdgeState.cmd'
                     & "$env:ComSpec" /c "call `"$edgeCheck`""
                     if ($LASTEXITCODE -ne 0) { return }
 

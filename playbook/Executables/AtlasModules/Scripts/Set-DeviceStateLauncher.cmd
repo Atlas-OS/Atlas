@@ -1,5 +1,5 @@
 @echo off
-set "script=%~dp0Internal\ToggleDevice.ps1"
+set "script=%~dp0Internal\Set-DeviceState.ps1"
 
 if not exist "%script%" (
     echo Script not found: "%script%"

@@ -1,6 +1,6 @@
 # Atlas.Software domain: interactive WinGet software picker.
 #
-# Ported from Internal\InstallSoftware.ps1 ("Install Software" in the Atlas folder).
+# Ported from Internal\Install-Software.ps1 ("Install Software" in the Atlas folder).
 # The old script-scoped state machine (column/lastPos/index globals) is replaced by a
 # precomputed layout and form-attached state ($form.Tag), so no shared mutable
 # variables are needed.
@@ -101,10 +101,10 @@ function Show-AtlasSoftwarePicker {
     <#
     .SYNOPSIS
         Shows the Atlas software picker and installs the selected packages with WinGet.
-        Returns $false when WinGet is unavailable (wingetCheck.cmd failed), $true
+        Returns $false when WinGet is unavailable (Test-Winget.cmd failed), $true
         otherwise.
     #>
-    $wingetCheck = Join-Path -Path (Get-AtlasContext).AtlasModulesPath -ChildPath 'Scripts\wingetCheck.cmd'
+    $wingetCheck = Join-Path -Path (Get-AtlasContext).AtlasModulesPath -ChildPath 'Scripts\Test-Winget.cmd'
     & $wingetCheck
     if ($LASTEXITCODE -ne 0) {
         return $false

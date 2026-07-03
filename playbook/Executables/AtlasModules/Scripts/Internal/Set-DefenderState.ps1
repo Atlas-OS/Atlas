@@ -14,7 +14,7 @@ function Restart {
     }
 }
 
-$packageInstall = "$windir\AtlasModules\Scripts\packageInstall.ps1"
+$packageInstall = "$windir\AtlasModules\Scripts\Install-AtlasPackage.ps1"
 if (!(Test-Path $packageInstall)) {
     Write-Host "Missing package install script, can't continue."
     if (!$args) { Read-Pause }

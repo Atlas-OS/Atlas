@@ -2,8 +2,8 @@
 # Converted from 'AtlasDesktop\6. Advanced Configuration\Services\Bluetooth\*.cmd'.
 #
 # The source showed the shared service warning on non-silent runs; the engine's Warning
-# field reproduces that. Devices are toggled through Internal\ToggleDevice.ps1 and the
-# 'Bluetooth' Send To entry through Internal\DebloatSendToContextMenu.ps1.
+# field reproduces that. Devices are toggled through Internal\Set-DeviceState.ps1 and the
+# 'Bluetooth' Send To entry through Internal\Set-SendToContextMenu.ps1.
 @{
     Name      = 'Bluetooth'
     Elevation = 'Admin'
@@ -17,7 +17,7 @@
                 param($Toggle)
 
                 Write-Host 'Disabling Bluetooth... This might take a minute.'
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 foreach ($svc in @(
                     'BluetoothUserService', 'BTAGService', 'BthA2dp', 'BthAvctpSvc', 'BthEnum',
                     'BthHFEnum', 'BthLEEnum', 'BthMini', 'BTHMODEM', 'BTHPORT', 'bthserv',
@@ -27,10 +27,10 @@
                 }
                 & $setSvc -Name 'BthPan' -Start 4 2>$null
 
-                $toggleDevice = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\ToggleDevice.ps1'
+                $toggleDevice = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-DeviceState.ps1'
                 & $toggleDevice -Silent '*Bluetooth*'
 
-                $sendTo = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\DebloatSendToContextMenu.ps1'
+                $sendTo = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SendToContextMenu.ps1'
                 & $sendTo -Disable @('Bluetooth')
 
                 $key = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth'
@@ -47,7 +47,7 @@
             Action     = {
                 param($Toggle)
 
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 foreach ($svc in @(
                     'BluetoothUserService', 'BTAGService', 'BthA2dp', 'BthAvctpSvc', 'BthEnum',
                     'BthHFEnum', 'BthLEEnum', 'BthMini', 'BTHMODEM', 'BTHPORT', 'bthserv',
@@ -57,14 +57,14 @@
                 }
                 & $setSvc -Name 'BthPan' -Start 3 2>$null
 
-                $toggleDevice = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\ToggleDevice.ps1'
+                $toggleDevice = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-DeviceState.ps1'
                 & $toggleDevice -Silent -Enable '*Bluetooth*'
 
                 $key = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth'
                 if (-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null }
                 Set-ItemProperty -LiteralPath $key -Name 'value' -Value 2 -Type DWord -Force
 
-                $sendTo = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\DebloatSendToContextMenu.ps1'
+                $sendTo = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SendToContextMenu.ps1'
                 $enableSendTo = $false
                 if (-not $Toggle.Silent) {
                     $answer = Read-Host "Would you like to enable the 'Bluetooth File Transfer' Send To context menu entry? [Y/N]"

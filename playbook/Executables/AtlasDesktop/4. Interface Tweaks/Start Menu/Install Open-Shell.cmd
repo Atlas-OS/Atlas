@@ -12,7 +12,7 @@ fltmc > nul 2>&1 || (
 )
 
 :: Check if WinGet is functional or not
-call "%windir%\AtlasModules\Scripts\wingetCheck.cmd"
+call "%windir%\AtlasModules\Scripts\Test-Winget.cmd"
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo Downloading Open-Shell...

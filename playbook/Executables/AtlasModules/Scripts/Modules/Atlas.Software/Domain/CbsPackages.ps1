@@ -1,10 +1,10 @@
 # Atlas.Software domain: CBS package (CAB) install/uninstall.
 #
 # GPL-3.0-only license
-# Ported from Executables\AtlasModules\Scripts\packageInstall.ps1, itself modified
+# Ported from Executables\AtlasModules\Scripts\Install-AtlasPackage.ps1, itself modified
 # from https://github.com/he3als/online-sxs
 #
-# packageInstall.ps1 remains as the interactive shell (Safe Mode boot orchestration,
+# Install-AtlasPackage.ps1 remains as the interactive shell (Safe Mode boot orchestration,
 # prompts, the failed-component message box) around these functions; install phases
 # call them directly with -NonInteractive semantics.
 
@@ -184,7 +184,7 @@ function Register-AtlasCbsFailureFallback {
     .SYNOPSIS
         Non-interactive failure fallback: records the failed CAB paths for a Safe Mode
         retry and registers a logon task that shows the failed-component message box
-        (packageInstall.ps1 -FailMessage).
+        (Install-AtlasPackage.ps1 -FailMessage).
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -195,7 +195,7 @@ function Register-AtlasCbsFailureFallback {
     Write-Host 'Setting error message box next boot as NoInteraction is enabled.'
     Set-Content -Path (Get-AtlasCbsSafeModeListPath) -Value $FailedPackages
 
-    $scriptPath = Join-Path -Path (Get-AtlasContext).AtlasModulesPath -ChildPath 'Scripts\packageInstall.ps1'
+    $scriptPath = Join-Path -Path (Get-AtlasContext).AtlasModulesPath -ChildPath 'Scripts\Install-AtlasPackage.ps1'
     $failedMsgTitle = 'AtlasFailedComponentMsgBox'
     $failedMsgArgs = "/c title Finalizing Installation - Atlas & echo Do not close this window. & schtasks /delete /tn `"$failedMsgTitle`" /f > nul & " `
         + "PowerShell -NoP -NonI -W Hidden -EP RemoteSigned -C `"& '$scriptPath' -FailMessage`""
@@ -220,7 +220,7 @@ function Install-AtlasCbsPackage {
         SYSTEM/TrustedInstaller.
     .PARAMETER LiteralPaths
         Treat -Packages as literal CAB paths instead of patterns (used by the Safe Mode
-        retry and the file-picker flow of packageInstall.ps1).
+        retry and the file-picker flow of Install-AtlasPackage.ps1).
     .PARAMETER NonInteractive
         On failure, register the Safe Mode retry fallback and throw (so the Components
         phase exits non-zero and AME Wizard halts) instead of returning the failures

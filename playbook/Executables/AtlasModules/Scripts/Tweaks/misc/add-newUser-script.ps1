@@ -1,4 +1,4 @@
-# Companion of add-newUser-script.psd1: creates the marker key that newUsers.ps1
+# Companion of add-newUser-script.psd1: creates the marker key that Initialize-NewUser.ps1
 # (registered in RunOnce) uses to track per-user setup, granting the built-in Users
 # group (S-1-5-32-545) read/write access so non-admin accounts can record their state.
 $ErrorActionPreference = 'Stop'

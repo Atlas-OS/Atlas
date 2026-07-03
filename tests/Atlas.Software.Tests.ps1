@@ -130,7 +130,7 @@ Describe 'Get-AtlasSoftwarePickerItem' {
 }
 
 Describe 'Get-AtlasCbsSafeModeListPath' {
-    It 'points at the path packageInstall.ps1 uses for the Safe Mode retry list' {
+    It 'points at the path Install-AtlasPackage.ps1 uses for the Safe Mode retry list' {
         InModuleScope Atlas.Software {
             Get-AtlasCbsSafeModeListPath | Should -Be (Join-Path -Path ([Environment]::GetFolderPath('System')) -ChildPath 'safeModePackagesToInstall.atlasmodule')
         }

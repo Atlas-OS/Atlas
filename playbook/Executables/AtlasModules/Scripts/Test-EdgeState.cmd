@@ -34,7 +34,7 @@ if "%~1" neq "/silent" (
 
 :main
 echo]
-set "___ps=powershell -nop -noni -c "^& """%windir%\AtlasModules\Scripts\Internal\RemoveEdge.ps1""" -NonInteractive -InstallWebView"
+set "___ps=powershell -nop -noni -c "^& """%windir%\AtlasModules\Scripts\Internal\Remove-Edge.ps1""" -NonInteractive -InstallWebView"
 if %___edge%==0 (
 	%___ps% -InstallEdge"
 ) else (

@@ -39,7 +39,7 @@
                     Start-Process 'explorer.exe'
                 }
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages hide privacy-general -Silent:$Toggle.Silent
 
                 if (-not $Toggle.Silent) {
@@ -81,7 +81,7 @@
                     & "$($Toggle.WinDir)\System32\taskkill.exe" /f /im SettingsApp.exe 2>$null | Out-Null
                 }
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages unhide privacy-general -Silent:$Toggle.Silent
 
                 if (-not $Toggle.Silent) {

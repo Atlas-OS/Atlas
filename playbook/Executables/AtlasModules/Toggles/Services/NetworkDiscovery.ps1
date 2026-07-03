@@ -18,7 +18,7 @@
 
                 Invoke-AtlasToggle -Name 'NetworkNavigationPane' -State 'Disable' -Silent
 
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 foreach ($svc in @('fdPHost', 'FDResPub', 'lmhosts', 'SSDPSRV')) {
                     & $setSvc -Name $svc -Start 4
                 }
@@ -36,7 +36,7 @@
                 # Lanman Workstation (SMB) is a dependency.
                 Invoke-AtlasToggle -Name 'LanmanWorkstation' -State 'Enable' -Silent
 
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setSvc -Name 'eventlog' -Start 2
                 foreach ($svc in @('fdPHost', 'FDResPub', 'lmhosts', 'netman')) {
                     & $setSvc -Name $svc -Start 3

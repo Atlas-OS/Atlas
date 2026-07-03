@@ -16,7 +16,7 @@ This document describes how the repository is laid out and how an install runs.
 │  └─ Executables/           Payload deployed to C:\Windows (AtlasModules, AtlasDesktop, Themes)
 │     └─ AtlasModules/Scripts/
 │        ├─ Invoke-AtlasInstall.ps1   Install orchestrator (one call per phase)
-│        ├─ invokeToggle.ps1          Toggle CLI (every AtlasDesktop launcher calls it)
+│        ├─ Invoke-Toggle.ps1          Toggle CLI (every AtlasDesktop launcher calls it)
 │        ├─ Modules/          Atlas.* PowerShell framework (see below)
 │        ├─ Phases/           One Invoke-<Phase>Phase.ps1 per install phase
 │        ├─ Tweaks/           Declarative tweak data (.psd1) + tweaks.manifest.psd1
@@ -128,7 +128,7 @@ top-level Executables script not yet migrated (start menu, taskbar pins, shortcu
 
 The numbered AtlasDesktop folders are the user-facing post-install toggles. Each toggle is
 a definition under `AtlasModules/Toggles/<Group>/<Name>.ps1`; a tiny generated `.cmd`
-launcher (one per action, with the original display filename) calls `invokeToggle.ps1`,
+launcher (one per action, with the original display filename) calls `Invoke-Toggle.ps1`,
 which dispatches to `Atlas.Toggles`. `tools/dev/New-ToggleLaunchers.ps1` generates the
 launchers and validates that none have drifted from their definition.
 

@@ -16,7 +16,7 @@
             Action     = {
                 param($Toggle)
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages hide search-permissions -Silent
 
                 Set-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' -Name 'AllowSearchToUseLocation' -Value 0 -Type DWord -Force
@@ -49,7 +49,7 @@
             Action     = {
                 param($Toggle)
 
-                $wingetCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'wingetCheck.cmd'
+                $wingetCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Test-Winget.cmd'
                 & "$env:ComSpec" /c "call `"$wingetCheck`""
                 if ($LASTEXITCODE -ne 0) {
                     Write-AtlasLog -Level Warning -Message 'WebSearch: winget is not functional; cannot enable web search.'
@@ -90,7 +90,7 @@
                 Write-Host 'Installing the Bing search provider...'
                 winget install -e --id 9NZBF4GT040C --uninstall-previous -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity | Out-Null
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages unhide search-permissions -Silent
 
                 foreach ($v in @(

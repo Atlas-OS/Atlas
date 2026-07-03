@@ -17,7 +17,7 @@
             Action     = {
                 param($Toggle)
 
-                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\DisableFileSharing.ps1'
+                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Disable-FileSharing.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
                     Write-Host "Script not found: `"$script`"" -ForegroundColor Red
                     return
@@ -38,7 +38,7 @@
             Action     = {
                 param($Toggle)
 
-                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\EnableFileSharing.ps1'
+                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Enable-FileSharing.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
                     Write-Host "Script not found: `"$script`"" -ForegroundColor Red
                     return

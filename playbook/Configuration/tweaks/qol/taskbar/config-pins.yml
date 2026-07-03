@@ -48,31 +48,31 @@ actions:
   - !registryValue: { path: 'HKLM\SOFTWARE\AtlasOS\SetupOptions', value: 'browser', data: "", type: REG_SZ, option: '!install-another-browser'}
 
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\TaskbarPins.ps1'')'
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\Set-TaskbarPins.ps1'')'
     option: '!install-another-browser'
     onUpgrade: false
     oobe: false
     wait: true
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\TaskbarPins.ps1'') ''Brave'''
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\Set-TaskbarPins.ps1'') ''Brave'''
     option: 'browser-brave'
     onUpgrade: false
     oobe: false
     wait: true
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\TaskbarPins.ps1'') ''Firefox'''
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\Set-TaskbarPins.ps1'') ''Firefox'''
     option: 'browser-firefox'
     onUpgrade: false
     oobe: false
     wait: true
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\TaskbarPins.ps1'') ''Google Chrome'''
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\Set-TaskbarPins.ps1'') ''Google Chrome'''
     option: 'browser-chrome'
     onUpgrade: false
     oobe: false
     wait: true
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\TaskbarPins.ps1'') ''LibreWolf'''
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\Set-TaskbarPins.ps1'') ''LibreWolf'''
     option: 'browser-librewolf'
     onUpgrade: false
     oobe: false

@@ -37,7 +37,7 @@ function Invoke-AtlasServiceStartChange {
         [Parameter(Mandatory = $true)][int]$Start
     )
 
-    $script = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Internal\SetServiceStartup.ps1'
+    $script = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Internal\Set-ServiceStartup.ps1'
     if (Test-Path -LiteralPath $script -PathType Leaf) {
         & $script -Name $Name -Start $Start
         return
@@ -58,7 +58,7 @@ function Invoke-AtlasSettingsPageVisibilityChange {
         [string[]]$Pages
     )
 
-    $script = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Internal\SettingsPages.ps1'
+    $script = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Internal\Set-SettingsPageVisibility.ps1'
     if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
         return
     }

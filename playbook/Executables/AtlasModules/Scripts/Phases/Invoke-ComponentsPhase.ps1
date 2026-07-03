@@ -45,7 +45,7 @@ if (Test-AtlasOption -Name 'uninstall-edge') {
     # !appx removal in atlas\appx.yml is used instead. Note that AppX Edge is removed
     # from the latest builds of Windows, but people could be running a non-updated version.
     try {
-        & (Join-Path -Path $internalRoot -ChildPath 'RemoveEdge.ps1') -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive
+        & (Join-Path -Path $internalRoot -ChildPath 'Remove-Edge.ps1') -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive
     }
     catch {
         Write-AtlasLog -Level Warning -Message "Removing Microsoft Edge failed: $($_.Exception.Message)"

@@ -14,7 +14,7 @@
             Action   = {
                 param($Toggle)
 
-                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\UpdateDrivers.ps1'
+                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Update-Drivers.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
                     Write-Host "Script not found: `"$script`"" -ForegroundColor Red
                     return

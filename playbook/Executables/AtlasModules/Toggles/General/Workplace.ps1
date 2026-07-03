@@ -15,7 +15,7 @@
             Action     = {
                 param($Toggle)
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages hide workplace -Silent
 
                 if (-not $Toggle.Silent) {
@@ -31,7 +31,7 @@
             Action     = {
                 param($Toggle)
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages unhide workplace -Silent
 
                 if (-not $Toggle.Silent) {

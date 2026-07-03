@@ -54,11 +54,11 @@
                 param($Toggle)
 
                 Write-Host 'Disabling services...'
-                $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setServiceStartup -Name 'Spooler' -Start 4
                 & $setServiceStartup -Name 'PrintWorkFlowUserSvc' -Start 4
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages hide printers -Silent:$Toggle.Silent
 
                 Write-Host 'Disabling features...'
@@ -118,11 +118,11 @@
                 param($Toggle)
 
                 Write-Host 'Enabling services...'
-                $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setServiceStartup -Name 'Spooler' -Start 2
                 & $setServiceStartup -Name 'PrintWorkFlowUserSvc' -Start 3
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages unhide printers -Silent:$Toggle.Silent
 
                 Write-Host 'Enabling features...'

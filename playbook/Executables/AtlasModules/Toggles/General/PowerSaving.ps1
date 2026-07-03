@@ -15,7 +15,7 @@
             Action     = {
                 param($Toggle)
 
-                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\DisablePowerSaving.ps1'
+                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Disable-PowerSaving.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
                     Write-Host "Script not found: `"$script`"" -ForegroundColor Red
                     return
@@ -36,7 +36,7 @@
             Action     = {
                 param($Toggle)
 
-                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\DefaultPowerSaving.ps1'
+                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-DefaultPowerSaving.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
                     Write-Host "Script not found: `"$script`"" -ForegroundColor Red
                     return

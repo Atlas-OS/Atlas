@@ -4,13 +4,13 @@
     playbook\Executables\AtlasModules\Toggles.
 .DESCRIPTION
     Every toggle state that declares a 'Launcher' (AtlasDesktop-relative path) gets a
-    4-line CRLF .cmd launcher that forwards to invokeToggle.ps1, preserving the legacy
+    4-line CRLF .cmd launcher that forwards to Invoke-Toggle.ps1, preserving the legacy
     /silent (and other) flag surface via %*. Menu definitions declare a single top-level
     'Launcher' and their launcher omits -State.
 
     With -Validate, no files are written: the expected launchers are regenerated in
     memory and diffed against the files on disk. Drifted, missing and orphaned launchers
-    (invokeToggle-style .cmd files with no matching definition) are reported and the
+    (Invoke-Toggle-style .cmd files with no matching definition) are reported and the
     script exits 1 on any problem.
 .EXAMPLE
     .\New-ToggleLaunchers.ps1            # (re)generate all launchers
@@ -70,7 +70,7 @@ function New-LauncherContent {
     $lines = @(
         '@echo off'
         "title $Title"
-        "powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File `"%windir%\AtlasModules\Scripts\invokeToggle.ps1`" -Name $Name$stateArgument -LauncherPath `"%~f0`" %*"
+        "powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File `"%windir%\AtlasModules\Scripts\Invoke-Toggle.ps1`" -Name $Name$stateArgument -LauncherPath `"%~f0`" %*"
         'exit /b %errorlevel%'
     )
 
@@ -176,13 +176,13 @@ if ($Validate) {
         }
     }
 
-    # Orphans: launcher-style .cmd files pointing at invokeToggle.ps1 with no definition
+    # Orphans: launcher-style .cmd files pointing at Invoke-Toggle.ps1 with no definition
     # (checked across both the AtlasDesktop and Toolbox trees).
     foreach ($orphanRoot in @($desktopRoot, $toolboxRoot)) {
         foreach ($cmdFile in @(Get-ChildItem -LiteralPath $orphanRoot -Recurse -File -Filter '*.cmd')) {
             $content = [System.IO.File]::ReadAllText($cmdFile.FullName)
-            if ($content -match 'invokeToggle\.ps1' -and -not $expected.ContainsKey($cmdFile.FullName.ToLowerInvariant())) {
-                $problems.Add("Orphan launcher: '$($cmdFile.FullName)' calls invokeToggle.ps1 but no toggle definition declares it.")
+            if ($content -match 'Invoke-Toggle\.ps1' -and -not $expected.ContainsKey($cmdFile.FullName.ToLowerInvariant())) {
+                $problems.Add("Orphan launcher: '$($cmdFile.FullName)' calls Invoke-Toggle.ps1 but no toggle definition declares it.")
             }
         }
     }

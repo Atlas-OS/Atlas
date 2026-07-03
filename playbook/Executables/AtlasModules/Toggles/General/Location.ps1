@@ -32,7 +32,7 @@
                 & $sc stop lfsvc 2>$null | Out-Null
                 & $sc stop MapsBroker 2>$null | Out-Null
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages hide privacy-location -Silent
                 & $settingsPages hide findmydevice -Silent
 
@@ -55,7 +55,7 @@
                 & $sc start lfsvc 2>$null | Out-Null
                 & $sc start MapsBroker 2>$null | Out-Null
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages unhide privacy-location -Silent:$Toggle.Silent
 
                 $findMyDevice = 'HKLM:\SOFTWARE\Policies\Microsoft\FindMyDevice'

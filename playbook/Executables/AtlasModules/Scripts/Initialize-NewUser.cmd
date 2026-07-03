@@ -1,5 +1,5 @@
 @echo off
-set "script=%windir%\AtlasModules\Scripts\newUsers.ps1"
+set "script=%windir%\AtlasModules\Scripts\Initialize-NewUser.ps1"
 
 if not exist "%script%" (
     echo Script not found: "%script%"

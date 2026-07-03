@@ -3,7 +3,7 @@
 #   1. Sync-AtlasDefaultUserHive re-copies every recorded HKCU key into
 #      HKU\AME_UserHive_Default while it is still loaded (the APPLYDUHIVE.ps1 replacement);
 #      if it runs after the hive is unloaded, new-user propagation is silently lost.
-#   2. SetPaths.ps1 rewrites any stale AtlasDesktop launcher paths recorded under
+#   2. Repair-RegistryPaths.ps1 rewrites any stale AtlasDesktop launcher paths recorded under
 #      HKLM\SOFTWARE\AtlasOS\Services so toggle re-apply keeps working after upgrades.
 # Runs elevated (runas: currentUserElevated).
 
@@ -23,7 +23,7 @@ catch {
 
 # Correct any stale registry launcher paths
 try {
-    & (Join-Path -Path $internalRoot -ChildPath 'SetPaths.ps1')
+    & (Join-Path -Path $internalRoot -ChildPath 'Repair-RegistryPaths.ps1')
 }
 catch {
     Write-AtlasLog -Level Warning -Message "Correcting registry paths failed: $($_.Exception.Message)"

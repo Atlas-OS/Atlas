@@ -6,8 +6,8 @@
 # Interactive shell around the Atlas.Software CBS package engine
 # (Install-AtlasCbsPackage / Uninstall-AtlasCbsPackage). This script stays at this
 # exact path because the Safe Mode Winlogon shell value, the AtlasFailedComponentMsgBox
-# scheduled task and the toolbox scripts (Internal\ToggleDefender.ps1,
-# Internal\TelemetryComponents.ps1) all invoke it. The install phases call the module
+# scheduled task and the toolbox scripts (Internal\Set-DefenderState.ps1,
+# Internal\Remove-TelemetryComponents.ps1) all invoke it. The install phases call the module
 # functions directly instead.
 
 param (

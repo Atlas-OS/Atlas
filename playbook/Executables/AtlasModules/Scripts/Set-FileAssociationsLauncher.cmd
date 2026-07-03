@@ -1,8 +1,8 @@
 @echo off
 
-set "assocScript=%~dp0Internal\FileAssociations.ps1"
+set "assocScript=%~dp0Internal\Set-FileAssociations.ps1"
 if not exist "%assocScript%" (
-    echo FileAssociations.ps1 not found: "%assocScript%"
+    echo Set-FileAssociations.ps1 not found: "%assocScript%"
     exit /b 1
 )
 

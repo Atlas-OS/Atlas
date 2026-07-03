@@ -36,10 +36,10 @@
                 if (-not (Test-Path -LiteralPath $cdpSettings)) { New-Item -Path $cdpSettings -Force | Out-Null }
                 New-ItemProperty -LiteralPath $cdpSettings -Name 'BluetoothLastDisabledNearShare' -Value 0 -PropertyType DWord -Force | Out-Null
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages hide mobile-devices -Silent:$Toggle.Silent
 
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setSvc -Name 'CDPSvc' -Start 4
 
                 & "$($Toggle.WinDir)\System32\taskkill.exe" /f /im RuntimeBroker.exe 2>$null | Out-Null
@@ -86,14 +86,14 @@
                 if (-not (Test-Path -LiteralPath $policyResume)) { New-Item -Path $policyResume -Force | Out-Null }
                 New-ItemProperty -LiteralPath $policyResume -Name 'Value' -Value 0 -PropertyType DWord -Force | Out-Null
 
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setSvc -Name 'CDPSvc' -Start 3
 
                 $storeUpdate = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate'
                 if (-not (Test-Path -LiteralPath $storeUpdate)) { New-Item -Path $storeUpdate -Force | Out-Null }
                 New-ItemProperty -LiteralPath $storeUpdate -Name 'AutoDownload' -Value 4 -PropertyType DWord -Force | Out-Null
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SettingsPages.ps1'
+                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages unhide mobile-devices -Silent:$Toggle.Silent
 
                 if (-not $Toggle.Silent) {

@@ -198,7 +198,7 @@ function Resolve-AtlasToggleStateName {
 function Get-AtlasToggleRelaunchArgumentList {
     <#
     .SYNOPSIS
-        Reconstructs the invokeToggle.ps1 argument list used to relaunch the current
+        Reconstructs the Invoke-Toggle.ps1 argument list used to relaunch the current
         invocation in an elevated context.
     #>
     param(
@@ -216,7 +216,7 @@ function Get-AtlasToggleRelaunchArgumentList {
         [switch]$NoExplorerRestart
     )
 
-    $invokeTogglePath = Join-Path -Path (Get-AtlasContext).AtlasModulesPath -ChildPath 'Scripts\invokeToggle.ps1'
+    $invokeTogglePath = Join-Path -Path (Get-AtlasContext).AtlasModulesPath -ChildPath 'Scripts\Invoke-Toggle.ps1'
 
     $argumentList = @(
         '-NoProfile', '-NoLogo', '-ExecutionPolicy', 'Bypass',

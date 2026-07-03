@@ -15,7 +15,7 @@
             Action     = {
                 param($Toggle)
 
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setSvc -Name 'KSecPkg' -Start 4
                 & $setSvc -Name 'LanmanServer' -Start 4
                 & $setSvc -Name 'LanmanWorkstation' -Start 4
@@ -38,7 +38,7 @@
             Action     = {
                 param($Toggle)
 
-                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SetServiceStartup.ps1'
+                $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setSvc -Name 'KSecPkg' -Start 0
                 & $setSvc -Name 'LanmanServer' -Start 2
                 & $setSvc -Name 'LanmanWorkstation' -Start 2

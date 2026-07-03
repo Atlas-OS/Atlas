@@ -58,7 +58,7 @@ powercfg /setactive scheme_current
 
 Write-Host "Disabling power-saving ACPI devices..." -ForegroundColor Yellow
 foreach ($device in @("ACPI Processor Aggregator", "Microsoft Windows Management Interface for ACPI")) {
-    & "$windir\AtlasModules\Scripts\toggleDev.cmd" -Silent -Devices "$device" | Out-Null
+    & "$windir\AtlasModules\Scripts\Set-DeviceStateLauncher.cmd" -Silent -Devices "$device" | Out-Null
 }
 
 Write-Host "Disabling network adapter power-saving..." -ForegroundColor Yellow

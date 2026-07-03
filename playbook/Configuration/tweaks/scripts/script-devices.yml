@@ -8,5 +8,5 @@ actions:
         Disable-NetAdapterBinding -ErrorAction SilentlyContinue |
         Out-Null
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\DisablePnp.ps1'')'
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\Disable-PnpDevices.ps1'')'
     wait: true

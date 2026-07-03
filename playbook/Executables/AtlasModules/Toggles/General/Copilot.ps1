@@ -3,8 +3,8 @@
 #
 # Both launchers restart Explorer to refresh the taskbar (Reboot='RestartExplorer'); the
 # engine skips that restart when invoked with /noAction, matching the original's
-# 'if /I not "%~2"=="/noAction"' guard. The Enable path reuses the existing edgeCheck.cmd /
-# wingetCheck.cmd helpers exactly as the batch did (Copilot needs Edge, and on 24H2 it is
+# 'if /I not "%~2"=="/noAction"' guard. The Enable path reuses the existing Test-EdgeState.cmd /
+# Test-Winget.cmd helpers exactly as the batch did (Copilot needs Edge, and on 24H2 it is
 # delivered as a Store app installed via winget).
 @{
     Name      = 'Copilot'
@@ -38,7 +38,7 @@
                 Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
 
                 # Copilot requires Microsoft Edge - reuse the shared Edge check helper.
-                $edgeCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'edgeCheck.cmd'
+                $edgeCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Test-EdgeState.cmd'
                 & "$env:ComSpec" /c "call `"$edgeCheck`" /edgeonly"
                 if ($LASTEXITCODE -ne 0) {
                     return
@@ -58,7 +58,7 @@
                     if (-not $Toggle.Silent) {
                         Write-Host "NOTE: Copilot on the taskbar isn't available, the app will be installed instead."
                     }
-                    $wingetCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'wingetCheck.cmd'
+                    $wingetCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Test-Winget.cmd'
                     & "$env:ComSpec" /c "call `"$wingetCheck`" /nodashes"
                     if ($LASTEXITCODE -ne 0) {
                         return

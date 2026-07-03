@@ -10,7 +10,7 @@ fltmc > nul 2>&1 || (
     exit /b
 )
 
-set "script=%windir%\AtlasModules\Scripts\installToolbox.ps1"
+set "script=%windir%\AtlasModules\Scripts\Install-Toolbox.ps1"
 if not exist "%script%" (
 	echo Script not found.
 	echo "%script%"
