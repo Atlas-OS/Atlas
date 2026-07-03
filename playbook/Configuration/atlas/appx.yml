@@ -12,22 +12,30 @@ actions:
 
   # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
 
+  # The !appx family removals below stay in YAML deliberately: AME Wizard's
+  # provisioned/system package removal is battle-tested where Remove-AppxPackage
+  # documented-fails. Everything around them (snapshot, process kills, Phone Link,
+  # deprovisioning, cache clearing) lives in the AppxSupport phase
+  # (AtlasModules\Scripts\Phases\Invoke-AppxSupportPhase.ps1).
+
   #####################################################################################################
 
-  # Get current AppX packages to deprovision removed ones afterward
+  # Snapshot current AppX packages to deprovision removed ones afterward,
+  # kill Teams processes and prevent the Teams chat auto-install
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tasks\Save-AppxPackageSnapshot.ps1'')'
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase AppxSupport -Category Snapshot'
     runas: currentUserElevated
     wait: true
+    weight: 4
+
+  # Microsoft Edge (moved from atlas\components.yml; the rest of the Edge removal
+  # runs in the Components phase, gated on the same option)
+  - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge', ignoreErrors: true}
 
   # AppX Microsoft Teams
   # Seems legacy - not in 23H2
-  - !taskKill: {name: 'msteams*', ignoreErrors: true}
   - !appx: {name: 'MicrosoftTeams*', type: family}
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications', value: 'ConfigureChatAutoInstall', data: '0', type: REG_DWORD}
-
   # New AppX Teams in 24H2
-  - !taskKill: {name: 'ms-teams*', ignoreErrors: true}
   - !appx: {name: 'MSTeams*', type: family}
   # 24H2 Copilot app
   - !appx: {name: 'Microsoft.Copilot*', type: family}
@@ -76,25 +84,14 @@ actions:
   - !appx: {name: 'Microsoft.WindowsSoundRecorder*', type: family}
   - !appx: {name: 'Microsoft.StartExperiencesApp*', type: family}
   - !appx: {name: 'Ink.Handwriting.Main.Store.en-US1.0', type: family}
-  # Removing using AME Wizard causes issues with Cross Device Experience Host installing
-  # - !appx: {name: 'Microsoft.YourPhone*', type: family}
-  - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tasks\Remove-PhoneLinkAppx.ps1'')'
-    runas: currentUserElevated
-    wait: true
+  # Removing Microsoft.YourPhone using AME Wizard causes issues with Cross Device
+  # Experience Host installing; it's removed in the Cleanup call below instead
 
-  # Prevent provisioned applications from being reinstalled
-  # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
-  - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tasks\Set-AppxDeprovisionedPackages.ps1'')'
-    runas: currentUserElevated
-    wait: true
-
-  # Clear caches of Client.CBS and more
-  # Start menu cache is cleared later
+  # Phone Link removal, deprovisioning of everything removed since the snapshot,
+  # then clearing AppX caches (Client.CBS and more; Start menu cache is cleared later)
   - !writeStatus: {status: 'Clearing AppX caches'}
-  - !taskKill: {name: 'SearchHost*', ignoreErrors: true}
-  - !taskKill: {name: 'SearchApp*', ignoreErrors: true}
-  - !appx: {operation: clearCache, name: '*MicrosoftWindows.Client.CBS*'}
-  - !appx: {operation: clearCache, name: '*Microsoft.Windows.Search*'}
-  - !appx: {operation: clearCache, name: '*Microsoft.Windows.SecHealthUI*'}
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase AppxSupport -Category Cleanup'
+    runas: currentUserElevated
+    wait: true
+    weight: 7

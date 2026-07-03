@@ -1,4 +1,59 @@
 # AppxSupport phase.
-# Stub: the legacy YAML task chain still performs this phase's work. Real logic moves
-# here as the corresponding YAML is retired during the PowerShell migration.
-Write-AtlasLog -Message 'AppxSupport phase stub executed; work currently handled by the legacy YAML chain.'
+# Brackets the AME !appx family removals in atlas\appx.yml (which stay in YAML because
+# AME's provisioned/system package removal is battle-tested where Remove-AppxPackage
+# documented-fails). Runs elevated (runas: currentUserElevated, matching the old
+# snapshot/deprovision actions), invoked twice:
+#   -Category Snapshot  before the !appx block: package snapshot + Teams process kills
+#                       + Teams chat auto-install prevention
+#   -Category Cleanup   after the !appx block: Phone Link removal, deprovisioning of
+#                       everything removed since the snapshot, and AppX cache clearing
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('Snapshot', 'Cleanup')]
+    [string]$Category
+)
+
+Assert-AtlasPrivilege -Administrator
+
+Import-Module Atlas.Appx -Force
+Import-Module Atlas.TasksProcs -Force
+
+switch ($Category) {
+    'Snapshot' {
+        # Get current AppX packages to deprovision removed ones afterward
+        Save-AtlasAppxSnapshot
+
+        # Kill Teams so the !appx removals succeed (legacy AppX Teams + 24H2 MSTeams)
+        Stop-AtlasProcess -Name 'msteams*', 'ms-teams*'
+
+        # Prevent the Teams chat auto-install
+        $communicationsKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications'
+        if (-not (Test-Path -LiteralPath $communicationsKey)) {
+            New-Item -Path $communicationsKey -Force | Out-Null
+        }
+        Set-ItemProperty -LiteralPath $communicationsKey -Name 'ConfigureChatAutoInstall' -Value 0 -Type DWord -Force
+    }
+    'Cleanup' {
+        # Removing Phone Link using AME Wizard causes issues with Cross Device
+        # Experience Host installing, so it's removed here instead
+        try {
+            Remove-AtlasPhoneLinkAppx
+        }
+        catch {
+            Write-AtlasLog -Level Warning -Message "Removing Phone Link failed: $($_.Exception.Message)"
+        }
+
+        # Prevent provisioned applications removed by the !appx block from being reinstalled
+        # https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
+        try {
+            Set-AtlasAppxDeprovisioned
+        }
+        catch {
+            Write-AtlasLog -Level Warning -Message "Deprovisioning removed AppX packages failed: $($_.Exception.Message)"
+        }
+
+        # Clear caches of Client.CBS and more (Start menu cache is cleared later)
+        Stop-AtlasProcess -Name 'SearchHost*', 'SearchApp*'
+        Clear-AtlasAppxCache -Name '*MicrosoftWindows.Client.CBS*', '*Microsoft.Windows.Search*', '*Microsoft.Windows.SecHealthUI*'
+    }
+}

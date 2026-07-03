@@ -11,65 +11,27 @@ actions:
 
   - !writeStatus: {status: 'Enabling DirectPlay'}
   - !run: {exe: 'DISM.exe', args: '/Online /Enable-Feature /FeatureName:"DirectPlay" /NoRestart /All', weight: 30}
-  
+
   - !run: {exe: 'DISM.exe', args: '/Online /Remove-Capability /CapabilityName:"App.StepsRecorder~~~~0.0.1.0" /NoRestart', weight: 30, onUpgrade: false}
 
   - !writeStatus: {status: 'Cleaning the component store'}
   - !run: {exe: 'DISM.exe', args: '/Online /Cleanup-Image /StartComponentCleanup', weight: 50}
 
-    # Initial software
-    # 7-Zip, Visual C++ Runtimes, DirectX
+    # Initial software (7-Zip/NanaZip, Visual C++ Runtimes, DirectX), the Toolbox and
+    # the selected browser. The Software phase
+    # (AtlasModules\Scripts\Phases\Invoke-SoftwarePhase.ps1) reads the option flags
+    # (install-toolbox, browser-*) and skips the utilities on upgrades. Downloads
+    # happen at install time, which is why this stays in the NO LOCAL BUILD block.
   - !writeStatus: {status: 'Installing utilities'}
-  - !powerShell:
-    command: '.\SOFTWARE.ps1'
-    exeDir: true
-    wait: true
-    onUpgrade: false
-    weight: 150
-    runas: currentUserElevated
-
-    #Toolbox
-  - !writeStatus: {status: 'Installing AtlasOS Toolbox'}
-  - !powerShell:
-    command: '.\SOFTWARE.ps1 -Toolbox'
-    exeDir: true
-    wait: true
-    weight: 100
-    option: 'install-toolbox'
-    runas: currentUserElevated
-
-    # Browsers
+  - !writeStatus: {status: 'Installing AtlasOS Toolbox', option: 'install-toolbox'}
   - !writeStatus: {status: 'Installing Brave', option: 'browser-brave'}
-  - !powerShell:
-    command: '.\SOFTWARE.ps1 -Brave'
-    exeDir: true
-    wait: true
-    weight: 120
-    option: 'browser-brave'
-    runas: currentUserElevated
   - !writeStatus: {status: 'Installing Firefox', option: 'browser-firefox'}
-  - !powerShell:
-    command: '.\SOFTWARE.ps1 -Firefox'
-    exeDir: true
-    wait: true
-    weight: 120
-    option: 'browser-firefox'
-    runas: currentUserElevated
   - !writeStatus: {status: 'Installing LibreWolf', option: 'browser-librewolf'}
-  - !powerShell:
-    command: '.\LIBREWOLF.ps1'
-    exeDir: true
-    wait: true
-    weight: 120
-    option: 'browser-librewolf'
-    runas: currentUserElevated
   - !writeStatus: {status: 'Installing Google Chrome', option: 'browser-chrome'}
   - !powerShell:
-    command: '.\SOFTWARE.ps1 -Chrome'
-    exeDir: true
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Software'
     wait: true
-    weight: 120
-    option: 'browser-chrome'
+    weight: 730
     runas: currentUserElevated
 
   ################ END NO LOCAL BUILD ################

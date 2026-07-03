@@ -3,77 +3,27 @@ title: Components
 description: Removes certain Windows components
 onUpgrade: false
 actions:
-    # Remove Security Center startup item
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', value: 'SecurityHealth', operation: delete}
+  # The component removal logic lives in the Components phase
+  # (AtlasModules\Scripts\Phases\Invoke-ComponentsPhase.ps1): Security Center startup
+  # item, Smart App Control, Microsoft Edge, OneDrive and the CBS component packages.
+  # Edge's !appx family removal moved to atlas\appx.yml (AME-only action).
 
-    # Disable Smart App Control
-    # Causes slow app loading issues and sends data to Microsoft
-  - !registryValue:
-    path: 'HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy'
-    value: 'VerifiedAndReputablePolicyState'
-    data: '0'
-    type: REG_DWORD
-
-    # Microsoft Edge
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
-  - !service: {name: 'edgeupdate', operation: stop, option: 'uninstall-edge', ignoreErrors: true}
-  - !service: {name: 'edgeupdatem', operation: stop, option: 'uninstall-edge', ignoreErrors: true}
-  - !service: {name: 'MicrosoftEdgeUpdate', operation: stop, option: 'uninstall-edge', ignoreErrors: true}
-  - !service: {name: 'MicrosoftEdgeElevationService', operation: stop, option: 'uninstall-edge', ignoreErrors: true}
-  - !service: {name: 'edgeupdate', operation: change, startup: 4, option: 'uninstall-edge', ignoreErrors: true}
-  - !service: {name: 'edgeupdatem', operation: change, startup: 4, option: 'uninstall-edge', ignoreErrors: true}
-  - !service: {name: 'MicrosoftEdgeUpdate', operation: change, startup: 4, option: 'uninstall-edge', ignoreErrors: true}
-  - !service: {name: 'MicrosoftEdgeElevationService', operation: change, startup: 4, option: 'uninstall-edge', ignoreErrors: true}
-  - !cmd:
-    command: 'schtasks /delete /tn "MicrosoftEdgeUpdateTaskMachineCore" /f > nul 2>&1 || exit /b 0'
-    runas: currentUserElevated
-    option: 'uninstall-edge'
-    wait: true
-  - !cmd:
-    command: 'schtasks /delete /tn "MicrosoftEdgeUpdateTaskMachineUA" /f > nul 2>&1 || exit /b 0'
-    runas: currentUserElevated
-    option: 'uninstall-edge'
-    wait: true
-  - !powerShell:
-    command: '& """.\AtlasModules\Scripts\ScriptWrappers\RemoveEdge.ps1""" -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive'
-    runas: currentUserElevated
-    option: 'uninstall-edge'
-    wait: true
-    exeDir: true
-    # AppX uninstallation in the script seems to fail, therefore it's not used and AME Wizard is used instead
-    # Note that AppX Edge is removed from the latest builds of Windows, but people could be running a non-updated version
-  - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge', ignoreErrors: true}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
-  - !registryKey: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge_8wekyb3d8bbwe', operation: add, option: 'uninstall-edge'}
-
-    # OneDrive
-    # The actual OneDrive setup in Windows is stripped at a component-level in the miscellaneous package
   - !writeStatus: {status: 'Removing OneDrive'}
-  - !run: {exeDir: true, exe: 'ONED.cmd'}
-
-    # Windows components and Telemetry
   - !writeStatus: {status: 'Removing components'}
+
+    # AME-only: deletes from the offline (mounted ISO) registry hive, which the
+    # PowerShell phases cannot reach on a live system
   - !registryKey:
     path: 'HKLM\OfflineSys\ControlSet001\Services\WdBoot'
     operation: delete
     option: 'defender-disable'
     iso: only
+
+    # CBS package failures exit non-zero after registering the Safe Mode retry
+    # fallback, so the install halts instead of continuing half-configured
   - !powerShell:
-    command: >-
-      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
-      -InstallPackages @('*Z-Atlas-NoDefender-Package*',
-        '*Z-Atlas-NoTelemetry-Package*'
-      )
-      -NoInteraction
-    option: 'defender-disable'
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Components'
     wait: true
-    exeDir: true
-  - !powerShell:
-    command: >-
-      & """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Scripts\packageInstall.ps1"""
-      -InstallPackages @('*Z-Atlas-NoTelemetry-Package*')
-      -UninstallPackages @('*Z-Atlas-NoDefender-Package*')
-      -NoInteraction
-    option: 'defender-enable'
-    wait: true
-    exeDir: true
+    weight: 18
+    handleExitCodes: { "!0": halt }

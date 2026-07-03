@@ -3,75 +3,17 @@ title: Services and Drivers
 description: Configures services and drivers to reduce background system resource utilization
 onUpgrade: false
 actions:
-  # ----------------------------------
-  # - Potential references           -
-  # - Mostly upon IoT recommendation -
-  # ----------------------------------
-  # https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-vdi-recommendations-2004
-  # https://learn.microsoft.com/en-us/windows-server/security/windows-services/security-guidelines-for-disabling-system-services-in-windows-server
-  # https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/optimize/services
-
-  # Back up default Windows services & drivers
-  - !powerShell:
-    command: |
-      .\BACKUP.ps1 -FilePath """$([Environment]::GetFolderPath('Windows'))\AtlasModules\Other\winServices.reg"""
-    wait: true
-    exeDir: true
-
-  ##############################################################################################
-  ## SCRIPTS                                                                                  ##
-  ##############################################################################################
+  # The service/driver configuration lives in the Services phase
+  # (AtlasModules\Scripts\Phases\Invoke-ServicesPhase.ps1): services backup, file
+  # sharing/location/indexing scripts and the service startup list (with references).
 
   - !writeStatus: {status: 'Disabling File Sharing'}
-  - !powerShell:
-    command: '.\AtlasModules\Scripts\ScriptWrappers\DisableFileSharing.ps1 -Silent'
-    exeDir: true
-    wait: true
-    runas: currentUserElevated
-
   - !writeStatus: {status: 'Disabling Location'}
-  - !powerShell:
-    command: |
-      Start-Process -FilePath (Join-Path $env:windir 'AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd') -ArgumentList '/silent' -Wait
-    exeDir: true
-    wait: true
-    runas: currentUserElevated
-
   - !writeStatus: {status: 'Configuring Indexing'}
-  - !powerShell:
-    command: |
-      Start-Process -FilePath (Join-Path $env:windir 'AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd') -ArgumentList '/silent' -Wait
-    exeDir: true
-    wait: true
-    runas: currentUserElevated
-
-  ##############################################################################################
-  ## SERVICES                                                                                 ##
-  ##############################################################################################
-
   - !writeStatus: {status: 'Configuring services'}
-
-    # ------ Microsoft recommendation - 'OK to disable' ------
-  - !service: {name: 'OneSyncSvc', operation: change, startup: 4}
-  - !service: {name: 'TrkWks', operation: change, startup: 4}
-  - !service: {name: 'PcaSvc', operation: change, startup: 4}
-  - !service: {name: 'DiagTrack', operation: change, startup: 4}
-
-    # ------ Microsoft recommendation - 'Do not disable' -----
-  - !service: {name: 'diagnosticshub.standardcollector.service', operation: change, startup: 4}
-  - !service: {name: 'WerSvc', operation: change, startup: 4}
-
-    # ------- Microsoft recommendation - 'No guidance' ------
-  - !service: {name: 'wercplsupport', operation: change, startup: 4}
-  - !service: {name: 'UCPD', operation: change, startup: 4}
-
-  ##############################################################################################
-  ## DRIVERS                                                                                  ##
-  ##############################################################################################
-
   - !writeStatus: {status: 'Configuring drivers'}
 
-  - !service: {name: 'GpuEnergyDrv', operation: change, startup: 4}
-    # NetBios support can be enabled with the file sharing script
-  - !service: {name: 'NetBT', operation: change, startup: 4}
-  - !service: {name: 'Telemetry', operation: change, startup: 4}
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Services'
+    wait: true
+    weight: 15

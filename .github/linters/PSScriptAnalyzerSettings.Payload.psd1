@@ -12,7 +12,8 @@
         'PSUseShouldProcessForStateChangingFunctions',
         # Internal function names do not need to follow module-publishing conventions
         'PSUseSingularNouns',
-        # TODO(rewrite): re-enable once the legacy InstallSoftware.ps1 state machine is replaced
+        # TODO(rewrite): re-enable once Internal\Cleanup.ps1 ($global:LASTEXITCODE) is absorbed
+        # (the InstallSoftware.ps1 state machine was replaced by Atlas.Software's picker)
         'PSAvoidGlobalVars',
         # TODO(rewrite): re-enable once all payload files are normalized to UTF-8 BOM for 5.1
         'PSUseBOMForUnicodeEncodedFile',

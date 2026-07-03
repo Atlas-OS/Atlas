@@ -1,10 +1,7 @@
+# Thin forwarder; the logic lives in the Atlas.Appx module (Save-AtlasAppxSnapshot),
+# called by the AppxSupport install phase. Kept so external invocations of this path
+# keep working until the migration completes.
 $ErrorActionPreference = 'Stop'
 
-$atlasModulesPath = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules'
-$snapshotPath = Join-Path -Path $atlasModulesPath -ChildPath 'AtlasPackagesOld.txt'
-
-if (-not (Test-Path -LiteralPath $atlasModulesPath -PathType Container)) {
-    New-Item -Path $atlasModulesPath -ItemType Directory -Force | Out-Null
-}
-
-(Get-AppxPackage).PackageFamilyName | Set-Content -LiteralPath $snapshotPath -Encoding ASCII
+Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Modules\Atlas.Appx\Atlas.Appx.psd1')
+Save-AtlasAppxSnapshot
