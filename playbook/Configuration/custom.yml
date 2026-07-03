@@ -91,6 +91,7 @@ actions:
     wait: true
     weight: 3
     runas: currentUserElevated
+    handleExitCodes: { "!0": halt }
 
   # Set hidden Settings pages - done before the tweak categories so later tweaks do not
   # overwrite SettingsPageVisibility (the tweak's OnUpgrade='Skip' keeps it fresh-only).
@@ -132,6 +133,7 @@ actions:
     wait: true
     weight: 2
     runas: currentUserElevated
+    handleExitCodes: { "!0": halt }
 
   # Unloading the hive
   - !writeStatus: { status: "Cleaning up registry paths" }

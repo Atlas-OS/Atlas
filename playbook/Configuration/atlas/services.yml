@@ -17,3 +17,4 @@ actions:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Services'
     wait: true
     weight: 15
+    handleExitCodes: { "!0": halt }

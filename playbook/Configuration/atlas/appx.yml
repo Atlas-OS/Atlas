@@ -27,6 +27,7 @@ actions:
     runas: currentUserElevated
     wait: true
     weight: 4
+    handleExitCodes: { "!0": halt }
 
   # Microsoft Edge (moved from atlas\components.yml; the rest of the Edge removal
   # runs in the Components phase, gated on the same option)
@@ -95,3 +96,4 @@ actions:
     runas: currentUserElevated
     wait: true
     weight: 7
+    handleExitCodes: { "!0": halt }

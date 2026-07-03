@@ -18,3 +18,4 @@ actions:
     onUpgrade: true
     wait: true
     runas: currentUserElevated
+    handleExitCodes: { "!0": halt }
