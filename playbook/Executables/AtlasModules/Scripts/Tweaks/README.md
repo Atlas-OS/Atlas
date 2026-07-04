@@ -25,8 +25,8 @@ companion `Script` shares its definition's basename. Do not rename them to Pasca
             Name   = 'networking'
             # Paths are relative to the category folder, without the .psd1 extension.
             Tweaks = @(
-                'disable-network-throttling'
-                'subfolder/some-other-tweak'
+                'atlas-network-settings'
+                'shares/restrict-anonymous-access'
             )
         }
     )

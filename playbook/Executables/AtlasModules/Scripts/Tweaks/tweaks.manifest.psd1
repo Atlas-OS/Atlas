@@ -8,7 +8,9 @@
         @{
             Name   = 'networking'
             Tweaks = @(
-                # 'disable-llmnr'  # disabled: needed for compatibility
+                # 'disable-llmnr'  # disabled deliberately: LLMNR resolves single-label \\PCNAME on home LANs
+                #                  # (mDNS only covers .local; router DNS rarely registers client names).
+                #                  # Userbase is mostly trusted home networks, so the poisoning risk doesn't outweigh that.
                 'atlas-network-settings'
                 'shares/restrict-anonymous-access'
                 'shares/restrict-anonymous-enumeration'
@@ -20,13 +22,13 @@
             Tweaks = @(
                 'config-mmcss'
                 'disable-auto-folder-discovery'
-                # 'disable-game-bar'  # disabled: no reason recorded
+                # 'disable-game-bar'  # disabled: users want Game Bar capture/overlays, and the Xbox app depends on it;
+                #                     # the FSOGameBar toggle covers enthusiasts who want it gone
                 'config-automatic-maintenance'
                 'disable-background-apps'
                 'disable-fth'
                 'disable-sleep-study'
                 'respect-power-modes-search'
-                # 'system/disable-paging'  # disabled: no evidence it helps (likely placebo)
                 'system/optimize-ntfs'
                 'system/disable-service-host-split'
                 'system/win32-priority-separation'
@@ -39,8 +41,10 @@
                 'config-windows-media-player'
                 'disable-activity-feed'
                 'disable-app-launch-tracking'
-                'disable-experimentation'
                 'disable-lockscreen-camera'
+                # disable-experimentation removed: AllowExperimentation is a dead 1607-era MDM policy; the
+                # PolicyManager\current variant is known to block Known Issue Rollback fixes, and disabling
+                # DiagTrack already cuts the experimentation delivery channel.
                 'disable-online-speech-recognition'
                 'disable-pca'
                 'disable-perf-track'
@@ -77,7 +81,6 @@
             Tweaks = @(
                 'bcdedit-tweaks'
                 'best-wallpaper-quality'
-                'config-windows-ink-workspace'
                 'disable-mouse-accel'
                 'disable-settings-tips'
                 'disable-spell-checking'
@@ -98,7 +101,6 @@
                 'disable-dynamic-lighting'
                 'disable-auto-app-archival'
                 'add-sharing-settings-shortcut'
-                'appearance/blue-tooltips'
                 # atlas-theme sets lock-screen policy; the theme itself is applied by
                 # Initialize-NewUser at first logon (interactive shell COM).
                 'appearance/atlas-theme'
@@ -116,15 +118,10 @@
                 'ease-of-access/disable-annoying-features-shortcuts'
                 'ease-of-access/disable-making-touch-easier'
                 'ease-of-access/disable-warning-sounds'
-                'taskbar/cmd-win-x'
                 'taskbar/disable-cloud-optimized-content'
-                'taskbar/disable-desktop-peek'
                 'taskbar/disable-news-and-interests'
-                'taskbar/disable-tablet-mode'
-                'taskbar/hide-meet-now'
                 'taskbar/hide-task-view'
                 'taskbar/disable-copilot'
-                'taskbar/disable-windows-chat'
                 'taskbar/set-to-left'
                 'taskbar/end-task'
                 'explorer/always-more-details-transfer'
@@ -135,7 +132,6 @@
                 'explorer/full-context-on-more-than-15-items'
                 'explorer/hide-frequently-used-items'
                 'explorer/import-power-plan'
-                'explorer/extend-cache'
                 'explorer/minimize-mouse-hover-time'
                 'explorer/no-internet-open-with'
                 'explorer/open-to-this-pc'

@@ -1,7 +1,6 @@
 @{
     Name        = 'Hide Gallery in File Explorer'
     Description = 'Hides the new 23H2 ''Gallery'' in File Explorer for viewing pictures'
-    MinBuild    = 22000
     # Use this instead once AME fixes hives issue:
     # @{ Path = 'HKCU\SOFTWARE\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}'; Name = 'System.IsPinnedToNameSpaceTree'; Type = 'DWord'; Data = 0 }
     Run         = @(
