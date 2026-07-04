@@ -43,7 +43,8 @@ actions:
   # the PowerShell framework reads those decisions (Atlas.Core: Test-AtlasOption,
   # Get-AtlasContext). Stale flags from a previous install are cleared first.
   - !powerShell:
-    command: '$f = "$env:windir\AtlasModules\Flags"; New-Item -Path $f -ItemType Directory -Force | Out-Null; Remove-Item -Path "$f\*.flag" -Force -ErrorAction SilentlyContinue'
+    # Triple quotes: the command line strips bare double quotes before PowerShell parses.
+    command: '$f = """$env:windir\AtlasModules\Flags"""; New-Item -Path $f -ItemType Directory -Force | Out-Null; Remove-Item -Path """$f\*.flag""" -Force -ErrorAction SilentlyContinue'
     wait: true
   - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\Upgrade.flag" -ItemType File -Force | Out-Null', wait: true, onUpgrade: true }
   - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\Interactive.flag" -ItemType File -Force | Out-Null', wait: true, oobe: false }
