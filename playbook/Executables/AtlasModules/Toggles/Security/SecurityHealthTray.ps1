@@ -1,5 +1,4 @@
 # Toggle: Windows Security (Defender) tray icon startup entry.
-# Each state imports the matching verbatim .reg file via Atlas.Registry's Import-AtlasRegFile.
 @{
     Name      = 'SecurityHealthTray'
     Elevation = 'Admin'

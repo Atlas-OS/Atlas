@@ -1,13 +1,8 @@
 # Atlas.Software domain: install-time software downloads.
-#
-# Ported from Executables\SOFTWARE.ps1 + Internal\Software.ps1 (7-Zip/NanaZip, Visual
-# C++ Runtimes, DirectX, Brave, Firefox, Chrome, Toolbox) and Executables\LIBREWOLF.ps1
-# (LibreWolf + LibreWolf-WinUpdater). Sources and installer arguments are preserved
-# exactly; downloads happen at install time.
 
 function Get-AtlasSoftwareComponentMap {
     # Component -> installer function. 'SevenZip' maps to the archive-tool installer,
-    # which prefers NanaZip and falls back to 7-Zip (current utilities behavior).
+    # which prefers NanaZip and falls back to 7-Zip.
     return @{
         SevenZip  = 'Install-AtlasArchiveTool'
         VCRedist  = 'Install-AtlasVisualCppRuntimes'
@@ -304,7 +299,7 @@ function Install-AtlasSoftware {
     .SYNOPSIS
         Downloads and installs the given software components at install time. Each
         component failure is logged as a warning and the remaining components still
-        install (matching the old one-script-per-component isolation).
+        install.
     .OUTPUTS
         $true when every component installed successfully, $false otherwise.
     #>

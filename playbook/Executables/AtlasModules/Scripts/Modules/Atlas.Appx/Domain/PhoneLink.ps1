@@ -1,8 +1,7 @@
 # Atlas.Appx domain: Phone Link removal.
 #
 # Removing Microsoft.YourPhone with AME Wizard causes issues with Cross Device
-# Experience Host installing, so it is removed with the AppX cmdlets instead
-# (formerly Tasks\Remove-PhoneLinkAppx.ps1).
+# Experience Host installing, so it is removed with the AppX cmdlets instead.
 
 function Remove-AtlasPhoneLinkAppx {
     <#

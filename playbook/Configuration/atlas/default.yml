@@ -11,8 +11,8 @@ actions:
     runas: currentUserElevated
   # Defaults phase (AtlasModules\Scripts\Phases\Invoke-DefaultsPhase.ps1): on upgrades,
   # re-applies every recorded toggle whose state is not 0 by re-running its recorded
-  # launcher silently (Invoke-AtlasToggleReapply, the DEFAULT.ps1 replacement). Fresh
-  # installs use the DEFAULT.reg import above.
+  # launcher silently (Invoke-AtlasToggleReapply). Fresh installs use the DEFAULT.reg
+  # import above.
   - !powerShell:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Defaults'
     onUpgrade: true

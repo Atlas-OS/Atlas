@@ -42,7 +42,6 @@ foreach ($value in @(
 Write-Host "Enabling network adapter power saving..." -ForegroundColor Yellow
 # Set power saving mode for all network cards to default
 Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\NDIS\Parameters' -Name "DefaultPnPCapabilities" -Value 0
-# Configure network adapter settings
 $properties = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty
 foreach ($setting in @(
     # Stands for Ultra Low Power
@@ -58,7 +57,6 @@ foreach ($setting in @(
     # Wi-Fi capability that saves power consumption
     "uAPSDSupport",
 
-    # Self-explanatory
     "EnablePowerManagement",
     "EnableSavePowerNow",
     "bLowPowerEnable",
@@ -85,5 +83,4 @@ Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThr
 
 
 if ($Silent) { exit }
-# Finish
 Read-Pause "`nCompleted.`nPress Enter to exit"

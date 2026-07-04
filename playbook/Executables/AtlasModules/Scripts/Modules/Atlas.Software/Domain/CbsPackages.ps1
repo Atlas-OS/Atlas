@@ -1,10 +1,9 @@
 # Atlas.Software domain: CBS package (CAB) install/uninstall.
 #
 # GPL-3.0-only license
-# Ported from Executables\AtlasModules\Scripts\Install-AtlasPackage.ps1, itself modified
-# from https://github.com/he3als/online-sxs
+# Modified from https://github.com/he3als/online-sxs
 #
-# Install-AtlasPackage.ps1 remains as the interactive shell (Safe Mode boot orchestration,
+# Install-AtlasPackage.ps1 is the interactive shell (Safe Mode boot orchestration,
 # prompts, the failed-component message box) around these functions; install phases
 # call them directly with -NonInteractive semantics.
 

@@ -22,7 +22,6 @@ WARNING: You are on a laptop, disabling power saving will cause faster battery d
 This script will disable many power saving features in Windows for reduced latency and increased performance.
 Ensure that you have adequate cooling.`n
 "@ -ForegroundColor Cyan
-    #Pause
 }
 
 Write-Host "`nAdding power scheme..." -ForegroundColor Yellow
@@ -53,7 +52,6 @@ powercfg /setacvalueindex scheme_current 7516b95f-f776-4464-8c53-06167f40cc99 3c
 ## Processor performance time check interval - 200 milliseconds
 ## Reduces DPCs, can be set all the way to 5000ms for statically clocked systems
 powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 4d2b0152-7d5c-498b-88e2-34345392a2c5 200
-# Set the active scheme as the current scheme
 powercfg /setactive scheme_current
 
 Write-Host "Disabling power-saving ACPI devices..." -ForegroundColor Yellow
@@ -77,7 +75,6 @@ foreach ($setting in @(
     # Wi-Fi capability that saves power consumption
     "uAPSDSupport",
 
-    # Self-explanatory
     "EnablePowerManagement",
     "EnableSavePowerNow",
     "bLowPowerEnable",
@@ -134,8 +131,5 @@ if (Test-Path $stornvmePath) {
 $powerKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling"
 if (!(Test-Path $powerKey)) { New-Item -Path $powerKey -Force | Out-Null }
 New-ItemProperty -Path $powerKey -Name "PowerThrottlingOff" -Value 1 -PropertyType DWORD -Force | Out-Null
-
-#if ($Silent) { exit }
-#Read-Pause "`nCompleted.`nPress Enter to exit"
 
 exit

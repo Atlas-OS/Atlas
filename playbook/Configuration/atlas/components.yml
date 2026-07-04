@@ -6,7 +6,7 @@ actions:
   # The component removal logic lives in the Components phase
   # (AtlasModules\Scripts\Phases\Invoke-ComponentsPhase.ps1): Security Center startup
   # item, Smart App Control, Microsoft Edge, OneDrive and the CBS component packages.
-  # Edge's !appx family removal moved to atlas\appx.yml (AME-only action).
+  # Edge's !appx family removal is in atlas\appx.yml (AME-only action).
 
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
 

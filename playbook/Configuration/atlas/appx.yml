@@ -18,8 +18,6 @@ actions:
   # deprovisioning, cache clearing) lives in the AppxSupport phase
   # (AtlasModules\Scripts\Phases\Invoke-AppxSupportPhase.ps1).
 
-  #####################################################################################################
-
   # Snapshot current AppX packages to deprovision removed ones afterward and
   # kill Teams processes
   - !powerShell:
@@ -34,9 +32,9 @@ actions:
   # (it must run as the user so Get-AppxPackage sees the user's packages).
   - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications', value: 'ConfigureChatAutoInstall', data: '0', type: REG_DWORD}
 
-  # Microsoft Edge (moved from atlas\components.yml; the rest of the Edge removal
-  # runs in the Components phase, gated on the same option). Legacy EdgeHTML, the
-  # Chromium Edge AppX and the Game Assist companion.
+  # Microsoft Edge (the rest of the Edge removal runs in the Components phase,
+  # gated on the same option). Legacy EdgeHTML, the Chromium Edge AppX and the
+  # Game Assist companion.
   - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge', ignoreErrors: true}
   - !appx: {name: 'Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe', type: family, option: 'uninstall-edge', ignoreErrors: true}
   - !appx: {name: 'Microsoft.Edge.GameAssist*', type: family, option: 'uninstall-edge', ignoreErrors: true}

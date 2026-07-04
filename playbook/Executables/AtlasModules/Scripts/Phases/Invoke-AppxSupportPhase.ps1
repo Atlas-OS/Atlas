@@ -1,8 +1,7 @@
 # AppxSupport phase.
 # Brackets the AME !appx family removals in atlas\appx.yml (which stay in YAML because
 # AME's provisioned/system package removal is battle-tested where Remove-AppxPackage
-# documented-fails). Runs elevated (runas: currentUserElevated, matching the old
-# snapshot/deprovision actions), invoked twice:
+# documented-fails). Runs elevated (runas: currentUserElevated), invoked twice:
 #   -Category Snapshot  before the !appx block: package snapshot + Teams process kills
 #   -Category Cleanup   after the !appx block: Phone Link removal, deprovisioning of
 #                       everything removed since the snapshot, and AppX cache clearing

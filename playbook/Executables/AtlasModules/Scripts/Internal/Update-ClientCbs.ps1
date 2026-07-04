@@ -6,7 +6,6 @@
 # After disabling each one, there's a 'Microsoft account' page that appears (ms-settings:account)
 # It can be hidden by using SettingsPageVisibility
 
-# Variables
 $windir = [Environment]::GetFolderPath('Windows')
 $settingsExtensions = (Get-ChildItem "$windir\SystemApps" -Recurse).FullName | Where-Object { $_ -like '*wsxpacks\Account\SettingsExtensions.json*' }
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
@@ -24,17 +23,15 @@ function Find-VelocityID {
 
     $ids = @()
     if ($Node -is [PSCustomObject]) {
-        # If the node is a PSObject, go through its properties
         foreach ($property in $Node.PSObject.Properties) {
             if ($property.Name -eq 'velocityKey' -and $property.Value.id) {
                 $ids += $property.Value.id
             }
             # Capture the recursion result explicitly instead of letting it leak
-            # onto the pipeline (the original relied on pipeline pollution).
+            # onto the pipeline.
             $ids += Find-VelocityID -Node $property.Value
         }
     } elseif ($Node -is [Array]) {
-        # If the node is an array, go through its elements
         foreach ($element in $Node) {
             $ids += Find-VelocityID -Node $element
         }
@@ -48,7 +45,6 @@ foreach ($settingsJson in $settingsExtensions) {
     $ids += Find-VelocityID -Node $(Get-Content -Path $settingsJson | ConvertFrom-Json)
 }
 
-# No IDs check
 if ($ids.Count -le 0) {
     Write-Output "No velocity IDs were found. Exiting."
     exit 1
@@ -85,7 +81,6 @@ if (!(Get-Command 'vivetool' -EA 0)) {
     throw "ViVeTool EXE not found in ZIP!"
 }
 
-# Disable feature IDs
 # Applies next reboot
 foreach ($id in $($ids | Sort-Object -Unique)) {
     Write-Output "Disabling feature ID $id..."

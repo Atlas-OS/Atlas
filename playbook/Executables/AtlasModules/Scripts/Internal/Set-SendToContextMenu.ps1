@@ -18,7 +18,6 @@ $shell = New-Object -Com WScript.Shell
 $windir = [Environment]::GetFolderPath('Windows')
 & "$windir\AtlasModules\initPowerShell.ps1"
 
-# Get Bluetooth path
 foreach ($lnk in (($sendTo | Where-Object { $_.Extension -eq ".lnk" }).FullName)) {
     $target = $shell.CreateShortcut($lnk).TargetPath
     if ($target -eq "$sys32\fsquirt.exe") {
@@ -45,7 +44,6 @@ foreach ($ext in @{
     if ($path) { $items[$ext.Key] = $path.FullName }
 }
 
-# Enable/disable functions
 function EnableSendTo($value) {
     if ($value -is [string]) {
         $item = Get-Item -LiteralPath $value -Force
@@ -63,7 +61,6 @@ function DisableSendTo($value) {
     }
 }
 
-# Args
 if ($Enable) {
     foreach ($item in $items.GetEnumerator()) {
         foreach ($itemToEnable in $Enable) {
@@ -84,27 +81,22 @@ if ($Enable) {
     exit
 }
 
-# Prompt user
 $choices = (multichoice.exe "Send To Debloat" `
     "Tick the 'Send To' context menu items that you want to enable here (un-checked items are disabled)" `
     "$($items.Keys -join ';')") -split ';'
 
-# Loop through choices
 foreach ($item in $items.GetEnumerator()) {
     $value = $item.Value
-    # If it's in the choices, enable
     if ($item.Key -in $choices) {
         EnableSendTo $value
         continue
     }
-    # If it's in the choices, disable
     if ($item.Key -notin $choices) {
         DisableSendTo $value
         continue
     }
 }
 
-# Restart Explorer prompt
 if ((Read-MessageBox -Title "Atlas - Send To Debloat" -Body 'Would you like to restart Windows Explorer? This will finalize the Send-To changes.' -Icon Info) -eq 'Yes') {
     Stop-Process -Name explorer -Force
 }

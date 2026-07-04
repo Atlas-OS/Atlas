@@ -1,7 +1,4 @@
 # Toggle: Bluetooth (drivers, services, devices, Send To entry, policy).
-#
-# Devices are toggled through Internal\Set-DeviceState.ps1 and the 'Bluetooth' Send To
-# entry through Internal\Set-SendToContextMenu.ps1.
 @{
     Name      = 'Bluetooth'
     Elevation = 'Admin'

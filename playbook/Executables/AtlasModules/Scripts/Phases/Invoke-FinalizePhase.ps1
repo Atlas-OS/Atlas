@@ -1,8 +1,8 @@
 # Finalize phase.
 # Last step before custom.yml unloads the default-user hive. Order is correctness-critical:
 #   1. Sync-AtlasDefaultUserHive re-copies every recorded HKCU key into
-#      HKU\AME_UserHive_Default while it is still loaded (the APPLYDUHIVE.ps1 replacement);
-#      if it runs after the hive is unloaded, new-user propagation is silently lost.
+#      HKU\AME_UserHive_Default while it is still loaded; if it runs after the hive is
+#      unloaded, new-user propagation is silently lost.
 #   2. Repair-RegistryPaths.ps1 rewrites any stale AtlasDesktop launcher paths recorded under
 #      HKLM\SOFTWARE\AtlasOS\Services so toggle re-apply keeps working after upgrades.
 # Runs elevated (runas: currentUserElevated).

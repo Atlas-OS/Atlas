@@ -1,5 +1,4 @@
 # Toggle: 'Take Ownership' context menu entries.
-# Each state imports the matching verbatim .reg file via Atlas.Registry's Import-AtlasRegFile.
 @{
     Name      = 'TakeOwnership'
     Elevation = 'Admin'

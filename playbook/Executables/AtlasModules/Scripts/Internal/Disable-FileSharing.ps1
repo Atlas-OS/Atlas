@@ -8,7 +8,6 @@ Set-StrictMode -Version 3.0
 
 $fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
 
-# Disable network items
 Get-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr -ErrorAction SilentlyContinue |
     Disable-NetAdapterBinding -ErrorAction SilentlyContinue |
     Out-Null
@@ -23,10 +22,8 @@ foreach ($interface in $interfaces) {
 # Disable NetBIOS service
 Set-Service -Name NetBT -StartupType Disabled
 
-# Set network profile to 'Public Network'
 Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Public
 
-# Disable network discovery firewall rules
 Get-NetFirewallRule | Where-Object {
     # File and Printer Sharing, Network Discovery
     (

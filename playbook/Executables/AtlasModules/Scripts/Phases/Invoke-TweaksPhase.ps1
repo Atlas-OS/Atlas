@@ -1,7 +1,7 @@
 # Tweaks phase.
 # Applies one category of declarative tweak definitions (Scripts\Tweaks\<category>).
-# Runs as TrustedInstaller so ACL-protected keys and HKCU redirection behave exactly
-# like the AME !registryValue actions this replaces.
+# Runs as TrustedInstaller so ACL-protected keys can be written and HKCU redirection
+# resolves correctly.
 param(
     [Parameter(Mandatory = $true)]
     [string]$Category

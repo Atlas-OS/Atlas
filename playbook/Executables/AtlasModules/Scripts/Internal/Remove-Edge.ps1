@@ -116,7 +116,7 @@ function DeleteIfExist($Path) {
 
 function Remove-EdgePath {
     # Take ownership, grant Administrators full control, then delete - with a cmd 'rd'
-    # retry for trees the provider can't remove. Port of edge.py's remove_directory.
+    # retry for trees the provider can't remove.
     param([Parameter(Mandatory = $true)][string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -131,7 +131,6 @@ function Remove-EdgePath {
     }
 }
 
-# True if it's installed
 function EdgeInstalled {
     foreach ($msedgeExe in $msedgeExePaths) {
         if (Test-Path $msedgeExe) {
@@ -226,8 +225,8 @@ function DisableEdgeUpdateInfrastructure {
 function Remove-EdgeRegistration {
     # Edge leaves shell registration behind after its binaries are gone: dead protocol
     # handlers (microsoft-edge:), App Paths\msedge.exe, a binary-less Apps-list Uninstall
-    # row, StartMenuInternet and EdgeUpdate\Clients. Port of edge.py's registry cleanup;
-    # each key is removed from both the 64- and 32-bit views. WebView2 keys are untouched.
+    # row, StartMenuInternet and EdgeUpdate\Clients. Each key is removed from both the
+    # 64- and 32-bit views. WebView2 keys are untouched.
     $edgeKeys = @(
         'HKLM\SOFTWARE\Microsoft\Edge'
         'HKLM\SOFTWARE\Microsoft\EdgeUpdate'
@@ -482,7 +481,7 @@ if ($UninstallEdge) {
     # Kick off Edge's own uninstaller detached and DO NOT wait for it. A synchronous
     # system-level --force-uninstall runs its RestartManager phase in the live session and
     # signs the user out on 24H2/25H2; launching it detached lets the direct file deletion
-    # below finish the removal first (port of edge.py: Popen + short sleep, then delete).
+    # below finish the removal first.
     foreach ($root in @(
             "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application",
             "$([Environment]::GetFolderPath('ProgramFiles'))\Microsoft\Edge\Application"
@@ -514,7 +513,7 @@ if ($UninstallEdge) {
 
     # Remove leftover Edge shortcuts (they now point at deleted binaries and fail to open):
     # every user's Desktop, Quick Launch and taskbar pin, plus the Public Desktop and the
-    # common Start Menu. Port of edge.py's icon cleanup.
+    # common Start Menu.
     $edgeShortcutNames = @('edge.lnk', 'Microsoft Edge.lnk')
     $relativeShortcutDirs = @(
         'Desktop'

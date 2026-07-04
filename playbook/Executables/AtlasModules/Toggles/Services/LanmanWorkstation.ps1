@@ -1,6 +1,4 @@
 # Toggle: Lanman Workstation / SMB services and the SmbDirect feature.
-#
-# Services are set via the SetServiceStartup helper.
 @{
     Name      = 'LanmanWorkstation'
     Elevation = 'Admin'

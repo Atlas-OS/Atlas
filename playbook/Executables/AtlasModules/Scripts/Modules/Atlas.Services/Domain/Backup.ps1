@@ -1,7 +1,7 @@
 # Atlas.Services domain: backup of default Windows service start values.
 #
-# Ported from Executables\BACKUP.ps1: exports every service's Start value to a .reg
-# file (imported by the "Windows Default Services" toggle) before Atlas changes them.
+# Exports every service's Start value to a .reg file (imported by the
+# "Windows Default Services" toggle) before Atlas changes them.
 
 function Export-AtlasServicesBackup {
     <#

@@ -4,8 +4,7 @@
     Atlas payload modules on PSModulePath when working in this repository under VS Code,
     so the PowerShell extension resolves Import-Module and provides IntelliSense.
 .DESCRIPTION
-    Previously the build script offered this interactively on every build; it is now an
-    explicit one-time setup step. Safe to re-run - the snippet is only added once.
+    Explicit one-time setup step. Safe to re-run - the snippet is only added once.
 #>
 Param(
     [switch]$Remove

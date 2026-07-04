@@ -4,7 +4,7 @@
     playbook\Executables\AtlasModules\Toggles.
 .DESCRIPTION
     Every toggle state that declares a 'Launcher' (AtlasDesktop-relative path) gets a
-    4-line CRLF .cmd launcher that forwards to Invoke-Toggle.ps1, preserving the legacy
+    4-line CRLF .cmd launcher that forwards to Invoke-Toggle.ps1, preserving the
     /silent (and other) flag surface via %*. Menu definitions declare a single top-level
     'Launcher' and their launcher omits -State.
 

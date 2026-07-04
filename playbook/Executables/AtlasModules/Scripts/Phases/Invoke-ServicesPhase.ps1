@@ -3,10 +3,7 @@
 # configuration and disables the curated set of services/drivers. custom.yml gates
 # this phase (onUpgrade: false) and runs it as TrustedInstaller.
 #
-# ----------------------------------
-# - Potential references           -
-# - Mostly upon IoT recommendation -
-# ----------------------------------
+# References (mostly the IoT Enterprise recommendations):
 # https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-vdi-recommendations-2004
 # https://learn.microsoft.com/en-us/windows-server/security/windows-services/security-guidelines-for-disabling-system-services-in-windows-server
 # https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/optimize/services

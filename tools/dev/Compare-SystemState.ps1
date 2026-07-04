@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Dev/VM harness that dumps registry, service and scheduled-task state to JSON and
-    compares two dumps, for triaging old-playbook vs new-playbook install differences.
+    compares two dumps, for triaging install differences between two systems.
 .EXAMPLE
     .\Compare-SystemState.ps1 -Mode Dump -OutputPath baseline.json
     .\Compare-SystemState.ps1 -Mode Compare -Baseline baseline.json -Candidate candidate.json

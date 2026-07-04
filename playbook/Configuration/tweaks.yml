@@ -10,7 +10,7 @@ actions:
   # engine invocation; per-tweak order and enable/disable live in
   # Scripts\Tweaks\tweaks.manifest.psd1 (comment a line out to disable it).
   #
-  # Every tweak is now PowerShell - there are no !task includes. Per-user shell COM
+  # Every tweak is PowerShell - there are no !task includes. Per-user shell COM
   # (theme, lock-screen, pin-to-Home) is applied by Initialize-NewUser, never from
   # these SYSTEM-context phases: for the installing account it runs below with
   # -FromInstall (elevated user session), for new accounts at first logon via RunOnce.

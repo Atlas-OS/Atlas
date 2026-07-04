@@ -1,7 +1,4 @@
 # Toggle: 'Terminals' context menu (removed / full / no Windows Terminal).
-#
-# One setting ('ContextMenuTerminals') with three launchers, each importing a verbatim .reg
-# file: Remove=0 -> disabled.reg, Add=1 -> enabled.reg, AddNoWindowsTerminal=2 -> minimal.reg.
 @{
     Name      = 'ContextMenuTerminals'
     Elevation = 'Admin'

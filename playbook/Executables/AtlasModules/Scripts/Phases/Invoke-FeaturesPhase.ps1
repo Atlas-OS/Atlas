@@ -26,8 +26,6 @@ Invoke-AtlasDism -Description 'Enabling DirectPlay' -Arguments @(
     '/Online', '/Enable-Feature', '/FeatureName:DirectPlay', '/NoRestart', '/All'
 )
 
-# The Steps Recorder capability is removed only on fresh installs (matching the old
-# onUpgrade: false action).
 if (-not $context.IsUpgrade) {
     Invoke-AtlasDism -Description 'Removing the Steps Recorder capability' -Arguments @(
         '/Online', '/Remove-Capability', '/CapabilityName:App.StepsRecorder~~~~0.0.1.0', '/NoRestart'

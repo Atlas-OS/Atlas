@@ -1,9 +1,8 @@
 # Atlas.Registry domain: default-user-hive re-sync.
 #
-# Strict superset of the retired Executables\APPLYDUHIVE.ps1: instead of regex-scraping
-# tweak YAML for HKCU paths, the paths are the ones actually written through this module
-# (recorded in hkcu-paths.log), and each recorded key is copied from the active user's
-# hive into HKU\AME_UserHive_Default with value kinds preserved.
+# The synced paths are the ones actually written through this module (recorded in
+# hkcu-paths.log); each recorded key is copied from the active user's hive into
+# HKU\AME_UserHive_Default with value kinds preserved.
 
 function Copy-AtlasRegistryKeyValues {
     param(

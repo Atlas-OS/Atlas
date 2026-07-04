@@ -36,9 +36,7 @@ function Set-AtlasLockscreenImage {
     [Windows.Storage.StorageFile, Windows.Storage, ContentType = WindowsRuntime] | Out-Null
     $image = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync($newImagePath)) ([Windows.Storage.StorageFile])
 
-    # execute
     AwaitAction ([Windows.System.UserProfile.LockScreen]::SetImageFileAsync($image))
 
-    # cleanup
     Remove-Item $newImagePath
 }

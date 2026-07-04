@@ -1,7 +1,7 @@
 # Disables unused control center / quick action items by default. Explorer is stopped
 # first so it does not overwrite the quick action state on exit, then restarted.
 # Kept as a script (not declarative Registry entries) because the toggle data is a
-# single packed string that may need per-build variants again in the future.
+# single packed string that may need per-build variants in the future.
 $ErrorActionPreference = 'Stop'
 
 if (-not (Get-Command -Name 'Set-AtlasRegistryValue' -ErrorAction SilentlyContinue)) {

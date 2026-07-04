@@ -5,7 +5,6 @@ Set-StrictMode -Version 3.0
 $networkDiscoveryConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\6. Advanced Configuration\Services\Network Discovery"
 $fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
 
-# Enable network items
 Enable-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr | Out-Null
 
 # Enable Network Discovery services and its dependencies
@@ -23,10 +22,8 @@ Set-Service -Name NetBT -StartupType System
 
 choice /c:yn /n /m "Would you like to change your network profile to 'Private'? [Y/N] "
 if ($LASTEXITCODE -eq 1) {
-    # Set network profile to 'Private Network'
     Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
 
-    # Disable network discovery firewall rules
     Get-NetFirewallRule | Where-Object {
         # File and Printer Sharing, Network Discovery
         (

@@ -1,6 +1,6 @@
 # Toggle: Windows Defender (install / uninstall the NoDefender CBS package).
 #
-# The real work lives in Internal\Set-DefenderState.ps1 (it prompts for its own restart).
+# Set-DefenderState.ps1 prompts for its own restart, so Reboot stays 'None'.
 @{
     Name          = 'ToggleDefender'
     Elevation     = 'TrustedInstaller'

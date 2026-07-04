@@ -1,9 +1,8 @@
 # Software phase.
-# Installs the initial utilities and the user's selected browser/toolbox, replacing
-# the SOFTWARE.ps1/LIBREWOLF.ps1 calls in atlas\start.yml. Runs elevated
+# Installs the initial utilities and the user's selected browser/toolbox. Runs elevated
 # (runas: currentUserElevated); downloads happen here at install time, which is why
 # start.yml keeps the phase call inside the NO LOCAL BUILD marker block.
-# Component failures are logged as warnings (software installs never halted the playbook).
+# Component failures are logged as warnings and never halt the playbook.
 
 Assert-AtlasPrivilege -Administrator
 

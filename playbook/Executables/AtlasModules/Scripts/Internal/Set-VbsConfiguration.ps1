@@ -98,7 +98,6 @@ $pages = @(
 				if ($SecurityServicesRunning -contains $VirtualizationBasedSecurityRunningFeatures.IndexOf($feature)) {
 					Write-Host "$feature is running" -ForegroundColor Green
 				} else {
-					# $($VirtualizationBasedSecurityRunningFeatures.IndexOf($feature)).
 					Write-Host "$feature is not running" -ForegroundColor Red
 				}
 			}
@@ -136,7 +135,6 @@ $pages = @(
 				if ($SecurityServicesConfigured -contains $VirtualizationBasedSecurityConfiguredFeatures.IndexOf($feature)) {
 					Write-Host "$feature is configured" -ForegroundColor Green
 				} else {
-					# $($VirtualizationBasedSecurityConfiguredFeatures.IndexOf($feature)).
 					Write-Host "$feature is not configured" -ForegroundColor Red
 				}
 			}
@@ -174,7 +172,6 @@ $pages = @(
 				if ($RequiredSecurityProperties -contains $VirtualizationBasedSecurityRequiredSecurity.IndexOf($feature)) {
 					Write-Host "$feature is required" -ForegroundColor Green
 				} else {
-					# $($VirtualizationBasedSecurityRequiredSecurity.IndexOf($feature)).
 					Write-Host "$feature is not required" -ForegroundColor Red
 				}
 			}
@@ -213,7 +210,6 @@ $pages = @(
 				if ($AvailableSecurityProperties -contains $VirtualizationBasedSecurityAvailableSecurity.IndexOf($feature)) {
 					Write-Host "$feature is available" -ForegroundColor Green
 				} else {
-					# $($VirtualizationBasedSecurityAvailableSecurity.IndexOf($feature)).
 					Write-Host "$feature is not available" -ForegroundColor Red
 				}
 			}
@@ -240,7 +236,6 @@ function Wait-Key {
 			}
 		}
 		default {
-			# Do nothing
 			Wait-Key
 		}
 	}
@@ -255,7 +250,6 @@ function Show-Page {
 
 	& $currentPage.Commands
 
-	# Write-Host "`nCurrent Page: $($currentPage.Title)" -ForegroundColor Yellow
 	Write-Host "`n------------- Page $($currentPageIndex + 1) -------------" -ForegroundColor Yellow
 	Write-Host "(n) Next Page || (b) Previous Page"
 

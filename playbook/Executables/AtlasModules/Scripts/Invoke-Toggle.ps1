@@ -8,8 +8,8 @@
             "%windir%\AtlasModules\Scripts\Invoke-Toggle.ps1"
             -Name <SettingName> [-State <State>] -LauncherPath "%~f0" %*
 
-    Remaining arguments keep the legacy flag surface working unchanged: /silent (and
-    /quiet), /justcontext and /noAction, with either / or - prefixes, case-insensitive.
+    Remaining arguments carry the launcher flag surface: /silent (and /quiet),
+    /justcontext and /noAction, with either / or - prefixes, case-insensitive.
 .NOTES
     Exit codes: 0 = success, 1 = failure.
 #>

@@ -249,9 +249,9 @@ function Get-AtlasUserHives {
 function Get-RegUserPaths {
     <#
     .SYNOPSIS
-        Compatibility port of the former AllRegistryUsers module: returns the registry
-        key objects for loaded user hives under HKU (and the AME default-user hives),
-        optionally filtered to proper users via their 'Volatile Environment' key.
+        Returns the registry key objects for loaded user hives under HKU (and the AME
+        default-user hives), optionally filtered to proper users via their
+        'Volatile Environment' key.
     #>
     param(
         [switch]$DontCheckEnv,

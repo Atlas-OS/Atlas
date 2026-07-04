@@ -2,12 +2,11 @@
 $ErrorActionPreference = 'Stop'
 $desktop = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasDesktop'
 
-# Disable power-saving features (option: disable-power-saving).
 if (Test-AtlasOption -Name 'disable-power-saving') {
     & (Join-Path -Path $desktop -ChildPath '3. General Configuration\Power-saving\Disable Power-saving.cmd') /silent
 }
 
-# Disable hibernation (option: disable-hibernation) - also makes NTFS accessible outside Windows.
+# Disabling hibernation also makes NTFS accessible outside Windows.
 if (Test-AtlasOption -Name 'disable-hibernation') {
     & (Join-Path -Path $desktop -ChildPath '3. General Configuration\Hibernation\Disable Hibernation (default).cmd') /silent
 }
