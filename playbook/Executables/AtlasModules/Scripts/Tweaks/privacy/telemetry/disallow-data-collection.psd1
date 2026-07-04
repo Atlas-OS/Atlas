@@ -11,6 +11,12 @@
         @{ Path = 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'; Name = 'EnableEventTranscript'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey'; Name = 'MiniTraceSlotEnabled'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'; Name = 'AllowDeviceNameInTelemetry'; Type = 'DWord'; Data = 0 }
+        # Stop diagnostic log and crash dump uploads even when optional data is on (Win11 21H2+, Pro+).
+        @{ Path = 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'; Name = 'LimitDiagnosticLogCollection'; Type = 'DWord'; Data = 1 }
+        @{ Path = 'HKLM\Software\Policies\Microsoft\Windows\DataCollection'; Name = 'LimitDumpCollection'; Type = 'DWord'; Data = 1 }
+        # DisableOneSettingsDownloads deliberately NOT set: OneSettings also delivers
+        # consumer Known Issue Rollback configs, and DiagTrack being disabled already
+        # covers the delivery path.
         # Disable & clear logger
         @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\Diagtrack-Listener'; Name = 'Start'; Type = 'DWord'; Data = 0 }
     )
