@@ -12,7 +12,9 @@
 
                 Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
 
-                New-AtlasRegistryKey -Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+                # The old menu only activates when the InprocServer32 DEFAULT value is
+                # an empty string; a bare key ('value not set') leaves the modern menu.
+                Set-AtlasRegistryValue -Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32' -Name '' -Type String -Data ''
 
                 if (-not $Toggle.Silent) { Write-Host 'Changes applied successfully.' }
             }

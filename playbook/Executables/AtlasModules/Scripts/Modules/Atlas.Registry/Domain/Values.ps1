@@ -40,8 +40,9 @@ function Set-AtlasRegistryValueCore {
         [ValidateNotNullOrEmpty()]
         [string]$ProviderPath,
 
+        # An empty Name writes the key's default value.
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
+        [AllowEmptyString()]
         [string]$Name,
 
         [Parameter(Mandatory = $true)]
@@ -81,9 +82,10 @@ function Set-AtlasRegistryValueCore {
 function Set-AtlasRegistryValue {
     <#
     .SYNOPSIS
-        Writes a registry value, creating missing keys. Under SYSTEM/TrustedInstaller,
-        HKCU paths are redirected to the active user's hive and mirrored into the
-        default-user hive (HKU\AME_UserHive_Default) when it is loaded.
+        Writes a registry value, creating missing keys. An empty Name writes the key's
+        default value. Under SYSTEM/TrustedInstaller, HKCU paths are redirected to the
+        active user's hive and mirrored into the default-user hive
+        (HKU\AME_UserHive_Default) when it is loaded.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -91,7 +93,7 @@ function Set-AtlasRegistryValue {
         [string]$Path,
 
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
+        [AllowEmptyString()]
         [string]$Name,
 
         [Parameter(Mandatory = $true)]

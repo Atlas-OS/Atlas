@@ -124,6 +124,14 @@ Describe 'Set-AtlasRegistryValue and Remove-AtlasRegistryValue' {
         (Get-Item -Path "$script:testRoot\Deep\Nested\Key").GetValue('Value') | Should -Be 7
     }
 
+    It 'writes the default value when Name is empty (old-context-menu contract)' {
+        # The OldContextMenu toggle requires setting a key's DEFAULT value to ''.
+        Set-AtlasRegistryValue -Path "$script:testRoot\DefaultValue" -Name '' -Type String -Data ''
+        $key = Get-Item -Path "$script:testRoot\DefaultValue"
+        $key.GetValue('') | Should -Be ''
+        $key.GetValueKind('') | Should -Be ([Microsoft.Win32.RegistryValueKind]::String)
+    }
+
     It 'throws when a data-carrying type has no data' {
         { Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'NoData' -Type DWord } | Should -Throw '*no data*'
     }

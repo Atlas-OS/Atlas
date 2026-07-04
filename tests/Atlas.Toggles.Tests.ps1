@@ -300,6 +300,23 @@ Describe 'Invoke-AtlasToggle' {
     }
 }
 '@
+
+        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'AdminToggle.ps1' -Content @'
+@{
+    Name      = 'AdminToggle'
+    Elevation = 'Admin'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            Reboot     = 'None'
+            Action     = {
+                param($Toggle)
+                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'admin-marker.txt') -Value 'ran'
+            }
+        }
+    }
+}
+'@
     }
 
     AfterAll {
@@ -335,6 +352,35 @@ Describe 'Invoke-AtlasToggle' {
 
         Get-AtlasToggleState -Name 'FailingToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -ParameterFilter { $Message -like '*state was not recorded because its action failed*' }
+    }
+
+    It 'refuses an Admin toggle in silent mode when not elevated' {
+        Mock Test-AtlasAdmin { $false } -ModuleName Atlas.Toggles
+
+        { Invoke-AtlasToggle -Name 'AdminToggle' -State 'On' -Silent `
+                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
+                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
+            Should -Throw '*requires Administrator rights*'
+        Join-Path $WorkDir 'admin-marker.txt' | Should -Not -Exist
+    }
+
+    It 'runs an Admin toggle unelevated without recording state under ATLAS_USER_CONTEXT (first-logon re-apply)' {
+        # Initialize-NewUser.ps1 re-applies HKCU-only toggles as the new, non-elevated
+        # user; the engine must run the action in-process and skip the HKLM state record.
+        Mock Test-AtlasAdmin { $false } -ModuleName Atlas.Toggles
+
+        $env:ATLAS_USER_CONTEXT = '1'
+        try {
+            Invoke-AtlasToggle -Name 'AdminToggle' -State 'On' -Silent `
+                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
+                -TogglesRoot $TogglesRoot -StateRoot $StateRoot
+        }
+        finally {
+            Remove-Item Env:\ATLAS_USER_CONTEXT -ErrorAction SilentlyContinue
+        }
+
+        Join-Path $WorkDir 'admin-marker.txt' | Should -Exist
+        Get-AtlasToggleState -Name 'AdminToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
     }
 
     It 'runs ContextAction before Action and stops after it with -JustContext' {

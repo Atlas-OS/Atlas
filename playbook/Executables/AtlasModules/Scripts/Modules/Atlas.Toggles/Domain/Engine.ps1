@@ -323,6 +323,14 @@ function Invoke-AtlasToggle {
         $elevation = [string]$definition.Elevation
     }
 
+    # Initialize-NewUser.ps1 sets ATLAS_USER_CONTEXT=1 while re-applying per-user toggles
+    # at first logon, where the process is never elevated. Those actions only write HKCU,
+    # so run them in-process; the HKLM state record is skipped (the install wrote it).
+    $userContext = $env:ATLAS_USER_CONTEXT -eq '1'
+    if ($userContext) {
+        $elevation = 'None'
+    }
+
     if ($elevation -eq 'Admin' -and -not (Test-AtlasAdmin)) {
         if ($Silent) {
             throw "Toggle '$Name' requires Administrator rights; refusing to prompt for elevation in silent mode."
@@ -357,7 +365,8 @@ function Invoke-AtlasToggle {
     # Recorded only after the action succeeds (or, for -JustContext, after the context
     # action): a cancelled prompt or failed action must never leave a state that upgrade
     # re-apply would replay.
-    $noStateRecord = ($definition.Contains('NoStateRecord') -and $definition.NoStateRecord) -or
+    $noStateRecord = $userContext -or
+        ($definition.Contains('NoStateRecord') -and $definition.NoStateRecord) -or
         ($stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord)
     $recordState = {
         if ($noStateRecord) {
