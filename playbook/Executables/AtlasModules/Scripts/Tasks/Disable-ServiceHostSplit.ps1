@@ -11,6 +11,7 @@ Get-ChildItem -Path 'HKLM:\SYSTEM\CurrentControlSet\Services' -ErrorAction Stop 
         $serviceName = $_.PSChildName
         $service = Get-ItemProperty -Path $servicePath -ErrorAction SilentlyContinue
         if ($null -ne $service -and $null -ne $service.PSObject.Properties['Start'] -and
+            $null -ne $service.PSObject.Properties['ImagePath'] -and
             [string]$service.PSObject.Properties['ImagePath'].Value -match 'svchost\.exe') {
             try {
                 Set-ItemProperty -Path $servicePath -Name 'SvcHostSplitDisable' -Type DWord -Value 1 -Force -ErrorAction Stop

@@ -7,7 +7,8 @@ $ErrorActionPreference = 'Continue'
 
 $creativeKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Creative'
 if (Test-Path -LiteralPath $creativeKey) {
-    foreach ($userKey in (Get-ChildItem -LiteralPath $creativeKey).PSPath) {
-        Set-ItemProperty -LiteralPath $userKey -Name 'RotatingLockScreenEnabled' -Type DWord -Value 0 -Force -ErrorAction SilentlyContinue
+    # @(): the key can exist with no subkeys; $null.PSPath throws under StrictMode.
+    foreach ($userKey in @(Get-ChildItem -LiteralPath $creativeKey -ErrorAction SilentlyContinue)) {
+        Set-ItemProperty -LiteralPath $userKey.PSPath -Name 'RotatingLockScreenEnabled' -Type DWord -Value 0 -Force -ErrorAction SilentlyContinue
     }
 }

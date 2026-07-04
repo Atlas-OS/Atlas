@@ -34,7 +34,14 @@ if (-not (Test-Path -LiteralPath $pageKey)) {
     New-Item -Path $pageKey -Force | Out-Null
 }
 
-$currentValue = (Get-ItemProperty -LiteralPath $pageKey -Name 'SettingsPageVisibility' -ErrorAction SilentlyContinue).SettingsPageVisibility
+# try/catch instead of property access on a possibly-null result: StrictMode-safe.
+$currentValue = $null
+try {
+    $currentValue = Get-ItemPropertyValue -LiteralPath $pageKey -Name 'SettingsPageVisibility' -ErrorAction Stop
+}
+catch {
+    $currentValue = $null
+}
 $pages = @()
 if (-not [string]::IsNullOrWhiteSpace($currentValue)) {
     $withoutPrefix = if ($currentValue -like 'hide:*') { $currentValue.Substring(5) } else { $currentValue }
