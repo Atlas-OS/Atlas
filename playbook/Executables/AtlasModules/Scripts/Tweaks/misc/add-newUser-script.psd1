@@ -4,6 +4,9 @@
     Registry    = @(
         # The $(...) subexpression is expanded by PowerShell when RunOnce executes the
         # command on first logon, not at install time - keep it literal.
+        # Default-user hive only: new accounts run Initialize-NewUser at first logon;
+        # the installing account is configured during the install (tweaks.yml runs
+        # Initialize-NewUser -FromInstall in the elevated user session).
         @{ Path = 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'; Name = 'RunScript'; Type = 'String'; Data = 'powershell -EP RemoteSigned -NoP & """$([Environment]::GetFolderPath(''Windows''))\AtlasModules\Scripts\Initialize-NewUser.ps1"""' }
         @{ Path = 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarMode'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarModeCache'; Type = 'DWord'; Data = 1 }

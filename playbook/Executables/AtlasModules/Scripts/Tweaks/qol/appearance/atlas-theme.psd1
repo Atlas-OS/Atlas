@@ -1,9 +1,8 @@
 @{
     Name        = 'Add Theme'
     Description  = 'Lock-screen policy for fresh installs. The dark theme and lock-screen
-image are applied by Initialize-NewUser at first logon, where the shell COM runs in the
-real user session; applying them here (from the SYSTEM install phase) restarts the shell
-and tears down the phase.'
+image need shell COM in a real user session, so Initialize-NewUser applies them: during
+the install for the installing account (-FromInstall), at first logon for new accounts.'
     OnUpgrade   = 'Skip'
     Registry    = @(
         @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization'; Name = 'LockScreenOverlaysDisabled'; Type = 'DWord'; Data = 1 }

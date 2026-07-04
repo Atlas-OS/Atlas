@@ -9,7 +9,11 @@
 # The marker key is the user's SID (Security Identifier) - a unique, permanent ID assigned to each
 # Windows account. Unlike a username, the SID never changes even if the profile is deleted and
 # recreated. Using it as the key name lets us track setup state per user on shared machines.
-param([switch]$FinalizeSearch)
+# -FromInstall runs the per-user setup for the installing account during the install
+# (invoked as the elevated interactive user from tweaks.yml). It does everything in one
+# pass and writes the completion marker directly: the install reboot replaces the logoff,
+# so the first logon lands on a fully configured desktop with no RunOnce cycle.
+param([switch]$FinalizeSearch, [switch]$FromInstall)
 
 $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $machineMarkerPath = 'HKLM:\SOFTWARE\AtlasOS\UserSetup'
@@ -40,7 +44,13 @@ function Set-SetupMarker {
 
     foreach ($path in @($machineMarkerPath, $userMarkerPath)) {
         try {
-            $null = New-Item -Path $path -Force -ErrorAction Stop
+            # Create only when missing: New-Item -Force recreates an existing key and wipes
+            # the ACL add-newUser-script.ps1 granted (Users:SetValue on the HKLM marker),
+            # which would lock standard users out of the machine marker and defeat the
+            # profile-reset logoff-loop safeguard on 24H2/25H2.
+            if (-not (Test-Path -LiteralPath $path)) {
+                $null = New-Item -Path $path -Force -ErrorAction Stop
+            }
             Set-ItemProperty -Path $path -Name $sid -Value $Value -Type DWord -Force -ErrorAction Stop
             return
         }
@@ -56,7 +66,11 @@ function Set-NewUsersRunOnce {
     $runOncePath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
     $command = 'powershell -EP RemoteSigned -NoP & """$([Environment]::GetFolderPath(''Windows''))\AtlasModules\Scripts\Initialize-NewUser.ps1"""'
 
-    $null = New-Item -Path $runOncePath -Force -ErrorAction Stop
+    # Don't -Force an existing RunOnce/Search key: that recreates it empty and drops any
+    # other pending entries or user values. Create only when the key is missing.
+    if (-not (Test-Path -LiteralPath $runOncePath)) {
+        $null = New-Item -Path $runOncePath -Force -ErrorAction Stop
+    }
     Set-ItemProperty -Path $runOncePath -Name 'RunScript' -Value $command -Type String -Force -ErrorAction Stop
 }
 
@@ -65,8 +79,14 @@ function Set-SearchTaskbarMode {
     $searchSettingsPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     $explorerPolicyPath = 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
 
-    $null = New-Item -Path $searchPath -Force -ErrorAction Stop
-    $null = New-Item -Path $searchSettingsPath -Force -ErrorAction Stop
+    # Windows pre-populates these keys with defaults; -Force would wipe them, so create
+    # only when missing.
+    if (-not (Test-Path -LiteralPath $searchPath)) {
+        $null = New-Item -Path $searchPath -Force -ErrorAction Stop
+    }
+    if (-not (Test-Path -LiteralPath $searchSettingsPath)) {
+        $null = New-Item -Path $searchSettingsPath -Force -ErrorAction Stop
+    }
 
     Set-ItemProperty -Path $searchPath -Name 'SearchboxTaskbarMode' -Value 1 -Type DWord -Force -ErrorAction Stop
     Set-ItemProperty -Path $searchPath -Name 'SearchboxTaskbarModeCache' -Value 1 -Type DWord -Force -ErrorAction Stop
@@ -75,7 +95,9 @@ function Set-SearchTaskbarMode {
     Set-ItemProperty -Path $searchSettingsPath -Name 'IsDynamicSearchBoxEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
     Set-ItemProperty -Path $searchSettingsPath -Name 'IsMSACloudSearchEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
     try {
-        $null = New-Item -Path $explorerPolicyPath -Force -ErrorAction Stop
+        if (-not (Test-Path -LiteralPath $explorerPolicyPath)) {
+            $null = New-Item -Path $explorerPolicyPath -Force -ErrorAction Stop
+        }
         Set-ItemProperty -Path $explorerPolicyPath -Name 'DisableSearchBoxSuggestions' -Value 1 -Type DWord -Force -ErrorAction Stop
     }
     catch {
@@ -126,7 +148,9 @@ if ($FinalizeSearch) {
     exit
 }
 
-$setupMarker = Get-SetupMarker
+# -FromInstall ignores a completed marker: a reinstall should reconfigure the
+# installing account, and with no logoff cycle there is no double-run to guard.
+$setupMarker = if ($FromInstall) { 0 } else { Get-SetupMarker }
 if ($setupMarker -ge 2) {
     exit
 }
@@ -147,7 +171,9 @@ if ($setupMarker -lt 1) {
     $Host.UI.RawUI.WindowTitle = $title
     Write-Host $title -ForegroundColor Yellow
     Write-Host $('-' * ($title.length + 3)) -ForegroundColor Yellow
-    Write-Host "You'll be logged out in 10 to 20 seconds, and once you login again, your new account will be ready for use."
+    if (-not $FromInstall) {
+        Write-Host "You'll be logged out in 10 to 20 seconds, and once you login again, your new account will be ready for use."
+    }
 
     $env:ATLAS_USER_CONTEXT = "1"
     try {
@@ -159,6 +185,38 @@ if ($setupMarker -lt 1) {
             # Set ThemeMRU (recent themes)
             Set-AtlasTheme -Path "$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.5.x-dark.theme"
             Set-AtlasThemeMru | Out-Null
+
+            # The theme sets the wallpaper (and WindowsSpotlight=0), but on Pro the Windows
+            # Spotlight desktop provider selected at OOBE re-applies its cached image at
+            # logon and overrides it. Force Picture mode + the Atlas wallpaper explicitly so
+            # Spotlight can't re-own the desktop. PicturePosition=4 (Fill) -> WallpaperStyle 10.
+            # CANDIDATE: verify on a VM that this survives the installer's post-reboot logon
+            # (this path does not re-run once the setup marker is 2).
+            try {
+                $atlasWallpaper = Join-Path -Path $windir -ChildPath 'AtlasModules\Wallpapers\atlas-v0.5.x-dark.png'
+                if (Test-Path -LiteralPath $atlasWallpaper) {
+                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'WallPaper' -Value $atlasWallpaper -Type String -Force
+                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'WallpaperStyle' -Value '10' -Type String -Force
+                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'TileWallpaper' -Value '0' -Type String -Force
+                    $wallpapersKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
+                    if (-not (Test-Path -LiteralPath $wallpapersKey)) {
+                        New-Item -Path $wallpapersKey -Force | Out-Null
+                    }
+                    # BackgroundType 0 = Picture (switches the desktop provider away from Spotlight).
+                    Set-ItemProperty -Path $wallpapersKey -Name 'BackgroundType' -Value 0 -Type DWord -Force
+                    if (-not ('Atlas.Wallpaper' -as [type])) {
+                        Add-Type -Namespace 'Atlas' -Name 'Wallpaper' -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto, SetLastError = true)]
+public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, string pvParam, uint fWinIni);
+'@
+                    }
+                    # SPI_SETDESKWALLPAPER = 0x14; SPIF_UPDATEINIFILE | SPIF_SENDCHANGE = 0x03.
+                    [Atlas.Wallpaper]::SystemParametersInfo(0x14, 0, $atlasWallpaper, 0x03) | Out-Null
+                }
+            }
+            catch {
+                Write-Warning "Failed to force the Atlas desktop wallpaper: $($_.Exception.Message)"
+            }
 
             # Re-pin Music & Videos to File Explorer Home (they drop off once recent files
             # are disabled). Shell COM against the running explorer, so it runs here at
@@ -225,6 +283,11 @@ if ([string]::IsNullOrWhiteSpace($browser)) {
 
 Set-AtlasTaskbarPins -Browser $browser
 Set-SearchTaskbarMode
+
+if ($FromInstall) {
+    Set-SetupMarker -Value 2
+    exit
+}
 
 if ($setupMarker -lt 1) {
     Set-SetupMarker -Value 1
