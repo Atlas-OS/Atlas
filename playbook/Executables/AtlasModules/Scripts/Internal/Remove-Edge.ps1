@@ -114,6 +114,23 @@ function DeleteIfExist($Path) {
     }
 }
 
+function Remove-EdgePath {
+    # Take ownership, grant Administrators full control, then delete - with a cmd 'rd'
+    # retry for trees the provider can't remove. Port of edge.py's remove_directory.
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    & takeown.exe /F "$Path" /R /D Y *> $null
+    & icacls.exe "$Path" /grant '*S-1-5-32-544:(F)' /T /C *> $null
+    Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $Path) {
+        & cmd.exe /c rd /s /q "$Path" *> $null
+    }
+}
+
 # True if it's installed
 function EdgeInstalled {
     foreach ($msedgeExe in $msedgeExePaths) {
@@ -131,12 +148,13 @@ function KillEdgeProcesses {
         Stop-Service -Name $service -Force
     }
 
-    # Only match actual Edge components - matching all of '\Microsoft\*' would also kill
-    # unrelated software like classic Teams, x86 Office and OneDrive.
+    # Match only the Edge browser and update infrastructure; a bare '\Microsoft\*' would
+    # also kill classic Teams, x86 Office and OneDrive. Trailing '\' stops the 'Edge' glob
+    # from also matching '\Microsoft\EdgeWebView'.
     $edgePathPatterns = @()
     foreach ($programFiles in @([Environment]::GetFolderPath('ProgramFilesX86'), [Environment]::GetFolderPath('ProgramFiles'))) {
-        foreach ($edgeComponent in @('Edge', 'EdgeUpdate', 'EdgeWebView', 'EdgeCore')) {
-            $edgePathPatterns += "$programFiles\Microsoft\$edgeComponent*"
+        foreach ($edgeComponent in @('Edge', 'EdgeUpdate', 'EdgeCore')) {
+            $edgePathPatterns += "$programFiles\Microsoft\$edgeComponent\*"
         }
     }
 
@@ -144,8 +162,13 @@ function KillEdgeProcesses {
         $process in
         (Get-Process | Where-Object {
             $processPath = $_.Path
-            (@($edgePathPatterns | Where-Object { $processPath -like $_ }).Count -gt 0) -or
-            ($_.Name -match '^(msedge|MicrosoftEdge|edgeupdate)')
+            # Never the WebView2 Runtime (by name or install path): the shell hosts it on
+            # 24H2/25H2 and we don't uninstall it, so killing it drops the live session.
+            $isWebView = ($_.Name -eq 'msedgewebview2') -or ($processPath -like '*\Microsoft\EdgeWebView\*')
+            (-not $isWebView) -and (
+                (@($edgePathPatterns | Where-Object { $processPath -like $_ }).Count -gt 0) -or
+                ($_.Name -match '^(msedge|MicrosoftEdge|edgeupdate)')
+            )
         }).Id
     ) {
         Stop-Process -Id $process -Force
@@ -191,11 +214,44 @@ function DisableEdgeUpdateInfrastructure {
         }
     }
 
-    foreach ($taskName in @(
-            'MicrosoftEdgeUpdateTaskMachineCore',
-            'MicrosoftEdgeUpdateTaskMachineUA'
-        )) {
-        & schtasks.exe /delete /tn $taskName /f 1>$null 2>$null
+    # The update tasks can carry a GUID suffix (MicrosoftEdgeUpdateTaskMachineCore{GUID}),
+    # so match by prefix - deleting only the bare names leaves orphaned tasks that fail
+    # 0x80070002 every run. Remove the on-disk definitions too.
+    Get-ScheduledTask -TaskName 'MicrosoftEdge*' -ErrorAction SilentlyContinue |
+        Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+    Get-ChildItem -LiteralPath (Join-Path -Path ([Environment]::GetFolderPath('System')) -ChildPath 'Tasks') -Filter 'MicrosoftEdge*' -ErrorAction SilentlyContinue |
+        ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
+}
+
+function Remove-EdgeRegistration {
+    # Edge leaves shell registration behind after its binaries are gone: dead protocol
+    # handlers (microsoft-edge:), App Paths\msedge.exe, a binary-less Apps-list Uninstall
+    # row, StartMenuInternet and EdgeUpdate\Clients. Port of edge.py's registry cleanup;
+    # each key is removed from both the 64- and 32-bit views. WebView2 keys are untouched.
+    $edgeKeys = @(
+        'HKLM\SOFTWARE\Microsoft\Edge'
+        'HKLM\SOFTWARE\Microsoft\EdgeUpdate'
+        'HKLM\SOFTWARE\Microsoft\MicrosoftEdge'
+        'HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components\{9459C573-B17A-45AE-9F64-1857B5D58CEE}'
+        'HKLM\SOFTWARE\Microsoft\Internet Explorer\EdgeIntegration'
+        'HKLM\SOFTWARE\Microsoft\Internet Explorer\EdgeDebugActivation'
+        'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\MicrosoftEdgeUpdate.exe'
+        'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe'
+        'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge'
+        'HKLM\SOFTWARE\Clients\StartMenuInternet\Microsoft Edge'
+        'HKLM\SOFTWARE\Classes\microsoft-edge'
+        'HKLM\SOFTWARE\Classes\microsoft-edge-holographic'
+        'HKLM\SOFTWARE\Classes\MSEdgeHTM'
+        'HKLM\SOFTWARE\Classes\MSEdgeMHT'
+        'HKLM\SOFTWARE\Classes\AppID\MicrosoftEdgeUpdate.exe'
+        'HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge'
+        'HKCU\SOFTWARE\Classes\microsoft-edge'
+        'HKCU\SOFTWARE\Classes\MSEdgeHTM'
+    )
+    foreach ($edgeKey in $edgeKeys) {
+        foreach ($view in @('/reg:64', '/reg:32')) {
+            & reg.exe delete "$edgeKey" /f $view *> $null
+        }
     }
 }
 
@@ -423,90 +479,82 @@ if ($UninstallEdge) {
     KillEdgeProcesses
     DisableEdgeUpdateInfrastructure
 
-    $setupCandidates = @()
+    # Kick off Edge's own uninstaller detached and DO NOT wait for it. A synchronous
+    # system-level --force-uninstall runs its RestartManager phase in the live session and
+    # signs the user out on 24H2/25H2; launching it detached lets the direct file deletion
+    # below finish the removal first (port of edge.py: Popen + short sleep, then delete).
     foreach ($root in @(
             "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application",
             "$([Environment]::GetFolderPath('ProgramFiles'))\Microsoft\Edge\Application"
         )) {
-        if (Test-Path $root) {
-            $setupCandidates += Get-ChildItem -Path $root -Filter 'setup.exe' -Recurse -ErrorAction SilentlyContinue
+        if (-not (Test-Path $root)) {
+            continue
+        }
+        foreach ($setup in @(Get-ChildItem -Path $root -Filter 'setup.exe' -Recurse -ErrorAction SilentlyContinue | Sort-Object -Property FullName -Unique)) {
+            Write-Status "Launching uninstaller at '$($setup.FullName)'..."
+            Start-Process -FilePath $setup.FullName -ArgumentList '--uninstall --system-level --force-uninstall' -WindowStyle Hidden -ErrorAction SilentlyContinue
         }
     }
 
-    $setupCandidates = @($setupCandidates | Sort-Object -Property FullName -Unique)
-    if ($setupCandidates.Count -gt 0) {
-        foreach ($setup in $setupCandidates) {
-            Write-Status "Running uninstaller at '$($setup.FullName)'..."
-            $process = Start-Process -FilePath $setup.FullName -ArgumentList '--uninstall --msedge --system-level --verbose-logging --force-uninstall' -WindowStyle Hidden -Wait -PassThru
-            if (($process.ExitCode -eq 0) -or (-not (EdgeInstalled))) {
-                break
-            }
-
-            Write-Status "Edge uninstaller exited with code $($process.ExitCode); trying fallback methods." -Level Info
-        }
-    }
-    elseif (EdgeInstalled) {
-        Write-Status 'Could not locate a local Edge installer to perform uninstallation.' -Level Warning
-    }
-
+    Start-Sleep -Seconds 3
     KillEdgeProcesses
+
+    # Remove the Edge browser install directly. Only the browser and its update
+    # infrastructure - never WebView2 (\Microsoft\EdgeWebView), which stays installed.
+    foreach ($programFiles in @([Environment]::GetFolderPath('ProgramFilesX86'), [Environment]::GetFolderPath('ProgramFiles'))) {
+        foreach ($folder in @('Edge', 'EdgeCore', 'EdgeUpdate')) {
+            Remove-EdgePath -Path (Join-Path -Path $programFiles -ChildPath "Microsoft\$folder")
+        }
+    }
+    Get-ChildItem -LiteralPath ([Environment]::GetFolderPath('System')) -Filter 'MicrosoftEdge*.exe' -ErrorAction SilentlyContinue | ForEach-Object {
+        & takeown.exe /F "$($_.FullName)" *> $null
+        & icacls.exe "$($_.FullName)" /grant '*S-1-5-32-544:(F)' /C *> $null
+        Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+    }
+
+    # Remove leftover Edge shortcuts (they now point at deleted binaries and fail to open):
+    # every user's Desktop, Quick Launch and taskbar pin, plus the Public Desktop and the
+    # common Start Menu. Port of edge.py's icon cleanup.
+    $edgeShortcutNames = @('edge.lnk', 'Microsoft Edge.lnk')
+    $relativeShortcutDirs = @(
+        'Desktop'
+        'AppData\Roaming\Microsoft\Internet Explorer\Quick Launch'
+        'AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar'
+        'AppData\Roaming\Microsoft\Windows\Start Menu\Programs'
+    )
+    $profilePaths = @()
+    try {
+        Get-ChildItem -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' -ErrorAction Stop | ForEach-Object {
+            $profilePath = (Get-ItemProperty -LiteralPath $_.PSPath -Name 'ProfileImagePath' -ErrorAction SilentlyContinue).ProfileImagePath
+            if ($profilePath) {
+                $profilePaths += $profilePath
+            }
+        }
+    }
+    catch {
+        $null = $_
+    }
+    $shortcutDirs = @([Environment]::GetFolderPath('CommonDesktopDirectory'), [Environment]::GetFolderPath('CommonPrograms'))
+    foreach ($profilePath in $profilePaths) {
+        foreach ($relativeShortcutDir in $relativeShortcutDirs) {
+            $shortcutDirs += (Join-Path -Path $profilePath -ChildPath $relativeShortcutDir)
+        }
+    }
+    foreach ($shortcutDir in ($shortcutDirs | Select-Object -Unique)) {
+        foreach ($edgeShortcutName in $edgeShortcutNames) {
+            Remove-Item -LiteralPath (Join-Path -Path $shortcutDir -ChildPath $edgeShortcutName) -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # Drop the now-dangling Edge shell registration (protocol handlers, App Paths,
+    # Apps-list Uninstall row, StartMenuInternet, EdgeUpdate clients).
+    Remove-EdgeRegistration
+
     if (EdgeInstalled) {
-        $legacyRemoved = $false
-        try {
-            $legacyTempDirectory = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
-            New-Item -ItemType Directory -Path $legacyTempDirectory -Force | Out-Null
-            $legacyScript = Join-Path $legacyTempDirectory 'Edge.bat'
-
-            # Project originally made by ShadowWhisperer and licensed under CC0-1.0.
-            # https://github.com/ShadowWhisperer/Remove-MS-Edge
-            #
-            # Pinned to commit b9172d5 (2026-06-04) so an upstream change can't silently run
-            # different code as admin; the hash is the SHA-256 of Batch/Edge.bat at that commit.
-            # To update: pick a new commit SHA on that repo, download
-            # https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/<sha>/Batch/Edge.bat
-            # and recompute its hash with 'Get-FileHash -Algorithm SHA256'.
-            $legacyScriptUrl = 'https://raw.githubusercontent.com/ShadowWhisperer/Remove-MS-Edge/b9172d58bfe95f46cbe01fafdf661fa526623bb7/Batch/Edge.bat'
-            $legacyScriptSha256 = 'F8F14F71A4978DC03D27EE3A0B7036D30E46DD0C2225FACB3B13E1BC7D26BC06'
-
-            Write-Status 'Trying legacy Edge removal fallback...'
-            if ($null -ne (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
-                & curl.exe -LSs "$legacyScriptUrl" -o "$legacyScript"
-            }
-            else {
-                Invoke-WebRequest -Uri $legacyScriptUrl -OutFile $legacyScript -UseBasicParsing -ErrorAction Stop
-            }
-
-            if (Test-Path $legacyScript) {
-                if ((Get-FileHash -LiteralPath $legacyScript -Algorithm SHA256).Hash -ne $legacyScriptSha256) {
-                    Write-Status 'Legacy Edge removal script failed its hash check - refusing to run an untrusted script and skipping this fallback.' -Level Warning
-                }
-                else {
-                    Start-Process -FilePath $legacyScript -WindowStyle Hidden -Wait -ArgumentList '-auto' | Out-Null
-                    KillEdgeProcesses
-                    $legacyRemoved = -not (EdgeInstalled)
-                }
-            }
-        }
-        catch {
-            if (EdgeInstalled) {
-                Write-Status "Legacy fallback failed: $($_.Exception.Message)" -Level Warning
-            }
-        }
-
-        if ((-not $legacyRemoved) -and (EdgeInstalled)) {
-            if ($KeepAppX -or $NonInteractive) {
-                Write-Status 'Edge binaries were not fully removed. Continuing so playbook cleanup can finish.' -Level Warning
-            }
-            else {
-                Write-Status 'Failed to uninstall Microsoft Edge using all available removal methods.' -Level Critical -Exit -ExitCode 12
-            }
-        }
-        else {
-            Write-Status 'Successfully removed Microsoft Edge.' -Level Success
-        }
+        Write-Status 'Edge binaries were not fully removed. Continuing so playbook cleanup can finish.' -Level Warning
     }
     else {
-        Write-Status 'Edge is already uninstalled.' -Level Success
+        Write-Status 'Successfully removed Microsoft Edge.' -Level Success
     }
 
     Write-Output ""

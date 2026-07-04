@@ -14,8 +14,6 @@ Import-Module Atlas.Services -Force
 Import-Module Atlas.TasksProcs -Force
 Import-Module Atlas.Software -Force
 
-$internalRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Internal'
-
 # Remove Security Center startup item
 Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'SecurityHealth' -Force -ErrorAction SilentlyContinue
 
@@ -40,15 +38,10 @@ if (Test-AtlasOption -Name 'uninstall-edge') {
     Remove-AtlasScheduledTask -Path 'MicrosoftEdgeUpdateTaskMachineCore' -IgnoreMissing
     Remove-AtlasScheduledTask -Path 'MicrosoftEdgeUpdateTaskMachineUA' -IgnoreMissing
 
-    # AppX uninstallation in the script seems to fail, therefore it's not used and the
-    # !appx removal in atlas\appx.yml is used instead. Note that AppX Edge is removed
-    # from the latest builds of Windows, but people could be running a non-updated version.
-    try {
-        & (Join-Path -Path $internalRoot -ChildPath 'Remove-Edge.ps1') -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive
-    }
-    catch {
-        Write-AtlasLog -Level Warning -Message "Removing Microsoft Edge failed: $($_.Exception.Message)"
-    }
+    # Remove-Edge.ps1 runs from atlas\components.yml as the elevated interactive user
+    # (it refuses SYSTEM/TrustedInstaller). This phase only handles the pieces that
+    # need TrustedInstaller: services, scheduled tasks and the deprovision keys.
+    # Edge's AppX removal is the !appx action in atlas\appx.yml.
 
     foreach ($deprovisionKey in @(
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe'

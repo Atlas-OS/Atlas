@@ -9,6 +9,16 @@ actions:
   # Edge's !appx family removal moved to atlas\appx.yml (AME-only action).
 
   - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge'}
+
+    # Remove-Edge.ps1 refuses SYSTEM/TrustedInstaller and needs the user's session
+    # (per-user data, processes), so it runs as the elevated interactive user here
+    # instead of inside the Components phase.
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Internal\Remove-Edge.ps1'') -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive'
+    runas: currentUserElevated
+    option: 'uninstall-edge'
+    wait: true
+
   - !writeStatus: {status: 'Removing OneDrive'}
   - !writeStatus: {status: 'Removing components'}
 
