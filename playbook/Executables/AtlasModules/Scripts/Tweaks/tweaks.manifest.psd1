@@ -51,6 +51,7 @@
                 'disable-privacy-experience'
                 'disable-recall-snap'
                 'disable-click-to-do'
+                'disable-settings-agent'
                 'disable-device-monitoring'
                 'disable-find-my-device'
                 'disable-rsop-logging'
@@ -64,6 +65,8 @@
                 'search-settings'
                 'apps/disable-nvidia-telemetry'
                 'apps/disable-office-telemetry'
+                'apps/disable-paint-ai'
+                'apps/disable-notepad-ai'
                 'advertising/disable-advertising-info'
                 'advertising/disable-sync-provider-notifs'
                 'cloud/disable-setting-sync'
@@ -75,6 +78,7 @@
                 'telemetry/disable-diagnostic-tracing'
                 'telemetry/disable-dotnet-cli-telemetry'
                 'telemetry/disable-input-telemetry'
+                'telemetry/disable-phishing-protection'
                 'telemetry/disallow-data-collection'
             )
         }

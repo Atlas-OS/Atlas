@@ -45,6 +45,11 @@ actions:
   - !appx: {name: 'MSTeams*', type: family}
   # 24H2 Copilot app
   - !appx: {name: 'Microsoft.Copilot*', type: family}
+  # Widgets runtime: the Dsh policies hide the UI but leave Widgets.exe installed and
+  # running - removing the packages is what actually stops it. Reinstallable from the
+  # Store (Windows Web Experience Pack, 9MSSGKG348SP).
+  - !appx: {name: 'MicrosoftWindows.Client.WebExperience*', type: family, ignoreErrors: true}
+  - !appx: {name: 'Microsoft.WidgetsPlatformRuntime*', type: family, ignoreErrors: true}
   # Other apps
   - !appx: {name: 'Clipchamp.Clipchamp*', type: family}
   - !appx: {name: 'Disney.37853FC22B2CE*', type: family}
