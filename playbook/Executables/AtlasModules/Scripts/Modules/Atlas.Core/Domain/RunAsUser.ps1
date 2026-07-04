@@ -52,7 +52,31 @@ namespace Atlas {
         enum TOKEN_TYPE { TokenPrimary = 1, TokenImpersonation }
         enum TOKEN_INFORMATION_CLASS { TokenLinkedToken = 19 }
 
+        [StructLayout(LayoutKind.Sequential)]
+        struct LUID {
+            public uint LowPart;
+            public int HighPart;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct TOKEN_PRIVILEGES {
+            public int PrivilegeCount;
+            public LUID Luid;
+            public int Attributes;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct WTS_SESSION_INFO {
+            public uint SessionId;
+            public IntPtr pWinStationName;
+            public int State; // WTS_CONNECTSTATE_CLASS; 0 = WTSActive
+        }
+
         const int TOKEN_DUPLICATE = 0x0002;
+        const int TOKEN_ADJUST_PRIVILEGES = 0x0020;
+        const int TOKEN_QUERY = 0x0008;
+        const int SE_PRIVILEGE_ENABLED = 0x0002;
+        const int ERROR_NOT_ALL_ASSIGNED = 1300;
         const uint MAXIMUM_ALLOWED = 0x02000000;
         const int CREATE_UNICODE_ENVIRONMENT = 0x00000400;
         const int CREATE_NO_WINDOW = 0x08000000;
@@ -61,8 +85,73 @@ namespace Atlas {
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern uint WTSGetActiveConsoleSessionId();
 
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetCurrentProcess();
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern bool OpenProcessToken(IntPtr ProcessHandle, int DesiredAccess, out IntPtr TokenHandle);
+
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        static extern bool LookupPrivilegeValue(string lpSystemName, string lpName, out LUID lpLuid);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, int BufferLength, IntPtr PreviousState, IntPtr ReturnLength);
+
+        [DllImport("wtsapi32.dll", SetLastError = true)]
+        static extern bool WTSEnumerateSessions(IntPtr hServer, int Reserved, int Version, out IntPtr ppSessionInfo, out int pCount);
+
+        [DllImport("wtsapi32.dll")]
+        static extern void WTSFreeMemory(IntPtr pMemory);
+
         [DllImport("wtsapi32.dll", SetLastError = true)]
         static extern bool WTSQueryUserToken(uint sessionId, out IntPtr phToken);
+
+        // SYSTEM holds these privileges but they can arrive disabled; WTSQueryUserToken
+        // needs SeTcb and CreateProcessAsUser needs SeAssignPrimaryToken + SeIncreaseQuota.
+        static void EnablePrivilege(string name) {
+            IntPtr token;
+            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out token)) {
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "OpenProcessToken failed.");
+            }
+            try {
+                LUID luid;
+                if (!LookupPrivilegeValue(null, name, out luid)) {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "LookupPrivilegeValue(" + name + ") failed.");
+                }
+                TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES();
+                tp.PrivilegeCount = 1;
+                tp.Luid = luid;
+                tp.Attributes = SE_PRIVILEGE_ENABLED;
+                if (!AdjustTokenPrivileges(token, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero) || Marshal.GetLastWin32Error() == ERROR_NOT_ALL_ASSIGNED) {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Enabling privilege " + name + " failed (is the caller SYSTEM?).");
+                }
+            }
+            finally {
+                CloseHandle(token);
+            }
+        }
+
+        // The interactive user can be in a non-console session (Hyper-V enhanced session,
+        // RDP), so pick the first active user session and only fall back to the console.
+        static uint GetInteractiveSessionId() {
+            IntPtr pSessions;
+            int count;
+            if (WTSEnumerateSessions(IntPtr.Zero, 0, 1, out pSessions, out count)) {
+                try {
+                    int size = Marshal.SizeOf(typeof(WTS_SESSION_INFO));
+                    for (int i = 0; i < count; i++) {
+                        WTS_SESSION_INFO info = (WTS_SESSION_INFO)Marshal.PtrToStructure(new IntPtr(pSessions.ToInt64() + (long)i * size), typeof(WTS_SESSION_INFO));
+                        if (info.State == 0 && info.SessionId != 0) {
+                            return info.SessionId;
+                        }
+                    }
+                }
+                finally {
+                    WTSFreeMemory(pSessions);
+                }
+            }
+            return WTSGetActiveConsoleSessionId();
+        }
 
         [DllImport("advapi32.dll", SetLastError = true)]
         static extern bool DuplicateTokenEx(IntPtr hExistingToken, uint dwDesiredAccess, IntPtr lpTokenAttributes,
@@ -95,14 +184,19 @@ namespace Atlas {
         // Runs the command line as the active console user; returns the child exit code
         // (or 0 when not waiting). Throws Win32Exception on any failure.
         public static int Launch(string applicationName, string commandLine, string workingDirectory, bool wait, bool elevated) {
-            uint sessionId = WTSGetActiveConsoleSessionId();
+            EnablePrivilege("SeTcbPrivilege");
+            EnablePrivilege("SeAssignPrimaryTokenPrivilege");
+            EnablePrivilege("SeIncreaseQuotaPrivilege");
+
+            uint sessionId = GetInteractiveSessionId();
             if (sessionId == 0xFFFFFFFF) {
-                throw new InvalidOperationException("No active console session; there is no interactive user to run as.");
+                throw new InvalidOperationException("No active user session; there is no interactive user to run as.");
             }
 
             IntPtr userToken = IntPtr.Zero;
             if (!WTSQueryUserToken(sessionId, out userToken)) {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "WTSQueryUserToken failed (is the caller SYSTEM with a user logged on?).");
+                int error = Marshal.GetLastWin32Error();
+                throw new Win32Exception(error, string.Format("WTSQueryUserToken failed for session {0} (Win32 error {1}).", sessionId, error));
             }
 
             IntPtr primaryToken = IntPtr.Zero;
