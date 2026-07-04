@@ -17,5 +17,7 @@
         @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip' }
         # A/B testing usage reports
         @{ Path = '\Microsoft\Windows\Flighting\FeatureConfig\UsageDataReporting' }
+        # SQM/CEIP proxy that stays Ready after the other CEIP tasks are disabled
+        @{ Path = '\Microsoft\Windows\Autochk\Proxy' }
     )
 }
