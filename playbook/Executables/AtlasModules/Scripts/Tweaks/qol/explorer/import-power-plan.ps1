@@ -4,7 +4,9 @@ $ErrorActionPreference = 'Stop'
 
 $defaultValues = @(
     @{ SubKey = 'powerscheme\DefaultIcon'; Data = '%windir%\System32\powercpl.dll,1' }
-    @{ SubKey = 'powerscheme\Shell\open\command'; Data = 'powercfg /import "%1"' }
+    # powercfg /import requires administrator rights, so the verb elevates first -
+    # a plain 'powercfg /import "%1"' fails silently when launched from Explorer.
+    @{ SubKey = 'powerscheme\Shell\open\command'; Data = 'powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Process ''powercfg.exe'' -ArgumentList ''/import'',''""%1""'' -Verb RunAs"' }
     @{ SubKey = '.pow'; Data = 'powerscheme' }
 )
 

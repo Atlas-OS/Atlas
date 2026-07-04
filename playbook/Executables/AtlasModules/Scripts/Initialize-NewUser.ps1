@@ -68,14 +68,12 @@ function Set-SearchTaskbarMode {
     $null = New-Item -Path $searchPath -Force -ErrorAction Stop
     $null = New-Item -Path $searchSettingsPath -Force -ErrorAction Stop
 
-    Set-ItemProperty -Path $searchPath -Name 'BingSearchEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
     Set-ItemProperty -Path $searchPath -Name 'SearchboxTaskbarMode' -Value 1 -Type DWord -Force -ErrorAction Stop
     Set-ItemProperty -Path $searchPath -Name 'SearchboxTaskbarModeCache' -Value 1 -Type DWord -Force -ErrorAction Stop
     Set-ItemProperty -Path $searchSettingsPath -Name 'IsAADCloudSearchEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
     Set-ItemProperty -Path $searchSettingsPath -Name 'IsDeviceSearchHistoryEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
     Set-ItemProperty -Path $searchSettingsPath -Name 'IsDynamicSearchBoxEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
     Set-ItemProperty -Path $searchSettingsPath -Name 'IsMSACloudSearchEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
-    Set-ItemProperty -Path $searchSettingsPath -Name 'SafeSearchMode' -Value 0 -Type DWord -Force -ErrorAction Stop
     try {
         $null = New-Item -Path $explorerPolicyPath -Force -ErrorAction Stop
         Set-ItemProperty -Path $explorerPolicyPath -Name 'DisableSearchBoxSuggestions' -Value 1 -Type DWord -Force -ErrorAction Stop
@@ -179,6 +177,15 @@ if ($setupMarker -lt 1) {
         }
         catch {
             Write-Warning "Failed to set lockscreen image: $($_.Exception.Message)"
+        }
+
+        # Block Store search recommendations for this user. Runs here (not from the
+        # SYSTEM tweak phase) so LocalApplicationData resolves to the real user profile.
+        try {
+            & (Join-Path -Path $atlasModules -ChildPath 'Scripts\Tasks\Disable-StoreSearchRecommendations.ps1')
+        }
+        catch {
+            Write-Warning "Failed to block Store search recommendations: $($_.Exception.Message)"
         }
 
         # Disable 'Network' in navigation pane

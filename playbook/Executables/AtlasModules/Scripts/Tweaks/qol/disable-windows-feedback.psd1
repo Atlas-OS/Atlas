@@ -4,6 +4,7 @@
     Registry    = @(
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Siuf\Rules'; Name = 'NumberOfSIUFInPeriod'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Siuf\Rules'; Name = 'PeriodInNanoSeconds'; Operation = 'Delete' }
-        @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'; Name = 'DoNotShowFeedbackNotifications'; Type = 'DWord'; Data = 1 }
+        # Documented policy location (the CurrentVersion\Policies mirror is not read for this value)
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'; Name = 'DoNotShowFeedbackNotifications'; Type = 'DWord'; Data = 1 }
     )
 }

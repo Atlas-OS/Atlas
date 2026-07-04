@@ -7,7 +7,8 @@ and tears down the phase.'
     OnUpgrade   = 'Skip'
     Registry    = @(
         @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization'; Name = 'LockScreenOverlaysDisabled'; Type = 'DWord'; Data = 1 }
-        @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name = 'RotatingLockScreenEnabled'; Type = 'DWord'; Data = 0 }
+        # RotatingLockScreenEnabled moved to disable-windows-spotlight, which runs on
+        # upgrades too (this tweak is fresh-install only).
     )
     Script      = 'atlas-theme.ps1'
 }

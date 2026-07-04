@@ -85,7 +85,8 @@
                 'disable-settings-tips'
                 'disable-spell-checking'
                 'disable-store-auto-updates'
-                'disable-store-search-recommendations'
+                # disable-store-search-recommendations moved into Initialize-NewUser: the deny-ACL
+                # on store.db must be applied per user profile, not in the SYSTEM install context.
                 'disable-touch-keyboard-features'
                 'disable-touch-visual-feedback'
                 'disable-usb-issues-notifications'
