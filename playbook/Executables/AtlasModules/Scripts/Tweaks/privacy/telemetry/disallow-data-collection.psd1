@@ -1,6 +1,6 @@
 @{
     Name        = 'Disallow Telemetry and Data Collection'
-    Description = 'Disallows telemetry and data collection to improve privacy'
+    Description = 'Reduces diagnostic data to the minimum the edition supports and neuters collection at the source (DiagTrack autologger). AllowTelemetry=0 means full-off on editions that support it and clamps to Required elsewhere; the service/autologger disable is what stops collection everywhere.'
     Registry    = @(
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'; Name = 'ShowedToastAtLevel'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'; Name = 'AllowTelemetry'; Type = 'DWord'; Data = 0 }

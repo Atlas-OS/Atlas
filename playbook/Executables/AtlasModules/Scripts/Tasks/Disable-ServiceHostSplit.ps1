@@ -2,13 +2,16 @@ $ErrorActionPreference = 'Stop'
 
 # SvcHostSplitDisable reduces the process count on memory-rich systems. Xbox services are
 # excluded because Game Bar and related services can fail when forced back into shared hosts.
+# Only svchost-hosted services are stamped: drivers also carry a 'Start' value, but the
+# flag is meaningless on them and would litter hundreds of driver keys.
 Get-ChildItem -Path 'HKLM:\SYSTEM\CurrentControlSet\Services' -ErrorAction Stop |
     Where-Object { $_.PSChildName -notmatch 'Xbl|Xbox' } |
     ForEach-Object {
         $servicePath = $_.PSPath
         $serviceName = $_.PSChildName
         $service = Get-ItemProperty -Path $servicePath -ErrorAction SilentlyContinue
-        if ($null -ne $service -and $null -ne $service.PSObject.Properties['Start']) {
+        if ($null -ne $service -and $null -ne $service.PSObject.Properties['Start'] -and
+            [string]$service.PSObject.Properties['ImagePath'].Value -match 'svchost\.exe') {
             try {
                 Set-ItemProperty -Path $servicePath -Name 'SvcHostSplitDisable' -Type DWord -Value 1 -Force -ErrorAction Stop
             }
