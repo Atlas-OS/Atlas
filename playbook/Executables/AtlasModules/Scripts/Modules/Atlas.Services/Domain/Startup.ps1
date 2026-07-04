@@ -31,7 +31,14 @@ function Set-AtlasServiceStartup {
         return
     }
 
-    Set-ItemProperty -LiteralPath $serviceKey -Name 'Start' -Value $StartupType -Type DWord -Force
+    # A protected service (e.g. Defender under Tamper Protection) denies the write even
+    # as TrustedInstaller; surface it as a named warning rather than a raw Err-stream trace.
+    try {
+        Set-ItemProperty -LiteralPath $serviceKey -Name 'Start' -Value $StartupType -Type DWord -Force -ErrorAction Stop
+    }
+    catch {
+        Write-AtlasLog -Level Warning -Message "Couldn't set startup type for '$Name': $($_.Exception.Message)"
+    }
 }
 
 function Stop-AtlasService {

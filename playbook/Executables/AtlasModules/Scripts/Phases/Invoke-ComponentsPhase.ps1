@@ -68,6 +68,25 @@ if (Test-AtlasOption -Name 'defender-disable') {
         '*Z-Atlas-NoDefender-Package*',
         '*Z-Atlas-NoTelemetry-Package*'
     ) -NonInteractive | Out-Null
+
+    # MDCoreSvc (Defender Core Service) survives the NoDefender package but its binary is
+    # removed with Defender, so SCM fails it 0x80070002 (event 7023) on every boot. The
+    # Start value can't be changed here: Defender Tamper Protection is still enforced at
+    # the kernel level through this phase and denies the write even as TrustedInstaller.
+    # Defer it to a one-shot startup task that runs after the install reboot, once Defender
+    # is fully gone and the write succeeds.
+    $mdCoreTaskName = 'AtlasDisableMDCoreSvc'
+    $mdCoreArgs = "/c schtasks /delete /tn `"$mdCoreTaskName`" /f > nul & " `
+        + "reg add `"HKLM\SYSTEM\CurrentControlSet\Services\MDCoreSvc`" /v Start /t REG_DWORD /d 4 /f > nul"
+    $mdCoreTask = @{
+        'TaskName'  = $mdCoreTaskName
+        'Settings'  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+        'Trigger'   = New-ScheduledTaskTrigger -AtStartup
+        'Principal' = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+        'Force'     = $true
+        'Action'    = New-ScheduledTaskAction -Execute 'cmd' -Argument $mdCoreArgs
+    }
+    Register-ScheduledTask @mdCoreTask | Out-Null
 }
 if (Test-AtlasOption -Name 'defender-enable') {
     Uninstall-AtlasCbsPackage -Packages @('*Z-Atlas-NoDefender-Package*') | Out-Null
