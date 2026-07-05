@@ -399,3 +399,41 @@ Describe 'Install-AtlasArchiveTool asset selection' {
         }
     }
 }
+
+Describe 'the 7-Zip uninstall-string parser' {
+    # Get-AtlasParsedUninstallString accepts only the documented, quoted 7-Zip shape
+    # and never hands registry-sourced text to a shell; it is module-private, hence
+    # InModuleScope.
+
+    It 'parses a quoted exe path with trailing arguments' {
+        InModuleScope Atlas.Software {
+            $parsed = Get-AtlasParsedUninstallString -UninstallString '"C:\Program Files\7-Zip\Uninstall.exe" /S'
+
+            $parsed | Should -Not -BeNullOrEmpty
+            $parsed.FilePath | Should -Be 'C:\Program Files\7-Zip\Uninstall.exe'
+            $parsed.ArgumentList | Should -Be '/S'
+        }
+    }
+
+    It 'defaults the arguments to /S when only a quoted path is present' {
+        InModuleScope Atlas.Software {
+            $parsed = Get-AtlasParsedUninstallString -UninstallString '"C:\Program Files\7-Zip\Uninstall.exe"'
+
+            $parsed | Should -Not -BeNullOrEmpty
+            $parsed.FilePath | Should -Be 'C:\Program Files\7-Zip\Uninstall.exe'
+            $parsed.ArgumentList | Should -Be '/S'
+        }
+    }
+
+    It 'rejects an unquoted, metacharacter-bearing string' {
+        InModuleScope Atlas.Software {
+            Get-AtlasParsedUninstallString -UninstallString 'C:\x.exe & calc' | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'rejects an empty-quotes-free string' {
+        InModuleScope Atlas.Software {
+            Get-AtlasParsedUninstallString -UninstallString 'C:\Program Files\7-Zip\Uninstall.exe /S' | Should -BeNullOrEmpty
+        }
+    }
+}

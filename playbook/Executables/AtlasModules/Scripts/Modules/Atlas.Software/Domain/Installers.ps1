@@ -311,6 +311,25 @@ function Install-AtlasNanaZip {
     }
 }
 
+function Get-AtlasParsedUninstallString {
+    # Parse a registry QuietUninstallString into an executable + argument string
+    # WITHOUT ever handing it to a shell. Accept only the documented 7-Zip shape:
+    # "<quoted exe path>" [args]. Anything unquoted or otherwise malformed (which
+    # includes metacharacter-bearing strings like `C:\x.exe & calc`) returns $null
+    # so callers can decline safely rather than execute registry-sourced text.
+    param([Parameter(Mandatory = $true)][string]$UninstallString)
+
+    if ($UninstallString -match '^"([^"]+)"\s*(.*)$') {
+        $uninstallArgs = if ($Matches[2]) { $Matches[2] } else { '/S' }
+        return @{
+            FilePath     = $Matches[1]
+            ArgumentList = $uninstallArgs
+        }
+    }
+
+    return $null
+}
+
 function Install-AtlasArchiveTool {
     param([Parameter(Mandatory = $true)][string]$TempDir)
 
@@ -334,7 +353,15 @@ NanaZip is a fork of 7-Zip with an updated user interface and extra features.
             if ((Read-MessageBox -Title 'Installing NanaZip - Atlas' -Body $message -Icon Question) -eq 'Yes') {
                 $sevenZipUninstall = (Get-ItemProperty -Path $sevenZipRegistry -Name 'QuietUninstallString' -ErrorAction SilentlyContinue).QuietUninstallString
                 if ($sevenZipUninstall) {
-                    Start-AtlasSoftwareInstaller -FilePath 'cmd.exe' -ArgumentList ("/c $sevenZipUninstall") -Description '7-Zip removal'
+                    # QuietUninstallString is machine-writable data; never feed it to a shell.
+                    $parsedUninstall = Get-AtlasParsedUninstallString -UninstallString $sevenZipUninstall
+                    if ($parsedUninstall) {
+                        Start-AtlasSoftwareInstaller -FilePath $parsedUninstall.FilePath -ArgumentList $parsedUninstall.ArgumentList -Description '7-Zip removal'
+                    }
+                    else {
+                        Write-AtlasLog -Level Warning -Message "Unrecognized 7-Zip QuietUninstallString format; keeping the existing 7-Zip installation."
+                        return
+                    }
                 }
                 Install-AtlasNanaZip -TempDir $TempDir -Assets $assets
             }
