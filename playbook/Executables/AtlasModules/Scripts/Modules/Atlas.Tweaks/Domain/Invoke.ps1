@@ -123,16 +123,23 @@ function Invoke-AtlasTweakScheduledTaskEntries {
             # locale-independent existence probe decides which failure this actually is -
             # otherwise access-denied and similar real errors would be logged as a
             # harmless missing task.
-            $null = & schtasks.exe /Query /TN "$taskPath" 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                Write-AtlasLog -Message "Scheduled task '$taskPath' was not found; nothing to $($operation.ToLowerInvariant())." -Level Warning
-                continue
-            }
+            $previousErrorActionPreference = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            try {
+                $null = & schtasks.exe /Query /TN "$taskPath" 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-AtlasLog -Message "Scheduled task '$taskPath' was not found; nothing to $($operation.ToLowerInvariant())." -Level Warning
+                    continue
+                }
 
-            $output = & schtasks.exe /Change /TN "$taskPath" $stateArgument 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                $details = (@($output) | ForEach-Object { "$_" }) -join ' '
-                throw "schtasks.exe exited with code $LASTEXITCODE - $details"
+                $output = & schtasks.exe /Change /TN "$taskPath" $stateArgument 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    $details = (@($output) | ForEach-Object { "$_" }) -join ' '
+                    throw "schtasks.exe exited with code $LASTEXITCODE - $details"
+                }
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
             }
         }
         catch {

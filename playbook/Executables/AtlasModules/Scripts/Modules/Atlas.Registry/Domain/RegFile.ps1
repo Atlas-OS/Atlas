@@ -18,7 +18,14 @@ function Import-AtlasRegFile {
     }
 
     $regExePath = Join-Path -Path ([Environment]::GetFolderPath('System')) -ChildPath 'reg.exe'
-    $output = & $regExePath import "$Path" 2>&1
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & $regExePath import "$Path" 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
     if ($LASTEXITCODE -ne 0) {
         $details = (@($output) | ForEach-Object { "$_" }) -join ' '
         throw "reg.exe import failed for '$Path' (exit code $LASTEXITCODE): $details"

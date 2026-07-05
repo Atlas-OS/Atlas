@@ -21,7 +21,14 @@ function Invoke-AtlasScheduledTaskCommand {
         [switch]$IgnoreMissing
     )
 
-    $output = & schtasks.exe @Arguments 2>&1
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & schtasks.exe @Arguments 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
     if ($LASTEXITCODE -eq 1) {
         if (-not $IgnoreMissing) {
             Write-AtlasLog -Level Warning -Message "Scheduled task '$Path' was not found; nothing to $OperationLabel."
