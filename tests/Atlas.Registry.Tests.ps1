@@ -368,3 +368,68 @@ Describe 'Sync-AtlasDefaultUserHive' {
         Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly -ParameterFilter { $Level -eq 'Warning' }
     }
 }
+
+Describe 'Copy-AtlasRegistryKeyValues' {
+    # Copy-AtlasRegistryKeyValues is module-internal (not in FunctionsToExport), so it
+    # is reached through InModuleScope. Unelevated runs can still exercise it against the
+    # current user's own hive via HKEY_USERS\<current SID>\Software\AtlasRewriteTest...
+    BeforeAll {
+        $script:currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        $script:srcSubPath = "$script:currentSid\Software\AtlasRewriteTest\SyncSrc"
+        $script:dstSubPath = "$script:currentSid\Software\AtlasRewriteTest\SyncDst"
+    }
+
+    BeforeEach {
+        Remove-Item -Path 'HKCU:\Software\AtlasRewriteTest\SyncSrc' -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path 'HKCU:\Software\AtlasRewriteTest\SyncDst' -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'copies values and nested subkeys at every depth, preserving value kinds' {
+        Set-AtlasRegistryValue -Path 'HKCU:\Software\AtlasRewriteTest\SyncSrc' -Name 'RootString' -Type String -Data 'root'
+        Set-AtlasRegistryValue -Path 'HKCU:\Software\AtlasRewriteTest\SyncSrc' -Name 'RootExpand' -Type ExpandString -Data '%windir%\test'
+        Set-AtlasRegistryValue -Path 'HKCU:\Software\AtlasRewriteTest\SyncSrc\Child' -Name 'ChildDword' -Type DWord -Data 7
+        Set-AtlasRegistryValue -Path 'HKCU:\Software\AtlasRewriteTest\SyncSrc\Child\GrandChild' -Name 'GrandString' -Type String -Data 'deep'
+
+        InModuleScope Atlas.Registry -Parameters @{ Src = $script:srcSubPath; Dst = $script:dstSubPath } {
+            param($Src, $Dst)
+            Copy-AtlasRegistryKeyValues -SourceSubPath $Src -DestinationSubPath $Dst
+        }
+
+        $rootKey = Get-Item -Path 'HKCU:\Software\AtlasRewriteTest\SyncDst'
+        $rootKey.GetValue('RootString') | Should -Be 'root'
+        $rootKey.GetValueKind('RootString') | Should -Be ([Microsoft.Win32.RegistryValueKind]::String)
+        # DoNotExpandEnvironmentNames must be honoured: the raw %windir% string is copied verbatim.
+        $rootKey.GetValue('RootExpand', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) | Should -Be '%windir%\test'
+        $rootKey.GetValueKind('RootExpand') | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
+
+        $childKey = Get-Item -Path 'HKCU:\Software\AtlasRewriteTest\SyncDst\Child'
+        $childKey.GetValue('ChildDword') | Should -Be 7
+        $childKey.GetValueKind('ChildDword') | Should -Be ([Microsoft.Win32.RegistryValueKind]::DWord)
+
+        $grandKey = Get-Item -Path 'HKCU:\Software\AtlasRewriteTest\SyncDst\Child\GrandChild'
+        $grandKey.GetValue('GrandString') | Should -Be 'deep'
+        $grandKey.GetValueKind('GrandString') | Should -Be ([Microsoft.Win32.RegistryValueKind]::String)
+    }
+
+    It 'copies a values-only key without creating any destination subkeys' {
+        Set-AtlasRegistryValue -Path 'HKCU:\Software\AtlasRewriteTest\SyncSrc' -Name 'OnlyValue' -Type DWord -Data 1
+
+        InModuleScope Atlas.Registry -Parameters @{ Src = $script:srcSubPath; Dst = $script:dstSubPath } {
+            param($Src, $Dst)
+            Copy-AtlasRegistryKeyValues -SourceSubPath $Src -DestinationSubPath $Dst
+        }
+
+        $dstKey = Get-Item -Path 'HKCU:\Software\AtlasRewriteTest\SyncDst'
+        $dstKey.GetValue('OnlyValue') | Should -Be 1
+        @($dstKey.GetSubKeyNames()).Count | Should -Be 0
+    }
+
+    It 'returns silently when the source key is missing' {
+        InModuleScope Atlas.Registry -Parameters @{ Src = $script:srcSubPath; Dst = $script:dstSubPath } {
+            param($Src, $Dst)
+            { Copy-AtlasRegistryKeyValues -SourceSubPath $Src -DestinationSubPath $Dst } | Should -Not -Throw
+        }
+
+        Test-Path -Path 'HKCU:\Software\AtlasRewriteTest\SyncDst' | Should -BeFalse
+    }
+}

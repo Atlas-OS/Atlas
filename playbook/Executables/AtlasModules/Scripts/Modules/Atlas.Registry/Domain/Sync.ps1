@@ -2,7 +2,7 @@
 #
 # The synced paths are the ones actually written through this module (recorded in
 # hkcu-paths.log); each recorded key is copied from the active user's hive into
-# HKU\AME_UserHive_Default with value kinds preserved.
+# HKU\AME_UserHive_Default with value kinds preserved, including every subkey below it.
 
 function Copy-AtlasRegistryKeyValues {
     param(
@@ -33,6 +33,11 @@ function Copy-AtlasRegistryKeyValues {
             $value = $sourceKey.GetValue($valueName, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
             $kind = $sourceKey.GetValueKind($valueName)
             $destinationKey.SetValue($valueName, $value, $kind)
+        }
+
+        foreach ($subKeyName in $sourceKey.GetSubKeyNames()) {
+            Copy-AtlasRegistryKeyValues -SourceSubPath (Join-Path -Path $SourceSubPath -ChildPath $subKeyName) `
+                -DestinationSubPath (Join-Path -Path $DestinationSubPath -ChildPath $subKeyName)
         }
     }
     finally {
