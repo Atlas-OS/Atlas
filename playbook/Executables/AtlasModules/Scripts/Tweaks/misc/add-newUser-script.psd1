@@ -11,6 +11,7 @@
         @{ Path = 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarMode'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarModeCache'; Type = 'DWord'; Data = 1 }
     )
-    # Creates the HKLM marker key the script needs, with an ACL letting Users write to it.
+    # Creates the HKLM marker key the script needs, with an ACL letting Users write to it,
+    # and grants Users write access to the shared install logs for the first-logon phase.
     Script      = 'add-newUser-script.ps1'
 }

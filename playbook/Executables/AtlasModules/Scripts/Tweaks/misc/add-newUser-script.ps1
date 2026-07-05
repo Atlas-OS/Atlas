@@ -17,3 +17,9 @@ $rule = New-Object -TypeName System.Security.AccessControl.RegistryAccessRule -A
 )
 $acl.SetAccessRule($rule)
 Set-Acl -Path $markerPath -AclObject $acl
+
+$installLogsPath = Join-Path -Path $env:windir -ChildPath 'AtlasModules\Logs'
+if (Test-Path -LiteralPath $installLogsPath -PathType Container)
+{
+    & icacls.exe $installLogsPath /grant '*S-1-5-32-545:(OI)(CI)M' /T | Out-Null
+}
