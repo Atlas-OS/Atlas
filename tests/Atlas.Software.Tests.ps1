@@ -97,6 +97,88 @@ Describe 'Install-AtlasSoftware' {
     }
 }
 
+Describe 'Assert-AtlasFileHash' {
+    It 'passes when the file hash matches the expected SHA256' {
+        $file = Join-Path -Path $TestDrive -ChildPath 'download.bin'
+        Set-Content -LiteralPath $file -Value 'atlas test payload' -NoNewline
+        $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+
+        InModuleScope Atlas.Software -Parameters @{ Path = $file; Hash = $hash } {
+            param($Path, $Hash)
+            { Assert-AtlasFileHash -Path $Path -ExpectedSha256 $Hash -Description 'test file' } | Should -Not -Throw
+        }
+    }
+
+    It 'throws a refusal when the file hash does not match' {
+        $file = Join-Path -Path $TestDrive -ChildPath 'download.bin'
+        Set-Content -LiteralPath $file -Value 'atlas test payload' -NoNewline
+
+        InModuleScope Atlas.Software -Parameters @{ Path = $file } {
+            param($Path)
+            $wrongHash = 'deadbeef' * 8
+            { Assert-AtlasFileHash -Path $Path -ExpectedSha256 $wrongHash -Description 'test file' } |
+                Should -Throw -ExpectedMessage '*Refusing*'
+        }
+    }
+}
+
+Describe 'Assert-AtlasFileSignature' {
+    It 'passes for a valid signature whose quoted subject CN matches the expected publisher' {
+        InModuleScope Atlas.Software {
+            Mock Get-AuthenticodeSignature {
+                [pscustomobject]@{
+                    Status            = [System.Management.Automation.SignatureStatus]::Valid
+                    SignerCertificate = [pscustomobject]@{ Subject = 'CN="Brave Software, Inc.", O="Brave Software, Inc.", L=San Francisco, S=California, C=US' }
+                }
+            }
+
+            { Assert-AtlasFileSignature -Path 'C:\fake\installer.exe' -ExpectedSubjectCn 'Brave Software, Inc.' -Description 'Brave' } | Should -Not -Throw
+        }
+    }
+
+    It 'throws a refusal when the signature status is not valid' {
+        InModuleScope Atlas.Software {
+            Mock Get-AuthenticodeSignature {
+                [pscustomobject]@{
+                    Status            = [System.Management.Automation.SignatureStatus]::HashMismatch
+                    SignerCertificate = [pscustomobject]@{ Subject = 'CN="Brave Software, Inc.", O="Brave Software, Inc.", L=San Francisco, S=California, C=US' }
+                }
+            }
+
+            { Assert-AtlasFileSignature -Path 'C:\fake\installer.exe' -ExpectedSubjectCn 'Brave Software, Inc.' -Description 'Brave' } |
+                Should -Throw -ExpectedMessage '*Refusing*'
+        }
+    }
+
+    It 'throws a refusal when the signature is valid but signed by another publisher' {
+        InModuleScope Atlas.Software {
+            Mock Get-AuthenticodeSignature {
+                [pscustomobject]@{
+                    Status            = [System.Management.Automation.SignatureStatus]::Valid
+                    SignerCertificate = [pscustomobject]@{ Subject = 'CN=Evil Corp, O=Evil Corp, C=US' }
+                }
+            }
+
+            { Assert-AtlasFileSignature -Path 'C:\fake\installer.exe' -ExpectedSubjectCn 'Brave Software, Inc.' -Description 'Brave' } |
+                Should -Throw -ExpectedMessage '*Refusing*'
+        }
+    }
+
+    It 'does not match a CN that is only a prefix of the signer CN' {
+        InModuleScope Atlas.Software {
+            Mock Get-AuthenticodeSignature {
+                [pscustomobject]@{
+                    Status            = [System.Management.Automation.SignatureStatus]::Valid
+                    SignerCertificate = [pscustomobject]@{ Subject = 'CN=Google LLC Fake, O=Attacker, C=US' }
+                }
+            }
+
+            { Assert-AtlasFileSignature -Path 'C:\fake\installer.msi' -ExpectedSubjectCn 'Google LLC' -Description 'Google Chrome' } |
+                Should -Throw -ExpectedMessage '*Refusing*'
+        }
+    }
+}
+
 Describe 'Get-AtlasSoftwarePickerItem' {
     It 'offers StartAllBack on Windows 11 builds' {
         InModuleScope Atlas.Software {
