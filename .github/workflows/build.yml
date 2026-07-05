@@ -35,7 +35,8 @@ jobs:
 
       - name: Validate YAML files
         run: |
-          pip install yamllint | Out-Null
+          # Pinned for reproducible lint results - bump deliberately
+          pip install yamllint==1.38.0 | Out-Null
           yamllint -c .yamllint.yml .
 
       - name: Get changed files

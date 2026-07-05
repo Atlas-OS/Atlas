@@ -6,13 +6,15 @@ on:
       - "playbook/**"
       - "tools/**"
       - "tests/**"
-      - ".github/workflows/test.yml"
+      - ".github/workflows/**"
+      - ".github/linters/**"
   pull_request:
     paths:
       - "playbook/**"
       - "tools/**"
       - "tests/**"
-      - ".github/workflows/test.yml"
+      - ".github/workflows/**"
+      - ".github/linters/**"
   workflow_dispatch:
 
 jobs:
@@ -46,11 +48,23 @@ jobs:
           if ($failed) { exit 1 }
           Write-Host "All payload scripts parse under Windows PowerShell 5.1."
 
+      - name: Cache PowerShell modules
+        # gh api repos/actions/cache/commits/v4 --jq '.sha'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~\Documents\PowerShell\Modules
+            ~\Documents\WindowsPowerShell\Modules
+          # Keep this key in sync with the pinned versions below - bump both together
+          key: psmodules-${{ runner.os }}-pester-5.7.1-pssa-1.25.0
+
       - name: Install Pester
         shell: pwsh
         run: |
           # Pinned for reproducible results
-          Install-Module -Name Pester -RequiredVersion 5.7.1 -Force -Scope CurrentUser
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -eq '5.7.1')) {
+              Install-Module -Name Pester -RequiredVersion 5.7.1 -Force -Scope CurrentUser
+          }
 
       - name: Run Pester tests
         shell: pwsh
@@ -66,7 +80,9 @@ jobs:
         run: |
           # Pinned for reproducible results; -SkipPublisherCheck because the inbox
           # Pester 3.4 signature differs from the gallery module's.
-          Install-Module -Name Pester -RequiredVersion 5.7.1 -Force -Scope CurrentUser -SkipPublisherCheck
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -eq '5.7.1')) {
+              Install-Module -Name Pester -RequiredVersion 5.7.1 -Force -Scope CurrentUser -SkipPublisherCheck
+          }
 
       - name: Run Pester tests (Windows PowerShell 5.1)
         shell: powershell
