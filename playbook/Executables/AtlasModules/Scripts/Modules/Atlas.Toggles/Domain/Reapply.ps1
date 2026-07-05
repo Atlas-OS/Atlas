@@ -20,7 +20,7 @@ function Invoke-AtlasToggleReapply {
     )
 
     if (-not (Test-Path -LiteralPath $StateRoot)) {
-        Write-Host "Registry path '$StateRoot' not found, skipping." -ForegroundColor Yellow
+        Write-AtlasLog -Level Warning -Message "Registry path '$StateRoot' not found, skipping."
         return
     }
 
@@ -35,7 +35,7 @@ function Invoke-AtlasToggleReapply {
 
         $launcherPath = [string]$properties.path
         if (-not (Test-Path -LiteralPath $launcherPath)) {
-            Write-Host "Launcher not found, cleaning up obsolete registry key: $launcherPath" -ForegroundColor Yellow
+            Write-AtlasLog -Level Warning -Message "Launcher not found, cleaning up obsolete registry key: $launcherPath"
             Remove-Item -LiteralPath $subkey.PSPath -Force -Recurse -ErrorAction SilentlyContinue
             continue
         }
@@ -55,13 +55,13 @@ function Invoke-AtlasToggleReapply {
             $definition = $null
         }
         if ($definition -and $definition.Contains('NoStateRecord') -and $definition.NoStateRecord) {
-            Write-Host "Toggle '$($subkey.PSChildName)' does not record state, cleaning up stale registry key." -ForegroundColor Yellow
+            Write-AtlasLog -Level Warning -Message "Toggle '$($subkey.PSChildName)' does not record state, cleaning up stale registry key."
             Remove-Item -LiteralPath $subkey.PSPath -Force -Recurse -ErrorAction SilentlyContinue
             continue
         }
 
         if ([int]$properties.state -ne 0) {
-            Write-Host "Running: $launcherPath" -ForegroundColor Cyan
+            Write-AtlasLog -Message "Running: $launcherPath"
             if ($launcherPath -like '*.ps1') {
                 & $launcherPath -Silent
             }

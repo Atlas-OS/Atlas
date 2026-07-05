@@ -12,7 +12,7 @@ $atlasDesktop = Join-Path -Path $windir -ChildPath 'AtlasDesktop'
 $rootPath = 'HKLM:\SOFTWARE\AtlasOS\Services'
 
 if (-not (Test-Path -LiteralPath $rootPath)) {
-    Write-Output "Atlas service registry root '$rootPath' was not found; no paths need updating."
+    Write-AtlasLog -Message "Atlas service registry root '$rootPath' was not found; no paths need updating."
     return
 }
 
@@ -26,7 +26,7 @@ foreach ($key in $registryKeys) {
     }
 
     $path = [string]$property.path
-    Write-Output $path
+    Write-AtlasLog -Message "Checking recorded launcher path: $path"
 
     if ($path -like "$atlasDesktop\*") {
         continue
@@ -34,7 +34,7 @@ foreach ($key in $registryKeys) {
 
     $index = $path.IndexOf($marker, [System.StringComparison]::OrdinalIgnoreCase)
     if ($index -lt 0) {
-        Write-Warning "Skipping Atlas service path without '$marker': $path"
+        Write-AtlasLog -Level Warning -Message "Skipping Atlas service path without '$marker': $path"
         continue
     }
 

@@ -145,6 +145,10 @@ Describe 'Set-AtlasToggleState / Get-AtlasToggleState' {
 
 Describe 'Invoke-AtlasToggleReapply' {
     BeforeEach {
+        # Reapply routes its operational output through Write-AtlasLog; mock it so the
+        # tests never touch the real install-log directory.
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+
         Remove-Item -Path $StateRoot -Recurse -Force -ErrorAction SilentlyContinue
 
         $script:ReapplyTogglesRoot = Join-Path $TestDrive 'ReapplyToggles'
@@ -339,6 +343,19 @@ Describe 'Invoke-AtlasToggle' {
         $recorded = Get-AtlasToggleState -Name 'MarkerToggle' -StateRoot $StateRoot
         $recorded.State | Should -Be 1
         $recorded.Path | Should -Be $launcher
+    }
+
+    It 'logs the applied state change through Write-AtlasLog even when silent' {
+        # A support bundle must be able to answer "what did this toggle do on this
+        # machine" from the install log, so a silent apply records the state change.
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+
+        Invoke-AtlasToggle -Name 'MarkerToggle' -State 'On' -Silent `
+            -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
+            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles `
+            -ParameterFilter { $Message -like "*MarkerToggle*applied*state 'On'*" }
     }
 
     It 'does not record state when the action fails (upgrade re-apply must not replay a lie)' {

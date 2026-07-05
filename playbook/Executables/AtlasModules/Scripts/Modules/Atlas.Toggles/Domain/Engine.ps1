@@ -340,7 +340,7 @@ function Invoke-AtlasToggle {
             throw "Toggle '$Name' requires Administrator rights; refusing to prompt for elevation in silent mode."
         }
 
-        Write-Host 'Administrator privileges are required.'
+        Write-AtlasLog -Message 'Administrator privileges are required.'
         $argumentList = Get-AtlasToggleRelaunchArgumentList -Name $Name -State $stateName -LauncherPath $LauncherPath `
             -Silent:$Silent -JustContext:$JustContext -NoExplorerRestart:$NoExplorerRestart
         try {
@@ -461,6 +461,7 @@ function Invoke-AtlasToggle {
     Invoke-AtlasToggleAction -Action $stateEntry.Action -ToggleContext $toggleContext -Succeeded ([ref]$actionSucceeded)
     if ($actionSucceeded) {
         & $recordState
+        Write-AtlasLog -Message "Toggle '$Name' applied: state '$stateName'."
     }
     else {
         Write-AtlasLog -Level Warning -Message "Toggle '$Name' state was not recorded because its action failed."

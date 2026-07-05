@@ -8,7 +8,7 @@ Import-Module -Name (Join-Path $PSScriptRoot '..\Modules\Atlas.Core\Atlas.Core.p
 
 function Test-Admin {
     if (-not (Test-AtlasAdmin)) {
-        Write-Host "Restarting script with administrator privileges..."
+        Write-AtlasLog -Message "Restarting script with administrator privileges..."
 
         $arguments = @(
             "-ExecutionPolicy RemoteSigned",
@@ -48,7 +48,7 @@ function Install-PSWindowsUpdateModule {
 }
 
 function Enable-MicrosoftUpdate {
-    Write-Host "Enabling Microsoft Update for driver updates..."
+    Write-AtlasLog -Message "Enabling Microsoft Update for driver updates..."
     Add-WUServiceManager -ServiceID "7971f918-a847-4430-9279-4a52d1efe18d" -AddServiceFlag 7 -Confirm:$false | Out-Null
 }
 
@@ -105,7 +105,7 @@ function Show-DriverSelection {
 }
 
 function Update-Drivers {
-    Write-Host "Checking for driver updates..."
+    Write-AtlasLog -Message "Checking for driver updates..."
     try {
         $updates = @(Get-WUList -MicrosoftUpdate -Category "Drivers" -ErrorAction Stop)
     }
@@ -115,14 +115,14 @@ function Update-Drivers {
     }
 
     if ($updates.Count -eq 0) {
-        Write-Host "No driver updates found."
+        Write-AtlasLog -Message "No driver updates found."
         return $true
     }
 
-    Write-Host "Available driver updates:"
+    Write-AtlasLog -Message "Available driver updates:"
 
     if ($Silent) {
-        Write-Host "Silent mode enabled; selecting all available driver updates."
+        Write-AtlasLog -Message "Silent mode enabled; selecting all available driver updates."
         $selection = $updates
     }
     else {
@@ -130,11 +130,11 @@ function Update-Drivers {
     }
 
     if ($selection.Count -eq 0) {
-        Write-Host "No drivers were selected for update."
+        Write-AtlasLog -Message "No drivers were selected for update."
         return $true
     }
 
-    Write-Host "Installing selected driver updates..."
+    Write-AtlasLog -Message "Installing selected driver updates..."
     $selection | Format-Table ComputerName, Status, KB, Size, Title -AutoSize
 
     # Get-WUInstall does not bind update objects from the pipeline - piping $selection in
@@ -155,10 +155,10 @@ function Update-Drivers {
         return $false
     }
 
-    Write-Host "Driver updates installed successfully!"
+    Write-AtlasLog -Message "Driver updates installed successfully!"
 
     if ($RestartAfterUpdate) {
-        Write-Host "RestartAfterUpdate is enabled. Restarting the system in 10 seconds..."
+        Write-AtlasLog -Message "RestartAfterUpdate is enabled. Restarting the system in 10 seconds..."
         Start-Sleep -Seconds 10
         Restart-Computer -Force
         return $true
@@ -167,7 +167,7 @@ function Update-Drivers {
     if (-not $Silent) {
         $restartChoice = Read-Host "Do you want to restart now? (Y/N)"
         if ($restartChoice -match "^[Yy]$") {
-            Write-Host "Restarting the system in 10 seconds..."
+            Write-AtlasLog -Message "Restarting the system in 10 seconds..."
             Start-Sleep -Seconds 10
             Restart-Computer -Force
         }

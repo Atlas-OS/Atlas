@@ -18,12 +18,11 @@ $ErrorActionPreference = 'Stop'
 Import-Module -Name (Join-Path $PSScriptRoot '..\Modules\Atlas.Core\Atlas.Core.psd1') -Force
 
 if (-not (Test-AtlasAdmin)) {
-    Write-Output 'You must run this script as admin.'
+    Write-AtlasLog -Level Warning -Message 'You must run this script as admin.'
     exit 1
 }
 
 $normalizedOperation = $Operation.TrimStart('/').ToLowerInvariant()
-$isSilent = $Silent.IsPresent -or ($null -ne $RemainingArgs -and $RemainingArgs -contains '/silent')
 $pageKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
 
 if (-not (Test-Path -LiteralPath $pageKey)) {
@@ -45,9 +44,7 @@ if (-not [string]::IsNullOrWhiteSpace($currentValue)) {
 }
 
 if ($normalizedOperation -eq 'hide') {
-    if (-not $isSilent) {
-        Write-Output 'Hiding Settings pages...'
-    }
+    Write-AtlasLog -Message 'Hiding Settings pages...'
 
     if ($pages -notcontains $Page) {
         $pages += $Page
@@ -56,9 +53,7 @@ if ($normalizedOperation -eq 'hide') {
     Set-ItemProperty -LiteralPath $pageKey -Name 'SettingsPageVisibility' -Value ('hide:' + (($pages | Select-Object -Unique) -join ';')) -Type String
 }
 else {
-    if (-not $isSilent) {
-        Write-Output 'Unhiding Settings pages...'
-    }
+    Write-AtlasLog -Message 'Unhiding Settings pages...'
 
     $pages = @($pages | Where-Object { $_ -ne $Page })
     if ($pages.Count -gt 0) {
