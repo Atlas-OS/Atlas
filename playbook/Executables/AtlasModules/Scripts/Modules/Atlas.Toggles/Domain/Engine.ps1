@@ -263,6 +263,9 @@ function Invoke-AtlasToggleAction {
         [ref]$Succeeded
     )
 
+    # SEAM: a stricter per-toggle opt-in (e.g. a definition key that runs the action
+    # with $ErrorActionPreference = 'Stop') would slot in here; deferred deliberately -
+    # see plans/010-toggle-success-contract.md.
     $runner = {
         param($innerAction, $innerContext)
         Set-StrictMode -Off
@@ -289,7 +292,8 @@ function Invoke-AtlasToggle {
     .SYNOPSIS
         Applies a toggle state: resolves the definition, elevates if needed, runs the
         state's action(s), records the chosen state under HKLM\SOFTWARE\AtlasOS\Services
-        once the action succeeded, and handles reboot/explorer-restart behavior.
+        unless the action threw a terminating error, and handles reboot/explorer-restart
+        behavior.
     #>
     [CmdletBinding()]
     param(
@@ -362,9 +366,12 @@ function Invoke-AtlasToggle {
     }
 
     # --- State recording (compatibility contract with existing installs). --------------
-    # Recorded only after the action succeeds (or, for -JustContext, after the context
-    # action): a cancelled prompt or failed action must never leave a state that upgrade
-    # re-apply would replay.
+    # Recorded unless the action THREW: actions run non-strict with
+    # $ErrorActionPreference = 'Continue' (see Invoke-AtlasToggleAction), so
+    # non-terminating cmdlet errors do NOT block recording - toggles are best-effort by
+    # design. A cancelled prompt or a thrown error never records a state that upgrade
+    # re-apply would replay. Actions that must gate recording on a condition should
+    # detect it and `throw`.
     $noStateRecord = $userContext -or
         ($definition.Contains('NoStateRecord') -and $definition.NoStateRecord) -or
         ($stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord)

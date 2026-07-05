@@ -451,6 +451,80 @@ Describe 'Invoke-AtlasToggle' {
     }
 }
 
+Describe 'Invoke-AtlasToggleAction success contract' {
+    # These tests pin the engine's *actual* success contract (see
+    # plans/010-toggle-success-contract.md): "success" means the action did not THROW.
+    # Actions run non-strict with $ErrorActionPreference = 'Continue', so
+    # non-terminating cmdlet errors are best-effort by design and still count as
+    # success. If the maintainer later opts into stricter semantics, the
+    # non-terminating-error and preference tests below must be consciously rewritten.
+    # Invoke-AtlasToggleAction is module-private, hence InModuleScope.
+
+    It 'reports failure and logs one warning when the action throws' {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+
+        InModuleScope Atlas.Toggles {
+            $succeeded = $true
+            $toggleContext = [pscustomobject]@{ Name = 'T' }
+
+            Invoke-AtlasToggleAction -Action { param($Toggle) throw 'deliberate failure' } `
+                -ToggleContext $toggleContext -Succeeded ([ref]$succeeded)
+
+            $succeeded | Should -BeFalse
+        }
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
+            -ParameterFilter { $Level -eq 'Warning' -and $Message -like "*Toggle 'T'*failed*" }
+    }
+
+    It 'treats non-terminating errors as success (documented best-effort contract)' {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+
+        InModuleScope Atlas.Toggles {
+            $succeeded = $false
+            $toggleContext = [pscustomobject]@{ Name = 'T' }
+
+            Invoke-AtlasToggleAction -Action { param($Toggle) Write-Error 'non-terminating' -ErrorAction Continue } `
+                -ToggleContext $toggleContext -Succeeded ([ref]$succeeded) 2>$null
+
+            $succeeded | Should -BeTrue
+        }
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0 -Exactly
+    }
+
+    It 'reports success when the action completes cleanly' {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+
+        InModuleScope Atlas.Toggles {
+            $succeeded = $false
+            $toggleContext = [pscustomobject]@{ Name = 'T' }
+
+            Invoke-AtlasToggleAction -Action { param($Toggle) } `
+                -ToggleContext $toggleContext -Succeeded ([ref]$succeeded)
+
+            $succeeded | Should -BeTrue
+        }
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0 -Exactly
+    }
+
+    It "runs the action with `$ErrorActionPreference = 'Continue' (recording gates only on throw)" {
+        # Guards against someone flipping the runner's preference (e.g. to 'Stop')
+        # without noticing that it changes what upgrade re-apply records and replays.
+        InModuleScope Atlas.Toggles {
+            $succeeded = $false
+            $toggleContext = [pscustomobject]@{ Name = 'T' }
+
+            $observedPreference = Invoke-AtlasToggleAction -Action { param($Toggle) [string]$ErrorActionPreference } `
+                -ToggleContext $toggleContext -Succeeded ([ref]$succeeded)
+
+            $observedPreference | Should -Be 'Continue'
+            $succeeded | Should -BeTrue
+        }
+    }
+}
+
 Describe 'New-ToggleLaunchers.ps1' {
     BeforeAll {
         $script:GeneratorScript = Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'tools\dev\New-ToggleLaunchers.ps1'
