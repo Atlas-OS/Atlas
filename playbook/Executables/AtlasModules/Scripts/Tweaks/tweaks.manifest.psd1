@@ -193,6 +193,7 @@
             Name   = 'security'
             Tweaks = @(
                 'block-anonymous-enum-sam'
+                'disable-automatic-restart-signon'
                 'disable-remote-assistance'
             )
         }
