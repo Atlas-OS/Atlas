@@ -119,7 +119,9 @@ $systemTemp = Get-FirstExistingDirectory -Paths @(
 )
 if ($systemTemp) {
     Write-Output 'Cleaning system TEMP folder...'
-    Clear-DirectoryChildren -Path $systemTemp
+    # AME Wizard runs mid-install while this phase executes; its deletable state
+    # must survive the sweep, so exclude 'AME' exactly as the user-TEMP call does.
+    Clear-DirectoryChildren -Path $systemTemp -ExcludeName @('AME')
 }
 else {
     Write-Error 'System temp folder not found!'
