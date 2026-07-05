@@ -222,10 +222,10 @@ function Get-AtlasToggleRelaunchArgumentList {
     $argumentList = @(
         '-NoProfile', '-NoLogo', '-ExecutionPolicy', 'Bypass',
         '-File', ('"{0}"' -f $invokeTogglePath),
-        '-Name', $Name
+        '-Name', ('"{0}"' -f $Name)
     )
     if ($State) {
-        $argumentList += @('-State', $State)
+        $argumentList += @('-State', ('"{0}"' -f $State))
     }
     if ($LauncherPath) {
         $argumentList += @('-LauncherPath', ('"{0}"' -f $LauncherPath))

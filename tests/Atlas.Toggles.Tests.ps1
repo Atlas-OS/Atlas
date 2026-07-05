@@ -552,3 +552,48 @@ Describe 'New-ToggleLaunchers.ps1' {
         $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
     }
 }
+
+Describe 'Get-AtlasToggleRelaunchArgumentList' {
+    # The relaunch argument list is space-joined by both consumers (Start-Process
+    # and the TrustedInstaller cmd join), so every value that can contain a space
+    # or shell metacharacter must be quoted. Get-AtlasToggleRelaunchArgumentList is
+    # module-private, hence InModuleScope.
+
+    BeforeEach {
+        Mock Get-AtlasContext -ModuleName Atlas.Toggles {
+            [pscustomobject]@{ AtlasModulesPath = 'C:\Windows\AtlasModules' }
+        }
+    }
+
+    It 'quotes the -Name value so names with spaces survive the join' {
+        InModuleScope Atlas.Toggles {
+            $list = Get-AtlasToggleRelaunchArgumentList -Name 'My Toggle' -State 'Enable'
+
+            $nameIndex = [array]::IndexOf($list, '-Name')
+            $list[$nameIndex + 1] | Should -Be '"My Toggle"'
+        }
+    }
+
+    It 'quotes the -State value when a state is supplied' {
+        InModuleScope Atlas.Toggles {
+            $list = Get-AtlasToggleRelaunchArgumentList -Name 'BackgroundApps' -State 'Disable'
+
+            $stateIndex = [array]::IndexOf($list, '-State')
+            $list[$stateIndex + 1] | Should -Be '"Disable"'
+        }
+    }
+
+    It 'produces a joined command line with no unquoted space-bearing values' {
+        InModuleScope Atlas.Toggles {
+            $list = Get-AtlasToggleRelaunchArgumentList -Name 'My Toggle' -State 'Enable Now' -LauncherPath 'C:\Program Files\x.cmd'
+
+            $joined = $list -join ' '
+
+            # Every space in the joined string must fall inside a quoted region;
+            # an odd number of quotes before any given space would reveal a bare gap.
+            $joined | Should -Match '-Name "My Toggle"'
+            $joined | Should -Match '-State "Enable Now"'
+            $joined | Should -Match '-LauncherPath "C:\\Program Files\\x.cmd"'
+        }
+    }
+}
