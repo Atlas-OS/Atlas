@@ -269,6 +269,56 @@ Describe 'Get-AtlasActiveUserSid and user hive enumeration' {
     }
 }
 
+Describe 'Get-AtlasActiveUserSid' {
+    BeforeEach {
+        # No explorer.exe processes: force the HKEY_USERS hive fallback path.
+        Mock -CommandName Get-CimInstance -ModuleName Atlas.Registry -MockWith { @() }
+    }
+
+    It 'throws instead of guessing when multiple hives are loaded and none has a Volatile Environment key' {
+        Mock -CommandName Get-ChildItem -ModuleName Atlas.Registry -MockWith {
+            @(
+                [pscustomobject]@{ PSChildName = 'S-1-5-21-1-2-3-1001'; PSPath = 'Microsoft.PowerShell.Core\Registry::HKEY_USERS\S-1-5-21-1-2-3-1001' }
+                [pscustomobject]@{ PSChildName = 'S-1-5-21-1-2-3-2002'; PSPath = 'Microsoft.PowerShell.Core\Registry::HKEY_USERS\S-1-5-21-1-2-3-2002' }
+            )
+        }
+        Mock -CommandName Test-Path -ModuleName Atlas.Registry -MockWith { $false }
+
+        { Get-AtlasActiveUserSid -Refresh } | Should -Throw '*Refusing to guess*'
+    }
+
+    It 'returns the single loaded hive SID even without a Volatile Environment key' {
+        Mock -CommandName Get-ChildItem -ModuleName Atlas.Registry -MockWith {
+            @(
+                [pscustomobject]@{ PSChildName = 'S-1-5-21-1-2-3-1001'; PSPath = 'Microsoft.PowerShell.Core\Registry::HKEY_USERS\S-1-5-21-1-2-3-1001' }
+            )
+        }
+        Mock -CommandName Test-Path -ModuleName Atlas.Registry -MockWith { $false }
+
+        Get-AtlasActiveUserSid -Refresh | Should -Be 'S-1-5-21-1-2-3-1001'
+    }
+
+    It 'returns the hive that has a Volatile Environment key when multiple hives are loaded' {
+        Mock -CommandName Get-ChildItem -ModuleName Atlas.Registry -MockWith {
+            @(
+                [pscustomobject]@{ PSChildName = 'S-1-5-21-1-2-3-1001'; PSPath = 'Microsoft.PowerShell.Core\Registry::HKEY_USERS\S-1-5-21-1-2-3-1001' }
+                [pscustomobject]@{ PSChildName = 'S-1-5-21-1-2-3-2002'; PSPath = 'Microsoft.PowerShell.Core\Registry::HKEY_USERS\S-1-5-21-1-2-3-2002' }
+            )
+        }
+        Mock -CommandName Test-Path -ModuleName Atlas.Registry -MockWith {
+            $LiteralPath -like '*S-1-5-21-1-2-3-2002*'
+        }
+
+        Get-AtlasActiveUserSid -Refresh | Should -Be 'S-1-5-21-1-2-3-2002'
+    }
+
+    It 'throws when no user hive is loaded' {
+        Mock -CommandName Get-ChildItem -ModuleName Atlas.Registry -MockWith { @() }
+
+        { Get-AtlasActiveUserSid -Refresh } | Should -Throw '*no S-1-5-21-*'
+    }
+}
+
 Describe 'Import-AtlasRegFile' {
     It 'imports a .reg file' {
         $regFile = Join-Path -Path $TestDrive -ChildPath 'test.reg'

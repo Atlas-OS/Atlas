@@ -165,9 +165,12 @@ function Split-AtlasRegistryProviderPath {
 function Get-AtlasActiveUserSid {
     <#
     .SYNOPSIS
-        Returns the SID of the interactive user: the owner of explorer.exe, falling back
-        to the loaded S-1-5-21-* hives under HKEY_USERS. Throws when no user can be
-        resolved, because writing HKCU tweaks to the wrong hive must never happen silently.
+        Returns the SID of the interactive user, resolved in order: the owner of
+        explorer.exe, then the loaded S-1-5-21-* hive under HKEY_USERS that has a
+        'Volatile Environment' key, then the single loaded user hive when exactly one
+        exists (a guess that cannot be wrong). Otherwise throws - both when no user hive
+        is loaded and when multiple hives are loaded with no signal to pick between them -
+        because writing HKCU tweaks to the wrong hive must never happen silently.
     #>
     param(
         [switch]$Refresh
@@ -212,8 +215,15 @@ function Get-AtlasActiveUserSid {
             }
         }
 
-        if (-not $chosen -and @($hiveKeys).Count -gt 0) {
-            $chosen = $hiveKeys[0]
+        if (-not $chosen) {
+            if (@($hiveKeys).Count -eq 1) {
+                # Exactly one loaded user hive: the guess cannot be wrong.
+                $chosen = $hiveKeys[0]
+            }
+            elseif (@($hiveKeys).Count -gt 1) {
+                $hiveList = ($hiveKeys | ForEach-Object { $_.PSChildName }) -join ', '
+                throw "Could not determine the active user SID: no explorer.exe owner could be resolved and multiple user hives are loaded ($hiveList). Refusing to guess - HKCU tweaks would land in an arbitrary user's profile."
+            }
         }
 
         if ($chosen) {
