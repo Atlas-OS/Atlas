@@ -35,6 +35,11 @@ HKCU resolution and default-hive mirroring, tweak schema and gating, toggle stat
 build module, etc.). They run unelevated and never mutate the machine — registry tests use
 a scratch key under `HKCU:\Software\AtlasRewriteTest`.
 
+In CI the suite runs twice: once under PowerShell 7 (`pwsh`) and once under Windows
+PowerShell 5.1 (`powershell`), the runtime the payload actually ships to — so tests must
+pass on both. `AtlasBuild.Tests.ps1` is excluded from the 5.1 leg because the build
+tooling requires pwsh.
+
 ```powershell
 $config = New-PesterConfiguration
 $config.Run.Path = 'tests'

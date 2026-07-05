@@ -60,3 +60,21 @@ jobs:
           $config.Run.Exit = $true
           $config.Output.Verbosity = 'Detailed'
           Invoke-Pester -Configuration $config
+
+      - name: Install Pester (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          # Pinned for reproducible results; -SkipPublisherCheck because the inbox
+          # Pester 3.4 signature differs from the gallery module's.
+          Install-Module -Name Pester -RequiredVersion 5.7.1 -Force -Scope CurrentUser -SkipPublisherCheck
+
+      - name: Run Pester tests (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          Import-Module Pester -RequiredVersion 5.7.1
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'tests'
+          $config.Run.ExcludePath = (Resolve-Path 'tests\AtlasBuild.Tests.ps1').Path
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config
