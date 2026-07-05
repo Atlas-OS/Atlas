@@ -334,7 +334,10 @@ function Install-AtlasArchiveTool {
     param([Parameter(Mandatory = $true)][string]$TempDir)
 
     $githubApi = Invoke-RestMethod 'https://api.github.com/repos/M2Team/NanaZip/releases/latest' -ErrorAction SilentlyContinue
-    $assets = @($githubApi.Assets.browser_download_url | Select-String '.xml', '.msixbundle' | Select-Object -Unique -First 2)
+    $assets = @()
+    if ($githubApi -and $githubApi.PSObject.Properties['Assets']) {
+        $assets = @($githubApi.Assets.browser_download_url | Select-String '.xml', '.msixbundle' | Select-Object -Unique -First 2)
+    }
     $nanaZipInstalled = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like '*NanaZip*' }
 
     if ($nanaZipInstalled) {
