@@ -4,10 +4,10 @@ param (
     [switch]$Silent
 )
 
+Import-Module -Name (Join-Path $PSScriptRoot '..\Modules\Atlas.Core\Atlas.Core.psd1') -Force
+
 function Test-Admin {
-    $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object System.Security.Principal.WindowsPrincipal($currentUser)
-    if (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    if (-not (Test-AtlasAdmin)) {
         Write-Host "Restarting script with administrator privileges..."
 
         $arguments = @(

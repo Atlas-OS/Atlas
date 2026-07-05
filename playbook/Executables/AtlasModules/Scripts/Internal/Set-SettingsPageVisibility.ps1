@@ -15,13 +15,9 @@ param (
 
 $ErrorActionPreference = 'Stop'
 
-function Test-IsAdministrator {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal $identity
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
+Import-Module -Name (Join-Path $PSScriptRoot '..\Modules\Atlas.Core\Atlas.Core.psd1') -Force
 
-if (-not (Test-IsAdministrator)) {
+if (-not (Test-AtlasAdmin)) {
     Write-Output 'You must run this script as admin.'
     exit 1
 }

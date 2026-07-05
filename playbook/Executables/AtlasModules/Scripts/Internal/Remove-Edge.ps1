@@ -398,6 +398,7 @@ Error: $_" -Level Critical -Exit -ExitCode 9
     Write-Status 'Installed Edge WebView!' -Level Success
 }
 
+# Deliberately self-contained (standalone script); canonical check lives in Atlas.Core\Test-AtlasAdmin.
 # Running as TrustedInstaller/SYSTEM breaks parts of the removal
 if ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18') {
     Write-Status "This script can't be ran as TrustedInstaller/SYSTEM.
