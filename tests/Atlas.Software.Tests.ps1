@@ -295,3 +295,107 @@ Describe 'Remove-AtlasOneDriveUserFolder' {
         }
     }
 }
+
+Describe 'Start-AtlasSoftwareInstaller' {
+    It 'runs the installer hidden/waited and returns quietly on a success exit code (0)' {
+        InModuleScope Atlas.Software {
+            Mock Start-Process { [pscustomobject]@{ ExitCode = 0 } }
+
+            { Start-AtlasSoftwareInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList '/S' -Description 'Test' } |
+                Should -Not -Throw
+
+            # The mutating launch is invoked with the exact file/args and the hidden, waited,
+            # pass-through switches the exit-code contract depends on.
+            Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {
+                $FilePath -eq 'C:\fake\setup.exe' -and
+                $ArgumentList -eq '/S' -and
+                $Wait -and $PassThru
+            }
+        }
+    }
+
+    It 'throws with the failing exit code when the installer returns a non-success code' {
+        InModuleScope Atlas.Software {
+            Mock Start-Process { [pscustomobject]@{ ExitCode = 1 } }
+
+            { Start-AtlasSoftwareInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList '/S' -Description 'Test' } |
+                Should -Throw -ExpectedMessage '*failed with exit code 1*'
+        }
+    }
+
+    It 'treats a caller-supplied additional success code (3010, reboot required) as success' {
+        InModuleScope Atlas.Software {
+            Mock Start-Process { [pscustomobject]@{ ExitCode = 3010 } }
+
+            { Start-AtlasSoftwareInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList '/S' -Description 'Test' -SuccessExitCode @(0, 3010) } |
+                Should -Not -Throw
+        }
+    }
+}
+
+Describe 'Start-AtlasSoftwareOptionalInstaller' {
+    It 'swallows an installer failure and logs a single warning instead of throwing' {
+        InModuleScope Atlas.Software {
+            Mock Start-Process { [pscustomobject]@{ ExitCode = 1 } }
+            Mock Write-AtlasLog
+
+            { Start-AtlasSoftwareOptionalInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList '/S' -Description 'Optional thing' } |
+                Should -Not -Throw
+
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Level -eq 'Warning' -and $Message -like '*failed with exit code 1*'
+            }
+        }
+    }
+}
+
+Describe 'Install-AtlasArchiveTool asset selection' {
+    It 'selects the .msixbundle + .xml pair and installs NanaZip when the GitHub API responds' {
+        InModuleScope Atlas.Software {
+            Mock Invoke-RestMethod {
+                [pscustomobject]@{
+                    Assets = @(
+                        [pscustomobject]@{ browser_download_url = 'https://example.test/NanaZip.msixbundle' }
+                        [pscustomobject]@{ browser_download_url = 'https://example.test/NanaZip.xml' }
+                        [pscustomobject]@{ browser_download_url = 'https://example.test/NanaZip.sha256' }
+                        [pscustomobject]@{ browser_download_url = 'https://example.test/NanaZip.exe' }
+                    )
+                }
+            }
+            Mock Get-AppxProvisionedPackage { @() }
+            # No existing 7-Zip install, so the code path goes straight to NanaZip.
+            Mock Test-Path -ParameterFilter { $LiteralPath -like '*7-Zip*' } -MockWith { $false }
+            Mock Install-AtlasNanaZip
+            Mock Install-Atlas7Zip
+
+            Install-AtlasArchiveTool -TempDir 'C:\fake\temp'
+
+            Should -Invoke Install-AtlasNanaZip -Times 1 -Exactly -ParameterFilter {
+                @($Assets).Count -eq 2 -and
+                (($Assets -join ';') -like '*NanaZip.msixbundle*') -and
+                (($Assets -join ';') -like '*NanaZip.xml*') -and
+                (($Assets -join ';') -notlike '*NanaZip.sha256*') -and
+                (($Assets -join ';') -notlike '*NanaZip.exe*')
+            }
+            Should -Invoke Install-Atlas7Zip -Times 0 -Exactly
+        }
+    }
+
+    It 'falls back to 7-Zip and warns when the GitHub API is unreachable' {
+        InModuleScope Atlas.Software {
+            Mock Invoke-RestMethod { $null }
+            Mock Get-AppxProvisionedPackage { @() }
+            Mock Install-AtlasNanaZip
+            Mock Install-Atlas7Zip
+            Mock Write-AtlasLog
+
+            Install-AtlasArchiveTool -TempDir 'C:\fake\temp'
+
+            Should -Invoke Install-Atlas7Zip -Times 1 -Exactly
+            Should -Invoke Install-AtlasNanaZip -Times 0 -Exactly
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Level -eq 'Warning' -and $Message -like "*GitHub API*"
+            }
+        }
+    }
+}
