@@ -28,16 +28,23 @@ function Test-Admin {
 }
 Test-Admin
 
+# Pinned so a compromised newer release can't execute elevated on user machines.
+# Bump deliberately after reviewing the release.
+$script:PSWindowsUpdateVersion = '2.2.1.5'
+
 function Install-PSWindowsUpdateModule {
     if (-not (Get-PackageProvider -ListAvailable | Where-Object Name -eq "NuGet")) {
         Install-PackageProvider -Name NuGet -Force -Confirm:$false
     }
-    if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne "Trusted") {
-        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+    if (-not (Get-Module -ListAvailable -Name PSWindowsUpdate |
+            Where-Object { $_.Version -eq [version]$script:PSWindowsUpdateVersion })) {
+        # -Force suppresses the untrusted-repository prompt on PowerShellGet 1.x/2.x
+        # (Windows PowerShell 5.1), so PSGallery's machine-wide installation policy
+        # never needs to be switched to Trusted.
+        Install-Module -Name PSWindowsUpdate -RequiredVersion $script:PSWindowsUpdateVersion `
+            -Repository PSGallery -Force -Scope CurrentUser -Confirm:$false -SkipPublisherCheck:$false
     }
-    if (-not (Get-Module -ListAvailable -Name PSWindowsUpdate)) {
-        Install-Module -Name PSWindowsUpdate -Force -Scope CurrentUser -Confirm:$false
-    }
+    Import-Module -Name PSWindowsUpdate -RequiredVersion $script:PSWindowsUpdateVersion -Force
 }
 
 function Enable-MicrosoftUpdate {
