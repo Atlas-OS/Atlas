@@ -10,6 +10,13 @@ if (-not (Test-Path -LiteralPath $coreModule -PathType Leaf)) {
 
 Import-Module $coreModule -Force
 
+$tasksProcsModule = Join-Path -Path $executablesRoot -ChildPath 'AtlasModules\Scripts\Modules\Atlas.TasksProcs\Atlas.TasksProcs.psd1'
+if (-not (Test-Path -LiteralPath $tasksProcsModule -PathType Leaf)) {
+    throw "Atlas tasks/processes module '$tasksProcsModule' is missing."
+}
+
+Import-Module $tasksProcsModule -Force
+
 $windir = [Environment]::GetFolderPath('Windows')
 $targetRoots = @(
     Join-Path -Path $windir -ChildPath 'AtlasModules'
@@ -28,8 +35,8 @@ if (-not $targetRoots) {
 }
 
 $rootsLower = $targetRoots | ForEach-Object { ($_ + '\').ToLowerInvariant() }
-Stop-ProcessesUnderRoots -RootsLower $rootsLower
-Stop-TasksUnderRoots -RootsLower $rootsLower
+Stop-AtlasProcessUnderRoot -RootsLower $rootsLower
+Stop-AtlasScheduledTaskUnderRoot -RootsLower $rootsLower
 
 $timerExePath = Join-Path -Path $windir -ChildPath 'AtlasModules\Tools\SetTimerResolution.exe'
 if (Test-Path -LiteralPath $timerExePath -PathType Leaf) {
@@ -38,7 +45,7 @@ if (Test-Path -LiteralPath $timerExePath -PathType Leaf) {
         $stream.Dispose()
     }
     catch {
-        Stop-ProcessesUnderRoots -RootsLower $rootsLower
+        Stop-AtlasProcessUnderRoot -RootsLower $rootsLower
         Start-Sleep -Milliseconds 500
     }
 }

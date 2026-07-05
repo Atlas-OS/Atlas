@@ -10,6 +10,8 @@
         'Enable-AtlasScheduledTask'
         'Remove-AtlasScheduledTask'
         'Stop-AtlasProcess'
+        'Stop-AtlasProcessUnderRoot'
+        'Stop-AtlasScheduledTaskUnderRoot'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

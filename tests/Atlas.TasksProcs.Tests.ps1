@@ -144,3 +144,21 @@ Describe 'Scheduled-task wrappers build the correct schtasks command' {
         }
     }
 }
+
+# Root-scoped process/task cleanup helpers moved here from Atlas.Core (plan 019). These assert
+# the module now owns the renamed functions and that the old Core names are gone, not aliased.
+Describe 'Root-scoped cleanup helpers live in Atlas.TasksProcs' {
+    It 'exports Stop-AtlasProcessUnderRoot and Stop-AtlasScheduledTaskUnderRoot' {
+        $exported = (Get-Command -Module Atlas.TasksProcs).Name
+        $exported | Should -Contain 'Stop-AtlasProcessUnderRoot'
+        $exported | Should -Contain 'Stop-AtlasScheduledTaskUnderRoot'
+    }
+
+    It 'no longer exposes the old Stop-ProcessesUnderRoots name' {
+        Get-Command -Name 'Stop-ProcessesUnderRoots' -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+
+    It 'no longer exposes the old Stop-TasksUnderRoots name' {
+        Get-Command -Name 'Stop-TasksUnderRoots' -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+}

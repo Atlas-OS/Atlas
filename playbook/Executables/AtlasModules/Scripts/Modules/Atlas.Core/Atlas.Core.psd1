@@ -26,9 +26,6 @@
         'Write-Title'
         'Read-Pause'
         'Read-MessageBox'
-        # Process/task helpers (absorbed from the former Utils module)
-        'Stop-ProcessesUnderRoots'
-        'Stop-TasksUnderRoots'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()
