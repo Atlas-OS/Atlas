@@ -13,6 +13,29 @@ function Remove-AtlasOneDriveItem {
     }
 }
 
+function Remove-AtlasOneDriveUserFolder {
+    <#
+    .SYNOPSIS
+        Deletes a per-profile OneDrive folder only when it contains no files.
+        Upgrade installs can encounter folders with real (or not-yet-synced) user
+        data; deleting those is unrecoverable, so they are logged and skipped.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    $files = @(Get-ChildItem -LiteralPath $Path -Recurse -File -Force -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -ne 'desktop.ini' })
+    if ($files.Count -gt 0) {
+        Write-AtlasLog -Level Warning -Message "Not deleting '$Path': it still contains $($files.Count) file(s). Remove it manually if it's no longer needed."
+        return
+    }
+
+    Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 function Clear-AtlasOneDriveUserRegistry {
     param(
         [Parameter(Mandatory = $true)]
@@ -126,9 +149,9 @@ function Remove-AtlasOneDrive {
     foreach ($userProfile in @(Get-ChildItem -Path (Join-Path -Path $env:SystemDrive -ChildPath 'Users') -Directory -ErrorAction SilentlyContinue)) {
         Remove-AtlasOneDriveItem -Path @(
             (Join-Path -Path $userProfile.FullName -ChildPath 'AppData\Local\Microsoft\OneDrive')
-            (Join-Path -Path $userProfile.FullName -ChildPath 'OneDrive')
             (Join-Path -Path $userProfile.FullName -ChildPath 'AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk')
         )
+        Remove-AtlasOneDriveUserFolder -Path (Join-Path -Path $userProfile.FullName -ChildPath 'OneDrive')
     }
 
     foreach ($key in @(Get-ChildItem -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager' -ErrorAction SilentlyContinue)) {

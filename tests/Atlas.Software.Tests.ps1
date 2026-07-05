@@ -218,3 +218,80 @@ Describe 'Get-AtlasCbsSafeModeListPath' {
         }
     }
 }
+
+Describe 'Remove-AtlasOneDriveUserFolder' {
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Software
+    }
+
+    It 'keeps a folder that still contains a real user file and logs a warning' {
+        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-realfile'
+        New-Item -Path $folder -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path -Path $folder -ChildPath 'Report.docx') -Value 'user data' -NoNewline
+
+        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
+            param($Path)
+            Remove-AtlasOneDriveUserFolder -Path $Path
+        }
+
+        Test-Path -LiteralPath $folder | Should -BeTrue
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like '*Not deleting*'
+        }
+    }
+
+    It 'deletes a folder that contains only desktop.ini' {
+        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-desktopini'
+        New-Item -Path $folder -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path -Path $folder -ChildPath 'desktop.ini') -Value '[.ShellClassInfo]' -NoNewline
+
+        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
+            param($Path)
+            Remove-AtlasOneDriveUserFolder -Path $Path
+        }
+
+        Test-Path -LiteralPath $folder | Should -BeFalse
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 0 -Exactly
+    }
+
+    It 'deletes an empty folder' {
+        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-empty'
+        New-Item -Path $folder -ItemType Directory -Force | Out-Null
+
+        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
+            param($Path)
+            Remove-AtlasOneDriveUserFolder -Path $Path
+        }
+
+        Test-Path -LiteralPath $folder | Should -BeFalse
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 0 -Exactly
+    }
+
+    It 'does not throw or log for a nonexistent path' {
+        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-missing'
+
+        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
+            param($Path)
+            { Remove-AtlasOneDriveUserFolder -Path $Path } | Should -Not -Throw
+        }
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 0 -Exactly
+    }
+
+    It 'keeps a folder whose only file is in a nested subdirectory' {
+        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-nested'
+        $nested = Join-Path -Path $folder -ChildPath 'Documents\Projects'
+        New-Item -Path $nested -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path -Path $nested -ChildPath 'notes.txt') -Value 'nested data' -NoNewline
+
+        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
+            param($Path)
+            Remove-AtlasOneDriveUserFolder -Path $Path
+        }
+
+        Test-Path -LiteralPath $folder | Should -BeTrue
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like '*Not deleting*'
+        }
+    }
+}
