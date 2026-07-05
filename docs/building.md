@@ -17,8 +17,8 @@ From the repository root:
 ```
 
 Both wrap `tools/build/Build-Playbook.ps1` with the standard local-test flags
-(`-AddLiveLog -ReplaceOldPlaybook -Removals WinverRequirement,Verification`). The resulting
-`Atlas Test.apbx` is written next to `playbook/`.
+(`-AddLiveLog -ReplaceOldPlaybook -Removals WinverRequirement,Verification -DontOpenPbLocation`). The resulting
+`Atlas Test.apbx` is written inside `playbook/` (i.e. `playbook/Atlas Test.apbx`).
 
 You can also run the build directly:
 
@@ -38,7 +38,7 @@ Editor integrations are provided for VS Code (`.vscode/launch.json`) and Zed
 | `-FileName <name>` | Output name (default `Atlas Test`). |
 | `-ReplaceOldPlaybook` | Overwrite an existing archive of the same name. |
 | `-AddLiveLog` | Inject a console action that tails AME Wizard's `OutputBuffer.txt` during install. |
-| `-DontOpenPbLocation` | Do not open Explorer at the built file (used by CI). |
+| `-DontOpenPbLocation` | Do not open Explorer at the built file (used by CI and the local wrappers). |
 | `-NoPassword` | Build without the `malte` ZIP password. |
 | `-PlaybookPath` / `-OutputPath` | Override the playbook dir / output dir (defaults to the repo layout). |
 | `-Removals <list>` | Strip content for dev builds so they install on unsupported machines. |
