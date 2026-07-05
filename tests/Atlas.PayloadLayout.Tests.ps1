@@ -17,3 +17,26 @@ Describe 'playbook Executables top-level layout' {
         $scripts.Name | Should -BeNullOrEmpty
     }
 }
+
+Describe 'Paired registry assets stay in lockstep' {
+    # Some .reg payloads ship twice: once under AtlasModules\Scripts\Registry (imported by the
+    # toggle engine) and once under AtlasModules\Toolbox (consumed by the standalone Atlas
+    # Toolbox flows). See playbook/Executables/AtlasModules/Scripts/Registry/README.md.
+    # This guard fails the moment a pair diverges; edit both copies together.
+    It 'ships byte-identical content for <Name>' -TestCases @(
+        @{ Name = 'SecurityHealthTray disable/RemoveTray'
+           A    = 'AtlasModules\Scripts\Registry\SecurityHealthTray\disable.reg'
+           B    = 'AtlasModules\Toolbox\Scripts\SecurityHealthTray\RemoveTray.reg' }
+        @{ Name = 'SecurityHealthTray enable/AddTray'
+           A    = 'AtlasModules\Scripts\Registry\SecurityHealthTray\enable.reg'
+           B    = 'AtlasModules\Toolbox\Scripts\SecurityHealthTray\AddTray.reg' }
+    ) {
+        $pathA = Join-Path -Path $script:executablesRoot -ChildPath $A
+        $pathB = Join-Path -Path $script:executablesRoot -ChildPath $B
+        Test-Path -LiteralPath $pathA -PathType Leaf | Should -BeTrue
+        Test-Path -LiteralPath $pathB -PathType Leaf | Should -BeTrue
+        $hashA = (Get-FileHash -LiteralPath $pathA -Algorithm SHA256).Hash
+        $hashB = (Get-FileHash -LiteralPath $pathB -Algorithm SHA256).Hash
+        $hashB | Should -Be $hashA -Because 'the Toolbox copy must match its Scripts/Registry source; edit both together'
+    }
+}
