@@ -363,6 +363,9 @@ if ($setupMarker -lt 1)
 
 # Write the completion marker for this user so the guard above exits early on any future re-run.
 Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+# Explorer needs a moment to fully tear down before relaunching, or the new instance
+# doesn't recognize itself as the shell and opens as a plain window instead.
+Start-Sleep -Seconds 2
 Set-SearchTaskbarMode
 Set-SetupMarker -Value 2
 
