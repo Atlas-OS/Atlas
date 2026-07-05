@@ -10,6 +10,9 @@
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'; Name = 'HideRecentlyAddedApps'; Type = 'DWord'; Data = 1 }
         # Remove personalized website recommendations from the Recommended section.
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'; Name = 'HideRecommendedPersonalizedSites'; Type = 'DWord'; Data = 1 }
+        # Remove the entire Recommended section from the Start Menu. Windows 11 22H2+,
+        # Pro/Enterprise/Education/IoT Enterprise - not honored on Home.
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'; Name = 'HideRecommendedSection'; Type = 'DWord'; Data = 1 }
     )
     # Restart the Start Menu experience host so the pin changes are picked up.
     StopProcesses = @('StartMenuExperienceHost')
