@@ -69,14 +69,14 @@ Describe 'Stop-AtlasProcess' {
 
     It 'force-stops a matching process' {
         Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Name -eq 'msteams*' } -MockWith {
-            [pscustomobject]@{ ProcessName = 'msteams'; Id = 4242 }
+            [System.Diagnostics.Process]::GetCurrentProcess()
         }
         Mock Stop-Process -ModuleName Atlas.TasksProcs
 
         Stop-AtlasProcess -Name 'msteams*'
 
         Should -Invoke Stop-Process -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
-            $InputObject.Id -eq 4242 -and $Force
+            $InputObject.Id -eq $PID -and $Force
         }
     }
 

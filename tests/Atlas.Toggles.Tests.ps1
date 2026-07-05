@@ -484,7 +484,7 @@ Describe 'Invoke-AtlasToggleAction success contract' {
             $succeeded = $true
             $toggleContext = [pscustomobject]@{ Name = 'T' }
 
-            Invoke-AtlasToggleAction -Action { param($Toggle) throw 'deliberate failure' } `
+            Invoke-AtlasToggleAction -Action { throw 'deliberate failure' } `
                 -ToggleContext $toggleContext -Succeeded ([ref]$succeeded)
 
             $succeeded | Should -BeFalse
@@ -501,7 +501,7 @@ Describe 'Invoke-AtlasToggleAction success contract' {
             $succeeded = $false
             $toggleContext = [pscustomobject]@{ Name = 'T' }
 
-            Invoke-AtlasToggleAction -Action { param($Toggle) Write-Error 'non-terminating' -ErrorAction Continue } `
+            Invoke-AtlasToggleAction -Action { Write-Error 'non-terminating' -ErrorAction Continue } `
                 -ToggleContext $toggleContext -Succeeded ([ref]$succeeded) 2>$null
 
             $succeeded | Should -BeTrue
@@ -517,7 +517,7 @@ Describe 'Invoke-AtlasToggleAction success contract' {
             $succeeded = $false
             $toggleContext = [pscustomobject]@{ Name = 'T' }
 
-            Invoke-AtlasToggleAction -Action { param($Toggle) } `
+            Invoke-AtlasToggleAction -Action { } `
                 -ToggleContext $toggleContext -Succeeded ([ref]$succeeded)
 
             $succeeded | Should -BeTrue
@@ -533,7 +533,7 @@ Describe 'Invoke-AtlasToggleAction success contract' {
             $succeeded = $false
             $toggleContext = [pscustomobject]@{ Name = 'T' }
 
-            $observedPreference = Invoke-AtlasToggleAction -Action { param($Toggle) [string]$ErrorActionPreference } `
+            $observedPreference = Invoke-AtlasToggleAction -Action { [string]$ErrorActionPreference } `
                 -ToggleContext $toggleContext -Succeeded ([ref]$succeeded)
 
             $observedPreference | Should -Be 'Continue'

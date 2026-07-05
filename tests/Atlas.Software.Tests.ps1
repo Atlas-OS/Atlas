@@ -104,7 +104,6 @@ Describe 'Assert-AtlasFileHash' {
         $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
 
         InModuleScope Atlas.Software -Parameters @{ Path = $file; Hash = $hash } {
-            param($Path, $Hash)
             { Assert-AtlasFileHash -Path $Path -ExpectedSha256 $Hash -Description 'test file' } | Should -Not -Throw
         }
     }
@@ -114,7 +113,6 @@ Describe 'Assert-AtlasFileHash' {
         Set-Content -LiteralPath $file -Value 'atlas test payload' -NoNewline
 
         InModuleScope Atlas.Software -Parameters @{ Path = $file } {
-            param($Path)
             $wrongHash = 'deadbeef' * 8
             { Assert-AtlasFileHash -Path $Path -ExpectedSha256 $wrongHash -Description 'test file' } |
                 Should -Throw -ExpectedMessage '*Refusing*'
@@ -271,7 +269,6 @@ Describe 'Remove-AtlasOneDriveUserFolder' {
         $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-missing'
 
         InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
-            param($Path)
             { Remove-AtlasOneDriveUserFolder -Path $Path } | Should -Not -Throw
         }
 

@@ -34,6 +34,7 @@ Describe 'New-AtlasShortcut' {
         $script:linkDir = Join-Path -Path $TestDrive -ChildPath 'links'
         New-Item -Path $script:linkDir -ItemType Directory -Force | Out-Null
         $script:destination = Join-Path -Path $script:linkDir -ChildPath 'MyTool.lnk'
+        Remove-Item -LiteralPath $script:destination -Force -ErrorAction SilentlyContinue
     }
 
     It 'creates a .lnk at the destination pointing at the source, defaulting the working dir to the source folder' {

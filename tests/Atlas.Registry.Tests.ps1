@@ -426,7 +426,6 @@ Describe 'Copy-AtlasRegistryKeyValues' {
 
     It 'returns silently when the source key is missing' {
         InModuleScope Atlas.Registry -Parameters @{ Src = $script:srcSubPath; Dst = $script:dstSubPath } {
-            param($Src, $Dst)
             { Copy-AtlasRegistryKeyValues -SourceSubPath $Src -DestinationSubPath $Dst } | Should -Not -Throw
         }
 
