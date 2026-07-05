@@ -98,6 +98,8 @@ function Assert-AtlasCbsCertificate {
     }
 }
 
+$script:AtlasCbsExpectedHashes = $null
+
 function Get-AtlasCbsExpectedHashes {
     <#
     .SYNOPSIS
