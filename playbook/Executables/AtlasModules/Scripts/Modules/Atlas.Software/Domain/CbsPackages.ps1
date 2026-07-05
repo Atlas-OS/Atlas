@@ -98,6 +98,59 @@ function Assert-AtlasCbsCertificate {
     }
 }
 
+function Get-AtlasCbsExpectedHashes {
+    <#
+    .SYNOPSIS
+        Loads Atlas-CbsHashes.psd1 (the SHA256 of every shipped CAB) from the packages
+        folder. The CAB signing cert is regenerated on every build, so its thumbprint is
+        not stable and cannot be pinned - the content hash is what we verify against.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$PackagesPath
+    )
+
+    if ($null -ne $script:AtlasCbsExpectedHashes) {
+        return $script:AtlasCbsExpectedHashes
+    }
+
+    $hashFile = Join-Path -Path $PackagesPath -ChildPath 'Atlas-CbsHashes.psd1'
+    if (-not (Test-Path -LiteralPath $hashFile -PathType Leaf)) {
+        throw "The CBS package hash manifest '$hashFile' is missing; refusing to install unverified packages."
+    }
+
+    # Parse via the AST (SafeGetValue) so loading never depends on a possibly-polluted
+    # PSModulePath under TrustedInstaller (see docs/testing.md).
+    $tableAst = [System.Management.Automation.Language.Parser]::ParseFile($hashFile, [ref]$null, [ref]$null).Find(
+        { param($node) $node -is [System.Management.Automation.Language.HashtableAst] }, $false)
+    if ($null -eq $tableAst) {
+        throw "The CBS package hash manifest '$hashFile' is not a valid data file."
+    }
+
+    $script:AtlasCbsExpectedHashes = $tableAst.SafeGetValue()
+    return $script:AtlasCbsExpectedHashes
+}
+
+function Assert-AtlasCbsHash {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$CabPath
+    )
+
+    $fileName = Split-Path -Path $CabPath -Leaf
+    $expected = Get-AtlasCbsExpectedHashes -PackagesPath (Split-Path -Path $CabPath -Parent)
+    if (-not $expected.ContainsKey($fileName)) {
+        throw "No expected SHA256 is recorded for '$fileName' in the CBS hash manifest; refusing to install an unlisted package."
+    }
+
+    $actual = (Get-FileHash -LiteralPath $CabPath -Algorithm SHA256).Hash
+    if ($actual -ne $expected[$fileName]) {
+        throw "SHA256 mismatch for '$fileName' (got '$actual'); the package may have been modified. Refusing to install it."
+    }
+}
+
 function Install-AtlasCbsCab {
     param(
         [Parameter(Mandatory = $true)]
@@ -108,6 +161,15 @@ function Install-AtlasCbsCab {
     $fileName = Split-Path -Path $CabPath -Leaf
     Write-Host "`nInstalling $fileName..." -ForegroundColor Cyan
     Write-Host ('-' * 84) -ForegroundColor Magenta
+
+    Write-Host '[INFO] Verifying package hash...'
+    try {
+        Assert-AtlasCbsHash -CabPath $CabPath
+    }
+    catch {
+        Write-Host "[ERROR] Hash verification failed for '$CabPath': $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+    }
 
     Write-Host '[INFO] Checking certificate...'
     try {
