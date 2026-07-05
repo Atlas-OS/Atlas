@@ -21,7 +21,7 @@ foreach ($domainModule in @(
 Export-ModuleMember -Function @(
     'Get-AtlasContext', 'Test-AtlasOption', 'New-AtlasFlag', 'Test-AtlasFlag',
     'Write-AtlasLog', 'Start-AtlasPhase', 'Stop-AtlasPhase',
-    'Test-AtlasAdmin', 'Test-AtlasTrustedInstaller', 'Assert-AtlasPrivilege', 'Invoke-AtlasTrustedInstaller', 'Invoke-AtlasAsUser',
+    'Test-AtlasAdmin', 'Test-AtlasTrustedInstaller', 'Assert-AtlasPrivilege', 'Invoke-AtlasTrustedInstaller', 'Invoke-AtlasAsUser', 'Get-AtlasUserProcessCommandLine',
     'Write-Title', 'Read-Pause', 'Read-MessageBox',
     'Stop-ProcessesUnderRoots', 'Stop-TasksUnderRoots'
 )

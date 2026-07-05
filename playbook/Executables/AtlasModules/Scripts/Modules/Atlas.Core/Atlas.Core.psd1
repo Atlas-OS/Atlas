@@ -21,6 +21,7 @@
         'Assert-AtlasPrivilege'
         'Invoke-AtlasTrustedInstaller'
         'Invoke-AtlasAsUser'
+        'Get-AtlasUserProcessCommandLine'
         # UI (absorbed from the former Utils module)
         'Write-Title'
         'Read-Pause'

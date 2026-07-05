@@ -273,6 +273,24 @@ namespace Atlas {
     $script:AtlasRunAsUserTypeLoaded = $true
 }
 
+function Get-AtlasUserProcessCommandLine {
+    <#
+    .SYNOPSIS
+        Builds the CreateProcessAsUser command line: the exe path quoted first so paths
+        with spaces survive, then the raw argument string.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$FilePath,
+        [string]$Arguments = ''
+    )
+
+    $commandLine = '"{0}"' -f $FilePath
+    if ($Arguments) {
+        $commandLine += " $Arguments"
+    }
+    return $commandLine
+}
+
 function Invoke-AtlasAsUser {
     <#
     .SYNOPSIS
@@ -308,12 +326,7 @@ function Invoke-AtlasAsUser {
         $WorkingDirectory = (Get-AtlasContext).WinDir
     }
 
-    # CreateProcessAsUser reads the whole invocation from the command line; the exe path is
-    # quoted first so paths with spaces survive.
-    $commandLine = '"{0}"' -f $FilePath
-    if ($Arguments) {
-        $commandLine += " $Arguments"
-    }
+    $commandLine = Get-AtlasUserProcessCommandLine -FilePath $FilePath -Arguments $Arguments
 
     return [Atlas.UserProcess]::Launch($FilePath, $commandLine, $WorkingDirectory, $Wait, [bool]$Elevated)
 }
