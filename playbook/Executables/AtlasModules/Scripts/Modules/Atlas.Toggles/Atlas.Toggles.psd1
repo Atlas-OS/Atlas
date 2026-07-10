@@ -14,7 +14,8 @@
         'Set-AtlasToggleState'
         # Interaction
         'Show-AtlasStateMenu'
-        # Upgrade re-apply
+        # State-store initialization and upgrade re-apply
+        'Initialize-AtlasToggleStateStore'
         'Invoke-AtlasToggleReapply'
     )
     CmdletsToExport   = @()

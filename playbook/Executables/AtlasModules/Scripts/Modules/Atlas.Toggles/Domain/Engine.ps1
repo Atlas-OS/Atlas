@@ -365,7 +365,7 @@ function Invoke-AtlasToggle {
         return
     }
 
-    # --- State recording (compatibility contract with existing installs). --------------
+    # --- State recording. ---------------------------------------------------------------
     # Recorded unless the action THREW: actions run non-strict with
     # $ErrorActionPreference = 'Continue' (see Invoke-AtlasToggleAction), so
     # non-terminating cmdlet errors do NOT block recording - toggles are best-effort by
@@ -380,26 +380,7 @@ function Invoke-AtlasToggle {
             return
         }
 
-        $recordPath = $LauncherPath
-        if (-not $recordPath) {
-            $launcherRelative = $null
-            if ($stateEntry.Contains('Launcher') -and $stateEntry.Launcher) {
-                $launcherRelative = [string]$stateEntry.Launcher
-            }
-            elseif ($definition.Contains('Launcher') -and $definition.Launcher) {
-                $launcherRelative = [string]$definition.Launcher
-            }
-            if ($launcherRelative) {
-                $recordPath = Join-Path -Path (Get-AtlasContext).WinDir -ChildPath (Join-Path -Path 'AtlasDesktop' -ChildPath $launcherRelative)
-            }
-        }
-
-        if ($recordPath) {
-            Set-AtlasToggleState -Name ([string]$definition.Name) -State ([int]$stateEntry.StateValue) -LauncherPath $recordPath -StateRoot $StateRoot
-        }
-        else {
-            Write-AtlasLog -Level Warning -Message "Toggle '$Name' state was not recorded: no launcher path is known."
-        }
+        Set-AtlasToggleState -Name ([string]$definition.Name) -State ([int]$stateEntry.StateValue) -StateRoot $StateRoot
     }
 
     # --- Interactive title + warning confirmation. ------------------------------------

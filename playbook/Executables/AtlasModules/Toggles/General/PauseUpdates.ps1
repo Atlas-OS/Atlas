@@ -1,7 +1,7 @@
 # Toggle: Pause Windows Updates (WindowsUpdate UX / UpdatePolicy pause dates).
 #
 # Pause also records a 'days' value under the AtlasOS\Services key, which some UI reads
-# (the engine still records state/path separately).
+# (the engine separately records the declarative replay state).
 @{
     Name      = 'PauseUpdates'
     Elevation = 'Admin'

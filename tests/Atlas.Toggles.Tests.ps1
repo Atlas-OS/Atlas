@@ -114,32 +114,72 @@ Describe 'Get-AtlasToggleDefinition' {
 }
 
 Describe 'Set-AtlasToggleState / Get-AtlasToggleState' {
-    It 'records state and launcher path under the state root' {
+    It 'records only the declarative state under the state root' {
         Set-AtlasToggleState -Name 'TestSetting' -State 1 -LauncherPath 'C:\Fake\Launcher.cmd' -StateRoot $StateRoot
 
         $recorded = Get-AtlasToggleState -Name 'TestSetting' -StateRoot $StateRoot
         $recorded.State | Should -Be 1
-        $recorded.Path | Should -Be 'C:\Fake\Launcher.cmd'
+        $recorded.PSObject.Properties.Name | Should -Not -Contain 'Path'
     }
 
-    It 'writes state as REG_DWORD and path as REG_SZ (schema contract)' {
+    It 'writes state as REG_DWORD and never persists the legacy launcher path' {
         Set-AtlasToggleState -Name 'KindCheck' -State 2 -LauncherPath 'C:\Fake\Kind.cmd' -StateRoot $StateRoot
 
         $key = Get-Item -LiteralPath (Join-Path $StateRoot 'KindCheck')
         $key.GetValueKind('state') | Should -Be ([Microsoft.Win32.RegistryValueKind]::DWord)
-        $key.GetValueKind('path') | Should -Be ([Microsoft.Win32.RegistryValueKind]::String)
+        @($key.GetValueNames()) | Should -Not -Contain 'path'
     }
 
-    It 'overwrites an existing recorded state' {
+    It 'overwrites state and scrubs a legacy raw path from an existing record' {
+        $keyPath = Join-Path $StateRoot 'TestSetting'
+        New-Item -Path $keyPath -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name 'path' -Value 'C:\Attacker\payload.ps1' -PropertyType String -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name 'days' -Value 14 -PropertyType DWord -Force | Out-Null
+
         Set-AtlasToggleState -Name 'TestSetting' -State 0 -LauncherPath 'C:\Fake\Other.cmd' -StateRoot $StateRoot
 
         $recorded = Get-AtlasToggleState -Name 'TestSetting' -StateRoot $StateRoot
         $recorded.State | Should -Be 0
-        $recorded.Path | Should -Be 'C:\Fake\Other.cmd'
+        @(Get-Item -LiteralPath $keyPath).GetValueNames() | Should -Not -Contain 'path'
+        (Get-ItemProperty -LiteralPath $keyPath -Name 'days').days | Should -Be 14
     }
 
     It 'returns $null for a toggle that was never recorded' {
         Get-AtlasToggleState -Name 'NeverRecorded' -StateRoot $StateRoot | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Initialize-AtlasToggleStateStore' {
+    It 'removes legacy executable paths while preserving non-replay product metadata' {
+        $keyPath = Join-Path $StateRoot 'PauseUpdates'
+        New-Item -Path $keyPath -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name 'state' -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name 'path' -Value 'C:\Attacker\payload.ps1' -PropertyType String -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name 'days' -Value 356000 -PropertyType DWord -Force | Out-Null
+
+        Initialize-AtlasToggleStateStore -StateRoot $StateRoot
+
+        $key = Get-Item -LiteralPath $keyPath
+        @($key.GetValueNames()) | Should -Not -Contain 'path'
+        (Get-ItemProperty -LiteralPath $keyPath -Name 'days').days | Should -Be 356000
+    }
+
+    It 'ships a default state seed with no executable path values' {
+        $seedPath = Join-Path $repoRoot 'playbook\Executables\DEFAULT.reg'
+        $seedBytes = [IO.File]::ReadAllBytes($seedPath)
+        $seedBytes[0..1] | Should -Be @(0xFF, 0xFE)
+        $seedText = [Text.Encoding]::Unicode.GetString($seedBytes, 2, $seedBytes.Length - 2)
+
+        $seedText | Should -Not -Match '(?m)^"path"='
+    }
+
+    It 'hardens the state root before the fresh registry seed is imported' {
+        $defaultsConfig = Get-Content -LiteralPath (Join-Path $repoRoot 'playbook\Configuration\atlas\default.yml') -Raw
+        $phaseIndex = $defaultsConfig.IndexOf("Invoke-AtlasInstall.ps1'') -Phase Defaults", [System.StringComparison]::Ordinal)
+        $seedIndex = $defaultsConfig.IndexOf('import ".\DEFAULT.reg"', [System.StringComparison]::Ordinal)
+
+        $phaseIndex | Should -BeGreaterOrEqual 0
+        $seedIndex | Should -BeGreaterThan $phaseIndex
     }
 }
 
@@ -155,36 +195,98 @@ Describe 'Invoke-AtlasToggleReapply' {
         Remove-Item -Path $script:ReapplyTogglesRoot -Recurse -Force -ErrorAction SilentlyContinue
         New-Item -Path $script:ReapplyTogglesRoot -ItemType Directory -Force | Out-Null
 
-        # A launcher that records that it ran, so tests can assert replay vs skip.
+        # The installed definition records that it ran. A separate launcher records any
+        # unsafe replay of the legacy attacker-controlled registry path.
         $script:ReapplyMarker = Join-Path $TestDrive 'reapply-marker.txt'
         Remove-Item -Path $script:ReapplyMarker -Force -ErrorAction SilentlyContinue
-        $script:ReapplyLauncher = Join-Path $TestDrive 'ReapplyLauncher.ps1'
-        Set-Content -Path $script:ReapplyLauncher -Value "param([switch]`$Silent)`nSet-Content -Path '$script:ReapplyMarker' -Value 'ran'" -Encoding Ascii
+        $env:AtlasToggleReplayMarker = $script:ReapplyMarker
+
+        $script:UntrustedMarker = Join-Path $TestDrive 'untrusted-replay-marker.txt'
+        Remove-Item -Path $script:UntrustedMarker -Force -ErrorAction SilentlyContinue
+        $script:UntrustedLauncher = Join-Path $TestDrive 'UntrustedLauncher.ps1'
+        Set-Content -Path $script:UntrustedLauncher -Value "param([switch]`$Silent)`nSet-Content -Path '$script:UntrustedMarker' -Value 'unsafe'" -Encoding Ascii
+
+        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'ReplayToggle.ps1' -Content @'
+@{
+    Name      = 'ReplayToggle'
+    Elevation = 'None'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            Action = {
+                param($Toggle)
+                Set-Content -Path $env:AtlasToggleReplayMarker -Value 'trusted-definition'
+            }
+        }
+        Off = @{
+            StateValue = 0
+            Action = {
+                param($Toggle)
+                Set-Content -Path $env:AtlasToggleReplayMarker -Value 'unexpected-zero-replay'
+            }
+        }
+    }
+}
+'@
     }
 
-    It 'replays a recorded non-zero state through its launcher' {
-        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -LauncherPath $script:ReapplyLauncher -StateRoot $StateRoot
+    AfterAll {
+        Remove-Item Env:\AtlasToggleReplayMarker -ErrorAction SilentlyContinue
+    }
+
+    It 'replays a known non-zero state exclusively through its installed definition' {
+        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -StateRoot $StateRoot
+        $recordPath = Join-Path $StateRoot 'ReplayToggle'
+        New-ItemProperty -LiteralPath $recordPath -Name 'path' -Value $script:UntrustedLauncher -PropertyType String -Force | Out-Null
 
         Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
 
         Test-Path -LiteralPath $script:ReapplyMarker | Should -BeTrue
+        Get-Content -LiteralPath $script:ReapplyMarker | Should -Be 'trusted-definition'
+        Test-Path -LiteralPath $script:UntrustedMarker | Should -BeFalse
+        @((Get-Item -LiteralPath $recordPath).GetValueNames()) | Should -Not -Contain 'path'
         Test-Path -LiteralPath (Join-Path $StateRoot 'ReplayToggle') | Should -BeTrue
     }
 
     It 'does not replay state 0' {
-        Set-AtlasToggleState -Name 'ReplayToggle' -State 0 -LauncherPath $script:ReapplyLauncher -StateRoot $StateRoot
+        Set-AtlasToggleState -Name 'ReplayToggle' -State 0 -StateRoot $StateRoot
 
         Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
 
         Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
     }
 
-    It 'cleans up a record whose launcher no longer exists' {
-        Set-AtlasToggleState -Name 'GhostToggle' -State 1 -LauncherPath (Join-Path $TestDrive 'gone.cmd') -StateRoot $StateRoot
+    It 'scrubs an unknown record without executing its legacy raw path' {
+        Set-AtlasToggleState -Name 'GhostToggle' -State 1 -StateRoot $StateRoot
+        $recordPath = Join-Path $StateRoot 'GhostToggle'
+        New-ItemProperty -LiteralPath $recordPath -Name 'path' -Value $script:UntrustedLauncher -PropertyType String -Force | Out-Null
 
         Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
 
+        Test-Path -LiteralPath $script:UntrustedMarker | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $StateRoot 'GhostToggle') | Should -BeFalse
+    }
+
+    It 'scrubs a known record whose numeric state is not defined' {
+        Set-AtlasToggleState -Name 'ReplayToggle' -State 99 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
+
+        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $StateRoot 'ReplayToggle') | Should -BeFalse
+    }
+
+    It 'scrubs a numeric state stored with the wrong registry type without executing its legacy raw path' {
+        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -StateRoot $StateRoot
+        $recordPath = Join-Path $StateRoot 'ReplayToggle'
+        New-ItemProperty -LiteralPath $recordPath -Name 'state' -Value '1' -PropertyType String -Force | Out-Null
+        New-ItemProperty -LiteralPath $recordPath -Name 'path' -Value $script:UntrustedLauncher -PropertyType String -Force | Out-Null
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
+
+        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
+        Test-Path -LiteralPath $script:UntrustedMarker | Should -BeFalse
+        Test-Path -LiteralPath $recordPath | Should -BeFalse
     }
 
     It 'cleans up and never replays a record for a NoStateRecord toggle (stale SafeMode hazard)' {
@@ -202,12 +304,85 @@ Describe 'Invoke-AtlasToggleReapply' {
 }
 '@
 
-        Set-AtlasToggleState -Name 'NoRecordToggle' -State 3 -LauncherPath $script:ReapplyLauncher -StateRoot $StateRoot
+        Set-AtlasToggleState -Name 'NoRecordToggle' -State 3 -StateRoot $StateRoot
 
         Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
 
         Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $StateRoot 'NoRecordToggle') | Should -BeFalse
+    }
+}
+
+Describe 'Atlas toggle production state ACL' {
+    It 'creates a missing production root with its DACL in the registry creation call' {
+        $stateSource = Get-Content -LiteralPath (Join-Path $repoRoot `
+                'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Toggles\Domain\State.ps1') -Raw
+
+        $stateSource | Should -Match '(?s)\.CreateSubKey\(\s*''SOFTWARE\\AtlasOS\\Services''.*?RegistryKeyPermissionCheck\]::ReadWriteSubTree.*?RegistryOptions\]::None.*?\$acl\s*\)'
+        $stateSource | Should -Match '(?s)New-AtlasToggleProductionStateRoot\s*\r?\n\s*}\s*\r?\n\s*\r?\n\s*#.*?Set-AtlasToggleStateKeyAcl -KeyPath \$StateRoot'
+    }
+
+    It 'uses a protected DACL with writes limited to privileged Windows principals' {
+        InModuleScope Atlas.Toggles {
+            $acl = New-AtlasToggleStateAcl
+            $acl.AreAccessRulesProtected | Should -BeTrue
+            $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value | Should -Be 'S-1-5-32-544'
+
+            $rules = @($acl.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier]))
+            $fullControlSids = @($rules | Where-Object {
+                    ($_.RegistryRights -band [System.Security.AccessControl.RegistryRights]::FullControl) -eq
+                    [System.Security.AccessControl.RegistryRights]::FullControl
+                } | ForEach-Object { $_.IdentityReference.Value })
+
+            $fullControlSids | Should -Contain 'S-1-5-18'
+            $fullControlSids | Should -Contain 'S-1-5-32-544'
+            $fullControlSids | Should -Contain 'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464'
+            $fullControlSids | Should -Not -Contain 'S-1-5-32-545'
+
+            $usersRule = @($rules | Where-Object { $_.IdentityReference.Value -eq 'S-1-5-32-545' })
+            $usersRule.Count | Should -Be 1
+            $usersRule[0].RegistryRights | Should -Be ([System.Security.AccessControl.RegistryRights]::ReadKey)
+        }
+    }
+
+    It 'protects the production root before migrating its existing children' {
+        InModuleScope Atlas.Toggles {
+            $productionRoot = 'HKLM:\SOFTWARE\AtlasOS\Services'
+            $childPath = 'Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SOFTWARE\AtlasOS\Services\Example'
+            $script:aclTargets = @()
+
+            Mock Test-Path { $true }
+            Mock Get-ChildItem { @([pscustomobject]@{ PSPath = $childPath }) }
+            Mock Set-Acl { $script:aclTargets += $LiteralPath }
+
+            Protect-AtlasToggleStateRoot -StateRoot $productionRoot -IncludeChildren
+
+            $script:aclTargets | Should -Be @($productionRoot, $childPath)
+        }
+    }
+
+    It 'keeps every production state-recording toggle on a privileged execution path' {
+        $definitionsRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles'
+        $unprivilegedRecorders = @(Get-ChildItem -LiteralPath $definitionsRoot -Recurse -File -Filter '*.ps1' | ForEach-Object {
+                $definition = & $_.FullName
+                $elevation = if ($definition.Contains('Elevation') -and $definition.Elevation) {
+                    [string]$definition.Elevation
+                }
+                else {
+                    'None'
+                }
+                $definitionNoRecord = $definition.Contains('NoStateRecord') -and $definition.NoStateRecord
+                $recordsAnyState = @($definition.States.Keys | Where-Object {
+                        $state = $definition.States[$_]
+                        -not $definitionNoRecord -and -not ($state.Contains('NoStateRecord') -and $state.NoStateRecord)
+                    }).Count -gt 0
+
+                if ($elevation -eq 'None' -and $recordsAnyState) {
+                    [string]$definition.Name
+                }
+            })
+
+        $unprivilegedRecorders | Should -BeNullOrEmpty
     }
 }
 
@@ -332,7 +507,7 @@ Describe 'Invoke-AtlasToggle' {
         Remove-Item -Path 'HKCU:\Software\AtlasRewriteTest\Services' -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    It 'runs the action and records state and launcher path (happy path, silent)' {
+    It 'runs the action and records only declarative state (happy path, silent)' {
         $launcher = Join-Path $WorkDir 'fake-launcher.cmd'
         Invoke-AtlasToggle -Name 'MarkerToggle' -State 'On' -LauncherPath $launcher -Silent `
             -TogglesRoot $TogglesRoot -StateRoot $StateRoot
@@ -342,7 +517,7 @@ Describe 'Invoke-AtlasToggle' {
 
         $recorded = Get-AtlasToggleState -Name 'MarkerToggle' -StateRoot $StateRoot
         $recorded.State | Should -Be 1
-        $recorded.Path | Should -Be $launcher
+        $recorded.PSObject.Properties.Name | Should -Not -Contain 'Path'
     }
 
     It 'logs the applied state change through Write-AtlasLog even when silent' {

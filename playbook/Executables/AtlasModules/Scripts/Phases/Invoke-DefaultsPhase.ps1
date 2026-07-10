@@ -1,9 +1,9 @@
 # Defaults phase.
-# Fresh installs import DEFAULT.reg directly from the playbook directory (an exeDir !cmd
+# Fresh installs import DEFAULT.reg directly from the playbook directory (an exeDir PowerShell
 # in atlas\default.yml) because it reads the .reg beside the playbook, not from %windir%;
-# that action stays in YAML. This phase only handles the upgrade branch: re-apply every
-# recorded toggle whose state is not 0 by re-running its recorded launcher silently.
-# Runs elevated (runas: currentUserElevated, onUpgrade: true).
+# that action stays in YAML and runs after this phase has protected the state root. Upgrades
+# instead migrate the existing tree and re-apply known states from installed definitions.
+# Runs elevated (runas: currentUserElevated).
 
 Assert-AtlasPrivilege -Administrator
 
@@ -12,4 +12,7 @@ Import-Module -Name (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') 
 
 if ((Get-AtlasContext).IsUpgrade) {
     Invoke-AtlasToggleReapply
+}
+else {
+    Initialize-AtlasToggleStateStore
 }

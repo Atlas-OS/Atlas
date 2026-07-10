@@ -21,5 +21,5 @@ Export-ModuleMember -Function @(
     'Get-AtlasToggleDefinition', 'Invoke-AtlasToggle',
     'Get-AtlasToggleState', 'Set-AtlasToggleState',
     'Show-AtlasStateMenu',
-    'Invoke-AtlasToggleReapply'
+    'Initialize-AtlasToggleStateStore', 'Invoke-AtlasToggleReapply'
 )
