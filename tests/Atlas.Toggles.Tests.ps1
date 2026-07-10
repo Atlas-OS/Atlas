@@ -796,12 +796,361 @@ Describe 'Invoke-AtlasToggleAction result contract' {
 
 Describe 'New-ToggleLaunchers.ps1' {
     BeforeAll {
-        $script:GeneratorScript = Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'tools\dev\New-ToggleLaunchers.ps1'
+        $script:GeneratorRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+        $script:GeneratorScript = Join-Path $script:GeneratorRepoRoot 'tools\dev\New-ToggleLaunchers.ps1'
+        $script:LauncherEnvironmentHelper = Join-Path $script:GeneratorRepoRoot `
+            'playbook\Executables\AtlasModules\Scripts\Internal\Initialize-PowerShellLauncherEnvironment.cmd'
+
+        $tokens = $null
+        $parseErrors = $null
+        $generatorAst = [Management.Automation.Language.Parser]::ParseFile(
+            $script:GeneratorScript,
+            [ref]$tokens,
+            [ref]$parseErrors
+        )
+        $parseErrors | Should -BeNullOrEmpty
+        foreach ($functionName in @(
+                'Assert-LauncherIdentifier'
+                'Resolve-LauncherTargetPath'
+                'New-LauncherContent'
+            )) {
+            $functionAst = $generatorAst.Find({
+                    param($node)
+                    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+                    $node.Name -eq $functionName
+                }, $true)
+            Set-Variable -Scope Script -Name ($functionName.Replace('-', '') + 'Definition') `
+                -Value ([scriptblock]::Create($functionAst.Extent.Text))
+        }
     }
 
     It 'validates cleanly against the committed repo tree' {
         $output = & $GeneratorScript -Validate 2>&1
         $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
+    }
+
+    It 'rejects unsafe Name and State metadata through the pure identifier seam' {
+        . $script:AssertLauncherIdentifierDefinition
+
+        Assert-LauncherIdentifier -Value 'SafeToggle1' -Kind Name -Source 'test' |
+            Should -BeExactly 'SafeToggle1'
+        foreach ($candidate in @(
+                $null
+                42
+                ''
+                ' leading'
+                '-leading'
+                'Has Space'
+                'Has&Command'
+                'Has%Expansion%'
+                'Has!Expansion!'
+                "Has`nNewline"
+            )) {
+            {
+                Assert-LauncherIdentifier -Value $candidate -Kind State -Source 'negative test'
+            } | Should -Throw
+        }
+    }
+
+    It 'keeps launcher targets as safe .cmd files beneath their declared root' {
+        . $script:ResolveLauncherTargetPathDefinition
+
+        $root = Join-Path $TestDrive 'LauncherRoot'
+        $null = New-Item -Path $root -ItemType Directory -Force
+        $valid = Resolve-LauncherTargetPath `
+            -RootPath $root `
+            -LauncherRelative 'Folder (safe)\Toggle-1.cmd' `
+            -Source 'positive test'
+        $valid | Should -BeExactly ([IO.Path]::GetFullPath((Join-Path $root 'Folder (safe)\Toggle-1.cmd')))
+
+        foreach ($candidate in @(
+                'C:\outside.cmd'
+                '..\outside.cmd'
+                'Folder\..\outside.cmd'
+                'Folder/forward.cmd'
+                'Folder\not-a-command.ps1'
+                'Folder\Bad&Command.cmd'
+                'Folder\Bad%Expansion%.cmd'
+                'Folder\\EmptySegment.cmd'
+                'Folder.\TrailingDot.cmd'
+                'CON.cmd'
+                'LPT1.anything.cmd'
+            )) {
+            {
+                Resolve-LauncherTargetPath `
+                    -RootPath $root `
+                    -LauncherRelative $candidate `
+                    -Source 'negative test'
+            } | Should -Throw
+        }
+    }
+
+    It 'validates interpolated identifiers and emits no dynamic title command' {
+        . $script:AssertLauncherIdentifierDefinition
+        . $script:NewLauncherContentDefinition
+
+        $content = New-LauncherContent -Name 'SafeToggle' -State 'Enable' -Source 'positive test'
+        $content | Should -Match '-Name "SafeToggle" -State "Enable"'
+        $content | Should -Match '"%AtlasNativePowerShell%"'
+        $content | Should -Not -Match '(?im)^\s*title\b'
+        {
+            New-LauncherContent -Name 'Safe&whoami' -State Enable -Source 'negative test'
+        } | Should -Throw
+    }
+
+    It 'delegates every generated launcher to the fixed native PowerShell environment helper' {
+        $repoRoot = $script:GeneratorRepoRoot
+        $launcherRoots = @(
+            (Join-Path $repoRoot 'playbook\Executables\AtlasDesktop')
+            (Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toolbox')
+        )
+        $launchers = @(Get-ChildItem -LiteralPath $launcherRoots -Recurse -File -Filter '*.cmd' |
+            Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match 'Invoke-Toggle\.ps1' })
+
+        $launchers.Count | Should -Be 181
+        foreach ($launcher in $launchers) {
+            $content = Get-Content -LiteralPath $launcher.FullName -Raw
+            $content | Should -Match '(?m)^setlocal EnableExtensions DisableDelayedExpansion\r?$'
+            $content | Should -Match '(?m)^verify other 2>nul\r?\nsetlocal EnableExtensions DisableDelayedExpansion\r?\nif errorlevel 1 exit /b 1\r?$'
+            $content | Should -Match '(?m)^cd /d "%__APPDIR__%"\r?\nif errorlevel 1 exit /b 1\r?$'
+            $content | Should -Match 'for %%I in \("%__APPDIR__%\.\."\) do set "AtlasWindowsRoot=%%~fI"'
+            $content | Should -Match `
+                'set "launcherEnvironment=%AtlasWindowsRoot%\\AtlasModules\\Scripts\\Internal\\Initialize-PowerShellLauncherEnvironment\.cmd"'
+            $content | Should -Match `
+                '(?ms)^if not exist "%launcherEnvironment%" \(\r?\n    echo PowerShell launcher environment helper not found:.+\r?\n    exit /b 1\r?\n\)\r?\ncall "%launcherEnvironment%"\r?\nif errorlevel 1 exit /b 1\r?$'
+            $content | Should -Not -Match `
+                '(?im)^set "(?:SystemRoot|windir|ComSpec|PATH|PSModulePath|COR_|CORECLR_|DOTNET_|APPDOMAIN_|COMPLUS_)'
+            $content | Should -Match '(?m)^set "AtlasLauncherSilent="\r?$'
+            $content | Should -Match '(?m)^set "AtlasLauncherJustContext="\r?$'
+            $content | Should -Match '(?m)^set "AtlasLauncherNoAction="\r?$'
+            $content | Should -Match `
+                '(?m)^if /i "%~1"=="/silent" goto AtlasLauncherFlagSilent\r?$'
+            $content | Should -Match `
+                '(?m)^if /i "%~1"=="-quiet" goto AtlasLauncherFlagSilent\r?$'
+            $content | Should -Match `
+                '(?m)^if /i "%~1"=="/justcontext" goto AtlasLauncherFlagJustContext\r?$'
+            $content | Should -Match `
+                '(?m)^if /i "%~1"=="-noaction" goto AtlasLauncherFlagNoAction\r?$'
+            $content | Should -Match '(?m)^exit /b 87\r?\n:AtlasLauncherFlagSilent\r?$'
+            ([regex]::Matches($content, '(?m)^shift /1\r?$')).Count | Should -Be 3
+            $content | Should -Not -Match '(?m)^shift\r?$'
+            $content | Should -Not -Match '(?im)^for /f|%ComSpec%|%\*'
+            $content | Should -Match '"%AtlasNativePowerShell%"'
+            $content | Should -Not -Match '%__APPDIR__%WindowsPowerShell|(?im)^\s*title\b'
+            $content | Should -Match '-File "%AtlasWindowsRoot%\\AtlasModules\\Scripts\\Invoke-Toggle\.ps1"'
+            $content | Should -Match '-Name "[A-Za-z][A-Za-z0-9]*"(?: -State "[A-Za-z][A-Za-z0-9]*")? -LauncherPath'
+            $content | Should -Match `
+                '%AtlasLauncherSilent% %AtlasLauncherJustContext% %AtlasLauncherNoAction%'
+            $content | Should -Not -Match '%(?:SystemRoot|windir|ERRORLEVEL)%|(?im)^\s*powershell(?:\.exe)?\s'
+            $content | Should -Match `
+                '(?m)^if errorlevel 0 \(\r?\n    if errorlevel 1 exit /b\r?\n\) else \(\r?\n    exit /b 1\r?\n\)\r?\nexit /b 0\r?$'
+        }
+    }
+
+    It 'canonicalizes only the supported launcher flags before reaching PowerShell' {
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+        $driverLauncher = Join-Path -Path $repoRoot `
+            -ChildPath 'playbook\Executables\AtlasDesktop\2. Drivers\Run Update Drivers.cmd'
+        $launcherLines = @(Get-Content -LiteralPath $driverLauncher)
+        $parserStart = [array]::IndexOf($launcherLines, 'set "AtlasLauncherSilent="')
+        $parserEnd = [array]::IndexOf($launcherLines, ':AtlasLauncherRun')
+        $parserStart | Should -BeGreaterThan -1
+        $parserEnd | Should -BeGreaterThan $parserStart
+
+        $probePath = Join-Path -Path $TestDrive -ChildPath 'launcher-argument-probe.cmd'
+        $probeLines = @(
+            '@echo off'
+            'setlocal EnableExtensions DisableDelayedExpansion'
+        ) + @($launcherLines[$parserStart..$parserEnd]) + @(
+            'echo SINK silent=%AtlasLauncherSilent% justcontext=%AtlasLauncherJustContext% noaction=%AtlasLauncherNoAction%'
+            'echo LAUNCHER=%~f0'
+            'exit /b 0'
+        )
+        [IO.File]::WriteAllText(
+            $probePath,
+            (($probeLines -join "`r`n") + "`r`n"),
+            [Text.Encoding]::ASCII
+        )
+
+        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
+        $allowed = & $commandHost /d /e:on /v:off /c `
+            "call `"$probePath`" /quiet -justcontext /noaction" 2>&1
+        $LASTEXITCODE | Should -Be 0 -Because ($allowed -join "`n")
+        ($allowed -join "`n") | Should -Match `
+            '(?m)^SINK silent=/silent justcontext=/justcontext noaction=/noaction$'
+        ($allowed -join "`n") | Should -Match `
+            ('(?m)^LAUNCHER=' + [regex]::Escape($probePath) + '$')
+
+        $rejected = & $commandHost /d /e:on /v:off /c `
+            "call `"$probePath`" /silent /unsupported" 2>&1
+        $LASTEXITCODE | Should -Be 87 -Because ($rejected -join "`n")
+        $rejected | Should -Not -Match '^SINK '
+    }
+
+    It 'uses the fixed helper to select native PowerShell and sanitize a real cmd child' {
+        $probePath = Join-Path $TestDrive 'launcher-probe.cmd'
+        $helperEscaped = $script:LauncherEnvironmentHelper.Replace('%', '%%')
+        $probeLines = @(
+            '@echo off'
+            'verify other 2>nul'
+            'setlocal EnableExtensions DisableDelayedExpansion'
+            'if errorlevel 1 exit /b 1'
+            'cd /d "%__APPDIR__%"'
+            'if errorlevel 1 exit /b 1'
+            'for %%I in ("%__APPDIR__%..") do set "AtlasWindowsRoot=%%~fI"'
+            ('call "{0}"' -f $helperEscaped)
+            'if errorlevel 1 exit /b 12'
+            'if defined COR_ENABLE_PROFILING (echo COR=present) else (echo COR=cleared)'
+            'if defined COMPLUS_JITPATH (echo JIT=present) else (echo JIT=cleared)'
+            'echo CWD=%CD%'
+            'echo ROOT=%AtlasWindowsRoot%'
+            'echo PATH=%PATH%'
+            'echo COMSPEC=%ComSpec%'
+            'echo PATHEXT=%PATHEXT%'
+            'echo PSMODULEPATH=%PSModulePath%'
+            'echo NATIVEPOWERSHELL=%AtlasNativePowerShell%'
+            'exit /b 0'
+        )
+        [IO.File]::WriteAllText($probePath, (($probeLines -join "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
+
+        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
+        $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
+        $startInfo.FileName = $commandHost
+        $startInfo.Arguments = '/d /e:off /v:off /c call "' + $probePath + '"'
+        $startInfo.WorkingDirectory = $TestDrive
+        $startInfo.UseShellExecute = $false
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+
+        $originalCor = $env:COR_ENABLE_PROFILING
+        $originalJit = $env:COMPLUS_JITPATH
+        try {
+            $env:COR_ENABLE_PROFILING = '1'
+            $env:COMPLUS_JITPATH = 'C:\untrusted\probe.dll'
+            $probe = [Diagnostics.Process]::Start($startInfo)
+            $stdout = $probe.StandardOutput.ReadToEnd()
+            $stderr = $probe.StandardError.ReadToEnd()
+            $probe.WaitForExit()
+
+            $probe.ExitCode | Should -Be 0 -Because $stderr
+            $stdout | Should -Match '(?m)^COR=cleared\r?$'
+            $stdout | Should -Match '(?m)^JIT=cleared\r?$'
+            $stdout | Should -Match ('(?m)^CWD=' + [regex]::Escape([Environment]::GetFolderPath('System')) + '\\?\r?$')
+            $stdout | Should -Match ('(?m)^ROOT=' + [regex]::Escape([Environment]::GetFolderPath('Windows')) + '\\?\r?$')
+            $expectedSystem = [Environment]::GetFolderPath('System')
+            $expectedWindows = [Environment]::GetFolderPath('Windows')
+            $expectedPath = "$expectedSystem;$expectedWindows;$expectedSystem\Wbem;$expectedSystem\WindowsPowerShell\v1.0"
+            $stdout | Should -Match ('(?m)^PATH=' + [regex]::Escape($expectedPath) + '\r?$')
+            $stdout | Should -Match ('(?m)^COMSPEC=' + [regex]::Escape((Join-Path $expectedSystem 'cmd.exe')) + '\r?$')
+            $stdout | Should -Match '(?m)^PATHEXT=\.COM;\.EXE;\.BAT;\.CMD\r?$'
+            $stdout | Should -Match `
+                ('(?m)^PSMODULEPATH=' + [regex]::Escape((Join-Path $expectedSystem 'WindowsPowerShell\v1.0\Modules')) + '\r?$')
+            $stdout | Should -Match `
+                ('(?m)^NATIVEPOWERSHELL=' + [regex]::Escape((Join-Path $expectedSystem 'WindowsPowerShell\v1.0\powershell.exe')) + '\r?$')
+        }
+        finally {
+            $env:COR_ENABLE_PROFILING = $originalCor
+            $env:COMPLUS_JITPATH = $originalJit
+        }
+    }
+
+    It 'propagates positive native exit 37 despite an inherited ERRORLEVEL variable' {
+        $probePath = Join-Path $TestDrive 'launcher-exit-probe.cmd'
+        $probeLines = @(
+            '@echo off'
+            'verify other 2>nul'
+            'setlocal EnableExtensions DisableDelayedExpansion'
+            'if errorlevel 1 exit /b 1'
+            '"%__APPDIR__%cmd.exe" /d /c exit 37'
+            'if errorlevel 0 ('
+            '    if errorlevel 1 exit /b'
+            ') else ('
+            '    exit /b 1'
+            ')'
+            'exit /b 0'
+        )
+        [IO.File]::WriteAllText($probePath, (($probeLines -join "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
+
+        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
+        $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
+        $startInfo.FileName = $commandHost
+        $startInfo.Arguments = '/d /e:off /v:off /c call "' + $probePath + '"'
+        $startInfo.UseShellExecute = $false
+
+        $originalErrorLevel = $env:ERRORLEVEL
+        try {
+            $env:ERRORLEVEL = '0'
+            $probe = [Diagnostics.Process]::Start($startInfo)
+            $probe.WaitForExit()
+            $probe.ExitCode | Should -Be 37
+        }
+        finally {
+            $env:ERRORLEVEL = $originalErrorLevel
+        }
+    }
+
+    It 'preserves a successful native exit as zero' {
+        $probePath = Join-Path $TestDrive 'launcher-zero-exit-probe.cmd'
+        $probeLines = @(
+            '@echo off'
+            'verify other 2>nul'
+            'setlocal EnableExtensions DisableDelayedExpansion'
+            'if errorlevel 1 exit /b 1'
+            '"%__APPDIR__%cmd.exe" /d /c exit 0'
+            'if errorlevel 0 ('
+            '    if errorlevel 1 exit /b'
+            ') else ('
+            '    exit /b 1'
+            ')'
+            'exit /b 0'
+        )
+        [IO.File]::WriteAllText(
+            $probePath,
+            (($probeLines -join "`r`n") + "`r`n"),
+            [Text.Encoding]::ASCII
+        )
+
+        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
+        $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
+        $startInfo.FileName = $commandHost
+        $startInfo.Arguments = '/d /e:off /v:off /c call "' + $probePath + '"'
+        $startInfo.UseShellExecute = $false
+
+        $probe = [Diagnostics.Process]::Start($startInfo)
+        $probe.WaitForExit()
+        $probe.ExitCode | Should -Be 0
+    }
+
+    It 'normalizes a negative native exit to failure instead of reporting success' {
+        $probePath = Join-Path $TestDrive 'launcher-negative-exit-probe.cmd'
+        $probeLines = @(
+            '@echo off'
+            'verify other 2>nul'
+            'setlocal EnableExtensions DisableDelayedExpansion'
+            'if errorlevel 1 exit /b 1'
+            '"%__APPDIR__%cmd.exe" /d /c exit /b -1'
+            'if errorlevel 0 ('
+            '    if errorlevel 1 exit /b'
+            ') else ('
+            '    exit /b 1'
+            ')'
+            'exit /b 0'
+        )
+        [IO.File]::WriteAllText(
+            $probePath,
+            (($probeLines -join "`r`n") + "`r`n"),
+            [Text.Encoding]::ASCII
+        )
+
+        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
+        $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
+        $startInfo.FileName = $commandHost
+        $startInfo.Arguments = '/d /e:off /v:off /c call "' + $probePath + '"'
+        $startInfo.UseShellExecute = $false
+
+        $probe = [Diagnostics.Process]::Start($startInfo)
+        $probe.WaitForExit()
+        $probe.ExitCode | Should -Be 1
     }
 }
 
