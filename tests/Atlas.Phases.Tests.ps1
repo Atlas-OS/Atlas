@@ -123,6 +123,7 @@ Describe 'Install phase scripts' {
         # Revert runs as TrustedInstaller (StoreFixer) and is a no-op on fresh installs.
         $script:privilegeExpectations = @{
             'Invoke-PreInstallPhase.ps1'   = 'Administrator'
+            'Invoke-ShellRefreshPhase.ps1' = 'TrustedInstaller'
             'Invoke-EnvironmentPhase.ps1'  = 'Administrator'
             'Invoke-FeaturesPhase.ps1'     = 'Administrator'
             'Invoke-SoftwarePhase.ps1'     = 'Administrator'
@@ -138,7 +139,7 @@ Describe 'Install phase scripts' {
 
     It 'finds every expected phase script' {
         $names = (Get-ChildItem -Path $script:phasesRoot -Filter 'Invoke-*Phase.ps1' -File).Name
-        foreach ($expected in @('PreInstall', 'Environment', 'Features', 'Software', 'Services',
+        foreach ($expected in @('PreInstall', 'ShellRefresh', 'Environment', 'Features', 'Software', 'Services',
                 'Components', 'AppxSupport', 'Tweaks', 'Defaults', 'Revert', 'Finalize')) {
             $names | Should -Contain "Invoke-${expected}Phase.ps1"
         }

@@ -114,6 +114,7 @@ Export-ModuleMember -Function Start-AtlasPhase, Stop-AtlasPhase, Write-AtlasLog
         @{ RelativePath = 'Install-AtlasPackage.ps1'; Modules = @('Atlas.Core', 'Atlas.Software') }
         @{ RelativePath = 'Phases\Invoke-AppxSupportPhase.ps1'; Modules = @('Atlas.Appx', 'Atlas.TasksProcs') }
         @{ RelativePath = 'Phases\Invoke-ComponentsPhase.ps1'; Modules = @('Atlas.Services', 'Atlas.TasksProcs', 'Atlas.Software') }
+        @{ RelativePath = 'Phases\Invoke-ShellRefreshPhase.ps1'; Modules = @('Atlas.TasksProcs') }
         @{ RelativePath = 'Phases\Invoke-DefaultsPhase.ps1'; Modules = @('Atlas.Toggles') }
         @{ RelativePath = 'Phases\Invoke-FinalizePhase.ps1'; Modules = @('Atlas.Registry') }
         @{ RelativePath = 'Phases\Invoke-RevertPhase.ps1'; Modules = @('Atlas.Registry', 'Atlas.Tweaks') }

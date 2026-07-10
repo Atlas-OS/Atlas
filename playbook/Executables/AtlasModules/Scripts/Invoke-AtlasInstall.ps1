@@ -12,7 +12,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('PreInstall', 'Environment', 'Features', 'Software', 'Services',
+    [ValidateSet('PreInstall', 'ShellRefresh', 'Environment', 'Features', 'Software', 'Services',
         'Components', 'AppxSupport', 'Tweaks', 'Defaults', 'Revert', 'Finalize')]
     [string]$Phase,
 

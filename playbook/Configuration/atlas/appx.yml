@@ -27,11 +27,6 @@ actions:
     weight: 4
     handleExitCodes: { "!0": halt }
 
-  # Prevent the Teams chat auto-install. Stays in YAML: the Communications key is
-  # TrustedInstaller-protected, so the elevated-admin phase above cannot write it
-  # (it must run as the user so Get-AppxPackage sees the user's packages).
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications', value: 'ConfigureChatAutoInstall', data: '0', type: REG_DWORD}
-
   # Microsoft Edge (the rest of the Edge removal runs in the Components phase,
   # gated on the same option). Legacy EdgeHTML, the Chromium Edge AppX and the
   # Game Assist companion.

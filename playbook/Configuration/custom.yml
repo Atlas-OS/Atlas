@@ -6,7 +6,7 @@ actions:
   # (SystemDrive because the admin's home drive can differ from the OS drive; a failed
   # load would silently lose every default-user mirror, so it halts)
   - !powerShell:
-    command: 'reg load HKU\AME_UserHive_Default $env:SystemDrive\Users\Default\NTUSER.DAT'
+    command: '$ErrorActionPreference = ''Stop''; & "$env:windir\System32\reg.exe" load HKU\AME_UserHive_Default "$env:SystemDrive\Users\Default\NTUSER.DAT"; if ($LASTEXITCODE -ne 0) { throw "Loading the default-user hive failed with exit code $LASTEXITCODE." }'
     oobe: false
     wait: true
     handleExitCodes: { "!0": halt }
@@ -17,6 +17,7 @@ actions:
     onUpgrade: true
     wait: true
     runas: currentUserElevated
+    handleExitCodes: { "!0": halt }
   - !powerShell:
     command: '& ".\AtlasModules\Scripts\Tasks\Stop-ProcessExplorerUpgrade.ps1"'
     weight: 2
@@ -30,6 +31,7 @@ actions:
     exeDir: true
     oobe: false
     onUpgrade: true
+    handleExitCodes: { "!0": halt }
 
   - !writeStatus: { status: "Copying files" }
   - !powerShell:
@@ -45,27 +47,28 @@ actions:
   # Get-AtlasContext). Stale flags from a previous install are cleared first.
   - !powerShell:
     # Triple quotes: the command line strips bare double quotes before PowerShell parses.
-    command: '$f = """$env:windir\AtlasModules\Flags"""; New-Item -Path $f -ItemType Directory -Force | Out-Null; Remove-Item -Path """$f\*.flag""" -Force -ErrorAction SilentlyContinue'
+    command: '$ErrorActionPreference = ''Stop''; $f = """$env:windir\AtlasModules\Flags"""; New-Item -Path $f -ItemType Directory -Force | Out-Null; Remove-Item -Path """$f\*.flag""" -Force -ErrorAction SilentlyContinue'
     wait: true
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\Upgrade.flag" -ItemType File -Force | Out-Null', wait: true, onUpgrade: true }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\Interactive.flag" -ItemType File -Force | Out-Null', wait: true, oobe: false }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-auto-updates-default.flag" -ItemType File -Force | Out-Null', wait: true, option: 'auto-updates-default' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-auto-updates-disable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'auto-updates-disable' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-brave.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-brave' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-chrome.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-chrome' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-firefox.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-firefox' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-librewolf.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-librewolf' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-defender-disable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'defender-disable' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-defender-enable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'defender-enable' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-disable-core-isolation.flag" -ItemType File -Force | Out-Null', wait: true, option: 'disable-core-isolation' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-disable-hibernation.flag" -ItemType File -Force | Out-Null', wait: true, option: 'disable-hibernation' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-disable-power-saving.flag" -ItemType File -Force | Out-Null', wait: true, option: 'disable-power-saving' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-install-another-browser.flag" -ItemType File -Force | Out-Null', wait: true, option: 'install-another-browser' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-install-toolbox.flag" -ItemType File -Force | Out-Null', wait: true, option: 'install-toolbox' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-mitigations-default.flag" -ItemType File -Force | Out-Null', wait: true, option: 'mitigations-default' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-mitigations-disable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'mitigations-disable' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-remove-snipping-tool.flag" -ItemType File -Force | Out-Null', wait: true, option: 'remove-snipping-tool' }
-  - !powerShell: { command: 'New-Item -Path "$env:windir\AtlasModules\Flags\option-uninstall-edge.flag" -ItemType File -Force | Out-Null', wait: true, option: 'uninstall-edge' }
+    handleExitCodes: { "!0": halt }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\Upgrade.flag" -ItemType File -Force | Out-Null', wait: true, onUpgrade: true, handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\Interactive.flag" -ItemType File -Force | Out-Null', wait: true, oobe: false, handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-auto-updates-default.flag" -ItemType File -Force | Out-Null', wait: true, option: 'auto-updates-default', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-auto-updates-disable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'auto-updates-disable', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-brave.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-brave', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-chrome.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-chrome', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-firefox.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-firefox', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-browser-librewolf.flag" -ItemType File -Force | Out-Null', wait: true, option: 'browser-librewolf', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-defender-disable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'defender-disable', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-defender-enable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'defender-enable', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-disable-core-isolation.flag" -ItemType File -Force | Out-Null', wait: true, option: 'disable-core-isolation', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-disable-hibernation.flag" -ItemType File -Force | Out-Null', wait: true, option: 'disable-hibernation', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-disable-power-saving.flag" -ItemType File -Force | Out-Null', wait: true, option: 'disable-power-saving', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-install-another-browser.flag" -ItemType File -Force | Out-Null', wait: true, option: 'install-another-browser', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-install-toolbox.flag" -ItemType File -Force | Out-Null', wait: true, option: 'install-toolbox', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-mitigations-default.flag" -ItemType File -Force | Out-Null', wait: true, option: 'mitigations-default', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-mitigations-disable.flag" -ItemType File -Force | Out-Null', wait: true, option: 'mitigations-disable', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-remove-snipping-tool.flag" -ItemType File -Force | Out-Null', wait: true, option: 'remove-snipping-tool', handleExitCodes: { "!0": halt } }
+  - !powerShell: { command: '$ErrorActionPreference = ''Stop''; New-Item -Path "$env:windir\AtlasModules\Flags\option-uninstall-edge.flag" -ItemType File -Force | Out-Null', wait: true, option: 'uninstall-edge', handleExitCodes: { "!0": halt } }
 
   # PreInstall phase (AtlasModules\Scripts\Phases\Invoke-PreInstallPhase.ps1): disables
   # notifications so they do not fire during deployment, then runs Disk Cleanup so it can
@@ -79,9 +82,13 @@ actions:
     runas: currentUserElevated
     handleExitCodes: { "!0": halt }
 
-  - !taskKill: { name: "explorer" }
-  - !taskKill: { name: "ShellExperienceHost" }
-  - !run: { exe: "explorer.exe", runas: "currentUser", wait: false }
+  # ShellRefresh phase stops the two shell processes and restarts Explorer with the
+  # interactive user's unelevated token. Keep this checked: without a live shell,
+  # later per-user operations can run against an invalid session state.
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase ShellRefresh'
+    wait: true
+    handleExitCodes: { "!0": halt }
 
   # Environment phase (AtlasModules\Scripts\Phases\Invoke-EnvironmentPhase.ps1): NGEN of
   # the loaded .NET assemblies plus the temporary Unrestricted execution policy and the
@@ -100,6 +107,7 @@ actions:
   - !powerShell:
     command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\qol\set-hidden-settings-pages.psd1'')'
     wait: true
+    handleExitCodes: { "!0": halt }
 
   # Main tasks
   - !task: { path: 'atlas\start.yml' }
@@ -119,7 +127,26 @@ actions:
     onUpgrade: false
     handleExitCodes: { "!0": halt }
 
-  - !task: { path: 'atlas\components.yml' }
+  # Components phase (AtlasModules\Scripts\Phases\Invoke-ComponentsPhase.ps1):
+  # interactive-user Edge removal followed by TrustedInstaller component work. The
+  # only runner-owned mutation retained here is the mounted-image-only WdBoot key;
+  # AME applies that iso-only action during image injection, outside the later live
+  # phase ordering.
+  - !writeStatus: {status: 'Removing Microsoft Edge', option: 'uninstall-edge', onUpgrade: false}
+  - !writeStatus: {status: 'Removing OneDrive', onUpgrade: false}
+  - !writeStatus: {status: 'Removing components', onUpgrade: false}
+  - !registryKey:
+    path: 'HKLM\OfflineSys\ControlSet001\Services\WdBoot'
+    operation: delete
+    option: 'defender-disable'
+    iso: only
+    onUpgrade: false
+  - !powerShell:
+    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Components'
+    wait: true
+    weight: 18
+    onUpgrade: false
+    handleExitCodes: { "!0": halt }
   - !task: { path: 'atlas\appx.yml' }
   - !task: { path: 'atlas\default.yml' }
 
@@ -141,6 +168,7 @@ actions:
     command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\config-oem-information.psd1'')'
     wait: true
     onUpgrade: true
+    handleExitCodes: { "!0": halt }
 
   # Re-enable notifications on upgrades. The PreInstall phase disables them
   # unconditionally, but tweaks.yml (whose last action re-enables them on fresh
@@ -150,11 +178,11 @@ actions:
     command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\enable-notifications.psd1'')'
     wait: true
     onUpgrade: true
+    handleExitCodes: { "!0": halt }
 
   # Finalize phase (AtlasModules\Scripts\Phases\Invoke-FinalizePhase.ps1): mirrors the
-  # recorded HKCU keys into the still-loaded default-user hive and corrects stale
-  # registry launcher paths. MUST run while HKU\AME_UserHive_Default is loaded, i.e.
-  # before the 'reg unload' below.
+  # recorded HKCU keys into the still-loaded default-user hive. MUST run while
+  # HKU\AME_UserHive_Default is loaded, i.e. before the 'reg unload' below.
   - !writeStatus: { status: "Applying hives..." }
   - !powerShell:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Finalize'
@@ -164,8 +192,9 @@ actions:
     handleExitCodes: { "!0": halt }
 
   # Unloading the hive
-  - !writeStatus: { status: "Cleaning up registry paths" }
+  - !writeStatus: { status: "Unloading the default-user hive" }
   - !powerShell:
-    command: 'reg unload HKU\AME_UserHive_Default'
+    command: '$ErrorActionPreference = ''Stop''; & "$env:windir\System32\reg.exe" unload HKU\AME_UserHive_Default; if ($LASTEXITCODE -ne 0) { throw "Unloading the default-user hive failed with exit code $LASTEXITCODE." }'
     oobe: false
     wait: true
+    handleExitCodes: { "!0": halt }

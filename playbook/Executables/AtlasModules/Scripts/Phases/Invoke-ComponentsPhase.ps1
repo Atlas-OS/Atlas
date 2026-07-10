@@ -1,12 +1,13 @@
 # Components phase.
 # Removes Windows components: the Security Center startup item, Smart App Control,
-# Microsoft Edge (option gated), OneDrive and the CBS component packages (option
-# gated). Runs as TrustedInstaller; CBS package failures throw so AME Wizard halts
-# the install (handleExitCodes on the phase call).
+# Microsoft Edge (option gated), OneDrive, the Teams chat auto-install policy and the
+# CBS component packages (option gated). Runs as TrustedInstaller; child-script and
+# CBS package failures throw so AME Wizard halts the install (handleExitCodes on the
+# phase call).
 #
-# Not handled here: the 'iso: only' OfflineSys WdBoot delete (AME-only, in
-# atlas\components.yml) and Edge's !appx family removal (in atlas\appx.yml - AME's
-# provisioned AppX removal is battle-tested where Remove-AppxPackage documented-fails).
+# Not handled here: the 'iso: only' OfflineSys WdBoot delete (AME-only, in custom.yml)
+# and Edge's !appx family removal (in atlas\appx.yml - AME's provisioned AppX removal
+# is battle-tested where Remove-AppxPackage documented-fails).
 
 Assert-AtlasPrivilege -TrustedInstaller
 
@@ -14,6 +15,21 @@ $modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Mo
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Services\Atlas.Services.psd1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force -ErrorAction Stop
+
+# Preserve the former components.yml ordering: the interactive Edge remover runs
+# before the TrustedInstaller component mutations below. The helper obtains the
+# interactive user's elevated linked token; Remove-Edge.ps1 deliberately refuses
+# SYSTEM/TrustedInstaller and remains unchanged.
+if (Test-AtlasOption -Name 'uninstall-edge') {
+    $context = Get-AtlasContext
+    $powerShellExe = Join-Path -Path $context.WinDir -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $removeEdgeScript = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Internal\Remove-Edge.ps1'
+    $arguments = '-NoProfile -NoLogo -ExecutionPolicy Bypass -File "{0}" -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive' -f $removeEdgeScript
+    $edgeExitCode = Invoke-AtlasAsUser -FilePath $powerShellExe -Arguments $arguments -Elevated
+    if ($edgeExitCode -ne 0) {
+        throw "Remove-Edge.ps1 failed with exit code $edgeExitCode."
+    }
+}
 
 # Remove Security Center startup item
 Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'SecurityHealth' -Force -ErrorAction SilentlyContinue
@@ -39,10 +55,9 @@ if (Test-AtlasOption -Name 'uninstall-edge') {
     Remove-AtlasScheduledTask -Path 'MicrosoftEdgeUpdateTaskMachineCore' -IgnoreMissing
     Remove-AtlasScheduledTask -Path 'MicrosoftEdgeUpdateTaskMachineUA' -IgnoreMissing
 
-    # Remove-Edge.ps1 runs from atlas\components.yml as the elevated interactive user
-    # (it refuses SYSTEM/TrustedInstaller). This phase only handles the pieces that
-    # need TrustedInstaller: services, scheduled tasks and the deprovision keys.
-    # Edge's AppX removal is the !appx action in atlas\appx.yml.
+    # This block handles the pieces that need TrustedInstaller: services, scheduled
+    # tasks and the deprovision keys. Edge's AppX removal remains the !appx action in
+    # atlas\appx.yml.
 
     foreach ($deprovisionKey in @(
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe'
@@ -93,3 +108,12 @@ if (Test-AtlasOption -Name 'defender-enable') {
     Uninstall-AtlasCbsPackage -Packages @('*Z-Atlas-NoDefender-Package*') | Out-Null
     Install-AtlasCbsPackage -Packages @('*Z-Atlas-NoTelemetry-Package*') -NonInteractive | Out-Null
 }
+
+# Prevent Teams chat from being reinstalled. This key is TrustedInstaller-protected,
+# which is why the write belongs in this phase rather than the elevated-user AppX
+# snapshot phase or an AME !registryValue action.
+$communicationsKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications'
+if (-not (Test-Path -LiteralPath $communicationsKey)) {
+    New-Item -Path $communicationsKey -Force | Out-Null
+}
+Set-ItemProperty -LiteralPath $communicationsKey -Name 'ConfigureChatAutoInstall' -Value 0 -Type DWord -Force

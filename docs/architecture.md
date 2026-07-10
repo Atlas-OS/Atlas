@@ -12,16 +12,16 @@ This document describes how the repository is laid out and how an install runs.
 │  ├─ Configuration/         The YAML shim (thin; orchestration only)
 │  │  ├─ custom.yml          Entry point: hive lifecycle + phase calls
 │  │  ├─ tweaks.yml          Per-category Tweaks phase calls (every tweak is PowerShell)
-│  │  └─ atlas/              start / components / appx / default (AME-only actions)
+│  │  └─ atlas/              start / appx / default (task composition + AME-only actions)
 │  └─ Executables/           Payload deployed to C:\Windows (AtlasModules, AtlasDesktop, Themes)
 │     └─ AtlasModules/Scripts/
-│        ├─ Invoke-AtlasInstall.ps1   Install orchestrator (one call per phase)
+│        ├─ Invoke-AtlasInstall.ps1   Checked install-phase dispatcher
 │        ├─ Invoke-Toggle.ps1          Toggle CLI (every AtlasDesktop launcher calls it)
 │        ├─ Modules/          Atlas.* PowerShell framework (see below)
 │        ├─ Phases/           One Invoke-<Phase>Phase.ps1 per install phase
 │        ├─ Tweaks/           Declarative tweak data (.psd1) + tweaks.manifest.psd1
 │        ├─ Internal/         Shared implementation scripts
-│        └─ Tasks/            Pre-payload-copy scripts (run from the extracted playbook)
+│        └─ Tasks/            Mixed pre-copy and compatibility helpers (not orchestration)
 │     └─ AtlasModules/Toggles/   Per-toggle definitions for the AtlasDesktop user tools
 ├─ tools/
 │  ├─ build/                 AtlasBuild module, Build-Playbook.ps1, Test-Apbx.ps1, Set-AtlasVersion.ps1
@@ -50,6 +50,7 @@ The YAML keeps only what is genuinely AME-specific:
 - `!writeStatus` progress text,
 - `option:` / `onUpgrade:` / `oobe:` / `iso:` gating,
 - `weight:` progress hints and `handleExitCodes` halting,
+- `!task` composition for `start.yml`, `appx.yml`, `default.yml`, and `tweaks.yml`,
 - `!appx` package removals (AME's provisioned/system-package removal is more robust than
   `Remove-AppxPackage`),
 - the ISO-only offline-hive Defender key delete.
@@ -67,22 +68,23 @@ into PowerShell while AME stays the single source of truth for the user's choice
 ## Install pipeline
 
 `custom.yml` loads the default-user hive, copies the payload, captures the option flags,
-then calls `Invoke-AtlasInstall.ps1 -Phase <Name>` once per phase. Each phase asserts the
-privilege it needs and delegates to the framework modules.
+then makes checked `Invoke-AtlasInstall.ps1 -Phase <Name>` calls for the live phases. Each
+phase asserts the privilege it needs and delegates to the framework modules.
 
 | Phase | Privilege | Work |
 | --- | --- | --- |
 | PreInstall | Administrator | disable notifications, disk cleanup |
+| ShellRefresh | TrustedInstaller | stop shell processes, restart Explorer as the unelevated user |
 | Environment | Administrator | NGEN, PowerShell telemetry opt-out |
 | Features | Administrator | DISM features/capabilities (needs online sources) |
 | Software | Administrator | utilities, browser, toolbox (option-gated) |
 | Services | TrustedInstaller | service backup + hardening |
-| Components | TrustedInstaller | Edge/OneDrive removal, CBS packages |
+| Components | TrustedInstaller | user-context Edge removal, OneDrive, Chat policy, CBS packages |
 | AppxSupport | Administrator | AppX snapshot / deprovision / cache clear |
-| Defaults | Administrator | DEFAULT.reg (fresh) / toggle re-apply (upgrade) |
+| Defaults | Administrator | DEFAULT.reg (fresh) / definition-based, state-only toggle re-apply (upgrade) |
 | Revert | TrustedInstaller | StoreFixer (upgrade-only) |
 | Tweaks | TrustedInstaller | one call per category (see below) |
-| Finalize | Administrator | default-user-hive sync, registry path fixup |
+| Finalize | Administrator | default-user-hive sync |
 
 **Exit code contract** (consumed by AME `handleExitCodes`): `0` success, `1` fatal, `2`
 wrong privilege, `3` unsupported environment. Each phase writes a transcript plus a shared
@@ -148,9 +150,10 @@ launcher (one per action, with the original display filename) calls `Invoke-Togg
 which dispatches to `Atlas.Toggles`. `tools/dev/New-ToggleLaunchers.ps1` generates the
 launchers and validates that none have drifted from their definition.
 
-Toggle state is recorded in `HKLM\SOFTWARE\AtlasOS\Services\<Name>` (`state` DWORD + `path`
-REG_SZ) — the schema is frozen so upgrades re-apply the user's previous choices via
-`Invoke-AtlasToggleReapply`.
+Toggle state is recorded in `HKLM\SOFTWARE\AtlasOS\Services\<Name>` as a `state` DWORD.
+Upgrades resolve the installed toggle definition by subkey name, map that state to one of
+the definition's declared states, and re-apply it through `Invoke-AtlasToggleReapply`.
+Executable paths are not persisted or replayed from registry state.
 
 ## Packaging
 

@@ -6,6 +6,7 @@ actions:
   - !powerShell:
     wait: true
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tasks\Initialize-AtlasPath.ps1'')'
+    handleExitCodes: { "!0": halt }
 
   ################ NO LOCAL BUILD ################
 

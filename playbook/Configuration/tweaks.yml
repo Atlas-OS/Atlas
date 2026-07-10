@@ -76,6 +76,7 @@ actions:
   - !powerShell:
     command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\scripts\set-power-settings.psd1'')'
     wait: true
+    handleExitCodes: { "!0": halt }
   # Configure the installing account in its own session (theme, lock screen,
   # pin-to-Home) and write its completion marker, so the first logon after the
   # install reboot is fully themed with no RunOnce logoff cycle. Skipped during
@@ -86,7 +87,9 @@ actions:
     wait: true
     runas: currentUserElevated
     oobe: false
+    handleExitCodes: { "!0": halt }
   # Re-enable notifications very last, so nothing fires during any of the tweaks above
   - !powerShell:
     command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\enable-notifications.psd1'')'
     wait: true
+    handleExitCodes: { "!0": halt }
