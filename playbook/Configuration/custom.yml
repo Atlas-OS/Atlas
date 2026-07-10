@@ -167,12 +167,3 @@ actions:
     command: 'reg unload HKU\AME_UserHive_Default'
     oobe: false
     wait: true
-
-  # Set PowerShell execution policy to RemoteSigned from the previous "Unrestricted"
-  # This allows Atlas folder scripts (local) to run while requiring signatures for downloaded scripts
-  - !writeStatus: { status: "Securing PowerShell execution policy" }
-  - !registryValue:
-    path: 'HKLM\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
-    value: "ExecutionPolicy"
-    data: "RemoteSigned"
-    type: REG_SZ

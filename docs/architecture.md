@@ -73,7 +73,7 @@ privilege it needs and delegates to the framework modules.
 | Phase | Privilege | Work |
 | --- | --- | --- |
 | PreInstall | Administrator | disable notifications, disk cleanup |
-| Environment | Administrator | NGEN, temporary execution policy, PS telemetry opt-out |
+| Environment | Administrator | NGEN, PowerShell telemetry opt-out |
 | Features | Administrator | DISM features/capabilities (needs online sources) |
 | Software | Administrator | utilities, browser, toolbox (option-gated) |
 | Services | TrustedInstaller | service backup + hardening |
@@ -87,6 +87,14 @@ privilege it needs and delegates to the framework modules.
 **Exit code contract** (consumed by AME `handleExitCodes`): `0` success, `1` fatal, `2`
 wrong privilege, `3` unsupported environment. Each phase writes a transcript plus a shared
 log under `C:\Windows\AtlasModules\Logs\install`.
+
+[AME 0.8.4 launches playbook PowerShell actions](https://github.com/Ameliorated-LLC/trusted-uninstaller-cli/blob/f325e9d950e6b37003a46c786fd1b6c20f3180dd/TrustedUninstaller.Shared/Actions/PowershellAction.cs#L91-L96)
+with a process-scoped execution-policy bypass, and AtlasDesktop launchers specify their own
+process policy. Microsoft documents that
+[`powershell.exe -ExecutionPolicy` affects only the current session](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe?view=powershell-5.1#-executionpolicy-executionpolicy)
+and does not change the registry policy. Atlas therefore preserves the machine's existing
+Windows PowerShell execution policy instead of replacing an administrator's configuration
+during installation.
 
 ## PowerShell framework (`Modules/Atlas.*`)
 
