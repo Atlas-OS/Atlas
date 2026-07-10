@@ -1,7 +1,8 @@
 @{
     Name        = 'Set File Associations'
-    Description  = 'Sets file associations for the user-selected web browser and other apps.'
-    # The launcher is invoked conditionally per option (including the negated
-    # '!uninstall-edge' base case), which a single Option gate cannot express.
-    Script       = 'set-file-associations.ps1'
+    Description = 'Registers safe current-user handlers; default-app choices remain user-controlled.'
+    # Browser selections are intentionally not interpreted here: Windows owns
+    # protected defaults, while safe handler registrations are profile-neutral.
+    Script      = 'set-file-associations.ps1'
+    RunAs       = 'User'
 }

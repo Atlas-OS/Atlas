@@ -1,15 +1,12 @@
-# Companion of set-file-associations.psd1.
-# The launcher enumerates the loaded user hives itself, so it is TrustedInstaller-safe.
+# Companion of set-file-associations.psd1. The tweak engine runs this script in
+# the intended non-elevated user's session, so CurrentUser is the only writable
+# registry boundary used by the implementation. The remaining handler
+# registrations are identical for every browser selection; defaults are left to
+# Windows Settings or documented provisioning policy.
 $ErrorActionPreference = 'Stop'
-$launcher = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Set-FileAssociationsLauncher.cmd'
 
-# Base associations, unless Edge is being uninstalled.
-if (-not (Test-AtlasOption -Name 'uninstall-edge')) {
-    & $launcher
-}
+$windowsRoot = [Environment]::GetFolderPath('Windows')
+$implementation = Join-Path -Path $windowsRoot -ChildPath 'AtlasModules\Scripts\Internal\Set-FileAssociations.ps1'
 
-# Browser-specific associations for the user's chosen browser.
-if (Test-AtlasOption -Name 'browser-brave') { & $launcher 'Brave' }
-if (Test-AtlasOption -Name 'browser-librewolf') { & $launcher 'LibreWolf' }
-if (Test-AtlasOption -Name 'browser-firefox') { & $launcher 'Firefox' }
-if (Test-AtlasOption -Name 'browser-chrome') { & $launcher 'Google Chrome' }
+Write-Warning 'Protected browser defaults remain user-controlled. Use Windows Default Apps Settings or documented managed-device/first-sign-in provisioning.'
+& $implementation -AssociationProfile 'Base'
