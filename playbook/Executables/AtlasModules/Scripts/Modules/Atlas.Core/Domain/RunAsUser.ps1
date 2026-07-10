@@ -24,7 +24,7 @@ using System.Text;
 
 namespace Atlas {
     public static class UserProcess {
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         struct STARTUPINFO {
             public int cb;
             public string lpReserved;
@@ -51,6 +51,11 @@ namespace Atlas {
         enum SECURITY_IMPERSONATION_LEVEL { SecurityAnonymous, SecurityIdentification, SecurityImpersonation, SecurityDelegation }
         enum TOKEN_TYPE { TokenPrimary = 1, TokenImpersonation }
         enum TOKEN_INFORMATION_CLASS { TokenLinkedToken = 19 }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct TOKEN_LINKED_TOKEN {
+            public IntPtr LinkedToken;
+        }
 
         [StructLayout(LayoutKind.Sequential)]
         struct LUID {
@@ -80,7 +85,10 @@ namespace Atlas {
         const uint MAXIMUM_ALLOWED = 0x02000000;
         const int CREATE_UNICODE_ENVIRONMENT = 0x00000400;
         const int CREATE_NO_WINDOW = 0x08000000;
-        const uint INFINITE = 0xFFFFFFFF;
+        const uint WAIT_OBJECT_0 = 0x00000000;
+        const uint WAIT_TIMEOUT = 0x00000102;
+        const uint WAIT_FAILED = 0xFFFFFFFF;
+        const uint MAX_WAIT_TIMEOUT_MILLISECONDS = 3600000;
 
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern uint WTSGetActiveConsoleSessionId();
@@ -159,7 +167,7 @@ namespace Atlas {
 
         [DllImport("advapi32.dll", SetLastError = true)]
         static extern bool GetTokenInformation(IntPtr TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass,
-            out IntPtr TokenInformation, int TokenInformationLength, out int ReturnLength);
+            out TOKEN_LINKED_TOKEN TokenInformation, int TokenInformationLength, out int ReturnLength);
 
         [DllImport("userenv.dll", SetLastError = true)]
         static extern bool CreateEnvironmentBlock(out IntPtr lpEnvironment, IntPtr hToken, bool bInherit);
@@ -167,7 +175,7 @@ namespace Atlas {
         [DllImport("userenv.dll", SetLastError = true)]
         static extern bool DestroyEnvironmentBlock(IntPtr lpEnvironment);
 
-        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        [DllImport("advapi32.dll", EntryPoint = "CreateProcessAsUserW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
         static extern bool CreateProcessAsUser(IntPtr hToken, string lpApplicationName, StringBuilder lpCommandLine,
             IntPtr lpProcessAttributes, IntPtr lpThreadAttributes, bool bInheritHandles, int dwCreationFlags,
             IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
@@ -182,8 +190,12 @@ namespace Atlas {
         static extern bool CloseHandle(IntPtr hObject);
 
         // Runs the command line as the active console user; returns the child exit code
-        // (or 0 when not waiting). Throws Win32Exception on any failure.
-        public static int Launch(string applicationName, string commandLine, string workingDirectory, bool wait, bool elevated) {
+        // (or 0 when not waiting). Throws when token setup, launch, or waiting fails.
+        public static int Launch(string applicationName, string commandLine, string workingDirectory, bool wait, bool elevated, uint timeoutMilliseconds) {
+            if (wait && (timeoutMilliseconds == 0 || timeoutMilliseconds > MAX_WAIT_TIMEOUT_MILLISECONDS)) {
+                throw new ArgumentOutOfRangeException("timeoutMilliseconds", "The wait timeout must be between 1 millisecond and 1 hour.");
+            }
+
             EnablePrivilege("SeTcbPrivilege");
             EnablePrivilege("SeAssignPrimaryTokenPrivilege");
             EnablePrivilege("SeIncreaseQuotaPrivilege");
@@ -208,15 +220,22 @@ namespace Atlas {
                 // For UserElevated, follow the linked (elevated) token when the interactive
                 // token is a filtered admin token.
                 if (elevated) {
-                    IntPtr info;
+                    TOKEN_LINKED_TOKEN info;
                     int returned;
-                    if (GetTokenInformation(userToken, TOKEN_INFORMATION_CLASS.TokenLinkedToken, out info, IntPtr.Size, out returned) && info != IntPtr.Zero) {
-                        linkedToken = Marshal.ReadIntPtr(info);
-                        Marshal.FreeHGlobal(info);
-                        if (linkedToken != IntPtr.Zero) {
-                            sourceToken = linkedToken;
-                        }
+                    int infoSize = Marshal.SizeOf(typeof(TOKEN_LINKED_TOKEN));
+                    if (!GetTokenInformation(userToken, TOKEN_INFORMATION_CLASS.TokenLinkedToken, out info, infoSize, out returned)) {
+                        int error = Marshal.GetLastWin32Error();
+                        throw new Win32Exception(error, string.Format("GetTokenInformation(TokenLinkedToken) failed (Win32 error {0}); refusing to run UserElevated with the filtered token.", error));
                     }
+                    if (returned < infoSize) {
+                        throw new InvalidOperationException("GetTokenInformation(TokenLinkedToken) returned an incomplete TOKEN_LINKED_TOKEN structure.");
+                    }
+
+                    linkedToken = info.LinkedToken;
+                    if (linkedToken == IntPtr.Zero) {
+                        throw new InvalidOperationException("The interactive user token has no linked elevated token; refusing to run UserElevated with the filtered token.");
+                    }
+                    sourceToken = linkedToken;
                 }
 
                 if (!DuplicateTokenEx(sourceToken, MAXIMUM_ALLOWED, IntPtr.Zero,
@@ -225,7 +244,8 @@ namespace Atlas {
                 }
 
                 if (!CreateEnvironmentBlock(out envBlock, primaryToken, false)) {
-                    envBlock = IntPtr.Zero; // non-fatal; fall back to no explicit environment
+                    int error = Marshal.GetLastWin32Error();
+                    throw new Win32Exception(error, string.Format("CreateEnvironmentBlock failed for the interactive user (Win32 error {0}).", error));
                 }
 
                 STARTUPINFO si = new STARTUPINFO();
@@ -245,11 +265,24 @@ namespace Atlas {
                 int exitCode = 0;
                 try {
                     if (wait) {
-                        WaitForSingleObject(pi.hProcess, INFINITE);
-                        uint code;
-                        if (GetExitCodeProcess(pi.hProcess, out code)) {
-                            exitCode = unchecked((int)code);
+                        uint waitResult = WaitForSingleObject(pi.hProcess, timeoutMilliseconds);
+                        if (waitResult == WAIT_TIMEOUT) {
+                            throw new TimeoutException(string.Format("The interactive user process (PID {0}) did not exit within {1} milliseconds and was left running.", pi.dwProcessId, timeoutMilliseconds));
                         }
+                        if (waitResult == WAIT_FAILED) {
+                            int error = Marshal.GetLastWin32Error();
+                            throw new Win32Exception(error, string.Format("WaitForSingleObject failed for interactive user process PID {0} (Win32 error {1}).", pi.dwProcessId, error));
+                        }
+                        if (waitResult != WAIT_OBJECT_0) {
+                            throw new InvalidOperationException(string.Format("WaitForSingleObject returned unexpected status 0x{0:X8} for interactive user process PID {1}.", waitResult, pi.dwProcessId));
+                        }
+
+                        uint code;
+                        if (!GetExitCodeProcess(pi.hProcess, out code)) {
+                            int error = Marshal.GetLastWin32Error();
+                            throw new Win32Exception(error, string.Format("GetExitCodeProcess failed for interactive user process PID {0} (Win32 error {1}).", pi.dwProcessId, error));
+                        }
+                        exitCode = unchecked((int)code);
                     }
                 }
                 finally {
@@ -301,6 +334,9 @@ function Invoke-AtlasAsUser {
         SYSTEM (the install phases that use this run as TrustedInstaller). Throws when
         there is no active interactive session (e.g. a headless stage) - callers should
         treat that as "skip, log a warning".
+    .PARAMETER TimeoutSeconds
+        Maximum time to wait for the child process. Defaults to 15 minutes and is ignored
+        when Wait is false. A timeout throws but does not terminate the child process.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -313,7 +349,10 @@ function Invoke-AtlasAsUser {
 
         [switch]$Elevated,
 
-        [bool]$Wait = $true
+        [bool]$Wait = $true,
+
+        [ValidateRange(1, 3600)]
+        [int]$TimeoutSeconds = 900
     )
 
     if (-not (Test-AtlasTrustedInstaller)) {
@@ -327,6 +366,7 @@ function Invoke-AtlasAsUser {
     }
 
     $commandLine = Get-AtlasUserProcessCommandLine -FilePath $FilePath -Arguments $Arguments
+    $timeoutMilliseconds = [uint32]($TimeoutSeconds * 1000)
 
-    return [Atlas.UserProcess]::Launch($FilePath, $commandLine, $WorkingDirectory, $Wait, [bool]$Elevated)
+    return [Atlas.UserProcess]::Launch($FilePath, $commandLine, $WorkingDirectory, $Wait, [bool]$Elevated, $timeoutMilliseconds)
 }
