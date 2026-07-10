@@ -270,6 +270,8 @@ Describe 'In-process payload helper control flow' {
                 'The Admin toggle does not reach self-elevation, does not pass NonInteractive, and Write-Status exits only on failure.'
             'Scripts\Internal\Set-VbsConfiguration.ps1|Toggles\Security\ConfigVBS.ps1' =
                 'The toggle calls the interactive parameterless route; parameterized routes run in a child PowerShell process.'
+            'Scripts\Internal\Set-IndexConfiguration.ps1|Toggles\General\Indexing.ps1' =
+                'The toggle always supplies InProcess, so success returns before exit and failures are rethrown to the toggle engine.'
             'Scripts\Internal\Update-Drivers.ps1|Toggles\General\UpdateDrivers.ps1' =
                 'The Admin toggle makes the helper self-elevation branch unreachable.'
         }

@@ -1,85 +1,65 @@
 @echo off
+verify other 2>nul
+setlocal EnableExtensions DisableDelayedExpansion
+if errorlevel 1 exit /b 1
+cd /d "%__APPDIR__%"
+if errorlevel 1 exit /b 1
+for %%I in ("%__APPDIR__%..") do set "AtlasWindowsRoot=%%~fI"
 
-set "___args="%~f0" %*"
-fltmc > nul 2>&1 || (
+set "launcherEnvironment=%AtlasWindowsRoot%\AtlasModules\Scripts\Internal\Initialize-PowerShellLauncherEnvironment.cmd"
+if not exist "%launcherEnvironment%" (
+	echo PowerShell launcher environment helper not found: "%launcherEnvironment%"
+	exit /b 1
+)
+call "%launcherEnvironment%"
+if errorlevel 1 exit /b 1
+
+set "silent="
+if "%~1"=="" goto argumentsValidated
+if /i not "%~1"=="/silent" goto unsupportedArguments
+if not "%~2"=="" goto unsupportedArguments
+set "silent=1"
+
+:argumentsValidated
+set "networkScript=%AtlasWindowsRoot%\AtlasModules\Scripts\Internal\Set-NetworkDefaults.ps1"
+if not exist "%networkScript%" (
+	echo Network defaults helper not found: "%networkScript%"
+	exit /b 1
+)
+
+set "AtlasElevatedLauncher=%AtlasWindowsRoot%\AtlasModules\Toolbox\Scripts\Troubleshooting\TroubleshootingNetwork\AtlasDefaults.cmd"
+if not exist "%AtlasElevatedLauncher%" (
+	echo Canonical network launcher not found: "%AtlasElevatedLauncher%"
+	exit /b 1
+)
+set "AtlasElevatedArgument="
+if defined silent set "AtlasElevatedArgument=/silent"
+
+"%AtlasNativeFltmc%" > nul 2>&1
+if errorlevel 1 (
 	echo Administrator privileges are required.
-	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args"""" 2> nul || (
-		echo You must run this script as admin.
-		if "%*"=="" pause
+	"%AtlasNativePowerShell%" -NoProfile -NoLogo -NonInteractive -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; try { $cmd=$env:AtlasNativeCommandHost; if(-not [IO.File]::Exists($cmd)){throw 'Native command host not found.'}; $suffix=if($env:AtlasElevatedArgument){' /silent'}else{''}; $line='""{0}"{1}"' -f $env:AtlasElevatedLauncher,$suffix; $p=Start-Process -FilePath $cmd -ArgumentList @('/d','/s','/c',$line) -Verb RunAs -WorkingDirectory $env:AtlasNativeSystemDirectory -WindowStyle $(if($env:AtlasElevatedArgument){'Hidden'}else{'Normal'}) -Wait -PassThru; if($null -eq $p){exit 1}; exit $p.ExitCode } catch { if($_.Exception -is [ComponentModel.Win32Exception] -and $_.Exception.NativeErrorCode -eq 1223){exit 1223}; Write-Error $_; exit 1 }" 2> nul
+	if errorlevel 0 (
+		if errorlevel 1 exit /b
+	) else (
 		exit /b 1
 	)
-	exit /b
+	exit /b 0
 )
 
 echo Setting network settings to Atlas defaults...
-
-:: Set network adapter driver registry key
-for /f "usebackq" %%a in (`powershell -NonI -NoP -C "(Get-CimInstance Win32_NetworkAdapter).PNPDeviceID | sls 'PCI\\VEN_'"`) do (
-	for /f "tokens=3" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%a" /v "Driver"') do ( 
-        set "netKey=HKLM\SYSTEM\CurrentControlSet\Control\Class\%%b"
-    ) > nul 2>&1
+"%AtlasNativePowerShell%" -NoProfile -NoLogo -NonInteractive -ExecutionPolicy Bypass -File "%networkScript%" -Mode Atlas
+if errorlevel 0 (
+	if errorlevel 1 exit /b
+) else (
+	exit /b 1
 )
-
-:: Configure network adapter settings
-
-rem --------------------------
-rem Unknown benefit
-rem --------------------------
-rem "LargeSendOffload"
-rem "LargeSendOffloadJumboCombo"
-rem "LsoV1IPv4"
-rem "LsoV2IPv4"
-rem "LsoV2IPv6"
-rem "LogLevelWarn"
-rem "AlternateSemaphoreDelay"
-rem "DeviceSleepOnDisconnect"
-rem "EnableModernStandby"
-rem "PriorityVLANTag"
-rem "Node"
-rem "MPC"
-rem "PowerDownPll"
-rem "PMWiFiRekeyOffload"
-rem "ARPOffloadEnable"
-rem "bAdvancedLPs"
-rem "NSOffloadEnable"
-rem "GTKOffloadEnable"
-rem "Enable9KJFTpt"
-rem "EnableEDT"
-rem "GPPSW"
-rem "MasterSlave"
-rem "PacketCoalescing"
-rem Could cause dropped network frames
-rem "FlowControl"
-rem "FlowControlCap"
-
-for %%a in (
-    rem Don't disable gigabit
-    "AutoDisableGigabit"
-
-    rem Access Point Compatibility Mode
-    rem Zero is 'High Performance'
-    "ApCompatMode"
-
-    rem About reducing link speed
-    "SipsEnabled"
-    "ReduceSpeedOnPowerDown"
-
-    rem 'may increase latency'
-    rem https://www.intel.com/content/www/us/en/support/articles/000007456/ethernet-products.html
-    "DMACoalescing"
-) do (
-    rem Check without '*'
-    for /f %%b in ('reg query "%netKey%" /v "%%~a" ^| findstr "HKEY"') do (
-        reg add "%netKey%" /v "%%~a" /t REG_SZ /d "0" /f > nul
-    )
-    rem Check with '*'
-    for /f %%b in ('reg query "%netKey%" /v "*%%~a" ^| findstr "HKEY"') do (
-        reg add "%netKey%" /v "*%%~a" /t REG_SZ /d "0" /f > nul
-    )
-) > nul 2>&1
-
-if "%~1"=="/silent" exit /b
+if defined silent exit /b 0
 
 echo Finished, please reboot your device for changes to apply.
 pause
-exit /b
+exit /b 0
+
+:unsupportedArguments
+echo Unsupported Atlas network-default launcher arguments.
+exit /b 2
