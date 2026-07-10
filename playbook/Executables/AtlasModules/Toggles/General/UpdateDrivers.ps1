@@ -12,11 +12,10 @@
 
                 $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Update-Drivers.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
-                    Write-Host "Script not found: `"$script`"" -ForegroundColor Red
-                    return
+                    throw "The driver update script is missing at '$script'."
                 }
 
-                & $script
+                & $script -Silent:([bool]$Toggle.Silent)
             }
         }
     }
