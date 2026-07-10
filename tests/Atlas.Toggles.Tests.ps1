@@ -311,6 +311,59 @@ Describe 'Invoke-AtlasToggleReapply' {
         Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $StateRoot 'NoRecordToggle') | Should -BeFalse
     }
+
+    It 'continues replaying every record, then throws one aggregate with all failures' {
+        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'AReplayFailure.ps1' -Content @'
+@{
+    Name      = 'AReplayFailure'
+    Elevation = 'None'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            Action = {
+                param($Toggle)
+                throw 'first replay failure'
+            }
+        }
+    }
+}
+'@
+
+        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'ZReplayFailure.ps1' -Content @'
+@{
+    Name      = 'ZReplayFailure'
+    Elevation = 'None'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            Action = {
+                param($Toggle)
+                throw 'second replay failure'
+            }
+        }
+    }
+}
+'@
+
+        Set-AtlasToggleState -Name 'AReplayFailure' -State 1 -StateRoot $StateRoot
+        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -StateRoot $StateRoot
+        Set-AtlasToggleState -Name 'ZReplayFailure' -State 1 -StateRoot $StateRoot
+
+        $replayError = $null
+        try {
+            Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
+        }
+        catch {
+            $replayError = $_
+        }
+
+        $replayError | Should -Not -BeNullOrEmpty
+        $replayError.Exception.Message | Should -Match 'failed for 2 toggle\(s\)'
+        $replayError.Exception.Message | Should -Match "'AReplayFailure': first replay failure"
+        $replayError.Exception.Message | Should -Match "'ZReplayFailure': second replay failure"
+        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeTrue
+        Get-Content -LiteralPath $script:ReapplyMarker | Should -Be 'trusted-definition'
+    }
 }
 
 Describe 'Atlas toggle production state ACL' {
@@ -480,6 +533,27 @@ Describe 'Invoke-AtlasToggle' {
 }
 '@
 
+        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'ContextFailingToggle.ps1' -Content @'
+@{
+    Name      = 'ContextFailingToggle'
+    Elevation = 'None'
+    States    = [ordered]@{
+        On = @{
+            StateValue    = 1
+            Reboot        = 'None'
+            ContextAction = {
+                param($Toggle)
+                throw 'deliberate context failure'
+            }
+            Action        = {
+                param($Toggle)
+                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'context-failure-action-marker.txt') -Value 'must-not-run'
+            }
+        }
+    }
+}
+'@
+
         New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'AdminToggle.ps1' -Content @'
 @{
     Name      = 'AdminToggle'
@@ -533,17 +607,33 @@ Describe 'Invoke-AtlasToggle' {
             -ParameterFilter { $Message -like "*MarkerToggle*applied*state 'On'*" }
     }
 
-    It 'does not record state when the action fails (upgrade re-apply must not replay a lie)' {
+    It 'propagates an action failure and does not record state (upgrade re-apply must not replay a lie)' {
         # Recording before/despite a failed action would leave a record that
         # Invoke-AtlasToggleReapply replays on the next upgrade.
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
 
-        Invoke-AtlasToggle -Name 'FailingToggle' -State 'On' -Silent `
-            -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
+        { Invoke-AtlasToggle -Name 'FailingToggle' -State 'On' -Silent `
+                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
+                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
+            Should -Throw '*deliberate failure*'
 
         Get-AtlasToggleState -Name 'FailingToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -ParameterFilter { $Message -like '*state was not recorded because its action failed*' }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
+            -ParameterFilter { $Level -eq 'Warning' -and $Message -like "*Toggle 'FailingToggle' action failed*" }
+    }
+
+    It 'propagates a context-action failure without running the action or recording state' {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+
+        { Invoke-AtlasToggle -Name 'ContextFailingToggle' -State 'On' -Silent `
+                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
+                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
+            Should -Throw '*deliberate context failure*'
+
+        Join-Path $WorkDir 'context-failure-action-marker.txt' | Should -Not -Exist
+        Get-AtlasToggleState -Name 'ContextFailingToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
+            -ParameterFilter { $Level -eq 'Warning' -and $Message -like "*Toggle 'ContextFailingToggle' context action failed*" }
     }
 
     It 'refuses an Admin toggle in silent mode when not elevated' {
@@ -643,27 +733,23 @@ Describe 'Invoke-AtlasToggle' {
     }
 }
 
-Describe 'Invoke-AtlasToggleAction success contract' {
-    # These tests pin the engine's *actual* success contract (see
-    # plans/010-toggle-success-contract.md): "success" means the action did not THROW.
+Describe 'Invoke-AtlasToggleAction result contract' {
+    # These tests pin the engine's result contract: a terminating error is logged and
+    # rethrown, while completion without a terminating error is success.
     # Actions run non-strict with $ErrorActionPreference = 'Continue', so
     # non-terminating cmdlet errors are best-effort by design and still count as
     # success. If the maintainer later opts into stricter semantics, the
     # non-terminating-error and preference tests below must be consciously rewritten.
     # Invoke-AtlasToggleAction is module-private, hence InModuleScope.
 
-    It 'reports failure and logs one warning when the action throws' {
+    It 'rethrows and logs one warning when the action throws' {
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
 
-        InModuleScope Atlas.Toggles {
-            $succeeded = $true
-            $toggleContext = [pscustomobject]@{ Name = 'T' }
-
-            Invoke-AtlasToggleAction -Action { throw 'deliberate failure' } `
-                -ToggleContext $toggleContext -Succeeded ([ref]$succeeded)
-
-            $succeeded | Should -BeFalse
-        }
+        { InModuleScope Atlas.Toggles {
+                $toggleContext = [pscustomobject]@{ Name = 'T' }
+                Invoke-AtlasToggleAction -Action { throw 'deliberate failure' } `
+                    -ToggleContext $toggleContext
+            } } | Should -Throw '*deliberate failure*'
 
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
             -ParameterFilter { $Level -eq 'Warning' -and $Message -like "*Toggle 'T'*failed*" }
@@ -673,13 +759,10 @@ Describe 'Invoke-AtlasToggleAction success contract' {
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
 
         InModuleScope Atlas.Toggles {
-            $succeeded = $false
             $toggleContext = [pscustomobject]@{ Name = 'T' }
 
             Invoke-AtlasToggleAction -Action { Write-Error 'non-terminating' -ErrorAction Continue } `
-                -ToggleContext $toggleContext -Succeeded ([ref]$succeeded) 2>$null
-
-            $succeeded | Should -BeTrue
+                -ToggleContext $toggleContext 2>$null
         }
 
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0 -Exactly
@@ -689,13 +772,9 @@ Describe 'Invoke-AtlasToggleAction success contract' {
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
 
         InModuleScope Atlas.Toggles {
-            $succeeded = $false
             $toggleContext = [pscustomobject]@{ Name = 'T' }
 
-            Invoke-AtlasToggleAction -Action { } `
-                -ToggleContext $toggleContext -Succeeded ([ref]$succeeded)
-
-            $succeeded | Should -BeTrue
+            Invoke-AtlasToggleAction -Action { } -ToggleContext $toggleContext
         }
 
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0 -Exactly
@@ -705,14 +784,12 @@ Describe 'Invoke-AtlasToggleAction success contract' {
         # Guards against someone flipping the runner's preference (e.g. to 'Stop')
         # without noticing that it changes what upgrade re-apply records and replays.
         InModuleScope Atlas.Toggles {
-            $succeeded = $false
             $toggleContext = [pscustomobject]@{ Name = 'T' }
 
             $observedPreference = Invoke-AtlasToggleAction -Action { [string]$ErrorActionPreference } `
-                -ToggleContext $toggleContext -Succeeded ([ref]$succeeded)
+                -ToggleContext $toggleContext
 
             $observedPreference | Should -Be 'Continue'
-            $succeeded | Should -BeTrue
         }
     }
 }

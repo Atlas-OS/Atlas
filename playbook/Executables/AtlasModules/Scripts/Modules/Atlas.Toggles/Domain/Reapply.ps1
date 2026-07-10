@@ -9,6 +9,7 @@ function Invoke-AtlasToggleReapply {
     .SYNOPSIS
         Re-applies every valid recorded toggle whose state is not 0. Unknown, malformed,
         and NoStateRecord entries are removed; legacy executable-path values are scrubbed.
+        Replay failures do not stop later records, but are aggregated and thrown afterward.
     #>
     param(
         [ValidateNotNullOrEmpty()]
@@ -27,6 +28,7 @@ function Invoke-AtlasToggleReapply {
     # existing installs whose child keys inherited or retained a user-writable ACL.
     Protect-AtlasToggleStateRoot -StateRoot $StateRoot -IncludeChildren
 
+    $failures = @()
     foreach ($subkey in @(Get-ChildItem -LiteralPath $StateRoot)) {
         $properties = Get-ItemProperty -LiteralPath $subkey.PSPath -ErrorAction SilentlyContinue
         if ($null -eq $properties -or -not $properties.PSObject.Properties['state']) {
@@ -114,8 +116,20 @@ function Invoke-AtlasToggleReapply {
                 Invoke-AtlasToggle @invokeArgs
             }
             catch {
-                Write-AtlasLog -Level Warning -Message "Re-applying toggle '$($subkey.PSChildName)' failed: $($_.Exception.Message)" -ErrorRecord $_
+                $failureMessage = $_.Exception.Message
+                Write-AtlasLog -Level Warning -Message "Re-applying toggle '$($subkey.PSChildName)' failed: $failureMessage" -ErrorRecord $_
+                $failures += [pscustomobject]@{
+                    Name    = [string]$subkey.PSChildName
+                    Message = [string]$failureMessage
+                }
             }
         }
+    }
+
+    if ($failures.Count -gt 0) {
+        $failureDetails = @($failures | ForEach-Object {
+                "'$($_.Name)': $($_.Message)"
+            }) -join '; '
+        throw "Upgrade toggle re-apply failed for $($failures.Count) toggle(s): $failureDetails"
     }
 }

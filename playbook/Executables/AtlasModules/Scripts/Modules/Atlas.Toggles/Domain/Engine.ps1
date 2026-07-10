@@ -28,7 +28,7 @@
 #
 # The launcher never elevates - the engine does. Action blocks run non-strict with
 # $ErrorActionPreference = 'Continue' (individual command failures inside an action do
-# not abort it); thrown errors are logged as warnings.
+# not abort it); terminating errors are logged and rethrown to the caller.
 
 function Get-AtlasToggleRoot {
     param(
@@ -247,7 +247,7 @@ function Invoke-AtlasToggleAction {
     <#
     .SYNOPSIS
         Runs a toggle Action/ContextAction scriptblock non-strict with
-        $ErrorActionPreference = 'Continue', logging failures as warnings.
+        $ErrorActionPreference = 'Continue', logging and rethrowing terminating errors.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -256,11 +256,7 @@ function Invoke-AtlasToggleAction {
         [Parameter(Mandatory = $true)]
         $ToggleContext,
 
-        [string]$Label = 'action',
-
-        # Optional out-flag so callers can react to failure without disturbing the
-        # action's output stream (which flows through to the console).
-        [ref]$Succeeded
+        [string]$Label = 'action'
     )
 
     # SEAM: a stricter per-toggle opt-in (e.g. a definition key that runs the action
@@ -275,15 +271,10 @@ function Invoke-AtlasToggleAction {
 
     try {
         & $runner $Action $ToggleContext
-        if ($null -ne $Succeeded) {
-            $Succeeded.Value = $true
-        }
     }
     catch {
         Write-AtlasLog -Level Warning -Message "Toggle '$($ToggleContext.Name)' $Label failed: $($_.Exception.Message)" -ErrorRecord $_
-        if ($null -ne $Succeeded) {
-            $Succeeded.Value = $false
-        }
+        throw
     }
 }
 
@@ -292,8 +283,8 @@ function Invoke-AtlasToggle {
     .SYNOPSIS
         Applies a toggle state: resolves the definition, elevates if needed, runs the
         state's action(s), records the chosen state under HKLM\SOFTWARE\AtlasOS\Services
-        unless the action threw a terminating error, and handles reboot/explorer-restart
-        behavior.
+        only after every requested action completes without a terminating error, and
+        handles reboot/explorer-restart behavior.
     #>
     [CmdletBinding()]
     param(
@@ -366,8 +357,8 @@ function Invoke-AtlasToggle {
     }
 
     # --- State recording. ---------------------------------------------------------------
-    # Recorded unless the action THREW: actions run non-strict with
-    # $ErrorActionPreference = 'Continue' (see Invoke-AtlasToggleAction), so
+    # Recorded only after ContextAction and Action complete without THROWING: actions run
+    # non-strict with $ErrorActionPreference = 'Continue' (see Invoke-AtlasToggleAction), so
     # non-terminating cmdlet errors do NOT block recording - toggles are best-effort by
     # design. A cancelled prompt or a thrown error never records a state that upgrade
     # re-apply would replay. Actions that must gate recording on a condition should
@@ -438,15 +429,9 @@ function Invoke-AtlasToggle {
         return
     }
 
-    $actionSucceeded = $true
-    Invoke-AtlasToggleAction -Action $stateEntry.Action -ToggleContext $toggleContext -Succeeded ([ref]$actionSucceeded)
-    if ($actionSucceeded) {
-        & $recordState
-        Write-AtlasLog -Message "Toggle '$Name' applied: state '$stateName'."
-    }
-    else {
-        Write-AtlasLog -Level Warning -Message "Toggle '$Name' state was not recorded because its action failed."
-    }
+    Invoke-AtlasToggleAction -Action $stateEntry.Action -ToggleContext $toggleContext
+    & $recordState
+    Write-AtlasLog -Message "Toggle '$Name' applied: state '$stateName'."
 
     # --- Reboot / explorer restart handling. -------------------------------------------
     $reboot = 'None'
