@@ -8,7 +8,9 @@ and applied by the `Atlas.Tweaks` module (`Invoke-AtlasTweak` / `Invoke-AtlasTwe
 which centralizes the hard semantics once: HKCU resolution under TrustedInstaller,
 default-user-hive mirroring, architecture gating and per-entry error handling.
 
-Validate any file or folder with `Test-AtlasTweakSchema -Path <path>` (also run by CI).
+Validate any file or folder with `Test-AtlasTweakSchema -Path <path>`. Validate the
+manifest and complete execution graph with `Test-AtlasTweakManifest -Path
+<tweaks.manifest.psd1>` (both are run by CI).
 
 **Naming:** tweak files are kebab-case (`set-hidden-settings-pages.psd1`), deliberately
 unlike the `Verb-Noun` scripts elsewhere: these are data definitions addressed by manifest
@@ -22,16 +24,34 @@ companion `Script` shares its definition's basename. Do not rename them to Pasca
 @{
     Categories = @(
         @{
-            Name   = 'networking'
+            Name        = 'networking'
+            # Modes allowed by the parent AME/YAML route which invokes this PowerShell
+            # category. The validator composes these with each tweak's OnUpgrade gate.
+            ParentModes = @('Fresh')
             # Paths are relative to the category folder, without the .psd1 extension.
-            Tweaks = @(
+            Tweaks      = @(
                 'atlas-network-settings'
                 'shares/restrict-anonymous-access'
             )
         }
     )
+    # Full slugs for definitions invoked directly from another PowerShell phase or a
+    # deliberately small YAML shim rather than as part of a category.
+    Standalone = @(
+        @{ Slug = 'qol/appearance/atlas-theme-upgrade'; ParentModes = @('Upgrade') }
+    )
+    # Every definition not enabled above must be classified with a recorded reason.
+    Disabled = @(
+        @{ Slug = 'networking/disable-llmnr'; Reason = 'Preserve home-LAN name resolution.' }
+    )
 }
 ```
+
+`ParentModes` describes outer-route reachability: `Fresh`, `Upgrade`, or both. It does
+not replace `OnUpgrade`. For example, an `OnUpgrade = 'Only'` definition under a
+fresh-only category is unreachable and fails validation. A definition file must appear
+exactly once across `Categories`, `Standalone`, and `Disabled`; missing files, duplicate
+categories/slugs, unsafe paths, unknown keys and unclassified files also fail.
 
 ## Tweak schema
 

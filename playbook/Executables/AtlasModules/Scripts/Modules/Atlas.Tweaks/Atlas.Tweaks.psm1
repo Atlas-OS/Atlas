@@ -19,7 +19,7 @@ foreach ($domainModule in @(
 }
 
 Export-ModuleMember -Function @(
-    'Get-AtlasTweakManifest', 'Test-AtlasTweakApplicable',
+    'Get-AtlasTweakManifest', 'Test-AtlasTweakManifest', 'Test-AtlasTweakApplicable',
     'Invoke-AtlasTweak', 'Invoke-AtlasTweakCategory',
     'Test-AtlasTweakSchema'
 )

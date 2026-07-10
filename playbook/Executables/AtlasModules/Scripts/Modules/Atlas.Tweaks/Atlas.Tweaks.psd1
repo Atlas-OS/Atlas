@@ -7,6 +7,7 @@
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
         'Get-AtlasTweakManifest'
+        'Test-AtlasTweakManifest'
         'Test-AtlasTweakApplicable'
         'Invoke-AtlasTweak'
         'Invoke-AtlasTweakCategory'

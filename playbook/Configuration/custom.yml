@@ -124,7 +124,8 @@ actions:
   - !task: { path: 'atlas\default.yml' }
 
   # Revert phase (AtlasModules\Scripts\Phases\Invoke-RevertPhase.ps1): StoreFixer undoes
-  # Store breakage left by older Atlas versions. Upgrades only; runs as TrustedInstaller.
+  # Store breakage left by older Atlas versions, then PowerShell applies upgrade-only
+  # migrations such as the future-user theme refresh. Upgrades only; runs as TrustedInstaller.
   - !writeStatus: { status: "Reverting old changes", onUpgrade: true }
   - !powerShell:
     command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase Revert'

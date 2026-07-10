@@ -1,13 +1,17 @@
 @{
     # Category order and per-tweak run order for the Tweaks install phase.
-    # - Categories run in the order custom.yml invokes them (one phase call each).
+    # - Categories run in the order tweaks.yml invokes them (one phase call each).
+    # - ParentModes records the outer AME route. tweaks.yml is fresh-only, so every
+    #   category has ParentModes = @('Fresh'). The manifest validator composes this
+    #   with each tweak's OnUpgrade gate and rejects unreachable enabled entries.
     # - Tweaks run top to bottom within a category; paths are relative to the
     #   category folder, without the .psd1 extension.
     # - Disable a tweak by commenting out its line (keep a short reason).
     Categories = @(
         @{
-            Name   = 'networking'
-            Tweaks = @(
+            Name        = 'networking'
+            ParentModes = @('Fresh')
+            Tweaks      = @(
                 # 'disable-llmnr'  # disabled deliberately: LLMNR resolves single-label \\PCNAME on home LANs
                 #                  # (mDNS only covers .local; router DNS rarely registers client names).
                 #                  # Userbase is mostly trusted home networks, so the poisoning risk doesn't outweigh that.
@@ -18,8 +22,9 @@
             )
         }
         @{
-            Name   = 'performance'
-            Tweaks = @(
+            Name        = 'performance'
+            ParentModes = @('Fresh')
+            Tweaks      = @(
                 'config-mmcss'
                 'disable-auto-folder-discovery'
                 # 'disable-game-bar'  # disabled: users want Game Bar capture/overlays, and the Xbox app depends on it;
@@ -35,8 +40,9 @@
             )
         }
         @{
-            Name   = 'privacy'
-            Tweaks = @(
+            Name        = 'privacy'
+            ParentModes = @('Fresh')
+            Tweaks      = @(
                 'config-app-permissions'
                 'config-windows-media-player'
                 'disable-activity-feed'
@@ -83,8 +89,9 @@
             )
         }
         @{
-            Name   = 'qol'
-            Tweaks = @(
+            Name        = 'qol'
+            ParentModes = @('Fresh')
+            Tweaks      = @(
                 'bcdedit-tweaks'
                 'best-wallpaper-quality'
                 'disable-mouse-accel'
@@ -111,7 +118,6 @@
                 # atlas-theme sets lock-screen policy; the theme itself is applied by
                 # Initialize-NewUser at first logon (interactive shell COM).
                 'appearance/atlas-theme'
-                'appearance/atlas-theme-upgrade'
                 'appearance/disallow-theme-changes'
                 'windows-update/disable-nagging'
                 'windows-update/disable-insider'
@@ -190,16 +196,18 @@
             )
         }
         @{
-            Name   = 'security'
-            Tweaks = @(
+            Name        = 'security'
+            ParentModes = @('Fresh')
+            Tweaks      = @(
                 'block-anonymous-enum-sam'
                 'disable-automatic-restart-signon'
                 'disable-remote-assistance'
             )
         }
         @{
-            Name   = 'debloat'
-            Tweaks = @(
+            Name        = 'debloat'
+            ParentModes = @('Fresh')
+            Tweaks      = @(
                 'config-content-delivery'
                 'disable-reserved-storage'
                 'disable-scheduled-tasks'
@@ -209,8 +217,9 @@
             )
         }
         @{
-            Name   = 'scripts'
-            Tweaks = @(
+            Name        = 'scripts'
+            ParentModes = @('Fresh')
+            Tweaks      = @(
                 'set-file-associations'
                 'disable-core-isolation'
                 'disable-mitigations'
@@ -222,8 +231,9 @@
             )
         }
         @{
-            Name   = 'misc'
-            Tweaks = @(
+            Name        = 'misc'
+            ParentModes = @('Fresh')
+            Tweaks      = @(
                 'config-time'
                 'delete-windows-specific-files'
                 'rebuild-perf-counters'
@@ -235,5 +245,28 @@
                 # so notifications re-enable only after everything else.
             )
         }
+    )
+
+    # Definitions invoked outside a category route. ParentModes is the outer
+    # orchestration reachability, not a replacement for the definition's OnUpgrade.
+    Standalone = @(
+        # custom.yml invokes this on both modes; OnUpgrade = 'Skip' makes it fresh-only.
+        @{ Slug = 'qol/set-hidden-settings-pages'; ParentModes = @('Fresh', 'Upgrade') }
+        # The fresh-only tweaks.yml tail runs these after all category tweaks.
+        @{ Slug = 'scripts/set-power-settings'; ParentModes = @('Fresh') }
+        # Notifications are restored by fresh and upgrade orchestration paths.
+        @{ Slug = 'misc/enable-notifications'; ParentModes = @('Fresh', 'Upgrade') }
+        # Invoke-RevertPhase.ps1 is explicitly upgrade-only and applies this while the
+        # default-user hive is still loaded.
+        @{ Slug = 'qol/appearance/atlas-theme-upgrade'; ParentModes = @('Upgrade') }
+    )
+
+    # Every shipped definition must be enabled exactly once above or classified here.
+    Disabled = @(
+        @{ Slug = 'networking/disable-llmnr'; Reason = 'Preserves single-label home-LAN name resolution where router DNS does not register clients.' }
+        @{ Slug = 'performance/disable-game-bar'; Reason = 'Game Bar capture and overlays remain supported, including Xbox app dependencies.' }
+        @{ Slug = 'qol/explorer/disable-folders-this-pc'; Reason = 'Intentionally disabled; the original rationale was not recorded.' }
+        @{ Slug = 'qol/startup-shutdown/enable-verbose-messages'; Reason = 'Intentionally disabled; the original rationale was not recorded.' }
+        @{ Slug = 'qol/startup-shutdown/force-end-shutdown-apps'; Reason = 'Disabled because forcibly ending applications confused users.' }
     )
 }
