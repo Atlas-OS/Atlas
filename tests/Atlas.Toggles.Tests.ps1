@@ -597,3 +597,12 @@ Describe 'Get-AtlasToggleRelaunchArgumentList' {
         }
     }
 }
+
+Describe 'RecentItems policy semantics' {
+    It 'uses the documented force-hide value for ShowOrHideMostUsedApps' {
+        $definitionPath = Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Toggles\Interface\RecentItems.ps1'
+        $source = Get-Content -LiteralPath $definitionPath -Raw
+
+        $source | Should -Match '(?m)New-ItemProperty\s+-LiteralPath\s+\$hklmPolicies\s+-Name\s+''ShowOrHideMostUsedApps''\s+-Value\s+2\s+-PropertyType\s+DWord'
+    }
+}

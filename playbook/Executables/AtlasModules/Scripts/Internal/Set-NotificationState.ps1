@@ -125,7 +125,7 @@ if ($Mode -eq 'Disable') {
         }
 
     Write-Output 'Disabled notifications.'
-    exit 0
+    return
 }
 
 Invoke-AtlasRegistryValueRemoval -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer' -Name 'DisableNotificationCenter'

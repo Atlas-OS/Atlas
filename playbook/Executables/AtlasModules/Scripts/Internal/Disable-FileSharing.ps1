@@ -36,8 +36,7 @@ Get-NetFirewallRule | Where-Object {
 & "$fileSharingConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" /silent
 & "$fileSharingConfigPath\Give Access To Menu\Disable Give Access To Menu (default).cmd" /silent
 
-if ($Silent) { exit }
+if ($Silent) { return }
 
 Write-Host "`nCompleted! " -ForegroundColor Green -NoNewLine
 Write-Host "You'll need to restart to apply the changes." -ForegroundColor Yellow
-exit

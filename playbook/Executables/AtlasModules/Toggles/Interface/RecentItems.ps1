@@ -27,7 +27,7 @@
                 New-ItemProperty -LiteralPath $hkcuPolicies -Name 'NoRemoteDestinations' -Value 1 -PropertyType DWord -Force | Out-Null
                 New-ItemProperty -LiteralPath $hklmExplorer -Name 'NoStartMenuMFUprogramsList' -Value 1 -PropertyType DWord -Force | Out-Null
                 New-ItemProperty -LiteralPath $hklmExplorer -Name 'NoRecentDocsHistory' -Value 1 -PropertyType DWord -Force | Out-Null
-                New-ItemProperty -LiteralPath $hklmPolicies -Name 'ShowOrHideMostUsedApps' -Value 1 -PropertyType DWord -Force | Out-Null
+                New-ItemProperty -LiteralPath $hklmPolicies -Name 'ShowOrHideMostUsedApps' -Value 2 -PropertyType DWord -Force | Out-Null
                 New-ItemProperty -LiteralPath $hklmPolicies -Name 'HideRecentlyAddedApps' -Value 1 -PropertyType DWord -Force | Out-Null
                 New-ItemProperty -LiteralPath $advanced -Name 'Start_TrackProgs' -Value 0 -PropertyType DWord -Force | Out-Null
                 New-ItemProperty -LiteralPath $advanced -Name 'Start_TrackDocs' -Value 0 -PropertyType DWord -Force | Out-Null

@@ -74,3 +74,34 @@ Describe 'Install phase scripts' {
         $switches | Should -Contain $Privilege
     }
 }
+
+Describe 'In-process phase helper control flow' {
+    BeforeAll {
+        $script:internalRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Internal'
+    }
+
+    It '<Helper> returns control to <Phase> instead of exiting its host process' -TestCases @(
+        @{
+            Helper = 'Set-NotificationState.ps1'
+            Phase  = 'Invoke-PreInstallPhase.ps1'
+        }
+        @{
+            Helper = 'Disable-FileSharing.ps1'
+            Phase  = 'Invoke-ServicesPhase.ps1'
+        }
+    ) {
+        $helperPath = Join-Path -Path $script:internalRoot -ChildPath $Helper
+        $phasePath = Join-Path -Path $script:phasesRoot -ChildPath $Phase
+        (Get-Content -LiteralPath $phasePath -Raw) | Should -Match ([regex]::Escape($Helper))
+
+        $parsed = Get-AtlasPhaseAst -Path $helperPath
+        $parsed.Errors | Should -BeNullOrEmpty
+        $exitStatements = @($parsed.Ast.FindAll({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.ExitStatementAst]
+                }, $true))
+
+        $exitStatements | Should -BeNullOrEmpty `
+            -Because "$Helper is invoked in-process by $Phase and exit would terminate the whole phase"
+    }
+}
