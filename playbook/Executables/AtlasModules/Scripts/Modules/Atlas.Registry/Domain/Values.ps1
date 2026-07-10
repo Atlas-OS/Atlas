@@ -62,7 +62,14 @@ function Set-AtlasRegistryValueCore {
         'DWord' { $value = ConvertTo-AtlasDwordData -Data $Data }
         'MultiString' { $value = [string[]]$Data }
         'QWord' { $value = ConvertTo-AtlasQwordData -Data $Data }
-        'None' { $value = [byte[]]@() }
+        'None' {
+            if ($null -eq $Data) {
+                $value = [byte[]]@()
+            }
+            else {
+                $value = [byte[]]$Data
+            }
+        }
     }
 
     $split = Split-AtlasRegistryProviderPath -ProviderPath $ProviderPath
@@ -108,7 +115,12 @@ function Set-AtlasRegistryValue {
     }
 
     # The scriptblock resolves $Name/$Type/$Data dynamically from this function's scope.
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
+    Invoke-AtlasRegistryTargetOperation -Path $Path -Delta @{
+        Operation = 'SetValue'
+        Name      = $Name
+        Kind      = $Type
+        Data      = $Data
+    } -Action {
         param($providerPath)
         Set-AtlasRegistryValueCore -ProviderPath $providerPath -Name $Name -Type $Type -Data $Data
     }
@@ -127,11 +139,14 @@ function Remove-AtlasRegistryValue {
         [string]$Path,
 
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
+        [AllowEmptyString()]
         [string]$Name
     )
 
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
+    Invoke-AtlasRegistryTargetOperation -Path $Path -Delta @{
+        Operation = 'DeleteValue'
+        Name      = $Name
+    } -Action {
         param($providerPath)
 
         $split = Split-AtlasRegistryProviderPath -ProviderPath $providerPath

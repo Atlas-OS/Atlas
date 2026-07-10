@@ -3,9 +3,10 @@
 function Import-AtlasRegFile {
     <#
     .SYNOPSIS
-        Imports a .reg file via reg.exe, throwing on a non-zero exit code. Note that
-        HKCU paths inside the file resolve to the ambient hive of the current process;
-        use Set-AtlasRegistryValue for per-user data that must survive TrustedInstaller.
+        Imports a .reg file via reg.exe, throwing on a non-zero exit code. HKCU paths
+        cannot be redirected or represented in the typed Atlas mutation journal, so an
+        HKCU import under SYSTEM/TrustedInstaller is rejected. Use the typed registry
+        functions for per-user data that must propagate to the default profile.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -15,6 +16,13 @@ function Import-AtlasRegFile {
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         throw "Registry file not found: '$Path'."
+    }
+
+    if (Test-AtlasTrustedInstaller) {
+        $regFileContent = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        if ($regFileContent -match '(?im)^\s*\[\s*-?\s*(?:HKEY_CURRENT_USER|HKCU)(?:\\|\s*\])') {
+            throw "Registry file '$Path' contains HKCU sections; Atlas.Registry cannot redirect or journal HKCU mutations from a .reg import under SYSTEM/TrustedInstaller."
+        }
     }
 
     $regExePath = Join-Path -Path ([Environment]::GetFolderPath('System')) -ChildPath 'reg.exe'

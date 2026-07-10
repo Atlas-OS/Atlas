@@ -1,89 +1,107 @@
-# Atlas.Registry domain: default-user-hive re-sync.
+# Atlas.Registry domain: default-user-hive replay.
 #
-# The synced paths are the ones actually written through this module (recorded in
-# hkcu-paths.log); each recorded key is copied from the active user's hive into
-# HKU\AME_UserHive_Default with value kinds preserved, including every subkey below it.
-
-function Copy-AtlasRegistryKeyValues {
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$SourceSubPath,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$DestinationSubPath
-    )
-
-    $sourceKey = $null
-    $destinationKey = $null
-    try {
-        $sourceKey = [Microsoft.Win32.Registry]::Users.OpenSubKey($SourceSubPath, $false)
-        if ($null -eq $sourceKey) {
-            return
-        }
-
-        $destinationKey = [Microsoft.Win32.Registry]::Users.CreateSubKey($DestinationSubPath)
-        if ($null -eq $destinationKey) {
-            Write-AtlasLog -Message "Failed to create the default-user-hive key 'HKU\$DestinationSubPath'." -Level Warning
-            return
-        }
-
-        foreach ($valueName in $sourceKey.GetValueNames()) {
-            $value = $sourceKey.GetValue($valueName, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
-            $kind = $sourceKey.GetValueKind($valueName)
-            $destinationKey.SetValue($valueName, $value, $kind)
-        }
-
-        foreach ($subKeyName in $sourceKey.GetSubKeyNames()) {
-            Copy-AtlasRegistryKeyValues -SourceSubPath (Join-Path -Path $SourceSubPath -ChildPath $subKeyName) `
-                -DestinationSubPath (Join-Path -Path $DestinationSubPath -ChildPath $subKeyName)
-        }
-    }
-    finally {
-        if ($null -ne $destinationKey) {
-            $destinationKey.Close()
-        }
-        if ($null -ne $sourceKey) {
-            $sourceKey.Close()
-        }
-    }
-}
+# Only typed mutations recorded by Atlas.Registry are replayed. The obsolete
+# hkcu-paths.log is deliberately ignored: a path alone does not identify Atlas-owned
+# values and must never authorize recursive copying from an interactive user's hive.
 
 function Sync-AtlasDefaultUserHive {
     <#
     .SYNOPSIS
-        Re-copies every HKCU key recorded in hkcu-paths.log from the active user's hive
-        into the loaded default-user hive (HKU\AME_UserHive_Default), creating keys as
-        needed and preserving value kinds. Missing source keys are skipped; when the
-        default-user hive is not loaded, a warning is logged and nothing happens.
+        Replays the exact typed HKCU mutations recorded by Atlas.Registry into the
+        loaded default-user hive (HKU\AME_UserHive_Default). Replay requires the active
+        install transaction's durable commit marker. Every record and the marker's
+        transaction, length, count, and hash are validated while holding the same lock
+        used by writers. Malformed, truncated, or uncommitted input is retained.
     #>
-    $logFilePath = Join-Path -Path (Join-Path -Path (Get-AtlasContext).LogsPath -ChildPath 'install') -ChildPath 'hkcu-paths.log'
-    if (-not (Test-Path -LiteralPath $logFilePath -PathType Leaf)) {
-        Write-AtlasLog -Message 'No recorded HKCU paths to sync into the default-user hive.'
-        return
+    $installLogPath = Join-Path -Path (Get-AtlasContext).LogsPath -ChildPath 'install'
+    $legacyPath = Join-Path -Path $installLogPath -ChildPath 'hkcu-paths.log'
+
+    if (Test-Path -LiteralPath $legacyPath -PathType Leaf) {
+        Write-AtlasLog -Message "The obsolete path-only HKCU journal '$legacyPath' is untrusted and was ignored." -Level Warning
     }
 
-    if (-not (Test-Path -LiteralPath $script:AtlasDefaultUserHiveRoot)) {
-        Write-AtlasLog -Message "The default-user hive is not loaded at 'HKU\$script:AtlasDefaultUserHiveName'; skipping the default-user-hive sync." -Level Warning
-        return
+    $initialTransaction = Get-AtlasHkcuActiveTransaction
+    $result = Invoke-WithAtlasHkcuDeltaLock -InitialTransaction $initialTransaction -ScriptBlock {
+        param($transaction, $paths)
+
+        if (Test-Path -LiteralPath $paths.Consumed -PathType Leaf) {
+            if (Test-Path -LiteralPath $paths.Marker -PathType Leaf) {
+                throw "Atlas HKCU delta transaction '$($transaction.TransactionId)' has both active and consumed commit markers."
+            }
+            $consumedMarker = Read-AtlasHkcuDeltaCommitMarker -Path $paths.Consumed `
+                -ExpectedTransactionId $transaction.TransactionId
+            if (Test-Path -LiteralPath $paths.Journal -PathType Leaf) {
+                $journalBytes = Get-AtlasHkcuDeltaJournalBytes -JournalPath $paths.Journal
+                $records = @(ConvertFrom-AtlasHkcuDeltaJournalBytes -Bytes $journalBytes `
+                    -ExpectedTransactionId $transaction.TransactionId)
+                Assert-AtlasHkcuDeltaCommitBinding -Marker $consumedMarker -Records $records -JournalBytes $journalBytes
+                $null = Assert-AtlasHkcuTransactionMatch -Expected $transaction
+                [IO.File]::Delete($paths.Journal)
+                if (Test-Path -LiteralPath $paths.Journal) {
+                    throw "The previously replayed Atlas HKCU mutation journal '$($paths.Journal)' could not be consumed."
+                }
+            }
+            $null = Assert-AtlasHkcuTransactionMatch -Expected $transaction
+            return [pscustomobject]@{
+                Count         = [int]$consumedMarker.RecordCount
+                TransactionId = $transaction.TransactionId
+                Replayed      = $false
+            }
+        }
+
+        if (-not (Test-Path -LiteralPath $paths.Marker -PathType Leaf)) {
+            throw "Atlas HKCU delta transaction '$($transaction.TransactionId)' has no durable commit marker; refusing to replay or consume it."
+        }
+
+        # A committed journal is immutable. Do not run final-fragment recovery here:
+        # any byte mismatch after completion must fail the marker binding below.
+        $journalBytes = Get-AtlasHkcuDeltaJournalBytes -JournalPath $paths.Journal
+        $records = @(ConvertFrom-AtlasHkcuDeltaJournalBytes -Bytes $journalBytes `
+            -ExpectedTransactionId $transaction.TransactionId)
+        $marker = Read-AtlasHkcuDeltaCommitMarker -Path $paths.Marker `
+            -ExpectedTransactionId $transaction.TransactionId
+        Assert-AtlasHkcuDeltaCommitBinding -Marker $marker -Records $records -JournalBytes $journalBytes
+        $null = Assert-AtlasHkcuTransactionMatch -Expected $transaction
+
+        if ($records.Count -gt 0 -and -not (Test-AtlasDefaultUserHiveLoaded)) {
+            throw "The default-user hive is not loaded at 'HKU\$script:AtlasDefaultUserHiveName'; refusing to discard the committed HKCU delta transaction '$($transaction.TransactionId)'."
+        }
+
+        $replayedCount = Invoke-AtlasHkcuDeltaJournal -Deltas $records `
+            -DestinationRootSubPath $script:AtlasDefaultUserHiveName
+        $null = Assert-AtlasHkcuTransactionMatch -Expected $transaction
+
+        # Atomically retire the authorization marker before deleting the journal. The
+        # consumed tombstone prevents both replay and late writers. A crash after this
+        # move is recovered by the branch above, which validates and removes the journal
+        # without replaying it a second time.
+        if (Test-Path -LiteralPath $paths.Consumed) {
+            throw "The Atlas HKCU consumed marker '$($paths.Consumed)' already exists."
+        }
+        [IO.File]::Move($paths.Marker, $paths.Consumed)
+        Assert-AtlasHkcuDeltaFileSecurity -Path $paths.Consumed
+        if ((Test-Path -LiteralPath $paths.Marker) -or
+            -not (Test-Path -LiteralPath $paths.Consumed -PathType Leaf)) {
+            throw "The Atlas HKCU delta commit marker '$($paths.Marker)' could not be retired after replay."
+        }
+        if (Test-Path -LiteralPath $paths.Journal -PathType Leaf) {
+            [IO.File]::Delete($paths.Journal)
+        }
+        if (Test-Path -LiteralPath $paths.Journal) {
+            throw "The Atlas HKCU mutation journal '$($paths.Journal)' could not be consumed after replay."
+        }
+
+        return [pscustomobject]@{
+            Count         = [int]$replayedCount
+            TransactionId = $transaction.TransactionId
+            Replayed      = $true
+        }
     }
 
-    $activeUserSid = Get-AtlasActiveUserSid
-
-    $subPaths = @(Get-Content -LiteralPath $logFilePath -ErrorAction Stop |
-        ForEach-Object { "$_".Trim() } |
-        Where-Object { $_ } |
-        Sort-Object -Unique)
-
-    Write-AtlasLog -Message "Syncing $(@($subPaths).Count) recorded HKCU key path(s) into the default-user hive."
-
-    foreach ($subPath in $subPaths) {
-        try {
-            Copy-AtlasRegistryKeyValues -SourceSubPath "$activeUserSid\$subPath" -DestinationSubPath "$script:AtlasDefaultUserHiveName\$subPath"
-        }
-        catch {
-            Write-AtlasLog -Message "Failed to sync the HKCU key '$subPath' into the default-user hive: $($_.Exception.Message)" -Level Warning
-        }
+    if ($result.Replayed) {
+        Write-AtlasLog -Message "Replayed and consumed $($result.Count) Atlas-owned HKCU mutation(s) from transaction '$($result.TransactionId)' in the default-user hive."
+    }
+    else {
+        Write-AtlasLog -Message "Confirmed $($result.Count) previously replayed Atlas-owned HKCU mutation(s) were consumed for transaction '$($result.TransactionId)'."
     }
 }

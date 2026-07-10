@@ -13,7 +13,9 @@ function New-AtlasRegistryKey {
         [string]$Path
     )
 
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
+    Invoke-AtlasRegistryTargetOperation -Path $Path -Delta @{
+        Operation = 'CreateKey'
+    } -Action {
         param($providerPath)
 
         $split = Split-AtlasRegistryProviderPath -ProviderPath $providerPath
@@ -43,7 +45,14 @@ function Remove-AtlasRegistryKey {
         [string]$Path
     )
 
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
+    $pathInfo = ConvertTo-AtlasRegistryPathInfo -Path $Path
+    if ($pathInfo.Root -eq 'HKEY_CURRENT_USER' -and [string]::IsNullOrEmpty($pathInfo.SubPath)) {
+        throw "Refusing to delete the registry root '$Path'."
+    }
+
+    Invoke-AtlasRegistryTargetOperation -Path $Path -Delta @{
+        Operation = 'DeleteKey'
+    } -Action {
         param($providerPath)
 
         $split = Split-AtlasRegistryProviderPath -ProviderPath $providerPath

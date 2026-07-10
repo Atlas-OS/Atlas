@@ -18,6 +18,7 @@
         'Remove-AtlasRegistryKey'
         # .reg import, default-hive sync and declarative entries
         'Import-AtlasRegFile'
+        'Complete-AtlasHkcuDeltaJournal'
         'Sync-AtlasDefaultUserHive'
         'Invoke-AtlasRegistryEntries'
         # Known-folder helpers (former UserPaths module)

@@ -157,6 +157,15 @@ Describe 'Install phase scripts' {
         $switches = Get-AtlasPrivilegeSwitch -Ast $parsed.Ast
         $switches | Should -Contain $Privilege
     }
+
+    It 'commits the exact HKCU delta stream before required default-hive replay' {
+        $finalizePath = Join-Path -Path $script:phasesRoot -ChildPath 'Invoke-FinalizePhase.ps1'
+        $finalizeSource = Get-Content -LiteralPath $finalizePath -Raw
+
+        $finalizeSource | Should -Match '(?s)Complete-AtlasHkcuDeltaJournal\s*\r?\n\s*Sync-AtlasDefaultUserHive'
+        $finalizeSource | Should -Not -Match '(?s)try\s*\{[^}]*Sync-AtlasDefaultUserHive[^}]*\}\s*catch' `
+            -Because 'commit and replay failures are fatal Finalize outcomes, not warnings'
+    }
 }
 
 Describe 'In-process payload helper control flow' {

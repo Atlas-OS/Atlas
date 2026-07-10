@@ -292,41 +292,12 @@ function Get-RegUserPaths {
     return $paths
 }
 
-function Write-AtlasHkcuPathRecord {
-    <#
-    .SYNOPSIS
-        Records a redirected HKCU subkey path in <LogsPath>\install\hkcu-paths.log so
-        Sync-AtlasDefaultUserHive can re-sync those keys into the default-user hive.
-    #>
-    param(
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
-        [string]$SubPath
-    )
-
-    if ([string]::IsNullOrWhiteSpace($SubPath)) {
-        return
-    }
-
-    try {
-        $installLogPath = Join-Path -Path (Get-AtlasContext).LogsPath -ChildPath 'install'
-        if (-not (Test-Path -LiteralPath $installLogPath -PathType Container)) {
-            New-Item -Path $installLogPath -ItemType Directory -Force | Out-Null
-        }
-
-        Add-Content -LiteralPath (Join-Path -Path $installLogPath -ChildPath 'hkcu-paths.log') -Value $SubPath -Encoding UTF8
-    }
-    catch {
-        Write-AtlasLog -Message "Failed to record the mirrored HKCU path '$SubPath': $($_.Exception.Message)" -Level Warning
-    }
-}
-
 function Invoke-AtlasRegistryTargetOperation {
     <#
     .SYNOPSIS
-        Runs a registry operation against the resolved target of a path, records
-        redirected HKCU subpaths, and repeats the operation against the default-user
-        hive mirror when that hive is loaded.
+        Runs a registry operation against the resolved target of a path, records the
+        exact typed mutation for redirected HKCU paths, and repeats the operation
+        against the default-user hive mirror when that hive is loaded.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -334,14 +305,33 @@ function Invoke-AtlasRegistryTargetOperation {
         [string]$Path,
 
         [Parameter(Mandatory = $true)]
-        [scriptblock]$Action
+        [scriptblock]$Action,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [hashtable]$Delta
     )
 
     $resolved = Resolve-AtlasRegistryTarget -Path $Path
     & $Action $resolved.Primary
 
     if ($null -ne $resolved.HkcuSubPath) {
-        Write-AtlasHkcuPathRecord -SubPath $resolved.HkcuSubPath
+        try {
+            $deltaParameters = @{
+                SubPath   = $resolved.HkcuSubPath
+                Operation = $Delta['Operation']
+            }
+            foreach ($propertyName in @('Name', 'Kind', 'Data')) {
+                if ($Delta.ContainsKey($propertyName)) {
+                    $deltaParameters[$propertyName] = $Delta[$propertyName]
+                }
+            }
+
+            Write-AtlasHkcuDeltaRecord @deltaParameters
+        }
+        catch {
+            throw (New-AtlasHkcuDeltaFailureException -SubPath $resolved.HkcuSubPath -InnerException $_.Exception)
+        }
 
         if ($resolved.Mirror -and (Test-Path -LiteralPath $script:AtlasDefaultUserHiveRoot)) {
             try {

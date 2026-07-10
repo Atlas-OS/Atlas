@@ -1,12 +1,19 @@
 # Atlas.Registry - registry engine module.
 Set-StrictMode -Version 3.0
 
+$installJournalManifestPath = [IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.InstallJournal\Atlas.InstallJournal.psd1'))
+if (-not (Test-Path -LiteralPath $installJournalManifestPath -PathType Leaf)) {
+    throw "Required Atlas.InstallJournal manifest '$installJournalManifestPath' is missing."
+}
+Import-Module -Name $installJournalManifestPath -Force -ErrorAction Stop
+
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(
     'Paths.ps1'
     'Values.ps1'
     'Keys.ps1'
+    'DeltaJournal.ps1'
     'RegFile.ps1'
     'Sync.ps1'
     'Entries.ps1'
@@ -23,6 +30,6 @@ foreach ($domainModule in @(
 Export-ModuleMember -Function @(
     'Resolve-AtlasRegistryPath', 'Get-AtlasActiveUserSid', 'Get-AtlasUserHives', 'Get-RegUserPaths',
     'Set-AtlasRegistryValue', 'Remove-AtlasRegistryValue', 'New-AtlasRegistryKey', 'Remove-AtlasRegistryKey',
-    'Import-AtlasRegFile', 'Sync-AtlasDefaultUserHive', 'Invoke-AtlasRegistryEntries',
+    'Import-AtlasRegFile', 'Complete-AtlasHkcuDeltaJournal', 'Sync-AtlasDefaultUserHive', 'Invoke-AtlasRegistryEntries',
     'Get-UserPath', 'Get-SystemDrive'
 )

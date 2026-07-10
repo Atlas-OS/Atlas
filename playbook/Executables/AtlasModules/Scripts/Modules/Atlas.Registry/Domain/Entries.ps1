@@ -73,6 +73,10 @@ function Invoke-AtlasRegistryEntries {
             }
         }
         catch {
+            if (Test-AtlasHkcuDeltaFailureException -Exception $_.Exception) {
+                throw
+            }
+
             if ($ignoreErrors) {
                 $null = $_
             }
