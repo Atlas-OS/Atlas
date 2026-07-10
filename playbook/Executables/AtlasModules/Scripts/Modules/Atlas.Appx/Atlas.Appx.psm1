@@ -11,6 +11,7 @@ $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(
     'Snapshot.ps1'
+    'Removal.ps1'
     'Cache.ps1'
     'PhoneLink.ps1'
 )) {
@@ -24,5 +25,6 @@ foreach ($domainModule in @(
 
 Export-ModuleMember -Function @(
     'Save-AtlasAppxSnapshot', 'Set-AtlasAppxDeprovisioned',
+    'Get-AtlasAppxRemovalDefinition', 'Invoke-AtlasAppxRemovalPlan',
     'Clear-AtlasAppxCache', 'Remove-AtlasPhoneLinkAppx'
 )

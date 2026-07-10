@@ -1,6 +1,6 @@
 # Atlas.Appx domain: package snapshot and deprovisioning.
 #
-# The AME !appx removals in atlas\appx.yml are bracketed by these two functions:
+# The PowerShell AppX removal plan is bracketed by these two functions:
 # Save-AtlasAppxSnapshot records the installed package families beforehand, and
 # Set-AtlasAppxDeprovisioned compares afterwards, registering every removed family
 # under the Deprovisioned key so Windows Update doesn't reinstall it.
@@ -43,7 +43,13 @@ function Save-AtlasAppxSnapshot {
         New-Item -Path $parentPath -ItemType Directory -Force | Out-Null
     }
 
-    (Get-AppxPackage).PackageFamilyName | Set-Content -LiteralPath $Path -Encoding ASCII
+    # The removal plan operates across every existing user. Snapshot the same
+    # all-user Bundle/Main inventory so deprovision markers do not depend on which
+    # account happened to launch the playbook.
+    @(Get-AppxPackage -AllUsers -PackageTypeFilter Bundle, Main -ErrorAction Stop).PackageFamilyName |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Sort-Object -Unique |
+        Set-Content -LiteralPath $Path -Encoding ASCII
     Write-AtlasLog -Message "Saved the AppX package snapshot to '$Path'."
 }
 
@@ -61,13 +67,24 @@ function Set-AtlasAppxDeprovisioned {
         [ValidateNotNullOrEmpty()]
         [string]$DeprovisionedKeyPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned',
 
-        # Overridable for tests; defaults to the live package list.
+        # Overridable for tests. The live all-user inventory is read only after the
+        # required snapshot has been validated, so a missing snapshot cannot trigger
+        # unrelated package enumeration first.
+        [AllowNull()]
         [AllowEmptyCollection()]
-        [string[]]$CurrentPackages = ((Get-AppxPackage).PackageFamilyName)
+        [string[]]$CurrentPackages
     )
 
     if (-not (Test-Path -LiteralPath $SnapshotPath -PathType Leaf)) {
         throw "AppX package snapshot '$SnapshotPath' was not found. Save-AtlasAppxSnapshot must run before deprovisioning."
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('CurrentPackages')) {
+        $CurrentPackages = @(
+            (Get-AppxPackage -AllUsers -PackageTypeFilter Bundle, Main -ErrorAction Stop).PackageFamilyName |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                Sort-Object -Unique
+        )
     }
 
     # No -Force on an existing key: recreating it would destroy every entry already

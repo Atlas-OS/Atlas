@@ -1,105 +1,16 @@
 ---
 title: AppX
 description: Removes AppX packages and prevents them from being reinstalled
+# Temporary runner applicability boundary: keep AppX fresh/OOBE-only until the
+# Atlas install journal owns phase checkpointing, skip and same-version resume.
 onUpgrade: false
 actions:
-  - !writeStatus: {status: 'Removing AppX packages'}
-
-  # The reason of removing those applications is that they might be sending user data,
-  # showing unwanted content and using hardware resources. They can also simply be annoyances
-  # that are never used. However, most of these applications can be reinstalled via
-  # Microsoft Store in case the user needs them.
-
-  # https://docs.microsoft.com/en-us/windows/application-management/apps-in-windows-10
-
-  # The !appx family removals below stay in YAML deliberately: AME Wizard's
-  # provisioned/system package removal is battle-tested where Remove-AppxPackage
-  # documented-fails. Everything around them (snapshot, process kills, Phone Link,
-  # deprovisioning, cache clearing) lives in the AppxSupport phase
-  # (AtlasModules\Scripts\Phases\Invoke-AppxSupportPhase.ps1).
-
-  # Snapshot current AppX packages to deprovision removed ones afterward and
-  # kill Teams processes
+  - !writeStatus: {status: 'Removing AppX packages and clearing caches'}
+  # Preserve the progress weight of 52 former default-weight AME AppX actions plus
+  # the old snapshot and cleanup calls (52 * 30 + 4 + 7).
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase AppxSupport -Category Snapshot'
+    command: '& ([IO.Path]::Combine([Environment]::GetFolderPath([Environment+SpecialFolder]::Windows), ''AtlasModules'', ''Scripts'', ''Invoke-AtlasInstall.ps1'')) -Phase AppxSupport'
     runas: currentUserElevated
     wait: true
-    weight: 4
-    handleExitCodes: { "!0": halt }
-
-  # Microsoft Edge (the rest of the Edge removal runs in the Components phase,
-  # gated on the same option). Legacy EdgeHTML, the Chromium Edge AppX and the
-  # Game Assist companion.
-  - !appx: {name: 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe', type: family, option: 'uninstall-edge', ignoreErrors: true}
-  - !appx: {name: 'Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe', type: family, option: 'uninstall-edge', ignoreErrors: true}
-  - !appx: {name: 'Microsoft.Edge.GameAssist*', type: family, option: 'uninstall-edge', ignoreErrors: true}
-
-  # AppX Microsoft Teams
-  # Seems legacy - not in 23H2
-  - !appx: {name: 'MicrosoftTeams*', type: family}
-  # New AppX Teams in 24H2
-  - !appx: {name: 'MSTeams*', type: family}
-  # 24H2 Copilot app
-  - !appx: {name: 'Microsoft.Copilot*', type: family}
-  # Widgets runtime: the Dsh policies hide the UI but leave Widgets.exe installed and
-  # running - removing the packages is what actually stops it. Reinstallable from the
-  # Store (Windows Web Experience Pack, 9MSSGKG348SP).
-  - !appx: {name: 'MicrosoftWindows.Client.WebExperience*', type: family, ignoreErrors: true}
-  - !appx: {name: 'Microsoft.WidgetsPlatformRuntime*', type: family, ignoreErrors: true}
-  # Other apps
-  - !appx: {name: 'Clipchamp.Clipchamp*', type: family}
-  - !appx: {name: 'Disney.37853FC22B2CE*', type: family}
-  - !appx: {name: 'SpotifyAB.SpotifyMusic*', type: family}
-  - !appx: {name: 'Microsoft.549981C3F5F10*', type: family} # Cortana
-  - !appx: {name: 'Microsoft.XboxApp*', type: family} # Xbox Console Companion (deprecated)
-  - !appx: {name: 'microsoft.windowscommunicationsapps*', type: family} # Mail and Calendar
-  - !appx: {name: 'Microsoft.MSPaint*', type: family} # Paint 3D
-  - !appx: {name: 'Microsoft.Paint*', type: family}
-  - !appx: {name: 'Microsoft.Getstarted*', type: family} # Tips (deprecated)
-  - !appx: {name: 'Microsoft.WindowsBackup*', type: family}
-  - !appx: {name: 'Microsoft.ZuneVideo*', type: family} # Films & TV
-  - !appx: {name: 'Microsoft.ZuneMusic*', type: family} # Media Player
-  - !appx: {name: 'MicrosoftCorporationII.MicrosoftFamily*', type: family}
-  - !appx: {name: 'MicrosoftCorporationII.QuickAssist*', type: family}
-  - !appx: {name: 'Microsoft.MixedReality.Portal*', type: family}
-  - !appx: {name: 'Microsoft.Windows.DevHome*', type: family}
-  - !appx: {name: 'Microsoft.BingWeather*', type: family}
-  - !appx: {name: 'Microsoft.BingNews*', type: family}
-  - !appx: {name: 'Microsoft.BingFinance*', type: family}
-  - !appx: {name: 'Microsoft.BingSports*', type: family}
-  - !appx: {name: 'Microsoft.BingSearch*', type: family}
-  - !appx: {name: 'Microsoft.OutlookForWindows*', type: family}
-  - !appx: {name: 'Microsoft.GetHelp*', type: family}
-  - !appx: {name: 'Microsoft.Microsoft3DViewer*', type: family}
-  - !appx: {name: 'Microsoft.MicrosoftOfficeHub*', type: family}
-  - !appx: {name: 'Microsoft.MicrosoftSolitaireCollection*', type: family}
-  - !appx: {name: 'Microsoft.MicrosoftStickyNotes*', type: family}
-  - !appx: {name: 'Microsoft.StickyNotesPreview*', type: family}
-  - !appx: {name: 'Microsoft.Office.OneNote*', type: family}
-  - !appx: {name: 'Microsoft.OneConnect*', type: family}
-  - !appx: {name: 'Microsoft.People*', type: family}
-  - !appx: {name: 'Microsoft.PowerAutomateDesktop*', type: family}
-  - !appx: {name: 'Microsoft.ScreenSketch*', type: family, option: 'remove-snipping-tool'}
-  - !appx: {name: 'Microsoft.SkypeApp*', type: family}
-  - !appx: {name: 'Microsoft.Todos*', type: family}
-  - !appx: {name: 'Microsoft.Wallet*', type: family}
-  - !appx: {name: 'Microsoft.Whiteboard*', type: family}
-  - !appx: {name: 'Microsoft.WindowsAlarms*', type: family}
-  - !appx: {name: 'Microsoft.WindowsCamera*', type: family}
-  - !appx: {name: 'Microsoft.WindowsFeedbackHub*', type: family}
-  - !appx: {name: 'Microsoft.WindowsMaps*', type: family}
-  - !appx: {name: 'Microsoft.WindowsSoundRecorder*', type: family}
-  - !appx: {name: 'Microsoft.StartExperiencesApp*', type: family}
-  - !appx: {name: 'Ink.Handwriting.Main.Store.en-US1.0', type: family}
-  # Removing Microsoft.YourPhone using AME Wizard causes issues with Cross Device
-  # Experience Host installing; it's removed in the Cleanup call below instead
-
-  # Phone Link removal, deprovisioning of everything removed since the snapshot,
-  # then clearing AppX caches (Client.CBS and more; Start menu cache is cleared later)
-  - !writeStatus: {status: 'Clearing AppX caches'}
-  - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Invoke-AtlasInstall.ps1'') -Phase AppxSupport -Category Cleanup'
-    runas: currentUserElevated
-    wait: true
-    weight: 7
+    weight: 1571
     handleExitCodes: { "!0": halt }
