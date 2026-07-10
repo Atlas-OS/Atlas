@@ -6,7 +6,9 @@
 *.yaml eol=lf
 *.bat  eol=crlf
 *.cmd  eol=crlf
-*.reg  eol=crlf
+# Registry Editor 5.00 payloads are UTF-16LE. Git's byte-oriented EOL filters
+# corrupt their two-byte code units, so preserve registry payload bytes exactly.
+*.reg  -text
 *.sh   eol=lf
 
 # Binary files
