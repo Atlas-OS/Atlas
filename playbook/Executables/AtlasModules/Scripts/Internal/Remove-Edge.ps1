@@ -40,6 +40,12 @@ param (
 
 Set-StrictMode -Version 3.0
 
+$downloadIntegrity = [IO.Path]::Combine($PSScriptRoot, 'Download-Integrity.ps1')
+if (-not [IO.File]::Exists($downloadIntegrity)) {
+    throw "The Atlas download-integrity helper is missing at '$downloadIntegrity'."
+}
+. $downloadIntegrity
+
 $version = '1.9.5'
 
 $ProgressPreference = 'SilentlyContinue'
@@ -49,6 +55,13 @@ $env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:p
 $msedgeExePaths = @(
     "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application\msedge.exe",
     "$([Environment]::GetFolderPath('ProgramFiles'))\Microsoft\Edge\Application\msedge.exe"
+)
+# Exact HTTPS download locations in Microsoft's published Edge endpoint allowlist.
+$microsoftEdgeDownloadHosts = @(
+    'msedge.sf.tlu.dl.delivery.mp.microsoft.com'
+    'msedge.sf.dl.delivery.mp.microsoft.com'
+    'msedge.sb.tlu.dl.delivery.mp.microsoft.com'
+    'msedge.sb.dl.delivery.mp.microsoft.com'
 )
 
 if ($NonInteractive -and (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView)) {
@@ -101,10 +114,168 @@ function Write-Status {
 
 function InternetCheck {
     try {
-        Invoke-WebRequest -Uri 'https://www.microsoft.com/robots.txt' -Method GET -TimeoutSec 10 -ErrorAction Stop | Out-Null
+        Microsoft.PowerShell.Utility\Invoke-WebRequest `
+            -Uri 'https://www.microsoft.com/robots.txt' `
+            -Method GET `
+            -UseBasicParsing `
+            -TimeoutSec 10 `
+            -ErrorAction Stop | Out-Null
     }
     catch {
         Write-Status "Failed to reach Microsoft.com via web request. You must have an internet connection to reinstall Edge and its components.`n$($_.Exception.Message)" -Level Critical -Exit -ExitCode 404
+    }
+}
+
+function Assert-MicrosoftSignedInstaller {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [string]$StagingDirectory,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Description,
+
+        [ValidatePattern('^[0-9a-fA-F]{64}$')]
+        [string]$ExpectedSha256,
+
+        [ValidateRange(1, 1073741824)]
+        [long]$ExpectedBytes
+    )
+
+    if (-not [IO.File]::Exists($Path)) {
+        throw "$Description is missing at '$Path'."
+    }
+
+    $file = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    $expectedParent = [IO.Path]::GetFullPath($StagingDirectory).TrimEnd('\')
+    $actualParent = [IO.Path]::GetFullPath($file.DirectoryName).TrimEnd('\')
+    if (($file.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+        -not $actualParent.Equals($expectedParent, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Description is not a regular file directly inside protected staging."
+    }
+
+    if ($PSBoundParameters.ContainsKey('ExpectedBytes') -and $file.Length -ne $ExpectedBytes) {
+        throw "$Description no longer matches its expected byte length."
+    }
+    if ($PSBoundParameters.ContainsKey('ExpectedSha256') -and
+        (Microsoft.PowerShell.Utility\Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash -ne $ExpectedSha256) {
+        throw "$Description no longer matches its expected SHA-256."
+    }
+
+    $signature = Microsoft.PowerShell.Security\Get-AuthenticodeSignature -LiteralPath $file.FullName
+    if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid -or
+        $null -eq $signature.SignerCertificate -or
+        $signature.SignerCertificate.Subject -notmatch '(^|,\s*)CN=Microsoft Corporation(,|$)') {
+        throw "$Description is not validly signed by Microsoft Corporation."
+    }
+
+    return $file.FullName
+}
+
+function Invoke-MicrosoftWebViewDownload {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [uri]$Uri,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Destination,
+
+        [Parameter(Mandatory = $true)]
+        [string]$StagingDirectory
+    )
+
+    $expectedUri = 'https://go.microsoft.com/fwlink/p/?LinkId=2124703'
+    $expectedFileName = 'MicrosoftEdgeWebview2Setup.exe'
+    $maximumBytes = 33554432
+
+    if ($Uri.AbsoluteUri -cne $expectedUri) {
+        throw "The WebView bootstrap URI '$Uri' is not the reviewed Microsoft forwarding URL."
+    }
+    if (Test-Path -LiteralPath $Destination) {
+        throw "The WebView download destination '$Destination' already exists."
+    }
+
+    $protectedParent = [IO.Path]::GetFullPath($StagingDirectory).TrimEnd('\')
+    $destinationParent = [IO.Path]::GetFullPath((Split-Path -Parent $Destination)).TrimEnd('\')
+    if (-not $destinationParent.Equals($protectedParent, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'The WebView download destination is outside protected staging.'
+    }
+    $parentItem = Get-Item -LiteralPath $protectedParent -Force -ErrorAction Stop
+    if (($parentItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+        -not (Test-AtlasProtectedStagingAcl -Acl (Get-Acl -LiteralPath $protectedParent -ErrorAction Stop))) {
+        throw 'The WebView download destination is not an Atlas protected staging directory.'
+    }
+
+    $curlPath = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'curl.exe')
+    if (-not [IO.File]::Exists($curlPath)) {
+        throw "The protected Windows cURL executable is missing at '$curlPath'."
+    }
+
+    $curlArguments = @(
+        # This must remain argument zero so a caller-writable .curlrc is ignored.
+        '--disable'
+        '--fail'
+        '--location'
+        '--silent'
+        '--show-error'
+        '--proto', '=https'
+        '--proto-redir', '=https'
+        '--tlsv1.2'
+        '--connect-timeout', '10'
+        '--max-time', '300'
+        '--max-redirs', '5'
+        '--max-filesize', [string]$maximumBytes
+        '--write-out', '%{url_effective}'
+        $Uri.AbsoluteUri
+        '--output', $Destination
+    )
+
+    try {
+        $effectiveUrlOutput = & $curlPath @curlArguments
+        $curlExitCode = $LASTEXITCODE
+        if ($curlExitCode -ne 0 -or -not (Test-Path -LiteralPath $Destination -PathType Leaf)) {
+            throw "Downloading '$Uri' failed with cURL exit code $curlExitCode."
+        }
+
+        $effectiveUri = $null
+        $effectiveUrl = ([string]($effectiveUrlOutput -join '')).Trim()
+        if (-not [uri]::TryCreate($effectiveUrl, [UriKind]::Absolute, [ref]$effectiveUri) -or
+            $effectiveUri.Scheme -ne 'https' -or
+            -not [string]::IsNullOrEmpty($effectiveUri.UserInfo) -or
+            -not $effectiveUri.IsDefaultPort -or
+            $effectiveUri.Host -notin $microsoftEdgeDownloadHosts -or
+            -not [string]::IsNullOrEmpty($effectiveUri.Query) -or
+            -not [IO.Path]::GetFileName($effectiveUri.AbsolutePath).Equals($expectedFileName, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "The WebView forwarding URL resolved to the unreviewed location '$effectiveUrl'."
+        }
+
+        $download = Get-Item -LiteralPath $Destination -Force -ErrorAction Stop
+        if (($download.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+            $download.Length -lt 1 -or $download.Length -gt $maximumBytes -or
+            -not [IO.Path]::GetFullPath($download.DirectoryName).TrimEnd('\').Equals(
+                $protectedParent,
+                [StringComparison]::OrdinalIgnoreCase
+            )) {
+            throw 'The WebView bootstrapper failed its protected-file and size checks.'
+        }
+
+        Assert-MicrosoftSignedInstaller `
+            -Path $download.FullName `
+            -StagingDirectory $StagingDirectory `
+            -Description 'The Edge WebView2 bootstrapper' | Out-Null
+
+        return [pscustomobject]@{
+            Path     = $download.FullName
+            FinalUri = $effectiveUri
+        }
+    }
+    catch {
+        Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
+        throw
     }
 }
 
@@ -257,9 +428,6 @@ function Remove-EdgeRegistration {
 function InstallEdgeChromium {
     InternetCheck
 
-    $temp = mkdir (Join-Path $([System.IO.Path]::GetTempPath()) $(New-Guid))
-    $msi = "$temp\edge.msi"
-    $msiLog = "$temp\edgeMsi.log"
     $link = 'Undefined'
 
     if ([Environment]::Is64BitOperatingSystem) {
@@ -273,7 +441,11 @@ function InstallEdgeChromium {
     Write-Status 'Requesting from the Microsoft Edge Update API...'
     try {
         try {
-            $edgeUpdateApi = (Invoke-WebRequest 'https://edgeupdates.microsoft.com/api/products' -UseBasicParsing).Content | ConvertFrom-Json
+            $edgeUpdateApi = (Microsoft.PowerShell.Utility\Invoke-WebRequest `
+                    -Uri 'https://edgeupdates.microsoft.com/api/products' `
+                    -UseBasicParsing `
+                    -TimeoutSec 30 `
+                    -ErrorAction Stop).Content | Microsoft.PowerShell.Utility\ConvertFrom-Json
         }
         catch {
             Write-Status "Failed to request from EdgeUpdate API!
@@ -281,31 +453,62 @@ Error: $_" -Level Critical -Exit -ExitCode 4
         }
 
         $edgeItem = ($edgeUpdateApi | Where-Object { $_.Product -eq 'Stable' }).Releases |
-        Where-Object { $_.Platform -eq 'Windows' -and $_.Architecture -eq $archString } |
-        Where-Object { $_.Artifacts.Count -ne 0 } | Select-Object -First 1
+            Where-Object { $_.Platform -eq 'Windows' -and $_.Architecture -eq $archString } |
+            Where-Object { $_.Artifacts.Count -ne 0 } | Select-Object -First 1
 
         if ($null -eq $edgeItem) {
             Write-Status 'Failed to parse EdgeUpdate API! No matching artifacts found.' -Level Critical -Exit
         }
 
-        $hashAlg = $edgeItem.Artifacts.HashAlgorithm | ForEach-Object { if ([string]::IsNullOrEmpty($_)) { 'SHA256' } else { $_ } }
-        foreach ($var in @{
-                link     = $edgeItem.Artifacts.Location
-                hash     = $edgeItem.Artifacts.Hash
-                version  = $edgeItem.ProductVersion
-                sizeInMb = [math]::round($edgeItem.Artifacts.SizeInBytes / 1Mb)
-                released = Get-Date $edgeItem.PublishedTime
-            }.GetEnumerator()) {
-            $val = $var.Value | Select-Object -First 1
-            # Values can be non-strings (e.g. DateTime/double), so avoid .Length under strict mode.
-            if ([string]::IsNullOrEmpty([string]$val)) {
-                Set-Variable -Name $var.Key -Value 'Undefined'
-                if ($var.Key -eq 'link') { throw 'Failed to parse download link!' }
-            }
-            else {
-                Set-Variable -Name $var.Key -Value $val
-            }
+        $artifacts = @($edgeItem.Artifacts | Where-Object { $_.ArtifactName -eq 'msi' })
+        if ($artifacts.Count -ne 1) {
+            throw "Expected one Edge MSI artifact, but the API returned $($artifacts.Count)."
         }
+        $artifact = $artifacts[0]
+
+        $downloadUri = $null
+        $link = [string]$artifact.Location
+        if (-not [uri]::TryCreate($link, [UriKind]::Absolute, [ref]$downloadUri) -or
+            $downloadUri.Scheme -ne 'https' -or
+            -not [string]::IsNullOrEmpty($downloadUri.UserInfo) -or
+            -not $downloadUri.IsDefaultPort -or
+            -not [string]::IsNullOrEmpty($downloadUri.Query) -or
+            $downloadUri.Host -notin $microsoftEdgeDownloadHosts) {
+            throw "The Edge API returned the unreviewed download location '$link'."
+        }
+
+        $architectureName = @{
+            x64   = 'X64'
+            arm64 = 'ARM64'
+            x86   = 'X86'
+        }[$archString]
+        $expectedMsiName = "MicrosoftEdgeEnterprise$architectureName.msi"
+        if (-not [IO.Path]::GetFileName($downloadUri.AbsolutePath).Equals($expectedMsiName, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "The Edge API returned an unexpected MSI name for '$archString'."
+        }
+
+        $hash = [string]$artifact.Hash
+        $hashAlgorithm = [string]$artifact.HashAlgorithm
+        if (-not $hashAlgorithm.Equals('SHA256', [StringComparison]::OrdinalIgnoreCase) -or
+            $hash -notmatch '^[0-9a-fA-F]{64}$') {
+            throw 'The Edge API did not provide the required SHA-256 digest.'
+        }
+
+        $expectedBytes = [long]$artifact.SizeInBytes
+        if ($expectedBytes -lt 1 -or $expectedBytes -gt 1073741824) {
+            throw 'The Edge API did not provide a valid bounded MSI byte length.'
+        }
+
+        $version = [string]$edgeItem.ProductVersion
+        if ([string]::IsNullOrWhiteSpace($version)) {
+            throw 'The Edge API did not provide a product version.'
+        }
+        if ([string]::IsNullOrWhiteSpace([string]$edgeItem.PublishedTime)) {
+            throw 'The Edge API did not provide a publication timestamp.'
+        }
+        $released = Get-Date $edgeItem.PublishedTime -ErrorAction Stop
+        $sizeInMb = [math]::Round($expectedBytes / 1Mb)
+        $link = $downloadUri.AbsoluteUri
     }
     catch {
         Write-Status "Failed to parse Microsoft Edge from `"$link`"!
@@ -324,78 +527,198 @@ Error: $_" -Level Critical -Exit -ExitCode 5
         Write-Host $_[1]
     }
 
-    Write-Output ''
+    $stagingDirectory = $null
+    $retainStaging = $false
     try {
-        if ($null -eq (Get-Command curl.exe -EA 0)) {
-            Write-Status "Couldn't find cURL, using Invoke-WebRequest, which is slower..." -Level Warning
-            Invoke-WebRequest -Uri $link -OutFile $msi -UseBasicParsing
+        $stagingDirectory = New-AtlasProtectedStagingDirectory
+        $msi = Join-Path -Path $stagingDirectory -ChildPath $expectedMsiName
+        $msiLog = Join-Path -Path $stagingDirectory -ChildPath 'edgeMsi.log'
+
+        Write-Output ''
+        try {
+            Invoke-AtlasPinnedDownload `
+                -Uri $downloadUri `
+                -Destination $msi `
+                -Sha256 $hash `
+                -ExpectedBytes $expectedBytes | Out-Null
         }
-        else {
-            curl.exe -#L "$link" -o "$msi"
-        }
-    }
-    catch {
-        Write-Status "Failed to download Microsoft Edge from `"$link`"!
+        catch {
+            if (Test-AtlasContainedProcessContainmentUnconfirmed -Exception $_.Exception) {
+                $retainStaging = $true
+            }
+            Write-Status "Failed to download and verify Microsoft Edge from `"$link`"!
 Error: $_" -Level Critical -Exit -ExitCode 6
-    }
-    Write-Output ''
-
-    if ($hash -eq 'Undefined') {
-        Write-Status "Not verifying hash as it's undefined, download might have failed." -Level Warning
-    }
-    else {
-        Write-Status 'Verifying download by checking its hash...'
-        if ((Get-FileHash -LiteralPath $msi -Algorithm $hashAlg).Hash -eq $hash) {
-            Write-Status 'Verified the Microsoft Edge installer!' -Level Success
         }
-        else {
-            Write-Status 'Edge installer hash does not match. Refusing to continue with an untrusted installer.' -Level Critical -Exit -ExitCode 10
+        Write-Status 'Verified the Microsoft Edge installer hash and byte length!' -Level Success
+        Write-Output ''
+
+        $msiexecPath = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'msiexec.exe')
+        if (-not [IO.File]::Exists($msiexecPath)) {
+            Write-Status "The protected Windows Installer executable is missing at '$msiexecPath'." -Level Critical -Exit -ExitCode 7
+        }
+        $msiexec = Get-Item -LiteralPath $msiexecPath -Force -ErrorAction Stop
+        if (($msiexec.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            Write-Status "The Windows Installer executable '$msiexecPath' is a reparse point." -Level Critical -Exit -ExitCode 7
+        }
+
+        $originalTemp = [Environment]::GetEnvironmentVariable('TEMP', 'Process')
+        $originalTmp = [Environment]::GetEnvironmentVariable('TMP', 'Process')
+        try {
+            [Environment]::SetEnvironmentVariable('TEMP', $stagingDirectory, 'Process')
+            [Environment]::SetEnvironmentVariable('TMP', $stagingDirectory, 'Process')
+
+            foreach ($transaction in @(
+                    @{ Status = 'Installing Microsoft Edge...'; Mode = '/i'; Description = 'The Microsoft Edge installation' }
+                    @{ Status = 'Repairing Microsoft Edge...'; Mode = '/fa'; Description = 'The Microsoft Edge repair' }
+                )) {
+                Write-Status $transaction.Status
+                try {
+                    # Revalidate the exact bytes and independent publisher identity
+                    # immediately before both the install and repair executions.
+                    Assert-MicrosoftSignedInstaller `
+                        -Path $msi `
+                        -StagingDirectory $stagingDirectory `
+                        -Description 'The Microsoft Edge MSI' `
+                        -ExpectedSha256 $hash `
+                        -ExpectedBytes $expectedBytes | Out-Null
+
+                    $installerResult = Invoke-AtlasContainedProcess `
+                        -FilePath $msiexec.FullName `
+                        -WorkingDirectory $stagingDirectory `
+                        -ArgumentList ([string[]]@(
+                                $transaction.Mode
+                                $msi
+                                '/l'
+                                $msiLog
+                                '/quiet'
+                                '/norestart'
+                            )) `
+                        -TimeoutSeconds 1800 `
+                        -Description $transaction.Description `
+                        -Hidden
+                    if (-not $installerResult.ContainmentConfirmed -or
+                        -not $installerResult.RootExited -or
+                        -not $installerResult.JobDrained) {
+                        $retainStaging = $true
+                        throw "$($transaction.Description) returned without confirmed process-tree containment and drain."
+                    }
+                    if ($installerResult.ExitCodeUInt32 -notin @([uint32]0, [uint32]3010)) {
+                        throw "$($transaction.Description) failed with exit code $($installerResult.ExitCodeUInt32)."
+                    }
+                }
+                catch {
+                    if (Test-AtlasContainedProcessContainmentUnconfirmed -Exception $_.Exception) {
+                        $retainStaging = $true
+                    }
+                    Write-Status "Refusing to continue the Edge installer transaction.
+Error: $_" -Level Critical -Exit -ExitCode 10
+                }
+            }
+        }
+        finally {
+            [Environment]::SetEnvironmentVariable('TEMP', $originalTemp, 'Process')
+            [Environment]::SetEnvironmentVariable('TMP', $originalTmp, 'Process')
+        }
+
+        if (!(Test-Path -LiteralPath $msiLog -PathType Leaf)) {
+            Write-Status "Couldn't find installer log at `"$msiLog`"! This likely means it failed." -Level Critical -Exit -ExitCode 7
+        }
+
+        Write-Status -Text "Installer log path: `"$msiLog`" (removed after verification)"
+        if (@($(Get-Content -LiteralPath $msiLog) -like '*Product: Microsoft Edge -- * completed successfully.*').Count -eq 0) {
+            Write-Status "Can't find success string from Edge install log - it seems like the install was a failure." -Level Error -Exit -ExitCode 8
+        }
+
+        Write-Status -Text 'Installed Microsoft Edge!' -Level Success
+    }
+    finally {
+        if ($retainStaging) {
+            Write-Status "Retaining protected staging at '$stagingDirectory' because process containment could not be confirmed." -Level Warning
+        }
+        elseif ($stagingDirectory -and (Test-Path -LiteralPath $stagingDirectory -PathType Container)) {
+            Remove-Item -LiteralPath $stagingDirectory -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
-
-    Write-Status 'Installing Microsoft Edge...'
-    Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i `"$msi`" /l `"$msiLog`" /quiet" -Wait
-
-    Write-Status 'Repairing Microsoft Edge...'
-    Start-Process -FilePath 'msiexec.exe' -ArgumentList "/fa `"$msi`" /l `"$msiLog`" /quiet" -Wait
-
-    if (!(Test-Path $msiLog)) {
-        Write-Status "Couldn't find installer log at `"$msiLog`"! This likely means it failed." -Level Critical -Exit -ExitCode 7
-    }
-
-    Write-Status -Text "Installer log path: `"$msiLog`""
-    if (@($(Get-Content $msiLog) -like '*Product: Microsoft Edge -- * completed successfully.*').Count -eq 0) {
-        Write-Status "Can't find success string from Edge install log - it seems like the install was a failure." -Level Error -Exit -ExitCode 8
-    }
-
-    Write-Status -Text 'Installed Microsoft Edge!' -Level Success
 }
 
 function InstallWebView {
     InternetCheck
 
-    $dlPath = "$((Join-Path $([System.IO.Path]::GetTempPath()) $(New-Guid)))-webview2.exe"
-    $link = 'https://go.microsoft.com/fwlink/p/?LinkId=2124703'
-
-    Write-Status 'Downloading Edge WebView...'
+    $link = [uri]'https://go.microsoft.com/fwlink/p/?LinkId=2124703'
+    $stagingDirectory = $null
+    $retainStaging = $false
     try {
-        if ($null -eq (Get-Command curl.exe -EA 0)) {
-            Write-Status "Couldn't find cURL, using Invoke-WebRequest, which is slower..." -Level Warning
-            Invoke-WebRequest -Uri $link -OutFile $dlPath -UseBasicParsing
+        $stagingDirectory = New-AtlasProtectedStagingDirectory
+        $dlPath = Join-Path -Path $stagingDirectory -ChildPath 'MicrosoftEdgeWebview2Setup.exe'
+
+        Write-Status 'Downloading Edge WebView...'
+        try {
+            $download = Invoke-MicrosoftWebViewDownload `
+                -Uri $link `
+                -Destination $dlPath `
+                -StagingDirectory $stagingDirectory
         }
-        else {
-            curl.exe -Ls "$link" -o "$dlPath"
-        }
-    }
-    catch {
-        Write-Status "Failed to download Edge WebView from `"$link`"!
+        catch {
+            Write-Status "Failed to download and verify Edge WebView from `"$link`"!
 Error: $_" -Level Critical -Exit -ExitCode 9
+        }
+
+        Write-Status "Resolved the Microsoft WebView bootstrapper from '$($download.FinalUri.Host)'."
+        Write-Status 'Installing Edge WebView...'
+        $originalTemp = [Environment]::GetEnvironmentVariable('TEMP', 'Process')
+        $originalTmp = [Environment]::GetEnvironmentVariable('TMP', 'Process')
+        try {
+            # The bootstrapper extracts a second stage. Keep inherited TEMP/TMP
+            # inside the same protected directory as the verified outer payload.
+            [Environment]::SetEnvironmentVariable('TEMP', $stagingDirectory, 'Process')
+            [Environment]::SetEnvironmentVariable('TMP', $stagingDirectory, 'Process')
+
+            # The fwlink has no stable digest. Recheck its independent Microsoft
+            # publisher identity at the last possible point before execution.
+            Assert-MicrosoftSignedInstaller `
+                -Path $download.Path `
+                -StagingDirectory $stagingDirectory `
+                -Description 'The Edge WebView2 bootstrapper' | Out-Null
+
+            $installerResult = Invoke-AtlasContainedProcess `
+                -FilePath $download.Path `
+                -WorkingDirectory $stagingDirectory `
+                -ArgumentList ([string[]]@('/silent', '/install')) `
+                -TimeoutSeconds 1800 `
+                -Description 'The Edge WebView2 bootstrapper' `
+                -Hidden
+            if (-not $installerResult.ContainmentConfirmed -or
+                -not $installerResult.RootExited -or
+                -not $installerResult.JobDrained) {
+                $retainStaging = $true
+                throw 'The Edge WebView2 bootstrapper returned without confirmed process-tree containment and drain.'
+            }
+            if ($installerResult.ExitCodeUInt32 -notin @([uint32]0, [uint32]3010)) {
+                throw "Installing Edge WebView failed with exit code $($installerResult.ExitCodeUInt32)."
+            }
+        }
+        catch {
+            if (Test-AtlasContainedProcessContainmentUnconfirmed -Exception $_.Exception) {
+                $retainStaging = $true
+            }
+            Write-Status "Refusing to continue the Edge WebView installer transaction.
+Error: $_" -Level Critical -Exit -ExitCode 9
+        }
+        finally {
+            [Environment]::SetEnvironmentVariable('TEMP', $originalTemp, 'Process')
+            [Environment]::SetEnvironmentVariable('TMP', $originalTmp, 'Process')
+        }
+
+        Write-Status 'Installed Edge WebView!' -Level Success
     }
-
-    Write-Status 'Installing Edge WebView...'
-    Start-Process -FilePath "$dlPath" -ArgumentList '/silent /install' -Wait
-
-    Write-Status 'Installed Edge WebView!' -Level Success
+    finally {
+        if ($retainStaging) {
+            Write-Status "Retaining protected staging at '$stagingDirectory' because process containment could not be confirmed." -Level Warning
+        }
+        elseif ($stagingDirectory -and (Test-Path -LiteralPath $stagingDirectory -PathType Container)) {
+            Remove-Item -LiteralPath $stagingDirectory -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 # Deliberately self-contained (standalone script); canonical check lives in Atlas.Core\Test-AtlasAdmin.
@@ -407,7 +730,7 @@ Please relaunch this script under a regular admin account." -Level Critical -Exi
 else {
     if (!([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
         if ($PSBoundParameters.Count -le 0 -and !$args) {
-            Start-Process cmd "/c PowerShell -NoP -EP RemoteSigned -File `"$PSCommandPath`"" -Verb RunAs
+            Start-Process cmd "/c PowerShell -NoP -EP RemoteSigned -File `"$PSCommandPath`"" -Verb RunAs -WindowStyle Hidden
             exit
         }
         else {
