@@ -69,7 +69,7 @@ if ($Enable) {
             }
         }
     }
-    exit
+    return
 } elseif ($Disable) {
     foreach ($item in $items.GetEnumerator()) {
         foreach ($itemToDisable in $Disable) {
@@ -78,7 +78,7 @@ if ($Enable) {
             }
         }
     }
-    exit
+    return
 }
 
 $choices = (multichoice.exe "Send To Debloat" `

@@ -131,5 +131,3 @@ if (Test-Path $stornvmePath) {
 $powerKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling"
 if (!(Test-Path $powerKey)) { New-Item -Path $powerKey -Force | Out-Null }
 New-ItemProperty -Path $powerKey -Name "PowerThrottlingOff" -Value 1 -PropertyType DWORD -Force | Out-Null
-
-exit

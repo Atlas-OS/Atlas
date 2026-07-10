@@ -20,6 +20,8 @@ if (!(Test-Path $packageInstall)) {
     if (!$args) { Read-Pause }
     exit 1
 }
+$packagePowerShell = Join-Path -Path ([Environment]::GetFolderPath('System')) `
+    -ChildPath 'WindowsPowerShell\v1.0\powershell.exe'
 
 $package = "*Z-Atlas-NoDefender-Package*"
 
@@ -67,8 +69,12 @@ function Menu {
             Clear-Host
             Write-Host "Disabling Windows Defender... This will take a moment." -ForegroundColor Yellow
 
-            & $packageInstall -InstallPackages @($package)
-            exit $LASTEXITCODE
+            & $packagePowerShell -NoLogo -NoProfile -ExecutionPolicy Bypass -File $packageInstall -InstallPackages @($package)
+            $packageExitCode = $LASTEXITCODE
+            if ($packageExitCode -ne 0) {
+                throw "Package installation failed with exit code $packageExitCode."
+            }
+            return
         }
 
         # Enable Defender
@@ -81,8 +87,12 @@ function Menu {
             Clear-Host
             Write-Host "Enabling Windows Defender... This will take a moment." -ForegroundColor Yellow
 
-            & $packageInstall -UninstallPackages @($package)
-            exit $LASTEXITCODE
+            & $packagePowerShell -NoLogo -NoProfile -ExecutionPolicy Bypass -File $packageInstall -UninstallPackages @($package)
+            $packageExitCode = $LASTEXITCODE
+            if ($packageExitCode -ne 0) {
+                throw "Package removal failed with exit code $packageExitCode."
+            }
+            return
         }
 
         # Documentation

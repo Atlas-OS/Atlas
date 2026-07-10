@@ -24,6 +24,8 @@ if (!(Test-Path $packageInstall)) {
     Read-Pause
     exit 1
 }
+$packagePowerShell = Join-Path -Path ([Environment]::GetFolderPath('System')) `
+    -ChildPath 'WindowsPowerShell\v1.0\powershell.exe'
 
 $package = "*Z-Atlas-NoTelemetry-Package*"
 
@@ -77,8 +79,12 @@ This package isn't needed on Education or Enterprise-based editions.
             Clear-Host
             Write-Host "Adding the NoTelemetry package... This will take a moment." -ForegroundColor Yellow
 
-            & $packageInstall -InstallPackages @($package)
-            exit $LASTEXITCODE
+            & $packagePowerShell -NoLogo -NoProfile -ExecutionPolicy Bypass -File $packageInstall -InstallPackages @($package)
+            $packageExitCode = $LASTEXITCODE
+            if ($packageExitCode -ne 0) {
+                throw "Package installation failed with exit code $packageExitCode."
+            }
+            return
         }
 
         # Remove NoTelemetry package
@@ -88,8 +94,12 @@ This package isn't needed on Education or Enterprise-based editions.
             Clear-Host
             Write-Host "Removing the NoTelemetry package... This will take a moment." -ForegroundColor Yellow
 
-            & $packageInstall -UninstallPackages @($package)
-            exit $LASTEXITCODE
+            & $packagePowerShell -NoLogo -NoProfile -ExecutionPolicy Bypass -File $packageInstall -UninstallPackages @($package)
+            $packageExitCode = $LASTEXITCODE
+            if ($packageExitCode -ne 0) {
+                throw "Package removal failed with exit code $packageExitCode."
+            }
+            return
         }
 
         # Do nothing

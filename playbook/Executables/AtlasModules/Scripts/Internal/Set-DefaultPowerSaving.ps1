@@ -82,5 +82,5 @@ Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\stornvme\Para
 Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" -Name "PowerThrottlingOff" -ErrorAction SilentlyContinue
 
 
-if ($Silent) { exit }
+if ($Silent) { return }
 Read-Pause "`nCompleted.`nPress Enter to exit"
