@@ -5,88 +5,14 @@
 # in the miscellaneous CBS package; this removes the preinstalled client and its
 # leftovers.
 
-function Remove-AtlasOneDriveItem {
+function Remove-AtlasOneDriveMachineRegistryItem {
     param([Parameter(Mandatory = $true)][string[]]$Path)
 
     foreach ($item in $Path) {
+        if ($item -notmatch '^HKLM:\\') {
+            throw "OneDrive machine-registry cleanup rejected non-HKLM path '$item'."
+        }
         Remove-Item -LiteralPath $item -Recurse -Force -ErrorAction SilentlyContinue
-    }
-}
-
-function Remove-AtlasOneDriveUserFolder {
-    <#
-    .SYNOPSIS
-        Deletes a per-profile OneDrive folder only when it contains no files.
-        Upgrade installs can encounter folders with real (or not-yet-synced) user
-        data; deleting those is unrecoverable, so they are logged and skipped.
-    #>
-    param([Parameter(Mandatory = $true)][string]$Path)
-
-    if (-not (Test-Path -LiteralPath $Path)) {
-        return
-    }
-
-    $files = @(Get-ChildItem -LiteralPath $Path -Recurse -File -Force -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -ne 'desktop.ini' })
-    if ($files.Count -gt 0) {
-        Write-AtlasLog -Level Warning -Message "Not deleting '$Path': it still contains $($files.Count) file(s). Remove it manually if it's no longer needed."
-        return
-    }
-
-    Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
-}
-
-function Clear-AtlasOneDriveUserRegistry {
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Sid
-    )
-
-    Write-Host "Making changes for '$Sid'..."
-    $root = "Registry::HKEY_USERS\$Sid"
-
-    # Delete OneDrive keys under these per-user parents
-    foreach ($parent in @(
-        'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\BannerStore'
-        'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\Handlers'
-        'SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths'
-        'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
-    )) {
-        foreach ($key in @(Get-ChildItem -Path "$root\$parent" -ErrorAction SilentlyContinue)) {
-            if ($key.Name -like '*OneDrive*') {
-                Remove-Item -LiteralPath "Registry::$($key.Name)" -Recurse -Force -ErrorAction SilentlyContinue
-            }
-        }
-    }
-
-    Remove-AtlasOneDriveItem -Path @(
-        "$root\SOFTWARE\Classes\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
-        "$root\SOFTWARE\Classes\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
-        "$root\SOFTWARE\Classes\CLSID\{A0A7DEC5-B1A7-4A47-847D-1D005787621E}"
-        "$root\SOFTWARE\Classes\WOW6432Node\CLSID\{A0A7DEC5-B1A7-4A47-847D-1D005787621E}"
-        "$root\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
-        "$root\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{A0A7DEC5-B1A7-4A47-847D-1D005787621E}"
-    )
-
-    Remove-ItemProperty -Path "$root\Environment" -Name 'OneDrive' -Force -ErrorAction SilentlyContinue
-    Remove-ItemProperty -Path "$root\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name 'OneDriveSetup' -Force -ErrorAction SilentlyContinue
-
-    # Fix folder redirection - this sometimes persists after uninstallation
-    $shellFolders = "$root\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
-    foreach ($entry in @(
-        @{ Name = '{F42EE2D3-909F-4907-8871-4C22FC0BF756}'; Data = '%USERPROFILE%\Documents' }
-        @{ Name = 'Personal'; Data = '%USERPROFILE%\Documents' }
-        @{ Name = 'Desktop'; Data = '%USERPROFILE%\Desktop' }
-        @{ Name = 'My Pictures'; Data = '%USERPROFILE%\Pictures' }
-        @{ Name = '{0DDD015D-B06C-45D5-8C4C-F59713854639}'; Data = '%USERPROFILE%\Pictures' }
-    )) {
-        try {
-            New-ItemProperty -Path $shellFolders -Name $entry.Name -Value $entry.Data -PropertyType ExpandString -Force -ErrorAction Stop | Out-Null
-        }
-        catch {
-            Write-AtlasLog -Level Warning -Message "Couldn't fix the '$($entry.Name)' shell folder for '$Sid': $($_.Exception.Message)"
-        }
     }
 }
 
@@ -97,6 +23,19 @@ function Remove-AtlasOneDrive {
         registry entries, folders, scheduled tasks and shell extensions.
     #>
     Stop-Process -Name 'OneDrive' -Force -ErrorAction SilentlyContinue
+
+    $atlasSoftwareRoot = [IO.Directory]::GetParent($PSScriptRoot)
+    $modulesRoot = $atlasSoftwareRoot.Parent
+    $scriptsRoot = $modulesRoot.Parent
+    $downloadIntegrity = [IO.Path]::Combine(
+        $scriptsRoot.FullName,
+        'Internal',
+        'Download-Integrity.ps1'
+    )
+    if (-not [IO.File]::Exists($downloadIntegrity)) {
+        throw "The Atlas download-integrity helper is missing at '$downloadIntegrity'."
+    }
+    . $downloadIntegrity
 
     $windir = [Environment]::GetFolderPath('Windows')
     $setupPaths = @(
@@ -109,56 +48,54 @@ function Remove-AtlasOneDrive {
         if (Test-Path -LiteralPath $setupPath -PathType Leaf) {
             $setupFound = $true
             try {
-                Start-Process -FilePath $setupPath -ArgumentList '/uninstall' -Wait -WindowStyle Hidden
+                $setupResult = Invoke-AtlasContainedProcess `
+                    -FilePath $setupPath `
+                    -ArgumentList ([string[]]@('/uninstall')) `
+                    -WorkingDirectory ([IO.Path]::GetDirectoryName($setupPath)) `
+                    -TimeoutSeconds 900 `
+                    -Description "The protected OneDrive uninstaller '$setupPath'" `
+                    -Hidden `
+                    -NoWindow
+                if (-not $setupResult.ContainmentConfirmed -or -not $setupResult.RootExited -or
+                    -not $setupResult.JobDrained) {
+                    throw "OneDriveSetup returned without confirmed process-tree containment."
+                }
+                $setupExitCode = [uint32]$setupResult.ExitCodeUInt32
+                if ($setupExitCode -ne 0) {
+                    throw "OneDriveSetup exited with code $setupExitCode."
+                }
             }
             catch {
+                if (Test-AtlasContainedProcessContainmentUnconfirmed -Exception $_.Exception) {
+                    throw
+                }
                 Write-AtlasLog -Level Warning -Message "Running '$setupPath /uninstall' failed: $($_.Exception.Message)"
             }
         }
     }
 
-    # Try WinGet as a fallback in case the OneDrive setup files can't be found
+    # Never fall back to a privileged WinGet uninstall here. WinGet correlates
+    # against per-user ARP records, whose uninstall command is writable by that
+    # user; executing it from this elevated phase would cross an unsafe trust
+    # boundary. The protected inbox setup binaries above are the only executable
+    # uninstall authority.
     if (-not $setupFound) {
-        try {
-            & winget uninstall --id 'Microsoft.OneDrive' --silent --accept-source-agreements *> $null
-            & winget uninstall 'Microsoft OneDrive' --silent --accept-source-agreements *> $null
-        }
-        catch {
-            Write-AtlasLog -Level Warning -Message "WinGet OneDrive uninstall fallback failed: $($_.Exception.Message)"
-        }
+        Write-AtlasLog -Level Warning -Message 'Protected OneDriveSetup.exe was not found; skipping executable uninstall and continuing declarative cleanup.'
     }
 
-    # Per-user registry cleanup. A 'Volatile Environment' key marks a proper user
-    # profile (built-in accounts/SIDs don't have it); AME_UserHive_* is the default
-    # user hive loaded by the installer.
-    foreach ($hive in @(Get-ChildItem -Path 'Registry::HKEY_USERS' -ErrorAction SilentlyContinue)) {
-        $sid = $hive.PSChildName
-        $isUser = ($sid -like 'S-*') -and (Test-Path -LiteralPath "Registry::HKEY_USERS\$sid\Volatile Environment")
-        $isDefaultHive = $sid -match '^AME_UserHive_[^_]+$'
-        if ($isUser -or $isDefaultHive) {
-            Clear-AtlasOneDriveUserRegistry -Sid $sid
-        }
-    }
+    # Do not mutate user-owned HKEY_USERS trees from this elevated process.
+    # Registry symbolic links can redirect provider recursion/writes, and a
+    # medium user can race any path precheck. Per-user OneDrive state is left to
+    # the protected vendor uninstaller or a future medium-token reconciliation.
+    Write-AtlasLog -Message 'Skipped elevated cleanup of user-owned OneDrive registry state.'
 
-    Remove-AtlasOneDriveItem -Path @(
-        (Join-Path -Path $env:ProgramData -ChildPath 'Microsoft OneDrive')
-        (Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Microsoft\OneDrive')
-        (Join-Path -Path $env:SystemDrive -ChildPath 'OneDriveTemp')
-    )
-
-    foreach ($userProfile in @(Get-ChildItem -Path (Join-Path -Path $env:SystemDrive -ChildPath 'Users') -Directory -ErrorAction SilentlyContinue)) {
-        Remove-AtlasOneDriveItem -Path @(
-            (Join-Path -Path $userProfile.FullName -ChildPath 'AppData\Local\Microsoft\OneDrive')
-            (Join-Path -Path $userProfile.FullName -ChildPath 'AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk')
-        )
-        Remove-AtlasOneDriveUserFolder -Path (Join-Path -Path $userProfile.FullName -ChildPath 'OneDrive')
-    }
-
-    foreach ($key in @(Get-ChildItem -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager' -ErrorAction SilentlyContinue)) {
-        if ($key.Name -like '*OneDrive*') {
-            Remove-Item -LiteralPath "Registry::$($key.Name)" -Recurse -Force -ErrorAction SilentlyContinue
-        }
-    }
+    # Do not recursively traverse user-writable filesystem paths from this
+    # elevated process. A profile owner can replace an ancestor with a junction
+    # between validation and deletion, redirecting a privileged Remove-Item into
+    # another profile or machine location. The protected OneDriveSetup binary is
+    # the supported filesystem-removal authority; harmless leftovers are safer
+    # than privileged traversal of untrusted profile trees.
+    Write-AtlasLog -Message 'Skipped elevated deletion of user-owned OneDrive filesystem leftovers.'
 
     foreach ($taskPattern in @('OneDrive Reporting Task*', 'OneDrive Standalone Update Task*')) {
         foreach ($task in @(Get-ScheduledTask -TaskName $taskPattern -ErrorAction SilentlyContinue)) {
@@ -171,7 +108,7 @@ function Remove-AtlasOneDrive {
         }
     }
 
-    Remove-AtlasOneDriveItem -Path @(
+    Remove-AtlasOneDriveMachineRegistryItem -Path @(
         'HKLM:\SOFTWARE\Classes\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'
         'HKLM:\SOFTWARE\Classes\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'
         'HKLM:\SOFTWARE\Classes\CLSID\{A0A7DEC5-B1A7-4A47-847D-1D005787621E}'

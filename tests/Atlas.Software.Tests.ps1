@@ -217,79 +217,30 @@ Describe 'Get-AtlasCbsSafeModeListPath' {
     }
 }
 
-Describe 'Remove-AtlasOneDriveUserFolder' {
-    BeforeEach {
-        Mock Write-AtlasLog -ModuleName Atlas.Software
-    }
+Describe 'OneDrive privileged cleanup boundary' {
+    It 'never recursively deletes user-writable filesystem trees while elevated' {
+        $oneDrivePath = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Software\Domain\OneDrive.ps1'
+        $source = Get-Content -LiteralPath $oneDrivePath -Raw
 
-    It 'keeps a folder that still contains a real user file and logs a warning' {
-        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-realfile'
-        New-Item -Path $folder -ItemType Directory -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path -Path $folder -ChildPath 'Report.docx') -Value 'user data' -NoNewline
-
-        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
-            param($Path)
-            Remove-AtlasOneDriveUserFolder -Path $Path
-        }
-
-        Test-Path -LiteralPath $folder | Should -BeTrue
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 1 -Exactly -ParameterFilter {
-            $Level -eq 'Warning' -and $Message -like '*Not deleting*'
-        }
-    }
-
-    It 'deletes a folder that contains only desktop.ini' {
-        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-desktopini'
-        New-Item -Path $folder -ItemType Directory -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path -Path $folder -ChildPath 'desktop.ini') -Value '[.ShellClassInfo]' -NoNewline
-
-        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
-            param($Path)
-            Remove-AtlasOneDriveUserFolder -Path $Path
-        }
-
-        Test-Path -LiteralPath $folder | Should -BeFalse
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 0 -Exactly
-    }
-
-    It 'deletes an empty folder' {
-        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-empty'
-        New-Item -Path $folder -ItemType Directory -Force | Out-Null
-
-        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
-            param($Path)
-            Remove-AtlasOneDriveUserFolder -Path $Path
-        }
-
-        Test-Path -LiteralPath $folder | Should -BeFalse
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 0 -Exactly
-    }
-
-    It 'does not throw or log for a nonexistent path' {
-        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-missing'
-
-        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
-            { Remove-AtlasOneDriveUserFolder -Path $Path } | Should -Not -Throw
-        }
-
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 0 -Exactly
-    }
-
-    It 'keeps a folder whose only file is in a nested subdirectory' {
-        $folder = Join-Path -Path $TestDrive -ChildPath 'OneDrive-nested'
-        $nested = Join-Path -Path $folder -ChildPath 'Documents\Projects'
-        New-Item -Path $nested -ItemType Directory -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path -Path $nested -ChildPath 'notes.txt') -Value 'nested data' -NoNewline
-
-        InModuleScope Atlas.Software -Parameters @{ Path = $folder } {
-            param($Path)
-            Remove-AtlasOneDriveUserFolder -Path $Path
-        }
-
-        Test-Path -LiteralPath $folder | Should -BeTrue
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Software -Times 1 -Exactly -ParameterFilter {
-            $Level -eq 'Warning' -and $Message -like '*Not deleting*'
-        }
+        $source | Should -Match 'function Remove-AtlasOneDriveMachineRegistryItem'
+        $source | Should -Match 'rejected non-HKLM path'
+        $source | Should -Match 'Skipped elevated deletion of user-owned OneDrive filesystem leftovers'
+        $source | Should -Match 'Skipped elevated cleanup of user-owned OneDrive registry state'
+        $source | Should -Not -Match 'Remove-AtlasOneDriveUserFolder|AppData\\Local\\Microsoft\\OneDrive|\$env:(?:ProgramData|LOCALAPPDATA|SystemDrive)'
+        $source | Should -Not -Match 'Get-ChildItem[^\r\n]+\\Users'
+        $source | Should -Not -Match 'Clear-AtlasOneDriveUserRegistry|Registry::HKEY_USERS'
+        $source | Should -Not -Match 'SyncRootManager'
+        $source | Should -Match "\[Environment\]::GetFolderPath\('Windows'\)"
+        $source | Should -Match '\(Join-Path -Path \$windir -ChildPath ''System32\\OneDriveSetup\.exe''\)'
+        $source | Should -Match '\(Join-Path -Path \$windir -ChildPath ''SysWOW64\\OneDriveSetup\.exe''\)'
+        $source | Should -Not -Match '\$env:(?:WINDIR|SystemRoot)'
+        $source | Should -Match 'Invoke-AtlasContainedProcess[\s\S]+?-FilePath \$setupPath[\s\S]+?-ArgumentList \(\[string\[\]\]@\(''/uninstall''\)\)[\s\S]+?-TimeoutSeconds 900'
+        $source | Should -Match '\$setupResult\.ContainmentConfirmed[\s\S]+?\$setupResult\.RootExited[\s\S]+?\$setupResult\.JobDrained'
+        $source | Should -Match '\$setupExitCode\s*=\s*\[uint32\]\$setupResult\.ExitCodeUInt32'
+        $source | Should -Match 'if\s*\(\$setupExitCode\s*-ne\s*0\)'
+        $source | Should -Not -Match '\b3010\b|SuccessExitCode'
+        $source | Should -Match 'catch\s*{\s*if \(Test-AtlasContainedProcessContainmentUnconfirmed[\s\S]+?throw'
+        $source | Should -Not -Match 'Start-Process|Wait-AtlasProcessWithTimeout'
     }
 }
 
