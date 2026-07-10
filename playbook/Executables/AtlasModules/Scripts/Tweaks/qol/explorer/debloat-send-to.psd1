@@ -2,6 +2,6 @@
     Name        = 'Debloat Send-To Context Menu'
     Description = 'Removes commonly un-used items from the Send-To context menu in Explorer'
     Run         = @(
-        @{ Exe = '{windir}\AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd'; Args = '-Disable @(''Documents'', ''Mail Recipient'', ''Fax recipient'', ''Bluetooth'')'; Wait = $true }
+        @{ Exe = '{windir}\System32\WindowsPowerShell\v1.0\powershell.exe'; Args = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{windir}\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1" -DebloatDefaults'; Wait = $true }
     )
 }

@@ -216,3 +216,39 @@ Describe 'Shipped tweak manifest execution graph' {
         $upgradeNotifications[0] | Should -Match '(?m)^\s+onUpgrade:\s*true\s*$'
     }
 }
+
+Describe 'Send-To install-time execution boundary' {
+    It 'calls the fixed internal helper directly while preserving the manual launcher' {
+        $definitionPath = Join-Path -Path $script:shippedTweaksRoot `
+            -ChildPath 'qol\explorer\debloat-send-to.psd1'
+        $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
+        $run = @($definition.Run)
+
+        $run.Count | Should -Be 1
+        $run[0].Exe | Should -BeExactly `
+            '{windir}\System32\WindowsPowerShell\v1.0\powershell.exe'
+        $run[0].Args | Should -BeExactly `
+            '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{windir}\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1" -DebloatDefaults'
+        $run[0].Wait | Should -BeTrue
+        $run[0].Exe | Should -Not -Match 'AtlasDesktop|\.cmd$'
+        $run[0].Args | Should -Not -Match '@\('
+
+        $helperPath = Join-Path -Path $script:repositoryRoot `
+            -ChildPath 'playbook\Executables\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1'
+        $helper = Get-Content -LiteralPath $helperPath -Raw
+        $helper | Should -Match '\[switch\]\$DebloatDefaults'
+        $helper | Should -Match '\$Disable = @\(''Documents'', ''Mail Recipient'', ''Fax recipient'', ''Bluetooth''\)'
+        $helper | Should -Match "ChildPath 'AtlasModules\\Tools\\multichoice\.exe'"
+        $helper | Should -Match '& \$multiChoice "Send To Debloat"'
+        $helper | Should -Not -Match '(?m)^\$choices = \(multichoice\.exe\b'
+
+        $launcherPath = Join-Path -Path $script:repositoryRoot `
+            -ChildPath 'playbook\Executables\AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd'
+        $launcher = Get-Content -LiteralPath $launcherPath -Raw
+        $launcher | Should -Match ([regex]::Escape('"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe"'))
+        $launcher | Should -Match '-File "%script%" -DebloatDefaults'
+        $launcher | Should -Match 'Unsupported Send-To launcher argument'
+        $launcher | Should -Not -Match '%\*|___args'
+        $launcher | Should -Not -Match '(?im)^\s*powershell(?:\.exe)?(?:\s|$)'
+    }
+}

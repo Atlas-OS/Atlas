@@ -1,22 +1,41 @@
 @echo off
-set "script=%windir%\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1"
+verify other 2>nul
+setlocal EnableExtensions DisableDelayedExpansion
+if errorlevel 1 exit /b 1
+cd /d "%__APPDIR__%"
+if errorlevel 1 exit /b 1
+for %%I in ("%__APPDIR__%..") do set "AtlasWindowsRoot=%%~fI"
 
+set "launcherEnvironment=%AtlasWindowsRoot%\AtlasModules\Scripts\Internal\Initialize-PowerShellLauncherEnvironment.cmd"
+if not exist "%launcherEnvironment%" (
+    echo PowerShell launcher environment helper not found: "%launcherEnvironment%"
+    exit /b 1
+)
+call "%launcherEnvironment%"
+if errorlevel 1 exit /b 1
+
+set "script=%AtlasWindowsRoot%\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1"
 if not exist "%script%" (
-	echo Script not found.
-	echo "%script%"
-	if /i not "%~1"=="/silent" pause
-	exit /b 1
+    echo Script not found: "%script%"
+    exit /b 1
 )
 
-set "___args="%~f0" %*"
-fltmc > nul 2>&1 || (
-	echo Administrator privileges are required.
-	powershell -c "Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList """/c $env:___args""" -WindowStyle Minimized" 2> nul || (
-		echo You must run this script as admin.
-		if "%*"=="" pause
-		exit /b 1
-	)
-	exit /b
-)
+if "%~1"=="" goto invokeInteractive
+if /i "%~1"=="-DebloatDefaults" goto invokeDefaults
+goto unsupportedArgument
 
-powershell -EP Bypass -NoP ^& """$env:script""" %*
+:invokeInteractive
+if not "%~2"=="" goto unsupportedArgument
+"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%script%"
+if errorlevel 1 exit /b
+exit /b 0
+
+:invokeDefaults
+if not "%~2"=="" goto unsupportedArgument
+"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%script%" -DebloatDefaults
+if errorlevel 1 exit /b
+exit /b 0
+
+:unsupportedArgument
+echo Unsupported Send-To launcher argument.
+exit /b 2

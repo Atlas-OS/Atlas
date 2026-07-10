@@ -1,7 +1,15 @@
 param (
     [array]$Disable,
-    [array]$Enable
+    [array]$Enable,
+    [switch]$DebloatDefaults
 )
+
+if ($DebloatDefaults) {
+    if ($Disable -or $Enable) {
+        throw '-DebloatDefaults cannot be combined with -Disable or -Enable.'
+    }
+    $Disable = @('Documents', 'Mail Recipient', 'Fax recipient', 'Bluetooth')
+}
 
 $removableDrivePath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
 $removableDriveValue = "NoDrivesInSendToMenu"
@@ -81,7 +89,12 @@ if ($Enable) {
     return
 }
 
-$choices = (multichoice.exe "Send To Debloat" `
+$multiChoice = Join-Path -Path $windir -ChildPath 'AtlasModules\Tools\multichoice.exe'
+if (-not (Test-Path -LiteralPath $multiChoice -PathType Leaf)) {
+    throw "The protected Send-To choice helper is missing at '$multiChoice'."
+}
+
+$choices = (& $multiChoice "Send To Debloat" `
     "Tick the 'Send To' context menu items that you want to enable here (un-checked items are disabled)" `
     "$($items.Keys -join ';')") -split ';'
 
