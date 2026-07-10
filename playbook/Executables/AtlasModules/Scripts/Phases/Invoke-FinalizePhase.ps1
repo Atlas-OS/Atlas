@@ -9,7 +9,8 @@
 
 Assert-AtlasPrivilege -Administrator
 
-Import-Module Atlas.Registry -Force
+$modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
 $internalRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Internal'
 

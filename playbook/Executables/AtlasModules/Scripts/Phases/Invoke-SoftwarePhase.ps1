@@ -6,7 +6,8 @@
 
 Assert-AtlasPrivilege -Administrator
 
-Import-Module Atlas.Software -Force
+$modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force -ErrorAction Stop
 
 $context = Get-AtlasContext
 

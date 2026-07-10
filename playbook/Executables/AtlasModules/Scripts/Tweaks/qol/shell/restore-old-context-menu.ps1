@@ -5,7 +5,9 @@
 $ErrorActionPreference = 'Stop'
 
 if (-not (Get-Command -Name 'Get-RegUserPaths' -ErrorAction SilentlyContinue)) {
-    Import-Module -Name 'Atlas.Registry' -Force
+    $scriptsRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\..\..')).ProviderPath
+    Import-Module -Name (Join-Path $scriptsRoot 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
+        -Force -ErrorAction Stop
 }
 
 $subKey = 'Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'

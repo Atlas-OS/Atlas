@@ -8,6 +8,9 @@ if (-not $context.IsUpgrade) {
     Write-AtlasLog -Message 'Revert phase: fresh install, nothing to revert.'
     return
 }
+$modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force -ErrorAction Stop
 
 $storeFixer = Join-Path -Path $context.AtlasModulesPath -ChildPath 'Tools\StoreFixer.exe'
 if (-not (Test-Path -LiteralPath $storeFixer -PathType Leaf)) {

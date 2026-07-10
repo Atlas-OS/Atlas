@@ -15,8 +15,9 @@ param(
 
 Assert-AtlasPrivilege -Administrator
 
-Import-Module Atlas.Appx -Force
-Import-Module Atlas.TasksProcs -Force
+$modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Appx\Atlas.Appx.psd1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
 
 switch ($Category) {
     'Snapshot' {

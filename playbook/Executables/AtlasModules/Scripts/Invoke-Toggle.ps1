@@ -51,19 +51,16 @@ foreach ($token in @($Rest)) {
 }
 
 try {
-    # initPowerShell.ps1 adds the deployed AtlasModules module folder to PSModulePath;
-    # also add the folder next to this script so repo checkouts resolve identically.
+    # Keep command auto-loading rooted in this payload, then import the toggle engine by
+    # its exact adjacent manifest so inherited per-user modules cannot shadow it.
     $initScript = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'initPowerShell.ps1'
     if (Test-Path -LiteralPath $initScript -PathType Leaf) {
         & $initScript
     }
 
     $localModules = Join-Path -Path $PSScriptRoot -ChildPath 'Modules'
-    if (($env:PSModulePath -split ';') -notcontains $localModules) {
-        $env:PSModulePath += ";$localModules"
-    }
-
-    Import-Module -Name 'Atlas.Toggles' -Force -ErrorAction Stop
+    $toggleManifest = Join-Path -Path $localModules -ChildPath 'Atlas.Toggles\Atlas.Toggles.psd1'
+    Import-Module -Name $toggleManifest -Force -ErrorAction Stop
 
     if ([string]::IsNullOrWhiteSpace($Name)) {
         throw 'Invoke-Toggle.ps1 requires -Name <SettingName>.'

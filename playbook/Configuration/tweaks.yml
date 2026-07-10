@@ -74,7 +74,7 @@ actions:
     handleExitCodes: { "!0": halt }
   # Done last on purpose, after the misc category: power settings
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module Atlas.Tweaks; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\scripts\set-power-settings.psd1'')'
+    command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\scripts\set-power-settings.psd1'')'
     wait: true
   # Configure the installing account in its own session (theme, lock screen,
   # pin-to-Home) and write its completion marker, so the first logon after the
@@ -88,5 +88,5 @@ actions:
     oobe: false
   # Re-enable notifications very last, so nothing fires during any of the tweaks above
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module Atlas.Tweaks; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\enable-notifications.psd1'')'
+    command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\enable-notifications.psd1'')'
     wait: true

@@ -10,7 +10,8 @@
 
 Assert-AtlasPrivilege -TrustedInstaller
 
-Import-Module Atlas.Services -Force
+$modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Services\Atlas.Services.psd1') -Force -ErrorAction Stop
 
 $context = Get-AtlasContext
 $internalRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Internal'

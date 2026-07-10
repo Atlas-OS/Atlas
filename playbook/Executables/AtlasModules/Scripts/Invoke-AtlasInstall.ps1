@@ -22,8 +22,11 @@ param(
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
-& (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\initPowerShell.ps1')
-Import-Module Atlas.Core -Force
+$atlasModulesRoot = Split-Path -Parent $PSScriptRoot
+$modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Modules'
+& (Join-Path -Path $atlasModulesRoot -ChildPath 'initPowerShell.ps1')
+Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') `
+    -Force -ErrorAction Stop
 
 Start-AtlasPhase -Phase $Phase -Category $Category
 try {

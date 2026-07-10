@@ -5,7 +5,9 @@
 $ErrorActionPreference = 'Stop'
 
 if (-not (Get-Command -Name 'Set-AtlasRegistryValue' -ErrorAction SilentlyContinue)) {
-    Import-Module -Name 'Atlas.Registry' -Force
+    $scriptsRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\..\..')).ProviderPath
+    Import-Module -Name (Join-Path $scriptsRoot 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
+        -Force -ErrorAction Stop
 }
 
 Stop-Process -Name 'explorer' -Force -ErrorAction SilentlyContinue

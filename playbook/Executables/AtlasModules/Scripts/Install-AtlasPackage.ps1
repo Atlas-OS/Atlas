@@ -29,8 +29,11 @@ if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-1
 # INITIAL VARIABLES                                                                                                       #
 # ======================================================================================================================= #
 $windir = [Environment]::GetFolderPath('Windows')
-& "$windir\AtlasModules\initPowerShell.ps1"
-Import-Module -Name Atlas.Core, Atlas.Software
+$atlasModulesRoot = Split-Path -Parent $PSScriptRoot
+$modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Modules'
+& (Join-Path -Path $atlasModulesRoot -ChildPath 'initPowerShell.ps1')
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force -ErrorAction Stop
 $sys32 = [Environment]::GetFolderPath('System')
 $safeModePackageList = "$sys32\safeModePackagesToInstall.atlasmodule"
 $env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path

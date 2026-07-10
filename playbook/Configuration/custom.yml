@@ -97,7 +97,7 @@ actions:
   # Set hidden Settings pages - done before the tweak categories so later tweaks do not
   # overwrite SettingsPageVisibility (the tweak's OnUpgrade='Skip' keeps it fresh-only).
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module Atlas.Tweaks; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\qol\set-hidden-settings-pages.psd1'')'
+    command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\qol\set-hidden-settings-pages.psd1'')'
     wait: true
 
   # Main tasks
@@ -136,7 +136,7 @@ actions:
 
   # Branding for upgrades (fresh installs get it via the misc tweak category)
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module Atlas.Tweaks; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\config-oem-information.psd1'')'
+    command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\config-oem-information.psd1'')'
     wait: true
     onUpgrade: true
 
@@ -145,7 +145,7 @@ actions:
   # installs) is onUpgrade: false - without this, an upgrade would leave
   # notifications permanently off.
   - !powerShell:
-    command: '& (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module Atlas.Tweaks; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\enable-notifications.psd1'')'
+    command: '$modulesRoot = Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Modules''; & (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\initPowerShell.ps1''); Import-Module -Name (Join-Path $modulesRoot ''Atlas.Tweaks\Atlas.Tweaks.psd1'') -Force -ErrorAction Stop; Invoke-AtlasTweak -Path (Join-Path ([Environment]::GetFolderPath(''Windows'')) ''AtlasModules\Scripts\Tweaks\misc\enable-notifications.psd1'')'
     wait: true
     onUpgrade: true
 

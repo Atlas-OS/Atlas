@@ -7,7 +7,8 @@
 
 Assert-AtlasPrivilege -Administrator
 
-Import-Module Atlas.Toggles -Force
+$modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force -ErrorAction Stop
 
 if ((Get-AtlasContext).IsUpgrade) {
     Invoke-AtlasToggleReapply

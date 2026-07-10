@@ -9,7 +9,8 @@ param(
 
 Assert-AtlasPrivilege -TrustedInstaller
 
-Import-Module Atlas.Registry -Force
-Import-Module Atlas.Tweaks -Force
+$modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force -ErrorAction Stop
 
 Invoke-AtlasTweakCategory -Name $Category
