@@ -59,6 +59,60 @@ function Assert-AtlasJournalName {
     }
 }
 
+function Assert-AtlasJournalWholeNumber {
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][object]$Value,
+        [Parameter(Mandatory = $true)][string]$Label,
+        [Parameter(Mandatory = $true)][long]$Minimum,
+        [Parameter(Mandatory = $true)][long]$Maximum
+    )
+
+    if ($Value -isnot [int] -and $Value -isnot [long]) {
+        throw "$Label must be a JSON integer."
+    }
+    $number = [long]$Value
+    if ($number -lt $Minimum -or $number -gt $Maximum) {
+        throw "$Label must be between $Minimum and $Maximum."
+    }
+}
+
+function Assert-AtlasJournalBoolean {
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][object]$Value,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
+
+    if ($Value -isnot [bool]) {
+        throw "$Label must be a JSON Boolean."
+    }
+}
+
+function Assert-AtlasJournalArray {
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][object]$Value,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
+
+    if ($Value -isnot [Array]) {
+        throw "$Label must be a JSON array."
+    }
+}
+
+function Assert-AtlasJournalString {
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][object]$Value,
+        [Parameter(Mandatory = $true)][string]$Label,
+        [switch]$AllowNull
+    )
+
+    if ($null -eq $Value -and $AllowNull) {
+        return
+    }
+    if ($Value -isnot [string]) {
+        throw "$Label must be a JSON string."
+    }
+}
+
 function Assert-AtlasJournalNotReparsePoint {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -444,8 +498,8 @@ function Test-AtlasJournalRawDocumentChecksum {
 function ConvertTo-AtlasPhasePlan {
     param([Parameter(Mandatory = $true)][object[]]$PhasePlan)
 
-    if ($PhasePlan.Count -eq 0) {
-        throw 'The install journal phase plan must not be empty.'
+    if ($PhasePlan.Count -lt 1 -or $PhasePlan.Count -gt $script:AtlasJournalMaximumPhases) {
+        throw "The install journal phase plan must contain between 1 and $($script:AtlasJournalMaximumPhases) entries."
     }
 
     $seen = @{}
@@ -460,6 +514,7 @@ function ConvertTo-AtlasPhasePlan {
         else {
             if ($entry -is [Collections.IDictionary]) {
                 $keyValue = if ($entry.Contains('Key')) { $entry['Key'] } else { $null }
+                $requiredSpecified = $entry.Contains('Required')
                 $requiredValue = if ($entry.Contains('Required')) { $entry['Required'] } else { $true }
                 $recoveryValue = if ($entry.Contains('RecoveryPolicy')) { $entry['RecoveryPolicy'] } else { $null }
                 $postconditionValue = if ($entry.Contains('Postcondition')) { $entry['Postcondition'] } else { $null }
@@ -470,9 +525,23 @@ function ConvertTo-AtlasPhasePlan {
                 $recoveryProperty = $entry.PSObject.Properties['RecoveryPolicy']
                 $postconditionProperty = $entry.PSObject.Properties['Postcondition']
                 $keyValue = if ($keyProperty) { $keyProperty.Value } else { $null }
+                $requiredSpecified = $null -ne $requiredProperty
                 $requiredValue = if ($requiredProperty) { $requiredProperty.Value } else { $true }
                 $recoveryValue = if ($recoveryProperty) { $recoveryProperty.Value } else { $null }
                 $postconditionValue = if ($postconditionProperty) { $postconditionProperty.Value } else { $null }
+            }
+
+            if ($null -ne $keyValue -and $keyValue -isnot [string]) {
+                throw 'Install journal phase Key must be a string.'
+            }
+            if ($requiredSpecified -and $requiredValue -isnot [bool]) {
+                throw "Install journal phase '$keyValue' Required must be a Boolean."
+            }
+            if ($null -ne $recoveryValue -and $recoveryValue -isnot [string]) {
+                throw "Install journal phase '$keyValue' RecoveryPolicy must be a string."
+            }
+            if ($null -ne $postconditionValue -and $postconditionValue -isnot [string]) {
+                throw "Install journal phase '$keyValue' Postcondition must be a string."
             }
 
             $key = [string]$keyValue
@@ -543,34 +612,40 @@ function Test-AtlasJournalDocument {
         [switch]$SkipDocumentChecksum
     )
 
-    if ([int]$Journal.schemaVersion -ne $script:AtlasJournalSchemaVersion) {
+    Assert-AtlasJournalWholeNumber -Value $Journal.schemaVersion -Label 'Install journal schemaVersion' `
+        -Minimum $script:AtlasJournalSchemaVersion -Maximum $script:AtlasJournalSchemaVersion
+    if ([long]$Journal.schemaVersion -ne $script:AtlasJournalSchemaVersion) {
         throw "Unsupported install journal schema version '$($Journal.schemaVersion)'."
     }
 
+    Assert-AtlasJournalString -Value $Journal.transactionId -Label 'Install journal transactionId'
     $transactionId = [Guid]::Empty
     if (-not [Guid]::TryParse([string]$Journal.transactionId, [ref]$transactionId) -or
         $transactionId -eq [Guid]::Empty) {
         throw 'Install journal transactionId is invalid.'
     }
-    if ([int]$Journal.revision -lt 0 -or [int]$Journal.revision -gt 1000000) {
-        throw 'Install journal revision is invalid.'
-    }
-    if ([int]$Journal.resumeCount -lt 0 -or [int]$Journal.resumeCount -gt 1000000) {
-        throw 'Install journal resumeCount is invalid.'
-    }
+    Assert-AtlasJournalWholeNumber -Value $Journal.revision -Label 'Install journal revision' `
+        -Minimum 0 -Maximum 1000000
+    Assert-AtlasJournalWholeNumber -Value $Journal.resumeCount -Label 'Install journal resumeCount' `
+        -Minimum 0 -Maximum 1000000
+    Assert-AtlasJournalString -Value $Journal.state -Label 'Install journal state'
     if ($script:AtlasJournalStates -notcontains [string]$Journal.state) {
         throw "Install journal state '$($Journal.state)' is invalid."
     }
+    Assert-AtlasJournalString -Value $Journal.targetVersion -Label 'Install journal targetVersion'
     if ([string]::IsNullOrWhiteSpace([string]$Journal.targetVersion) -or
         ([string]$Journal.targetVersion).Length -gt 128) {
         throw 'Install journal targetVersion is required.'
     }
+    Assert-AtlasJournalString -Value $Journal.sourceVersion -Label 'Install journal sourceVersion' -AllowNull
     if (([string]$Journal.sourceVersion).Length -gt 128) {
         throw 'Install journal sourceVersion exceeds 128 characters.'
     }
+    Assert-AtlasJournalString -Value $Journal.mode -Label 'Install journal mode'
     if ($script:AtlasJournalModes -notcontains [string]$Journal.mode) {
         throw "Install journal mode '$($Journal.mode)' is invalid."
     }
+    Assert-AtlasJournalString -Value $Journal.interactiveUserSid -Label 'Install journal interactiveUserSid' -AllowNull
     if (-not [string]::IsNullOrWhiteSpace([string]$Journal.interactiveUserSid)) {
         try {
             $null = New-Object Security.Principal.SecurityIdentifier([string]$Journal.interactiveUserSid)
@@ -579,19 +654,28 @@ function Test-AtlasJournalDocument {
             throw "Install journal interactiveUserSid '$($Journal.interactiveUserSid)' is invalid."
         }
     }
+    Assert-AtlasJournalString -Value $Journal.initiatingPrincipalSid -Label 'Install journal initiatingPrincipalSid'
     try {
         $null = New-Object Security.Principal.SecurityIdentifier([string]$Journal.initiatingPrincipalSid)
     }
     catch {
         throw "Install journal initiatingPrincipalSid '$($Journal.initiatingPrincipalSid)' is invalid."
     }
+    Assert-AtlasJournalWholeNumber -Value $Journal.payload.schemaVersion `
+        -Label 'Install journal payload schemaVersion' -Minimum 1 -Maximum 1
+    Assert-AtlasJournalBoolean -Value $Journal.payload.required -Label 'Install journal payload required'
+    Assert-AtlasJournalString -Value $Journal.payload.generationState `
+        -Label 'Install journal payload generationState'
     if ($script:AtlasPayloadGenerationStates -notcontains [string]$Journal.payload.generationState) {
         throw "Install journal payload generation state '$($Journal.payload.generationState)' is invalid."
     }
+    Assert-AtlasJournalArray -Value $Journal.payload.roots -Label 'Install journal payload roots'
+    Assert-AtlasJournalString -Value $Journal.transactionRoot -Label 'Install journal transactionRoot'
     if (-not [IO.Path]::IsPathRooted([string]$Journal.transactionRoot)) {
         throw 'Install journal transactionRoot must be rooted.'
     }
 
+    Assert-AtlasJournalArray -Value $Journal.options -Label 'Install journal options'
     $optionNames = @($Journal.options)
     if ($optionNames.Count -gt 128) {
         throw 'Install journal options exceed the schema limit of 128.'
@@ -600,9 +684,11 @@ function Test-AtlasJournalDocument {
         throw 'Install journal options contain duplicates.'
     }
     foreach ($optionName in $optionNames) {
+        Assert-AtlasJournalString -Value $optionName -Label 'Install journal option'
         Assert-AtlasJournalName -Value ([string]$optionName) -Label 'option' -Pattern '^[a-z0-9]+(?:-[a-z0-9]+)*$'
     }
 
+    Assert-AtlasJournalArray -Value $Journal.phases -Label 'Install journal phases'
     $phases = @($Journal.phases)
     if ($phases.Count -lt 1 -or $phases.Count -gt $script:AtlasJournalMaximumPhases) {
         throw "Install journal phases must contain between 1 and $($script:AtlasJournalMaximumPhases) entries."
@@ -611,21 +697,27 @@ function Test-AtlasJournalDocument {
     $phaseKeys = @{}
     $encounteredUnresolvedPhase = $false
     foreach ($phase in $phases) {
+        Assert-AtlasJournalString -Value $phase.key -Label 'Install journal phase key'
         Assert-AtlasJournalName -Value ([string]$phase.key) -Label 'phase key'
         if ($phaseKeys.ContainsKey([string]$phase.key)) {
             throw "Duplicate install journal phase '$($phase.key)'."
         }
         $phaseKeys[[string]$phase.key] = $true
+        Assert-AtlasJournalString -Value $phase.recoveryPolicy `
+            -Label "Install journal phase '$($phase.key)' recoveryPolicy"
         if ($script:AtlasJournalRecoveryPolicies -notcontains [string]$phase.recoveryPolicy) {
             throw "Invalid recovery policy '$($phase.recoveryPolicy)' for phase '$($phase.key)'."
         }
+        Assert-AtlasJournalString -Value $phase.postcondition `
+            -Label "Install journal phase '$($phase.key)' postcondition"
         Assert-AtlasJournalName -Value ([string]$phase.postcondition) -Label 'phase postcondition'
+        Assert-AtlasJournalString -Value $phase.state -Label "Install journal phase '$($phase.key)' state"
         if ($script:AtlasJournalPhaseStates -notcontains [string]$phase.state) {
             throw "Invalid state '$($phase.state)' for phase '$($phase.key)'."
         }
-        if ([int]$phase.attempts -lt 0 -or [int]$phase.attempts -gt 100000) {
-            throw "Phase '$($phase.key)' has an invalid attempt count."
-        }
+        Assert-AtlasJournalBoolean -Value $phase.required -Label "Install journal phase '$($phase.key)' required"
+        Assert-AtlasJournalWholeNumber -Value $phase.attempts `
+            -Label "Install journal phase '$($phase.key)' attempts" -Minimum 0 -Maximum 100000
         $phaseIsTerminal = [string]$phase.state -in @('Succeeded', 'Skipped')
         if ($phaseIsTerminal -and $encounteredUnresolvedPhase) {
             throw "Phase '$($phase.key)' is terminal after an unresolved predecessor."
@@ -655,6 +747,7 @@ function Test-AtlasJournalDocument {
         throw 'Install journal contains more than one Running phase.'
     }
 
+    Assert-AtlasJournalArray -Value $Journal.compensations -Label 'Install journal compensations'
     $compensations = @($Journal.compensations)
     if ($compensations.Count -gt $script:AtlasJournalMaximumCompensations) {
         throw "Install journal compensations exceed the schema limit of $($script:AtlasJournalMaximumCompensations)."
@@ -662,27 +755,38 @@ function Test-AtlasJournalDocument {
     $compensationIds = @{}
     $expectedCompensationOrder = 1
     foreach ($compensation in $compensations) {
+        Assert-AtlasJournalString -Value $compensation.id -Label 'Install journal compensation id'
         Assert-AtlasJournalName -Value ([string]$compensation.id) -Label 'compensation id'
+        Assert-AtlasJournalString -Value $compensation.kind `
+            -Label "Install journal compensation '$($compensation.id)' kind"
+        Assert-AtlasJournalName -Value ([string]$compensation.kind) -Label 'compensation kind'
         if ($compensationIds.ContainsKey([string]$compensation.id)) {
             throw "Duplicate install journal compensation '$($compensation.id)'."
         }
         $compensationIds[[string]$compensation.id] = $true
+        Assert-AtlasJournalString -Value $compensation.ownerPhase `
+            -Label "Install journal compensation '$($compensation.id)' ownerPhase"
         if (-not $phaseKeys.ContainsKey([string]$compensation.ownerPhase)) {
             throw "Compensation '$($compensation.id)' refers to an unknown phase."
         }
+        Assert-AtlasJournalString -Value $compensation.recoveryPolicy `
+            -Label "Install journal compensation '$($compensation.id)' recoveryPolicy"
         if ($script:AtlasJournalRecoveryPolicies -notcontains [string]$compensation.recoveryPolicy) {
             throw "Compensation '$($compensation.id)' has an invalid recovery policy."
         }
+        Assert-AtlasJournalString -Value $compensation.state `
+            -Label "Install journal compensation '$($compensation.id)' state"
         if ($script:AtlasJournalCompensationStates -notcontains [string]$compensation.state) {
             throw "Compensation '$($compensation.id)' has an invalid state."
         }
-        if ([int]$compensation.order -ne $expectedCompensationOrder) {
+        Assert-AtlasJournalWholeNumber -Value $compensation.order `
+            -Label "Install journal compensation '$($compensation.id)' order" -Minimum 1 -Maximum 100000
+        if ([long]$compensation.order -ne $expectedCompensationOrder) {
             throw "Compensation '$($compensation.id)' has a non-contiguous order."
         }
         $expectedCompensationOrder++
-        if ([int]$compensation.attempts -lt 0 -or [int]$compensation.attempts -gt 100000) {
-            throw "Compensation '$($compensation.id)' has an invalid attempt count."
-        }
+        Assert-AtlasJournalWholeNumber -Value $compensation.attempts `
+            -Label "Install journal compensation '$($compensation.id)' attempts" -Minimum 0 -Maximum 100000
         if ($compensation.state -eq 'Ready' -and $null -eq $compensation.reconciliationEvidence) {
             throw "Ready compensation '$($compensation.id)' lacks reconciliation evidence."
         }
@@ -709,17 +813,23 @@ function Test-AtlasJournalDocument {
         }
     }
 
+    Assert-AtlasJournalArray -Value $Journal.events -Label 'Install journal events'
     $events = @($Journal.events)
     if ($events.Count -gt $script:AtlasJournalMaximumEvents) {
         throw "Install journal events exceed the schema limit of $($script:AtlasJournalMaximumEvents)."
     }
-    if ([int]$Journal.eventSequence -ne $events.Count) {
+    Assert-AtlasJournalWholeNumber -Value $Journal.eventSequence -Label 'Install journal eventSequence' `
+        -Minimum 0 -Maximum $script:AtlasJournalMaximumEvents
+    if ([long]$Journal.eventSequence -ne $events.Count) {
         throw 'Install journal eventSequence does not match the event list.'
     }
     for ($eventIndex = 0; $eventIndex -lt $events.Count; $eventIndex++) {
-        if ([int]$events[$eventIndex].sequence -ne ($eventIndex + 1)) {
+        Assert-AtlasJournalWholeNumber -Value $events[$eventIndex].sequence `
+            -Label 'Install journal event sequence' -Minimum 1 -Maximum $script:AtlasJournalMaximumEvents
+        if ([long]$events[$eventIndex].sequence -ne ($eventIndex + 1)) {
             throw 'Install journal event sequence is not contiguous.'
         }
+        Assert-AtlasJournalString -Value $events[$eventIndex].kind -Label 'Install journal event kind'
         if ([string]::IsNullOrWhiteSpace([string]$events[$eventIndex].kind) -or
             ([string]$events[$eventIndex].kind).Length -gt 128) {
             throw 'Install journal event kind is invalid.'
@@ -747,10 +857,12 @@ function Test-AtlasJournalDocument {
     }
 
     $expectedIdentityHash = Get-AtlasJournalIdentityHash -Journal $Journal
+    Assert-AtlasJournalString -Value $Journal.identitySha256 -Label 'Install journal identitySha256'
     if ([string]$Journal.identitySha256 -cne $expectedIdentityHash) {
         throw 'Install journal immutable identity hash does not match its contents.'
     }
     if (-not $SkipDocumentChecksum) {
+        Assert-AtlasJournalString -Value $Journal.documentSha256 -Label 'Install journal documentSha256'
         if ([string]$Journal.documentSha256 -notmatch '^[a-f0-9]{64}$') {
             throw 'Install journal document checksum is missing or invalid.'
         }
@@ -1025,17 +1137,30 @@ function New-AtlasInstallJournal {
     Assert-AtlasJournalStorePathForCreate -JournalPath $JournalPath
     return Invoke-WithAtlasJournalLock -JournalPath $JournalPath -ScriptBlock {
         Assert-AtlasInstallJournalStore -JournalPath $JournalPath
+        $completedJournal = $null
         if (Test-Path -LiteralPath $JournalPath) {
             $existingJournal = Read-AtlasJournalDocument -JournalPath $JournalPath
             if ($existingJournal.state -ne 'Completed') {
                 throw "An active Atlas install journal already exists at '$JournalPath' with state '$($existingJournal.state)'."
             }
-            $null = Move-AtlasCompletedJournalToArchive -JournalPath $JournalPath -Journal $existingJournal
+            $completedJournal = $existingJournal
         }
         elseif (Test-Path -LiteralPath "$JournalPath.bak") {
             throw "An orphaned Atlas install journal backup exists at '$JournalPath.bak'; it must be diagnosed explicitly before a new transaction is created."
         }
 
+        # Validate the complete replacement identity before retiring a completed audit
+        # record. Active/corrupt journal diagnostics remain authoritative and are checked
+        # above, but invalid new input can never move the existing completed transaction.
+        if ([string]::IsNullOrWhiteSpace($TargetVersion) -or $TargetVersion.Length -gt 128) {
+            throw 'Install journal targetVersion must contain between 1 and 128 characters.'
+        }
+        if ($null -ne $SourceVersion -and $SourceVersion.Length -gt 128) {
+            throw 'Install journal sourceVersion exceeds 128 characters.'
+        }
+        if (@($Options).Count -gt 128) {
+            throw 'Install journal options exceed the schema limit of 128.'
+        }
         $normalizedOptions = @($Options | ForEach-Object {
                 Assert-AtlasJournalName -Value $_ -Label 'option' -Pattern '^[a-z0-9]+(?:-[a-z0-9]+)*$'
                 $_
@@ -1048,7 +1173,11 @@ function New-AtlasInstallJournal {
                 throw "Interactive user SID '$InteractiveUserSid' is invalid."
             }
         }
-        $normalizedPhasePlan = ConvertTo-AtlasPhasePlan -PhasePlan $PhasePlan
+        $normalizedPhasePlan = @(ConvertTo-AtlasPhasePlan -PhasePlan $PhasePlan)
+
+        if ($null -ne $completedJournal) {
+            $null = Move-AtlasCompletedJournalToArchive -JournalPath $JournalPath -Journal $completedJournal
+        }
         $transactionId = [Guid]::NewGuid().ToString('D')
         $storePath = Split-Path -Parent ([IO.Path]::GetFullPath($JournalPath))
         $transactionRoot = Join-Path -Path $storePath -ChildPath $transactionId

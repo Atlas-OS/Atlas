@@ -270,6 +270,148 @@ Describe 'Atlas install journal schema and persistence' {
         }
     }
 
+    It 'serializes schema collections as arrays and rejects ambiguous scalar types' {
+        $journalPath = New-TestAtlasJournalPath
+        InModuleScope Atlas.InstallJournal -Parameters @{ JournalPath = $journalPath } {
+            Mock Assert-AtlasInstallJournalStore {}
+            Mock Open-AtlasJournalLock { New-Object IO.MemoryStream }
+            Mock Set-AtlasJournalFileAcl {}
+            Mock Set-Acl {}
+            Mock Assert-AtlasJournalProtectedDirectory {}
+            Mock Assert-AtlasJournalProtectedFile {}
+
+            New-AtlasInstallJournal -JournalPath $JournalPath -TargetVersion '0.6.0' -Mode Fresh `
+                -PhasePlan @(@{ Key = 'PreInstall'; RecoveryPolicy = 'Idempotent' }) | Out-Null
+            $serialized = Get-Content -LiteralPath $JournalPath -Raw | ConvertFrom-Json
+            ($serialized.phases -is [Array]) | Should -BeTrue
+            ($serialized.options -is [Array]) | Should -BeTrue
+            ($serialized.compensations -is [Array]) | Should -BeTrue
+            ($serialized.events -is [Array]) | Should -BeTrue
+            ($serialized.payload.roots -is [Array]) | Should -BeTrue
+
+            $scalarPhases = Get-AtlasInstallJournal -JournalPath $JournalPath
+            $scalarPhases.phases = $scalarPhases.phases[0]
+            { Test-AtlasJournalDocument -Journal $scalarPhases -SkipDocumentChecksum } |
+                Should -Throw -ExpectedMessage '*phases must be a JSON array*'
+
+            $stringBoolean = Get-AtlasInstallJournal -JournalPath $JournalPath
+            $stringBoolean.phases[0].required = 'false'
+            { Test-AtlasJournalDocument -Journal $stringBoolean -SkipDocumentChecksum } |
+                Should -Throw -ExpectedMessage '*required must be a JSON Boolean*'
+
+            $stringInteger = Get-AtlasInstallJournal -JournalPath $JournalPath
+            $stringInteger.revision = '0'
+            { Test-AtlasJournalDocument -Journal $stringInteger -SkipDocumentChecksum } |
+                Should -Throw -ExpectedMessage '*revision must be a JSON integer*'
+        }
+    }
+
+    It 'leaves the primary unchanged when a failure occurs before atomic replacement' {
+        $journalPath = New-TestAtlasJournalPath
+        InModuleScope Atlas.InstallJournal -Parameters @{ JournalPath = $journalPath } {
+            Mock Assert-AtlasInstallJournalStore {}
+            Mock Open-AtlasJournalLock { New-Object IO.MemoryStream }
+            Mock Set-AtlasJournalFileAcl {}
+            Mock Set-Acl {}
+            Mock Assert-AtlasJournalProtectedDirectory {}
+            Mock Assert-AtlasJournalProtectedFile {}
+
+            New-AtlasInstallJournal -JournalPath $JournalPath -TargetVersion '0.6.0' -Mode Fresh `
+                -PhasePlan @(@{ Key = 'PreInstall'; RecoveryPolicy = 'Reconcile' }) | Out-Null
+            $before = [Convert]::ToBase64String([IO.File]::ReadAllBytes($JournalPath))
+            Mock Set-AtlasJournalFileAcl {
+                param($Path)
+                if ($Path -like '*.tmp') {
+                    throw 'Injected temporary ACL failure.'
+                }
+            }
+
+            { Start-AtlasInstallJournalPhase -JournalPath $JournalPath -PhaseKey PreInstall } |
+                Should -Throw -ExpectedMessage '*Injected temporary ACL failure*'
+            [Convert]::ToBase64String([IO.File]::ReadAllBytes($JournalPath)) | Should -BeExactly $before
+            Test-Path -LiteralPath "$JournalPath.bak" | Should -BeFalse
+            @(Get-ChildItem -LiteralPath (Split-Path -Parent $JournalPath) -Filter '*.tmp') |
+                Should -BeNullOrEmpty
+        }
+    }
+
+    It 'retains a Running checkpoint when a post-replace ACL verification reports failure' {
+        $journalPath = New-TestAtlasJournalPath
+        InModuleScope Atlas.InstallJournal -Parameters @{ JournalPath = $journalPath } {
+            Mock Assert-AtlasInstallJournalStore {}
+            Mock Open-AtlasJournalLock { New-Object IO.MemoryStream }
+            Mock Set-AtlasJournalFileAcl {}
+            Mock Set-Acl {}
+            Mock Assert-AtlasJournalProtectedDirectory {}
+            Mock Assert-AtlasJournalProtectedFile {}
+
+            New-AtlasInstallJournal -JournalPath $JournalPath -TargetVersion '0.6.0' -Mode Fresh `
+                -PhasePlan @(@{ Key = 'PreInstall'; RecoveryPolicy = 'Reconcile' }) | Out-Null
+            Mock Set-AtlasJournalFileAcl {
+                param($Path)
+                if ($Path -like '*.bak') {
+                    throw 'Injected post-replace ACL failure.'
+                }
+            }
+
+            { Start-AtlasInstallJournalPhase -JournalPath $JournalPath -PhaseKey PreInstall } |
+                Should -Throw -ExpectedMessage '*Injected post-replace ACL failure*'
+            (Read-AtlasJournalFile -Path $JournalPath).phases[0].state | Should -BeExactly 'Running'
+            (Read-AtlasJournalFile -Path "$JournalPath.bak").phases[0].state | Should -BeExactly 'Pending'
+            (Get-AtlasInstallResumePlan -JournalPath $JournalPath)[0].Action | Should -BeExactly 'Reconcile'
+        }
+    }
+
+    It 'validates a new transaction completely before retiring a completed journal' {
+        $journalPath = New-TestAtlasJournalPath
+        InModuleScope Atlas.InstallJournal -Parameters @{ JournalPath = $journalPath } {
+            Mock Assert-AtlasInstallJournalStore {}
+            Mock Open-AtlasJournalLock { New-Object IO.MemoryStream }
+            Mock Set-AtlasJournalFileAcl {}
+            Mock Set-Acl {}
+            Mock Assert-AtlasJournalProtectedDirectory {}
+            Mock Assert-AtlasJournalProtectedFile {}
+
+            New-AtlasInstallJournal -JournalPath $JournalPath -TargetVersion '0.6.0' -Mode Fresh `
+                -PhasePlan @(@{ Key = 'PreInstall'; RecoveryPolicy = 'Idempotent' }) | Out-Null
+            Start-AtlasInstallJournalPhase -JournalPath $JournalPath -PhaseKey PreInstall | Out-Null
+            Complete-AtlasInstallJournalPhase -JournalPath $JournalPath -PhaseKey PreInstall `
+                -PostconditionEvidence 'The completed transaction remains the active audit record.' | Out-Null
+            Complete-AtlasInstallJournal -JournalPath $JournalPath | Out-Null
+            $before = [Convert]::ToBase64String([IO.File]::ReadAllBytes($JournalPath))
+
+            { New-AtlasInstallJournal -JournalPath $JournalPath -TargetVersion '0.6.1' -Mode Upgrade `
+                    -PhasePlan @(@{ Key = 'PreInstall'; Required = 'false' }) } |
+                Should -Throw -ExpectedMessage '*Required must be a Boolean*'
+            [Convert]::ToBase64String([IO.File]::ReadAllBytes($JournalPath)) | Should -BeExactly $before
+            Test-Path -LiteralPath (Join-Path (Split-Path -Parent $JournalPath) 'archive') |
+                Should -BeFalse
+        }
+    }
+
+    It 'reports active-journal corruption before considering replacement input' {
+        $journalPath = New-TestAtlasJournalPath
+        InModuleScope Atlas.InstallJournal -Parameters @{ JournalPath = $journalPath } {
+            Mock Assert-AtlasInstallJournalStore {}
+            Mock Open-AtlasJournalLock { New-Object IO.MemoryStream }
+            Mock Set-AtlasJournalFileAcl {}
+            Mock Set-Acl {}
+            Mock Assert-AtlasJournalProtectedDirectory {}
+            Mock Assert-AtlasJournalProtectedFile {}
+
+            New-AtlasInstallJournal -JournalPath $JournalPath -TargetVersion '0.6.0' -Mode Fresh `
+                -PhasePlan @(@{ Key = 'PreInstall'; RecoveryPolicy = 'Idempotent' }) | Out-Null
+            [IO.File]::WriteAllText($JournalPath, '{broken')
+
+            { New-AtlasInstallJournal -JournalPath $JournalPath -TargetVersion '0.6.1' -Mode Upgrade `
+                    -PhasePlan @(@{ Key = 'PreInstall'; Required = 'false' }) } |
+                Should -Throw -ExpectedMessage '*primary Atlas install journal is invalid*preserved for diagnosis*'
+            [IO.File]::ReadAllText($JournalPath) | Should -BeExactly '{broken'
+            Test-Path -LiteralPath (Join-Path (Split-Path -Parent $JournalPath) 'archive') |
+                Should -BeFalse
+        }
+    }
+
     It 'archives a valid completed journal under the lock before creating the next transaction' {
         $journalPath = New-TestAtlasJournalPath
         InModuleScope Atlas.InstallJournal -Parameters @{ JournalPath = $journalPath } {
@@ -299,6 +441,37 @@ Describe 'Atlas install journal schema and persistence' {
             $second.transactionId | Should -Not -BeExactly $first.transactionId
             (Get-Content -LiteralPath $JournalPath -Raw | ConvertFrom-Json).transactionId |
                 Should -BeExactly $second.transactionId
+        }
+    }
+
+    It 'resumes archive retirement after interruption between backup and primary moves' {
+        $journalPath = New-TestAtlasJournalPath
+        InModuleScope Atlas.InstallJournal -Parameters @{ JournalPath = $journalPath } {
+            Mock Assert-AtlasInstallJournalStore {}
+            Mock Open-AtlasJournalLock { New-Object IO.MemoryStream }
+            Mock Set-AtlasJournalFileAcl {}
+            Mock Set-Acl {}
+            Mock Assert-AtlasJournalProtectedDirectory {}
+            Mock Assert-AtlasJournalProtectedFile {}
+
+            $first = New-AtlasInstallJournal -JournalPath $JournalPath -TargetVersion '0.6.0' -Mode Fresh `
+                -PhasePlan @(@{ Key = 'PreInstall'; RecoveryPolicy = 'Idempotent' })
+            Start-AtlasInstallJournalPhase -JournalPath $JournalPath -PhaseKey PreInstall | Out-Null
+            Complete-AtlasInstallJournalPhase -JournalPath $JournalPath -PhaseKey PreInstall `
+                -PostconditionEvidence 'The first transaction is complete.' | Out-Null
+            Complete-AtlasInstallJournal -JournalPath $JournalPath | Out-Null
+
+            $archiveRoot = Join-Path -Path (Split-Path -Parent $JournalPath) -ChildPath 'archive'
+            New-Item -Path $archiveRoot -ItemType Directory | Out-Null
+            $archivePrevious = Join-Path -Path $archiveRoot -ChildPath "$($first.transactionId).previous.json"
+            [IO.File]::Move("$JournalPath.bak", $archivePrevious)
+
+            $second = New-AtlasInstallJournal -JournalPath $JournalPath -TargetVersion '0.6.1' -Mode Upgrade `
+                -PhasePlan @(@{ Key = 'PreInstall'; RecoveryPolicy = 'Idempotent' })
+            $archivePath = Join-Path -Path $archiveRoot -ChildPath "$($first.transactionId).json"
+            Test-Path -LiteralPath $archivePrevious -PathType Leaf | Should -BeTrue
+            (Read-AtlasJournalFile -Path $archivePath).state | Should -BeExactly 'Completed'
+            (Read-AtlasJournalFile -Path $JournalPath).transactionId | Should -BeExactly $second.transactionId
         }
     }
 }
@@ -784,6 +957,77 @@ Describe 'Atlas install journal access-control contract' {
             $afterRelease = Open-AtlasJournalLock -JournalPath $JournalPath -TimeoutMilliseconds 1000
             $afterRelease | Should -BeOfType ([IO.FileStream])
             $afterRelease.Dispose()
+        }
+    }
+
+    It 'serializes a separate PowerShell process and recovers the lock after that process is killed' {
+        $journalPath = New-TestAtlasJournalPath
+        InModuleScope Atlas.InstallJournal -Parameters @{ JournalPath = $journalPath } {
+            Mock Assert-AtlasInstallJournalStore {}
+            Mock Set-AtlasJournalFileAcl {}
+            Mock Assert-AtlasJournalNotReparsePoint {}
+            Mock Test-AtlasJournalAcl { $true }
+
+            $created = Open-AtlasJournalLock -JournalPath $JournalPath -TimeoutMilliseconds 1000
+            $created.Dispose()
+            $lockPath = "$JournalPath.lock"
+            $readyPath = "$JournalPath.child-ready"
+            $escapedLockPath = $lockPath.Replace("'", "''")
+            $escapedReadyPath = $readyPath.Replace("'", "''")
+            $childScript = @"
+`$lockPath = '$escapedLockPath'
+`$readyPath = '$escapedReadyPath'
+`$stream = [IO.File]::Open(
+    `$lockPath,
+    [IO.FileMode]::Open,
+    [IO.FileAccess]::ReadWrite,
+    [IO.FileShare]::None
+)
+try {
+    [IO.File]::WriteAllText(`$readyPath, 'ready')
+    Start-Sleep -Seconds 30
+}
+finally {
+    `$stream.Dispose()
+}
+"@
+            $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($childScript))
+            $engineName = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh.exe' } else { 'powershell.exe' }
+            $enginePath = Join-Path -Path $PSHOME -ChildPath $engineName
+            $process = Start-Process -FilePath $enginePath -WindowStyle Hidden -PassThru -ArgumentList @(
+                '-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', $encodedCommand
+            )
+
+            try {
+                $deadline = [DateTime]::UtcNow.AddSeconds(10)
+                while (-not (Test-Path -LiteralPath $readyPath) -and
+                    -not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) {
+                    Start-Sleep -Milliseconds 25
+                    $process.Refresh()
+                }
+                Test-Path -LiteralPath $readyPath -PathType Leaf | Should -BeTrue
+                $process.HasExited | Should -BeFalse
+                { Open-AtlasJournalLock -JournalPath $JournalPath -TimeoutMilliseconds 150 } |
+                    Should -Throw -ExpectedMessage '*Timed out after 150 ms*file lock*'
+
+                $process.Kill()
+                $process.WaitForExit(5000) | Should -BeTrue
+                $process.Dispose()
+                $process = $null
+
+                $afterCrash = Open-AtlasJournalLock -JournalPath $JournalPath -TimeoutMilliseconds 1000
+                $afterCrash | Should -BeOfType ([IO.FileStream])
+                $afterCrash.Dispose()
+            }
+            finally {
+                if ($null -ne $process) {
+                    if (-not $process.HasExited) {
+                        $process.Kill()
+                        [void]$process.WaitForExit(5000)
+                    }
+                    $process.Dispose()
+                }
+            }
         }
     }
 
