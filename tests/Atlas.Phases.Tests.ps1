@@ -237,14 +237,27 @@ Describe 'In-process payload helper control flow' {
         $childProcessCalls.Count | Should -Be 2
     }
 
+    It 'keeps the legacy executable-path repair script out of the production call graph' {
+        $legacyHelper = Join-Path $script:atlasModulesRoot 'Scripts\Internal\Repair-RegistryPaths.ps1'
+        $references = @(Get-ChildItem -LiteralPath $script:atlasModulesRoot -Recurse -File | Where-Object {
+                $_.FullName -ne $legacyHelper -and
+                $_.Extension -in @('.ps1', '.psm1', '.psd1') -and
+                [IO.File]::ReadAllText($_.FullName).IndexOf(
+                    'Repair-RegistryPaths.ps1',
+                    [StringComparison]::OrdinalIgnoreCase
+                ) -ge 0
+            })
+
+        $references | Should -BeNullOrEmpty `
+            -Because 'toggle replay is definition-based and must never restore executable registry paths'
+    }
+
     It 'classifies every remaining potentially successful exit reachable through an in-process helper call' {
         # These exits are unreachable on the listed in-process route. Keep the exceptions
         # explicit so a new reusable script containing `exit` cannot bypass this contract.
         $contextBoundExitPairs = [ordered]@{
             'Scripts\Internal\Remove-Edge.ps1|Toggles\Software\RemoveEdge.ps1' =
                 'The Admin toggle does not reach self-elevation, does not pass NonInteractive, and Write-Status exits only on failure.'
-            'Scripts\Internal\Repair-RegistryPaths.ps1|Scripts\Phases\Invoke-FinalizePhase.ps1' =
-                'The phase asserts Administrator before the helper self-elevation branch.'
             'Scripts\Internal\Set-VbsConfiguration.ps1|Toggles\Security\ConfigVBS.ps1' =
                 'The toggle calls the interactive parameterless route; parameterized routes run in a child PowerShell process.'
             'Scripts\Internal\Update-Drivers.ps1|Toggles\General\UpdateDrivers.ps1' =
