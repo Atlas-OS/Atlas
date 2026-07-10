@@ -2,6 +2,8 @@
 *.ps1  eol=lf
 *.psm1 eol=lf
 *.psd1 eol=lf
+*.yml  eol=lf
+*.yaml eol=lf
 *.bat  eol=crlf
 *.cmd  eol=crlf
 *.reg  eol=crlf

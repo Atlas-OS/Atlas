@@ -1,7 +1,7 @@
 # Testing
 
-The project is verified by four automated gates. All four run in CI; you can run each
-locally.
+The project is verified by four automated gate groups. All four run in CI; you can run
+each locally.
 
 ## 1. PSScriptAnalyzer
 
@@ -32,8 +32,11 @@ parses every payload script with `[System.Management.Automation.Language.Parser]
 
 Pester 5 tests under `tests/` cover the pure logic of the framework (the registry engine's
 HKCU resolution and default-hive mirroring, tweak schema and gating, toggle state, the
-build module, etc.). They run unelevated and never mutate the machine — registry tests use
-a scratch key under `HKCU:\Software\AtlasRewriteTest`.
+build module, etc.). Contract suites also pin FeaturePage/flag/schema parity, AME phase
+handoff and halt behavior, generated launchers, clean-process module imports/exports, local
+wrapper exit propagation, binary/package manifests, and paired payload assets. They run
+unelevated and never make persistent machine changes — registry tests use and clean up a
+scratch key under `HKCU:\Software\AtlasRewriteTest`.
 
 In CI the suite runs twice: once under PowerShell 7 (`pwsh`) and once under Windows
 PowerShell 5.1 (`powershell`), the runtime the payload actually ships to — so tests must
@@ -51,9 +54,10 @@ Invoke-Pester -Configuration $config
 
 ## 4. Apbx smoke verification
 
-`tools/build/Test-Apbx.ps1 -Path "<file>.apbx"` structurally verifies a built package (see
-[building.md](building.md)). It is the strongest end-to-end signal available without
-applying the playbook to a live Windows install.
+`tools/build/Test-Apbx.ps1 -Path "<file>.apbx"` structurally verifies a built package and
+requires exact source/archive file-path parity (see [building.md](building.md)). It is the
+strongest end-to-end signal available without applying the playbook to a live Windows
+install.
 
 ## Manual / VM verification
 

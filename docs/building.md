@@ -16,9 +16,14 @@ From the repository root:
 ./build.sh         # Unix shell (pwsh)
 ```
 
-Both wrap `tools/build/Build-Playbook.ps1` with the standard local-test flags
-(`-AddLiveLog -ReplaceOldPlaybook -Removals WinverRequirement,Verification -DontOpenPbLocation`). The resulting
-`Atlas Test.apbx` is written inside `playbook/` (i.e. `playbook/Atlas Test.apbx`).
+Both wrap `tools/build/Build-Playbook.ps1` with the standard `-LocalTest` profile, which
+enables the live log, replaces the prior test archive, removes the version/product
+verification gates, and does not open Explorer. The resulting `Atlas Test.apbx` is written
+inside `playbook/` (i.e. `playbook/Atlas Test.apbx`).
+
+The wrappers require `pwsh` and return the underlying build exit code, so they are safe to
+use from other scripts and CI. Passing any argument suppresses the Windows/shell pause on
+failure for non-interactive callers.
 
 You can also run the build directly:
 
@@ -35,6 +40,7 @@ Editor integrations are provided for VS Code (`.vscode/launch.json`) and Zed
 
 | Parameter | Meaning |
 | --- | --- |
+| `-LocalTest` | Standard local profile used by `build.cmd`/`build.sh`: live log, replace existing test APBX, remove `WinverRequirement` and `Verification`, and do not open Explorer. |
 | `-FileName <name>` | Output name (default `Atlas Test`). |
 | `-ReplaceOldPlaybook` | Overwrite an existing archive of the same name. |
 | `-AddLiveLog` | Inject a console action that tails AME Wizard's `OutputBuffer.txt` during install. |
@@ -54,9 +60,11 @@ Editor integrations are provided for VS Code (`.vscode/launch.json`) and Zed
 
 ## Verifying a build
 
-`tools/build/Test-Apbx.ps1 -Path "<file>.apbx"` checks archive integrity and password, the
-archive root layout, that no build tooling leaked in, and that `playbook.conf` parses with a
-stamped OEM version. CI runs it on every build.
+`tools/build/Test-Apbx.ps1 -Path "<file>.apbx"` checks archive integrity and password,
+rejects rooted/traversal paths and duplicate file entries, requires exact file-path parity
+with the source `playbook/` tree, checks the archive root layout and tooling exclusions,
+and validates `playbook.conf` plus the stamped OEM version. Use `-PlaybookPath` when
+verifying against a non-default source tree. CI runs it on every build.
 
 ## Version bumps
 

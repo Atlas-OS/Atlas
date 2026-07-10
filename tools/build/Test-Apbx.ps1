@@ -1,23 +1,29 @@
 <#
 .SYNOPSIS
-    Smoke-verifies a built .apbx package: archive integrity, expected root layout,
-    no tooling leakage, valid playbook.conf metadata, and a stamped OEM version.
+    Verifies a built .apbx package: archive integrity, exact payload file parity, safe
+    paths, expected root layout, metadata, and a stamped OEM version.
 .DESCRIPTION
     The strongest end-to-end signal available without applying the playbook to a live
     Windows install. Exits 0 when all checks pass, 1 otherwise.
 #>
+#requires -Version 7.0
 # The apbx archive password is public by design (documented in README.md); it exists so
 # antivirus engines don't scan-flag the payload, not for secrecy.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'Password')]
 Param(
     [Parameter(Mandatory = $true)][string]$Path,
-    [string]$Password = 'malte'
+    [string]$Password = 'malte',
+    [string]$PlaybookPath
 )
 
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'AtlasBuild\AtlasBuild.psd1') -Force
+
+if (-not $PlaybookPath) {
+    $PlaybookPath = Join-Path -Path $PSScriptRoot -ChildPath '..\..\playbook'
+}
 
 $failures = [System.Collections.Generic.List[string]]::new()
 
@@ -30,6 +36,38 @@ function Add-Failure {
 function Write-Pass {
     param([string]$Message)
     Write-Host "PASS: $Message" -ForegroundColor Green
+}
+
+function ConvertFrom-SevenZipTechnicalList {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [AllowEmptyString()]
+        [string[]]$Line
+    )
+
+    $records = [System.Collections.Generic.List[object]]::new()
+    $record = @{}
+
+    foreach ($currentLine in $Line) {
+        if ([string]::IsNullOrWhiteSpace($currentLine)) {
+            if ($record.ContainsKey('Path')) {
+                $records.Add([pscustomobject]$record)
+            }
+            $record = @{}
+            continue
+        }
+
+        if ($currentLine -match '^([^=]+) = (.*)$') {
+            $record[$matches[1].Trim()] = $matches[2]
+        }
+    }
+
+    if ($record.ContainsKey('Path')) {
+        $records.Add([pscustomobject]$record)
+    }
+
+    return $records.ToArray()
 }
 
 if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -58,16 +96,24 @@ $expectedRootDirs = @('Configuration', 'Executables', 'Images')
 $expectedRootFiles = @('playbook.conf', 'playbook.png')
 
 $listOutput = Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList (@('l', '-ba', '-slt') + $passwordArgs + @($Path)) -ErrorContext 'Archive listing'
-$entryPaths = @($listOutput | Where-Object { $_ -is [string] -or $_ -isnot [System.Management.Automation.ErrorRecord] } |
-    ForEach-Object { "$_" } |
-    Where-Object { $_ -match '^Path = ' } |
-    ForEach-Object { ($_ -replace '^Path = ', '').Trim() })
+$archiveEntries = @(ConvertFrom-SevenZipTechnicalList -Line @($listOutput | ForEach-Object { "$_" }))
+$entryPaths = @($archiveEntries | ForEach-Object { $_.Path.Replace('\', '/') })
 
 if ($entryPaths.Count -eq 0) {
     Add-Failure 'Archive listing returned no entries.'
 }
 else {
-    $rootEntries = $entryPaths | ForEach-Object { ($_ -split '[\\/]')[0] } | Sort-Object -Unique
+    $unsafePaths = @($entryPaths | Where-Object {
+            [IO.Path]::IsPathRooted($_) -or (($_ -split '/') -contains '..')
+        })
+    if ($unsafePaths) {
+        Add-Failure "Archive contains rooted or parent-traversal paths: $($unsafePaths -join ', ')"
+    }
+    else {
+        Write-Pass 'All archive entry paths are relative and traversal-free.'
+    }
+
+    $rootEntries = $entryPaths | ForEach-Object { ($_ -split '/')[0] } | Sort-Object -Unique
     $unexpectedRoots = @($rootEntries | Where-Object { ($expectedRootDirs -notcontains $_) -and ($expectedRootFiles -notcontains $_) })
 
     if ($unexpectedRoots) {
@@ -92,7 +138,40 @@ else {
     }
 }
 
-# 3. playbook.conf parses and carries consistent version metadata.
+# 3. Exact file-list parity: every source payload file must ship exactly once, and no
+# untracked/stale file may hide below an otherwise allowed root directory. Staged dev-build
+# overrides intentionally change content but never the path set, so path parity applies to
+# both release and local-test builds.
+if (-not (Test-Path -LiteralPath $PlaybookPath -PathType Container)) {
+    Add-Failure "Source playbook directory not found at '$PlaybookPath'; payload parity could not be checked."
+}
+else {
+    try {
+        $expectedPayloadPaths = @(Get-AtlasPlaybookPayloadPath -PlaybookPath $PlaybookPath)
+        $actualPayloadPaths = @($archiveEntries |
+            Where-Object { $_.PSObject.Properties['Folder'] -and $_.Folder -eq '-' } |
+            ForEach-Object { $_.Path })
+        $payloadComparison = Compare-AtlasPayloadPath -ExpectedPath $expectedPayloadPaths -ActualPath $actualPayloadPaths
+
+        if ($payloadComparison.Missing) {
+            Add-Failure "Payload files missing from the archive: $($payloadComparison.Missing -join ', ')"
+        }
+        if ($payloadComparison.Unexpected) {
+            Add-Failure "Unexpected files present in the archive: $($payloadComparison.Unexpected -join ', ')"
+        }
+        if ($payloadComparison.Duplicates) {
+            Add-Failure "Archive contains duplicate file paths: $($payloadComparison.Duplicates -join ', ')"
+        }
+        if ($payloadComparison.Matches) {
+            Write-Pass "Exact source/archive payload path parity ($($expectedPayloadPaths.Count) files)."
+        }
+    }
+    catch {
+        Add-Failure "Payload parity validation failed: $($_.Exception.Message)"
+    }
+}
+
+# 4. playbook.conf parses and carries consistent version metadata.
 $extractDir = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath ([guid]::NewGuid().Guid)
 New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
 try {
@@ -120,7 +199,7 @@ try {
         Add-Failure 'playbook.conf could not be extracted from the archive.'
     }
 
-    # 4. OEM version placeholder must be stamped out by the build.
+    # 5. OEM version placeholder must be stamped out by the build.
     $oemPath = Join-Path -Path $extractDir -ChildPath 'Set-OemInformation.ps1'
     if (Test-Path -LiteralPath $oemPath -PathType Leaf) {
         $oemContent = Get-Content -Path $oemPath -Raw

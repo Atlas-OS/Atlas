@@ -195,3 +195,90 @@ Describe 'Get-AvailableArchiveName' {
         Test-Path (Join-Path $TestDrive 'Atlas.apbx') | Should -BeFalse
     }
 }
+
+Describe 'APBX payload path contracts' {
+    It 'enumerates every source payload file except generated APBX outputs' {
+        $playbook = Join-Path $TestDrive 'playbook'
+        New-Item -Path (Join-Path $playbook 'Configuration') -ItemType Directory -Force | Out-Null
+        New-Item -Path (Join-Path $playbook 'Executables\Nested') -ItemType Directory -Force | Out-Null
+        '<Playbook />' | Set-Content -Path (Join-Path $playbook 'playbook.conf') -Encoding UTF8
+        'actions: []' | Set-Content -Path (Join-Path $playbook 'Configuration\custom.yml') -Encoding UTF8
+        'payload' | Set-Content -Path (Join-Path $playbook 'Executables\Nested\tool.txt') -Encoding UTF8
+        'generated' | Set-Content -Path (Join-Path $playbook 'Atlas Test.apbx') -Encoding UTF8
+        'interrupted' | Set-Content -Path (Join-Path $playbook 'Atlas Test.apbx.tmp') -Encoding UTF8
+
+        @(Get-AtlasPlaybookPayloadPath -PlaybookPath $playbook) | Should -Be @(
+            'Configuration/custom.yml'
+            'Executables/Nested/tool.txt'
+            'playbook.conf'
+        )
+    }
+
+    It 'reports missing, unexpected, and duplicate archive paths independently' {
+        $result = Compare-AtlasPayloadPath `
+            -ExpectedPath @('Configuration/custom.yml', 'Executables/tool.ps1') `
+            -ActualPath @('Configuration\custom.yml', 'Executables/stale.ps1', 'Executables/stale.ps1')
+
+        $result.Matches | Should -BeFalse
+        $result.Missing | Should -Be @('Executables/tool.ps1')
+        $result.Unexpected | Should -Be @('Executables/stale.ps1')
+        $result.Duplicates | Should -Be @('Executables/stale.ps1')
+    }
+
+    It 'treats path casing as part of the archive contract' {
+        $result = Compare-AtlasPayloadPath `
+            -ExpectedPath @('Executables/AtlasModules/Tool.ps1') `
+            -ActualPath @('Executables/atlasmodules/Tool.ps1')
+
+        $result.Matches | Should -BeFalse
+        $result.Missing.Count | Should -Be 1
+        $result.Unexpected.Count | Should -Be 1
+    }
+}
+
+Describe 'Repository build wrappers' {
+    It 'runs the Windows wrapper through PowerShell 7 and preserves its exit code' -Skip:(-not $IsWindows) {
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
+        $sandbox = Join-Path $TestDrive 'repo with spaces'
+        $toolsDir = Join-Path $sandbox 'tools\build'
+        New-Item -Path $toolsDir -ItemType Directory -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'build.cmd') -Destination (Join-Path $sandbox 'build.cmd')
+
+        $capturePath = Join-Path $TestDrive 'wrapper-capture.txt'
+        @'
+Set-Content -LiteralPath $env:ATLAS_WRAPPER_CAPTURE -Value "$($PSVersionTable.PSEdition)|$PSCommandPath|$($args -join '|')"
+exit 37
+'@ | Set-Content -LiteralPath (Join-Path $toolsDir 'Build-Playbook.ps1') -Encoding UTF8
+
+        $previousCapture = $env:ATLAS_WRAPPER_CAPTURE
+        $env:ATLAS_WRAPPER_CAPTURE = $capturePath
+        try {
+            Push-Location -LiteralPath $sandbox
+            try {
+                & $env:ComSpec /d /c 'build.cmd automated'
+                $wrapperExitCode = $LASTEXITCODE
+            }
+            finally {
+                Pop-Location
+            }
+        }
+        finally {
+            $env:ATLAS_WRAPPER_CAPTURE = $previousCapture
+        }
+
+        $wrapperExitCode | Should -Be 37
+        $capture = Get-Content -LiteralPath $capturePath -Raw
+        $capture | Should -Match '^Core\|'
+        $capture | Should -Match ([regex]::Escape((Join-Path $toolsDir 'Build-Playbook.ps1')))
+        $capture | Should -Match '\|-LocalTest\s*$'
+    }
+
+    It 'preserves the child exit code in the shell wrapper' {
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
+        $content = Get-Content -LiteralPath (Join-Path $repoRoot 'build.sh') -Raw
+
+        $content | Should -Match 'pwsh .* -File "\$script_dir/tools/build/Build-Playbook\.ps1" -LocalTest'
+        $content | Should -Match 'build_exit=\$\?'
+        $content.TrimEnd() | Should -Match 'exit "\$build_exit"$'
+    }
+}

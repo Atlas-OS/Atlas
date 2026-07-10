@@ -12,7 +12,9 @@
       WinverRequirement  - strip <SupportedBuilds> from playbook.conf
       Verification       - strip <ProductCode> from playbook.conf
 #>
+#requires -Version 7.0
 Param(
+    [switch]$LocalTest,
     [switch]$AddLiveLog,
     [switch]$ReplaceOldPlaybook,
     [switch]$DontOpenPbLocation,
@@ -31,6 +33,18 @@ $buildStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'AtlasBuild\AtlasBuild.psd1') -Force
 
+$profileRemovals = @()
+if ($LocalTest) {
+    # One argument-safe profile shared by build.cmd and build.sh. In particular, native
+    # `pwsh -File` cannot bind a comma-separated command-line token to string[] reliably,
+    # so the wrappers should not reconstruct a PowerShell command string just to express
+    # these two removals.
+    $AddLiveLog = $true
+    $ReplaceOldPlaybook = $true
+    $DontOpenPbLocation = $true
+    $profileRemovals = @('WinverRequirement', 'Verification')
+}
+
 if (-not $PlaybookPath) {
     # Prefer the current directory when it is (or contains) a playbook, so existing
     # "run from the playbook folder" workflows keep working; fall back to the repo layout.
@@ -46,7 +60,7 @@ if (-not $PlaybookPath) {
 }
 
 $removalSet = @{}
-foreach ($removal in @($Removals)) {
+foreach ($removal in @($Removals) + @($profileRemovals)) {
     if ($removal) {
         $removalSet[$removal.ToLowerInvariant()] = $true
     }

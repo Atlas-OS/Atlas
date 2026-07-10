@@ -1,3 +1,4 @@
+#requires -Version 7.0
 Set-StrictMode -Version 3.0
 
 $script:IsWindowsPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
@@ -219,6 +220,84 @@ function Get-AvailableArchiveName {
     }
 
     return $candidate
+}
+
+function Get-AtlasPlaybookPayloadPath {
+    <#
+    .SYNOPSIS
+        Returns the normalized relative path of every file that belongs in an APBX.
+    .DESCRIPTION
+        The playbook directory is the payload contract. Generated APBX files and their
+        interrupted-write temporary files are the only files excluded by New-Apbx.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PlaybookPath
+    )
+
+    $resolvedRoot = (Resolve-Path -LiteralPath $PlaybookPath).ProviderPath
+    if (-not (Test-Path -LiteralPath (Join-Path -Path $resolvedRoot -ChildPath 'playbook.conf') -PathType Leaf)) {
+        throw "playbook.conf not found in '$resolvedRoot' - not a playbook directory."
+    }
+
+    return @(Get-ChildItem -LiteralPath $resolvedRoot -File -Recurse |
+        Where-Object { $_.Name -notlike '*.apbx' -and $_.Name -notlike '*.apbx.tmp' } |
+        ForEach-Object {
+            [IO.Path]::GetRelativePath($resolvedRoot, $_.FullName).Replace('\', '/')
+        } |
+        Sort-Object -Unique)
+}
+
+function Compare-AtlasPayloadPath {
+    <#
+    .SYNOPSIS
+        Compares the expected and archived APBX file paths without hiding duplicates.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [string[]]$ExpectedPath,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [string[]]$ActualPath
+    )
+
+    $expectedSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $actualSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $actualCounts = [System.Collections.Generic.Dictionary[string, int]]::new([StringComparer]::Ordinal)
+
+    $normalizedExpected = foreach ($item in $ExpectedPath) {
+        $normalized = $item.Replace('\', '/')
+        $null = $expectedSet.Add($normalized)
+        $normalized
+    }
+
+    $normalizedActual = foreach ($item in $ActualPath) {
+        $normalized = $item.Replace('\', '/')
+        $null = $actualSet.Add($normalized)
+        if ($actualCounts.ContainsKey($normalized)) {
+            $actualCounts[$normalized]++
+        }
+        else {
+            $actualCounts[$normalized] = 1
+        }
+        $normalized
+    }
+
+    $missing = @($normalizedExpected | Where-Object { -not $actualSet.Contains($_) } | Sort-Object -Unique)
+    $unexpected = @($normalizedActual | Where-Object { -not $expectedSet.Contains($_) } | Sort-Object -Unique)
+    $duplicates = @($actualCounts.GetEnumerator() |
+        Where-Object { $_.Value -gt 1 } |
+        ForEach-Object { $_.Key } |
+        Sort-Object)
+
+    return [pscustomobject]@{
+        Matches    = ($missing.Count -eq 0 -and $unexpected.Count -eq 0 -and $duplicates.Count -eq 0)
+        Missing    = $missing
+        Unexpected = $unexpected
+        Duplicates = $duplicates
+    }
 }
 
 function New-StagedPlaybookConf {

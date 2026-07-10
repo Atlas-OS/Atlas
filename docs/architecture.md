@@ -34,8 +34,8 @@ This document describes how the repository is laid out and how an install runs.
 
 **The one rule that keeps the build simple:** everything under `playbook/` ships in the
 `.apbx`, and nothing outside it does. The repository tree *is* the shipped payload — there
-is no build-time repo-to-archive mapping. `tools/build/Test-Apbx.ps1` enforces the archive
-root layout.
+is no build-time repo-to-archive mapping. `tools/build/Test-Apbx.ps1` enforces exact
+source/archive file-path parity as well as the archive root layout.
 
 ## The AME Wizard boundary
 

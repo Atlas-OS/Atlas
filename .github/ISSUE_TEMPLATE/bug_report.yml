@@ -2,7 +2,7 @@ name: Bug report
 description: Create a bug report to help us improve Atlas.
 title: "[BUG] - "
 
-labels: 
+labels:
 - bug
 
 body:

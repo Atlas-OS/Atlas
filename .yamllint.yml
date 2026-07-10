@@ -8,4 +8,7 @@ rules:
   new-line-at-end-of-file: disable
   trailing-spaces: disable
   new-lines:
-    type: platform
+    # The repository contract is LF on every platform (see .gitattributes/.editorconfig).
+    # `platform` resolves to CRLF on the Windows CI runner and rejects every tracked YAML
+    # file even though Git has checked it out exactly as configured.
+    type: unix

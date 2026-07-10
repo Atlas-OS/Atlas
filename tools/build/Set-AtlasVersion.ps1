@@ -6,6 +6,7 @@
 .EXAMPLE
     tools/build/Set-AtlasVersion.ps1 -Version 0.6.0
 #>
+#requires -Version 7.0
 [CmdletBinding(SupportsShouldProcess = $true)]
 Param(
     [Parameter(Mandatory = $true)]
