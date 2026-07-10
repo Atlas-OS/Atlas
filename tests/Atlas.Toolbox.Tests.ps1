@@ -106,8 +106,48 @@ Describe 'Atlas Toolbox latest-channel integrity contract' {
         $script:LauncherSource | Should -Not -Match '(?im)%\*|___args|%ComSpec%|%ERRORLEVEL%|^\s*powershell(?:\.exe)?\s'
         $script:LauncherSource | Should -Match '\$p\.Verb=''runas'''
         $script:LauncherSource | Should -Match 'NativeErrorCode -eq 1223\)\{exit 1223\}'
-        $script:LauncherSource | Should -Match '(?m)^\s*if errorlevel 1 exit /b\r?\n\s*if not errorlevel 0 exit /b\r?$'
+        $script:LauncherSource | Should -Match '(?ms)^\s*if errorlevel 0 \(\r?\n\s*if errorlevel 1 exit /b\r?\n\s*\) else \(\r?\n\s*exit /b 1\r?\n\s*\)'
         $script:EntrySource | Should -Match 'Unsupported Toolbox launcher argument'
         $script:EntrySource | Should -Match 'Toolbox-Package\.ps1[\s\S]+?Install-AtlasToolboxPackage'
+    }
+
+    It 'preserves positive child exits and maps negative child exits to failure' {
+        $system = [Environment]::GetFolderPath([Environment+SpecialFolder]::System)
+        $commandHost = [IO.Path]::Combine($system, 'cmd.exe')
+        $powerShellHost = [IO.Path]::Combine(
+            $system,
+            'WindowsPowerShell',
+            'v1.0',
+            'powershell.exe'
+        )
+        foreach ($case in @(
+                [pscustomobject]@{ Child = 0; Expected = 0 }
+                [pscustomobject]@{ Child = 37; Expected = 37 }
+                [pscustomobject]@{ Child = -1; Expected = 1 }
+            )) {
+            $probePath = Join-Path $TestDrive "signed-exit-$($case.Child).cmd"
+            $probe = @(
+                '@echo off'
+                ('"{0}" -NoLogo -NoProfile -NonInteractive -Command "exit {1}"' -f $powerShellHost, $case.Child)
+                'if errorlevel 0 ('
+                '    if errorlevel 1 exit /b'
+                ') else ('
+                '    exit /b 1'
+                ')'
+                'exit /b 0'
+                ''
+            ) -join "`r`n"
+            [IO.File]::WriteAllText($probePath, $probe, [Text.Encoding]::ASCII)
+
+            $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
+            $startInfo.FileName = $commandHost
+            $startInfo.Arguments = '/d /e:on /v:off /c call "' + $probePath + '"'
+            $startInfo.WorkingDirectory = $TestDrive
+            $startInfo.UseShellExecute = $false
+            $process = [Diagnostics.Process]::Start($startInfo)
+            $process.WaitForExit()
+            $process.ExitCode | Should -Be $case.Expected
+            $process.Dispose()
+        }
     }
 }

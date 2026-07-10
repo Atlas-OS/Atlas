@@ -65,12 +65,18 @@ set "PSModulePath="
 
 "%__APPDIR__%fltmc.exe" > nul 2>&1 || (
     "%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -Command "$a=$env:AtlasLauncherArgument;if($a -and $a -notin @('/silent','-silent')){exit 2};$s=[IO.Path]::Combine([Environment]::GetFolderPath('Windows'),'AtlasModules','Scripts','Install-Toolbox.ps1');$p=[Activator]::CreateInstance([Diagnostics.ProcessStartInfo]);$p.FileName=[IO.Path]::Combine([Environment]::GetFolderPath('System'),'WindowsPowerShell','v1.0','powershell.exe');$p.WorkingDirectory=[Environment]::GetFolderPath('System');$q=[char]34;$p.Arguments='-NoLogo -NoProfile -ExecutionPolicy Bypass -File '+$q+$s+$q+$(if($a){' -Silent'});$p.UseShellExecute=$true;$p.Verb='runas';try{$c=[Diagnostics.Process]::Start($p);if($null -eq $c){exit 1};$c.WaitForExit();exit $c.ExitCode}catch{if($_.Exception -is [ComponentModel.Win32Exception] -and $_.Exception.NativeErrorCode -eq 1223){exit 1223};exit 1}"
-    if errorlevel 1 exit /b
-    if not errorlevel 0 exit /b
+    if errorlevel 0 (
+        if errorlevel 1 exit /b
+    ) else (
+        exit /b 1
+    )
     exit /b 0
 )
 
 "%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -NoLogo -NoProfile -File "%script%"
-if errorlevel 1 exit /b
-if not errorlevel 0 exit /b
+if errorlevel 0 (
+    if errorlevel 1 exit /b
+) else (
+    exit /b 1
+)
 exit /b 0
