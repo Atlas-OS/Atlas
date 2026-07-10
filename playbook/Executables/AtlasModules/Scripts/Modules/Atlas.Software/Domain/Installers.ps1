@@ -99,25 +99,22 @@ function Start-AtlasSoftwareOptionalInstaller {
 function Install-AtlasToolbox {
     param([Parameter(Mandatory = $true)][string]$TempDir)
 
-    if ($env:PATH -like '*Atlas Toolbox*') { return }
-
-    $release = Invoke-RestMethod 'https://api.github.com/repos/Atlas-OS/atlas-toolbox/releases/latest'
-    $asset = $release.assets | Where-Object { $_.name -eq 'AtlasToolbox-Setup.exe' } | Select-Object -First 1
-    if (-not $asset) {
-        throw "The latest Atlas Toolbox release has no 'AtlasToolbox-Setup.exe' asset. Refusing to continue."
+    # TempDir remains part of the shared installer-function contract; Toolbox
+    # uses its own protected staging directory because it executes elevated.
+    [void]$TempDir
+    $atlasSoftwareRoot = [IO.Directory]::GetParent($PSScriptRoot)
+    $modulesRoot = $atlasSoftwareRoot.Parent
+    $scriptsRoot = $modulesRoot.Parent
+    $packageHelper = [IO.Path]::Combine(
+        $scriptsRoot.FullName,
+        'Internal',
+        'Toolbox-Package.ps1'
+    )
+    if (-not [IO.File]::Exists($packageHelper)) {
+        throw "The protected Toolbox package helper is missing at '$packageHelper'."
     }
-    # GitHub publishes a SHA256 digest for every release asset; the setup exe is not
-    # Authenticode-signed yet, so the digest is the only integrity option. Fail closed
-    # if it ever goes missing.
-    if ($asset.digest -notmatch '^sha256:[0-9a-fA-F]{64}$') {
-        throw "The Atlas Toolbox release asset has no SHA256 digest to verify against. Refusing to run an untrusted installer."
-    }
-    $expectedToolboxHash = $asset.digest -replace '^sha256:', ''
-
-    $toolboxPath = Join-Path -Path $TempDir -ChildPath 'toolbox.exe'
-    Invoke-AtlasSoftwareDownload -Uri $asset.browser_download_url -Destination $toolboxPath -Description 'Toolbox'
-    Assert-AtlasFileHash -Path $toolboxPath -ExpectedSha256 $expectedToolboxHash -Description 'Toolbox'
-    Start-AtlasSoftwareInstaller -FilePath $toolboxPath -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"' -Description 'Toolbox'
+    . $packageHelper
+    Install-AtlasToolboxPackage
 }
 
 function Install-AtlasBraveBrowser {
