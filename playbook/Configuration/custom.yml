@@ -23,6 +23,7 @@ actions:
     wait: true
     exeDir: true
     onUpgrade: true
+    handleExitCodes: { "!0": halt }
   - !powerShell:
     command: '& ".\AtlasModules\Scripts\Tasks\Remove-PreviousAtlasInstall.ps1"'
     wait: true

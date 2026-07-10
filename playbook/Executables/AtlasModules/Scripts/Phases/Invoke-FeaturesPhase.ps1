@@ -15,10 +15,11 @@ function Invoke-AtlasDism {
 
     Write-AtlasLog -Message "DISM: $Description"
     $output = & $dism @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
     # 0 = success; 3010 = success, reboot required. Anything else is a failure.
-    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) {
+    if ($exitCode -ne 0 -and $exitCode -ne 3010) {
         $detail = (@($output) | ForEach-Object { "$_" }) -join ' '
-        Write-AtlasLog -Message "DISM '$Description' exited with code $LASTEXITCODE - $detail" -Level Warning
+        throw "DISM '$Description' failed with exit code $exitCode. Output: $detail"
     }
 }
 
