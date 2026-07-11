@@ -22,6 +22,9 @@ has drained, commits the inbound monitor, then publishes exactly one Result and 
 the pipe. No fallible lifecycle phase occurs after that terminal publication, so every
 32-bit target exit pattern remains unambiguous. It does not perform UAC elevation,
 accept executable paths or command text, invoke a command shell, or parse JSON.
+Because Windows jobs are session-bound, the broker stays in the requester-session
+outer/owner-guard jobs while the TrustedInstaller-session target is atomically assigned
+only to a broker-owned kill-on-close inner job.
 
 Build both payloads directly with PowerShell 7:
 

@@ -19,7 +19,7 @@ Describe 'Atlas TrustedInstaller v2 integration on disposable Windows 11 VMs' -T
 
     It 'rejects mismatched Request, Ready, and Result bindings, malformed frames, trailing bytes, and premature pipe EOF' -Pending {}
 
-    It 'atomically assigns the broker and TrustedInstaller target to the required outer and inner job hierarchy before resume' -Pending {}
+    It 'keeps the broker in the requester-session outer job, assigns the TrustedInstaller target only to a broker-owned inner job in its distinct session, and kills the target tree when the bootstrap or broker owner dies' -Pending {}
 
     It 'withholds external Result until the broker exits and both jobs drain with no broker, target, or descendant alive' -Pending {}
 

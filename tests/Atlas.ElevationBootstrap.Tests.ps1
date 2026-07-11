@@ -414,11 +414,15 @@ Describe 'Atlas native elevation bootstrap process containment' {
             '(?s)static void FailFastContainment\(\).+?TerminateJobObject\(job, kExitContainmentFailure\).+?ExitProcess\(kExitContainmentFailure\)'
     }
 
-    It 'releases the broker outer-job duplicate before privileged child execution' {
+    It 'keeps the broker outer-contained and assigns the TrustedInstaller child only to its inner job' {
         $script:TrustedInstallerProcess | Should -Match `
-            '(?s)jobListBytes\s*=\s*checked\(IntPtr\.Size \* 2\).+?Marshal\.WriteIntPtr\(jobValue, 0, outerJobHandle\).+?Marshal\.WriteIntPtr\(jobValue, IntPtr\.Size, job\)'
+            '(?s)IsProcessInJob\(GetCurrentProcess\(\), outerJobHandle, out brokerInOuterJob\).+?if \(!brokerInOuterJob\).+?jobListBytes\s*=\s*checked\(IntPtr\.Size\).+?Marshal\.WriteIntPtr\(jobValue, job\)'
+        $script:TrustedInstallerProcess | Should -Not -Match `
+            'jobListBytes\s*=\s*checked\(IntPtr\.Size \* 2\)'
+        $script:TrustedInstallerProcess | Should -Not -Match `
+            'Marshal\.WriteIntPtr\(jobValue,\s*(?:0,\s*)?outerJobHandle\)'
         $script:TrustedInstallerProcess | Should -Match `
-            '(?s)IsProcessInJob\(processInfo\.hProcess, outerJobHandle.+?IsProcessInJob\(processInfo\.hProcess, job.+?ReleaseOuterJobHandle\(request, ref outerJobHandle\).+?ThrowIfCancelled.+?ResumeThread'
+            '(?s)IsProcessInJob\(processInfo\.hProcess, outerJobHandle, out inOuterJob\).+?if \(inOuterJob\).+?IsProcessInJob\(processInfo\.hProcess, job, out inAtlasJob\).+?if \(!inAtlasJob\).+?ReleaseOuterJobHandle\(request, ref outerJobHandle\).+?ThrowIfCancelled.+?ResumeThread'
         $script:TrustedInstallerProcess | Should -Match `
             '(?s)previousSuspendCount\s*=\s*ResumeThread.+?previousSuspendCount\s*!=\s*1'
         $script:TrustedInstallerProcess | Should -Match `
@@ -427,6 +431,8 @@ Describe 'Atlas native elevation bootstrap process containment' {
             '(?s)finally \{\s*ReleaseOuterJobHandle\(request, ref outerJobHandle\)'
         $script:Broker | Should -Match `
             '(?s)if \(\$outerJobLease -and -not \$outerJobLease\.IsClosed\).+?throw .+?retaining the broker outer-job duplicate'
+        $script:TrustedInstallerProcess | Should -Match `
+            '(?s)JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE.+?CreateProcess\(applicationPath, commandLine, IntPtr\.Zero, IntPtr\.Zero, false,.+?finally \{.+?if \(job != IntPtr\.Zero\) CloseHandle\(job\)'
     }
 
     It 'proves broker exit and job drain before the terminal Result commit' {

@@ -782,13 +782,13 @@ namespace Atlas {
                 if (!UpdateProcThreadAttribute(attributeList, 0, new UIntPtr(PROC_THREAD_ATTRIBUTE_PARENT_PROCESS), parentValue, new UIntPtr((UInt32)IntPtr.Size), IntPtr.Zero, IntPtr.Zero)) {
                     throw LastError("UpdateProcThreadAttribute(PARENT_PROCESS) failed");
                 }
-                // PARENT_PROCESS is the TrustedInstaller service, so the child does not
-                // inherit the calling broker's jobs. Assign the explicit outer-to-inner
-                // chain atomically while the child is still suspended.
-                int jobListBytes = checked(IntPtr.Size * 2);
+                // PARENT_PROCESS supplies the TrustedInstaller token and session. Assign
+                // only the dedicated inner job atomically so its first process binds that
+                // job to the TrustedInstaller session. The broker remains in the bootstrap
+                // outer job and exclusively owns this kill-on-close inner-job handle.
+                int jobListBytes = checked(IntPtr.Size);
                 jobValue = Marshal.AllocHGlobal(jobListBytes);
-                Marshal.WriteIntPtr(jobValue, 0, outerJobHandle);
-                Marshal.WriteIntPtr(jobValue, IntPtr.Size, job);
+                Marshal.WriteIntPtr(jobValue, job);
                 if (!UpdateProcThreadAttribute(attributeList, 0, new UIntPtr(PROC_THREAD_ATTRIBUTE_JOB_LIST), jobValue, new UIntPtr(unchecked((UInt32)jobListBytes)), IntPtr.Zero, IntPtr.Zero)) {
                     throw LastError("UpdateProcThreadAttribute(JOB_LIST) failed");
                 }
@@ -809,7 +809,7 @@ namespace Atlas {
                 ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
                 bool created = CreateProcess(applicationPath, commandLine, IntPtr.Zero, IntPtr.Zero, false, creationFlags, environment, systemDirectory, ref startup, out processInfo);
                 if (!created) {
-                    throw LastError("CreateProcessW with atomic parent and nested job attributes failed");
+                    throw LastError("CreateProcessW with atomic parent and inner job attributes failed");
                 }
                 childCreated = true;
 
@@ -837,8 +837,8 @@ namespace Atlas {
                 if (!IsProcessInJob(processInfo.hProcess, outerJobHandle, out inOuterJob)) {
                     throw LastError("IsProcessInJob(child, outer job) failed");
                 }
-                if (!inOuterJob) {
-                    throw new InvalidOperationException("The suspended TrustedInstaller child was not created in the exact bootstrap outer job.");
+                if (inOuterJob) {
+                    throw new InvalidOperationException("The suspended TrustedInstaller child was unexpectedly created in the requester-session bootstrap outer job.");
                 }
                 bool inAtlasJob;
                 if (!IsProcessInJob(processInfo.hProcess, job, out inAtlasJob)) {
@@ -848,10 +848,11 @@ namespace Atlas {
                     throw new InvalidOperationException("The suspended TrustedInstaller child was not created in the Atlas kill-on-close job.");
                 }
 
-                // The bootstrap must become the sole outer-job owner before privileged
-                // execution begins. Atomic JOB_LIST assignment and exact membership have
-                // completed, so release and null the broker's inherited duplicate before
-                // the final cancellation check and before ResumeThread.
+                // The bootstrap must become the sole outer-job handle owner before
+                // privileged execution begins. Inner-only atomic assignment, exact inner
+                // membership, and outer-job absence have completed, so release and null the
+                // broker's inherited duplicate before the final cancellation check and
+                // before ResumeThread.
                 ReleaseOuterJobHandle(request, ref outerJobHandle);
                 ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
                 ThrowIfCancelled(requesterProcess, request.LivenessPipeHandle);

@@ -188,13 +188,27 @@ Describe 'Native noninteractive process source contract' {
         $source = Get-Content -LiteralPath (Join-Path $coreRoot 'Domain\TrustedInstallerProcess.ps1') -Raw
     }
 
-    It 'uses explicit application names, mutable command lines, and atomic parent plus job attributes' {
+    It 'uses explicit application names, mutable command lines, and atomic parent plus inner-job attributes' {
         $source | Should -Match 'EntryPoint = "CreateProcessW"'
         $source | Should -Match 'CreateProcess\(string lpApplicationName, StringBuilder lpCommandLine'
         $source | Should -Match 'InitializeProcThreadAttributeList\(attributeList, 2'
         $source | Should -Match 'PROC_THREAD_ATTRIBUTE_PARENT_PROCESS'
         $source | Should -Match 'PROC_THREAD_ATTRIBUTE_JOB_LIST'
         $source | Should -Not -Match 'AssignProcessToJobObject'
+    }
+
+    It 'keeps the requester-session outer job on the broker and assigns only the dedicated inner job to the TrustedInstaller child' {
+        $source | Should -Match `
+            '(?s)IsProcessInJob\(GetCurrentProcess\(\), outerJobHandle, out brokerInOuterJob\).+?if \(!brokerInOuterJob\)'
+        $source | Should -Match `
+            '(?s)jobListBytes\s*=\s*checked\(IntPtr\.Size\);.+?Marshal\.WriteIntPtr\(jobValue, job\).+?UpdateProcThreadAttribute\(attributeList, 0, new UIntPtr\(PROC_THREAD_ATTRIBUTE_JOB_LIST\)'
+        $source | Should -Not -Match 'jobListBytes\s*=\s*checked\(IntPtr\.Size \* 2\)'
+        $source | Should -Not -Match `
+            'Marshal\.WriteIntPtr\(jobValue,\s*(?:0,\s*)?outerJobHandle\)'
+        $source | Should -Match `
+            '(?s)IsProcessInJob\(processInfo\.hProcess, outerJobHandle, out inOuterJob\).+?if \(inOuterJob\).+?IsProcessInJob\(processInfo\.hProcess, job, out inAtlasJob\).+?if \(!inAtlasJob\).+?ReleaseOuterJobHandle\(request, ref outerJobHandle\).+?ThrowIfCancelled.+?ResumeThread'
+        $source | Should -Match `
+            '(?s)JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE.+?CreateProcess\(applicationPath, commandLine, IntPtr\.Zero, IntPtr\.Zero, false,.+?finally \{.+?if \(job != IntPtr\.Zero\) CloseHandle\(job\)'
     }
 
     It 'keeps native process argv quoting byte-for-byte aligned with the canonical protocol helper' {
