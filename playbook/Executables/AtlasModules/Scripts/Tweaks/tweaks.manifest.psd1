@@ -159,7 +159,7 @@
                 'explorer/disable-home'
                 'explorer/debloat-send-to'
                 'explorer/enable-long-paths'
-                'explorer/add-context-menus/merge-as-trustedinstaller'
+                'explorer/add-context-menus/merge-as-administrator'
                 'explorer/add-context-menus/new-bat'
                 'explorer/add-context-menus/new-ps1'
                 'explorer/add-context-menus/new-reg'

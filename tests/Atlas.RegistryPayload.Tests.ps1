@@ -152,4 +152,37 @@ Describe 'Terminal registry payload derivation' {
 
         $scriptsText | Should -BeExactly ($toolboxText + $expectedSuffix)
     }
+
+    It 'removes stale Atlas terminal trees before recreating only user and Administrator entries' -TestCases @(
+        @{ RelativePath = 'AtlasModules\Scripts\Registry\Terminals\enabled.reg'; WindowsTerminalAdmin = 4 }
+        @{ RelativePath = 'AtlasModules\Scripts\Registry\Terminals\minimal.reg'; WindowsTerminalAdmin = 0 }
+        @{ RelativePath = 'AtlasModules\Toolbox\ConfigurationServices\ContextMenuTerminals\ContextMenuTerminals_1.reg'; WindowsTerminalAdmin = 4 }
+        @{ RelativePath = 'AtlasModules\Toolbox\ConfigurationServices\ContextMenuTerminals\ContextMenuTerminals_2.reg'; WindowsTerminalAdmin = 0 }
+    ) {
+        $file = Get-Item -LiteralPath (Join-Path -Path $script:executablesRoot -ChildPath $RelativePath)
+        $text = Read-AtlasRegistryPayload -File $file
+
+        foreach ($classRoot in @(
+                'Directory\shell\AtlasTerminals',
+                'LibraryFolder\shell\AtlasTerminals',
+                'Drive\shell\AtlasTerminals',
+                'Directory\Background\shell\AtlasTerminals'
+            )) {
+            $delete = "[-HKEY_CLASSES_ROOT\$classRoot]"
+            $create = "[HKEY_CLASSES_ROOT\$classRoot]"
+            @([regex]::Matches($text, [regex]::Escape($delete))).Count | Should -Be 1
+            @([regex]::Matches($text, [regex]::Escape($create))).Count | Should -Be 1
+            $text.IndexOf($delete, [StringComparison]::Ordinal) |
+                Should -BeLessThan $text.IndexOf($create, [StringComparison]::Ordinal)
+        }
+
+        $text | Should -Match '(?m)^\[-HKEY_CLASSES_ROOT\\TermsRunAsTI\]\r?$'
+        $text | Should -Not -Match '(?m)^\[HKEY_CLASSES_ROOT\\TermsRunAsTI\]\r?$'
+        $text | Should -Not -Match '(?i)Command Prompt \(System\)|PowerShell \(System\)'
+        $text | Should -Not -Match '(?i)iex\(\(10\.\.40|function RunAsTI|Volatile Environment'
+        @([regex]::Matches($text, [regex]::Escape('@="Command Prompt (Admin)"'))).Count | Should -Be 4
+        @([regex]::Matches($text, [regex]::Escape('@="PowerShell (Admin)"'))).Count | Should -Be 4
+        @([regex]::Matches($text, [regex]::Escape('"MUIVerb"="Windows Terminal (Admin)"'))).Count |
+            Should -Be $WindowsTerminalAdmin
+    }
 }

@@ -157,6 +157,48 @@ Describe 'Shipped tweak manifest execution graph' {
         Get-ProblemText -Problems $problems | Should -BeNullOrEmpty
     }
 
+    It 'ships the registry-file RunAs verb as a fixed Administrator reg import' {
+        $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
+        $qol = @($manifest.Categories | Where-Object { $_.Name -eq 'qol' })[0]
+        $relativeRoot = 'qol\explorer\add-context-menus'
+        $definitionPath = Join-Path -Path $script:shippedTweaksRoot `
+            -ChildPath "$relativeRoot\merge-as-administrator.psd1"
+        $scriptPath = Join-Path -Path $script:shippedTweaksRoot `
+            -ChildPath "$relativeRoot\merge-as-administrator.ps1"
+        $legacyDefinition = Join-Path -Path $script:shippedTweaksRoot `
+            -ChildPath "$relativeRoot\merge-as-trustedinstaller.psd1"
+        $legacyScript = Join-Path -Path $script:shippedTweaksRoot `
+            -ChildPath "$relativeRoot\merge-as-trustedinstaller.ps1"
+
+        @($qol.Tweaks) | Should -Contain 'explorer/add-context-menus/merge-as-administrator'
+        @($qol.Tweaks) | Should -Not -Contain 'explorer/add-context-menus/merge-as-trustedinstaller'
+        $definitionPath | Should -Exist
+        $scriptPath | Should -Exist
+        $legacyDefinition | Should -Not -Exist
+        $legacyScript | Should -Not -Exist
+
+        $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
+        $definition.Name | Should -BeExactly "Add 'Merge as administrator' to Context Menu"
+        $definition.Script | Should -BeExactly 'merge-as-administrator.ps1'
+        $definition.Description | Should -Match 'UAC-backed Administrator merge command'
+        $definition.ContainsKey('Registry') | Should -BeFalse
+        (@($definition.Keys | Sort-Object) -join ',') | Should -BeExactly 'Description,Name,Script'
+
+        $source = Get-Content -LiteralPath $scriptPath -Raw
+        $source | Should -Match ([regex]::Escape(
+                '$script:AtlasMergeAdministratorLabel = ''Merge as administrator'''
+            ))
+        $source | Should -Match ([regex]::Escape(
+                '$script:AtlasMergeAdministratorCommand = ''"%SystemRoot%\System32\reg.exe" import "%1"'''
+            ))
+        $source | Should -Match '\[Microsoft\.Win32\.RegistryView\]::Registry64'
+        $source | Should -Match '\$key\.SetValue\(\$Name, \$Value, \$registryKind\)'
+        $source | Should -Match '\$key\.Flush\(\)'
+        $source | Should -Match '(?s)RegistryWriter\s+\$script:AtlasMergeCommandPath.*?AtlasMergeAdministratorCommand\s+''ExpandString''.*?RegistryWriter\s+\$script:AtlasMergeParentPath.*?AtlasMergeAdministratorLabel\s+''String'''
+        $source | Should -Match "if \(\`$MyInvocation\.InvocationName -ne '\.'\)"
+        $source | Should -Not -Match '(?i)Invoke-Expression|\biex\b|Start-Process'
+    }
+
     It 'keeps category parent modes aligned with the fresh-only tweaks YAML route' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
         $tweaksYaml = Get-Content -LiteralPath (Join-Path $script:repositoryRoot 'playbook\Configuration\tweaks.yml') -Raw
