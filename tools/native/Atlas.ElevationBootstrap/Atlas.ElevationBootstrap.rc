@@ -1,0 +1,33 @@
+#include <windows.h>
+#include "resource.h"
+
+IDR_ATLAS_ELEVATION_BOOTSTRAP_MANIFEST RT_MANIFEST "Atlas.ElevationBootstrap.manifest"
+
+1 VERSIONINFO
+ FILEVERSION 0,6,0,0
+ PRODUCTVERSION 0,6,0,0
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "AtlasOS\0"
+            VALUE "FileDescription", "Atlas trusted elevation transport bootstrap\0"
+            VALUE "FileVersion", "0.6.0.0\0"
+            VALUE "InternalName", "Atlas.ElevationBootstrap\0"
+            VALUE "LegalCopyright", "AtlasOS contributors\0"
+            VALUE "OriginalFilename", "Atlas.ElevationBootstrap.exe\0"
+            VALUE "ProductName", "AtlasOS\0"
+            VALUE "ProductVersion", "0.6.0.0\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

@@ -2,7 +2,7 @@
 
 Some of the Playbook contains binary executables. This file provides verification for those files, by listing the SHA256 hashes, sources, and when each was last verified/checked. Hashes are uppercase SHA256, as produced by `Get-FileHash` in PowerShell or `sha256sum` (uppercased) on Linux.
 
-**Completeness contract**: every binary file shipped under `playbook\Executables` (`.exe`, `.dll`, `.cab`, `.zip`) is listed here. Completeness and all hashes last cross-checked against disk on 7/5/2026.
+**Completeness contract**: every binary file shipped under `playbook\Executables` (`.exe`, `.dll`, `.cab`, `.zip`) is listed here. Completeness and all hashes last cross-checked against disk on 7/10/2026.
 
 The root of the file paths listed here starts in `playbook\Executables`.
 
@@ -81,3 +81,29 @@ The root of the file paths listed here starts in `playbook\Executables`.
 - Provenance: Built by CI from the configs in `tools/sxsc` using the external builder pinned by full commit SHA (`SXSC_REF` in `.github/workflows/build.yml`) and committed back by the build workflow. Hashes change whenever CI rebuilds them; verify by comparing against the most recent build-workflow run.
 - Repository (builder): https://github.com/Atlas-OS/sxsc
 - Last Verified: 7/5/2026 by advisor audit (`sha256sum`, cross-checked against disk)
+
+## Atlas elevation bootstrap
+
+- Path: `\AtlasModules\Tools\AtlasElevationBootstrap-amd64.exe`
+    - Architecture: AMD64 (`IMAGE_FILE_MACHINE_AMD64` / `0x8664`)
+    - SHA256 Hash: `B8800ED869C3D8E4FEFC1070876356C6039700DD0629142B5F502CE71E332421`
+    - Size: 53,760 bytes
+- Path: `\AtlasModules\Tools\AtlasElevationBootstrap-arm64.exe`
+    - Architecture: ARM64 (`IMAGE_FILE_MACHINE_ARM64` / `0xAA64`)
+    - SHA256 Hash: `FCD8E3B37AAEA71582FB6910FD69F440BD99A3E374F23768B784D7EAB31EBF7A`
+    - Size: 47,616 bytes
+- Source: repository-built from `tools\native\Atlas.ElevationBootstrap`
+- Build: `tools\build\Build-AtlasElevationBootstrap.ps1` (no CRT; deterministic
+  Clang/LLD x64 and ARM64 builds; each unsigned output rebuilt independently and
+  byte-compared before publication)
+- Machine-readable inventory: `\AtlasModules\Tools\Atlas-ElevationBootstrapHashes.psd1`
+- PE contract: Windows GUI, embedded `requireAdministrator` manifest, ASLR, DEP,
+  high-entropy VA, exact imports and exception/unwind metadata, CFG/CET plus
+  architecture-specific GuardXFG/CastGuard evidence, System32 dependent-load policy,
+  no CLR, and no Visual C++/UCRT runtime import
+- Purpose: fixed native framed transport and outer-job containment for the Atlas
+  TrustedInstaller broker; it does not invoke UAC or accept executable/command input
+- Version: Atlas 0.6.0.0
+- License: repository license
+- Last Verified: 7/11/2026 by deterministic local x64/ARM64 build, SHA256 check,
+  PE/resource/import inspection, and PowerShell static verification

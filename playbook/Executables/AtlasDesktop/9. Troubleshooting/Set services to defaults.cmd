@@ -1,92 +1,32 @@
 @echo off
-set "title=call :title"
-set "servicesPath=%windir%\AtlasDesktop\6. Advanced Configuration\Services"
-if not exist "%servicesPath%" (
-	echo Services in Atlas folder not found, can't continue.
-	if "%*"=="" pause
-	exit /b 1
+verify other 2>nul
+setlocal EnableExtensions DisableDelayedExpansion
+if errorlevel 1 exit /b 1
+cd /d "%__APPDIR__%"
+if errorlevel 1 exit /b 1
+for %%I in ("%__APPDIR__%..") do set "AtlasWindowsRoot=%%~fI"
+set "launcherEnvironment=%AtlasWindowsRoot%\AtlasModules\Scripts\Internal\Initialize-PowerShellLauncherEnvironment.cmd"
+if not exist "%launcherEnvironment%" (
+    echo PowerShell launcher environment helper not found: "%launcherEnvironment%"
+    exit /b 1
 )
-:: TI required for full services restore
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-	call "%windir%\AtlasModules\Scripts\RunAsTI.cmd" "%~f0" %*
-	exit /b
+call "%launcherEnvironment%"
+if errorlevel 1 exit /b 1
+
+if not "%~2"=="" exit /b 87
+set "AtlasResetSilent="
+if "%~1"=="" goto AtlasResetRun
+if /i "%~1"=="/silent" (
+    set "AtlasResetSilent=-Silent"
+    goto AtlasResetRun
 )
+exit /b 87
 
-if "%~1"=="/silent" goto main
-
-echo This will reset the configuration of services in the Atlas folder.
-echo Disabling services often breaks features, and if you're experiencing an issue, this might help.
-echo]
-choice /c:yn /n /m "Continue? [Y/N] "
-if %errorlevel% neq 1 exit /b
-
-:main
-%title% "Enabling services in the Atlas folder... This might take a while."
-for /f "usebackq tokens=*" %%a in (`dir /b /s "%windir%\AtlasDesktop\6. Advanced Configuration\Services" ^| find "(default)"`) do (
-	call :run "%%a"
-	start /min /high /wait cmd /c "%%a" /silent
+:AtlasResetRun
+"%AtlasNativePowerShell%" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%AtlasWindowsRoot%\AtlasModules\Scripts\Invoke-AtlasResetServices.ps1" %AtlasResetSilent%
+if errorlevel 0 (
+    if errorlevel 1 exit /b
+) else (
+    exit /b 1
 )
-
-set "atlasOther=%windir%\AtlasModules\Other"
-set "winServices=%atlasOther%\winServices.reg"
-set "atlasServices=%atlasOther%\atlasServices.reg"
-if /i "%~1"=="/silent" goto afterFullRestore
-if exist "%winServices%" (
-	if exist "%atlasServices%" call :fullRestore
-)
-:afterFullRestore
-
-%title% "Finished."
-if "%~1"=="/silent" exit /b
-echo A restart is required to apply the changes.
-choice /c:yn /n /m "Would you like to restart now? [Y/N] "
-if "%errorlevel%"=="1" shutdown /r /t 0
-exit /b
-
-:fullRestore
-%title% "Full services restoration"
-echo What would you like to do?
-echo]
-echo 1) Restore a full services backup of the default Windows services
-echo 2) Restore a full services backup of the default Atlas services
-echo 3) Nothing
-echo]
-choice /c:123 /n /m "Choose a number: [1/2/3] "
-if "%errorlevel%"=="1" reg import "%winServices%" > nul
-if "%errorlevel%"=="2" reg import "%atlasServices%" > nul
-exit /b
-
-
-:::::::::::::::
-:: Functions ::
-    exit /b
-:::::::::::::::
-
-:: https://ss64.com/nt/syntax-strlen.html
-:strlen  StrVar  [RtnVar]
-	setlocal EnableDelayedExpansion
-	set "s=#!%~1!"
-	set "len=0"
-	for %%N in (4096 2048 1024 512 256 128 64 32 16 8 4 2 1) do (
-    	if "!s:~%%N,1!" neq "" (
-      		set /a "len+=%%N"
-      		set "s=!s:~%%N!"
-    	)
-  	)
-	endlocal&if "%~2" neq "" (set %~2=%len%) else echo %len%
-	exit /b
-
-:title
-	set "titleString=%~1"
-	call :strlen titleString dashLen
-	echo] & echo]
-	for /l %%a in (1,1,%dashLen%) do <nul set /p="-"
-	echo]
-	echo %titleString%
-	for /l %%a in (1,1,%dashLen%) do <nul set /p="-"
-	echo]
-	exit /b
-
-:run
-	echo Running "%~nx1"...
-	exit /b
+exit /b 0

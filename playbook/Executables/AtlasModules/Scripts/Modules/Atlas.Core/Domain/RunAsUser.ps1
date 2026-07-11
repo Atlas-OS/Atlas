@@ -1,7 +1,7 @@
 # Atlas.Core domain: run a process as the interactive user from a SYSTEM context.
 #
-# This is the mirror of RunAsTI.cmd: where that elevates to TrustedInstaller, this drops
-# from SYSTEM/TrustedInstaller down to the logged-on interactive user. It is the technique
+# This drops from SYSTEM (including a strict TrustedInstaller service token) down to the
+# logged-on interactive user. It is the technique
 # AME Wizard's backend (TrustedUninstaller) uses for `runas: currentUser` - grab the active
 # console session's user token with WTSQueryUserToken and CreateProcessAsUser onto the
 # interactive desktop (winsta0\default), which shell COM (theme apply, pin-to-Home) needs.
@@ -302,7 +302,7 @@ namespace Atlas {
 }
 '@
 
-    Add-Type -TypeDefinition $signature -Language CSharp -ErrorAction Stop
+    Add-AtlasTrustedInstallerNativeType -TypeDefinition $signature
     $script:AtlasRunAsUserTypeLoaded = $true
 }
 
@@ -327,7 +327,7 @@ function Get-AtlasUserProcessCommandLine {
 function Invoke-AtlasAsUser {
     <#
     .SYNOPSIS
-        Runs a command line as the interactive console user from a SYSTEM/TrustedInstaller
+        Runs a command line as the interactive console user from a SYSTEM
         context, on the interactive desktop. Returns the child process exit code.
     .DESCRIPTION
         The engine equivalent of AME Wizard's `runas: currentUser`. The caller MUST be
@@ -355,8 +355,8 @@ function Invoke-AtlasAsUser {
         [int]$TimeoutSeconds = 900
     )
 
-    if (-not (Test-AtlasTrustedInstaller)) {
-        throw '[privilege] Invoke-AtlasAsUser must run as SYSTEM/TrustedInstaller to obtain the interactive user token.'
+    if (-not (Test-AtlasSystem)) {
+        throw '[privilege] Invoke-AtlasAsUser must run as SYSTEM to obtain the interactive user token.'
     }
 
     Initialize-AtlasRunAsUserType

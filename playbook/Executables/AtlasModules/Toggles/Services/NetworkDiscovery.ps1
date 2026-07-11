@@ -32,8 +32,12 @@
             Action     = {
                 param($Toggle)
 
-                # Lanman Workstation (SMB) is a dependency.
-                Invoke-AtlasToggle -Name 'LanmanWorkstation' -State 'Enable' -Silent
+                # Lanman Workstation (SMB) is a dependency. The closed ResetServices plan
+                # applies and confirms it immediately before NetworkDiscovery, so do not
+                # re-enter the public typed Toggle boundary from the strict-TI reset path.
+                if (-not $Toggle.ResetServices) {
+                    Invoke-AtlasToggle -Name 'LanmanWorkstation' -State 'Enable' -Silent
+                }
 
                 $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setSvc -Name 'eventlog' -Start 2

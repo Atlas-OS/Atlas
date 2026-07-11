@@ -17,6 +17,7 @@
         'Stop-AtlasPhase'
         # Privilege
         'Test-AtlasAdmin'
+        'Test-AtlasSystem'
         'Test-AtlasTrustedInstaller'
         'Assert-AtlasPrivilege'
         'Invoke-AtlasTrustedInstaller'

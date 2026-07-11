@@ -1,6 +1,7 @@
 # Atlas.Registry domain: registry path parsing, HKCU redirection and user hive enumeration.
 #
-# AME Wizard runs actions as TrustedInstaller (SYSTEM, S-1-5-18). In that context the
+# Atlas install actions can run with a LocalSystem token (S-1-5-18), including through
+# the strict TrustedInstaller service-token path. In that context the
 # ambient HKCU drive points at SYSTEM's hive, so HKCU paths must be resolved explicitly
 # to the interactive user's hive under HKEY_USERS and mirrored into the default-user
 # hive (HKU\AME_UserHive_Default) that the install keeps loaded for new accounts.
@@ -117,7 +118,7 @@ function Resolve-AtlasRegistryTarget {
     <#
     .SYNOPSIS
         Resolves a registry path for the current process context: HKCU is redirected to
-        the active user's hive only when running as SYSTEM/TrustedInstaller (S-1-5-18);
+        the active user's hive only when running as LocalSystem (S-1-5-18);
         as a plain admin or user, the ambient HKCU drive is already correct.
     #>
     param(
@@ -127,7 +128,7 @@ function Resolve-AtlasRegistryTarget {
     )
 
     $resolved = Resolve-AtlasRegistryPath -Path $Path
-    if ($resolved.IsHkcu -and (Test-AtlasTrustedInstaller)) {
+    if ($resolved.IsHkcu -and (Test-AtlasSystem)) {
         $resolved = Resolve-AtlasRegistryPath -Path $Path -RedirectHkcu -ActiveUserSid (Get-AtlasActiveUserSid)
     }
 

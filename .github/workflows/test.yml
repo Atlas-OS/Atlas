@@ -8,6 +8,7 @@ on:
       - "tests/**"
       - ".github/workflows/**"
       - ".github/linters/**"
+      - ".gitattributes"
   pull_request:
     paths:
       - "playbook/**"
@@ -15,16 +16,23 @@ on:
       - "tests/**"
       - ".github/workflows/**"
       - ".github/linters/**"
+      - ".gitattributes"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
         # gh api repos/actions/checkout/commits/v6.0.2 --jq '.sha'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Windows PowerShell 5.1 parse gate
         # The payload runs under Windows PowerShell 5.1 on target machines; this catches
@@ -47,6 +55,81 @@ jobs:
 
           if ($failed) { exit 1 }
           Write-Host "All payload scripts parse under Windows PowerShell 5.1."
+
+      - name: Prepare pinned LLVM toolchain
+        shell: pwsh
+        run: |
+          $version = '22.1.8'
+          $expectedSha256 = '16E5709785FEF73C854646241C4A92C5CD574318D1B33C63330DD7721903E55C'
+          $archive = Join-Path $env:RUNNER_TEMP "LLVM-$version-win64.exe"
+          $llvmRoot = Join-Path $env:RUNNER_TEMP "LLVM-$version"
+          $uri = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/LLVM-$version-win64.exe"
+
+          Invoke-WebRequest -Uri $uri -OutFile $archive
+          $actualSha256 = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
+          if ($actualSha256 -cne $expectedSha256) {
+              throw "Pinned LLVM archive hash mismatch: $actualSha256."
+          }
+          New-Item -Path $llvmRoot -ItemType Directory -Force | Out-Null
+          & 7z.exe x $archive "-o$llvmRoot" -y | Out-Null
+          if ($LASTEXITCODE -ne 0 -or
+                  -not (Test-Path -LiteralPath (Join-Path $llvmRoot 'bin\clang-cl.exe') `
+                      -PathType Leaf) -or
+                  -not (Test-Path -LiteralPath (Join-Path $llvmRoot 'bin\lld-link.exe') `
+                      -PathType Leaf)) {
+              throw 'The pinned LLVM toolchain could not be extracted.'
+          }
+          "ATLAS_LLVM_ROOT=$llvmRoot" | Out-File -FilePath $env:GITHUB_ENV `
+              -Encoding utf8 -Append
+
+      - name: Rebuild native elevation bootstrap payloads
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'AtlasElevationBootstrap'
+          New-Item -Path $output -ItemType Directory -Force | Out-Null
+          & .\tools\build\Build-AtlasElevationBootstrap.ps1 `
+              -Architecture all `
+              -OutputDirectory $output `
+              -LlvmRoot $env:ATLAS_LLVM_ROOT `
+              -RunContractHarness
+
+          & .\tools\build\Test-AtlasElevationBootstrap.ps1 `
+              -PayloadDirectory $output `
+              -HashManifestPath (Join-Path $output 'Atlas-ElevationBootstrapHashes.psd1')
+
+          $payload = 'playbook\Executables\AtlasModules\Tools'
+          foreach ($name in @(
+                  'AtlasElevationBootstrap-amd64.exe',
+                  'AtlasElevationBootstrap-arm64.exe'
+              )) {
+              $rebuilt = Get-Item -LiteralPath (Join-Path $output $name)
+              $committed = Get-Item -LiteralPath (Join-Path $payload $name)
+              $rebuiltHash = (Get-FileHash -LiteralPath $rebuilt.FullName `
+                  -Algorithm SHA256).Hash
+              $committedHash = (Get-FileHash -LiteralPath $committed.FullName `
+                  -Algorithm SHA256).Hash
+              if ($rebuilt.Length -ne $committed.Length -or
+                      $rebuiltHash -cne $committedHash) {
+                  throw "Source-derived '$name' differs from the committed playbook payload."
+              }
+          }
+
+          $manifestName = 'Atlas-ElevationBootstrapHashes.psd1'
+          $rebuiltManifest = Get-Item -LiteralPath (Join-Path $output $manifestName)
+          $committedManifest = Get-Item -LiteralPath (Join-Path $payload $manifestName)
+          $rebuiltManifestHash = (Get-FileHash -LiteralPath $rebuiltManifest.FullName `
+              -Algorithm SHA256).Hash
+          $committedManifestHash = (Get-FileHash -LiteralPath $committedManifest.FullName `
+              -Algorithm SHA256).Hash
+          if ($rebuiltManifest.Length -ne $committedManifest.Length -or
+                  $rebuiltManifestHash -cne $committedManifestHash) {
+              throw 'Source-derived native toolchain/provenance manifest differs from the committed inventory.'
+          }
+
+      - name: Verify committed native elevation bootstrap payloads
+        shell: powershell
+        run: |
+          & .\tools\build\Test-AtlasElevationBootstrap.ps1
 
       - name: Cache PowerShell modules
         # gh api repos/actions/cache/commits/v4 --jq '.sha'

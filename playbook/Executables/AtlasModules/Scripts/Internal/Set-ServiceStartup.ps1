@@ -1,6 +1,7 @@
 # Thin forwarder kept for its callers (setSvc.cmd, Internal\Set-NotificationState.ps1 and the
 # Printing toggle); the logic lives in the Atlas.Services module
-# (Set-AtlasServiceStartup). Exit codes: 0 = success, 1 = missing service or failure.
+# (Set-AtlasServiceStartup). Missing edition-specific services are a successful no-op;
+# malformed input or module/import failures exit nonzero.
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $true)]
@@ -11,6 +12,7 @@ param (
     [int]$Start
 )
 
+Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 if ([string]::IsNullOrWhiteSpace($Name)) {
@@ -18,14 +20,10 @@ if ([string]::IsNullOrWhiteSpace($Name)) {
     exit 1
 }
 
-$servicePath = Join-Path -Path 'HKLM:\SYSTEM\CurrentControlSet\Services' -ChildPath $Name
-if (-not (Test-Path -LiteralPath $servicePath)) {
-    Write-Error -Message "error: the specified service/driver ($Name) was not found." -ErrorAction Continue
-    exit 1
-}
-
 try {
-    Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Modules\Atlas.Services\Atlas.Services.psd1')
+    $servicesManifest = Join-Path -Path $PSScriptRoot `
+        -ChildPath '..\Modules\Atlas.Services\Atlas.Services.psd1'
+    Import-Module -Name $servicesManifest -Force -ErrorAction Stop
     Set-AtlasServiceStartup -Name $Name -StartupType $Start
 }
 catch {

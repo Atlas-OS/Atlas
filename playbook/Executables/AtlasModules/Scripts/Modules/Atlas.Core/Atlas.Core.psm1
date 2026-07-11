@@ -4,6 +4,10 @@ $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 foreach ($domainModule in @(
     'Context.ps1'
     'Logging.ps1'
+    'ElevationProtocol.ps1'
+    'ElevationResult.ps1'
+    'TrustedInstallerProcess.ps1'
+    'ElevationStorage.ps1'
     'Privilege.ps1'
     'Ui.ps1'
     'RunAsUser.ps1'
@@ -19,6 +23,6 @@ foreach ($domainModule in @(
 Export-ModuleMember -Function @(
     'Get-AtlasContext', 'Test-AtlasOption', 'New-AtlasFlag', 'Test-AtlasFlag',
     'Write-AtlasLog', 'Start-AtlasPhase', 'Stop-AtlasPhase',
-    'Test-AtlasAdmin', 'Test-AtlasTrustedInstaller', 'Assert-AtlasPrivilege', 'Invoke-AtlasTrustedInstaller', 'Invoke-AtlasAsUser', 'Get-AtlasUserProcessCommandLine',
+    'Test-AtlasAdmin', 'Test-AtlasSystem', 'Test-AtlasTrustedInstaller', 'Assert-AtlasPrivilege', 'Invoke-AtlasTrustedInstaller', 'Invoke-AtlasAsUser', 'Get-AtlasUserProcessCommandLine',
     'Write-Title', 'Read-Pause', 'Read-MessageBox'
 )

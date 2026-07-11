@@ -30,6 +30,16 @@
 # $ErrorActionPreference = 'Continue' (individual command failures inside an action do
 # not abort it); terminating errors are logged and rethrown to the caller.
 
+$script:AtlasServiceDefaultResetStates = [ordered]@{
+    Bluetooth                        = 'Enable'
+    LanmanWorkstation                = 'Enable'
+    NetworkDiscovery                 = 'Enable'
+    NVidiaDisplayContainer           = 'Enable'
+    NVidiaDisplayContainerContextMenu = 'Remove'
+    Printing                         = 'Enable'
+    SuperFetch                       = 'Enable'
+}
+
 function Get-AtlasToggleRoot {
     param(
         [string]$TogglesRoot
@@ -66,12 +76,12 @@ function Assert-AtlasToggleDefinition {
         throw "Toggle definition '$SourcePath' is missing the required 'Name' key."
     }
 
-    if ([string]$Definition.Name -ne $ExpectedName) {
+    if ([string]$Definition.Name -cne $ExpectedName) {
         throw "Toggle definition '$SourcePath' declares Name '$($Definition.Name)' but its file name requires '$ExpectedName'."
     }
 
     if ($Definition.Contains('Elevation') -and $Definition.Elevation -and
-        @('Admin', 'TrustedInstaller', 'None') -notcontains [string]$Definition.Elevation) {
+        @('Admin', 'TrustedInstaller', 'None') -cnotcontains [string]$Definition.Elevation) {
         throw "Toggle definition '$SourcePath' has an invalid Elevation '$($Definition.Elevation)'. Valid values: Admin, TrustedInstaller, None."
     }
 
@@ -96,7 +106,7 @@ function Assert-AtlasToggleDefinition {
         }
 
         if ($stateEntry.Contains('Reboot') -and $stateEntry.Reboot -and
-            @('Recommend', 'Prompt', 'None', 'RestartExplorer') -notcontains [string]$stateEntry.Reboot) {
+            @('Recommend', 'Prompt', 'None', 'RestartExplorer') -cnotcontains [string]$stateEntry.Reboot) {
             throw "Toggle definition '$SourcePath' state '$stateName' has an invalid Reboot '$($stateEntry.Reboot)'. Valid values: Recommend, Prompt, None, RestartExplorer."
         }
     }
@@ -122,7 +132,7 @@ function Get-AtlasToggleDefinition {
     }
 
     $files = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter "$Name.ps1" |
-        Where-Object { $_.BaseName -eq $Name })
+        Where-Object { $_.BaseName -ceq $Name })
     if ($files.Count -eq 0) {
         throw "No toggle definition named '$Name' was found under '$root'."
     }
@@ -157,7 +167,7 @@ function Resolve-AtlasToggleStateName {
     $validStates = @($Definition.States.Keys)
 
     if ($State) {
-        if ($validStates -notcontains $State) {
+        if ($validStates -cnotcontains $State) {
             throw "Unknown state '$State' for toggle '$($Definition.Name)'. Valid states: $($validStates -join ', ')."
         }
         return $State
@@ -187,7 +197,7 @@ function Resolve-AtlasToggleStateName {
 
     if ($Definition.Contains('SilentDefault') -and $Definition.SilentDefault) {
         $silentDefault = [string]$Definition.SilentDefault
-        if ($validStates -notcontains $silentDefault) {
+        if ($validStates -cnotcontains $silentDefault) {
             throw "Toggle '$($Definition.Name)' declares SilentDefault '$silentDefault', which is not a defined state."
         }
         return $silentDefault
@@ -278,6 +288,228 @@ function Invoke-AtlasToggleAction {
     }
 }
 
+function Invoke-AtlasToggleInProcess {
+    <#
+    .SYNOPSIS
+        Runs one already-authorized, already-resolved toggle state in the current process.
+    .DESCRIPTION
+        This is a private execution core. Invoke-AtlasToggle owns the public elevation
+        decision. Invoke-AtlasServiceDefaultsReset is the only other caller and supplies
+        a closed, parameterless, strict-TrustedInstaller reset plan.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [System.Collections.IDictionary]$Definition,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$StateName,
+
+        [string]$LauncherPath,
+
+        [switch]$Silent,
+
+        [switch]$JustContext,
+
+        [switch]$NoExplorerRestart,
+
+        [ValidateNotNullOrEmpty()]
+        [string]$StateRoot = $script:AtlasToggleDefaultStateRoot,
+
+        [switch]$UserContext,
+
+        [switch]$ResetServices
+    )
+
+    $matchingStates = @($Definition.States.Keys | Where-Object {
+        [string]$_ -ceq $StateName
+    })
+    if ($matchingStates.Count -ne 1) {
+        throw "The private toggle core requires one exact state '$StateName' for '$($Definition.Name)'."
+    }
+    $stateEntry = $Definition.States[$matchingStates[0]]
+
+    # Recorded only after ContextAction and Action complete without THROWING: actions run
+    # non-strict with $ErrorActionPreference = 'Continue' (see Invoke-AtlasToggleAction), so
+    # non-terminating cmdlet errors do NOT block recording - toggles are best-effort by
+    # design. A cancelled prompt or a thrown error never records a state that upgrade
+    # re-apply would replay. Actions that must gate recording on a condition should throw.
+    $noStateRecord = [bool]$UserContext -or
+        ($Definition.Contains('NoStateRecord') -and $Definition.NoStateRecord) -or
+        ($stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord)
+    $recordState = {
+        if ($noStateRecord) {
+            return
+        }
+
+        Set-AtlasToggleState `
+            -Name ([string]$Definition.Name) `
+            -State ([int]$stateEntry.StateValue) `
+            -StateRoot $StateRoot
+    }
+
+    if (-not $Silent) {
+        $displayName = [string]$Definition.Name
+        if ($LauncherPath) {
+            $displayName = [System.IO.Path]::GetFileNameWithoutExtension($LauncherPath)
+        }
+        elseif ($stateEntry.Contains('Launcher') -and $stateEntry.Launcher) {
+            $displayName = [System.IO.Path]::GetFileNameWithoutExtension([string]$stateEntry.Launcher)
+        }
+        elseif ($Definition.Contains('Launcher') -and $Definition.Launcher) {
+            $displayName = [System.IO.Path]::GetFileNameWithoutExtension([string]$Definition.Launcher)
+        }
+        Write-Title -Text $displayName
+
+        if (-not $JustContext -and $Definition.Contains('Warning') -and $Definition.Warning) {
+            Write-Host $Definition.Warning -ForegroundColor Yellow
+            Read-Pause -Message 'Press Enter to continue or Ctrl+C to cancel'
+        }
+    }
+
+    $stateValue = $null
+    if ($stateEntry.Contains('StateValue')) {
+        $stateValue = [int]$stateEntry.StateValue
+    }
+
+    $context = Get-AtlasContext
+    $toggleContext = [pscustomobject]@{
+        Name              = [string]$Definition.Name
+        State             = $StateName
+        StateValue        = $stateValue
+        Silent            = [bool]$Silent
+        JustContext       = [bool]$JustContext
+        NoExplorerRestart = [bool]$NoExplorerRestart
+        ResetServices     = [bool]$ResetServices
+        LauncherPath      = $LauncherPath
+        WinDir            = $context.WinDir
+        AtlasModulesPath  = $context.AtlasModulesPath
+        ScriptsPath       = Join-Path -Path $context.AtlasModulesPath -ChildPath 'Scripts'
+        WindowsBuild      = $context.WindowsBuild
+    }
+
+    if ($stateEntry.Contains('ContextAction') -and $stateEntry.ContextAction) {
+        Invoke-AtlasToggleAction `
+            -Action $stateEntry.ContextAction `
+            -ToggleContext $toggleContext `
+            -Label 'context action'
+    }
+
+    if ($JustContext) {
+        & $recordState
+        if (-not $Silent) {
+            Read-Pause -Message 'Press Enter to exit'
+        }
+        return
+    }
+
+    Invoke-AtlasToggleAction -Action $stateEntry.Action -ToggleContext $toggleContext
+    & $recordState
+    Write-AtlasLog -Message "Toggle '$($Definition.Name)' applied: state '$StateName'."
+
+    $reboot = 'None'
+    if ($stateEntry.Contains('Reboot') -and $stateEntry.Reboot) {
+        $reboot = [string]$stateEntry.Reboot
+    }
+
+    switch ($reboot) {
+        'RestartExplorer' {
+            if (-not $NoExplorerRestart) {
+                Stop-Process -Name 'explorer' -Force -ErrorAction SilentlyContinue
+            }
+        }
+        'Recommend' {
+            if (-not $Silent) {
+                Write-Host ''
+                Write-Host 'Finished, please reboot your device for changes to apply.'
+            }
+        }
+        'Prompt' {
+            if (-not $Silent) {
+                $answer = Read-Host 'Finished. Would you like to reboot now? (y/n)'
+                if ($answer -match '^(y|yes)$') {
+                    & "$($context.WinDir)\System32\shutdown.exe" /r /t 0
+                }
+            }
+        }
+    }
+
+    if (-not $Silent) {
+        Read-Pause -Message 'Press Enter to exit'
+    }
+}
+
+function Invoke-AtlasServiceDefaultsReset {
+    <#
+    .SYNOPSIS
+        Applies the fixed shipped service-default plan under strict TrustedInstaller.
+    .DESCRIPTION
+        Private and parameterless by design. This is not a generic elevation bypass:
+        both the complete definition-file set and each exact default state are pinned
+        before the private in-process core can run.
+    #>
+    [CmdletBinding()]
+    param()
+
+    Assert-AtlasPrivilege -TrustedInstaller
+
+    $context = Get-AtlasContext
+    $servicesRoot = Join-Path -Path $context.AtlasModulesPath -ChildPath 'Toggles\Services'
+    if (-not (Test-Path -LiteralPath $servicesRoot -PathType Container)) {
+        throw "The fixed service-toggle definition directory is missing: '$servicesRoot'."
+    }
+
+    $definitionFiles = @(Get-ChildItem -LiteralPath $servicesRoot -File -Filter '*.ps1' |
+        Sort-Object -Property Name)
+    $expectedNames = @($script:AtlasServiceDefaultResetStates.Keys | ForEach-Object { [string]$_ })
+    $actualNames = @($definitionFiles | ForEach-Object { [string]$_.BaseName })
+    if ($actualNames.Count -ne $expectedNames.Count) {
+        throw "The shipped service-toggle set does not match the closed ResetServices allowlist."
+    }
+    for ($index = 0; $index -lt $expectedNames.Count; $index++) {
+        if ($actualNames[$index] -cne $expectedNames[$index]) {
+            throw "The shipped service-toggle set does not match the closed ResetServices allowlist."
+        }
+    }
+
+    $completed = @{}
+    foreach ($name in $expectedNames) {
+        if ($name -ceq 'NetworkDiscovery' -and
+            -not $completed.ContainsKey('LanmanWorkstation')) {
+            throw 'ResetServices cannot skip the NetworkDiscovery dependency before LanmanWorkstation completes.'
+        }
+
+        $definition = Get-AtlasToggleDefinition -Name $name -TogglesRoot $servicesRoot
+        if (-not $definition.Contains('Elevation') -or
+            [string]$definition.Elevation -cne 'Admin') {
+            throw "ResetServices definition '$name' must remain an exact Administrator toggle."
+        }
+
+        $defaultStates = @($definition.States.Keys | Where-Object {
+            $stateEntry = $definition.States[$_]
+            $stateEntry.Contains('Launcher') -and
+                ([string]$stateEntry.Launcher).IndexOf(
+                    '(default)',
+                    [StringComparison]::OrdinalIgnoreCase
+                ) -ge 0
+        })
+        $expectedState = [string]$script:AtlasServiceDefaultResetStates[$name]
+        if ($defaultStates.Count -ne 1 -or
+            [string]$defaultStates[0] -cne $expectedState) {
+            throw "ResetServices definition '$name' must declare only '$expectedState' as its '(default)' state."
+        }
+
+        Invoke-AtlasToggleInProcess `
+            -Definition $definition `
+            -StateName $expectedState `
+            -Silent `
+            -NoExplorerRestart `
+            -ResetServices
+        $completed[$name] = $true
+    }
+}
+
 function Invoke-AtlasToggle {
     <#
     .SYNOPSIS
@@ -310,7 +542,15 @@ function Invoke-AtlasToggle {
 
     $definition = Get-AtlasToggleDefinition -Name $Name -TogglesRoot $TogglesRoot
     $stateName = Resolve-AtlasToggleStateName -Definition $definition -State $State -Silent:$Silent -StateRoot $StateRoot
-    $stateEntry = $definition.States[$stateName]
+
+    # A strict TrustedInstaller token is a privileged execution sink, not a general
+    # substitute for Administrator. Defense in depth mirrors the broker allowlist:
+    # only definitions that declare this exact authority may reach their actions.
+    if ((Test-AtlasTrustedInstaller) -and
+        (-not $definition.Contains('Elevation') -or
+            [string]$definition.Elevation -cne 'TrustedInstaller')) {
+        throw "Toggle '$Name' does not declare exact TrustedInstaller elevation."
+    }
 
     # --- Elevation: the launcher never elevates; the engine does. ---------------------
     $elevation = 'None'
@@ -321,12 +561,12 @@ function Invoke-AtlasToggle {
     # Initialize-NewUser.ps1 sets ATLAS_USER_CONTEXT=1 while re-applying per-user toggles
     # at first logon, where the process is never elevated. Those actions only write HKCU,
     # so run them in-process; the HKLM state record is skipped (the install wrote it).
-    $userContext = $env:ATLAS_USER_CONTEXT -eq '1'
+    $userContext = $env:ATLAS_USER_CONTEXT -ceq '1'
     if ($userContext) {
         $elevation = 'None'
     }
 
-    if ($elevation -eq 'Admin' -and -not (Test-AtlasAdmin)) {
+    if ($elevation -ceq 'Admin' -and -not (Test-AtlasAdmin)) {
         if ($Silent) {
             throw "Toggle '$Name' requires Administrator rights; refusing to prompt for elevation in silent mode."
         }
@@ -343,125 +583,57 @@ function Invoke-AtlasToggle {
         return
     }
 
-    if ($elevation -eq 'TrustedInstaller' -and -not (Test-AtlasTrustedInstaller)) {
-        # RunAsTI works without any UI from an elevated context, so silent invocations
-        # (upgrade re-apply) may still relaunch as long as they are already admin.
+    if ($elevation -ceq 'TrustedInstaller' -and
+        (Test-AtlasSystem) -and -not (Test-AtlasTrustedInstaller)) {
+        throw "Toggle '$Name' is running as LocalSystem without strict TrustedInstaller token evidence."
+    }
+
+    if ($elevation -ceq 'TrustedInstaller' -and -not (Test-AtlasTrustedInstaller)) {
+        # The closed broker operation is always noninteractive. Silent upgrade
+        # re-application may use it only from an already elevated caller; an
+        # interactive invocation can still request UAC consent through the broker.
         if ($Silent -and -not (Test-AtlasAdmin)) {
             throw "Toggle '$Name' requires TrustedInstaller and the current process is not elevated; refusing to elevate in silent mode."
         }
 
-        $argumentList = Get-AtlasToggleRelaunchArgumentList -Name $Name -State $stateName -LauncherPath $LauncherPath `
-            -Silent:$Silent -JustContext:$JustContext -NoExplorerRestart:$NoExplorerRestart
-        Invoke-AtlasTrustedInstaller -CommandLine ('powershell ' + ($argumentList -join ' ')) | Out-Null
-        return
-    }
+        $result = Invoke-AtlasTrustedInstaller `
+            -Operation Toggle `
+            -Name ([string]$definition.Name) `
+            -State $stateName `
+            -Silent:$true `
+            -JustContext:$JustContext `
+            -NoExplorerRestart:$NoExplorerRestart
 
-    # --- State recording. ---------------------------------------------------------------
-    # Recorded only after ContextAction and Action complete without THROWING: actions run
-    # non-strict with $ErrorActionPreference = 'Continue' (see Invoke-AtlasToggleAction), so
-    # non-terminating cmdlet errors do NOT block recording - toggles are best-effort by
-    # design. A cancelled prompt or a thrown error never records a state that upgrade
-    # re-apply would replay. Actions that must gate recording on a condition should
-    # detect it and `throw`.
-    $noStateRecord = $userContext -or
-        ($definition.Contains('NoStateRecord') -and $definition.NoStateRecord) -or
-        ($stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord)
-    $recordState = {
-        if ($noStateRecord) {
-            return
+        if ($null -eq $result -or $null -eq $result.PSObject.Properties['status']) {
+            throw "TrustedInstaller toggle '$Name' returned no structured broker result."
         }
-
-        Set-AtlasToggleState -Name ([string]$definition.Name) -State ([int]$stateEntry.StateValue) -StateRoot $StateRoot
-    }
-
-    # --- Interactive title + warning confirmation. ------------------------------------
-    if (-not $Silent) {
-        $displayName = [string]$definition.Name
-        if ($LauncherPath) {
-            $displayName = [System.IO.Path]::GetFileNameWithoutExtension($LauncherPath)
+        if ([string]$result.status -cne 'Completed') {
+            $failure = if ($null -ne $result.PSObject.Properties['error'] -and
+                -not [string]::IsNullOrWhiteSpace([string]$result.error)) {
+                [string]$result.error
+            }
+            else {
+                'No broker error detail was returned.'
+            }
+            throw "TrustedInstaller toggle '$Name' failed with status '$($result.status)': $failure"
         }
-        elseif ($stateEntry.Contains('Launcher') -and $stateEntry.Launcher) {
-            $displayName = [System.IO.Path]::GetFileNameWithoutExtension([string]$stateEntry.Launcher)
+        if ($null -eq $result.PSObject.Properties['exitCodeUInt32'] -or
+            $null -eq $result.exitCodeUInt32) {
+            throw "TrustedInstaller toggle '$Name' completed without an exit code."
         }
-        elseif ($definition.Contains('Launcher') -and $definition.Launcher) {
-            $displayName = [System.IO.Path]::GetFileNameWithoutExtension([string]$definition.Launcher)
-        }
-        Write-Title -Text $displayName
-
-        if (-not $JustContext -and $definition.Contains('Warning') -and $definition.Warning) {
-            Write-Host $definition.Warning -ForegroundColor Yellow
-            Read-Pause -Message 'Press Enter to continue or Ctrl+C to cancel'
-        }
-    }
-
-    # --- Run the state's action(s). ----------------------------------------------------
-    $stateValue = $null
-    if ($stateEntry.Contains('StateValue')) {
-        $stateValue = [int]$stateEntry.StateValue
-    }
-
-    $context = Get-AtlasContext
-    $toggleContext = [pscustomobject]@{
-        Name              = [string]$definition.Name
-        State             = $stateName
-        StateValue        = $stateValue
-        Silent            = [bool]$Silent
-        JustContext       = [bool]$JustContext
-        NoExplorerRestart = [bool]$NoExplorerRestart
-        LauncherPath      = $LauncherPath
-        WinDir            = $context.WinDir
-        AtlasModulesPath  = $context.AtlasModulesPath
-        ScriptsPath       = Join-Path -Path $context.AtlasModulesPath -ChildPath 'Scripts'
-        WindowsBuild      = $context.WindowsBuild
-    }
-
-    if ($stateEntry.Contains('ContextAction') -and $stateEntry.ContextAction) {
-        Invoke-AtlasToggleAction -Action $stateEntry.ContextAction -ToggleContext $toggleContext -Label 'context action'
-    }
-
-    if ($JustContext) {
-        # -JustContext still records the state even though the main action never runs
-        # (launcher contract).
-        & $recordState
-        if (-not $Silent) {
-            Read-Pause -Message 'Press Enter to exit'
+        if ([uint64]$result.exitCodeUInt32 -ne 0) {
+            throw "TrustedInstaller toggle '$Name' exited with code $($result.exitCodeUInt32)."
         }
         return
     }
 
-    Invoke-AtlasToggleAction -Action $stateEntry.Action -ToggleContext $toggleContext
-    & $recordState
-    Write-AtlasLog -Message "Toggle '$Name' applied: state '$stateName'."
-
-    # --- Reboot / explorer restart handling. -------------------------------------------
-    $reboot = 'None'
-    if ($stateEntry.Contains('Reboot') -and $stateEntry.Reboot) {
-        $reboot = [string]$stateEntry.Reboot
-    }
-
-    switch ($reboot) {
-        'RestartExplorer' {
-            if (-not $NoExplorerRestart) {
-                Stop-Process -Name 'explorer' -Force -ErrorAction SilentlyContinue
-            }
-        }
-        'Recommend' {
-            if (-not $Silent) {
-                Write-Host ''
-                Write-Host 'Finished, please reboot your device for changes to apply.'
-            }
-        }
-        'Prompt' {
-            if (-not $Silent) {
-                $answer = Read-Host 'Finished. Would you like to reboot now? (y/n)'
-                if ($answer -match '^(y|yes)$') {
-                    & "$($context.WinDir)\System32\shutdown.exe" /r /t 0
-                }
-            }
-        }
-    }
-
-    if (-not $Silent) {
-        Read-Pause -Message 'Press Enter to exit'
-    }
+    Invoke-AtlasToggleInProcess `
+        -Definition $definition `
+        -StateName $stateName `
+        -LauncherPath $LauncherPath `
+        -Silent:$Silent `
+        -JustContext:$JustContext `
+        -NoExplorerRestart:$NoExplorerRestart `
+        -StateRoot $StateRoot `
+        -UserContext:$userContext
 }

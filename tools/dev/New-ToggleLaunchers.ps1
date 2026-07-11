@@ -288,7 +288,7 @@ foreach ($definitionFile in @(Get-ChildItem -LiteralPath $togglesRoot -Recurse -
         $problems.Add($_.Exception.Message)
         continue
     }
-    if ($toggleName -ne $definitionFile.BaseName) {
+    if ($toggleName -cne $definitionFile.BaseName) {
         $problems.Add("Toggle definition '$($definitionFile.FullName)' declares Name '$toggleName' but its file name requires '$($definitionFile.BaseName)'.")
         continue
     }

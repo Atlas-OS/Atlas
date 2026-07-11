@@ -3,12 +3,59 @@ BeforeAll {
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Registry\Atlas.Registry.psd1') -Force
 
+    $script:registryPathsSource = Get-Content -LiteralPath `
+        (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Registry\Domain\Paths.ps1') -Raw
+    $script:registryRegFileSource = Get-Content -LiteralPath `
+        (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Registry\Domain\RegFile.ps1') -Raw
+
     $script:testRoot = 'HKCU:\Software\AtlasRewriteTest'
     $script:testSubPath = 'Software\AtlasRewriteTest'
 }
 
 AfterAll {
     Remove-Item -Path 'HKCU:\Software\AtlasRewriteTest' -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Describe 'Resolve-AtlasRegistryTarget identity boundary' {
+    It 'redirects HKCU for LocalSystem even without strict TrustedInstaller evidence' {
+        Mock -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -MockWith { $true }
+        Mock -CommandName Get-AtlasActiveUserSid -ModuleName Atlas.Registry -MockWith {
+            'S-1-5-21-1-2-3-1001'
+        }
+
+        $result = InModuleScope Atlas.Registry {
+            Resolve-AtlasRegistryTarget -Path 'HKCU:\Software\X'
+        }
+
+        $result.Primary | Should -Be `
+            'Registry::HKEY_USERS\S-1-5-21-1-2-3-1001\Software\X'
+        $result.Mirror | Should -Be 'Registry::HKEY_USERS\AME_UserHive_Default\Software\X'
+        Should -Invoke -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -Times 1 -Exactly
+        Should -Invoke -CommandName Get-AtlasActiveUserSid -ModuleName Atlas.Registry -Times 1 -Exactly
+    }
+
+    It 'keeps ambient HKCU for a non-System caller' {
+        Mock -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -MockWith { $false }
+        Mock -CommandName Get-AtlasActiveUserSid -ModuleName Atlas.Registry -MockWith {
+            throw 'The active-user resolver must not run for a non-System caller.'
+        }
+
+        $result = InModuleScope Atlas.Registry {
+            Resolve-AtlasRegistryTarget -Path 'HKCU:\Software\X'
+        }
+
+        $result.Primary | Should -Be 'Registry::HKEY_CURRENT_USER\Software\X'
+        $result.Mirror | Should -BeNullOrEmpty
+        Should -Invoke -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -Times 1 -Exactly
+        Should -Not -Invoke -CommandName Get-AtlasActiveUserSid -ModuleName Atlas.Registry
+    }
+
+    It 'uses only the LocalSystem identity predicate for HKCU path and reg-file policy' {
+        foreach ($source in @($script:registryPathsSource, $script:registryRegFileSource)) {
+            $source | Should -Match '\bTest-AtlasSystem\b'
+            $source | Should -Not -Match '\bTest-AtlasTrustedInstaller\b'
+        }
+    }
 }
 
 Describe 'Resolve-AtlasRegistryPath' {
@@ -64,7 +111,7 @@ Describe 'Resolve-AtlasRegistryPath' {
 
 Describe 'Set-AtlasRegistryValue and Remove-AtlasRegistryValue' {
     BeforeAll {
-        # Unelevated test runs never hit the TrustedInstaller redirect branch, so the
+        # Unelevated test runs never hit the LocalSystem redirect branch, so the
         # ambient HKCU scratch key is exactly what gets written.
         $script:valuesKeyPath = "$script:testRoot\Values"
     }
@@ -347,7 +394,7 @@ Windows Registry Editor Version 5.00
         { Import-AtlasRegFile -Path (Join-Path -Path $TestDrive -ChildPath 'missing.reg') } | Should -Throw '*not found*'
     }
 
-    It 'rejects HKCU imports under TrustedInstaller because they cannot be redirected or journaled safely' {
+    It 'rejects HKCU imports under LocalSystem because they cannot be redirected or journaled safely' {
         $regFile = Join-Path -Path $TestDrive -ChildPath 'unsafe-hkcu.reg'
         @'
 Windows Registry Editor Version 5.00
@@ -356,10 +403,11 @@ Windows Registry Editor Version 5.00
 "Imported"=dword:00000005
 '@ | Set-Content -Path $regFile -Encoding ASCII
 
-        Mock -CommandName Test-AtlasTrustedInstaller -ModuleName Atlas.Registry -MockWith { $true }
+        Mock -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -MockWith { $true }
 
         { Import-AtlasRegFile -Path $regFile } | Should -Throw '*cannot redirect or journal HKCU*'
         Test-Path -Path "$script:testRoot\UnsafeImport" | Should -BeFalse
+        Should -Invoke -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -Times 1 -Exactly
     }
 }
 

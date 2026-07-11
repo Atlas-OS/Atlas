@@ -36,12 +36,9 @@ BeforeAll {
 Describe 'AME runner boundary' {
     It 'keeps only the reviewed runner action types' {
         $actual = @($script:Actions.Type | Sort-Object -Unique)
-        $expected = @('appx', 'powerShell', 'registryKey', 'task', 'writeStatus')
+        $expected = @('powerShell', 'registryKey', 'task', 'writeStatus')
 
         Compare-Object -ReferenceObject $expected -DifferenceObject $actual | Should -BeNullOrEmpty
-
-        @($script:Actions | Where-Object Type -eq 'appx' |
-            Where-Object RelativePath -ne 'atlas\appx.yml') | Should -BeNullOrEmpty
     }
 
     It 'contains no generic runner process or registry-value mutations' {
