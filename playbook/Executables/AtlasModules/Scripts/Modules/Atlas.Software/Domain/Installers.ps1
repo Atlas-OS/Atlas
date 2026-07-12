@@ -1072,15 +1072,9 @@ function Install-AtlasSoftware {
 
     $componentMap = Get-AtlasSoftwareComponentMap
     $tempDir = New-AtlasProtectedStagingDirectory
-    $originalEnvironment = @{
-        TEMP = [Environment]::GetEnvironmentVariable('TEMP', 'Process')
-        TMP  = [Environment]::GetEnvironmentVariable('TMP', 'Process')
-    }
     $allSucceeded = $true
     $cleanupStaging = $true
     try {
-        [Environment]::SetEnvironmentVariable('TEMP', $tempDir, 'Process')
-        [Environment]::SetEnvironmentVariable('TMP', $tempDir, 'Process')
         foreach ($name in $Component) {
             try {
                 Write-AtlasLog -Message "Installing software component '$name'."
@@ -1103,20 +1097,6 @@ function Install-AtlasSoftware {
         $allSucceeded = $false
     }
     finally {
-        foreach ($variable in @('TEMP', 'TMP')) {
-            try {
-                [Environment]::SetEnvironmentVariable(
-                    $variable,
-                    $originalEnvironment[$variable],
-                    'Process'
-                )
-            }
-            catch {
-                Write-AtlasLog -Level Warning -Message "Restoring the process $variable variable failed: $($_.Exception.Message)"
-                $allSucceeded = $false
-            }
-        }
-
         if (-not $cleanupStaging) {
             Write-AtlasLog -Level Warning -Message "Protected software staging was retained at '$tempDir' because process-tree containment was not confirmed."
             $allSucceeded = $false
