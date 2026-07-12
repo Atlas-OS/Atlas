@@ -63,7 +63,14 @@ function Assert-AtlasPrivilege {
 
     if ($TrustedInstaller -and -not (Test-AtlasTrustedInstaller)) {
         $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-        throw "[privilege] This operation requires a TrustedInstaller service token (SYSTEM user, enabled NT SERVICE\TrustedInstaller SID, System integrity); current identity is '$($identity.Name)' ($($identity.User.Value))."
+        $evidenceText = try {
+            $evidence = Get-AtlasCurrentTokenEvidence
+            "user=$($evidence.UserSid), enabledTiSid=$($evidence.HasEnabledTrustedInstallerSid), integrity=0x$('{0:X}' -f $evidence.IntegrityRid)"
+        }
+        catch {
+            "tokenEvidenceError=$($_.Exception.Message)"
+        }
+        throw "[privilege] This operation requires a TrustedInstaller service token (SYSTEM user, enabled NT SERVICE\TrustedInstaller SID, System integrity); current identity is '$($identity.Name)' ($($identity.User.Value)); $evidenceText."
     }
 
     if ($System -and -not (Test-AtlasSystem)) {

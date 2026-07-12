@@ -227,7 +227,6 @@ namespace Atlas {
 
         enum TOKEN_INFORMATION_CLASS {
             TokenUser = 1,
-            TokenGroups = 2,
             TokenStatistics = 10,
             TokenSessionId = 12,
             TokenElevation = 20,
@@ -242,18 +241,6 @@ namespace Atlas {
             public UInt32 PrivilegeCount;
             public LUID Luid;
             public UInt32 Attributes;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct SID_AND_ATTRIBUTES {
-            public IntPtr Sid;
-            public UInt32 Attributes;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct TOKEN_GROUPS_ONE {
-            public UInt32 GroupCount;
-            public SID_AND_ATTRIBUTES Groups;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -510,7 +497,7 @@ namespace Atlas {
 
         public static TrustedInstallerTokenEvidence GetCurrentTokenEvidence() {
             IntPtr token = IntPtr.Zero;
-            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, out token)) {
+            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_DUPLICATE, out token)) {
                 throw LastError("OpenProcessToken(current) failed");
             }
             try {
@@ -817,7 +804,7 @@ namespace Atlas {
                 IntPtr childToken = IntPtr.Zero;
                 TrustedInstallerTokenEvidence childEvidence;
                 try {
-                    if (!OpenProcessToken(processInfo.hProcess, TOKEN_QUERY, out childToken)) {
+                    if (!OpenProcessToken(processInfo.hProcess, TOKEN_QUERY | TOKEN_DUPLICATE, out childToken)) {
                         throw LastError("OpenProcessToken(child) failed");
                     }
                     childEvidence = ReadTokenEvidence(childToken);
@@ -1125,22 +1112,10 @@ namespace Atlas {
         }
 
         static bool HasEnabledGroup(IntPtr token, string expectedSid) {
-            IntPtr buffer = GetTokenBuffer(token, TOKEN_INFORMATION_CLASS.TokenGroups);
-            try {
-                UInt32 count = unchecked((UInt32)Marshal.ReadInt32(buffer));
-                int entryOffset = Marshal.OffsetOf(typeof(TOKEN_GROUPS_ONE), "Groups").ToInt32();
-                int entrySize = Marshal.SizeOf(typeof(SID_AND_ATTRIBUTES));
-                for (UInt32 i = 0; i < count; i++) {
-                    IntPtr entryPointer = new IntPtr(buffer.ToInt64() + entryOffset + (long)i * entrySize);
-                    SID_AND_ATTRIBUTES entry = (SID_AND_ATTRIBUTES)Marshal.PtrToStructure(entryPointer, typeof(SID_AND_ATTRIBUTES));
-                    if (String.Equals(SidToString(entry.Sid), expectedSid, StringComparison.OrdinalIgnoreCase)) {
-                        return (entry.Attributes & SE_GROUP_ENABLED) != 0 && (entry.Attributes & SE_GROUP_USE_FOR_DENY_ONLY) == 0;
-                    }
-                }
-                return false;
-            }
-            finally {
-                Marshal.FreeHGlobal(buffer);
+            SecurityIdentifier sid = new SecurityIdentifier(expectedSid);
+            using (WindowsIdentity identity = new WindowsIdentity(token)) {
+                WindowsPrincipal principal = new WindowsPrincipal(identity);
+                return principal.IsInRole(sid);
             }
         }
 
