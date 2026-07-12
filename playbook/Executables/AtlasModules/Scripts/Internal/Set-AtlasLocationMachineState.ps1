@@ -83,6 +83,25 @@ function Invoke-AtlasLocationServiceState {
     }
 }
 
+function Invoke-AtlasLocationSettingsPageVisibility {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('hide', 'unhide')]
+        [string]$Operation,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('privacy-location', 'findmydevice')]
+        [string]$Page
+    )
+
+    try {
+        & $settingsHelper $Operation $Page -Silent -NoProcessCleanup
+    }
+    catch {
+        Write-Warning "Location state was applied, but Settings page '$Page' could not be updated: $($_.Exception.Message)"
+    }
+}
+
 if ($State -ceq 'Disable') {
     Invoke-AtlasLocationServiceState `
         -Name lfsvc -StartupType 4 -Status Stopped
@@ -95,8 +114,8 @@ if ($State -ceq 'Disable') {
             -Type DWord -Data 0
     }
 
-    & $settingsHelper hide privacy-location -Silent -NoProcessCleanup
-    & $settingsHelper hide findmydevice -Silent -NoProcessCleanup
+    Invoke-AtlasLocationSettingsPageVisibility -Operation hide -Page privacy-location
+    Invoke-AtlasLocationSettingsPageVisibility -Operation hide -Page findmydevice
 }
 else {
     Invoke-AtlasLocationServiceState `
@@ -105,5 +124,5 @@ else {
         -Name MapsBroker -StartupType 2 -Status Running
 
     # Find My Device stays locked unless the interactive public toggle opts in.
-    & $settingsHelper unhide privacy-location -Silent -NoProcessCleanup
+    Invoke-AtlasLocationSettingsPageVisibility -Operation unhide -Page privacy-location
 }
