@@ -50,6 +50,28 @@ Describe 'Get-AtlasContext install state' {
         Test-AtlasOption -Name 'browser-firefox' | Should -BeFalse
     }
 
+    It 'keeps the orchestrator install-state commands loaded while reading active state' {
+        $stateManifest = Join-Path -Path $modulesRoot `
+            -ChildPath 'Atlas.InstallState\Atlas.InstallState.psd1'
+        $windowsPath = Join-Path -Path $TestDrive -ChildPath 'ModuleLifetimeWindows'
+        $statePath = Join-Path -Path $windowsPath -ChildPath 'AtlasOS\Install\active.json'
+        try {
+            Import-Module -Name $stateManifest -Force -DisableNameChecking
+            Start-AtlasInstallState -TargetVersion '0.6.0' -Mode Fresh `
+                -StatePath $statePath | Out-Null
+
+            Get-AtlasContext -Refresh -WindowsPath $windowsPath `
+                -WindowsBuildReader { 26200 } -OobeReader { 0 } | Out-Null
+
+            Get-Command -Name Invoke-AtlasInstallStep -ErrorAction Stop |
+                Should -Not -BeNullOrEmpty
+            @(Get-Module -Name Atlas.InstallState) | Should -HaveCount 1
+        }
+        finally {
+            Remove-Module -Name Atlas.InstallState -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     It 'uses published completion flags after active state is archived' {
         $windowsPath = Join-Path -Path $TestDrive -ChildPath 'FlagBackedWindows'
         $flagsPath = Join-Path -Path $windowsPath -ChildPath 'AtlasModules\Flags'

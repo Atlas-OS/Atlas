@@ -26,7 +26,7 @@ function Read-AtlasActiveInstallState {
         throw "The active Atlas install state exists, but its reader module is missing: '$stateManifest'."
     }
 
-    Import-Module -Name $stateManifest -Force -DisableNameChecking -ErrorAction Stop
+    Import-Module -Name $stateManifest -DisableNameChecking -ErrorAction Stop
     return Get-AtlasInstallState -StatePath $statePath
 }
 
