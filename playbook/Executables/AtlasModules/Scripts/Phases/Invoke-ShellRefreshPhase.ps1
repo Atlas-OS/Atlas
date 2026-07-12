@@ -34,5 +34,13 @@ $arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "
 $exitCode = Invoke-AtlasAsUser -FilePath $powerShellPath -Arguments $arguments `
     -WorkingDirectory ([string]$context.WinDir)
 if ($exitCode -ne 0) {
-    throw "Exact-user shell refresh exited with code $exitCode."
+    $failureStage = switch ($exitCode) {
+        10 { 'bootstrap' }
+        11 { 'identity validation' }
+        12 { 'process stop' }
+        13 { 'Explorer start' }
+        14 { 'Explorer recovery' }
+        default { 'unknown stage' }
+    }
+    throw "Exact-user shell refresh failed during $failureStage (exit code $exitCode)."
 }

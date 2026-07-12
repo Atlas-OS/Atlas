@@ -29,10 +29,23 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 [void]$CurrentSession
 
+$failureStage = 'Bootstrap'
+trap {
+    $exitCode = switch -CaseSensitive ($failureStage) {
+        'Identity' { 11 }
+        'ProcessStop' { 12 }
+        'ExplorerStart' { 13 }
+        'ExplorerRecovery' { 14 }
+        default { 10 }
+    }
+    exit $exitCode
+}
+
 $modulesRoot = Join-Path $PSScriptRoot '..\Modules'
 Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force -ErrorAction Stop
 Import-Module (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
 
+$failureStage = 'Identity'
 if ((Test-AtlasSystem) -or (Test-AtlasAdmin)) {
     throw 'User-shell refresh requires a non-elevated interactive user token; Administrator, SYSTEM, and TrustedInstaller tokens are never accepted.'
 }
@@ -80,6 +93,7 @@ $processNames = switch -CaseSensitive ($Operation) {
 
 # Even if the same account has another disconnected or RDP logon, only this
 # helper's Windows session is refreshed.
+$failureStage = 'ProcessStop'
 Stop-AtlasProcess -Name $processNames -SessionId $sessionId `
     -StopOnError -WaitTimeoutMilliseconds 5000
 
@@ -91,7 +105,9 @@ if ($Operation -in @(
     )) {
     # This script already runs as the intended non-elevated user, so Explorer is
     # launched directly in that user and session before readiness is checked.
+    $failureStage = 'ExplorerStart'
     $explorerPath = Join-Path ([Environment]::GetFolderPath('Windows')) 'explorer.exe'
     Start-Process -FilePath $explorerPath -ErrorAction Stop
+    $failureStage = 'ExplorerRecovery'
     $null = Wait-AtlasExplorerShellRecovery -SessionId $sessionId -TimeoutSeconds 15
 }

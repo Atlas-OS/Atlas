@@ -156,4 +156,18 @@ Describe 'Atlas installing-user process boundary' {
                 'S-1-5-21-111-222-333-1001', 8, 1)
         } | Should -Throw
     }
+
+    It 'accepts only limited or unlinked medium non-admin user tokens' {
+        { [Atlas.UserProcess]::ValidateMediumIdentity(3, 0x2000, $false) } |
+            Should -Not -Throw
+        { [Atlas.UserProcess]::ValidateMediumIdentity(1, 0x2100, $false) } |
+            Should -Not -Throw
+
+        { [Atlas.UserProcess]::ValidateMediumIdentity(2, 0x3000, $true) } |
+            Should -Throw -ExpectedMessage '*elevated*'
+        { [Atlas.UserProcess]::ValidateMediumIdentity(3, 0x1000, $false) } |
+            Should -Throw -ExpectedMessage '*medium integrity*'
+        { [Atlas.UserProcess]::ValidateMediumIdentity(3, 0x2000, $true) } |
+            Should -Throw -ExpectedMessage '*Administrators role*'
+    }
 }

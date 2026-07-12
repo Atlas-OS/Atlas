@@ -45,7 +45,13 @@ namespace Atlas {
         const int TokenUser = 1;
         const int TokenType = 8;
         const int TokenSessionId = 12;
+        const int TokenElevationType = 18;
+        const int TokenLinkedToken = 19;
+        const int TokenIntegrityLevel = 25;
         const int PrimaryToken = 1;
+        const int TokenElevationTypeDefault = 1;
+        const int TokenElevationTypeFull = 2;
+        const int TokenElevationTypeLimited = 3;
         const int TOKEN_ASSIGN_PRIMARY = 0x0001;
         const int TOKEN_DUPLICATE = 0x0002;
         const int TOKEN_QUERY = 0x0008;
@@ -123,6 +129,47 @@ namespace Atlas {
             finally { Marshal.FreeHGlobal(buffer); }
         }
 
+        static IntPtr ReadLinkedToken(IntPtr token) {
+            IntPtr buffer = Marshal.AllocHGlobal(IntPtr.Size);
+            try {
+                int returned;
+                if (!GetTokenInformation(token, TokenLinkedToken, buffer, IntPtr.Size,
+                        out returned)) {
+                    throw LastError("GetTokenInformation(TokenLinkedToken) failed");
+                }
+                IntPtr linkedToken = Marshal.ReadIntPtr(buffer);
+                if (linkedToken == IntPtr.Zero) {
+                    throw new InvalidOperationException("The elevated user token has no linked limited token.");
+                }
+                return linkedToken;
+            }
+            finally { Marshal.FreeHGlobal(buffer); }
+        }
+
+        static int ReadIntegrityLevel(IntPtr token) {
+            int required;
+            GetTokenInformation(token, TokenIntegrityLevel, IntPtr.Zero, 0, out required);
+            IntPtr buffer = Marshal.AllocHGlobal(required);
+            try {
+                if (!GetTokenInformation(token, TokenIntegrityLevel, buffer, required,
+                        out required)) {
+                    throw LastError("GetTokenInformation(TokenIntegrityLevel) failed");
+                }
+                SID_AND_ATTRIBUTES label = (SID_AND_ATTRIBUTES)Marshal.PtrToStructure(
+                    buffer, typeof(SID_AND_ATTRIBUTES));
+                string[] parts = new SecurityIdentifier(label.Sid).Value.Split('-');
+                return Int32.Parse(parts[parts.Length - 1]);
+            }
+            finally { Marshal.FreeHGlobal(buffer); }
+        }
+
+        static bool IsAdministrator(IntPtr token) {
+            using (WindowsIdentity identity = new WindowsIdentity(token)) {
+                WindowsPrincipal principal = new WindowsPrincipal(identity);
+                return principal.IsInRole(new SecurityIdentifier("S-1-5-32-544"));
+            }
+        }
+
         public static void ValidateIdentity(string expectedSid, uint expectedSession,
             string actualSid, uint actualSession, int tokenType) {
             string canonicalExpected = new SecurityIdentifier(expectedSid).Value;
@@ -145,11 +192,34 @@ namespace Atlas {
                 ReadTokenInt32(token, TokenType));
         }
 
+        public static void ValidateMediumIdentity(int elevationType,
+            int integrityLevel, bool isAdministrator) {
+            if (elevationType == TokenElevationTypeFull) {
+                throw new InvalidOperationException("The installing-user token is elevated.");
+            }
+            if (elevationType != TokenElevationTypeDefault &&
+                    elevationType != TokenElevationTypeLimited) {
+                throw new InvalidOperationException("The installing-user token has an invalid elevation type.");
+            }
+            if (integrityLevel < 0x2000 || integrityLevel >= 0x3000) {
+                throw new InvalidOperationException("The installing-user token is not medium integrity.");
+            }
+            if (isAdministrator) {
+                throw new InvalidOperationException("The installing-user token has the Administrators role enabled.");
+            }
+        }
+
+        static void ValidateMediumToken(IntPtr token) {
+            ValidateMediumIdentity(ReadTokenInt32(token, TokenElevationType),
+                ReadIntegrityLevel(token), IsAdministrator(token));
+        }
+
         public static int Launch(string applicationName, string commandLine,
             string workingDirectory, uint timeoutMilliseconds,
             uint sessionId, string expectedSid) {
             IntPtr profile = IntPtr.Zero;
             IntPtr userToken = IntPtr.Zero;
+            IntPtr linkedToken = IntPtr.Zero;
             IntPtr primaryToken = IntPtr.Zero;
             IntPtr environment = IntPtr.Zero;
             PROCESS_INFORMATION process = new PROCESS_INFORMATION();
@@ -164,13 +234,22 @@ namespace Atlas {
                     throw LastError("WTSQueryUserToken failed for session " + sessionId);
                 }
                 ValidateToken(userToken, expectedSid, sessionId);
+                IntPtr launchToken = userToken;
+                int elevationType = ReadTokenInt32(userToken, TokenElevationType);
+                if (elevationType == TokenElevationTypeFull) {
+                    linkedToken = ReadLinkedToken(userToken);
+                    launchToken = linkedToken;
+                    ValidateToken(launchToken, expectedSid, sessionId);
+                }
+                ValidateMediumToken(launchToken);
                 uint access = TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY;
-                if (!DuplicateTokenEx(userToken, access, IntPtr.Zero,
+                if (!DuplicateTokenEx(launchToken, access, IntPtr.Zero,
                         SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation,
                         PrimaryToken, out primaryToken)) {
                     throw LastError("DuplicateTokenEx failed for the installing user");
                 }
                 ValidateToken(primaryToken, expectedSid, sessionId);
+                ValidateMediumToken(primaryToken);
                 if (!CreateEnvironmentBlock(out environment, primaryToken, false)) {
                     throw LastError("CreateEnvironmentBlock failed for the installing user");
                 }
@@ -218,6 +297,7 @@ namespace Atlas {
                 if (process.hProcess != IntPtr.Zero) CloseHandle(process.hProcess);
                 if (environment != IntPtr.Zero) DestroyEnvironmentBlock(environment);
                 if (primaryToken != IntPtr.Zero) CloseHandle(primaryToken);
+                if (linkedToken != IntPtr.Zero) CloseHandle(linkedToken);
                 if (userToken != IntPtr.Zero) CloseHandle(userToken);
                 if (profile != IntPtr.Zero) RegCloseKey(profile);
             }
