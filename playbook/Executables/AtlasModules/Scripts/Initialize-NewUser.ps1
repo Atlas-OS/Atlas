@@ -265,29 +265,6 @@ public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, stri
     }
 }
 
-$browser = $null
-$setupOptionsPath = 'HKLM:\SOFTWARE\AtlasOS\SetupOptions'
-try {
-    $browser = Get-ItemPropertyValue -Path $setupOptionsPath -Name Browser
-}
-catch {
-    Write-Warning "Couldn't read the browser selection. Using default taskbar pins."
-}
-
-$allowedBrowsers = @('Brave', 'Firefox', 'LibreWolf', 'Google Chrome', 'Microsoft Edge')
-if (-not [string]::IsNullOrWhiteSpace($browser) -and $browser -notin $allowedBrowsers) {
-    Write-Warning "Ignoring unknown browser selection '$browser'."
-    $browser = $null
-}
-
-$pinArguments = @{
-    CurrentUserOnly = $true
-    NoExplorerStop  = $true
-}
-if (-not [string]::IsNullOrWhiteSpace($browser)) {
-    $pinArguments['Browser'] = $browser
-}
-& (Join-Path $atlasModules 'Scripts\Internal\Set-TaskbarPins.ps1') @pinArguments
 Set-SearchTaskbarMode
 
 if ($FromInstall) {
