@@ -30,7 +30,7 @@ foreach ($requiredFile in @($moduleManifests) + $settingsHelper) {
     }
 }
 foreach ($manifest in $moduleManifests) {
-    Import-Module -Name $manifest -Force -ErrorAction Stop
+    Import-Module -Name $manifest -ErrorAction Stop
 }
 
 if (Test-AtlasTrustedInstaller) {

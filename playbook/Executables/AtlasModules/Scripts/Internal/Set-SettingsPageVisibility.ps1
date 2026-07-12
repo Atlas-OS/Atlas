@@ -16,6 +16,7 @@ param (
 )
 
 $ErrorActionPreference = 'Stop'
+[void]$Silent
 
 if (@($RemainingArgs).Count -ne 0) {
     throw "Unsupported Settings page visibility arguments: $($RemainingArgs -join ' ')."
@@ -27,7 +28,7 @@ if ([string]::IsNullOrWhiteSpace($Page) -or
 }
 
 Import-Module -Name (Join-Path $PSScriptRoot '..\Modules\Atlas.Core\Atlas.Core.psd1') `
-    -Force -ErrorAction Stop
+    -ErrorAction Stop
 
 if (-not (Test-AtlasAdmin)) {
     throw 'Settings page visibility changes require Administrator rights.'
@@ -80,7 +81,7 @@ else {
     Write-AtlasLog -Message 'Unhiding Settings pages...'
 
     $pages = @($pages | Where-Object { $_ -ne $Page })
-    if ($pages.Count -gt 0) {
+    if (@($pages).Count -gt 0) {
         Set-ItemProperty -LiteralPath $pageKey -Name 'SettingsPageVisibility' -Value ('hide:' + (($pages | Select-Object -Unique) -join ';')) -Type String -ErrorAction Stop
     }
     else {
