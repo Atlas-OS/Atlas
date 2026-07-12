@@ -137,7 +137,7 @@ function Set-CurrentUserRegistryValue {
 
 function Set-AssociationChanges {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][object[]] $Changes)
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Changes)
 
     foreach ($change in $Changes) {
         Set-CurrentUserRegistryValue -Change $change

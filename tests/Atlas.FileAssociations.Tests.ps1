@@ -52,6 +52,8 @@ Describe 'File associations' {
     }
 
     It 'is retry-safe and propagates the first registry failure' {
+        { Set-AssociationChanges -Changes @() } | Should -Not -Throw
+
         $changes = @(
             New-AssociationChange -Path 'SOFTWARE\Atlas\One' -Name A -Value '' -Kind String
             New-AssociationChange -Path 'SOFTWARE\Atlas\Two' -Name B -Value 1 -Kind DWord
