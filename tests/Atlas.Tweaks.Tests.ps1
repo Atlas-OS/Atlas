@@ -178,6 +178,29 @@ Describe 'Shipped tweak definitions' {
         $report | Should -BeNullOrEmpty
     }
 
+    It 'uses the supported editable Windows 11 Start pin policy without promotional pins' {
+        $atlasModules = Join-Path -Path $script:shippedTweaksRoot -ChildPath '..\..'
+        $definition = Import-PowerShellDataFile -Path (Join-Path $script:shippedTweaksRoot `
+                'qol\config-start-menu.psd1')
+        $policyEntries = @($definition.Registry | Where-Object {
+                $_.Path -eq 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer' -and
+                $_.Name -like 'ConfigureStartPins*'
+            })
+
+        $policyEntries.Count | Should -Be 2
+        ($policyEntries | Where-Object Name -eq 'ConfigureStartPins').Data | Should -Be 1
+        $pathEntry = $policyEntries | Where-Object Name -eq 'ConfigureStartPinsJSON'
+        $pathEntry.Type | Should -BeExactly 'ExpandString'
+        $pathEntry.Data | Should -BeExactly '%SystemRoot%\AtlasModules\Other\StartLayout.json'
+
+        $layout = Get-Content -LiteralPath (Join-Path $atlasModules 'Other\StartLayout.json') `
+            -Raw | ConvertFrom-Json
+        $layout.applyOnce | Should -BeTrue
+        @($layout.pinnedList).Count | Should -Be 7
+        ($layout | ConvertTo-Json -Depth 10) | Should -Not -Match `
+            'Xbox|WhatsApp|LinkedIn|Microsoft\.Paint|SecHealthUI'
+    }
+
 }
 
 Describe 'Test-AtlasTweakApplicable' {

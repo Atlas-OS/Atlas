@@ -1,0 +1,26 @@
+{
+  "applyOnce": true,
+  "pinnedList": [
+    {
+      "packagedAppId": "windows.immersivecontrolpanel_cw5n1h2txyewy!microsoft.windows.immersivecontrolpanel"
+    },
+    {
+      "desktopAppLink": "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\File Explorer.lnk"
+    },
+    {
+      "packagedAppId": "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"
+    },
+    {
+      "packagedAppId": "Microsoft.WindowsStore_8wekyb3d8bbwe!App"
+    },
+    {
+      "packagedAppId": "Microsoft.Windows.Photos_8wekyb3d8bbwe!App"
+    },
+    {
+      "packagedAppId": "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"
+    },
+    {
+      "packagedAppId": "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App"
+    }
+  ]
+}
