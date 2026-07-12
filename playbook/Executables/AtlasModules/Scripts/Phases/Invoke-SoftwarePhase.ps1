@@ -75,6 +75,11 @@ foreach ($component in $requestedComponents) {
         }
     }
     catch {
+        if ($component -ceq 'DirectX') {
+            Write-AtlasLog -Level Warning -Message `
+                "Optional legacy DirectX runtime was not installed; continuing: $($_.Exception.Message)"
+            continue
+        }
         if (-not $failedComponents.Contains($component)) {
             $failedComponents.Add($component)
         }

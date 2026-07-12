@@ -280,6 +280,7 @@ Describe 'Software phase outcome aggregation' {
         }
         $outcomes = @{
             SevenZip = $false
+            DirectX = $false
             Firefox = [InvalidOperationException]::new('simulated Firefox failure')
         }
 
@@ -305,7 +306,10 @@ Describe 'Software phase outcome aggregation' {
             'VCRedist', 'SevenZip', 'DirectX', 'Toolbox',
             'Brave', 'Firefox', 'LibreWolf', 'Chrome'
         )
-        $script:softwareLogs.Count | Should -Be 2
+        $script:softwareLogs.Count | Should -Be 3
+        @($script:softwareLogs | Where-Object {
+                $_.Message -match 'Optional legacy DirectX runtime was not installed; continuing'
+            }).Count | Should -Be 1
     }
 
     It 'counts failed exact-user LibreWolf integration and still attempts later browsers' {
