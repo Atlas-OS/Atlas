@@ -1,6 +1,5 @@
 # Companion of config-pins.psd1.
 $ErrorActionPreference = 'Stop'
-$windir = [Environment]::GetFolderPath('Windows')
 
 # Resolve the user's chosen browser from the install options.
 $browser = ''
@@ -11,26 +10,9 @@ if (Test-AtlasOption -Name 'install-another-browser') {
     elseif (Test-AtlasOption -Name 'browser-librewolf') { $browser = 'LibreWolf' }
 }
 
-# Temporary value read by Initialize-NewUser.ps1 to pin the taskbar for users created later.
+# Value read by Initialize-NewUser.ps1 for the installing user and users created later.
 $setupOptions = 'HKLM:\SOFTWARE\AtlasOS\SetupOptions'
 if (-not (Test-Path -LiteralPath $setupOptions)) {
     New-Item -Path $setupOptions -Force | Out-Null
 }
 New-ItemProperty -LiteralPath $setupOptions -Name 'browser' -Value $browser -PropertyType String -Force | Out-Null
-
-# Apply the taskbar pins to existing users, but not during OOBE.
-if (-not (Get-AtlasContext).IsOobe) {
-    $taskbarPins = Join-Path -Path $windir -ChildPath 'AtlasModules\Scripts\Internal\Set-TaskbarPins.ps1'
-    $location = Get-Location
-    try {
-        if ($browser) {
-            & $taskbarPins $browser
-        }
-        else {
-            & $taskbarPins
-        }
-    }
-    finally {
-        Set-Location -LiteralPath $location
-    }
-}
