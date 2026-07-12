@@ -121,6 +121,7 @@ Describe 'Atlas power-saving state' {
 
     It 'parses scheme GUIDs independently of localized powercfg labels' {
         $result = Get-AtlasPowerSchemeGuidFromOutput -Output @(
+            ''
             "Localized label: $script:balanced"
             "Another label: $script:custom"
         )

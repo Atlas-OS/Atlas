@@ -53,6 +53,7 @@ function Get-AtlasPowerSchemeGuidFromOutput {
     param(
         [Parameter(Mandatory = $true)]
         [AllowEmptyCollection()]
+        [AllowEmptyString()]
         [string[]]$Output,
 
         [switch]$RequireSingle
