@@ -74,8 +74,13 @@ function Start-AtlasOptionalInstaller {
 function Install-AtlasToolbox {
     if ($env:PATH -like '*Atlas Toolbox*') { return }
     $toolboxPath = Join-Path -Path $script:TempDir -ChildPath 'toolbox.exe'
-    Invoke-AtlasDownload -Uri 'https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe' -Destination $toolboxPath -Description 'Toolbox'
-    Start-AtlasInstaller -FilePath $toolboxPath -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"' -Description 'Toolbox'
+    try {
+        Invoke-AtlasDownload -Uri 'https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe' -Destination $toolboxPath -Description 'Toolbox'
+        Start-AtlasInstaller -FilePath $toolboxPath -ArgumentList '/verysilent /install /MERGETASKS="desktopicon"' -Description 'Toolbox'
+    }
+    catch {
+        Write-Warning "Atlas Toolbox could not be installed. Setup will continue $($_.Exception.Message)"
+    }
 }
 
 function Install-BraveBrowser {
