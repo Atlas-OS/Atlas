@@ -32,10 +32,13 @@ $ErrorActionPreference = 'Stop'
 $failureStage = 'Bootstrap'
 trap {
     $exitCode = switch -CaseSensitive ($failureStage) {
-        'Identity' { 11 }
+        'CurrentSessionIdentity' { 11 }
         'ProcessStop' { 12 }
         'ExplorerStart' { 13 }
         'ExplorerRecovery' { 14 }
+        'UserSid' { 15 }
+        'WindowsSession' { 16 }
+        'Operation' { 17 }
         default { 10 }
     }
     exit $exitCode
@@ -45,11 +48,13 @@ $modulesRoot = Join-Path $PSScriptRoot '..\Modules'
 Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force -ErrorAction Stop
 Import-Module (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
 
-$failureStage = 'Identity'
-if ((Test-AtlasSystem) -or (Test-AtlasAdmin)) {
+$failureStage = 'CurrentSessionIdentity'
+if ($PSCmdlet.ParameterSetName -ceq 'CurrentSession' -and
+    ((Test-AtlasSystem) -or (Test-AtlasAdmin))) {
     throw 'User-shell refresh requires a non-elevated interactive user token; Administrator, SYSTEM, and TrustedInstaller tokens are never accepted.'
 }
 
+$failureStage = 'UserSid'
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 try {
     $actualSid = $identity.User.Value
@@ -70,6 +75,7 @@ if ($PSCmdlet.ParameterSetName -ceq 'InstallBound') {
     }
 }
 
+$failureStage = 'WindowsSession'
 $currentProcess = [Diagnostics.Process]::GetCurrentProcess()
 try {
     $sessionId = [int]$currentProcess.SessionId
@@ -81,6 +87,7 @@ if ($sessionId -lt 1) {
     throw 'User-shell refresh requires a nonzero interactive Windows session.'
 }
 
+$failureStage = 'Operation'
 $processNames = switch -CaseSensitive ($Operation) {
     'ShellRefresh' { @('ShellExperienceHost', 'explorer') }
     'ExplorerRefresh' { @('explorer') }
