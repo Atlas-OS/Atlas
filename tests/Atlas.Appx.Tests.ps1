@@ -790,7 +790,7 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
 
         Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 2 -ParameterFilter {
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -ParameterFilter {
             $Level -eq 'Warning' -and $Message -like "Ignoring AppX removal failure for 'Optional.App*':*"
         }
     }
@@ -815,6 +815,26 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
             Should -Throw -ExpectedMessage '*Required.One*Required.Two*'
 
         Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly
+        Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 1 -Exactly
+    }
+
+    It 'accepts a provisioned-package error when final inventory confirms removal' {
+        $definition = [pscustomobject]@{ Name = 'Stale.App*'; Option = $null; IgnoreErrors = $false }
+        InModuleScope Atlas.Appx { $script:testStaleProvisionedCalls = 0 }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith {
+            $script:testStaleProvisionedCalls = [int]$script:testStaleProvisionedCalls + 1
+            if ($script:testStaleProvisionedCalls -eq 1) {
+                return @([pscustomobject]@{
+                        DisplayName = 'Stale.App'; PackageName = 'Stale.App_1.0_neutral__abc'
+                    })
+            }
+            return @()
+        }
+        Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -MockWith { throw 'path not found' }
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
+
         Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 1 -Exactly
     }
 

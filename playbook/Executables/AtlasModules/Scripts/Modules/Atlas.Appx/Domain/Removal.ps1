@@ -200,10 +200,11 @@ function Invoke-AtlasAppxRemovalPlan {
         Removes matching installed registrations for every existing user and matching
         provisioned packages for future users, then verifies both inventories.
     .DESCRIPTION
-        All definitions are attempted in order. Failures from required definitions are
-        aggregated and thrown only after the full plan; definitions that formerly used
-        AME's ignoreErrors flag remain warning-only. Option gates are read from Atlas's
-        authoritative install context (install-state-backed, with released-flag compatibility).
+        All definitions are attempted in order. Command failures remain visible, but
+        the fresh inventories taken afterward determine whether a required removal
+        actually failed. Definitions that formerly used AME's ignoreErrors flag remain
+        warning-only. Option gates are read from Atlas's authoritative install context
+        (install-state-backed, with released-flag compatibility).
     #>
     param(
         [Parameter()]
@@ -276,8 +277,8 @@ function Invoke-AtlasAppxRemovalPlan {
                 Write-AtlasLog -Message "Removed installed AppX package '$fullName' for all users."
             }
             catch {
-                Add-AtlasAppxRemovalFailure -Failures $failures -Definition $item `
-                    -Message "Installed package '$fullName' failed: $($_.Exception.Message)"
+                Write-AtlasLog -Level Warning -Message `
+                    "Installed AppX removal command failed for '$fullName'; final inventory will determine the result: $($_.Exception.Message)"
             }
         }
 
@@ -301,8 +302,8 @@ function Invoke-AtlasAppxRemovalPlan {
                 Write-AtlasLog -Message "Removed provisioned AppX package '$packageName'."
             }
             catch {
-                Add-AtlasAppxRemovalFailure -Failures $failures -Definition $item `
-                    -Message "Provisioned package '$packageName' failed: $($_.Exception.Message)"
+                Write-AtlasLog -Level Warning -Message `
+                    "Provisioned AppX removal command failed for '$packageName'; final inventory will determine the result: $($_.Exception.Message)"
             }
         }
     }
