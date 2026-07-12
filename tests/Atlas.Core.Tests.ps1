@@ -128,8 +128,15 @@ Describe 'Invoke-AtlasAsUser' {
 
 Describe 'Invoke-AtlasTrustedInstaller' {
     BeforeEach {
-        Mock New-AtlasElevationPipeServer {
-            throw 'TEST SAFETY SENTINEL: validation reached the kernel rendezvous boundary.'
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Core
+        Mock Get-AtlasContext {
+            [pscustomobject]@{
+                WinDir = [Environment]::GetFolderPath('Windows')
+                AtlasModulesPath = 'C:\Windows\AtlasModules'
+            }
+        } -ModuleName Atlas.Core
+        Mock Invoke-AtlasHiddenProcess {
+            [pscustomobject]@{ ExitCode = 0; StandardOutput = ''; StandardError = '' }
         } -ModuleName Atlas.Core
     }
 
@@ -177,107 +184,31 @@ Describe 'Invoke-AtlasTrustedInstaller' {
             Should -Throw -ExpectedMessage "*ResetServices does not accept*'-MachineOnly'*"
     }
 
-    It 'returns caller-generated failures with the complete versioned result shape' {
-        $result = & $coreModule {
-            $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-            New-AtlasCallerElevationResult `
-                -Envelope ([pscustomobject]@{
-                    Request = [pscustomobject]@{ requestId = '11111111222233334444555555555555' }
-                    Sha256 = 'A' * 64
-                }) `
-                -RequesterEvidence ([pscustomobject]@{
-                    UserSid = $sid
-                    ProcessId = $PID
-                    CreationFileTime = 1
-                    SessionId = 0
-                }) `
-                -Status ConsentDenied `
-                -CompletionState NotStarted `
-                -ErrorMessage 'declined'
-        }
+    It 'passes only typed operation arguments to the fixed checked broker' {
+        Invoke-AtlasTrustedInstaller -Operation Toggle -Name TestToggle -State Enable `
+            -JustContext -TimeoutSeconds 42 | Out-Null
 
-        @($result.PSObject.Properties.Name) -join ',' | Should -BeExactly (@(
-            'protocolVersion', 'requestId', 'requestSha256',
-            'requesterSid', 'requesterProcessId', 'requesterCreationFileTime', 'requesterSessionId',
-            'bootstrapProcessId', 'bootstrapCreationFileTime',
-            'brokerProcessId', 'brokerCreationFileTime',
-            'rootProcessId', 'sourceProcessId', 'sourceToken', 'childToken',
-            'startedUtc', 'endedUtc', 'status', 'completionState',
-            'exitCodeUInt32', 'rootExited', 'jobDrained', 'error'
-        ) -join ',')
-        $result.protocolVersion | Should -Be 2
-        $result.status | Should -BeExactly 'ConsentDenied'
-        $result.completionState | Should -BeExactly 'NotStarted'
-        $result.bootstrapProcessId | Should -BeNullOrEmpty
-        $result.bootstrapCreationFileTime | Should -BeNullOrEmpty
-        $result.brokerProcessId | Should -BeNullOrEmpty
-        $result.brokerCreationFileTime | Should -BeNullOrEmpty
-        $result.startedUtc | Should -Match '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{7}Z$'
-        $result.endedUtc | Should -BeExactly $result.startedUtc
+        Should -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Core -Times 1 -Exactly `
+            -ParameterFilter {
+                $FilePath -like '*\System32\WindowsPowerShell\v1.0\powershell.exe' -and
+                @($ArgumentList | Where-Object {
+                        $_ -like '*\Scripts\Internal\Invoke-AtlasTrustedInstallerBroker.ps1'
+                    }).Count -eq 1 -and
+                $ArgumentList -contains 'TestToggle' -and
+                $ArgumentList -contains 'Enable' -and
+                $ArgumentList -contains '-JustContext' -and
+                $TimeoutSeconds -eq 42 -and
+                $Wait -and $CaptureOutput
+            }
     }
 
-    It 'represents an ambiguity after request transmission begins as CompletionUnknown' {
-        $result = & $coreModule {
-            $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-            New-AtlasCallerElevationResult `
-                -Envelope ([pscustomobject]@{
-                    Request = [pscustomobject]@{ requestId = '11111111222233334444555555555555' }
-                    Sha256 = 'A' * 64
-                }) `
-                -RequesterEvidence ([pscustomobject]@{
-                    UserSid = $sid
-                    ProcessId = $PID
-                    CreationFileTime = 1
-                    SessionId = 0
-                }) `
-                -Status CompletionUnknown `
-                -CompletionState CompletionUnknown `
-                -BootstrapProcessId 8 `
-                -BootstrapCreationFileTime 2 `
-                -BrokerProcessId 9 `
-                -BrokerCreationFileTime 3 `
-                -ErrorMessage 'Request transmission began before an ambiguous channel failure.'
-        }
+    It 'propagates a checked broker failure' {
+        Mock Invoke-AtlasHiddenProcess { throw 'broker exited with disallowed code 5: failed' } `
+            -ModuleName Atlas.Core
 
-        $result.protocolVersion | Should -Be 2
-        $result.status | Should -BeExactly 'CompletionUnknown'
-        $result.completionState | Should -BeExactly 'CompletionUnknown'
-        $result.bootstrapProcessId | Should -Be 8
-        $result.bootstrapCreationFileTime | Should -BeExactly '0000000000000002'
-        $result.brokerProcessId | Should -Be 9
-        $result.brokerCreationFileTime | Should -BeExactly '0000000000000003'
-        $result.exitCodeUInt32 | Should -BeNullOrEmpty
-        $result.rootExited | Should -BeFalse
-        $result.jobDrained | Should -BeFalse
-    }
-
-    It 'rejects mismatched caller status and completion-state pairs' {
-        $invokeConstructor = {
-            param($status, $completionState)
-            & $coreModule {
-                param($resultStatus, $resultCompletionState)
-                $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-                New-AtlasCallerElevationResult `
-                    -Envelope ([pscustomobject]@{
-                        Request = [pscustomobject]@{ requestId = '11111111222233334444555555555555' }
-                        Sha256 = 'A' * 64
-                    }) `
-                    -RequesterEvidence ([pscustomobject]@{
-                        UserSid = $sid
-                        ProcessId = $PID
-                        CreationFileTime = 1
-                        SessionId = 0
-                    }) `
-                    -Status $resultStatus `
-                    -CompletionState $resultCompletionState `
-                    -ErrorMessage 'test mismatch'
-            } $status $completionState
-        }
-
-        { & $invokeConstructor CompletionUnknown NotStarted } | Should -Throw
-        { & $invokeConstructor NotStarted CompletionUnknown } | Should -Throw
-        { & $invokeConstructor completionunknown completionunknown } | Should -Throw
-        { & $invokeConstructor consentdenied notstarted } | Should -Throw
+        {
+            Invoke-AtlasTrustedInstaller -Operation Toggle -Name TestToggle -State Enable
+        } | Should -Throw '*disallowed code 5*failed*'
     }
 }
 

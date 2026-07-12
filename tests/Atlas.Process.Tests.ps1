@@ -142,4 +142,15 @@ Describe 'Invoke-AtlasHiddenProcess' {
                 -ArgumentList $script:FailureArguments -Wait -CaptureOutput } |
             Should -Throw '*disallowed code 17*fixture stdout*fixture stderr*'
     }
+
+    It 'terminates a child that exceeds its explicit timeout' {
+        $powershell = Join-Path ([Environment]::SystemDirectory) `
+            'WindowsPowerShell\v1.0\powershell.exe'
+
+        {
+            Invoke-AtlasHiddenProcess -FilePath $powershell -ArgumentList @(
+                '-NoProfile', '-Command', 'Start-Sleep -Seconds 5'
+            ) -Wait -TimeoutSeconds 1
+        } | Should -Throw '*exceeded its 1-second timeout and was terminated*'
+    }
 }

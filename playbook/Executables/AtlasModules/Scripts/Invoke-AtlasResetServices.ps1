@@ -81,22 +81,32 @@ if (-not $Silent) {
 
 $coreManifest = Join-Path -Path $PSScriptRoot -ChildPath 'Modules\Atlas.Core\Atlas.Core.psd1'
 Import-Module -Name $coreManifest -Force -ErrorAction Stop
-$result = Invoke-AtlasTrustedInstaller `
-    -Operation ResetServices `
-    -RestoreSource $RestoreSource
-
-if (-not $result -or [string]$result.status -cne 'Completed') {
-    $status = if ($result) { [string]$result.status } else { 'MissingResult' }
-    $detail = if ($result -and $result.error) { " $($result.error)" } else { '' }
-    throw "ResetServices failed with status '$status'.$detail"
+if (-not (Test-AtlasAdmin)) {
+    $context = Get-AtlasContext
+    $powershellPath = Join-Path $context.WinDir 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $argumentString = ConvertTo-AtlasWindowsArgumentString -ArgumentList @(
+        '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+        '-File', $PSCommandPath,
+        '-Silent', '-NoRestartPrompt', '-RestoreSource', $RestoreSource
+    )
+    try {
+        $elevatedProcess = Start-Process -FilePath $powershellPath -ArgumentList $argumentString `
+            -Verb RunAs -Wait -PassThru
+    }
+    catch [ComponentModel.Win32Exception] {
+        if ($_.Exception.NativeErrorCode -eq 1223) {
+            throw 'Administrator elevation was cancelled by the user.'
+        }
+        throw
+    }
+    if ($elevatedProcess.ExitCode -ne 0) {
+        throw "The elevated service reset exited with code $($elevatedProcess.ExitCode)."
+    }
 }
-if ($null -eq $result.PSObject.Properties['exitCodeUInt32'] -or
-    $null -eq $result.exitCodeUInt32) {
-    throw 'ResetServices completed without an exit code.'
-}
-$exitCode = [uint64]$result.exitCodeUInt32
-if ($exitCode -ne 0) {
-    throw "ResetServices exited with code $exitCode."
+else {
+    Invoke-AtlasTrustedInstaller `
+        -Operation ResetServices `
+        -RestoreSource $RestoreSource | Out-Null
 }
 
 Write-Output 'Atlas service defaults were restored. A restart is required to apply every change.'

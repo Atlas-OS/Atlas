@@ -155,11 +155,7 @@ Describe 'Atlas toggle privilege routing' {
             [pscustomobject]@{ ExitCode = 0 }
         }
         Mock -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -MockWith {
-            [pscustomobject]@{
-                status         = 'Completed'
-                exitCodeUInt32 = [uint64]0
-                error          = $null
-            }
+            [pscustomobject]@{ ExitCode = 0 }
         }
     }
 

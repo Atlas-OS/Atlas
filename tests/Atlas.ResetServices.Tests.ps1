@@ -225,9 +225,8 @@ Describe 'Reset Services phase and privileged adapter behavior' {
 Describe 'Reset Services public adapter behavior' {
     BeforeEach {
         Mock -CommandName Import-Module -MockWith {}
-        Mock -CommandName Invoke-AtlasTrustedInstaller -MockWith {
-            [pscustomobject]@{ status = 'Completed'; exitCodeUInt32 = [uint64]0; error = $null }
-        }
+        Mock -CommandName Test-AtlasAdmin -MockWith { $true }
+        Mock -CommandName Invoke-AtlasTrustedInstaller
     }
 
     It 'uses the typed broker default and reports the required restart' {
@@ -239,16 +238,11 @@ Describe 'Reset Services public adapter behavior' {
             -ParameterFilter { $Operation -ceq 'ResetServices' -and $RestoreSource -ceq 'ToggleDefaults' }
     }
 
-    It 'surfaces broker and target failures without reporting success' {
+    It 'surfaces a checked broker or target failure without reporting success' {
         Mock -CommandName Invoke-AtlasTrustedInstaller -MockWith {
-            [pscustomobject]@{ status = 'CompletionUnknown'; exitCodeUInt32 = [uint64]0; error = 'broker failed' }
+            throw 'TrustedInstaller broker exited with disallowed code 5: target failed.'
         }
-        { & $script:publicResetPath -Silent } | Should -Throw '*CompletionUnknown*broker failed*'
-
-        Mock -CommandName Invoke-AtlasTrustedInstaller -MockWith {
-            [pscustomobject]@{ status = 'Completed'; exitCodeUInt32 = [uint64]5; error = $null }
-        }
-        { & $script:publicResetPath -Silent } | Should -Throw '*exited with code 5*'
+        { & $script:publicResetPath -Silent } | Should -Throw '*disallowed code 5*target failed*'
     }
 }
 

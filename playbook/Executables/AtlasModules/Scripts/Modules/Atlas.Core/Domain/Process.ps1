@@ -135,6 +135,9 @@ function Invoke-AtlasHiddenProcess {
         [ValidateNotNullOrEmpty()]
         [int[]]$AllowedExitCode = @(0),
 
+        [ValidateRange(0, 86400)]
+        [int]$TimeoutSeconds = 0,
+
         [switch]$CaptureOutput
     )
 
@@ -169,7 +172,28 @@ function Invoke-AtlasHiddenProcess {
         # Begin both reads before waiting so neither child pipe can fill and deadlock.
         $standardOutputTask = $process.StandardOutput.ReadToEndAsync()
         $standardErrorTask = $process.StandardError.ReadToEndAsync()
-        $process.WaitForExit()
+        $completed = if ($TimeoutSeconds -eq 0) {
+            $process.WaitForExit()
+            $true
+        }
+        else {
+            $process.WaitForExit($TimeoutSeconds * 1000)
+        }
+        if (-not $completed) {
+            try {
+                $process.Kill()
+                $process.WaitForExit()
+            }
+            catch {
+                throw [TimeoutException]::new(
+                    "'$resolvedFile' exceeded its $TimeoutSeconds-second timeout and could not be terminated: $($_.Exception.Message)",
+                    $_.Exception
+                )
+            }
+            throw [TimeoutException]::new(
+                "'$resolvedFile' exceeded its $TimeoutSeconds-second timeout and was terminated."
+            )
+        }
         $standardOutput = $standardOutputTask.Result
         $standardError = $standardErrorTask.Result
         $exitCode = [int]$process.ExitCode

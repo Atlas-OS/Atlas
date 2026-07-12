@@ -880,9 +880,18 @@ function Invoke-AtlasToggle {
     }
 
     $privilegedChildCompleted = $false
-    if ($elevation -ceq 'Admin' -and -not (Test-AtlasAdmin)) {
+    if ($elevation -in @('Admin', 'TrustedInstaller') -and
+        -not $trustedInstaller -and
+        -not (Test-AtlasSystem) -and
+        -not (Test-AtlasAdmin)) {
         if ($Silent) {
-            throw "Toggle '$Name' requires Administrator rights; refusing to prompt for elevation in silent mode."
+            $privilegeText = if ($elevation -ceq 'Admin') {
+                'Administrator rights'
+            }
+            else {
+                'TrustedInstaller elevation'
+            }
+            throw "Toggle '$Name' requires $privilegeText; refusing to prompt for elevation in silent mode."
         }
 
         Write-AtlasLog -Message 'Administrator privileges are required.'
@@ -933,35 +942,14 @@ function Invoke-AtlasToggle {
             throw "Toggle '$Name' requires TrustedInstaller and the current process is not elevated; refusing to elevate in silent mode."
         }
 
-        $result = Invoke-AtlasTrustedInstaller `
+        Invoke-AtlasTrustedInstaller `
             -Operation Toggle `
             -Name ([string]$definition.Name) `
             -State $stateName `
             -Silent:$true `
             -JustContext:$JustContext `
             -NoExplorerRestart:($NoExplorerRestart -or $deferShellRefreshToCaller) `
-            -MachineOnly:$isSplitAction
-
-        if ($null -eq $result -or $null -eq $result.PSObject.Properties['status']) {
-            throw "TrustedInstaller toggle '$Name' returned no structured broker result."
-        }
-        if ([string]$result.status -cne 'Completed') {
-            $failure = if ($null -ne $result.PSObject.Properties['error'] -and
-                -not [string]::IsNullOrWhiteSpace([string]$result.error)) {
-                [string]$result.error
-            }
-            else {
-                'No broker error detail was returned.'
-            }
-            throw "TrustedInstaller toggle '$Name' failed with status '$($result.status)': $failure"
-        }
-        if ($null -eq $result.PSObject.Properties['exitCodeUInt32'] -or
-            $null -eq $result.exitCodeUInt32) {
-            throw "TrustedInstaller toggle '$Name' completed without an exit code."
-        }
-        if ([uint64]$result.exitCodeUInt32 -ne 0) {
-            throw "TrustedInstaller toggle '$Name' exited with code $($result.exitCodeUInt32)."
-        }
+            -MachineOnly:$isSplitAction | Out-Null
         $privilegedChildCompleted = $true
     }
 

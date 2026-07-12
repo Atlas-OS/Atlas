@@ -90,11 +90,7 @@ Describe 'TrustedInstaller toggle broker boundary' {
         Mock -CommandName Test-AtlasAdmin -ModuleName Atlas.Toggles -MockWith { $true }
         Mock -CommandName Read-Pause -ModuleName Atlas.Toggles
         Mock -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -MockWith {
-            [pscustomobject][ordered]@{
-                status         = 'Completed'
-                exitCodeUInt32 = [uint64]0
-                error          = $null
-            }
+            [pscustomobject]@{ ExitCode = 0 }
         }
     }
 
@@ -146,17 +142,13 @@ Describe 'TrustedInstaller toggle broker boundary' {
 
     It 'propagates a nonzero TrustedInstaller child exit without running the local action' {
         Mock -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -MockWith {
-            [pscustomobject][ordered]@{
-                status         = 'Completed'
-                exitCodeUInt32 = [uint64]5
-                error          = $null
-            }
+            throw 'TrustedInstaller broker exited with disallowed code 5.'
         }
 
         {
             Invoke-AtlasToggle -Name BrokerToggle -State Enable `
                 -TogglesRoot $script:toggleRoot
-        } | Should -Throw -ExpectedMessage '*exited with code 5*'
+        } | Should -Throw -ExpectedMessage '*disallowed code 5*'
 
         $script:actionMarker | Should -Not -Exist
     }
@@ -187,15 +179,11 @@ Describe 'TrustedInstaller toggle broker boundary' {
             Should -BeNullOrEmpty
     }
 
-    It 'runs the split user action only after a successful broker machine child' {
+    It 'runs the split user action only after a successful elevated machine child' {
         Mock -CommandName Test-AtlasAdmin -ModuleName Atlas.Toggles -MockWith { $false }
-        Mock -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -MockWith {
+        Mock -CommandName Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles -MockWith {
             [IO.File]::AppendAllText($script:splitEventPath, "machine-child`n")
-            [pscustomobject][ordered]@{
-                status         = 'Completed'
-                exitCodeUInt32 = [uint64]0
-                error          = $null
-            }
+            [pscustomobject]@{ ExitCode = 0 }
         }
         Mock -CommandName Invoke-AtlasToggleCurrentSessionShellRefresh -ModuleName Atlas.Toggles `
             -MockWith {
@@ -210,14 +198,12 @@ Describe 'TrustedInstaller toggle broker boundary' {
             'user'
             'refresh'
         )
-        Should -Invoke -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles `
+        Should -Invoke -CommandName Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles `
             -Times 1 -Exactly -ParameterFilter {
-                $Operation -ceq 'Toggle' -and
-                $Name -ceq 'SplitBrokerToggle' -and
-                $State -ceq 'Enable' -and
-                $MachineOnly -and
-                $NoExplorerRestart
+                $ArgumentList -contains '-MachineOnly' -and
+                $ArgumentList -contains '/noaction'
             }
+        Should -Not -Invoke -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles
         Get-AtlasToggleState -Name SplitBrokerToggle -StateRoot $script:stateRoot |
             Should -BeNullOrEmpty
     }

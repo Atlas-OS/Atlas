@@ -1,3 +1,0 @@
-#pragma once
-
-#define IDR_ATLAS_ELEVATION_BOOTSTRAP_MANIFEST 1

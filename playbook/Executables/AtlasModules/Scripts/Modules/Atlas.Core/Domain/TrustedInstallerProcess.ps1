@@ -125,7 +125,6 @@ namespace Atlas {
     public sealed class TrustedInstallerLaunchRequest {
         public string Operation { get; set; }
         public string AtlasModulesPath { get; set; }
-        public string ProtectedWorkingDirectory { get; set; }
         public string ToggleName { get; set; }
         public string ToggleState { get; set; }
         public bool Silent { get; set; }
@@ -134,12 +133,6 @@ namespace Atlas {
         public bool MachineOnly { get; set; }
         public string RestoreSource { get; set; }
         public int TimeoutMilliseconds { get; set; }
-        public int RequesterProcessId { get; set; }
-        public long RequesterCreationFileTime { get; set; }
-        public string RequesterSid { get; set; }
-        public int RequesterSessionId { get; set; }
-        public IntPtr LivenessPipeHandle { get; set; }
-        public SafeFileHandle OuterJobHandle { get; set; }
     }
 
     public sealed class TrustedInstallerLaunchResult {
@@ -153,30 +146,6 @@ namespace Atlas {
         public bool JobDrained { get; internal set; }
     }
 
-    public sealed class BrokerRequesterEvidence {
-        public int ProcessId { get; internal set; }
-        public long CreationFileTime { get; internal set; }
-        public string UserSid { get; internal set; }
-        public int SessionId { get; internal set; }
-    }
-
-    public sealed class ProtectedPayloadLease : IDisposable {
-        readonly List<IDisposable> handles;
-        bool disposed;
-
-        internal ProtectedPayloadLease(List<IDisposable> handles) {
-            this.handles = handles;
-        }
-
-        public void Dispose() {
-            if (disposed) return;
-            disposed = true;
-            for (int i = handles.Count - 1; i >= 0; i--) {
-                handles[i].Dispose();
-            }
-        }
-    }
-
     public static class TrustedInstallerProcessNative {
         const UInt32 TOKEN_ASSIGN_PRIMARY = 0x0001;
         const UInt32 TOKEN_DUPLICATE = 0x0002;
@@ -188,9 +157,6 @@ namespace Atlas {
         const int ERROR_INSUFFICIENT_BUFFER = 122;
         const int ERROR_NOT_ALL_ASSIGNED = 1300;
         const int ERROR_SERVICE_ALREADY_RUNNING = 1056;
-        const int ERROR_BROKEN_PIPE = 109;
-        const int ERROR_NO_DATA = 232;
-        const int ERROR_PIPE_NOT_CONNECTED = 233;
         const UInt32 SC_MANAGER_CONNECT = 0x0001;
         const UInt32 SERVICE_QUERY_STATUS = 0x0004;
         const UInt32 SERVICE_START = 0x0010;
@@ -209,7 +175,6 @@ namespace Atlas {
         const UInt32 PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = 0x00020000;
         const UInt32 PROC_THREAD_ATTRIBUTE_JOB_LIST = 0x0002000D;
         const UInt32 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000;
-        const int JobObjectAssociateCompletionPortInformation = 7;
         const int JobObjectBasicAndIoAccountingInformation = 8;
         const int JobObjectExtendedLimitInformation = 9;
         const UInt32 WAIT_OBJECT_0 = 0;
@@ -218,7 +183,6 @@ namespace Atlas {
         const UInt32 STILL_ACTIVE = 259;
         const UInt32 FILE_ATTRIBUTE_REPARSE_POINT = 0x00000400;
         const UInt32 FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000;
-        const UInt32 FILE_FLAG_BACKUP_SEMANTICS = 0x02000000;
         const UInt32 FILE_SHARE_READ = 0x00000001;
         const UInt32 FILE_SHARE_WRITE = 0x00000002;
         const UInt32 FILE_READ_ATTRIBUTES = 0x00000080;
@@ -350,12 +314,6 @@ namespace Atlas {
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        struct JOBOBJECT_ASSOCIATE_COMPLETION_PORT {
-            public IntPtr CompletionKey;
-            public IntPtr CompletionPort;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
         struct JOBOBJECT_BASIC_ACCOUNTING_INFORMATION {
             public Int64 TotalUserTime;
             public Int64 TotalKernelTime;
@@ -378,9 +336,6 @@ namespace Atlas {
 
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern IntPtr OpenProcess(UInt32 dwDesiredAccess, bool bInheritHandle, UInt32 dwProcessId);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool GetProcessTimes(IntPtr hProcess, out long creationTime, out long exitTime, out long kernelTime, out long userTime);
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         static extern bool QueryFullProcessImageName(IntPtr hProcess, UInt32 dwFlags, StringBuilder lpExeName, ref UInt32 lpdwSize);
@@ -437,16 +392,7 @@ namespace Atlas {
         static extern bool SetInformationJobObject(IntPtr hJob, Int32 JobObjectInfoClass, ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION lpJobObjectInfo, Int32 cbJobObjectInfoLength);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool SetInformationJobObject(IntPtr hJob, Int32 JobObjectInfoClass, ref JOBOBJECT_ASSOCIATE_COMPLETION_PORT lpJobObjectInfo, Int32 cbJobObjectInfoLength);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool QueryInformationJobObject(IntPtr hJob, Int32 JobObjectInfoClass, out JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION lpJobObjectInfo, Int32 cbJobObjectInfoLength, out Int32 lpReturnLength);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern IntPtr CreateIoCompletionPort(IntPtr FileHandle, IntPtr ExistingCompletionPort, UIntPtr CompletionKey, UInt32 NumberOfConcurrentThreads);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool GetQueuedCompletionStatus(IntPtr CompletionPort, out UInt32 lpNumberOfBytesTransferred, out UIntPtr lpCompletionKey, out IntPtr lpOverlapped, UInt32 dwMilliseconds);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool InitializeProcThreadAttributeList(IntPtr lpAttributeList, Int32 dwAttributeCount, UInt32 dwFlags, ref UIntPtr lpSize);
@@ -475,12 +421,6 @@ namespace Atlas {
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool TerminateJobObject(IntPtr hJob, UInt32 uExitCode);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool PeekNamedPipe(IntPtr hNamedPipe, IntPtr lpBuffer, UInt32 nBufferSize, IntPtr lpBytesRead, IntPtr lpTotalBytesAvail, IntPtr lpBytesLeftThisMessage);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool GetNamedPipeServerProcessId(IntPtr Pipe, out UInt32 ServerProcessId);
-
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         static extern IntPtr CreateFile(string lpFileName, UInt32 dwDesiredAccess, UInt32 dwShareMode, IntPtr lpSecurityAttributes, UInt32 dwCreationDisposition, UInt32 dwFlagsAndAttributes, IntPtr hTemplateFile);
 
@@ -497,8 +437,6 @@ namespace Atlas {
         static extern UInt32 GetFileAttributes(string lpFileName);
 
         static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
-        static readonly IntPtr COMPLETION_KEY = new IntPtr(0x41544C53);
-
         public static TrustedInstallerTokenEvidence GetCurrentTokenEvidence() {
             IntPtr token = IntPtr.Zero;
             if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_DUPLICATE, out token)) {
@@ -518,64 +456,6 @@ namespace Atlas {
                 (trustedInstallerGroupAttributes & SE_GROUP_ENABLED) != 0 &&
                 (trustedInstallerGroupAttributes & SE_GROUP_USE_FOR_DENY_ONLY) == 0;
             return isSystem && enabled && integrityRid == unchecked((int)SECURITY_MANDATORY_SYSTEM_RID);
-        }
-
-        public static BrokerRequesterEvidence GetNamedPipeServerEvidence(IntPtr pipeHandle) {
-            if (pipeHandle == IntPtr.Zero || pipeHandle == INVALID_HANDLE_VALUE) {
-                throw new ArgumentException("A connected named-pipe client handle is required.", "pipeHandle");
-            }
-            UInt32 pid;
-            if (!GetNamedPipeServerProcessId(pipeHandle, out pid) || pid == 0) {
-                throw LastError("GetNamedPipeServerProcessId failed");
-            }
-            IntPtr process = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
-            if (process == IntPtr.Zero) throw LastError("OpenProcess(pipe server) failed");
-            try {
-                long creation, exit, kernel, user;
-                if (!GetProcessTimes(process, out creation, out exit, out kernel, out user)) throw LastError("GetProcessTimes(pipe server) failed");
-                IntPtr token = IntPtr.Zero;
-                if (!OpenProcessToken(process, TOKEN_QUERY, out token)) throw LastError("OpenProcessToken(pipe server) failed");
-                try {
-                    return new BrokerRequesterEvidence {
-                        ProcessId = checked((int)pid),
-                        CreationFileTime = creation,
-                        UserSid = ReadTokenSid(token, TOKEN_INFORMATION_CLASS.TokenUser),
-                        SessionId = ReadTokenInt32(token, TOKEN_INFORMATION_CLASS.TokenSessionId)
-                    };
-                }
-                finally { CloseHandle(token); }
-            }
-            finally { CloseHandle(process); }
-        }
-
-        public static BrokerRequesterEvidence GetCurrentProcessEvidence() {
-            IntPtr process = GetCurrentProcess();
-            long creation, exit, kernel, user;
-            if (!GetProcessTimes(process, out creation, out exit, out kernel, out user)) throw LastError("GetProcessTimes(current) failed");
-            IntPtr token = IntPtr.Zero;
-            if (!OpenProcessToken(process, TOKEN_QUERY, out token)) throw LastError("OpenProcessToken(current evidence) failed");
-            try {
-                return new BrokerRequesterEvidence {
-                    ProcessId = Process.GetCurrentProcess().Id,
-                    CreationFileTime = creation,
-                    UserSid = ReadTokenSid(token, TOKEN_INFORMATION_CLASS.TokenUser),
-                    SessionId = ReadTokenInt32(token, TOKEN_INFORMATION_CLASS.TokenSessionId)
-                };
-            }
-            finally { CloseHandle(token); }
-        }
-
-        public static ProtectedPayloadLease HoldFixedBrokerEntrypoint(string atlasModulesPath) {
-            string windowsDirectory = GetNativeDirectory(true);
-            string expectedAtlasRoot = Path.GetFullPath(Path.Combine(windowsDirectory, "AtlasModules"));
-            string atlasRoot = RequireExactPath(atlasModulesPath, expectedAtlasRoot, "atlasModulesPath");
-            string brokerPath = Path.Combine(atlasRoot, "Scripts", "Internal", "Invoke-AtlasTrustedInstallerBroker.ps1");
-            ProtectedPayloadLease lease = AcquireProtectedPayloadLease(atlasRoot);
-            if (!File.Exists(brokerPath)) {
-                lease.Dispose();
-                throw new FileNotFoundException("The fixed TrustedInstaller broker entrypoint is missing.", brokerPath);
-            }
-            return lease;
         }
 
         public static string QuoteWindowsArgument(string value) {
@@ -653,18 +533,6 @@ namespace Atlas {
             return commandLine.ToString();
         }
 
-        static void ReleaseOuterJobHandle(TrustedInstallerLaunchRequest request,
-                ref IntPtr outerJobHandle) {
-            SafeFileHandle lease = request == null ? null : request.OuterJobHandle;
-            if (request != null) {
-                request.OuterJobHandle = null;
-            }
-            outerJobHandle = IntPtr.Zero;
-            if (lease != null) {
-                lease.Dispose();
-            }
-        }
-
         public static TrustedInstallerLaunchResult LaunchNonInteractive(TrustedInstallerLaunchRequest request) {
             if (request == null) {
                 throw new ArgumentNullException("request");
@@ -678,26 +546,6 @@ namespace Atlas {
             if (request.TimeoutMilliseconds < 1 || (UInt32)request.TimeoutMilliseconds > MAX_REQUEST_MILLISECONDS) {
                 throw new ArgumentOutOfRangeException("request.TimeoutMilliseconds", "Timeout must be between 1 millisecond and 24 hours.");
             }
-            if (request.LivenessPipeHandle == IntPtr.Zero || request.LivenessPipeHandle == INVALID_HANDLE_VALUE) {
-                throw new ArgumentException("A kernel-bound liveness pipe handle is required.", "request.LivenessPipeHandle");
-            }
-            if (request.OuterJobHandle == null || request.OuterJobHandle.IsClosed
-                    || request.OuterJobHandle.IsInvalid) {
-                throw new ArgumentException("The bootstrap outer containment job handle is required.", "request.OuterJobHandle");
-            }
-            IntPtr outerJobHandle = request.OuterJobHandle.DangerousGetHandle();
-            if (outerJobHandle == request.LivenessPipeHandle) {
-                throw new ArgumentException("The outer containment job and liveness pipe handles must be distinct.");
-            }
-
-            bool brokerInOuterJob;
-            if (!IsProcessInJob(GetCurrentProcess(), outerJobHandle, out brokerInOuterJob)) {
-                throw LastError("IsProcessInJob(broker, outer job) failed");
-            }
-            if (!brokerInOuterJob) {
-                throw new InvalidOperationException("The TrustedInstaller broker is not contained by the supplied bootstrap outer job.");
-            }
-
             RequireElevatedAdministrator();
             EnablePrivilege("SeDebugPrivilege");
 
@@ -706,21 +554,16 @@ namespace Atlas {
             string systemDirectory = GetNativeDirectory(false);
             string expectedAtlasRoot = Path.GetFullPath(Path.Combine(windowsDirectory, "AtlasModules"));
             string atlasRoot = RequireExactPath(request.AtlasModulesPath, expectedAtlasRoot, "AtlasModulesPath");
-            string workingDirectory = ValidateProtectedWorkingDirectory(request.ProtectedWorkingDirectory);
-            ValidateRequester(request);
+            string workingDirectory = systemDirectory;
 
             string applicationPath = null;
             string[] arguments = null;
             List<IDisposable> heldObjects = new List<IDisposable>();
-            ProtectedPayloadLease payloadLease = null;
-
             IntPtr scm = IntPtr.Zero;
             IntPtr service = IntPtr.Zero;
             IntPtr sourceProcess = IntPtr.Zero;
             IntPtr sourceToken = IntPtr.Zero;
-            IntPtr requesterProcess = IntPtr.Zero;
             IntPtr job = IntPtr.Zero;
-            IntPtr completionPort = IntPtr.Zero;
             IntPtr attributeList = IntPtr.Zero;
             IntPtr parentValue = IntPtr.Zero;
             IntPtr jobValue = IntPtr.Zero;
@@ -729,12 +572,8 @@ namespace Atlas {
             bool childCreated = false;
             bool jobDrained = false;
             try {
-                payloadLease = AcquireProtectedPayloadLease(atlasRoot);
                 ResolveOperation(request, atlasRoot, windowsDirectory, systemDirectory, out applicationPath, out arguments, heldObjects);
-                requesterProcess = OpenAndValidateRequester(request);
-                ThrowIfCancelled(requesterProcess, request.LivenessPipeHandle);
-
-                UInt32 sourcePid = StartAndValidateTrustedInstallerService(request, stopwatch, requesterProcess, out scm, out service, out sourceProcess, out sourceToken);
+                UInt32 sourcePid = StartAndValidateTrustedInstallerService(request, stopwatch, out scm, out service, out sourceProcess, out sourceToken);
                 TrustedInstallerTokenEvidence sourceEvidence = ReadTokenEvidence(sourceToken);
 
                 job = CreateJobObject(IntPtr.Zero, null);
@@ -745,17 +584,6 @@ namespace Atlas {
                 limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
                 if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, ref limits, Marshal.SizeOf(typeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))) {
                     throw LastError("SetInformationJobObject(KILL_ON_JOB_CLOSE) failed");
-                }
-
-                completionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, IntPtr.Zero, UIntPtr.Zero, 1);
-                if (completionPort == IntPtr.Zero) {
-                    throw LastError("CreateIoCompletionPort failed");
-                }
-                JOBOBJECT_ASSOCIATE_COMPLETION_PORT association = new JOBOBJECT_ASSOCIATE_COMPLETION_PORT();
-                association.CompletionKey = COMPLETION_KEY;
-                association.CompletionPort = completionPort;
-                if (!SetInformationJobObject(job, JobObjectAssociateCompletionPortInformation, ref association, Marshal.SizeOf(typeof(JOBOBJECT_ASSOCIATE_COMPLETION_PORT)))) {
-                    throw LastError("SetInformationJobObject(CompletionPort) failed");
                 }
 
                 UIntPtr attributeBytes = UIntPtr.Zero;
@@ -774,9 +602,7 @@ namespace Atlas {
                     throw LastError("UpdateProcThreadAttribute(PARENT_PROCESS) failed");
                 }
                 // PARENT_PROCESS supplies the TrustedInstaller token and session. Assign
-                // only the dedicated inner job atomically so its first process binds that
-                // job to the TrustedInstaller session. The broker remains in the bootstrap
-                // outer job and exclusively owns this kill-on-close inner-job handle.
+                // the child atomically to the broker-owned kill-on-close job.
                 int jobListBytes = checked(IntPtr.Size);
                 jobValue = Marshal.AllocHGlobal(jobListBytes);
                 Marshal.WriteIntPtr(jobValue, job);
@@ -784,11 +610,9 @@ namespace Atlas {
                     throw LastError("UpdateProcThreadAttribute(JOB_LIST) failed");
                 }
 
-                ThrowIfCancelled(requesterProcess, request.LivenessPipeHandle);
                 RevalidateService(service, sourcePid);
                 ValidateProcessImage(sourceProcess, Path.Combine(windowsDirectory, "servicing", "TrustedInstaller.exe"), "TrustedInstaller service");
-                TrustedInstallerTokenEvidence sourceEvidenceAgain = ReadTokenEvidence(sourceToken);
-                RequireTrustedInstaller(sourceEvidenceAgain, "TrustedInstaller service token");
+                RequireTrustedInstaller(ReadTokenEvidence(sourceToken), "TrustedInstaller service token");
 
                 string environmentText = BuildSanitizedEnvironment(windowsDirectory, systemDirectory, atlasRoot, workingDirectory);
                 environment = Marshal.StringToHGlobalUni(environmentText);
@@ -813,10 +637,6 @@ namespace Atlas {
                     }
                     childEvidence = ReadTokenEvidence(childToken);
                     RequireTrustedInstaller(childEvidence, "suspended child token");
-                    if (!String.Equals(childEvidence.AuthenticationId, sourceEvidenceAgain.AuthenticationId, StringComparison.Ordinal) ||
-                        childEvidence.SessionId != sourceEvidenceAgain.SessionId) {
-                        throw new InvalidOperationException("The suspended child authentication/session evidence does not match the validated TrustedInstaller service token.");
-                    }
                 }
                 finally {
                     if (childToken != IntPtr.Zero) {
@@ -824,13 +644,6 @@ namespace Atlas {
                     }
                 }
 
-                bool inOuterJob;
-                if (!IsProcessInJob(processInfo.hProcess, outerJobHandle, out inOuterJob)) {
-                    throw LastError("IsProcessInJob(child, outer job) failed");
-                }
-                if (inOuterJob) {
-                    throw new InvalidOperationException("The suspended TrustedInstaller child was unexpectedly created in the requester-session bootstrap outer job.");
-                }
                 bool inAtlasJob;
                 if (!IsProcessInJob(processInfo.hProcess, job, out inAtlasJob)) {
                     throw LastError("IsProcessInJob(child, inner job) failed");
@@ -839,14 +652,6 @@ namespace Atlas {
                     throw new InvalidOperationException("The suspended TrustedInstaller child was not created in the Atlas kill-on-close job.");
                 }
 
-                // The bootstrap must become the sole outer-job handle owner before
-                // privileged execution begins. Inner-only atomic assignment, exact inner
-                // membership, and outer-job absence have completed, so release and null the
-                // broker's inherited duplicate before the final cancellation check and
-                // before ResumeThread.
-                ReleaseOuterJobHandle(request, ref outerJobHandle);
-                ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
-                ThrowIfCancelled(requesterProcess, request.LivenessPipeHandle);
                 ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
                 UInt32 previousSuspendCount = ResumeThread(processInfo.hThread);
                 if (previousSuspendCount == UInt32.MaxValue) {
@@ -861,8 +666,6 @@ namespace Atlas {
                 UInt32 exitCode = STILL_ACTIVE;
                 while (true) {
                     ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
-                    ThrowIfCancelled(requesterProcess, request.LivenessPipeHandle);
-
                     if (!rootExited) {
                         UInt32 rootWait = WaitForSingleObject(processInfo.hProcess, 0);
                         if (rootWait == WAIT_OBJECT_0) {
@@ -881,20 +684,6 @@ namespace Atlas {
                         }
                     }
 
-                    // Completion-port messages for ordinary job events are advisory. Use the
-                    // port only as a bounded wait primitive; the accounting query below is the
-                    // authoritative completion condition even if a notification is omitted.
-                    UInt32 message;
-                    UIntPtr completionKey;
-                    IntPtr overlapped;
-                    bool packet = GetQueuedCompletionStatus(completionPort, out message, out completionKey, out overlapped, 50);
-                    if (!packet) {
-                        int completionError = Marshal.GetLastWin32Error();
-                        if (completionError != (int)WAIT_TIMEOUT) {
-                            throw new Win32Exception(completionError, "GetQueuedCompletionStatus failed.");
-                        }
-                    }
-
                     UInt32 activeProcesses = QueryActiveProcesses(job);
                     if (rootExited && activeProcesses == 0) {
                         jobDrained = true;
@@ -909,12 +698,10 @@ namespace Atlas {
                             JobDrained = true
                         };
                     }
+                    System.Threading.Thread.Sleep(50);
                 }
             }
             catch {
-                // Release the outer duplicate before every failure-containment path. The
-                // bootstrap's KILL_ON_JOB_CLOSE ownership must not depend on this broker.
-                ReleaseOuterJobHandle(request, ref outerJobHandle);
                 if (job != IntPtr.Zero && childCreated && !jobDrained) {
                     try {
                         try {
@@ -927,7 +714,7 @@ namespace Atlas {
                             // post-termination drain so the ownership order stays unambiguous.
                             CloseProcessInformationHandles(ref processInfo);
                         }
-                        DrainTerminatedJob(job, completionPort, 10000);
+                        DrainTerminatedJob(job, 10000);
                         jobDrained = true;
                     }
                     catch (Exception drainFailure) {
@@ -940,7 +727,6 @@ namespace Atlas {
                 throw;
             }
             finally {
-                ReleaseOuterJobHandle(request, ref outerJobHandle);
                 if (processInfo.hThread != IntPtr.Zero) CloseHandle(processInfo.hThread);
                 if (processInfo.hProcess != IntPtr.Zero) CloseHandle(processInfo.hProcess);
                 if (environment != IntPtr.Zero) Marshal.FreeHGlobal(environment);
@@ -950,9 +736,7 @@ namespace Atlas {
                 }
                 if (jobValue != IntPtr.Zero) Marshal.FreeHGlobal(jobValue);
                 if (parentValue != IntPtr.Zero) Marshal.FreeHGlobal(parentValue);
-                if (completionPort != IntPtr.Zero) CloseHandle(completionPort);
                 if (job != IntPtr.Zero) CloseHandle(job);
-                if (requesterProcess != IntPtr.Zero) CloseHandle(requesterProcess);
                 if (sourceToken != IntPtr.Zero) CloseHandle(sourceToken);
                 if (sourceProcess != IntPtr.Zero) CloseHandle(sourceProcess);
                 if (service != IntPtr.Zero) CloseServiceHandle(service);
@@ -960,7 +744,6 @@ namespace Atlas {
                 for (int i = heldObjects.Count - 1; i >= 0; i--) {
                     heldObjects[i].Dispose();
                 }
-                if (payloadLease != null) payloadLease.Dispose();
             }
         }
 
@@ -1015,13 +798,12 @@ namespace Atlas {
             throw new ArgumentException("The operation is outside the closed TrustedInstaller operation schema.", "request.Operation");
         }
 
-        static UInt32 StartAndValidateTrustedInstallerService(TrustedInstallerLaunchRequest request, Stopwatch stopwatch, IntPtr requesterProcess, out IntPtr scm, out IntPtr service, out IntPtr sourceProcess, out IntPtr sourceToken) {
+        static UInt32 StartAndValidateTrustedInstallerService(TrustedInstallerLaunchRequest request, Stopwatch stopwatch, out IntPtr scm, out IntPtr service, out IntPtr sourceProcess, out IntPtr sourceToken) {
             scm = IntPtr.Zero;
             service = IntPtr.Zero;
             sourceProcess = IntPtr.Zero;
             sourceToken = IntPtr.Zero;
             ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
-            ThrowIfCancelled(requesterProcess, request.LivenessPipeHandle);
             scm = OpenSCManager(null, null, SC_MANAGER_CONNECT);
             if (scm == IntPtr.Zero) throw LastError("OpenSCManager failed");
             service = OpenService(scm, "TrustedInstaller", SERVICE_QUERY_STATUS | SERVICE_START);
@@ -1030,7 +812,6 @@ namespace Atlas {
             SERVICE_STATUS_PROCESS status = QueryService(service);
             if (status.dwCurrentState == SERVICE_STOPPED) {
                 ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
-                ThrowIfCancelled(requesterProcess, request.LivenessPipeHandle);
                 if (!StartService(service, 0, IntPtr.Zero)) {
                     int error = Marshal.GetLastWin32Error();
                     if (error != ERROR_SERVICE_ALREADY_RUNNING) {
@@ -1041,7 +822,6 @@ namespace Atlas {
 
             while (true) {
                 ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
-                ThrowIfCancelled(requesterProcess, request.LivenessPipeHandle);
                 status = QueryService(service);
                 if (status.dwCurrentState == SERVICE_RUNNING && status.dwProcessId != 0) break;
                 if (status.dwCurrentState == SERVICE_STOPPED) {
@@ -1229,56 +1009,6 @@ namespace Atlas {
             finally { CloseHandle(token); }
         }
 
-        static void ValidateRequester(TrustedInstallerLaunchRequest request) {
-            if (request.RequesterProcessId <= 0 || request.RequesterCreationFileTime <= 0) throw new ArgumentException("Kernel-bound requester process evidence is required.");
-            if (request.RequesterSessionId < 0) throw new ArgumentException("Requester session ID must be non-negative.");
-            SecurityIdentifier sid;
-            try { sid = new SecurityIdentifier(request.RequesterSid); }
-            catch (Exception ex) { throw new ArgumentException("RequesterSid is not a valid SID.", ex); }
-            if (sid.IsWellKnown(WellKnownSidType.LocalSystemSid)) throw new ArgumentException("A medium requester cannot claim LocalSystem.");
-        }
-
-        static IntPtr OpenAndValidateRequester(TrustedInstallerLaunchRequest request) {
-            IntPtr process = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, false, unchecked((UInt32)request.RequesterProcessId));
-            if (process == IntPtr.Zero) throw LastError("OpenProcess(requester) failed");
-            try {
-                long creation, exit, kernel, user;
-                if (!GetProcessTimes(process, out creation, out exit, out kernel, out user)) throw LastError("GetProcessTimes(requester) failed");
-                if (creation != request.RequesterCreationFileTime) throw new InvalidOperationException("Requester PID creation time changed; refusing PID reuse.");
-                IntPtr token = IntPtr.Zero;
-                if (!OpenProcessToken(process, TOKEN_QUERY, out token)) throw LastError("OpenProcessToken(requester) failed");
-                try {
-                    string sid = ReadTokenSid(token, TOKEN_INFORMATION_CLASS.TokenUser);
-                    int session = ReadTokenInt32(token, TOKEN_INFORMATION_CLASS.TokenSessionId);
-                    if (!String.Equals(sid, request.RequesterSid, StringComparison.OrdinalIgnoreCase) || session != request.RequesterSessionId) {
-                        throw new InvalidOperationException("Kernel-bound requester SID/session does not match the canonical request.");
-                    }
-                }
-                finally { CloseHandle(token); }
-                IntPtr result = process;
-                process = IntPtr.Zero;
-                return result;
-            }
-            finally { if (process != IntPtr.Zero) CloseHandle(process); }
-        }
-
-        static void ThrowIfCancelled(IntPtr requesterProcess, IntPtr pipeHandle) {
-            UInt32 wait = WaitForSingleObject(requesterProcess, 0);
-            if (wait == WAIT_OBJECT_0) throw new OperationCanceledException("The kernel-bound requester process exited.");
-            if (wait == WAIT_FAILED) throw LastError("WaitForSingleObject(requester) failed");
-            ThrowIfPipeCancelled(pipeHandle);
-        }
-
-        static void ThrowIfPipeCancelled(IntPtr pipeHandle) {
-            if (!PeekNamedPipe(pipeHandle, IntPtr.Zero, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero)) {
-                int error = Marshal.GetLastWin32Error();
-                if (error == ERROR_BROKEN_PIPE || error == ERROR_PIPE_NOT_CONNECTED || error == ERROR_NO_DATA) {
-                    throw new OperationCanceledException("The requester liveness pipe closed.");
-                }
-                throw new Win32Exception(error, "PeekNamedPipe(liveness) failed.");
-            }
-        }
-
         static void ThrowIfDeadlineExceeded(Stopwatch stopwatch, int timeoutMilliseconds) {
             if (stopwatch.ElapsedMilliseconds >= timeoutMilliseconds) throw new TimeoutException("The TrustedInstaller operation exceeded its common deadline.");
         }
@@ -1311,24 +1041,14 @@ namespace Atlas {
             if (firstFailure != null) throw firstFailure;
         }
 
-        static void DrainTerminatedJob(IntPtr job, IntPtr completionPort, int timeoutMilliseconds) {
+        static void DrainTerminatedJob(IntPtr job, int timeoutMilliseconds) {
             Stopwatch stopwatch = Stopwatch.StartNew();
             while (true) {
                 if (QueryActiveProcesses(job) == 0) return;
                 if (stopwatch.ElapsedMilliseconds >= timeoutMilliseconds) {
                     throw new TimeoutException("The terminated TrustedInstaller process tree did not reach zero active processes within its bounded drain allowance.");
                 }
-                if (completionPort != IntPtr.Zero) {
-                    UInt32 message; UIntPtr key; IntPtr overlapped;
-                    bool packet = GetQueuedCompletionStatus(completionPort, out message, out key, out overlapped, 50);
-                    if (!packet) {
-                        int error = Marshal.GetLastWin32Error();
-                        if (error != (int)WAIT_TIMEOUT) throw new Win32Exception(error, "GetQueuedCompletionStatus failed while draining the terminated TrustedInstaller job.");
-                    }
-                }
-                else {
-                    System.Threading.Thread.Sleep(50);
-                }
+                System.Threading.Thread.Sleep(50);
             }
         }
 
@@ -1377,31 +1097,6 @@ namespace Atlas {
             }
             block.Append('\0');
             return block.ToString();
-        }
-
-        static string ValidateProtectedWorkingDirectory(string path) {
-            string programData = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
-            string root = Path.Combine(programData, "AtlasOS", "Broker", "ElevationBootstrap");
-            string full = RequirePathBelow(path, root, "ProtectedWorkingDirectory");
-            string leaf = Path.GetFileName(full);
-            const string prefix = "Transport-";
-            if (!leaf.StartsWith(prefix, StringComparison.Ordinal) || leaf.Length != prefix.Length + 32) {
-                throw new ArgumentException("ProtectedWorkingDirectory must end in Transport- plus the canonical lowercase 32-hex request ID.", "ProtectedWorkingDirectory");
-            }
-            bool nonzero = false;
-            for (int index = prefix.Length; index < leaf.Length; index++) {
-                char current = leaf[index];
-                if (!((current >= '0' && current <= '9') || (current >= 'a' && current <= 'f'))) {
-                    throw new ArgumentException("ProtectedWorkingDirectory must end in Transport- plus the canonical lowercase 32-hex request ID.", "ProtectedWorkingDirectory");
-                }
-                if (current != '0') nonzero = true;
-            }
-            if (!nonzero) {
-                throw new ArgumentException("ProtectedWorkingDirectory must use a nonzero request ID.", "ProtectedWorkingDirectory");
-            }
-            ValidatePathSegmentsNotReparse(full);
-            ValidateDirectorySecurity(full);
-            return full;
         }
 
         static string RequireExactPath(string path, string expected, string name) {
@@ -1467,10 +1162,6 @@ namespace Atlas {
             ValidateFileSystemSecurity(new FileInfo(path).GetAccessControl(AccessControlSections.Owner | AccessControlSections.Access), path);
         }
 
-        static void ValidateDirectorySecurity(string path) {
-            ValidateFileSystemSecurity(new DirectoryInfo(path).GetAccessControl(AccessControlSections.Owner | AccessControlSections.Access), path);
-        }
-
         static void ValidateFileSystemSecurity(FileSystemSecurity security, string path) {
             SecurityIdentifier owner = (SecurityIdentifier)security.GetOwner(typeof(SecurityIdentifier));
             string ownerSid = owner.Value;
@@ -1495,74 +1186,6 @@ namespace Atlas {
                 if (!trustedWriter && (rule.FileSystemRights & unsafeRights) != 0) {
                     throw new UnauthorizedAccessException("Protected payload object grants write-capable access to an untrusted principal: '" + path + "' (" + sid + ").");
                 }
-            }
-        }
-
-        static ProtectedPayloadLease AcquireProtectedPayloadLease(string root) {
-            List<IDisposable> handles = new List<IDisposable>();
-            Stack<KeyValuePair<string, bool>> pending = new Stack<KeyValuePair<string, bool>>();
-            pending.Push(new KeyValuePair<string, bool>(root, true));
-            int entries = 0;
-            string[] immutableRootNames = new string[] { "Scripts", "Toggles", "Tools", "Other" };
-            try {
-                while (pending.Count != 0) {
-                    KeyValuePair<string, bool> item = pending.Pop();
-                    string directory = item.Key;
-                    SafeFileHandle directoryHandle = OpenProtectedDirectory(directory, item.Value);
-                    handles.Add(directoryHandle);
-                    ValidateDirectorySecurity(directory);
-                    foreach (string child in Directory.EnumerateFileSystemEntries(directory)) {
-                        FileAttributes attributes = File.GetAttributes(child);
-                        bool isDirectory = (attributes & FileAttributes.Directory) != 0;
-                        if (item.Value && isDirectory) {
-                            bool immutableRoot = false;
-                            string name = Path.GetFileName(child);
-                            for (int index = 0; index < immutableRootNames.Length; index++) {
-                                if (String.Equals(name, immutableRootNames[index], StringComparison.OrdinalIgnoreCase)) {
-                                    immutableRoot = true;
-                                    break;
-                                }
-                            }
-                            if (!immutableRoot) continue;
-                        }
-
-                        entries++;
-                        if (entries > 10000) throw new InvalidOperationException("The protected Atlas payload exceeds the bounded 10,000-entry validation limit.");
-                        if ((attributes & FileAttributes.ReparsePoint) != 0) throw new InvalidOperationException("The protected Atlas payload contains a reparse point: '" + child + "'.");
-                        if (isDirectory) {
-                            pending.Push(new KeyValuePair<string, bool>(child, false));
-                        }
-                        else {
-                            handles.Add(OpenProtectedFile(child, true, root));
-                        }
-                    }
-                }
-                return new ProtectedPayloadLease(handles);
-            }
-            catch {
-                for (int i = handles.Count - 1; i >= 0; i--) handles[i].Dispose();
-                throw;
-            }
-        }
-
-        static SafeFileHandle OpenProtectedDirectory(string path, bool allowDirectoryWrites) {
-            ValidatePathSegmentsNotReparse(path);
-            UInt32 shareMode = FILE_SHARE_READ | (allowDirectoryWrites ? FILE_SHARE_WRITE : 0);
-            IntPtr raw = CreateFile(path, FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE, shareMode, IntPtr.Zero, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, IntPtr.Zero);
-            if (raw == INVALID_HANDLE_VALUE) throw LastError("Opening protected payload directory without write/delete sharing failed: '" + path + "'");
-            SafeFileHandle handle = new SafeFileHandle(raw, true);
-            try {
-                if (GetFileType(raw) != 1) throw new InvalidOperationException("Protected payload directory is not a disk object: '" + path + "'.");
-                FILE_ATTRIBUTE_TAG_INFO tag;
-                if (!GetFileInformationByHandleEx(raw, 9, out tag, unchecked((UInt32)Marshal.SizeOf(typeof(FILE_ATTRIBUTE_TAG_INFO))))) throw LastError("GetFileInformationByHandleEx(payload directory) failed");
-                if ((tag.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 || tag.ReparseTag != 0 || (tag.FileAttributes & 0x10) == 0) throw new InvalidOperationException("Protected payload directory is a reparse point or wrong object type: '" + path + "'.");
-                string resolved = GetFinalFilePath(raw);
-                if (!String.Equals(Path.GetFullPath(resolved), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Protected payload directory final path changed after open: '" + path + "'.");
-                return handle;
-            }
-            catch {
-                handle.Dispose();
-                throw;
             }
         }
 
@@ -1597,33 +1220,8 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
         [string]$Operation,
 
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$ProtectedWorkingDirectory,
-
-        [Parameter(Mandatory = $true)]
         [ValidateRange(1, 86400000)]
         [int]$TimeoutMilliseconds,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateRange(1, [int]::MaxValue)]
-        [int]$RequesterProcessId,
-
-        [Parameter(Mandatory = $true)]
-        [long]$RequesterCreationFileTime,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$RequesterSid,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateRange(0, [int]::MaxValue)]
-        [int]$RequesterSessionId,
-
-        [Parameter(Mandatory = $true)]
-        [IntPtr]$LivenessPipeHandle,
-
-        [Parameter(Mandatory = $true)]
-        [Microsoft.Win32.SafeHandles.SafeFileHandle]$OuterJobHandle,
 
         [string]$Name,
         [string]$State,
@@ -1640,7 +1238,6 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
     $request = New-Object -TypeName Atlas.TrustedInstallerLaunchRequest
     $request.Operation = $Operation
     $request.AtlasModulesPath = (Get-AtlasContext).AtlasModulesPath
-    $request.ProtectedWorkingDirectory = $ProtectedWorkingDirectory
     $request.ToggleName = $Name
     $request.ToggleState = $State
     $request.Silent = [bool]$Silent
@@ -1649,12 +1246,6 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
     $request.MachineOnly = [bool]$MachineOnly
     $request.RestoreSource = $RestoreSource
     $request.TimeoutMilliseconds = $TimeoutMilliseconds
-    $request.RequesterProcessId = $RequesterProcessId
-    $request.RequesterCreationFileTime = $RequesterCreationFileTime
-    $request.RequesterSid = $RequesterSid
-    $request.RequesterSessionId = $RequesterSessionId
-    $request.LivenessPipeHandle = $LivenessPipeHandle
-    $request.OuterJobHandle = $OuterJobHandle
 
     return [Atlas.TrustedInstallerProcessNative]::LaunchNonInteractive($request)
 }

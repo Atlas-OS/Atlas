@@ -3,10 +3,8 @@
     Typed CLI for Atlas TrustedInstaller operations.
 .DESCRIPTION
     This CLI deliberately has no arbitrary executable, script, command, or argument-list
-    parameters. A parameter-bound invocation prints either one complete elevation outcome
-    or a separately versioned CLI validation error. PowerShell parameter-binding errors are
-    emitted by PowerShell before the script body runs. Only a Completed operation exits with
-    the target's exact 32-bit exit-code pattern; infrastructure failures exit 1.
+    parameters. Success exits zero; a broker or target failure exits nonzero and writes its
+    diagnostic to stderr.
 #>
 [CmdletBinding()]
 param(
@@ -70,19 +68,10 @@ try {
         }
     }
 
-    $result = Invoke-AtlasTrustedInstaller @parameters
-    $result | ConvertTo-Json -Depth 8 -Compress
-    if ($result.status -ceq 'Completed') {
-        $signedExitCode = [BitConverter]::ToInt32([BitConverter]::GetBytes([uint32]$result.exitCodeUInt32), 0)
-        exit $signedExitCode
-    }
-    exit 1
+    Invoke-AtlasTrustedInstaller @parameters | Out-Null
+    exit 0
 }
 catch {
-    [pscustomobject][ordered]@{
-        schema = 'AtlasElevationCliError/1'
-        code   = 'CallerValidationFailure'
-        error  = $_.Exception.Message
-    } | ConvertTo-Json -Compress
+    [Console]::Error.WriteLine($_.Exception.Message)
     exit 1
 }
