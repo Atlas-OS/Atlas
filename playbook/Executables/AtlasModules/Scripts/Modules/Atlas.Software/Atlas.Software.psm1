@@ -10,7 +10,9 @@ foreach ($dependencyManifest in @(
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
         throw "Required Atlas.Software dependency '$manifestPath' is missing."
     }
-    Import-Module -Name $manifestPath -Force -ErrorAction Stop
+    # Reuse dependencies already owned by the long-running install orchestrator.
+    # A nested forced import unloads their global command surface in Windows PowerShell.
+    Import-Module -Name $manifestPath -ErrorAction Stop
 }
 
 # Download and process helpers are private implementation dependencies.

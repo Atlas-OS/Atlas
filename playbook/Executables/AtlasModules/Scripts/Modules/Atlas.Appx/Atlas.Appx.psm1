@@ -6,7 +6,9 @@ $coreManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Co
 if (-not (Test-Path -LiteralPath $coreManifest -PathType Leaf)) {
     throw "Required Atlas.Core manifest '$coreManifest' is missing."
 }
-Import-Module -Name $coreManifest -Force -ErrorAction Stop
+# Reuse the orchestrator's Core instance; forcing it from nested module scope
+# removes global Core commands from the caller in Windows PowerShell 5.1.
+Import-Module -Name $coreManifest -ErrorAction Stop
 
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
