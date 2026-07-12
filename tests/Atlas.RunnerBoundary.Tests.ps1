@@ -1,149 +1,250 @@
 BeforeAll {
-    $script:RepoRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..')).ProviderPath
-    $script:ConfigurationRoot = Join-Path -Path $script:RepoRoot -ChildPath 'playbook\Configuration'
-    $script:CustomYamlPath = Join-Path -Path $script:ConfigurationRoot -ChildPath 'custom.yml'
+    $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
+    $script:ConfigurationRoot = Join-Path $script:RepoRoot 'playbook\Configuration'
+    $script:CustomYamlPath = Join-Path $script:ConfigurationRoot 'custom.yml'
     $script:CustomYaml = [IO.File]::ReadAllText($script:CustomYamlPath)
-    $script:ConfigurationFiles = @(Get-ChildItem -LiteralPath $script:ConfigurationRoot -Filter '*.yml' -File -Recurse)
+    $script:PowerShellExe = '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
+    $script:PowerShellPrefix = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass'
+    $script:StateScript = '.\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1'
+    $script:ApplicabilityProperties = @(
+        'iso', 'oobe', 'option', 'options', 'builds', 'cpuArch',
+        'onUpgrade', 'onUpgradeVersions', 'previousOption'
+    )
 
-    function Get-AtlasYamlAction {
-        param([Parameter(Mandatory = $true)][IO.FileInfo]$File)
+    . (Join-Path $script:RepoRoot 'tools\build\AtlasBuild\AtlasYamlAction.ps1')
+    $script:Actions = @(Get-AtlasYamlAction -Path $script:CustomYamlPath `
+            -RelativePath 'custom.yml')
 
-        $lines = [IO.File]::ReadAllLines($File.FullName)
-        for ($index = 0; $index -lt $lines.Count; $index++) {
-            if ($lines[$index] -notmatch '^\s*-\s+!(?<Type>[A-Za-z]+)\s*:') {
-                continue
+    [xml]$playbook = [IO.File]::ReadAllText((Join-Path $script:RepoRoot 'playbook\playbook.conf'))
+    $script:PlaybookVersion = [string]$playbook.Playbook.Version
+    $script:FeatureOptions = @($playbook.SelectNodes('/Playbook/FeaturePages/*/Options/*/Name') |
+        ForEach-Object { $_.InnerText } | Sort-Object -Unique)
+
+    function New-AtlasFileArgument {
+        param(
+            [Parameter(Mandatory = $true)][string]$Path,
+            [string]$Tail
+        )
+
+        $arguments = "$script:PowerShellPrefix -File `"$Path`""
+        if (-not [string]::IsNullOrWhiteSpace($Tail)) {
+            $arguments += " $Tail"
+        }
+        return $arguments
+    }
+}
+
+Describe 'Compact AME runner boundary' {
+    It 'contains only the compact reviewed action surface' {
+        $summary = Assert-AtlasConfigurationRunnerBoundary `
+            -ConfigurationRoot $script:ConfigurationRoot
+        $summary.Files | Should -Be 1
+        $summary.Actions | Should -Be 29
+        $summary.Runs | Should -Be 26
+
+        $typeCounts = @($script:Actions | Group-Object Type | Sort-Object Name)
+        @($typeCounts.Name) | Should -Be @('registryKey', 'run', 'writeStatus')
+        @($typeCounts | ForEach-Object Count) | Should -Be @(1, 26, 2)
+        $script:CustomYaml | Should -Not -Match '(?m)^\s*-\s*!(?:task|cmd|powerShell|taskKill|registryValue)\b'
+        $script:CustomYaml | Should -Not -Match 'atlas[\\/]components\.yml'
+    }
+
+    It 'uses explicit direct-File process semantics on every run' {
+        $runs = @($script:Actions | Where-Object Type -eq run)
+        foreach ($action in $runs) {
+            [string]$action.Properties.exe | Should -BeExactly $script:PowerShellExe
+            [string]$action.Properties.args | Should -Match `
+                ('^' + [regex]::Escape($script:PowerShellPrefix + ' -File ".\'))
+            [string]$action.Properties.args | Should -Not -Match `
+                '(?i)(?:^|\s)-(?:Command|C|EncodedCommand)(?:\s|$)'
+            $action.Properties.showOutput | Should -BeTrue
+            $action.Properties.showError | Should -BeTrue
+            $action.Properties.exeDir | Should -BeTrue
+            $action.Properties.wait | Should -BeTrue
+            $action.Properties.weight | Should -Be 1
+            [string]$action.Properties.handleExitCodes['!0'] | Should -BeExactly 'halt'
+        }
+
+        @($runs | Where-Object { $_.Properties.runas -ceq 'trustedInstaller' }).Count |
+            Should -Be 25
+        @($runs | Where-Object { $_.Properties.runas -ceq 'currentUser' }).Count |
+            Should -Be 1
+    }
+
+    It 'preserves the six AME mode and OOBE selectors' {
+        $prefix = New-AtlasFileArgument -Path $script:StateScript
+        $expected = @(
+            @{ Tail = '-Operation Begin -Mode Fresh'; Upgrade = $false; Oobe = $false }
+            @{ Tail = '-Operation Begin -Mode Upgrade'; Upgrade = $true; Oobe = $false }
+            @{ Tail = '-Operation Begin -Mode Reapply'; Upgrade = $true; Oobe = $false; Version = $script:PlaybookVersion }
+            @{ Tail = '-Operation Begin -Mode Fresh -Oobe'; Upgrade = $false; Oobe = 'only' }
+            @{ Tail = '-Operation Begin -Mode Upgrade -Oobe'; Upgrade = $true; Oobe = 'only' }
+            @{ Tail = '-Operation Begin -Mode Reapply -Oobe'; Upgrade = $true; Oobe = 'only'; Version = $script:PlaybookVersion }
+        )
+        $beginActions = @($script:Actions | Where-Object {
+                $_.Type -ceq 'run' -and
+                ([string]$_.Properties.args).StartsWith(
+                    "$prefix -Operation Begin ",
+                    [StringComparison]::Ordinal
+                )
+            })
+        $beginActions.Count | Should -Be 6
+
+        foreach ($entry in $expected) {
+            $matchingActions = @($beginActions | Where-Object {
+                    [string]$_.Properties.args -ceq "$prefix $($entry.Tail)"
+                })
+            $matchingActions.Count | Should -Be 1
+            $matchingActions[0].Properties.runas | Should -BeExactly 'trustedInstaller'
+            $matchingActions[0].Properties.onUpgrade | Should -Be $entry.Upgrade
+            $matchingActions[0].Properties.oobe | Should -Be $entry.Oobe
+            if ($entry.ContainsKey('Version')) {
+                @($matchingActions[0].Properties.onUpgradeVersions) |
+                    Should -Be @([string]$entry.Version)
             }
-            $type = $Matches.Type
-
-            $end = $index + 1
-            while ($end -lt $lines.Count -and $lines[$end] -notmatch '^\s*-\s+![A-Za-z]+\s*:') {
-                $end++
-            }
-
-            [pscustomobject]@{
-                File         = $File
-                RelativePath = $File.FullName.Substring($script:ConfigurationRoot.Length + 1)
-                Line         = $index + 1
-                Type         = $type
-                Text         = $lines[$index..($end - 1)] -join "`n"
+            else {
+                $matchingActions[0].Properties.Contains('onUpgradeVersions') | Should -BeFalse
             }
         }
     }
 
-    $script:Actions = @($script:ConfigurationFiles | ForEach-Object { Get-AtlasYamlAction -File $_ })
+    It 'publishes the installing user exactly once outside OOBE' {
+        $expectedArguments = New-AtlasFileArgument `
+            -Path '.\AtlasModules\Scripts\Publish-AtlasInstallUser.ps1'
+        $publishers = @($script:Actions | Where-Object {
+                $_.Type -ceq 'run' -and $_.Properties.runas -ceq 'currentUser'
+            })
+
+        $publishers.Count | Should -Be 1
+        [string]$publishers[0].Properties.args | Should -BeExactly $expectedArguments
+        $publishers[0].Properties.oobe | Should -BeFalse
+        foreach ($gate in @($script:ApplicabilityProperties | Where-Object { $_ -cne 'oobe' })) {
+            $publishers[0].Properties.Contains($gate) | Should -BeFalse
+        }
+    }
+
+    It 'captures every FeaturePage option through the same gated state operation' {
+        $records = @($script:Actions | Where-Object {
+                $_.Type -ceq 'run' -and
+                [string]$_.Properties.args -match `
+                    ' -Operation RecordOption -Option (?<Option>[a-z0-9-]+)$'
+            })
+        $records.Count | Should -Be $script:FeatureOptions.Count
+
+        $captured = foreach ($record in $records) {
+            $match = [regex]::Match(
+                [string]$record.Properties.args,
+                ' -Operation RecordOption -Option (?<Option>[a-z0-9-]+)$'
+            )
+            $name = $match.Groups['Option'].Value
+            [string]$record.Properties.option | Should -BeExactly $name
+            [string]$record.Properties.args | Should -BeExactly (
+                New-AtlasFileArgument -Path $script:StateScript `
+                    -Tail "-Operation RecordOption -Option $name"
+            )
+            $name
+        }
+        @($captured | Sort-Object) | Should -Be $script:FeatureOptions
+        @($captured | Sort-Object -Unique).Count | Should -Be $script:FeatureOptions.Count
+    }
+
+    It 'commits state before the one PowerShell-owned install run' {
+        $commitArguments = New-AtlasFileArgument -Path $script:StateScript `
+            -Tail '-Operation Commit'
+        $runArguments = New-AtlasFileArgument `
+            -Path '.\AtlasModules\Scripts\Invoke-AtlasInstall.ps1' -Tail '-Run'
+        $commit = @($script:Actions | Where-Object {
+                $_.Type -ceq 'run' -and
+                [string]$_.Properties.args -ceq $commitArguments
+            })
+        $install = @($script:Actions | Where-Object {
+                $_.Type -ceq 'run' -and
+                [string]$_.Properties.args -ceq $runArguments
+            })
+
+        $commit.Count | Should -Be 1
+        $install.Count | Should -Be 1
+        $install[0].Line | Should -BeGreaterThan $commit[0].Line
+        $install[0].Properties.runas | Should -BeExactly 'trustedInstaller'
+        foreach ($gate in $script:ApplicabilityProperties) {
+            $install[0].Properties.Contains($gate) | Should -BeFalse
+        }
+
+        $afterCommit = @($script:Actions | Where-Object {
+                $_.Line -gt $commit[0].Line -and $_.Type -cne 'writeStatus'
+        })
+        $afterCommit.Count | Should -Be 2
+        @($afterCommit.Type) | Should -Be @('registryKey', 'run')
+        $afterCommit[0].Line | Should -BeLessThan $install[0].Line
+        $afterCommit[1].Line | Should -Be $install[0].Line
+    }
+
+    It 'retains only the mounted-image WdBoot mutation outside PowerShell' {
+        $registry = @($script:Actions | Where-Object Type -eq registryKey)
+        $registry.Count | Should -Be 1
+        $registry[0].Properties.Count | Should -Be 5
+        [string]$registry[0].Properties.path | Should -BeExactly `
+            'HKLM\OfflineSys\ControlSet001\Services\WdBoot'
+        [string]$registry[0].Properties.operation | Should -BeExactly 'delete'
+        [string]$registry[0].Properties.option | Should -BeExactly 'defender-disable'
+        [string]$registry[0].Properties.iso | Should -BeExactly 'only'
+        $registry[0].Properties.onUpgrade | Should -BeFalse
+    }
+
+    It 'uses only coarse status messages owned by AME' {
+        $statuses = @($script:Actions | Where-Object Type -eq writeStatus)
+        $statuses.Count | Should -Be 2
+        @($statuses | ForEach-Object { [string]$_.Properties.status }) |
+            Should -Be @('Preparing AtlasOS installation', 'Installing AtlasOS')
+        foreach ($status in $statuses) {
+            $status.Properties.Count | Should -Be 1
+        }
+    }
 }
 
-Describe 'AME runner boundary' {
-    It 'keeps only the reviewed runner action types' {
-        $actual = @($script:Actions.Type | Sort-Object -Unique)
-        $expected = @('powerShell', 'registryKey', 'task', 'writeStatus')
+Describe 'Bounded Atlas YAML action parsing' {
+    It 'accepts a copied production runner contract' {
+        $configuration = Join-Path $TestDrive 'publisher-accepted'
+        New-Item -ItemType Directory -Path $configuration -Force | Out-Null
+        Copy-Item -LiteralPath $script:CustomYamlPath `
+            -Destination (Join-Path $configuration 'custom.yml')
 
-        Compare-Object -ReferenceObject $expected -DifferenceObject $actual | Should -BeNullOrEmpty
+        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $configuration } |
+            Should -Not -Throw
     }
 
-    It 'contains no generic runner process or registry-value mutations' {
-        $configurationText = ($script:ConfigurationFiles | ForEach-Object {
-                [IO.File]::ReadAllText($_.FullName)
-            }) -join "`n"
+    It 'rejects current-user execution for every other script' {
+        $configuration = Join-Path $TestDrive 'publisher-rejected'
+        New-Item -ItemType Directory -Path $configuration -Force | Out-Null
+        $path = Join-Path $configuration 'custom.yml'
+        Copy-Item -LiteralPath $script:CustomYamlPath -Destination $path
+        $content = [IO.File]::ReadAllText($path)
+        $marker = 'runas: trustedInstaller'
+        $index = $content.LastIndexOf($marker, [StringComparison]::Ordinal)
+        $index | Should -BeGreaterThan -1
+        $content = $content.Remove($index, $marker.Length).Insert(
+            $index,
+            'runas: currentUser'
+        )
+        [IO.File]::WriteAllText($path, $content, [Text.UTF8Encoding]::new($false))
 
-        $configurationText | Should -Not -Match '(?m)^\s*-\s+!(?:taskKill|run|registryValue)\s*:'
+        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $configuration } |
+            Should -Throw -ExpectedMessage `
+                '*runas currentUser is reserved for the exact non-OOBE Publish-AtlasInstallUser.ps1 action*'
     }
 
-    It 'retains only the exact task-composition includes' {
-        $tasks = @($script:Actions | Where-Object Type -eq 'task')
-        $taskPaths = @($tasks | ForEach-Object {
-                if ($_.Text -notmatch 'path:\s*["''](?<Path>[^"'']+)["'']') {
-                    throw "Task action at $($_.RelativePath):$($_.Line) has no quoted path."
-                }
-                $Matches.Path
-            })
+    It 'rejects duplicate scalar keys in a block action' {
+        $yaml = @'
+title: Duplicate fixture
+actions:
+  - !run:
+    exe: 'tool.exe'
+    args: '-File ".\tool.ps1"'
+    wait: true
+    wait: false
+'@
 
-        Compare-Object -ReferenceObject @(
-            'atlas\start.yml'
-            'atlas\appx.yml'
-            'atlas\default.yml'
-            'tweaks.yml'
-        ) -DifferenceObject $taskPaths | Should -BeNullOrEmpty
-        $taskPaths.Count | Should -Be 4
-        $script:CustomYaml | Should -Not -Match 'atlas[\\/]components\.yml'
-        (Join-Path -Path $script:ConfigurationRoot -ChildPath 'atlas\components.yml') | Should -Not -Exist
-    }
-
-    It 'retains one ISO-only registry mutation for the offline WdBoot key' {
-        $registryActions = @($script:Actions | Where-Object Type -eq 'registryKey')
-        $registryActions.Count | Should -Be 1
-        $registryActions[0].RelativePath | Should -BeExactly 'custom.yml'
-        $registryActions[0].Text | Should -Match ([regex]::Escape('HKLM\OfflineSys\ControlSet001\Services\WdBoot'))
-        $registryActions[0].Text | Should -Match '(?m)^\s+operation:\s+delete\s*$'
-        $registryActions[0].Text | Should -Match '(?m)^\s+option:\s+[''\"]defender-disable[''\"]\s*$'
-        $registryActions[0].Text | Should -Match '(?m)^\s+iso:\s+only\s*$'
-        $registryActions[0].Text | Should -Match '(?m)^\s+onUpgrade:\s+false\s*$'
-    }
-
-    It 'halts on every remaining PowerShell mutation failure' {
-        $powerShellActions = @($script:Actions | Where-Object Type -eq 'powerShell')
-        $unchecked = @($powerShellActions | Where-Object {
-                $_.Text -notmatch 'handleExitCodes\s*:\s*\{\s*["'']!0["'']\s*:\s*halt\s*\}'
-            } | ForEach-Object { "$($_.RelativePath):$($_.Line)" })
-
-        $unchecked | Should -BeNullOrEmpty `
-            -Because 'all current PowerShell actions mutate install state and must surface failure to AME'
-    }
-
-    It 'turns inline and native command failures into nonzero PowerShell outcomes' {
-        $flagActions = @($script:Actions | Where-Object {
-                $_.Type -eq 'powerShell' -and $_.Text -match 'AtlasModules\\Flags'
-            })
-        $flagActions.Count | Should -BeGreaterThan 1
-        @($flagActions | Where-Object {
-                $_.Text -notmatch '\$ErrorActionPreference\s*=\s*''''Stop'''''
-            }) | Should -BeNullOrEmpty
-
-        $hiveActions = @($script:Actions | Where-Object {
-                $_.Type -eq 'powerShell' -and $_.Text -match 'reg\.exe.+?(?:load|unload)\s+HKU\\AME_UserHive_Default'
-            })
-        $hiveActions.Count | Should -Be 2
-        @($hiveActions | Where-Object {
-                $_.Text -notmatch '\$LASTEXITCODE\s+-ne\s+0' -or $_.Text -notmatch '\bthrow\b'
-            }) | Should -BeNullOrEmpty `
-            -Because 'native failures do not set powershell.exe exit status unless the shim throws explicitly'
-    }
-}
-
-Describe 'PowerShell orchestration replacements' {
-    It 'runs the checked ShellRefresh phase between PreInstall and Environment' {
-        $preInstall = $script:CustomYaml.IndexOf('-Phase PreInstall', [StringComparison]::Ordinal)
-        $shellRefresh = $script:CustomYaml.IndexOf('-Phase ShellRefresh', [StringComparison]::Ordinal)
-        $environment = $script:CustomYaml.IndexOf('-Phase Environment', [StringComparison]::Ordinal)
-
-        $preInstall | Should -BeGreaterOrEqual 0
-        $shellRefresh | Should -BeGreaterThan $preInstall
-        $environment | Should -BeGreaterThan $shellRefresh
-    }
-
-    It 'stops both shell processes and restarts Explorer unelevated as the user' {
-        $phase = [IO.File]::ReadAllText((Join-Path $script:RepoRoot `
-                    'playbook\Executables\AtlasModules\Scripts\Phases\Invoke-ShellRefreshPhase.ps1'))
-
-        $phase | Should -Match 'Stop-AtlasProcess\s+-Name\s+["'']explorer["'']\s*,\s*["'']ShellExperienceHost["'']'
-        $phase | Should -Match 'Invoke-AtlasAsUser\s+-FilePath\s+\$explorerPath\s+-Wait:\$false'
-        $phase | Should -Not -Match 'Invoke-AtlasAsUser[^\r\n]*-Elevated'
-    }
-
-    It 'keeps Edge removal and Chat policy inside the TrustedInstaller Components phase' {
-        $phase = [IO.File]::ReadAllText((Join-Path $script:RepoRoot `
-                    'playbook\Executables\AtlasModules\Scripts\Phases\Invoke-ComponentsPhase.ps1'))
-        $appx = [IO.File]::ReadAllText((Join-Path $script:ConfigurationRoot 'atlas\appx.yml'))
-
-        $phase | Should -Match '(?s)Test-AtlasOption\s+-Name\s+[''\"]uninstall-edge[''\"].+?Invoke-AtlasAsUser.+?-Elevated'
-        $phase | Should -Match 'Remove-Edge\.ps1 failed with exit code'
-        $phase | Should -Match 'Set-ItemProperty[^\r\n]+ConfigureChatAutoInstall[^\r\n]+-Type\s+DWord'
-        $appx | Should -Not -Match 'ConfigureChatAutoInstall'
-
-        $interactiveRemoval = $phase.IndexOf('Invoke-AtlasAsUser -FilePath $powerShellExe', [StringComparison]::Ordinal)
-        $firstLiveMutation = $phase.IndexOf("Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE", [StringComparison]::Ordinal)
-        $interactiveRemoval | Should -BeGreaterOrEqual 0
-        $firstLiveMutation | Should -BeGreaterThan $interactiveRemoval `
-            -Because 'interactive Edge removal must retain its ordering before every live-system Components mutation'
+        { Get-AtlasYamlAction -Text $yaml -RelativePath 'duplicate.yml' } |
+            Should -Throw -ExpectedMessage "*duplicate property 'wait'*"
     }
 }

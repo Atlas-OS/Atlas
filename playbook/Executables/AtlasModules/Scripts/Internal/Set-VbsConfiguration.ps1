@@ -1,259 +1,230 @@
-[CmdletBinding()]
-param (
-    [Parameter()][Switch]$DisableAllVBS,
-    [Parameter()][Switch]$EnableMemoryIntegrity
+[CmdletBinding(DefaultParameterSetName = 'Report')]
+param(
+    [Parameter(Mandatory = $true, ParameterSetName = 'Configure')]
+    [ValidateSet('Enable', 'Disable')]
+    [string]$State
 )
 
-# https://learn.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity#validate-enabled-vbs-and-memory-integrity-features
+Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
 
-$memIntegrity = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
-$kernelShadowStacks = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\KernelShadowStacks"
-$credentialGuard = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\CredentialGuard"
+# Supported registry contract:
+# https://learn.microsoft.com/windows/security/hardware-security/enable-virtualization-based-protection-of-code-integrity
+# LSA protection, Credential Guard, kernel shadow stacks, and optional Windows features
+# are separate controls and are deliberately outside this helper's ownership.
+$script:AtlasVbsDeviceGuardPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard'
+$script:AtlasVbsHvciPath =
+    'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity'
+$script:AtlasVbsPolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard'
 
-if ($DisableAllVBS) {
-	Write-Warning "Disabling VBS features..."
+function Get-AtlasVbsDwordState {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path,
 
-	# Memory Integrity
-	if (!(Test-Path $memIntegrity)) {
-		New-Item -Path $memIntegrity -Force | Out-Null
-	}
-	New-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 0 -PropertyType DWORD -Force # Need to be forced since Windows 11 24H2
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name
+    )
 
-	# Kernel-mode Hardware-enforced Stack Protection (Windows 11 only)
-	if (Test-Path $kernelShadowStacks) {
-		New-ItemProperty -Path $kernelShadowStacks -Name "Enabled" -Value 0 -PropertyType DWORD -Force
-		Remove-ItemProperty -Path $kernelShadowStacks -Name "ChangedInBootCycle" -EA 0
-		Remove-ItemProperty -Path $kernelShadowStacks -Name "WasEnabledBy" -EA 0
-	}
+    if (-not (Test-Path -LiteralPath $Path -PathType Container -ErrorAction Stop)) {
+        return [pscustomobject]@{ Exists = $false; Value = $null }
+    }
 
-	# Credential Guard (Windows 11 only)
-	if (Test-Path $credentialGuard) {
-		New-ItemProperty -Path $credentialGuard -Name "Enabled" -Value 0 -PropertyType DWORD -Force
-		Remove-ItemProperty -Path $credentialGuard -Name "ChangedInBootCycle" -EA 0
-		Remove-ItemProperty -Path $credentialGuard -Name "WasEnabledBy" -EA 0
-	}
+    $key = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    if (@($key.GetValueNames()) -notcontains $Name) {
+        return [pscustomobject]@{ Exists = $false; Value = $null }
+    }
+    if ($key.GetValueKind($Name) -ne [Microsoft.Win32.RegistryValueKind]::DWord) {
+        throw "VBS value '$Name' at '$Path' is not REG_DWORD."
+    }
 
-	# LSA Protection (24H2 only)
-	New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RunAsPPL" -Value 0 -PropertyType DWORD -Force
-
-	# VBS General setting (24H2 only) https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-deviceguard-unattend-enablevirtualizationbasedsecurity
-	New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard" -Name "EnableVirtualizationBasedSecurity" -Value 0 -PropertyType DWORD -Force
-	exit
-} elseif ($EnableMemoryIntegrity) {
-	Write-Warning "Enabling memory integrity..."
-	if (!(Test-Path $memIntegrity)) {
-		New-Item -Path $memIntegrity -Force | Out-Null
-	}
-	Set-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 1 -Type DWord
-	Set-ItemProperty -Path $memIntegrity -Name "WasEnabledBy" -Value 2 -Type DWord
-	exit
+    return [pscustomobject]@{
+        Exists = $true
+        Value  = [int]$key.GetValue(
+            $Name,
+            $null,
+            [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
+        )
+    }
 }
 
-$pages = @(
-	@{
-		Title = "VBS Features Running"
-		Commands = {
-			$SecurityServicesRunning = (Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).SecurityServicesRunning
-			$VirtualizationBasedSecurityStatus = (Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).VirtualizationBasedSecurityStatus
+function Assert-AtlasVbsDwordValue {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][ValidateSet(0, 1, 2, 3)][int]$Value
+    )
 
-			$VirtualizationBasedSecurityStatusList = @(
-				"VBS isn't enabled",
-				"VBS is enabled but not running",
-				"VBS is enabled and running"
-			)
-
-			$VirtualizationBasedSecurityRunningFeatures = @(
-				"None",
-				"Windows Defender Credential Guard",
-				"Memory Integrity",
-				"System Guard Secure Launch",
-				"SMM Firmware Measurement"
-			)
-
-			foreach ($feature in $VirtualizationBasedSecurityStatusList) {
-				if ($VirtualizationBasedSecurityStatus -contains $VirtualizationBasedSecurityStatusList.IndexOf($feature)) {
-					Write-Host "VBS Status: " -NoNewLine -ForegroundColor Magenta
-					Write-Host "$feature`n"
-				}
-			}
-
-			Write-Host "Notes: " -ForegroundColor Yellow -NoNewLine
-			Write-Host "Some features here are exclusive to Windows 11, you will be mostly looking at Memory Integrity on Windows 10."
-			Write-Host "       Please note that on older CPUs especially, features like Memory Integrity will reduce performance significantly.`n"
-			Write-Host "       You can configure VBS/Core Isolation settings in Windows Security."
-
-			if ($SecurityServicesRunning -contains '0') {
-				Write-Host "`nNo Virtualization Based Security features are running.`n" -ForegroundColor Green
-			} else {
-				Write-Host "`nVirtualization Based Security features currently running:`n" -ForegroundColor Yellow
-			}
-
-			foreach ($feature in $VirtualizationBasedSecurityRunningFeatures) {
-				if ($feature -eq "None") {
-					continue
-				}
-
-				Write-Host " - " -NoNewLine
-
-				if ($SecurityServicesRunning -contains $VirtualizationBasedSecurityRunningFeatures.IndexOf($feature)) {
-					Write-Host "$feature is running" -ForegroundColor Green
-				} else {
-					Write-Host "$feature is not running" -ForegroundColor Red
-				}
-			}
-		}
-	},
-	@{
-		Title = "VBS Features Configured"
-		Commands = {
-			$SecurityServicesConfigured = (Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).SecurityServicesConfigured
-
-			$VirtualizationBasedSecurityConfiguredFeatures = @(
-				"None",
-				"Windows Defender Credential Guard",
-				"Memory Integrity",
-				"System Guard Secure Launch",
-				"SMM Firmware Measurement"
-			)
-
-			Write-Host "Note: " -ForegroundColor Yellow -NoNewLine
-			Write-Host "These are the features configured on startup."
-
-			if ($SecurityServicesConfigured -contains '0') {
-				Write-Host "`nNo Virtualization Based Security features are configured.`n" -ForegroundColor Green
-			} else {
-				Write-Host "`nVirtualization Based Security features configured:`n" -ForegroundColor Yellow
-			}
-
-			foreach ($feature in $VirtualizationBasedSecurityConfiguredFeatures) {
-				if ($feature -eq "None") {
-					continue
-				}
-
-				Write-Host " - " -NoNewLine
-
-				if ($SecurityServicesConfigured -contains $VirtualizationBasedSecurityConfiguredFeatures.IndexOf($feature)) {
-					Write-Host "$feature is configured" -ForegroundColor Green
-				} else {
-					Write-Host "$feature is not configured" -ForegroundColor Red
-				}
-			}
-		}
-	},
-	@{
-		Title = "VBS Security Properties Required"
-		Commands = {
-			$RequiredSecurityProperties = (Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).RequiredSecurityProperties
-
-			$VirtualizationBasedSecurityRequiredSecurity = @(
-				"None",
-				"Hypervisor support",
-				"Secure Boot",
-				"DMA protection",
-				"Secure Memory Overwrite",
-				"NX protections",
-				"SMM mitigations",
-				"MBEC/GMET"
-			)
-
-			if ($RequiredSecurityProperties -contains '0') {
-				Write-Host "No security features are required for Virtualization Based Security.`n" -ForegroundColor Green
-			} else {
-				Write-Host "Security features needed for Virtualization Based Security:`n" -ForegroundColor Yellow
-			}
-
-			foreach ($feature in $VirtualizationBasedSecurityRequiredSecurity) {
-				if ($feature -eq "None") {
-					continue
-				}
-
-				Write-Host " - " -NoNewLine
-
-				if ($RequiredSecurityProperties -contains $VirtualizationBasedSecurityRequiredSecurity.IndexOf($feature)) {
-					Write-Host "$feature is required" -ForegroundColor Green
-				} else {
-					Write-Host "$feature is not required" -ForegroundColor Red
-				}
-			}
-		}
-	},
-	@{
-		Title = "VBS Security Properties Available"
-		Commands = {
-			$AvailableSecurityProperties = (Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).AvailableSecurityProperties
-
-			$VirtualizationBasedSecurityAvailableSecurity = @(
-				"None",
-				"Hypervisor support",
-				"Secure Boot",
-				"DMA protection",
-				"Secure Memory Overwrite",
-				"NX protections",
-				"SMM mitigations",
-				"MBEC/GMET",
-				"APIC virtualization"
-			)
-
-			if ($AvailableSecurityProperties -contains '0') {
-				Write-Host "No security features are available for Virtualization Based Security.`n" -ForegroundColor Green
-			} else {
-				Write-Host "Security features available for Virtualization Based Security:`n" -ForegroundColor Yellow
-			}
-
-			foreach ($feature in $VirtualizationBasedSecurityAvailableSecurity) {
-				if ($feature -eq "None") {
-					continue
-				}
-
-				Write-Host " - " -NoNewLine
-
-				if ($AvailableSecurityProperties -contains $VirtualizationBasedSecurityAvailableSecurity.IndexOf($feature)) {
-					Write-Host "$feature is available" -ForegroundColor Green
-				} else {
-					Write-Host "$feature is not available" -ForegroundColor Red
-				}
-			}
-		}
-	}
-)
-
-$currentPageIndex = 0
-
-function Wait-Key {
-	[console]::CursorVisible = $false
-	$pageInput = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-
-	switch ($pageInput.VirtualKeyCode) {
-		# Next
-		78 {
-			$currentPageIndex = ($currentPageIndex + 1) % $pages.Count
-		}
-		# Back
-		66 {
-			$currentPageIndex = ($currentPageIndex - 1) % $pages.Count
-			if ($currentPageIndex -lt 0) {
-				$currentPageIndex += $pages.Count
-			}
-		}
-		default {
-			Wait-Key
-		}
-	}
-
-	Show-Page
+    $actual = Get-AtlasVbsDwordState -Path $Path -Name $Name
+    if (-not $actual.Exists -or [int]$actual.Value -ne $Value) {
+        throw "VBS registry readback failed for '$Path\\$Name'; expected DWORD $Value."
+    }
 }
 
-function Show-Page {
-	Clear-Host
-	$currentPage = $pages[$currentPageIndex]
-	$Host.UI.RawUI.WindowTitle = "$($currentPage.Title)"
-
-	& $currentPage.Commands
-
-	Write-Host "`n------------- Page $($currentPageIndex + 1) -------------" -ForegroundColor Yellow
-	Write-Host "(n) Next Page || (b) Previous Page"
-
-	Wait-Key
+function Import-AtlasVbsDependencies {
+    $modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
+    foreach ($relativeManifest in @(
+            'Atlas.Core\Atlas.Core.psd1'
+            'Atlas.Registry\Atlas.Registry.psd1'
+        )) {
+        $manifestPath = [IO.Path]::GetFullPath(
+            (Join-Path -Path $modulesRoot -ChildPath $relativeManifest)
+        )
+        if (-not [IO.File]::Exists($manifestPath) -or
+            (([IO.File]::GetAttributes($manifestPath) -band
+                    [IO.FileAttributes]::ReparsePoint) -ne 0)) {
+            throw "Required protected VBS dependency is missing or a reparse point: '$manifestPath'."
+        }
+        Import-Module -Name $manifestPath -Force -ErrorAction Stop
+    }
 }
 
-Show-Page
+function Assert-AtlasVbsLocalConfigurationAuthority {
+    foreach ($policyValueName in @(
+            'EnableVirtualizationBasedSecurity'
+            'HypervisorEnforcedCodeIntegrity'
+            'RequirePlatformSecurityFeatures'
+            'LsaCfgFlags'
+            'ConfigureSystemGuardLaunch'
+            'KernelShadowStacks'
+        )) {
+        $policyState = Get-AtlasVbsDwordState `
+            -Path $script:AtlasVbsPolicyPath `
+            -Name $policyValueName
+        if ($policyState.Exists) {
+            throw "VBS is managed by policy value '$policyValueName'; Atlas will not overwrite local runtime state."
+        }
+    }
+}
+
+function Set-AtlasVbsState {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Enable', 'Disable')]
+        [string]$RequestedState
+    )
+
+    Import-AtlasVbsDependencies
+    Assert-AtlasPrivilege -Administrator
+    Assert-AtlasVbsLocalConfigurationAuthority
+
+    $deviceGuardLock = Get-AtlasVbsDwordState `
+        -Path $script:AtlasVbsDeviceGuardPath -Name 'Locked'
+    $hvciLock = Get-AtlasVbsDwordState -Path $script:AtlasVbsHvciPath -Name 'Locked'
+    foreach ($lock in @($deviceGuardLock, $hvciLock)) {
+        if ($lock.Exists -and [int]$lock.Value -notin @(0, 1)) {
+            throw 'A VBS lock value has an unsupported value; refusing to guess its semantics.'
+        }
+    }
+
+    if ($RequestedState -ceq 'Disable' -and
+        (($deviceGuardLock.Exists -and [int]$deviceGuardLock.Value -eq 1) -or
+            ($hvciLock.Exists -and [int]$hvciLock.Value -eq 1))) {
+        throw 'VBS or memory integrity is protected by UEFI lock and cannot be disabled by a registry-only action.'
+    }
+
+    $entries = if ($RequestedState -ceq 'Enable') {
+        @(
+            @{ Path = $script:AtlasVbsDeviceGuardPath; Name = 'RequirePlatformSecurityFeatures'; Type = 'DWord'; Data = 1 }
+            @{ Path = $script:AtlasVbsDeviceGuardPath; Name = 'Locked'; Type = 'DWord'; Data = if ($deviceGuardLock.Exists) { [int]$deviceGuardLock.Value } else { 0 } }
+            @{ Path = $script:AtlasVbsDeviceGuardPath; Name = 'EnableVirtualizationBasedSecurity'; Type = 'DWord'; Data = 1 }
+            @{ Path = $script:AtlasVbsHvciPath; Name = 'Locked'; Type = 'DWord'; Data = if ($hvciLock.Exists) { [int]$hvciLock.Value } else { 0 } }
+            @{ Path = $script:AtlasVbsHvciPath; Name = 'Enabled'; Type = 'DWord'; Data = 1 }
+        )
+    }
+    else {
+        @(
+            @{ Path = $script:AtlasVbsHvciPath; Name = 'Enabled'; Type = 'DWord'; Data = 0 }
+            @{ Path = $script:AtlasVbsDeviceGuardPath; Name = 'EnableVirtualizationBasedSecurity'; Type = 'DWord'; Data = 0 }
+        )
+    }
+
+    foreach ($entry in $entries) {
+        Set-AtlasRegistryValue -Path $entry.Path -Name $entry.Name `
+            -Type $entry.Type -Data $entry.Data
+        Assert-AtlasVbsDwordValue -Path $entry.Path -Name $entry.Name -Value $entry.Data
+    }
+
+    Write-Host (
+        "VBS and memory integrity are configured to {0}; restart Windows to measure the running state." -f
+        $RequestedState.ToLowerInvariant()
+    )
+}
+
+function ConvertTo-AtlasVbsPropertyNames {
+    param(
+        [AllowEmptyCollection()][object[]]$Value = @(),
+        [Parameter(Mandatory = $true)][hashtable]$Map
+    )
+
+    $resolved = New-Object 'Collections.Generic.List[string]'
+    foreach ($rawValue in @($Value)) {
+        $number = [int]$rawValue
+        if ($number -eq 0) {
+            continue
+        }
+        if ($Map.ContainsKey($number)) {
+            $resolved.Add([string]$Map[$number])
+        }
+        else {
+            $resolved.Add("Unknown ($number)")
+        }
+    }
+    if ($resolved.Count -eq 0) {
+        $resolved.Add('None')
+    }
+    return $resolved.ToArray()
+}
+
+function Get-AtlasVbsReport {
+    $instances = @(Get-CimInstance -ClassName Win32_DeviceGuard `
+            -Namespace 'root\Microsoft\Windows\DeviceGuard' -ErrorAction Stop)
+    if ($instances.Count -ne 1) {
+        throw "Expected exactly one Win32_DeviceGuard instance, but received $($instances.Count)."
+    }
+
+    $instance = $instances[0]
+    $statusMap = @{
+        0 = 'Disabled'
+        1 = 'Enabled but not running'
+        2 = 'Enabled and running'
+    }
+    $serviceMap = @{
+        1 = 'Credential Guard'
+        2 = 'Memory integrity (HVCI)'
+        3 = 'Secure Launch'
+        4 = 'SMM Firmware Measurement'
+        5 = 'Kernel-mode Hardware-enforced Stack Protection'
+        6 = 'Kernel-mode Hardware-enforced Stack Protection (Audit mode)'
+        7 = 'Hypervisor-Enforced Paging Translation'
+    }
+    $propertyMap = @{
+        1 = 'Base virtualization support'
+        2 = 'Secure Boot'
+        3 = 'DMA protection'
+        4 = 'Secure memory overwrite'
+        5 = 'UEFI code read-only'
+        6 = 'SMM security mitigations 1.0'
+        7 = 'Mode-based execution control'
+        8 = 'APIC virtualization'
+    }
+
+    $status = [int]$instance.VirtualizationBasedSecurityStatus
+    return [pscustomobject]@{
+        PSTypeName          = 'Atlas.VbsConfigurationReport'
+        VbsStatus           = if ($statusMap.ContainsKey($status)) { $statusMap[$status] } else { "Unknown ($status)" }
+        ConfiguredServices  = [string[]](ConvertTo-AtlasVbsPropertyNames -Value $instance.SecurityServicesConfigured -Map $serviceMap)
+        RunningServices     = [string[]](ConvertTo-AtlasVbsPropertyNames -Value $instance.SecurityServicesRunning -Map $serviceMap)
+        RequiredProperties  = [string[]](ConvertTo-AtlasVbsPropertyNames -Value $instance.RequiredSecurityProperties -Map $propertyMap)
+        AvailableProperties = [string[]](ConvertTo-AtlasVbsPropertyNames -Value $instance.AvailableSecurityProperties -Map $propertyMap)
+    }
+}
+
+if ($PSCmdlet.ParameterSetName -ceq 'Configure') {
+    Set-AtlasVbsState -RequestedState $State
+}
+else {
+    Get-AtlasVbsReport
+}

@@ -3,13 +3,24 @@
 # GPL-3.0-only license
 # Modified from https://github.com/he3als/online-sxs
 #
-# Install-AtlasPackage.ps1 is the interactive shell (Safe Mode boot orchestration,
-# prompts, the failed-component message box) around these functions; install phases
-# call them directly with -NonInteractive semantics.
+# Install-AtlasPackage.ps1 is the optional interactive shell around these functions;
+# install phases call them directly with -NonInteractive semantics.
+
+$cbsRetryHelper = Join-Path -Path $PSScriptRoot -ChildPath '..\..\..\Internal\CbsRetry.ps1'
+if (-not [IO.File]::Exists($cbsRetryHelper) -or
+    (([IO.File]::GetAttributes($cbsRetryHelper) -band
+            [IO.FileAttributes]::ReparsePoint) -ne 0)) {
+    throw "Required CBS retry helper '$cbsRetryHelper' is missing or a reparse point."
+}
+. $cbsRetryHelper -LibraryOnly
 
 function Get-AtlasCbsArchitecture {
-    $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
-    if ($arm) { return 'arm64' } else { return 'amd64' }
+    # Installers.ps1 supplies the module-wide, fail-closed native architecture
+    # authority. CBS package selection must never fall back to inherited process
+    # environment data or a substring match because choosing the wrong CAB is a
+    # privileged servicing error, not a best-effort installer outcome.
+    if (Test-AtlasSoftwareArm64) { return 'arm64' }
+    return 'amd64'
 }
 
 function Initialize-AtlasCbsEnvironment {
@@ -17,10 +28,6 @@ function Initialize-AtlasCbsEnvironment {
     $windir = [Environment]::GetFolderPath('Windows')
     $sys32 = [Environment]::GetFolderPath('System')
     $env:Path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:Path
-}
-
-function Get-AtlasCbsSafeModeListPath {
-    return Join-Path -Path ([Environment]::GetFolderPath('System')) -ChildPath 'safeModePackagesToInstall.atlasmodule'
 }
 
 function Select-AtlasCbsPackage {
@@ -75,9 +82,19 @@ function Assert-AtlasCbsCertificate {
         [string]$CabPath
     )
 
-    $cert = (Get-AuthenticodeSignature -FilePath $CabPath).SignerCertificate
-    if ($null -eq $cert) {
-        throw 'No signer certificate was found.'
+    $signature = Get-AuthenticodeSignature -LiteralPath $CabPath
+    $cert = $signature.SignerCertificate
+    # Intact Atlas component CABs report UnknownError through this cmdlet while
+    # still exposing their Microsoft Windows signer and component EKU. The pinned
+    # manifest SHA-256 above is authoritative; reject explicit signature hash
+    # mismatch without excluding that legitimate CAB status.
+    if ($signature.Status -eq [System.Management.Automation.SignatureStatus]::HashMismatch -or $null -eq $cert) {
+        throw "The CAB component signature is not intact (status '$($signature.Status)')."
+    }
+    $subject = [string]$cert.Subject
+    if ($subject -notmatch '(?:^|,\s*)CN=Microsoft Windows(?:,|$)' -or
+        $subject -notmatch '(?:^|,\s*)O=Microsoft Corporation(?:,|$)') {
+        throw 'The CAB is not signed by the Microsoft Windows component publisher.'
     }
 
     $ekuValues = @(
@@ -151,6 +168,7 @@ function Assert-AtlasCbsHash {
     if ($actual -ne $expected[$fileName]) {
         throw "SHA256 mismatch for '$fileName' (got '$actual'); the package may have been modified. Refusing to install it."
     }
+    return ([string]$expected[$fileName]).ToUpperInvariant()
 }
 
 function Install-AtlasCbsCab {
@@ -165,12 +183,15 @@ function Install-AtlasCbsCab {
     Write-Host ('-' * 84) -ForegroundColor Magenta
 
     Write-Host '[INFO] Verifying package hash...'
+    $expectedSha256 = $null
     try {
-        Assert-AtlasCbsHash -CabPath $CabPath
+        $expectedSha256 = Assert-AtlasCbsHash -CabPath $CabPath
     }
     catch {
         Write-Host "[ERROR] Hash verification failed for '$CabPath': $($_.Exception.Message)" -ForegroundColor Red
-        return $false
+        return [pscustomobject]@{
+            Path = $CabPath; Success = $false; RetryEligible = $false; Sha256 = $null; FailureKind = 'Integrity'
+        }
     }
 
     Write-Host '[INFO] Checking certificate...'
@@ -179,7 +200,9 @@ function Install-AtlasCbsCab {
     }
     catch {
         Write-Host "[ERROR] Cert error from '$CabPath': $($_.Exception.Message)" -ForegroundColor Red
-        return $false
+        return [pscustomobject]@{
+            Path = $CabPath; Success = $false; RetryEligible = $false; Sha256 = $expectedSha256; FailureKind = 'Signature'
+        }
     }
 
     Write-Host '[INFO] Adding package...'
@@ -188,11 +211,15 @@ function Install-AtlasCbsCab {
     }
     catch {
         Write-Host "[ERROR] Error when adding package '$CabPath': $($_.Exception.Message)" -ForegroundColor Red
-        return $false
+        return [pscustomobject]@{
+            Path = $CabPath; Success = $false; RetryEligible = $true; Sha256 = $expectedSha256; FailureKind = 'Servicing'
+        }
     }
 
     Write-Host '[INFO] Completed successfully.'
-    return $true
+    return [pscustomobject]@{
+        Path = $CabPath; Success = $true; RetryEligible = $false; Sha256 = $expectedSha256; FailureKind = $null
+    }
 }
 
 function New-AtlasCbsRepairSource {
@@ -245,33 +272,23 @@ function New-AtlasCbsRepairSource {
 function Register-AtlasCbsFailureFallback {
     <#
     .SYNOPSIS
-        Non-interactive failure fallback: records the failed CAB paths for a Safe Mode
-        retry and registers a logon task that shows the failed-component message box
-        (Install-AtlasPackage.ps1 -FailMessage).
+        Arms the compact Safe Mode retry for integrity-checked CAB failures.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string[]]$FailedPackages
+        [object[]]$RetryPackages
     )
 
-    Write-Host 'Setting error message box next boot as NoInteraction is enabled.'
-    Set-Content -Path (Get-AtlasCbsSafeModeListPath) -Value $FailedPackages
-
-    $scriptPath = Join-Path -Path (Get-AtlasContext).AtlasModulesPath -ChildPath 'Scripts\Install-AtlasPackage.ps1'
-    $failedMsgTitle = 'AtlasFailedComponentMsgBox'
-    $failedMsgArgs = "/c title Finalizing Installation - Atlas & echo Do not close this window. & schtasks /delete /tn `"$failedMsgTitle`" /f > nul & " `
-        + "PowerShell -NoP -NonI -W Hidden -EP RemoteSigned -C `"& '$scriptPath' -FailMessage`""
-    $failedMsg = @{
-        'TaskName' = $failedMsgTitle
-        'Settings' = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-        'Trigger'  = New-ScheduledTaskTrigger -AtLogOn
-        'User'     = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-        'Force'    = $true
-        'RunLevel' = 'Highest'
-        'Action'   = New-ScheduledTaskAction -Execute 'cmd' -Argument $failedMsgArgs
-    }
-    Register-ScheduledTask @failedMsg | Out-Null
+    $packagePaths = @($RetryPackages | ForEach-Object {
+        if ($null -eq $_.PSObject.Properties['Path']) {
+            throw 'A CBS retry package did not provide its verified path.'
+        }
+        [string]$_.Path
+    })
+    Write-Host 'Arming the failed CBS packages for a Safe Mode retry.'
+    [void](Enable-AtlasCbsRetry -Packages $packagePaths)
+    Write-Host 'After Safe Mode starts, run CbsRetry.ps1 -Recover from the command prompt.'
 }
 
 function Install-AtlasCbsPackage {
@@ -285,9 +302,9 @@ function Install-AtlasCbsPackage {
         Treat -Packages as literal CAB paths instead of patterns (used by the Safe Mode
         retry and the file-picker flow of Install-AtlasPackage.ps1).
     .PARAMETER NonInteractive
-        On failure, register the Safe Mode retry fallback and throw (so the Components
-        phase exits non-zero and AME Wizard halts) instead of returning the failures
-        for an interactive prompt.
+        On failure, register the Safe Mode retry fallback and throw so the ordered
+        Components step fails and the orchestrator returns a single nonzero status,
+        instead of returning the failures for an interactive prompt.
     .OUTPUTS
         PSCustomObject with SuccessPackages, FailedPackages and UnmatchedPatterns.
     #>
@@ -330,12 +347,20 @@ function Install-AtlasCbsPackage {
 
     $successPackages = @()
     $failedPackages = @()
+    $retryPackages = @()
     foreach ($cabPath in $packagesToProcess) {
-        if (Install-AtlasCbsCab -CabPath $cabPath) {
+        $cabResult = Install-AtlasCbsCab -CabPath $cabPath
+        if ($cabResult.Success) {
             $successPackages += $cabPath
         }
         else {
             $failedPackages += $cabPath
+            if ($cabResult.RetryEligible) {
+                $retryPackages += [pscustomobject]@{
+                    Path = [IO.Path]::GetFullPath([string]$cabResult.Path)
+                    Sha256 = [string]$cabResult.Sha256
+                }
+            }
         }
     }
 
@@ -344,13 +369,16 @@ function Install-AtlasCbsPackage {
     }
 
     if (($failedPackages.Count -gt 0) -and $NonInteractive) {
-        Register-AtlasCbsFailureFallback -FailedPackages $failedPackages
+        if ($retryPackages.Count -gt 0) {
+            Register-AtlasCbsFailureFallback -RetryPackages $retryPackages
+        }
         throw "These CBS packages failed to install: $($failedPackages -join ', ')"
     }
 
     return [pscustomobject]@{
         SuccessPackages   = $successPackages
         FailedPackages    = $failedPackages
+        RetryPackages     = $retryPackages
         UnmatchedPatterns = $unmatchedPatterns
     }
 }

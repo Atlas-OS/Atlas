@@ -1,69 +1,67 @@
 # Services phase.
-# Backs up the default Windows services, applies the scripted network/search
-# configuration and disables the curated set of services/drivers. custom.yml gates
-# this phase (onUpgrade: false) and runs it as TrustedInstaller.
-#
-# References (mostly the IoT Enterprise recommendations):
-# https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-vdi-recommendations-2004
-# https://learn.microsoft.com/en-us/windows-server/security/windows-services/security-guidelines-for-disabling-system-services-in-windows-server
-# https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/optimize/services
+# Backs up the default Windows services and applies the scripted feature-specific
+# network/search configuration. The committed install plan admits this phase only for
+# fresh modes; its post-Commit dispatcher is deliberately ungated and the ordered plan
+# enforces applicability. It runs as TrustedInstaller.
+# Generic Windows service and driver startup values stay at their OS defaults; optional
+# product behavior is configured through documented policy or feature-specific interfaces.
 
 Assert-AtlasPrivilege -TrustedInstaller
 
-$modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
+$scriptsRoot = Split-Path -Parent $PSScriptRoot
+$atlasModulesRoot = Split-Path -Parent $scriptsRoot
+$modulesRoot = Join-Path -Path $scriptsRoot -ChildPath 'Modules'
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Services\Atlas.Services.psd1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force -ErrorAction Stop
 
-$context = Get-AtlasContext
-$internalRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Internal'
+$internalRoot = Join-Path -Path $scriptsRoot -ChildPath 'Internal'
+$disableFileSharing = Join-Path -Path $internalRoot -ChildPath 'Disable-FileSharing.ps1'
+$setLocation = Join-Path -Path $internalRoot -ChildPath 'Set-AtlasLocationMachineState.ps1'
+$setIndexing = Join-Path -Path $internalRoot -ChildPath 'Set-AtlasIndexingMachineState.ps1'
+
+function Invoke-AtlasServicesPhaseToggleStateUpdate {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Location', 'Indexing')]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateRange(0, 2)]
+        [int]$State
+    )
+
+    Set-AtlasToggleState -Name $Name -State $State
+    $recorded = Get-AtlasToggleState -Name $Name
+    if ($null -eq $recorded -or
+        $null -eq $recorded.PSObject.Properties['State'] -or
+        $null -eq $recorded.State -or
+        [int]$recorded.State -ne $State) {
+        throw "Services phase toggle '$Name' did not record state '$State'."
+    }
+}
 
 # Back up default Windows services & drivers (kept if a backup already exists)
-Export-AtlasServicesBackup
+$backupDirectory = Join-Path -Path $atlasModulesRoot -ChildPath 'Other'
+$backupPath = Join-Path -Path $backupDirectory -ChildPath 'winServices.reg'
+Export-AtlasServicesBackup -FilePath $backupPath
 
 # Disable File Sharing
-try {
-    & (Join-Path -Path $internalRoot -ChildPath 'Disable-FileSharing.ps1') -Silent
+if (-not (Test-Path -LiteralPath $disableFileSharing -PathType Leaf)) {
+    throw "Required Services phase helper is missing at '$disableFileSharing'."
 }
-catch {
-    Write-AtlasLog -Level Warning -Message "Disabling file sharing failed: $($_.Exception.Message)"
+& $disableFileSharing -Silent
+
+# Disable Location and configure Indexing through in-process machine helpers.
+# State is written only after each helper returns and is read back before phase progress
+# can continue, preserving the public toggle's declarative replay contract.
+if (-not (Test-Path -LiteralPath $setLocation -PathType Leaf)) {
+    throw "Required Services phase helper is missing at '$setLocation'."
 }
+& $setLocation -State Disable
+Invoke-AtlasServicesPhaseToggleStateUpdate -Name Location -State 0
 
-# Disable Location, configure Indexing (records toggle state like a user double-click)
-foreach ($toggle in @(
-    'AtlasDesktop\3. General Configuration\Location\Disable Location (default).cmd'
-    'AtlasDesktop\3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd'
-)) {
-    $togglePath = Join-Path -Path $context.WinDir -ChildPath $toggle
-    try {
-        Start-Process -FilePath $togglePath -ArgumentList '/silent' -Wait
-    }
-    catch {
-        Write-AtlasLog -Level Warning -Message "Running '$togglePath' failed: $($_.Exception.Message)"
-    }
+if (-not (Test-Path -LiteralPath $setIndexing -PathType Leaf)) {
+    throw "Required Services phase helper is missing at '$setIndexing'."
 }
-
-# Services (Start = 4 -> disabled)
-$services = @(
-    # ------ Microsoft recommendation - 'OK to disable' ------
-    'OneSyncSvc'
-    'TrkWks'
-    'PcaSvc'
-    'DiagTrack'
-    # ------ Microsoft recommendation - 'Do not disable' -----
-    'diagnosticshub.standardcollector.service'
-    'WerSvc'
-    # ------- Microsoft recommendation - 'No guidance' -------
-    'wercplsupport'
-    'UCPD'
-)
-
-# Drivers (Start = 4 -> disabled)
-$drivers = @(
-    'GpuEnergyDrv'
-    # NetBios support can be enabled with the file sharing script
-    'NetBT'
-    'Telemetry'
-)
-
-foreach ($name in ($services + $drivers)) {
-    Set-AtlasServiceStartup -Name $name -StartupType 4
-}
+& $setIndexing -State Minimal
+Invoke-AtlasServicesPhaseToggleStateUpdate -Name Indexing -State 1

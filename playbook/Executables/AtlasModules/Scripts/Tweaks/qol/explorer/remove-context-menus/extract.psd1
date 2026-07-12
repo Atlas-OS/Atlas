@@ -2,6 +2,10 @@
     Name        = 'Remove ''Extract'' from Context Menu'
     Description = 'Removes ''Extract'' from Context Menu'
     Run         = @(
-        @{ Exe = '{windir}\AtlasDesktop\4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).cmd'; Args = '/silent'; Wait = $true }
+        @{
+            Exe  = '{windir}\System32\WindowsPowerShell\v1.0\powershell.exe'
+            Args = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', '{windir}\AtlasModules\Scripts\Internal\Invoke-AtlasInstallMachineToggle.ps1', '-Name', 'ExtractContextMenu')
+            Wait = $true
+        }
     )
 }

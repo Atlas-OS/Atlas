@@ -12,10 +12,9 @@
             StateValue = 0
             Launcher   = '6. Advanced Configuration\Services\Network Discovery\Disable Network Discovery Services.cmd'
             Reboot     = 'Recommend'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = {
                 param($Toggle)
-
-                Invoke-AtlasToggle -Name 'NetworkNavigationPane' -State 'Disable' -Silent
 
                 $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 foreach ($svc in @('fdPHost', 'FDResPub', 'lmhosts', 'SSDPSRV')) {
@@ -24,19 +23,32 @@
 
                 if (-not $Toggle.Silent) { Write-Host 'Finished, please reboot your device for changes to apply.' }
             }
+            UserAction = {
+                param($Toggle)
+
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\SOFTWARE\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}' `
+                    -Name 'System.IsPinnedToNameSpaceTree' `
+                    -Type DWord `
+                    -Data 0
+            }
         }
         Enable  = @{
             StateValue = 1
             Launcher   = '6. Advanced Configuration\Services\Network Discovery\Enable Network Discovery Services (default).cmd'
             Reboot     = 'Recommend'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = {
                 param($Toggle)
 
-                # Lanman Workstation (SMB) is a dependency. The closed ResetServices plan
-                # applies and confirms it immediately before NetworkDiscovery, so do not
-                # re-enter the public typed Toggle boundary from the strict-TI reset path.
+                # Lanman Workstation (SMB) is a machine dependency. The closed service
+                # reset plan already applies it immediately before NetworkDiscovery.
                 if (-not $Toggle.ResetServices) {
-                    Invoke-AtlasToggle -Name 'LanmanWorkstation' -State 'Enable' -Silent
+                    Invoke-AtlasToggleMachineDependency `
+                        -Name 'LanmanWorkstation' `
+                        -State 'Enable' `
+                        -StateRoot $Toggle.StateRoot
                 }
 
                 $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
@@ -54,6 +66,7 @@
 
                 if (-not $Toggle.Silent) { Write-Host 'Finished, please reboot your device for changes to apply.' }
             }
+            UserAction = { param($Toggle) }
         }
     }
 }

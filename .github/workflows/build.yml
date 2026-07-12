@@ -5,18 +5,25 @@ on:
     paths:
       - "playbook/**"
       - "tools/**"
+      - ".github/requirements-ci.txt"
       - ".yamllint.yml"
       - ".github/workflows/build.yml"
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Branch or ref to run workflow on'
+        description: "Branch or ref to build without publishing"
         required: true
-        default: 'main'
+        default: "main"
         type: string
 
+# This workflow executes repository code and downloaded build dependencies. It may read the
+# checkout and upload review artifacts, but it must never receive a repository-write token.
 permissions:
-  contents: write # CAB packages are committed back to the repository
+  contents: read
+
+concurrency:
+  group: build-playbook-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   SXSC_REPO: "https://github.com/Atlas-OS/sxsc"
@@ -25,138 +32,277 @@ env:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
-        # gh api repos/actions/checkout/commits/v6 --jq '.sha'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          fetch-depth: 0
+          persist-credentials: false
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.ref }}
 
-      - name: Validate YAML files
+      - name: Bind the artifact to the checked-out commit
+        shell: pwsh
         run: |
-          # Pinned for reproducible lint results - bump deliberately
-          pip install yamllint==1.38.0 | Out-Null
-          yamllint -c .yamllint.yml .
+          $ErrorActionPreference = 'Stop'
+          $sourceSha = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $sourceSha -cnotmatch '^[0-9a-f]{40}$') {
+              throw 'The checked-out source commit could not be resolved exactly.'
+          }
+          "ATLAS_SOURCE_SHA=$sourceSha" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Get changed files
-        id: changed-files
-        # gh api repos/tj-actions/changed-files/commits/v47.0.4 --jq '.sha'
-        uses: tj-actions/changed-files@7dee1b0c1557f278e5c7dc244927139d78c0e22a # v47.0.4
+      - name: Set up pinned Python
+        # gh api repos/actions/setup-python/commits/v6.3.0 --jq '.sha'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
-          files_yaml: |
-            sxsc:
-              - 'tools/sxsc/*.yaml'
+          python-version: "3.13"
 
-      - name: Copy modified .yamls
+      - name: Install hash-locked Python dependencies
+        shell: pwsh
         run: |
-          $sxsc = '.\tools\sxsc'
-          $configs = '..\configs'
-          mkdir $configs | Out-Null
+          $ErrorActionPreference = 'Stop'
+          python -m pip install --disable-pip-version-check --no-input `
+              --only-binary=:all: --require-hashes -r .github/requirements-ci.txt
+          if ($LASTEXITCODE -ne 0) {
+              throw 'Installing the hash-locked CI dependencies failed.'
+          }
 
-          if ('${{ steps.changed-files.outputs.sxsc_any_changed }}' -eq 'true') {
-              $changedFiles = '${{ steps.changed-files.outputs.sxsc_all_changed_files }}' -split ' '
-          } elseif (Test-Path "$sxsc\regenAllConfigs") {
-              Write-Output "Regenerating all configs..."
-              Remove-Item -Path "$sxsc\regenAllConfigs" -Force
-              Remove-Item -Path ".\playbook\Executables\AtlasModules\Packages\*.cab" -Force -Recurse
-              $changedFiles = Get-ChildItem $sxsc -Filter *.yaml
+      - name: Validate YAML files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m yamllint -c .yamllint.yml .
+          if ($LASTEXITCODE -ne 0) {
+              throw 'YAML validation failed.'
+          }
+
+      - name: Select SxS configs
+        id: sxsc-configs
+        shell: pwsh
+        env:
+          ATLAS_EVENT_BEFORE: ${{ github.event.before }}
+          ATLAS_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+
+          $sxscRoot = [IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE 'tools\sxsc'))
+          $configStage = Join-Path $env:RUNNER_TEMP 'atlas-sxsc-configs'
+          New-Item -Path $configStage -ItemType Directory -Force | Out-Null
+
+          $regenerateAll = $env:ATLAS_EVENT_NAME -eq 'workflow_dispatch' -or
+              (Test-Path -LiteralPath (Join-Path $sxscRoot 'regenAllConfigs') -PathType Leaf) -or
+              $env:ATLAS_EVENT_BEFORE -notmatch '^[0-9a-f]{40}$' -or
+              $env:ATLAS_EVENT_BEFORE -eq ('0' * 40)
+
+          if (-not $regenerateAll) {
+              $deletedFiles = @(& git diff --name-only --diff-filter=D `
+                  $env:ATLAS_EVENT_BEFORE $env:ATLAS_SOURCE_SHA -- 'tools/sxsc/*.yaml')
+              if ($LASTEXITCODE -ne 0) {
+                  throw 'Determining deleted SxS configuration files failed.'
+              }
+              $regenerateAll = $deletedFiles.Count -gt 0
+          }
+
+          if ($regenerateAll) {
+              $changedFiles = @(Get-ChildItem -LiteralPath $sxscRoot -Filter '*.yaml' -File |
+                  Select-Object -ExpandProperty FullName)
           } else {
-              Write-Output "Not building any packages, no sxsc config changes detected."
-              "runSxsc=false" >> $env:GITHUB_ENV
-              exit
+              $changedFiles = @(& git diff --name-only --diff-filter=ACMR `
+                  $env:ATLAS_EVENT_BEFORE $env:ATLAS_SOURCE_SHA -- 'tools/sxsc/*.yaml')
+              if ($LASTEXITCODE -ne 0) {
+                  throw 'Determining changed SxS configuration files failed.'
+              }
+              $changedFiles = @($changedFiles | ForEach-Object {
+                      [IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE $_))
+                  })
           }
 
-          "runSxsc=true" >> $env:GITHUB_ENV
+          $rootPrefix = $sxscRoot.TrimEnd([char]'\', [char]'/') +
+              [IO.Path]::DirectorySeparatorChar
           foreach ($file in $changedFiles) {
-              Write-Output "Copying: $file"
-              Copy-Item $file $configs -Force
+              $fullPath = [IO.Path]::GetFullPath([string]$file)
+              if (-not $fullPath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase) -or
+                  [IO.Path]::GetExtension($fullPath) -cne '.yaml' -or
+                  -not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+                  throw "Refusing an invalid SxS config path: '$file'."
+              }
+              Copy-Item -LiteralPath $fullPath -Destination $configStage -Force
           }
 
-      - name: Clone the sxsc repository
-        run: |
-          git clone --depth=1 ${{ env.SXSC_REPO }}
-          git -C sxsc fetch --depth=1 origin ${{ env.SXSC_REF }}
-          git -C sxsc checkout --detach ${{ env.SXSC_REF }}
-          Copy-Item -Path "configs" -Destination ".\sxsc\configs" -Recurse -Force
-        working-directory: ..
-        if: env.runSxsc == 'true'
+          $runSxsc = $changedFiles.Count -gt 0
+          "run-sxsc=$($runSxsc.ToString().ToLowerInvariant())" |
+              Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "ATLAS_SXSC_CONFIG_STAGE=$configStage" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ATLAS_REGENERATE_ALL=$($regenerateAll.ToString().ToLowerInvariant())" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Build CAB
-        run: |
-          Write-Output "Installing dependencies..."
-          pip install -r requirements.txt | Out-Null
-
-          Write-Output "Making certificate..."
-          $thumbprint = .\make-cert.ps1
-
-          $atlasRepoPath = '..\Atlas'
-          $packagePath = "$atlasRepoPath\playbook\Executables\AtlasModules\Packages"
-          mkdir $packagePath -EA 0 | Out-Null
-
-          Get-ChildItem "configs" -Filter *.yaml | ForEach-Object {
-              Write-Output "`n`nProcessing $($_.Name)`n------------------------------------------------------"
-              Copy-Item -Path $_.FullName -Destination "cfg.yaml" -Force | Out-Null
-
-              $folderDir = "$atlasRepoPath\tools\sxsc\$($_.Name -replace '-Arm','')"
-              if (Test-Path $folderDir -PathType Container) {
-                  Write-Output "Copying $($_.Name)'s files..."
-                  Copy-Item -Path "$folderDir\*" -Destination '.\' -Recurse -Force | Out-Null
-              }
-
-              Write-Output "Generating package files..."
-              python sxsc.py
-              if ($LASTEXITCODE -ne 0) { throw "sxsc.py didn't return 0!" }
-
-              Write-Output "Building package..."
-              .\start-build.ps1 -Thumbprint $thumbprint
-
-              Write-Output "Copying package to AtlasModules..."
-              Get-ChildItem -File -Recurse -Filter *.cab | ForEach-Object {
-                  Copy-Item -Path $_.FullName -Destination $packagePath -Force
-              }
-
-              Write-Output "Cleaning up..."
-              .\clean.ps1
+          if (-not $runSxsc) {
+              Write-Host 'No SxS configuration changes were selected.'
           }
-        working-directory: ..\sxsc
-        if: env.runSxsc == 'true'
 
-      - name: Commit and push changes
-        # Uses the workflow's GITHUB_TOKEN: pushes made with it cannot retrigger
-        # workflows, so this is loop-safe without a personal access token.
+      - name: Fetch the pinned SxS compiler
+        if: steps.sxsc-configs.outputs.run-sxsc == 'true'
+        shell: pwsh
         run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add -A
-          git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
-          git pull --rebase origin $env:GITHUB_REF_NAME
-          git push
-        working-directory: playbook\Executables\AtlasModules\Packages
-        if: env.runSxsc == 'true'
+          $ErrorActionPreference = 'Stop'
+          $sxsc = Join-Path $env:RUNNER_TEMP 'atlas-sxsc'
+          New-Item -Path $sxsc -ItemType Directory -Force | Out-Null
 
-      - name: Create playbook (ZIP/APBX password is malte)
-        id: create-pb
+          & git -C $sxsc init --quiet
+          if ($LASTEXITCODE -ne 0) { throw 'Initializing the SxS source directory failed.' }
+          & git -C $sxsc remote add origin $env:SXSC_REPO
+          if ($LASTEXITCODE -ne 0) { throw 'Binding the SxS source repository failed.' }
+          & git -C $sxsc fetch --depth=1 origin $env:SXSC_REF
+          if ($LASTEXITCODE -ne 0) { throw 'Fetching the pinned SxS source failed.' }
+          & git -C $sxsc checkout --detach --quiet FETCH_HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Checking out the pinned SxS source failed.' }
+
+          $actualRef = (& git -C $sxsc rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $actualRef -cne $env:SXSC_REF) {
+              throw "SxS source identity mismatch: expected '$env:SXSC_REF', got '$actualRef'."
+          }
+
+          # Create an exact flat compiler input set. Copying the stage directory itself
+          # would nest it and make the later non-recursive compiler loop see no files.
+          $configDestination = Join-Path $sxsc 'configs'
+          if (Test-Path -LiteralPath $configDestination) {
+              Get-ChildItem -LiteralPath $configDestination -Force -ErrorAction Stop |
+                  Remove-Item -Recurse -Force -ErrorAction Stop
+          }
+          else {
+              New-Item -Path $configDestination -ItemType Directory `
+                  -ErrorAction Stop | Out-Null
+          }
+          $selectedConfigs = @(Get-ChildItem `
+                  -LiteralPath $env:ATLAS_SXSC_CONFIG_STAGE `
+                  -Filter '*.yaml' -File -ErrorAction Stop)
+          if ($selectedConfigs.Count -eq 0) {
+              throw 'The selected SxS configuration stage is empty.'
+          }
+          $selectedConfigs | Copy-Item -Destination $configDestination `
+              -Force -ErrorAction Stop
+          $copiedConfigs = @(Get-ChildItem -LiteralPath $configDestination `
+                  -Filter '*.yaml' -File -ErrorAction Stop)
+          if ($copiedConfigs.Count -ne $selectedConfigs.Count) {
+              throw 'The SxS compiler input directory does not match the selected config set.'
+          }
+          "ATLAS_SXSC_ROOT=$sxsc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build CAB candidates
+        if: steps.sxsc-configs.outputs.run-sxsc == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sxsc = $env:ATLAS_SXSC_ROOT
+          $packagePath = Join-Path $env:GITHUB_WORKSPACE `
+              'playbook\Executables\AtlasModules\Packages'
+          New-Item -Path $packagePath -ItemType Directory -Force | Out-Null
+          if ($env:ATLAS_REGENERATE_ALL -eq 'true') {
+              Get-ChildItem -LiteralPath $packagePath -Filter '*.cab' -File |
+                  Remove-Item -Force
+          }
+          $candidateStage = Join-Path $env:RUNNER_TEMP 'atlas-cab-candidates'
+          New-Item -Path $candidateStage -ItemType Directory -Force | Out-Null
+
+          Push-Location $sxsc
+          try {
+              $thumbprint = & .\make-cert.ps1
+              if (-not $thumbprint) { throw 'The SxS signing certificate was not created.' }
+
+              Get-ChildItem -LiteralPath (Join-Path $sxsc 'configs') -Filter '*.yaml' -File |
+                  ForEach-Object {
+                      Write-Host "Processing $($_.Name)"
+                      Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $sxsc 'cfg.yaml') -Force
+
+                      $folderName = $_.Name -replace '-Arm', ''
+                      $folderDir = Join-Path $env:GITHUB_WORKSPACE "tools\sxsc\$folderName"
+                      if (Test-Path -LiteralPath $folderDir -PathType Container) {
+                          Copy-Item -Path (Join-Path $folderDir '*') -Destination $sxsc -Recurse -Force
+                      }
+
+                      python .\sxsc.py
+                      if ($LASTEXITCODE -ne 0) { throw "sxsc.py failed for '$($_.Name)'." }
+
+                      & .\start-build.ps1 -Thumbprint $thumbprint
+
+                      $cabs = @(Get-ChildItem -LiteralPath $sxsc -File -Recurse -Filter '*.cab')
+                      if ($cabs.Count -eq 0) {
+                          throw "The SxS compiler produced no CAB for '$($_.Name)'."
+                      }
+                      foreach ($cab in $cabs) {
+                          Copy-Item -LiteralPath $cab.FullName -Destination $packagePath -Force
+                          Copy-Item -LiteralPath $cab.FullName -Destination $candidateStage -Force
+                      }
+
+                      & .\clean.ps1
+                  }
+          } finally {
+              Pop-Location
+          }
+          "ATLAS_CAB_STAGE=$candidateStage" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Stage CAB candidates with hashes
+        if: steps.sxsc-configs.outputs.run-sxsc == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = $env:ATLAS_CAB_STAGE
+
+          $cabs = @(Get-ChildItem -LiteralPath $stage -Filter '*.cab' -File)
+          if ($cabs.Count -eq 0) { throw 'No CAB candidates are available to stage.' }
+          $hashLines = @(Get-ChildItem -LiteralPath $stage -Filter '*.cab' -File |
+              Sort-Object Name | ForEach-Object {
+                  $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                  "$hash  $($_.Name)"
+              })
+          [IO.File]::WriteAllLines((Join-Path $stage 'SHA256SUMS.txt'), $hashLines,
+              [Text.Encoding]::ASCII)
+
+      - name: Upload review-only CAB candidates
+        if: steps.sxsc-configs.outputs.run-sxsc == 'true'
+        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Atlas-CAB-candidates-${{ env.ATLAS_SOURCE_SHA }}
+          path: ${{ env.ATLAS_CAB_STAGE }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Build and stage the CI playbook
+        id: create-playbook
         if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
+        shell: pwsh
         run: |
-          echo "Making a renamed password protected (malte) ZIP of playbook files..."
-          $pbName = "Atlas Playbook $($env:GITHUB_SHA.Substring(0,8))"
-          & .\tools\build\Build-Playbook.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName -DontOpenPbLocation
-          echo "Move the .apbx playbook into 'Release ZIP' to be released as an artifact with the additional files..."
-          Move-Item "playbook\$pbName.apbx" "tools\release-zip"
+          $ErrorActionPreference = 'Stop'
+          $shortSha = $env:ATLAS_SOURCE_SHA.Substring(0, 8)
+          $playbookName = "Atlas Playbook $shortSha"
+          & .\tools\build\Build-Playbook.ps1 -ReplaceOldPlaybook `
+              -Removals Verification, WinverRequirement -FileName $playbookName `
+              -DontOpenPbLocation
 
-      - name: Verify playbook package
-        if: ${{ steps.create-pb.outcome == 'success' }}
-        run: |
-          $apbx = Get-ChildItem "tools\release-zip" -Filter *.apbx | Select-Object -First 1
+          $apbx = Get-Item -LiteralPath "playbook\$playbookName.apbx" -ErrorAction Stop
           & .\tools\build\Test-Apbx.ps1 -Path $apbx.FullName
 
-      - name: Upload artifact
-        # gh api repos/actions/upload-artifact/commits/v7.0.0 --jq '.sha'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        if: ${{ steps.create-pb.outcome != 'skipped' }}
+          $stage = Join-Path $env:RUNNER_TEMP 'atlas-ci-playbook'
+          New-Item -Path $stage -ItemType Directory -Force | Out-Null
+          Copy-Item -LiteralPath $apbx.FullName -Destination $stage -Force
+          Get-ChildItem -LiteralPath 'tools\release-zip' -File |
+              Copy-Item -Destination $stage -Force
+          "ATLAS_CI_STAGE=$stage" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload the review-only CI playbook
+        if: steps.create-playbook.outcome == 'success'
+        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: Atlas Playbook
-          path: |
-            tools/release-zip/*
+          name: Atlas-CI-${{ env.ATLAS_SOURCE_SHA }}
+          path: ${{ env.ATLAS_CI_STAGE }}
           if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

@@ -4,9 +4,9 @@ function Import-AtlasRegFile {
     <#
     .SYNOPSIS
         Imports a .reg file via reg.exe, throwing on a non-zero exit code. HKCU paths
-        cannot be redirected or represented in the typed Atlas mutation journal, so an
-        HKCU import under LocalSystem is rejected. Use the typed registry
-        functions for per-user data that must propagate to the default profile.
+        cannot identify the intended interactive account under LocalSystem, so an HKCU
+        import in that context is rejected. Use typed registry functions in an exact-user
+        process, or explicitly bind them to Atlas's loaded default-user hive.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -21,7 +21,7 @@ function Import-AtlasRegFile {
     if (Test-AtlasSystem) {
         $regFileContent = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
         if ($regFileContent -match '(?im)^\s*\[\s*-?\s*(?:HKEY_CURRENT_USER|HKCU)(?:\\|\s*\])') {
-            throw "Registry file '$Path' contains HKCU sections; Atlas.Registry cannot redirect or journal HKCU mutations from a .reg import under LocalSystem."
+            throw "Registry file '$Path' contains HKCU sections; Atlas.Registry cannot select an interactive user for a .reg import under LocalSystem."
         }
     }
 

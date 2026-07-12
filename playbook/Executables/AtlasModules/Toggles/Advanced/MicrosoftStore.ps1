@@ -11,7 +11,10 @@
             Action     = {
                 param($Toggle)
 
-                Get-AppxPackage -AllUsers Microsoft.WindowsStore | Remove-AppxPackage -ErrorAction SilentlyContinue
+                $packages = @(Get-AppxPackage -AllUsers Microsoft.WindowsStore -ErrorAction Stop)
+                foreach ($package in $packages) {
+                    $package | Remove-AppxPackage -AllUsers -ErrorAction Stop
+                }
 
                 if (-not $Toggle.Silent) {
                     Write-Host ''
@@ -27,8 +30,18 @@
             Action     = {
                 param($Toggle)
 
-                Get-AppxPackage -AllUsers Microsoft.WindowsStore | ForEach-Object {
-                    Add-AppxPackage -DisableDevelopmentMode -Register (Join-Path $_.InstallLocation 'AppXManifest.xml') -ErrorAction SilentlyContinue
+                $packages = @(Get-AppxPackage -AllUsers Microsoft.WindowsStore -ErrorAction Stop)
+                if ($packages.Count -eq 0) {
+                    throw 'Microsoft Store is not provisioned on this image, so it cannot be registered and no enabled state was recorded.'
+                }
+                foreach ($package in $packages) {
+                    $manifestPath = Join-Path -Path $package.InstallLocation `
+                        -ChildPath 'AppXManifest.xml'
+                    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+                        throw "Microsoft Store manifest is missing at '$manifestPath'."
+                    }
+                    Add-AppxPackage -DisableDevelopmentMode -Register $manifestPath `
+                        -ErrorAction Stop
                 }
 
                 if (-not $Toggle.Silent) {

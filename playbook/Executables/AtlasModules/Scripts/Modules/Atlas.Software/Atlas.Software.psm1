@@ -1,16 +1,24 @@
 # Atlas.Software - software management module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies Write-AtlasLog/Get-AtlasContext/Assert-AtlasPrivilege and the UI
-# helpers (Read-Pause, Read-MessageBox); Atlas.Shortcuts supplies New-AtlasShortcut. Import
-# them explicitly so standalone entry points (Install-AtlasPackage.ps1, the software picker)
-# work without initPowerShell.ps1 having populated PSModulePath first.
-if (-not (Get-Command -Name 'Write-AtlasLog' -ErrorAction SilentlyContinue)) {
-    Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1')
+# Atlas.Core supplies shared runtime helpers; Atlas.Shortcuts creates installer links.
+foreach ($dependencyManifest in @(
+    '..\Atlas.Core\Atlas.Core.psd1'
+    '..\Atlas.Shortcuts\Atlas.Shortcuts.psd1'
+)) {
+    $manifestPath = Join-Path -Path $PSScriptRoot -ChildPath $dependencyManifest
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        throw "Required Atlas.Software dependency '$manifestPath' is missing."
+    }
+    Import-Module -Name $manifestPath -Force -ErrorAction Stop
 }
-if (-not (Get-Command -Name 'New-AtlasShortcut' -ErrorAction SilentlyContinue)) {
-    Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Shortcuts\Atlas.Shortcuts.psd1')
+
+# Download and process helpers are private implementation dependencies.
+$downloadIntegrity = Join-Path -Path $PSScriptRoot -ChildPath '..\..\Internal\Download-Integrity.ps1'
+if (-not (Test-Path -LiteralPath $downloadIntegrity -PathType Leaf)) {
+    throw "Required download helper '$downloadIntegrity' is missing."
 }
+. $downloadIntegrity
 
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 

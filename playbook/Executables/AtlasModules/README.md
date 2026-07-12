@@ -1,6 +1,6 @@
 # Sources
 
-Some of the Playbook contains binary executables. This file provides verification for those files, by listing the SHA256 hashes, sources, and when each was last verified/checked. Hashes are uppercase SHA256, as produced by `Get-FileHash` in PowerShell or `sha256sum` (uppercased) on Linux.
+Some of the Playbook contains binary executables. This file lists their SHA256 hashes and sources so the shipped files can be verified reproducibly. Hashes are uppercase SHA256, as produced by `Get-FileHash` in PowerShell or `sha256sum` (uppercased) on Linux.
 
 **Completeness contract**: every binary file shipped under `playbook\Executables` (`.exe`, `.dll`, `.cab`, `.zip`) is listed here. Completeness and all hashes last cross-checked against disk on 7/10/2026.
 
@@ -15,7 +15,6 @@ The root of the file paths listed here starts in `playbook\Executables`.
 - Version: v0.4
 - Renamed to `multichoice.exe`
 - License: [GNU General Public License v3.0](https://github.com/Atlas-OS/utilities/blob/main/LICENSE)
-- Last Verified: 7/5/2026 by advisor audit (`sha256sum`, cross-checked against disk)
 
 ## SetTimerResolution & MeasureSleep
 
@@ -30,7 +29,6 @@ The root of the file paths listed here starts in `playbook\Executables`.
 - Repository: https://github.com/valleyofdoom/TimerResolution (current upstream project)
 - License: [GNU General Public License v3.0](https://github.com/valleyofdoom/TimerResolution/blob/main/LICENSE)
 - Note: as of 7/5/2026 the `deaglebullet/TimerResolution` repository these exact assets were downloaded from no longer exists on GitHub. The upstream project (also credited as "amitxv" in `\AtlasModules\Acknowledgements`) publishes releases with the same tags at `valleyofdoom/TimerResolution`, but its current `SetTimerResolution-v1.0.0`/`MeasureSleep-v1.0.0` assets do not hash-match the shipped files (likely rebuilt binaries of the same source). The shipped files therefore currently have no retrievable public download; source code is available in the upstream repository.
-- Last Verified: 7/5/2026 by advisor audit (`sha256sum`, cross-checked against disk)
 
 ## ViVeTool
 
@@ -44,7 +42,6 @@ The root of the file paths listed here starts in `playbook\Executables`.
     - Version: v0.3.3
 - Repository: https://github.com/thebookisclosed/ViVe
 - License: [GNU General Public License v3.0](https://github.com/thebookisclosed/ViVe/blob/master/LICENSE)
-- Last Verified: 7/5/2026 by advisor audit (`sha256sum`, cross-checked against disk)
 
 ## StoreFixer
 
@@ -55,18 +52,6 @@ The root of the file paths listed here starts in `playbook\Executables`.
 - Version: 0.0.4
 - License: [CC0 1.0 Universal](https://github.com/TheyCreeper/StoreFixer/blob/main/LICENSE)
 - Used by the Revert phase (`\AtlasModules\Scripts\Phases\Invoke-RevertPhase.ps1`) and the "Fix Microsoft Store Issues" troubleshooting toggle.
-- Last Verified: 7/5/2026 by advisor audit (`sha256sum`, cross-checked against disk and against the upstream release asset)
-
-## YamlDotNet
-
-- Path: `\YamlDotNet.dll`
-- SHA256 Hash: `9172F0758ED76963E0EDE3B5CA9A1FB5B82F64C7E7A92CB3A6DE39EFA933A668`
-- Source: https://www.nuget.org/packages/YamlDotNet/16.3.0 (the shipped file is bit-identical to `lib/net47/YamlDotNet.dll` inside the NuGet package)
-- Repository: https://github.com/aaubry/YamlDotNet
-- Version: 16.3.0
-- License: [MIT](https://github.com/aaubry/YamlDotNet/blob/master/LICENSE.txt)
-- Note: YAML parsing library formerly loaded by the default-user-hive script (`APPLYDUHIVE.ps1`). That script has since been replaced by the PowerShell framework's hive sync, and no current script references this DLL.
-- Last Verified: 7/5/2026 by advisor audit (`sha256sum`, cross-checked against disk and against the NuGet package contents)
 
 ## CBS component packages
 
@@ -78,9 +63,8 @@ The root of the file paths listed here starts in `playbook\Executables`.
     - SHA256 Hash: `11C5E3502DCB962F2FAE456712C7982DC1864D686B76194628CBFF8D1CD77ECA`
 - Path: `\AtlasModules\Packages\Z-Atlas-NoTelemetry-Package31bf3856ad364e35arm645.0.0.0.cab`
     - SHA256 Hash: `C6526330F660E654B249B63A974793BAE0E39F6714A0B79E03942145195E29A3`
-- Provenance: Built by CI from the configs in `tools/sxsc` using the external builder pinned by full commit SHA (`SXSC_REF` in `.github/workflows/build.yml`) and committed back by the build workflow. Hashes change whenever CI rebuilds them; verify by comparing against the most recent build-workflow run.
+- Provenance: Built from the configs in `tools/sxsc` with the external builder pinned by full commit SHA (`SXSC_REF` in `.github/workflows/build.yml`). CI uploads short-lived CAB candidates for review; accepted candidates are committed separately. Verify a replacement against the candidate artifact before updating this inventory.
 - Repository (builder): https://github.com/Atlas-OS/sxsc
-- Last Verified: 7/5/2026 by advisor audit (`sha256sum`, cross-checked against disk)
 
 ## Atlas elevation bootstrap
 

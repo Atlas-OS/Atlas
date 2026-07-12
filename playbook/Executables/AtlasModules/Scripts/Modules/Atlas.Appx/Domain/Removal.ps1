@@ -11,8 +11,8 @@
 function Get-AtlasAppxRemovalDefinition {
     <#
     .SYNOPSIS
-        Returns the ordered package-family removal policy formerly declared as
-        AME AppX actions in Configuration\atlas\appx.yml.
+        Returns the ordered package-family removal policy migrated from the former
+        AME AppX actions and now owned by the AppxSupport phase.
     #>
     return @(
         [pscustomobject]@{ Name = 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe';        Option = 'uninstall-edge';      IgnoreErrors = $true }
@@ -203,7 +203,7 @@ function Invoke-AtlasAppxRemovalPlan {
         All definitions are attempted in order. Failures from required definitions are
         aggregated and thrown only after the full plan; definitions that formerly used
         AME's ignoreErrors flag remain warning-only. Option gates are read from Atlas's
-        authoritative install context (journal-backed, with legacy flag compatibility).
+        authoritative install context (install-state-backed, with released-flag compatibility).
     #>
     param(
         [Parameter()]

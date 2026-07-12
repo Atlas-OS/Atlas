@@ -284,12 +284,10 @@ try {
             $launchParameters.Silent = [bool]$request.operationData.silent
             $launchParameters.JustContext = [bool]$request.operationData.justContext
             $launchParameters.NoExplorerRestart = [bool]$request.operationData.noExplorerRestart
+            $launchParameters.MachineOnly = [bool]$request.operationData.machineOnly
         }
         'ResetServices' {
             $launchParameters.RestoreSource = $request.operationData.restoreSource
-        }
-        'SafeModeRecovery' {
-            $launchParameters.RecoveryOperationId = $request.operationData.operationId
         }
     }
 

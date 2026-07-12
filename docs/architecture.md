@@ -1,167 +1,337 @@
 # Atlas architecture
 
-Atlas is a Windows optimization playbook applied by [AME Wizard](https://amelabs.net).
-This document describes how the repository is laid out and how an install runs.
+Atlas is a Windows optimization playbook packaged as an APBX and applied by AME
+Wizard. AME supplies the package runtime, FeaturePage selections, OOBE/ISO
+applicability, and the initial execution identities. Atlas owns the installation
+workflow in PowerShell.
+
+The current design is intentionally small:
+
+- custom.yml captures AME facts and starts one installer.
+- Atlas.InstallState stores only the facts and progress needed to resume.
+- Install-Plan.ps1 is the single ordered applicability table.
+- Invoke-AtlasInstall.ps1 is the single install orchestrator.
+- Machine, installing-user, and default-user work have explicit identity scopes.
+- Native helper boundaries are retained where Windows privileges or sessions
+  genuinely require them; ordinary feature logic stays in ordinary PowerShell.
 
 ## Repository layout
 
-```
+~~~
 /
-├─ playbook/                 Everything under here — and nothing else — ships in the .apbx
-│  ├─ playbook.conf          AME Wizard manifest (metadata, requirements, FeaturePages)
-│  ├─ Configuration/         The YAML shim (thin; orchestration only)
-│  │  ├─ custom.yml          Entry point: hive lifecycle + phase calls
-│  │  ├─ tweaks.yml          Per-category Tweaks phase calls (every tweak is PowerShell)
-│  │  └─ atlas/              start / appx / default (task composition + AME-only actions)
-│  └─ Executables/           Payload deployed to C:\Windows (AtlasModules, AtlasDesktop, Themes)
-│     └─ AtlasModules/Scripts/
-│        ├─ Invoke-AtlasInstall.ps1   Checked install-phase dispatcher
-│        ├─ Invoke-Toggle.ps1          Toggle CLI (every AtlasDesktop launcher calls it)
-│        ├─ Modules/          Atlas.* PowerShell framework (see below)
-│        ├─ Phases/           One Invoke-<Phase>Phase.ps1 per install phase
-│        ├─ Tweaks/           Declarative tweak data (.psd1) + tweaks.manifest.psd1
-│        ├─ Internal/         Shared implementation scripts
-│        └─ Tasks/            Mixed pre-copy and compatibility helpers (not orchestration)
-│     └─ AtlasModules/Toggles/   Per-toggle definitions for the AtlasDesktop user tools
+├─ playbook/
+│  ├─ playbook.conf
+│  ├─ Configuration/
+│  │  └─ custom.yml
+│  └─ Executables/
+│     └─ AtlasModules/
+│        ├─ Scripts/
+│        │  ├─ Invoke-AtlasInstall.ps1
+│        │  ├─ Invoke-Toggle.ps1
+│        │  ├─ Internal/
+│        │  ├─ Modules/Atlas.*/
+│        │  ├─ Phases/
+│        │  ├─ Tasks/
+│        │  └─ Tweaks/
+│        └─ Toggles/
 ├─ tools/
-│  ├─ build/                 AtlasBuild module, Build-Playbook.ps1, Test-Apbx.ps1, Set-AtlasVersion.ps1
-│  ├─ dev/                   Install-DevProfile.ps1, New-ToggleLaunchers.ps1, Convert-TweakYaml.ps1, Compare-SystemState.ps1
-│  ├─ sxsc/                  SxS component package configs (CABs built by CI)
-│  └─ release-zip/           Extra files shipped alongside the .apbx
-├─ tests/                    Pester 5 unit tests
-└─ docs/                     This documentation
-```
+│  ├─ build/
+│  ├─ dev/
+│  ├─ release-zip/
+│  └─ sxsc/
+├─ tests/
+└─ docs/
+~~~
 
-**The one rule that keeps the build simple:** everything under `playbook/` ships in the
-`.apbx`, and nothing outside it does. The repository tree *is* the shipped payload — there
-is no build-time repo-to-archive mapping. `tools/build/Test-Apbx.ps1` enforces exact
-source/archive file-path parity as well as the archive root layout.
+Every non-generated file below playbook ships in the APBX. There is no separate
+payload manifest or build-time source mapping. The APBX verifier compares source
+and archive paths and rejects missing, extra, or changed payload files.
 
-## The AME Wizard boundary
+## The AME handoff
 
-AME Wizard remains the runtime that installs the playbook: it handles TrustedInstaller
-execution, the install UI, the OOBE/ISO integration, and the `.apbx` package format. What
-changed in the rewrite is that the YAML layer is now a **thin shim** — almost all logic
-lives in PowerShell.
+[custom.yml](../playbook/Configuration/custom.yml) is a thin compatibility layer,
+not the Atlas workflow engine. It uses the exact inbox Windows PowerShell 5.1 host
+with -File and contains no AME task includes.
 
-The YAML keeps only what is genuinely AME-specific:
+Its handoff is fixed:
 
-- the default-user-hive `reg load`/`reg unload` bracketing,
-- `!writeStatus` progress text,
-- `option:` / `onUpgrade:` / `oobe:` / `iso:` gating,
-- `weight:` progress hints and `handleExitCodes` halting,
-- `!task` composition for `start.yml`, `appx.yml`, `default.yml`, and `tweaks.yml`,
-- `!appx` package removals (AME's provisioned/system-package removal is more robust than
-  `Remove-AppxPackage`),
-- the ISO-only offline-hive Defender key delete.
-
-Everything else is a `!powerShell` call into the framework.
-
-### Option handoff
-
-AME evaluates FeaturePage options in YAML only. Right after the payload is copied,
-`custom.yml` writes one flag file per selected option (and `Upgrade.flag` /
-`Interactive.flag`) under `C:\Windows\AtlasModules\Flags`. The framework reads them through
-`Test-AtlasOption` and `Get-AtlasContext` — so all option/upgrade/OOBE gating collapses
-into PowerShell while AME stays the single source of truth for the user's choices.
-
-## Install pipeline
-
-`custom.yml` loads the default-user hive, copies the payload, captures the option flags,
-then makes checked `Invoke-AtlasInstall.ps1 -Phase <Name>` calls for the live phases. Each
-phase asserts the privilege it needs and delegates to the framework modules.
-
-| Phase | Privilege | Work |
+| Handoff | Identity | Purpose |
 | --- | --- | --- |
-| PreInstall | Administrator | disable notifications, disk cleanup |
-| ShellRefresh | TrustedInstaller | stop shell processes, restart Explorer as the unelevated user |
-| Environment | Administrator | NGEN, PowerShell telemetry opt-out |
-| Features | Administrator | DISM features/capabilities (needs online sources) |
-| Software | Administrator | utilities, browser, toolbox (option-gated) |
-| Services | TrustedInstaller | service backup + hardening |
-| Components | TrustedInstaller | user-context Edge removal, OneDrive, Chat policy, CBS packages |
-| AppxSupport | Administrator | AppX snapshot / deprovision / cache clear |
-| Defaults | Administrator | DEFAULT.reg (fresh) / definition-based, state-only toggle re-apply (upgrade) |
-| Revert | TrustedInstaller | StoreFixer (upgrade-only) |
-| Tweaks | TrustedInstaller | one call per category (see below) |
-| Finalize | Administrator | default-user-hive sync |
+| Six gated Begin calls | TrustedInstaller | Capture Fresh, Upgrade, or Reapply crossed with normal or OOBE execution |
+| One non-OOBE user marker | currentUser | Publish a nonce-bound SID and session ID in that user's HKCU |
+| Seventeen option calls | TrustedInstaller | Record only FeaturePage options selected by AME |
+| Commit | TrustedInstaller | Validate the marker, bind the user when applicable, and freeze the captured state |
+| WdBoot delete | AME offline registry action | Apply the one ISO-only mounted-image exception |
+| Invoke-AtlasInstall.ps1 -Run | TrustedInstaller | Execute the complete live install plan |
 
-**Exit code contract** (consumed by AME `handleExitCodes`): `0` success, `1` fatal, `2`
-wrong privilege, `3` unsupported environment. Each phase writes a transcript plus a shared
-log under `C:\Windows\AtlasModules\Logs\install`.
+The current-user action publishes identity only. It does not run install work,
+elevate the account, or select a different session. OOBE has no installing-user
+marker.
 
-[AME 0.8.4 launches playbook PowerShell actions](https://github.com/Ameliorated-LLC/trusted-uninstaller-cli/blob/f325e9d950e6b37003a46c786fd1b6c20f3180dd/TrustedUninstaller.Shared/Actions/PowershellAction.cs#L91-L96)
-with a process-scoped execution-policy bypass, and AtlasDesktop launchers specify their own
-process policy. Microsoft documents that
-[`powershell.exe -ExecutionPolicy` affects only the current session](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe?view=powershell-5.1#-executionpolicy-executionpolicy)
-and does not change the registry policy. Atlas therefore preserves the machine's existing
-Windows PowerShell execution policy instead of replacing an administrator's configuration
-during installation.
+The WdBoot action is intentionally outside the PowerShell plan because it targets
+an offline mounted image. It is unreachable during a live installation. All other
+live work is owned by the one TrustedInstaller PowerShell process.
 
-## PowerShell framework (`Modules/Atlas.*`)
+## Install state
+
+[Atlas.InstallState](../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/Atlas.InstallState.psm1)
+uses one bounded JSON document and one mutex. Its default paths are:
+
+| Path | Meaning |
+| --- | --- |
+| C:\Windows\AtlasOS\Install\active.json | Active Capturing or Running install |
+| C:\Windows\AtlasOS\Install\active.json.bak | Last valid state used for simple recovery |
+| C:\Windows\AtlasOS\Install\work | Small temporary data owned by the active install |
+| C:\Windows\AtlasOS\Install\last.json | Completed diagnostic record |
+
+The active document contains schema version, target version, transaction ID,
+status, mode, OOBE state, selected options, installing-user SID and session,
+capture nonce, completed step names, and the last error. It does not contain a
+second workflow model.
+
+The lifecycle is:
+
+1. Begin creates Capturing state. A retry reuses an active state only when the
+   target version, install mode, and OOBE scope match; a conflicting Begin is rejected.
+2. Option and user capture add facts while Capturing. On a retry, a matching user
+   may refresh only the session ID; a different SID is rejected.
+3. Commit changes the state to Running. Captured mode, OOBE state, options, and
+   user identity are no longer reclassified by later AME calls.
+4. Successful steps add their key to completedSteps. A failing action records its
+   error without completing the key.
+5. Completion requires every applicable plan key, publishes the installed
+   compatibility flags, writes last.json, and removes active.json, its backup,
+   and the work directory.
+
+State writes use a temporary file, replacement, and a global named mutex.
+If the primary document is malformed and its backup is valid, the module restores
+the valid backup. The active document is the complete resume model; there are
+no parallel phase records or operator reconciliation states.
+
+### Retry semantics
+
+Each plan entry has one replay mode:
+
+- Once runs until it succeeds, then skips on later attempts.
+- Always runs whenever control reaches it on every attempt, even if it completed
+  before. These steps are small and idempotent lifecycle operations.
+
+An Always entry is still ordered within the plan; it is not a hidden finally
+handler. A retry resumes the same plan, reruns the lifecycle entries it reaches,
+skips completed Once entries, and retries the first incomplete work.
+
+## One plan and one orchestrator
+
+[Install-Plan.ps1](../playbook/Executables/AtlasModules/Scripts/Internal/Install-Plan.ps1)
+contains the only ordered install table. It filters records by Fresh, Upgrade, or
+Reapply and by normal or OOBE execution.
+
+| Ordered work | Modes | OOBE | Replay |
+| --- | --- | --- | --- |
+| DefaultHiveLoad | All | Excluded | Always |
+| PayloadReplacement | All | Included | Once |
+| NotificationDisable | All | Included | Always |
+| PreInstall | All | Included | Once |
+| ShellRefresh | All | Excluded | Once |
+| Environment | All | Included | Once |
+| HiddenSettingsPages | Fresh | Included | Once |
+| InitializePath | All | Included | Once |
+| Features | All | Included | Once |
+| Software | All | Included | Once |
+| Services | Fresh | Included | Once |
+| Components | Fresh | Included | Once |
+| AppxSupport | Fresh | Included | Once |
+| Defaults | All | Included | Once |
+| DefaultRegistrySeed | Fresh | Included | Once |
+| Revert | Upgrade | Included | Once |
+| Tweaks: networking, performance, privacy, qol, security, debloat, scripts, misc | Fresh | Excluded | Once |
+| PowerSettings | Fresh | Included | Once |
+| InstallingUserSetup | Fresh | Excluded | Once |
+| OemBranding | Upgrade | Included | Once |
+| NotificationRestore | All | Included | Always |
+| DefaultHiveUnload | All | Excluded | Always |
+
+All means Fresh, Upgrade, and Reapply. Reapply receives only the common work; it
+does not inherit fresh-only or upgrade-only actions.
+
+[Invoke-AtlasInstall.ps1](../playbook/Executables/AtlasModules/Scripts/Invoke-AtlasInstall.ps1)
+reads the committed state, obtains this plan, and dispatches only three closed
+record kinds:
+
+- Phase maps a known phase name to Phases\Invoke-NamePhase.ps1.
+- TweakCategory maps a known category to Invoke-TweaksPhase.ps1.
+- Checkpoint maps a known lifecycle name to a fixed internal or task script.
+
+The Checkpoint record kind describes a fixed lifecycle action in the table; it
+does not introduce another persistence model. The orchestrator starts from the
+extracted source payload.
+After PayloadReplacement succeeds or is already complete, subsequent actions use
+the installed C:\Windows\AtlasModules\Scripts tree. When all applicable keys have
+completed, the orchestrator calls Complete-AtlasInstallState directly. There is
+no InstallJournal, separate finalization phase, or proof framework; the active
+state and completed plan keys are the resume record.
+
+Install actions return to the orchestrator rather than terminating its process.
+The outer exit code remains 0 for success, 1 for an install failure, 2 for the
+wrong privilege, and 3 for an unsupported host. custom.yml halts on any nonzero
+result.
+
+### Phase responsibilities
+
+| Phase | Main responsibility |
+| --- | --- |
+| PreInstall | Remove obsolete Atlas elevation artifacts and perform bounded machine/user cleanup |
+| ShellRefresh | Refresh the exact installing user's shell outside OOBE |
+| Environment | Apply environment and runtime configuration |
+| Features | Apply Windows capabilities and optional features |
+| Software | Install selected utilities and browsers; Toolbox resolves the latest stable release at install time and is not pinned to the playbook version |
+| Services | Back up and apply Atlas service startup choices |
+| Components | Apply machine component and browser cleanup |
+| AppxSupport | Apply installed/provisioned AppX changes and exact-user cache work |
+| Defaults | Apply default configuration or supported toggle replay |
+| Revert | Run upgrade-only repair work |
+| Tweaks | Apply one declarative category in explicit machine, current-user, and default-user scopes |
+
+## Identity and registry scopes
+
+### Installing-user identity
+
+Publish-AtlasInstallUser.ps1 writes a nonce, the current token SID, and the
+current process session ID beneath HKCU\Software\AtlasOS\InstallSession.
+TrustedInstaller accepts exactly one marker matching the active capture nonce,
+checks that the marker SID equals its HKEY_USERS hive, binds the SID/session to
+the state, and removes the marker.
+
+Invoke-AtlasAsUser later consumes only that install-state binding. It:
+
+- runs only from SYSTEM or TrustedInstaller context;
+- asks WTS for the recorded session instead of enumerating sessions;
+- verifies the returned primary token's SID and session;
+- requires that user's profile hive to be loaded;
+- launches only the exact inbox Windows PowerShell host with
+  CreateProcessAsUser;
+- waits for a bounded result and does not support detached children.
+
+This is the user boundary for shell refresh, live HKCU work, AppX cache work, and
+other install-time operations that must observe the installing user's session.
+
+### The HKCU rule
+
+Ambient HKCU belongs to the current process token. Atlas therefore uses three
+explicit passes:
+
+1. TrustedInstaller applies machine entries and machine companion work without
+   redirecting HKCU.
+2. Outside OOBE, the exact install-state-bound user process verifies its own SID
+   and applies live-user entries through its ambient HKCU.
+3. TrustedInstaller binds Atlas.Registry to the active transaction ID and writes
+   the same applicable HKCU declarations directly to the fixed loaded
+   HKU\Atlas_DefaultUser hive.
+
+The default-user pass accepts only strict TrustedInstaller identity, an active
+install-state transaction, and the fixed hive mount. Other live-user HKEY_USERS
+targets are rejected. The writes occur during the owning tweak category instead
+of being queued for a later registry pass.
+
+DefaultHiveLoad and DefaultHiveUnload bracket non-OOBE plans. At successful
+completion Atlas replaces the installed flag set with the applicable
+Upgrade.flag, Interactive.flag, and option-*.flag files. These flags preserve the
+post-install compatibility contract after active state is archived; they do not
+drive the current install plan, which requires install state.
+
+## Notification lifecycle
+
+Notification suppression is one small machine-policy transaction. Before setting
+NoToastApplicationNotification to DWORD 1, Set-NotificationState.ps1 stores
+exactly two values in work\notification.json: whether the policy existed and its
+previous DWORD value.
+
+On a retry, Disable validates and reuses the existing snapshot instead of
+overwriting the original state. Restore writes back the prior value or removes
+the value when it was originally absent, verifies the result, and deletes the
+snapshot only after success. The install-state work directory is removed after
+the plan completes. There is no per-user notification path or generic recovery
+abstraction.
+
+## Privileged post-install operations
+
+The install orchestrator already runs as TrustedInstaller through the AME
+handoff. User-facing post-install tools use Atlas's native TrustedInstaller
+broker instead of an arbitrary RunAsTI launcher.
+
+The public broker accepts only typed Toggle and ResetServices operations and maps
+them to fixed installed entry points. It returns a structured result while the
+feature implementation remains in the shared PowerShell modules and toggle
+definitions. RunAsTI.cmd remains only as a deny-only compatibility stub for
+obsolete shortcuts.
+
+## Safe Mode and CBS retry
+
+[SafeMode.ps1](../playbook/Executables/AtlasModules/Scripts/Internal/SafeMode.ps1)
+implements four explicit operations: Minimal, Networking, CommandPrompt, and
+Exit. It uses the fixed System32 bcdedit.exe and stores only the prior Winlogon
+shell needed to undo CommandPrompt mode in
+C:\Windows\AtlasOS\Recovery\SafeMode.json.
+
+[CbsRetry.ps1](../playbook/Executables/AtlasModules/Scripts/Internal/CbsRetry.ps1)
+owns failed CBS package recovery:
+
+1. Atlas records absolute package paths in
+   C:\Windows\AtlasOS\Recovery\CbsRetry.json.
+2. The state moves from Pending to Armed after CommandPrompt Safe Mode is set.
+3. CbsRetry.ps1 -Recover exits Safe Mode and invokes the existing
+   Atlas.Software CBS installer with those literal paths.
+4. The state file is removed only after the retry succeeds.
+
+One mutex serializes the retry. Payload replacement refuses to run while CBS
+retry state is present, so it cannot replace the installer needed for recovery.
+There is no hidden scheduled task or AME task runner in this flow; recovery is
+an explicit -Recover operation.
+
+## PowerShell modules
 
 | Module | Responsibility |
 | --- | --- |
-| **Atlas.Core** | install context, option flags, logging, privilege checks, TrustedInstaller relaunch, shared UI helpers |
-| **Atlas.Registry** | registry value/key/hive operations; HKCU redirection + default-hive mirroring |
-| **Atlas.Tweaks** | loads and applies declarative `.psd1` tweaks; schema validation |
-| **Atlas.Services** | service startup changes, service backup |
-| **Atlas.Appx** | AppX snapshot/deprovision/cache-clear |
-| **Atlas.TasksProcs** | scheduled task and process helpers |
-| **Atlas.Software** | software/browser installs, CBS packages, OneDrive removal |
-| **Atlas.Toggles** | the AtlasDesktop toggle engine and upgrade re-apply |
-| **Atlas.Shortcuts / Atlas.Themes** | shortcut creation and theme application |
+| Atlas.Core | Active install-state context, post-install flag compatibility, logging, privilege checks, exact-user launch, and the native TrustedInstaller broker |
+| Atlas.InstallState | Compact capture, persistence, step replay, and completion |
+| Atlas.Registry | Typed registry operations and explicit current-token/default-user identity scopes |
+| Atlas.Tweaks | Declarative tweak loading, validation, applicability, and scoped execution |
+| Atlas.Services | Service startup changes and service backup/restore |
+| Atlas.Appx | Installed/provisioned AppX operations and exact-user cache work |
+| Atlas.TasksProcs | Scheduled task and process helpers |
+| Atlas.Software | Software/browser installers and CBS package operations |
+| Atlas.Toggles | AtlasDesktop toggle execution and supported upgrade replay |
+| Atlas.Shortcuts | Shortcut creation |
+| Atlas.Themes | Theme application |
 
-`Atlas.Core` also provides `Invoke-AtlasAsUser`, the inverse of the vendored `RunAsTI.cmd`:
-from a SYSTEM/TrustedInstaller phase it grabs the active console session's token
-(`WTSQueryUserToken`) and runs a process as the interactive user on the interactive desktop
-(`CreateProcessAsUser`) — the same technique AME Wizard's backend uses for
-`runas: currentUser`. Tweaks that must touch the running shell (theme apply, pin-to-Home)
-set `RunAs = 'User'` / `'UserElevated'` and the engine bounces their companion script
-through it.
+## Tweaks and AtlasDesktop
 
-### The HKCU redirection rule
+Install tweaks are data-only PSD1 definitions under
+Scripts\Tweaks\category. The
+[tweak schema](../playbook/Executables/AtlasModules/Scripts/Tweaks/README.md)
+describes registry entries, applicability, optional companion scripts, and
+post-user-registry refresh declarations. tweaks.manifest.psd1 owns category
+ordering and enablement. The install plan calls each enabled category directly;
+there are no YAML task includes.
 
-When the install runs as SYSTEM/TrustedInstaller, ambient `HKCU:` points at the SYSTEM
-profile, not the user. `Atlas.Registry` resolves `HKCU\...` paths to the interactive user's
-hive (`HKU\<SID>`) and mirrors each write into the loaded default-user hive
-(`HKU\AME_UserHive_Default`) so new accounts inherit the tweak. Mirrored paths are recorded
-and replayed by `Sync-AtlasDefaultUserHive` in the Finalize phase. Tweak authors always
-write plain `HKCU\...` and let the engine resolve it — this replaces the old
-`APPLYDUHIVE.ps1`, which scraped the YAML for HKCU paths.
-
-## Tweaks
-
-Each tweak is a data-only `.psd1` under `Scripts/Tweaks/<category>` (see
-[`Scripts/Tweaks/README.md`](../playbook/Executables/AtlasModules/Scripts/Tweaks/README.md)
-for the schema). `tweaks.manifest.psd1` defines category order and per-tweak enable/disable
-— commenting out a manifest line disables a tweak, mirroring the old "comment out the
-`!task` include" workflow. The Tweaks phase applies one category per call.
-
-Every tweak is now a `.psd1` — `tweaks.yml` contains no `!task` includes. Tweaks that need
-the interactive user (theme/lock-screen and pin-to-Home COM) use the `RunAs` key described
-above rather than an AME `runas` YAML action.
-
-## AtlasDesktop toggles
-
-The numbered AtlasDesktop folders are the user-facing post-install toggles. Each toggle is
-a definition under `AtlasModules/Toggles/<Group>/<Name>.ps1`; a tiny generated `.cmd`
-launcher (one per action, with the original display filename) calls `Invoke-Toggle.ps1`,
-which dispatches to `Atlas.Toggles`. `tools/dev/New-ToggleLaunchers.ps1` generates the
-launchers and validates that none have drifted from their definition.
-
-Toggle state is recorded in `HKLM\SOFTWARE\AtlasOS\Services\<Name>` as a `state` DWORD.
-Upgrades resolve the installed toggle definition by subkey name, map that state to one of
-the definition's declared states, and re-apply it through `Invoke-AtlasToggleReapply`.
-Executable paths are not persisted or replayed from registry state.
+AtlasDesktop's numbered folders are post-install tools. Each action has a
+definition under AtlasModules\Toggles and a small generated CMD launcher that
+calls Invoke-Toggle.ps1. The Atlas.Toggles module validates the definition,
+dispatches the requested state, and records declarative state in
+HKLM\SOFTWARE\AtlasOS\Services. It does not persist executable paths as replay
+instructions.
 
 ## Packaging
 
-The `.apbx` is a renamed, password-protected ZIP (password `malte`, so antivirus engines
-do not scan-flag the payload). `tools/build/AtlasBuild` builds it with 7-Zip/NanaZip and
-applies dev-build staging overrides (`-Removals`, `-AddLiveLog`). The SxS component CAB
-packages in `tools/sxsc` are built by CI from an external pinned builder and committed back
-to `playbook/Executables/AtlasModules/Packages`; their versions are independent of the
-playbook version.
+The APBX is a password-protected ZIP assembled by tools\build\AtlasBuild.
+Building uses a unique temporary output, verifies the archive before
+publication, and replaces the destination only after verification succeeds.
+tools\build\Test-Apbx.ps1 checks archive integrity, root layout, configuration,
+and exact payload parity.
 
-See [building.md](building.md) and [testing.md](testing.md) for the workflows.
+SxS CABs under tools\sxsc are built as review-only CI candidates and committed
+to the playbook payload separately after review. Their package versions are
+independent of the Atlas playbook version.
+
+See [building.md](building.md) and [testing.md](testing.md) for developer
+workflows.

@@ -1,7 +1,9 @@
 @{
     Name        = 'Disable Recall Snapshots'
     Description = 'Disables snapshots of Recall (24H2+)'
-    Run         = @(
-        @{ Exe = '{windir}\AtlasDesktop\3. General Configuration\AI Features\Recall\Disable Recall Support (default).cmd'; Args = '/silent'; Wait = $true }
+    Registry    = @(
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'; Name = 'DisableAIDataAnalysis'; Type = 'DWord'; Data = 1 }
+        @{ Path = 'HKCU\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'; Name = 'DisableAIDataAnalysis'; Type = 'DWord'; Data = 1 }
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'; Name = 'AllowRecallEnablement'; Type = 'DWord'; Data = 0 }
     )
 }

@@ -14,7 +14,6 @@
         # Pro/Enterprise/Education/IoT Enterprise - not honored on Home.
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'; Name = 'HideRecommendedSection'; Type = 'DWord'; Data = 1 }
     )
-    # Restart the Start Menu experience host so the pin changes are picked up.
-    StopProcesses = @('StartMenuExperienceHost')
+    # The companion routes Start Menu cache/process work through the exact install-state user.
     Script         = 'config-start-menu.ps1'
 }

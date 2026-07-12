@@ -18,6 +18,4 @@
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarMode'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarModeCache'; Type = 'DWord'; Data = 1 }
     )
-    # Fallback for OOBE as it doesn't seem to work (the script only acts during OOBE installs)
-    Script      = 'search-settings.ps1'
 }

@@ -2,10 +2,10 @@
 # Configures PowerShell before the rest of the install runs:
 #   - NGEN the loaded .NET assemblies (speeds up PowerShell startup ~10x)
 #   - Opt out of PowerShell Core telemetry (machine scope)
-# Runs elevated (runas: currentUserElevated); the HKLM value and the machine environment
-# variable both require administrator rights. NGEN failing must not abort the install.
+# Runs as TrustedInstaller; the HKLM value and machine environment variable are not user
+# state. NGEN failing must not abort the install.
 
-Assert-AtlasPrivilege -Administrator
+Assert-AtlasPrivilege -TrustedInstaller
 
 # NGEN - .NET assemblies PowerShell optimization (speeds up PowerShell startup time)
 try {

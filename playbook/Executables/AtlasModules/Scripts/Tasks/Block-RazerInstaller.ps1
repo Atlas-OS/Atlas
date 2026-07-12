@@ -15,7 +15,6 @@ Get-ChildItem -LiteralPath $resolvedRazerPath -Force -ErrorAction Stop |
     Remove-Item -Recurse -Force -ErrorAction Stop
 
 $denyRule = '*S-1-1-0:(W)'
-& icacls.exe $resolvedRazerPath /deny $denyRule | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    throw "icacls.exe failed to deny write access on '$resolvedRazerPath' with exit code $LASTEXITCODE."
-}
+$icaclsPath = Join-Path -Path ([Environment]::SystemDirectory) -ChildPath 'icacls.exe'
+Invoke-AtlasHiddenProcess -FilePath $icaclsPath `
+    -ArgumentList @($resolvedRazerPath, '/deny', $denyRule) -Wait | Out-Null

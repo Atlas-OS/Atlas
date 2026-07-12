@@ -8,22 +8,30 @@
     States        = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             MenuLabel  = 'Disable the new boot menu (default)'
             Reboot     = 'Recommend'
             Action     = {
                 param($Toggle)
 
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{default}' bootmenupolicy legacy | Out-Null
+                $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
+                Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                    -ArgumentList ([string[]]@('/set', '{default}', 'bootmenupolicy', 'legacy')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
             }
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             MenuLabel  = 'Enable the new boot menu'
             Reboot     = 'Recommend'
             Action     = {
                 param($Toggle)
 
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{default}' bootmenupolicy standard 2>$null | Out-Null
+                $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
+                Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                    -ArgumentList ([string[]]@('/set', '{default}', 'bootmenupolicy', 'standard')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
             }
         }
     }

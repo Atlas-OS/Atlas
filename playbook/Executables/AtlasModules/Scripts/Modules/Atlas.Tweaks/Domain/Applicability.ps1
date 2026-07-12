@@ -8,14 +8,28 @@ function Get-AtlasTweakSkipReason {
     #>
     param(
         [Parameter(Mandatory = $true)]
-        [hashtable]$Tweak
+        [hashtable]$Tweak,
+
+        [psobject]$Context
     )
 
-    $context = Get-AtlasContext
+    $context = if ($PSBoundParameters.ContainsKey('Context')) {
+        $Context
+    }
+    else {
+        Get-AtlasContext
+    }
 
     if ($Tweak.ContainsKey('Option') -and $Tweak['Option']) {
         $option = [string]$Tweak['Option']
-        if (-not (Test-AtlasOption -Name $option)) {
+        $optionSelected = if ($null -ne $context.PSObject.Properties['IsInstallStateBacked'] -and
+            [bool]$context.IsInstallStateBacked) {
+            @($context.Options) -ccontains $option
+        }
+        else {
+            Test-AtlasOption -Name $option
+        }
+        if (-not $optionSelected) {
             return "option '$option' was not selected"
         }
     }
@@ -67,8 +81,14 @@ function Test-AtlasTweakApplicable {
     #>
     param(
         [Parameter(Mandatory = $true)]
-        [hashtable]$Tweak
+        [hashtable]$Tweak,
+
+        [psobject]$Context
     )
 
-    return ($null -eq (Get-AtlasTweakSkipReason -Tweak $Tweak))
+    $parameters = @{ Tweak = $Tweak }
+    if ($PSBoundParameters.ContainsKey('Context')) {
+        $parameters['Context'] = $Context
+    }
+    return ($null -eq (Get-AtlasTweakSkipReason @parameters))
 }

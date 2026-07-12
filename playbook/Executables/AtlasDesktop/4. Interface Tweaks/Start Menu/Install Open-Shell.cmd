@@ -73,10 +73,11 @@ if errorlevel 0 (
     exit /b 1
 )
 
-:: The UAC child is complete, but this launcher is still medium integrity. Own
-:: the interactive-shell refresh here so Explorer is never started elevated.
-"%__APPDIR__%taskkill.exe" /f /im explorer.exe > nul 2>&1
-start "" "%AtlasWindowsRoot%\explorer.exe"
+:: The UAC child is complete, but this launcher is still medium integrity. Refresh
+:: and restart Explorer only in this caller's Windows session.
+set "shellRefreshScript=%AtlasWindowsRoot%\AtlasModules\Scripts\Internal\Invoke-AtlasUserShellRefresh.ps1"
+if not exist "%shellRefreshScript%" exit /b 1
+"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%shellRefreshScript%" -CurrentSession
 if errorlevel 0 (
     if errorlevel 1 exit /b 1
 ) else (

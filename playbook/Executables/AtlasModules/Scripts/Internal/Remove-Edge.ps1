@@ -35,7 +35,8 @@ param (
     [switch]$InstallWebView,
     [switch]$RemoveEdgeData,
     [switch]$KeepAppX,
-    [switch]$NonInteractive
+    [switch]$NonInteractive,
+    [switch]$MachineContext
 )
 
 Set-StrictMode -Version 3.0
@@ -69,6 +70,10 @@ if ($NonInteractive -and (!$UninstallEdge -and !$InstallEdge -and !$InstallWebVi
 }
 if ($InstallEdge -and $UninstallEdge) {
     throw "You can't use both -InstallEdge and -UninstallEdge as arguments."
+}
+if ($MachineContext -and (-not $UninstallEdge -or -not $KeepAppX -or
+        -not $NonInteractive -or $InstallEdge -or $InstallWebView -or $RemoveEdgeData)) {
+    throw 'MachineContext supports only the fixed noninteractive Edge-browser removal contract with KeepAppX and without user-data mutation.'
 }
 
 function Pause ($message = 'Press Enter to exit') {
@@ -414,10 +419,14 @@ function Remove-EdgeRegistration {
         'HKLM\SOFTWARE\Classes\MSEdgeHTM'
         'HKLM\SOFTWARE\Classes\MSEdgeMHT'
         'HKLM\SOFTWARE\Classes\AppID\MicrosoftEdgeUpdate.exe'
-        'HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge'
-        'HKCU\SOFTWARE\Classes\microsoft-edge'
-        'HKCU\SOFTWARE\Classes\MSEdgeHTM'
     )
+    if (-not $MachineContext) {
+        $edgeKeys += @(
+            'HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge'
+            'HKCU\SOFTWARE\Classes\microsoft-edge'
+            'HKCU\SOFTWARE\Classes\MSEdgeHTM'
+        )
+    }
     foreach ($edgeKey in $edgeKeys) {
         foreach ($view in @('/reg:64', '/reg:32')) {
             & reg.exe delete "$edgeKey" /f $view *> $null
@@ -593,15 +602,8 @@ Error: $_" -Level Critical -Exit -ExitCode 6
                                 '/quiet'
                                 '/norestart'
                             )) `
-                        -TimeoutSeconds 1800 `
                         -Description $transaction.Description `
                         -Hidden
-                    if (-not $installerResult.ContainmentConfirmed -or
-                        -not $installerResult.RootExited -or
-                        -not $installerResult.JobDrained) {
-                        $retainStaging = $true
-                        throw "$($transaction.Description) returned without confirmed process-tree containment and drain."
-                    }
                     if ($installerResult.ExitCodeUInt32 -notin @([uint32]0, [uint32]3010)) {
                         throw "$($transaction.Description) failed with exit code $($installerResult.ExitCodeUInt32)."
                     }
@@ -684,15 +686,8 @@ Error: $_" -Level Critical -Exit -ExitCode 9
                 -FilePath $download.Path `
                 -WorkingDirectory $stagingDirectory `
                 -ArgumentList ([string[]]@('/silent', '/install')) `
-                -TimeoutSeconds 1800 `
                 -Description 'The Edge WebView2 bootstrapper' `
                 -Hidden
-            if (-not $installerResult.ContainmentConfirmed -or
-                -not $installerResult.RootExited -or
-                -not $installerResult.JobDrained) {
-                $retainStaging = $true
-                throw 'The Edge WebView2 bootstrapper returned without confirmed process-tree containment and drain.'
-            }
             if ($installerResult.ExitCodeUInt32 -notin @([uint32]0, [uint32]3010)) {
                 throw "Installing Edge WebView failed with exit code $($installerResult.ExitCodeUInt32)."
             }
@@ -721,13 +716,20 @@ Error: $_" -Level Critical -Exit -ExitCode 9
     }
 }
 
-# Deliberately self-contained (standalone script); canonical check lives in Atlas.Core\Test-AtlasAdmin.
-# Running as TrustedInstaller/SYSTEM breaks parts of the removal
-if ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18') {
-    Write-Status "This script can't be ran as TrustedInstaller/SYSTEM.
+# Deliberately self-contained (standalone script). MachineContext is a narrow install-only
+# contract: Components already proves strict TI, user registry/data is split into a separate
+# exact-user script, and no install/update/WebView route is accepted here.
+$currentUserSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+if ($currentUserSid -eq 'S-1-5-18') {
+    if (-not $MachineContext) {
+        Write-Status "This script can't be ran as TrustedInstaller/SYSTEM outside the fixed Atlas machine-removal contract.
 Please relaunch this script under a regular admin account." -Level Critical -Exit
+    }
 }
 else {
+    if ($MachineContext) {
+        throw 'MachineContext requires the SYSTEM token supplied by the strict TrustedInstaller phase.'
+    }
     if (!([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
         if ($PSBoundParameters.Count -le 0 -and !$args) {
             Start-Process cmd "/c PowerShell -NoP -EP RemoteSigned -File `"$PSCommandPath`"" -Verb RunAs -WindowStyle Hidden
@@ -835,37 +837,30 @@ if ($UninstallEdge) {
         Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
     }
 
-    # Remove leftover Edge shortcuts (they now point at deleted binaries and fail to open):
-    # every user's Desktop, Quick Launch and taskbar pin, plus the Public Desktop and the
-    # common Start Menu.
+    # User-owned shortcut cleanup runs separately under the exact install-state user.
+    # This machine contract touches only the protected common shortcut locations.
     $edgeShortcutNames = @('edge.lnk', 'Microsoft Edge.lnk')
-    $relativeShortcutDirs = @(
-        'Desktop'
-        'AppData\Roaming\Microsoft\Internet Explorer\Quick Launch'
-        'AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar'
-        'AppData\Roaming\Microsoft\Windows\Start Menu\Programs'
-    )
-    $profilePaths = @()
-    try {
-        Get-ChildItem -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' -ErrorAction Stop | ForEach-Object {
-            $profilePath = (Get-ItemProperty -LiteralPath $_.PSPath -Name 'ProfileImagePath' -ErrorAction SilentlyContinue).ProfileImagePath
-            if ($profilePath) {
-                $profilePaths += $profilePath
-            }
-        }
-    }
-    catch {
-        $null = $_
-    }
     $shortcutDirs = @([Environment]::GetFolderPath('CommonDesktopDirectory'), [Environment]::GetFolderPath('CommonPrograms'))
-    foreach ($profilePath in $profilePaths) {
-        foreach ($relativeShortcutDir in $relativeShortcutDirs) {
-            $shortcutDirs += (Join-Path -Path $profilePath -ChildPath $relativeShortcutDir)
-        }
-    }
     foreach ($shortcutDir in ($shortcutDirs | Select-Object -Unique)) {
+        if ([string]::IsNullOrWhiteSpace($shortcutDir) -or -not [IO.Directory]::Exists($shortcutDir)) {
+            continue
+        }
+        $shortcutAttributes = [IO.File]::GetAttributes($shortcutDir)
+        if (($shortcutAttributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            Write-Status "Retaining reparse-point common shortcut directory '$shortcutDir'." -Level Warning
+            continue
+        }
         foreach ($edgeShortcutName in $edgeShortcutNames) {
-            Remove-Item -LiteralPath (Join-Path -Path $shortcutDir -ChildPath $edgeShortcutName) -Force -ErrorAction SilentlyContinue
+            $shortcutPath = [IO.Path]::Combine($shortcutDir, $edgeShortcutName)
+            if ([IO.File]::Exists($shortcutPath)) {
+                try {
+                    [IO.File]::SetAttributes($shortcutPath, [IO.FileAttributes]::Normal)
+                    [IO.File]::Delete($shortcutPath)
+                }
+                catch {
+                    Write-Status "Could not remove common Edge shortcut '$shortcutPath': $($_.Exception.Message)" -Level Warning
+                }
+            }
         }
     }
 

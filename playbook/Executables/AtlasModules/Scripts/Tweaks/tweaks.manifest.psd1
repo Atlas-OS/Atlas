@@ -1,8 +1,8 @@
 @{
     # Category order and per-tweak run order for the Tweaks install phase.
-    # - Categories run in the order tweaks.yml invokes them (one phase call each).
-    # - ParentModes records the outer AME route. tweaks.yml is fresh-only, so every
-    #   category has ParentModes = @('Fresh'). The manifest validator composes this
+    # - Categories run in the order the one-shot install plan dispatches them.
+    # - ParentModes records the modes allowed by that plan route. Category steps are
+    #   fresh-only, so every category has ParentModes = @('Fresh'). The manifest validator composes this
     #   with each tweak's OnUpgrade gate and rejects unreachable enabled entries.
     # - Tweaks run top to bottom within a category; paths are relative to the
     #   category folder, without the .psd1 extension.
@@ -172,6 +172,7 @@
                 'explorer/remove-context-menus/share'
                 'explorer/remove-context-menus/troubleshooting-compat'
                 'explorer/remove-context-menus/printing'
+                'explorer/remove-context-menus/printing-windows-11'
                 'security/disable-uac-secure-desktop'
                 'shell/alt-tab-open-windows'
                 'shell/disable-aero-shake'
@@ -227,7 +228,7 @@
                 'set-profile-pictures'
                 'backup-services'
                 'update-client-cbs'
-                # set-power-settings runs LAST, invoked directly from tweaks.yml.
+                # set-power-settings runs after category tweaks through the install plan.
             )
         }
         @{
@@ -241,8 +242,6 @@
                 'add-newUser-script'
                 'config-oem-information'
                 'create-shortcuts'
-                # enable-notifications runs LAST of all tweaks, invoked directly from tweaks.yml,
-                # so notifications re-enable only after everything else.
             )
         }
     )
@@ -250,12 +249,10 @@
     # Definitions invoked outside a category route. ParentModes is the outer
     # orchestration reachability, not a replacement for the definition's OnUpgrade.
     Standalone = @(
-        # custom.yml invokes this on both modes; OnUpgrade = 'Skip' makes it fresh-only.
-        @{ Slug = 'qol/set-hidden-settings-pages'; ParentModes = @('Fresh', 'Upgrade') }
-        # The fresh-only tweaks.yml tail runs these after all category tweaks.
+        # The install plan invokes this only for fresh installs.
+        @{ Slug = 'qol/set-hidden-settings-pages'; ParentModes = @('Fresh') }
+        # The fresh-only install plan runs this after all category tweaks.
         @{ Slug = 'scripts/set-power-settings'; ParentModes = @('Fresh') }
-        # Notifications are restored by fresh and upgrade orchestration paths.
-        @{ Slug = 'misc/enable-notifications'; ParentModes = @('Fresh', 'Upgrade') }
         # Invoke-RevertPhase.ps1 is explicitly upgrade-only and applies this while the
         # default-user hive is still loaded.
         @{ Slug = 'qol/appearance/atlas-theme-upgrade'; ParentModes = @('Upgrade') }

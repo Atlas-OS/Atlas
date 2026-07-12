@@ -7,18 +7,8 @@ $windir = [Environment]::GetFolderPath('Windows')
 Set-Location "$windir\AtlasModules\Scripts"
 ..\initPowerShell.ps1
 
-function Get-ProfilePathFromSid {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$Sid
-    )
-
-    $profilePath = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$Sid" -Name ProfileImagePath -ErrorAction SilentlyContinue).ProfileImagePath
-    if ([string]::IsNullOrEmpty($profilePath)) {
-        return $null
-    }
-
-    return [Environment]::ExpandEnvironmentVariables($profilePath)
+if (-not $CurrentUserOnly) {
+    throw 'Set-TaskbarPins requires -CurrentUserOnly; privileged loaded-user hive enumeration is unsupported.'
 }
 
 # The names are used for the shortcuts in the taskbar
@@ -152,28 +142,10 @@ if (!$NoExplorerStop) {
     Start-Sleep -Milliseconds 500
 }
 
-if ($CurrentUserOnly) {
-    Set-AtlasTaskbarPinsForProfile `
-        -Sid ([System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value) `
-        -AppData ([Environment]::GetFolderPath('ApplicationData')) `
-        -RegistryKey "HKCU\$rootKey"
-}
-else {
-    # Clearing taskbar, copying the shortcut, setting registry
-    foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
-        $sid = Split-Path $userKey -Leaf
-        $appData = Get-ItemPropertyValue "$userKey\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name 'AppData' -EA 0
-
-        if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData -PathType Container)) {
-            $profilePath = Get-ProfilePathFromSid -Sid $sid
-            if (![string]::IsNullOrEmpty($profilePath)) {
-                $appData = Join-Path $profilePath 'AppData\Roaming'
-            }
-        }
-
-        Set-AtlasTaskbarPinsForProfile -Sid $sid -AppData $appData -RegistryKey "$(Convert-Path $userKey)\$rootKey"
-    }
-}
+Set-AtlasTaskbarPinsForProfile `
+    -Sid ([System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value) `
+    -AppData ([Environment]::GetFolderPath('ApplicationData')) `
+    -RegistryKey "HKCU\$rootKey"
 
 if (!$NoExplorerStop) {
     Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue

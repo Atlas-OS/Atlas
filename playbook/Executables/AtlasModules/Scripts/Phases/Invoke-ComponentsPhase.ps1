@@ -2,12 +2,11 @@
 # Removes Windows components: the Security Center startup item, Smart App Control,
 # Microsoft Edge (option gated), OneDrive, the Teams chat auto-install policy and the
 # CBS component packages (option gated). Runs as TrustedInstaller; child-script and
-# CBS package failures throw so AME Wizard halts the install (handleExitCodes on the
-# phase call).
+# CBS package failures throw to the one-shot orchestrator, which returns the install's
+# single nonzero status to the custom.yml shim.
 #
 # Not handled here: the 'iso: only' OfflineSys WdBoot delete (AME-only, in custom.yml)
-# and Edge's !appx family removal (in atlas\appx.yml - AME's provisioned AppX removal
-# is battle-tested where Remove-AppxPackage documented-fails).
+# and Edge's installed/provisioned package-family removal (the AppxSupport phase).
 
 Assert-AtlasPrivilege -TrustedInstaller
 
@@ -16,18 +15,40 @@ Import-Module -Name (Join-Path $modulesRoot 'Atlas.Services\Atlas.Services.psd1'
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force -ErrorAction Stop
 
-# Preserve the former components.yml ordering: the interactive Edge remover runs
-# before the TrustedInstaller component mutations below. The helper obtains the
-# interactive user's elevated linked token; Remove-Edge.ps1 deliberately refuses
-# SYSTEM/TrustedInstaller and remains unchanged.
+# Preserve the former components.yml ordering without an elevated-user identity split.
+# Machine removal runs in a fixed child contract under this TI token; user-owned HKCU and
+# LocalAppData cleanup is a separate exact-user process and is omitted during OOBE.
 if (Test-AtlasOption -Name 'uninstall-edge') {
     $context = Get-AtlasContext
-    $powerShellExe = Join-Path -Path $context.WinDir -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $powerShellExe = [IO.Path]::Combine(
+        [Environment]::SystemDirectory,
+        'WindowsPowerShell',
+        'v1.0',
+        'powershell.exe'
+    )
     $removeEdgeScript = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Internal\Remove-Edge.ps1'
-    $arguments = '-NoProfile -NoLogo -ExecutionPolicy Bypass -File "{0}" -UninstallEdge -RemoveEdgeData -KeepAppX -NonInteractive' -f $removeEdgeScript
-    $edgeExitCode = Invoke-AtlasAsUser -FilePath $powerShellExe -Arguments $arguments -Elevated
-    if ($edgeExitCode -ne 0) {
-        throw "Remove-Edge.ps1 failed with exit code $edgeExitCode."
+    Invoke-AtlasHiddenProcess -FilePath $powerShellExe -ArgumentList @(
+        '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+        '-File', $removeEdgeScript,
+        '-UninstallEdge', '-KeepAppX', '-NonInteractive', '-MachineContext'
+    ) -Wait | Out-Null
+
+    if (-not $context.IsOobe) {
+        $interactiveUserSid = [string]$context.InteractiveUserSid
+        if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {
+            throw 'Edge current-user cleanup requires the install-state user SID.'
+        }
+        $userCleanupScript = Join-Path -Path (Split-Path -Parent $PSScriptRoot) `
+            -ChildPath 'Internal\Remove-EdgeCurrentUserData.ps1'
+        $userArguments = ConvertTo-AtlasWindowsArgumentString -ArgumentList ([string[]]@(
+            '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+            '-File', $userCleanupScript,
+            '-ExpectedUserSid', $interactiveUserSid
+        ))
+        $userExitCode = Invoke-AtlasAsUser -FilePath $powerShellExe -Arguments $userArguments
+        if ($userExitCode -ne 0) {
+            throw "Exact-user Edge data cleanup failed with exit code $userExitCode."
+        }
     }
 }
 
@@ -49,15 +70,16 @@ if (Test-AtlasOption -Name 'uninstall-edge') {
         Stop-AtlasService -Name $service
     }
     foreach ($service in $edgeServices) {
-        Set-AtlasServiceStartup -Name $service -StartupType 4
+        # Edge service names vary across supported package/build combinations.
+        Set-AtlasServiceStartup -Name $service -StartupType 4 -AllowMissing
     }
 
     Remove-AtlasScheduledTask -Path 'MicrosoftEdgeUpdateTaskMachineCore' -IgnoreMissing
     Remove-AtlasScheduledTask -Path 'MicrosoftEdgeUpdateTaskMachineUA' -IgnoreMissing
 
     # This block handles the pieces that need TrustedInstaller: services, scheduled
-    # tasks and the deprovision keys. Edge's AppX removal remains the !appx action in
-    # atlas\appx.yml.
+    # tasks and the deprovision keys. The checked AppxSupport phase removes Edge's
+    # installed and provisioned packages afterward.
 
     foreach ($deprovisionKey in @(
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe'
@@ -78,7 +100,7 @@ catch {
 
 # Windows components and Telemetry (CBS packages)
 # Install-AtlasCbsPackage throws on failure after registering the Safe Mode retry
-# fallback, making this phase exit non-zero so AME Wizard halts.
+# fallback, making this ordered step fail so the orchestrator returns nonzero.
 if (Test-AtlasOption -Name 'defender-disable') {
     Install-AtlasCbsPackage -Packages @(
         '*Z-Atlas-NoDefender-Package*',
@@ -110,8 +132,8 @@ if (Test-AtlasOption -Name 'defender-enable') {
 }
 
 # Prevent Teams chat from being reinstalled. This key is TrustedInstaller-protected,
-# which is why the write belongs in this phase rather than the elevated-user AppX
-# snapshot phase or an AME !registryValue action.
+# which is why the write belongs in this phase rather than the AppX snapshot phase
+# or an AME !registryValue action.
 $communicationsKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications'
 if (-not (Test-Path -LiteralPath $communicationsKey)) {
     New-Item -Path $communicationsKey -Force | Out-Null

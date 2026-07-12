@@ -11,6 +11,7 @@
         'Get-AtlasAppxRemovalDefinition'
         'Invoke-AtlasAppxRemovalPlan'
         'Clear-AtlasAppxCache'
+        'Invoke-AtlasUserAppxCacheCleanup'
         'Remove-AtlasPhoneLinkAppx'
     )
     CmdletsToExport   = @()

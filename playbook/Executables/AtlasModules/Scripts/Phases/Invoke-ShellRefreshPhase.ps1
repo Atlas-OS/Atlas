@@ -1,14 +1,38 @@
 # Shell refresh phase.
-# Replaces the AME-specific process-kill and run actions with the shared process
-# helpers. The phase runs as TrustedInstaller so it can stop shell processes across
-# integrity levels, then launches Explorer with the interactive user's unelevated token.
+# TrustedInstaller owns orchestration only. Shell termination and Explorer startup are
+# delegated to the exact install-state-bound medium user and constrained to that token's
+# Windows session so other console/RDP sessions are never affected.
 
 Assert-AtlasPrivilege -TrustedInstaller
 
-$modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
-Import-Module -Name (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
+$context = Get-AtlasContext -Refresh
+if (-not $context.IsInstallStateBacked -or $context.IsOobe) {
+    throw 'Shell refresh requires a non-OOBE active Atlas install state.'
+}
+$interactiveUserSid = [string]$context.InteractiveUserSid
+if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {
+    throw 'Shell refresh requires the install-state user SID.'
+}
 
-Stop-AtlasProcess -Name 'explorer', 'ShellExperienceHost'
+$scriptsRoot = Split-Path -Parent $PSScriptRoot
+$shellRefreshScript = Join-Path -Path $scriptsRoot `
+    -ChildPath 'Internal\Invoke-AtlasUserShellRefresh.ps1'
+if (-not [IO.File]::Exists($shellRefreshScript)) {
+    throw "The exact-user shell refresh helper is missing at '$shellRefreshScript'."
+}
 
-$explorerPath = Join-Path -Path (Get-AtlasContext).WinDir -ChildPath 'explorer.exe'
-$null = Invoke-AtlasAsUser -FilePath $explorerPath -Wait:$false
+$powerShellPath = [IO.Path]::Combine(
+    [Environment]::SystemDirectory,
+    'WindowsPowerShell',
+    'v1.0',
+    'powershell.exe'
+)
+
+$arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -ExpectedUserSid "{1}"' -f `
+    $shellRefreshScript,
+    $interactiveUserSid
+$exitCode = Invoke-AtlasAsUser -FilePath $powerShellPath -Arguments $arguments `
+    -WorkingDirectory ([string]$context.WinDir)
+if ($exitCode -ne 0) {
+    throw "Exact-user shell refresh exited with code $exitCode."
+}

@@ -1,4 +1,4 @@
-# Relaxed profile: AME playbook YAML uses custom tags (!cmd, !powerShell, !registryValue...)
+# Relaxed profile: AME playbook YAML uses custom tags (!run, !registryKey, !task, !writeStatus...)
 # and legacy formatting that stricter rules would reject wholesale.
 extends: relaxed
 

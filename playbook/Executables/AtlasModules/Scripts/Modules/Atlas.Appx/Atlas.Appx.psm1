@@ -1,11 +1,12 @@
 # Atlas.Appx - AppX support module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies Write-AtlasLog/Get-AtlasContext. Import it explicitly so the
-# Tasks forwarder scripts work without initPowerShell.ps1 having populated PSModulePath.
-if (-not (Get-Command -Name 'Write-AtlasLog' -ErrorAction SilentlyContinue)) {
-    Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1')
+# Atlas.Core supplies logging, context and option lookup for the AppX helpers.
+$coreManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1'
+if (-not (Test-Path -LiteralPath $coreManifest -PathType Leaf)) {
+    throw "Required Atlas.Core manifest '$coreManifest' is missing."
 }
+Import-Module -Name $coreManifest -Force -ErrorAction Stop
 
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
@@ -26,5 +27,6 @@ foreach ($domainModule in @(
 Export-ModuleMember -Function @(
     'Save-AtlasAppxSnapshot', 'Set-AtlasAppxDeprovisioned',
     'Get-AtlasAppxRemovalDefinition', 'Invoke-AtlasAppxRemovalPlan',
-    'Clear-AtlasAppxCache', 'Remove-AtlasPhoneLinkAppx'
+    'Clear-AtlasAppxCache', 'Invoke-AtlasUserAppxCacheCleanup',
+    'Remove-AtlasPhoneLinkAppx'
 )

@@ -14,7 +14,7 @@
             Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{current}' safeboot minimal | Out-Null
+                & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SafeMode.ps1') -Mode Minimal
             }
         }
         CommandPrompt = @{
@@ -24,8 +24,7 @@
             Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{current}' safeboot minimal | Out-Null
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{current}' safebootalternateshell yes | Out-Null
+                & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SafeMode.ps1') -Mode CommandPrompt
             }
         }
         Networking    = @{
@@ -35,7 +34,7 @@
             Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{current}' safeboot network | Out-Null
+                & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SafeMode.ps1') -Mode Networking
             }
         }
         Exit          = @{
@@ -45,8 +44,7 @@
             Reboot          = 'Recommend'
             Action     = {
                 param($Toggle)
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /deletevalue '{current}' safeboot 2>$null | Out-Null
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /deletevalue '{current}' safebootalternateshell 2>$null | Out-Null
+                & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\SafeMode.ps1') -Mode Exit
             }
         }
     }

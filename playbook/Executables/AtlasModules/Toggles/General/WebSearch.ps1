@@ -1,9 +1,9 @@
 # Toggle: Web Search / Search Highlights.
 #
 # Explorer/SearchHost are restarted unless the launcher was called with /noAction
-# (engine -NoExplorerRestart). HKCU writes run as the interactive elevated user. Enable
-# installs the Bing search provider via winget and, on Windows 11 with search indexing
-# stopped, offers to enable indexing (a graphical-bug fix).
+# (engine -NoExplorerRestart). HKCU writes run only in the bound non-elevated caller.
+# Enable installs the Bing search provider via winget and, on Windows 11 with search
+# indexing stopped, offers to enable indexing (a graphical-bug fix).
 @{
     Name      = 'WebSearch'
     Elevation = 'Admin'
@@ -11,49 +11,83 @@
         Disable = @{
             StateValue = 0
             Launcher   = '3. General Configuration\Web Search (includes Search Highlights)\Disable Web Search (default).cmd'
-            Reboot     = 'None'
-            Action     = {
+            Reboot     = 'RestartExplorer'
+            ShellRefreshOperation = 'SearchShellRefresh'
+            StateRecordScope = 'Machine'
+            MachineAction = {
                 param($Toggle)
 
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
+                        -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
+                    -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
+                        -ChildPath 'Modules\Atlas.Appx\Atlas.Appx.psd1') `
+                    -Force -ErrorAction Stop
+
                 $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
-                & $settingsPages hide search-permissions -Silent
+                & $settingsPages hide search-permissions -Silent -NoProcessCleanup
+                $windowsSearchPolicy = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+                Set-AtlasRegistryValue -Path $windowsSearchPolicy `
+                    -Name 'AllowSearchToUseLocation' -Type DWord -Data 0
+                Set-AtlasRegistryValue -Path $windowsSearchPolicy `
+                    -Name 'ConnectedSearchUseWeb' -Type DWord -Data 0
+                Set-AtlasRegistryValue -Path $windowsSearchPolicy `
+                    -Name 'DisableWebSearch' -Type DWord -Data 1
+                Set-AtlasRegistryValue -Path $windowsSearchPolicy `
+                    -Name 'EnableDynamicContentInWSB' -Type DWord -Data 0
 
-                Set-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' -Name 'AllowSearchToUseLocation' -Value 0 -Type DWord -Force
-                Set-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -Name 'BingSearchEnabled' -Value 0 -Type DWord -Force
-                Set-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' -Name 'IsAADCloudSearchEnabled' -Value 0 -Type DWord -Force
-                Set-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' -Name 'IsDeviceSearchHistoryEnabled' -Value 0 -Type DWord -Force
-                Set-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' -Name 'IsMSACloudSearchEnabled' -Value 0 -Type DWord -Force
-                Set-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' -Name 'SafeSearchMode' -Value 0 -Type DWord -Force
-                Set-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' -Name 'ConnectedSearchUseWeb' -Value 0 -Type DWord -Force
-                Set-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' -Name 'DisableWebSearch' -Value 1 -Type DWord -Force
-                Set-ItemProperty 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer' -Name 'DisableSearchBoxSuggestions' -Value 1 -Type DWord -Force
-                Set-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -Name 'SearchboxTaskbarMode' -Value 1 -Type DWord -Force
-                Set-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' -Name 'EnableDynamicContentInWSB' -Value 0 -Type DWord -Force
-                Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings' -Name 'IsDynamicSearchBoxEnabled' -Value 0 -Type DWord -Force
+                Invoke-AtlasAppxRemovalPlan -Definition @(
+                    [pscustomobject]@{
+                        Name         = 'Microsoft.BingSearch*'
+                        Option       = $null
+                        IgnoreErrors = $false
+                    }
+                )
+            }
+            UserAction = {
+                param($Toggle)
 
-                if (-not $Toggle.NoExplorerRestart) {
-                    Stop-Process -Name SearchHost -Force -ErrorAction SilentlyContinue
-                    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-                    Start-Process explorer.exe
-                }
-                Get-AppxPackage -AllUsers Microsoft.BingSearch* | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
+                        -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
+                    -Force -ErrorAction Stop
 
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' `
+                    -Name 'BingSearchEnabled' -Type DWord -Data 0
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' `
+                    -Name 'IsAADCloudSearchEnabled' -Type DWord -Data 0
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' `
+                    -Name 'IsDeviceSearchHistoryEnabled' -Type DWord -Data 0
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' `
+                    -Name 'IsMSACloudSearchEnabled' -Type DWord -Data 0
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' `
+                    -Name 'SafeSearchMode' -Type DWord -Data 0
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer' `
+                    -Name 'DisableSearchBoxSuggestions' -Type DWord -Data 1
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' `
+                    -Name 'SearchboxTaskbarMode' -Type DWord -Data 1
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings' `
+                    -Name 'IsDynamicSearchBoxEnabled' -Type DWord -Data 0
                 if (-not $Toggle.Silent) { Write-Host 'Web Search has been disabled.' }
             }
         }
         Enable  = @{
             StateValue = 1
             Launcher   = '3. General Configuration\Web Search (includes Search Highlights)\Enable Web Search.cmd'
-            Reboot     = 'None'
-            Action     = {
+            Reboot     = 'RestartExplorer'
+            ShellRefreshOperation = 'SearchShellRefresh'
+            StateRecordScope = 'Machine'
+            MachineAction = {
                 param($Toggle)
 
-                $wingetCheck = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Test-Winget.cmd'
-                & "$env:ComSpec" /c "call `"$wingetCheck`""
-                if ($LASTEXITCODE -ne 0) {
-                    Write-AtlasLog -Level Warning -Message 'WebSearch: winget is not functional; cannot enable web search.'
-                    return
-                }
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
                 Write-Host 'Enabling Web Search & Search Highlights...'
 
@@ -64,16 +98,17 @@
                     $useLocation = ($answer -match '^(y|yes)$')
                 }
                 if ($useLocation) {
-                    Remove-ItemProperty -LiteralPath $locationKey -Name 'AllowSearchToUseLocation' -Force -ErrorAction SilentlyContinue
+                    Remove-AtlasRegistryValue -Path $locationKey -Name 'AllowSearchToUseLocation'
                 }
                 else {
-                    Set-ItemProperty -LiteralPath $locationKey -Name 'AllowSearchToUseLocation' -Value 0 -Type DWord -Force
+                    Set-AtlasRegistryValue -Path $locationKey `
+                        -Name 'AllowSearchToUseLocation' -Type DWord -Data 0
                 }
 
                 # Windows 11 with search indexing stopped shows a graphical bug in web search.
                 if ($Toggle.WindowsBuild -ge 22000) {
-                    $wsearch = Get-Service -Name wsearch -ErrorAction SilentlyContinue
-                    if ($wsearch -and $wsearch.Status -eq 'Stopped') {
+                    $wsearch = Get-Service -Name wsearch -ErrorAction Stop
+                    if ($wsearch.Status -eq 'Stopped') {
                         $enableIndexing = $true
                         if (-not $Toggle.Silent) {
                             Write-Host 'On Windows 11, disabled search indexing causes a graphical bug in web search.'
@@ -81,38 +116,65 @@
                             $enableIndexing = ($answer -match '^(y|yes)$')
                         }
                         if ($enableIndexing) {
-                            Invoke-AtlasToggle -Name 'Indexing' -State 'Enable' -Silent
+                            $indexingMachineState = Join-Path $Toggle.ScriptsPath `
+                                'Internal\Set-AtlasIndexingMachineState.ps1'
+                            & $indexingMachineState -State Full
                         }
                     }
                 }
 
-                Write-Host 'Installing the Bing search provider...'
-                winget install -e --id 9NZBF4GT040C --uninstall-previous -h --accept-source-agreements --accept-package-agreements --force --disable-interactivity | Out-Null
-
                 $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
-                & $settingsPages unhide search-permissions -Silent
+                & $settingsPages unhide search-permissions -Silent -NoProcessCleanup
 
+                foreach ($v in @(
+                    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'ConnectedSearchUseWeb' }
+                    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'DisableWebSearch' }
+                    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'EnableDynamicContentInWSB' }
+                )) {
+                    Remove-AtlasRegistryValue -Path $v.Path -Name $v.Name
+                }
+            }
+            UserAction = {
+                param($Toggle)
+
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+
+                . (Join-Path $Toggle.ScriptsPath 'Internal\Initialize-PowerShellTrust.ps1')
+                . (Join-Path $Toggle.ScriptsPath 'Internal\Download-Integrity.ps1')
+                $wingetPath = Get-AtlasTrustedWingetPath
+                Assert-AtlasTrustedWingetSource -WingetPath $wingetPath -Name msstore
+                [void](Invoke-AtlasToggleNativeCommand `
+                        -FilePath $wingetPath `
+                        -ArgumentList @(
+                            'install'
+                            '--exact'
+                            '--id'
+                            '9NZBF4GT040C'
+                            '--source'
+                            'msstore'
+                            '--uninstall-previous'
+                            '--silent'
+                            '--accept-source-agreements'
+                            '--accept-package-agreements'
+                            '--disable-interactivity'
+                        ) `
+                        -AllowedExitCodes @(0))
                 foreach ($v in @(
                     @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'BingSearchEnabled' }
                     @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsAADCloudSearchEnabled' }
                     @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsDeviceSearchHistoryEnabled' }
                     @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsMSACloudSearchEnabled' }
                     @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'SafeSearchMode' }
-                    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'ConnectedSearchUseWeb' }
-                    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'DisableWebSearch' }
                     @{ Path = 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer'; Name = 'DisableSearchBoxSuggestions' }
-                    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'EnableDynamicContentInWSB' }
                 )) {
-                    Remove-ItemProperty -LiteralPath $v.Path -Name $v.Name -Force -ErrorAction SilentlyContinue
+                    Remove-AtlasRegistryValue -Path $v.Path -Name $v.Name
                 }
-                Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings' -Name 'IsDynamicSearchBoxEnabled' -Value 1 -Type DWord -Force
-                Set-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -Name 'SearchboxTaskbarMode' -Value 2 -Type DWord -Force
-
-                if (-not $Toggle.NoExplorerRestart) {
-                    Stop-Process -Name SearchHost -Force -ErrorAction SilentlyContinue
-                    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-                    Start-Process explorer.exe
-                }
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings' `
+                    -Name 'IsDynamicSearchBoxEnabled' -Type DWord -Data 1
+                Set-AtlasRegistryValue `
+                    -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' `
+                    -Name 'SearchboxTaskbarMode' -Type DWord -Data 2
 
                 if (-not $Toggle.Silent) { Write-Host 'Finished, you should be able to use Web Search and Search Highlights.' }
             }

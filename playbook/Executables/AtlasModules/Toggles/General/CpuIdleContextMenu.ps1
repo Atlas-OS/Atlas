@@ -49,7 +49,8 @@
             Action     = {
                 param($Toggle)
 
-                Remove-Item -Path 'Registry::HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle' -Recurse -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Remove-AtlasRegistryKey -Path 'Registry::HKEY_CLASSES_ROOT\DesktopBackground\Shell\CpuIdle'
 
                 if (-not $Toggle.Silent) { Write-Host 'CPU Idle desktop context menu has been removed.' }
             }

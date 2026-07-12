@@ -1,373 +1,337 @@
-# On Windows 24H2/25H2, a sleep/wake cycle can cause Windows to recreate an existing user profile
-# from the Default template. This re-triggers the RunOnce entry and runs this script a second time,
-# which forces a logoff and wipes the user's settings.
-#
-# To prevent this, prefer a completion marker in HKLM after setup finishes (see bottom of script).
-# HKLM survives profile resets; HKCU lives inside the profile folder and would be wiped along with it.
-# Standard users cannot create HKLM keys, so HKCU is used as a compatibility fallback.
-#
-# The marker key is the user's SID (Security Identifier) - a unique, permanent ID assigned to each
-# Windows account. Unlike a username, the SID never changes even if the profile is deleted and
-# recreated. Using it as the key name lets us track setup state per user on shared machines.
-# -FromInstall runs the per-user setup for the installing account during the install
-# (invoked as the elevated interactive user from tweaks.yml). It does everything in one
-# pass and writes the completion marker directly: the install reboot replaces the logoff,
-# so the first logon lands on a fully configured desktop with no RunOnce cycle.
-param([switch]$FinalizeSearch, [switch]$FromInstall)
+# User setup state belongs to the current user's HKCU hive. The old shared HKLM
+# marker is untrusted and is cleaned up by the add-newUser-script tweak.
+[CmdletBinding()]
+param(
+    [switch]$FinalizeSearch,
+    [switch]$FromInstall,
+    [string]$ExpectedUserSid
+)
 
-# The first-logon console closes with the session, so keep a per-user transcript of
-# every run (including the hidden -FinalizeSearch pass) for reviewing warnings later.
-try
-{
-    $transcriptDir = Join-Path -Path $env:LOCALAPPDATA -ChildPath 'AtlasOS\Logs'
-    if (-not (Test-Path -LiteralPath $transcriptDir))
-    {
-        $null = New-Item -Path $transcriptDir -ItemType Directory -Force
+$ErrorActionPreference = 'Stop'
+$sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$markerSubKey = 'SOFTWARE\AtlasOS\UserSetup'
+$markerPath = "HKCU:\$markerSubKey"
+
+if ($FinalizeSearch -and $FromInstall) {
+    throw 'FinalizeSearch and FromInstall are mutually exclusive.'
+}
+
+if ($FromInstall) {
+    if ([string]::IsNullOrWhiteSpace($ExpectedUserSid)) {
+        throw 'Install setup requires the install-state user SID.'
     }
+
+    try {
+        $expectedSid = (New-Object Security.Principal.SecurityIdentifier($ExpectedUserSid)).Value
+    }
+    catch {
+        throw "The expected installing-user SID '$ExpectedUserSid' is invalid."
+    }
+
+    if ($sid -cne $expectedSid) {
+        throw "Initialize-NewUser token SID '$sid' does not match install-state SID '$expectedSid'."
+    }
+}
+elseif (-not [string]::IsNullOrWhiteSpace($ExpectedUserSid)) {
+    throw 'ExpectedUserSid is valid only with FromInstall.'
+}
+
+function Get-SetupMarker {
+    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($markerSubKey, $false)
+    if ($null -eq $key) {
+        return 0
+    }
+
+    try {
+        if (@($key.GetValueNames()) -cnotcontains $sid -or
+            $key.GetValueKind($sid) -ne [Microsoft.Win32.RegistryValueKind]::DWord) {
+            return 0
+        }
+
+        $value = $key.GetValue(
+            $sid,
+            $null,
+            [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
+        )
+        if ($value -is [int]) {
+            return [int]$value
+        }
+        return 0
+    }
+    finally {
+        $key.Dispose()
+    }
+}
+
+function Set-SetupMarker {
+    param([Parameter(Mandatory)][ValidateSet(1, 2)][int]$Value)
+
+    if (-not (Test-Path -LiteralPath $markerPath)) {
+        $null = New-Item -Path $markerPath -Force
+    }
+    Set-ItemProperty -Path $markerPath -Name $sid -Value $Value -Type DWord -Force
+}
+
+# First-logon windows close with the session, so retain warnings in a per-user log.
+try {
+    $transcriptDir = Join-Path $env:LOCALAPPDATA 'AtlasOS\Logs'
+    $null = New-Item -Path $transcriptDir -ItemType Directory -Force
     $transcriptName = '{0:yyyyMMdd-HHmmss}-new-user-setup-{1}.log' -f (Get-Date), $PID
-    Start-Transcript -Path (Join-Path -Path $transcriptDir -ChildPath $transcriptName) | Out-Null
-} catch
-{
+    Start-Transcript -Path (Join-Path $transcriptDir $transcriptName) | Out-Null
+}
+catch {
     $null = $_
 }
 
-$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-$machineMarkerPath = 'HKLM:\SOFTWARE\AtlasOS\UserSetup'
-$userMarkerPath = 'HKCU:\SOFTWARE\AtlasOS\UserSetup'
-
-function Get-SetupMarker
-{
-    foreach ($path in @($machineMarkerPath, $userMarkerPath))
-    {
-        try
-        {
-            $value = Get-ItemPropertyValue -Path $path -Name $sid -ErrorAction Stop
-            return [int]$value
-        } catch
-        {
-            continue
-        }
-    }
-
-    return 0
-}
-
-function Test-SetupMarker
-{
-    return (Get-SetupMarker) -ge 2
-}
-
-function Set-SetupMarker
-{
-    param([ValidateSet(1, 2)][int]$Value = 2)
-
-    $errors = @()
-
-    foreach ($path in @($machineMarkerPath, $userMarkerPath))
-    {
-        try
-        {
-            # Create only when missing: New-Item -Force recreates an existing key and wipes
-            # the ACL add-newUser-script.ps1 granted (Users:SetValue on the HKLM marker),
-            # which would lock standard users out of the machine marker and defeat the
-            # profile-reset logoff-loop safeguard on 24H2/25H2.
-            if (-not (Test-Path -LiteralPath $path))
-            {
-                $null = New-Item -Path $path -Force -ErrorAction Stop
-            }
-            Set-ItemProperty -Path $path -Name $sid -Value $Value -Type DWord -Force -ErrorAction Stop
-            return
-        } catch
-        {
-            $errors += "'$path': $($_.Exception.Message)"
-        }
-    }
-
-    Write-Warning "Failed to write setup marker for SID '$sid'. $($errors -join '; ')"
-}
-
-function Set-NewUsersRunOnce
-{
-    $runOncePath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
-    $command = 'powershell -EP RemoteSigned -NoP & """$([Environment]::GetFolderPath(''Windows''))\AtlasModules\Scripts\Initialize-NewUser.ps1"""'
-
-    # Don't -Force an existing RunOnce/Search key: that recreates it empty and drops any
-    # other pending entries or user values. Create only when the key is missing.
-    if (-not (Test-Path -LiteralPath $runOncePath))
-    {
-        $null = New-Item -Path $runOncePath -Force -ErrorAction Stop
-    }
-    Set-ItemProperty -Path $runOncePath -Name 'RunScript' -Value $command -Type String -Force -ErrorAction Stop
-}
-
-function Set-SearchTaskbarMode
-{
+function Set-SearchTaskbarMode {
     $searchPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
-    $searchSettingsPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
-    $explorerPolicyPath = 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
-
-    # Windows pre-populates these keys with defaults; -Force would wipe them, so create
-    # only when missing.
-    if (-not (Test-Path -LiteralPath $searchPath))
-    {
-        $null = New-Item -Path $searchPath -Force -ErrorAction Stop
-    }
-    if (-not (Test-Path -LiteralPath $searchSettingsPath))
-    {
-        $null = New-Item -Path $searchSettingsPath -Force -ErrorAction Stop
+    $settingsPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
+    foreach ($path in @($searchPath, $settingsPath)) {
+        if (-not (Test-Path -LiteralPath $path)) {
+            $null = New-Item -Path $path -Force
+        }
     }
 
-    Set-ItemProperty -Path $searchPath -Name 'SearchboxTaskbarMode' -Value 1 -Type DWord -Force -ErrorAction Stop
-    Set-ItemProperty -Path $searchPath -Name 'SearchboxTaskbarModeCache' -Value 1 -Type DWord -Force -ErrorAction Stop
-    Set-ItemProperty -Path $searchSettingsPath -Name 'IsAADCloudSearchEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
-    Set-ItemProperty -Path $searchSettingsPath -Name 'IsDeviceSearchHistoryEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
-    Set-ItemProperty -Path $searchSettingsPath -Name 'IsDynamicSearchBoxEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
-    Set-ItemProperty -Path $searchSettingsPath -Name 'IsMSACloudSearchEnabled' -Value 0 -Type DWord -Force -ErrorAction Stop
-    $suggestionsPolicy = $null
-    try
-    {
-        $suggestionsPolicy = Get-ItemPropertyValue -Path $explorerPolicyPath -Name 'DisableSearchBoxSuggestions' -ErrorAction Stop
-    } catch
-    {
-        $suggestionsPolicy = $null
-    }
+    Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarMode -Value 1 -Type DWord -Force
+    Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarModeCache -Value 1 -Type DWord -Force
+    Set-ItemProperty -Path $settingsPath -Name IsAADCloudSearchEnabled -Value 0 -Type DWord -Force
+    Set-ItemProperty -Path $settingsPath -Name IsDeviceSearchHistoryEnabled -Value 0 -Type DWord -Force
+    Set-ItemProperty -Path $settingsPath -Name IsDynamicSearchBoxEnabled -Value 0 -Type DWord -Force
+    Set-ItemProperty -Path $settingsPath -Name IsMSACloudSearchEnabled -Value 0 -Type DWord -Force
 
-    if ($suggestionsPolicy -ne 1)
-    {
-        try
-        {
-            if (-not (Test-Path -LiteralPath $explorerPolicyPath))
-            {
-                $null = New-Item -Path $explorerPolicyPath -Force -ErrorAction Stop
+    $policyPath = 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    try {
+        if (-not (Test-Path -LiteralPath $policyPath)) {
+            $null = New-Item -Path $policyPath -Force
+        }
+        Set-ItemProperty -Path $policyPath -Name DisableSearchBoxSuggestions -Value 1 -Type DWord -Force
+    }
+    catch {
+        Write-Warning "Couldn't write optional search policy '$policyPath': $($_.Exception.Message)"
+    }
+}
+
+function Invoke-CurrentSessionExplorerRefresh {
+    $sessionId = [Diagnostics.Process]::GetCurrentProcess().SessionId
+    foreach ($explorer in @(Get-Process -Name explorer -ErrorAction SilentlyContinue)) {
+        try {
+            if ($explorer.SessionId -eq $sessionId) {
+                Stop-Process -InputObject $explorer -Force -ErrorAction SilentlyContinue
             }
-            Set-ItemProperty -Path $explorerPolicyPath -Name 'DisableSearchBoxSuggestions' -Value 1 -Type DWord -Force -ErrorAction Stop
-        } catch
-        {
-            Write-Warning "Couldn't write optional search policy '$explorerPolicyPath': $($_.Exception.Message)"
+        }
+        catch {
+            # Explorer can exit between enumeration and the session check.
+            $null = $_
         }
     }
 }
 
-function Start-DelayedSearchFinalizer
-{
-    $scriptPath = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Initialize-NewUser.ps1'
-    $arguments = @(
-        '-NoProfile'
-        '-ExecutionPolicy'
-        'RemoteSigned'
-        '-WindowStyle'
-        'Hidden'
-        '-File'
-        "`"$scriptPath`""
-        '-FinalizeSearch'
-    )
-
-    Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden -ErrorAction Stop
+function Start-DelayedSearchFinalizer {
+    $vbsPath = Join-Path ([Environment]::GetFolderPath('Windows')) `
+        'AtlasModules\Scripts\Invoke-InitializeNewUserHidden.vbs'
+    $wscriptPath = Join-Path ([Environment]::SystemDirectory) 'wscript.exe'
+    Start-Process -FilePath $wscriptPath `
+        -ArgumentList @("`"$vbsPath`"", '-FinalizeSearch')
 }
 
-function Set-AtlasTaskbarPins
-{
-    param([AllowNull()][string]$Browser)
-
-    $taskbarPinsScript = Join-Path -Path $atlasModules -ChildPath 'Scripts\Internal\Set-TaskbarPins.ps1'
-    if (!(Test-Path -LiteralPath $taskbarPinsScript -PathType Leaf))
-    {
-        throw "Taskbar pins script '$taskbarPinsScript' was not found."
-    }
-
-    if ([string]::IsNullOrWhiteSpace($Browser))
-    {
-        & $taskbarPinsScript -CurrentUserOnly -NoExplorerStop
-    } else
-    {
-        & $taskbarPinsScript -Browser $Browser -CurrentUserOnly -NoExplorerStop
-    }
-}
-
-if ($FinalizeSearch)
-{
+if ($FinalizeSearch) {
     Start-Sleep -Seconds 20
     Set-SearchTaskbarMode
-    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
-    Start-Process -FilePath explorer.exe -ErrorAction SilentlyContinue
+    Invoke-CurrentSessionExplorerRefresh
     Start-Sleep -Seconds 5
     Set-SearchTaskbarMode
-    exit
+    return
 }
 
-# -FromInstall ignores a completed marker: a reinstall should reconfigure the
-# installing account, and with no logoff cycle there is no double-run to guard.
-$setupMarker = if ($FromInstall)
-{ 0 
-} else
-{ Get-SetupMarker 
+# Reinstalls deliberately reapply the installing user's configuration.
+$setupMarker = if ($FromInstall) { 0 } else { Get-SetupMarker }
+if ($setupMarker -ge 2) {
+    return
 }
-if ($setupMarker -ge 2)
-{
-    exit
+
+# RunOnce deletes its value before launching. Requeue the current stage first so a
+# required setup failure is retried at the next logon instead of stranding the account.
+$runOncePath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
+if (-not $FromInstall) {
+    if (-not (Test-Path -LiteralPath $runOncePath)) {
+        $null = New-Item -Path $runOncePath -Force
+    }
+    $runOnceCommand = '"%windir%\System32\wscript.exe" "%windir%\AtlasModules\Scripts\Invoke-InitializeNewUserHidden.vbs"'
+    Set-ItemProperty -Path $runOncePath -Name RunScript -Value $runOnceCommand -Type ExpandString -Force
 }
 
 $windir = [Environment]::GetFolderPath('Windows')
-& "$windir\AtlasModules\initPowerShell.ps1"
-$atlasDesktop = "$windir\AtlasDesktop"
-$atlasModules = "$windir\AtlasModules"
-
-if (!(Test-Path $atlasDesktop) -or !(Test-Path $atlasModules))
-{
-    Write-Host "Atlas was about to configure user settings, but its files weren't found. :(" -ForegroundColor Red
-    Read-Pause
-    exit 1
+$atlasModules = Join-Path $windir 'AtlasModules'
+$atlasDesktop = Join-Path $windir 'AtlasDesktop'
+$initializer = Join-Path $atlasModules 'initPowerShell.ps1'
+if (-not (Test-Path -LiteralPath $atlasModules -PathType Container) -or
+    -not (Test-Path -LiteralPath $atlasDesktop -PathType Container) -or
+    -not (Test-Path -LiteralPath $initializer -PathType Leaf)) {
+    throw 'Atlas user-setup files are missing from the Windows directory.'
 }
+& $initializer
 
-if ($setupMarker -lt 1)
-{
-    $title = 'Preparing Atlas user settings...'
-    $Host.UI.RawUI.WindowTitle = $title
-    Write-Host $title -ForegroundColor Yellow
-    Write-Host $('-' * ($title.length + 3)) -ForegroundColor Yellow
-    if (-not $FromInstall)
-    {
-        Write-Host "You'll be logged out in 10 to 20 seconds, and once you login again, your new account will be ready for use."
+function Invoke-AtlasDesktopCommand {
+    param([Parameter(Mandatory)][string]$RelativePath)
+
+    $path = Join-Path $atlasDesktop $RelativePath
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw "Atlas desktop command '$path' was not found."
     }
 
-    $env:ATLAS_USER_CONTEXT = "1"
-    try
-    {
-        # Disable Windows 11 context menu & 'Gallery' in File Explorer
-        if ([System.Environment]::OSVersion.Version.Build -ge 22000)
-        {
-            & "$atlasDesktop\4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd" /silent
-            & "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd" /silent
+    & $path /silent
+    if ($LASTEXITCODE -ne 0) {
+        throw "Atlas desktop command '$path' exited with code $LASTEXITCODE."
+    }
+}
 
-            # Set ThemeMRU (recent themes)
-            Set-AtlasTheme -Path "$([Environment]::GetFolderPath('Windows'))\Resources\Themes\atlas-v0.5.x-dark.theme"
+if (-not $FromInstall) {
+    try {
+        & (Join-Path $atlasModules 'Scripts\Internal\Initialize-AtlasLibreWolfUser.ps1') `
+            -ExpectedUserSid $sid
+    }
+    catch {
+        Write-Warning "Failed to initialize LibreWolf for the current user: $($_.Exception.Message)"
+    }
+
+    & (Join-Path $atlasModules 'Scripts\Internal\Set-FileAssociations.ps1') `
+        -AssociationProfile Base -ExpectedUserSid $sid
+}
+
+if ($setupMarker -lt 1) {
+    if (-not $FromInstall) {
+        try {
+            & (Join-Path $atlasModules 'Scripts\Internal\Show-AtlasToast.ps1') `
+                -Title Atlas `
+                -Message "Finishing account setup - you'll be signed out for a moment, then it's ready to use."
+        }
+        catch {
+            Write-Warning "Failed to show the setup toast: $($_.Exception.Message)"
+        }
+    }
+
+    $env:ATLAS_USER_CONTEXT = '1'
+    try {
+        if ([Environment]::OSVersion.Version.Build -ge 22000) {
+            Invoke-AtlasDesktopCommand '4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd'
+            Invoke-AtlasDesktopCommand '4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd'
+
+            Set-AtlasTheme -Path (Join-Path $windir 'Resources\Themes\atlas-v0.5.x-dark.theme')
             Set-AtlasThemeMru | Out-Null
 
-            # The theme sets the wallpaper (and WindowsSpotlight=0), but on Pro the Windows
-            # Spotlight desktop provider selected at OOBE re-applies its cached image at
-            # logon and overrides it. Force Picture mode + the Atlas wallpaper explicitly so
-            # Spotlight can't re-own the desktop. PicturePosition=4 (Fill) -> WallpaperStyle 10.
-            # CANDIDATE: verify on a VM that this survives the installer's post-reboot logon
-            # (this path does not re-run once the setup marker is 2).
-            try
-            {
-                $atlasWallpaper = Join-Path -Path $windir -ChildPath 'AtlasModules\Wallpapers\atlas-v0.5.x-dark.png'
-                if (Test-Path -LiteralPath $atlasWallpaper)
-                {
-                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'WallPaper' -Value $atlasWallpaper -Type String -Force
-                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'WallpaperStyle' -Value '10' -Type String -Force
-                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'TileWallpaper' -Value '0' -Type String -Force
+            try {
+                $wallpaper = Join-Path $atlasModules 'Wallpapers\atlas-v0.5.x-dark.png'
+                if (Test-Path -LiteralPath $wallpaper -PathType Leaf) {
+                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name WallPaper -Value $wallpaper -Type String -Force
+                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name WallpaperStyle -Value '10' -Type String -Force
+                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name TileWallpaper -Value '0' -Type String -Force
+
                     $wallpapersKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
-                    if (-not (Test-Path -LiteralPath $wallpapersKey))
-                    {
-                        New-Item -Path $wallpapersKey -Force | Out-Null
+                    if (-not (Test-Path -LiteralPath $wallpapersKey)) {
+                        $null = New-Item -Path $wallpapersKey -Force
                     }
-                    # BackgroundType 0 = Picture (switches the desktop provider away from Spotlight).
-                    Set-ItemProperty -Path $wallpapersKey -Name 'BackgroundType' -Value 0 -Type DWord -Force
-                    if (-not ('Atlas.Wallpaper' -as [type]))
-                    {
-                        Add-Type -Namespace 'Atlas' -Name 'Wallpaper' -MemberDefinition @'
+                    Set-ItemProperty -Path $wallpapersKey -Name BackgroundType -Value 0 -Type DWord -Force
+
+                    if (-not ('Atlas.Wallpaper' -as [type])) {
+                        Add-Type -Namespace Atlas -Name Wallpaper -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto, SetLastError = true)]
 public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, string pvParam, uint fWinIni);
 '@
                     }
-                    # SPI_SETDESKWALLPAPER = 0x14; SPIF_UPDATEINIFILE | SPIF_SENDCHANGE = 0x03.
-                    [Atlas.Wallpaper]::SystemParametersInfo(0x14, 0, $atlasWallpaper, 0x03) | Out-Null
+                    [Atlas.Wallpaper]::SystemParametersInfo(0x14, 0, $wallpaper, 0x03) | Out-Null
                 }
-            } catch
-            {
-                Write-Warning "Failed to force the Atlas desktop wallpaper: $($_.Exception.Message)"
+            }
+            catch {
+                Write-Warning "Failed to set the Atlas wallpaper: $($_.Exception.Message)"
             }
 
-            # Re-pin Music & Videos to File Explorer Home (they drop off once recent files
-            # are disabled). Shell COM against the running explorer, so it runs here at
-            # first logon rather than from the SYSTEM install phase.
-            try
-            {
-                & (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Tasks\Add-MusicVideosToHome.ps1')
-            } catch
-            {
-                Write-Warning "Failed to pin Music & Videos to Home: $($_.Exception.Message)"
+            try {
+                & (Join-Path $atlasModules 'Scripts\Tasks\Add-MusicVideosToHome.ps1')
+            }
+            catch {
+                Write-Warning "Failed to pin Music and Videos to Home: $($_.Exception.Message)"
             }
         }
 
-        try
-        {
+        try {
             Set-AtlasLockscreenImage
-        } catch
-        {
-            Write-Warning "Failed to set lockscreen image: $($_.Exception.Message)"
+        }
+        catch {
+            Write-Warning "Failed to set the lock-screen image: $($_.Exception.Message)"
         }
 
-        # Block Store search recommendations for this user. Runs here (not from the
-        # SYSTEM tweak phase) so LocalApplicationData resolves to the real user profile.
-        try
-        {
-            & (Join-Path -Path $atlasModules -ChildPath 'Scripts\Tasks\Disable-StoreSearchRecommendations.ps1')
-        } catch
-        {
+        try {
+            & (Join-Path $atlasModules 'Scripts\Tasks\Disable-StoreSearchRecommendations.ps1')
+        }
+        catch {
             Write-Warning "Failed to block Store search recommendations: $($_.Exception.Message)"
         }
 
-        & "$atlasDesktop\3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" /silent
-        & "$atlasDesktop\4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\Disable Automatic Folder Discovery (default).cmd" /silent
-        & "$atlasDesktop\4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd" /silent
-    } finally
-    {
-        Remove-Item "Env:\ATLAS_USER_CONTEXT" -ErrorAction SilentlyContinue
+        Invoke-AtlasDesktopCommand '3. General Configuration\File Sharing\Network Navigation Pane\Disable Network Navigation Pane (default).cmd'
+        Invoke-AtlasDesktopCommand '4. Interface Tweaks\File Explorer Customization\Automatic Folder Discovery\Disable Automatic Folder Discovery (default).cmd'
+        Invoke-AtlasDesktopCommand '4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd'
+    }
+    finally {
+        Remove-Item Env:\ATLAS_USER_CONTEXT -ErrorAction SilentlyContinue
     }
 }
 
-# Set taskbar pins
 $browser = $null
-$setupOptionsPath = "HKLM:\SOFTWARE\AtlasOS\SetupOptions"
-$allowedBrowsers = @("Brave", "Firefox", "LibreWolf", "Google Chrome", "Microsoft Edge")
-
-try
-{
-    $browser = Get-ItemPropertyValue -Path $setupOptionsPath -Name "Browser" -ErrorAction Stop
-} catch
-{
-    Write-Warning "Couldn't read browser selection from '$setupOptionsPath'. Falling back to default taskbar pins."
+$setupOptionsPath = 'HKLM:\SOFTWARE\AtlasOS\SetupOptions'
+try {
+    $browser = Get-ItemPropertyValue -Path $setupOptionsPath -Name Browser
+}
+catch {
+    Write-Warning "Couldn't read the browser selection. Using default taskbar pins."
 }
 
-if (![string]::IsNullOrWhiteSpace($browser) -and $browser -notin $allowedBrowsers)
-{
-    Write-Warning "Invalid browser value '$browser' found in '$setupOptionsPath'. Falling back to default taskbar pins."
+$allowedBrowsers = @('Brave', 'Firefox', 'LibreWolf', 'Google Chrome', 'Microsoft Edge')
+if (-not [string]::IsNullOrWhiteSpace($browser) -and $browser -notin $allowedBrowsers) {
+    Write-Warning "Ignoring unknown browser selection '$browser'."
     $browser = $null
 }
 
-if ([string]::IsNullOrWhiteSpace($browser))
-{
-    $browser = $null
+$pinArguments = @{
+    CurrentUserOnly = $true
+    NoExplorerStop  = $true
 }
-
-Set-AtlasTaskbarPins -Browser $browser
+if (-not [string]::IsNullOrWhiteSpace($browser)) {
+    $pinArguments['Browser'] = $browser
+}
+& (Join-Path $atlasModules 'Scripts\Internal\Set-TaskbarPins.ps1') @pinArguments
 Set-SearchTaskbarMode
 
-if ($FromInstall)
-{
+if ($FromInstall) {
     Set-SetupMarker -Value 2
-    exit
+    return
 }
 
-if ($setupMarker -lt 1)
-{
+if ($setupMarker -lt 1) {
     Set-SetupMarker -Value 1
-    Set-NewUsersRunOnce
-    Start-Sleep 5
-    logoff
-    exit
+    Start-Sleep -Seconds 5
+    & (Join-Path ([Environment]::SystemDirectory) 'logoff.exe')
+    if ($LASTEXITCODE -ne 0) {
+        throw "logoff.exe exited with code $LASTEXITCODE."
+    }
+    return
 }
 
-# Write the completion marker for this user so the guard above exits early on any future re-run.
-Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-# Explorer needs a moment to fully tear down before relaunching, or the new instance
-# doesn't recognize itself as the shell and opens as a plain window instead.
-Start-Sleep -Seconds 2
+Invoke-CurrentSessionExplorerRefresh
+Start-Sleep -Seconds 3
 Set-SearchTaskbarMode
 Set-SetupMarker -Value 2
-
-Start-Process -FilePath explorer.exe -ErrorAction SilentlyContinue
+try {
+    Remove-ItemProperty -Path $runOncePath -Name RunScript
+}
+catch {
+    Write-Warning "Failed to remove the completed setup RunOnce value: $($_.Exception.Message)"
+}
 Start-DelayedSearchFinalizer
+
+try {
+    & (Join-Path $atlasModules 'Scripts\Internal\Show-AtlasToast.ps1') `
+        -Title Atlas -Message 'Your account is ready to use.'
+}
+catch {
+    Write-Warning "Failed to show the completion toast: $($_.Exception.Message)"
+}

@@ -14,6 +14,8 @@
         'Set-AtlasToggleState'
         # Interaction
         'Show-AtlasStateMenu'
+        # Checked native command invocation for toggle actions
+        'Invoke-AtlasToggleNativeCommand'
         # State-store initialization and upgrade re-apply
         'Initialize-AtlasToggleStateStore'
         'Invoke-AtlasToggleReapply'

@@ -1,39 +1,76 @@
 BeforeAll {
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
     $script:PlaybookRoot = Join-Path $script:RepoRoot 'playbook'
-    $script:ModulesRoot = Join-Path $script:PlaybookRoot 'Executables\AtlasModules\Scripts\Modules'
-    $script:TweaksRoot = Join-Path $script:PlaybookRoot 'Executables\AtlasModules\Scripts\Tweaks'
+    $script:ModulesRoot = Join-Path $script:PlaybookRoot `
+        'Executables\AtlasModules\Scripts\Modules'
+    $script:TweaksRoot = Join-Path $script:PlaybookRoot `
+        'Executables\AtlasModules\Scripts\Tweaks'
     $script:ConfigurationRoot = Join-Path $script:PlaybookRoot 'Configuration'
 
-    Import-Module -Name (Join-Path $script:ModulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force
+    Import-Module -Name (Join-Path $script:ModulesRoot `
+            'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force
 
-    $playbookConf = [xml](Get-Content -LiteralPath (Join-Path $script:PlaybookRoot 'playbook.conf') -Raw)
-    $script:FeatureOptions = @($playbookConf.SelectNodes('/Playbook/FeaturePages/*/Options/*/Name') |
-        ForEach-Object { $_.InnerText } |
-        Sort-Object -Unique)
+    [xml]$playbook = [IO.File]::ReadAllText((Join-Path $script:PlaybookRoot 'playbook.conf'))
+    $script:FeatureOptions = @($playbook.SelectNodes(
+            '/Playbook/FeaturePages/*/Options/*/Name'
+        ) | ForEach-Object { $_.InnerText } | Sort-Object -Unique)
 
-    $script:CustomYaml = Get-Content -LiteralPath (Join-Path $script:ConfigurationRoot 'custom.yml') -Raw
+    . (Join-Path $script:RepoRoot 'tools\build\AtlasBuild\AtlasYamlAction.ps1')
+    $script:CustomActions = @(Get-AtlasYamlAction `
+            -Path (Join-Path $script:ConfigurationRoot 'custom.yml') `
+            -RelativePath 'custom.yml')
 }
 
-Describe 'AME option handoff contract' {
-    It 'keeps FeaturePage options, YAML flag writers, and YAML option gates identical' {
-        $flagOptions = @([regex]::Matches($script:CustomYaml, 'Flags\\option-([a-z0-9-]+)\.flag') |
-            ForEach-Object { $_.Groups[1].Value } |
-            Sort-Object -Unique)
-        $gatedOptions = @([regex]::Matches($script:CustomYaml, "option:\s*'([a-z0-9-]+)'") |
-            ForEach-Object { $_.Groups[1].Value } |
-            Sort-Object -Unique)
+Describe 'Atlas option handoff contract' {
+    It 'keeps FeaturePage, state, YAML, and tweak option sets identical' {
+        $recordActions = @($script:CustomActions | Where-Object {
+                $_.Type -ceq 'run' -and
+                [string]$_.Properties.args -match `
+                    ' -Operation RecordOption -Option (?<Option>[a-z0-9-]+)$'
+            })
+        $yamlOptions = foreach ($action in $recordActions) {
+            $match = [regex]::Match(
+                [string]$action.Properties.args,
+                ' -Operation RecordOption -Option (?<Option>[a-z0-9-]+)$'
+            )
+            $name = $match.Groups['Option'].Value
+            [string]$action.Properties.option | Should -BeExactly $name
+            $name
+        }
 
-        $flagOptions | Should -Be $script:FeatureOptions
-        $gatedOptions | Should -Be $script:FeatureOptions
+        $statePath = Join-Path $script:PlaybookRoot `
+            'Executables\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1'
+        $tokens = $null
+        $parseErrors = $null
+        $stateAst = [Management.Automation.Language.Parser]::ParseFile(
+            $statePath,
+            [ref]$tokens,
+            [ref]$parseErrors
+        )
+        $parseErrors | Should -BeNullOrEmpty
+        $optionParameter = @($stateAst.ParamBlock.Parameters | Where-Object {
+                $_.Name.VariablePath.UserPath -ceq 'Option'
+            })
+        $optionParameter.Count | Should -Be 1
+        $optionValidateSet = @($optionParameter[0].Attributes | Where-Object {
+                $_.TypeName.FullName -ceq 'ValidateSet'
+            })
+        $optionValidateSet.Count | Should -Be 1
+        $stateOptions = @($optionValidateSet[0].PositionalArguments | ForEach-Object {
+                [string]$_.SafeGetValue()
+            } | Sort-Object -Unique)
+
+        $tweakOptions = @(InModuleScope Atlas.Tweaks {
+                $script:AtlasKnownOptions
+            } | Sort-Object -Unique)
+
+        @($yamlOptions | Sort-Object -Unique) | Should -Be $script:FeatureOptions
+        $recordActions.Count | Should -Be $script:FeatureOptions.Count
+        $stateOptions | Should -Be $script:FeatureOptions
+        $tweakOptions | Should -Be $script:FeatureOptions
     }
 
-    It 'keeps the tweak schema option allow-list identical to FeaturePage options' {
-        $schemaOptions = @(InModuleScope Atlas.Tweaks { $script:AtlasKnownOptions } | Sort-Object -Unique)
-        $schemaOptions | Should -Be $script:FeatureOptions
-    }
-
-    It 'uses only declared FeaturePage options in tweak data and Test-AtlasOption calls' {
+    It 'uses only declared FeaturePage options in tweak data and option checks' {
         $referencedOptions = [System.Collections.Generic.List[string]]::new()
 
         Get-ChildItem -LiteralPath $script:TweaksRoot -Filter '*.psd1' -File -Recurse |
@@ -46,7 +83,8 @@ Describe 'AME option handoff contract' {
             }
 
         $literalCallPattern = 'Test-AtlasOption\s+-Name\s+[''"]([^''"]+)[''"]'
-        Get-ChildItem -LiteralPath $script:PlaybookRoot -Include '*.ps1','*.psm1' -File -Recurse |
+        Get-ChildItem -LiteralPath $script:PlaybookRoot `
+            -Include '*.ps1','*.psm1' -File -Recurse |
             Select-String -Pattern $literalCallPattern -AllMatches |
             ForEach-Object {
                 foreach ($match in $_.Matches) {
@@ -54,46 +92,9 @@ Describe 'AME option handoff contract' {
                 }
             }
 
-        $unknownOptions = @($referencedOptions | Sort-Object -Unique |
+        $unknown = @($referencedOptions | Sort-Object -Unique |
             Where-Object { $script:FeatureOptions -notcontains $_ })
-        $unknownOptions | Should -BeNullOrEmpty
-    }
-}
-
-Describe 'AME install phase handoff contract' {
-    BeforeAll {
-        $script:ConfigurationFiles = @(Get-ChildItem -LiteralPath $script:ConfigurationRoot -Filter '*.yml' -File -Recurse)
-        $script:ConfigurationText = ($script:ConfigurationFiles | ForEach-Object {
-                Get-Content -LiteralPath $_.FullName -Raw
-            }) -join "`n"
-        $script:PhaseRoot = Join-Path $script:PlaybookRoot 'Executables\AtlasModules\Scripts\Phases'
-    }
-
-    It 'invokes every shipped phase and references no phase without an implementation' {
-        $invokedPhases = @([regex]::Matches($script:ConfigurationText, 'Invoke-AtlasInstall\.ps1.*?-Phase\s+([A-Za-z]+)') |
-            ForEach-Object { $_.Groups[1].Value } |
-            Sort-Object -Unique)
-        $implementedPhases = @(Get-ChildItem -LiteralPath $script:PhaseRoot -Filter 'Invoke-*Phase.ps1' -File |
-            ForEach-Object { $_.BaseName -replace '^Invoke-', '' -replace 'Phase$', '' } |
-            Sort-Object -Unique)
-
-        $invokedPhases | Should -Be $implementedPhases
-    }
-
-    It 'halts AME when every Invoke-AtlasInstall call returns nonzero' {
-        foreach ($configurationFile in $script:ConfigurationFiles) {
-            $lines = @(Get-Content -LiteralPath $configurationFile.FullName)
-            for ($index = 0; $index -lt $lines.Count; $index++) {
-                if ($lines[$index] -notmatch 'Invoke-AtlasInstall\.ps1') {
-                    continue
-                }
-
-                $endIndex = [Math]::Min($index + 5, $lines.Count - 1)
-                $actionBlock = $lines[$index..$endIndex] -join "`n"
-                $actionBlock | Should -Match 'handleExitCodes:\s*\{\s*"!0":\s*halt\s*\}' `
-                    -Because "$($configurationFile.Name):$($index + 1) invokes an install phase"
-            }
-        }
+        $unknown | Should -BeNullOrEmpty
     }
 }
 
@@ -118,8 +119,6 @@ $expectedExports = @($manifest.FunctionsToExport)
 $moduleName = [IO.Path]::GetFileNameWithoutExtension($ManifestPath)
 $env:PSModulePath = "$ModulesRoot$([IO.Path]::PathSeparator)$env:PSModulePath"
 
-# Load PowerShell's platform modules explicitly, then disable autoloading. Atlas-to-Atlas
-# dependencies must resolve from RequiredModules/the explicit module root after this point.
 Import-Module Microsoft.PowerShell.Management -ErrorAction Stop
 Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop
 $null = Get-Command Import-Module,Get-Command

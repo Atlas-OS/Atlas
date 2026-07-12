@@ -1,3 +1,11 @@
+$trustBootstrap = [IO.Path]::GetFullPath([IO.Path]::Combine(
+        $PSScriptRoot, '..', 'Internal', 'Initialize-PowerShellTrust.ps1'
+    ))
+if (-not [IO.File]::Exists($trustBootstrap)) {
+    throw "The PowerShell trust bootstrap is missing at '$trustBootstrap'."
+}
+. $trustBootstrap
+
 $ErrorActionPreference = 'Stop'
 
 function Wait-AtlasChildProcess {
@@ -16,17 +24,39 @@ function Wait-AtlasChildProcess {
 }
 
 $windowsPath = [Environment]::GetFolderPath('Windows')
-$uninstallScript = Join-Path -Path $windowsPath -ChildPath 'AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd'
-if (Test-Path -LiteralPath $uninstallScript -PathType Leaf) {
-    $uninstallProcess = Start-Process -FilePath $uninstallScript -ArgumentList '/silent' -WindowStyle Hidden -PassThru
-    $uninstallExitCode = Wait-AtlasChildProcess -Process $uninstallProcess -TimeoutMilliseconds 300000 `
-        -Description 'Process Explorer uninstall'
-    if ($uninstallExitCode -ne 0) {
-        throw "Process Explorer uninstall failed with exit code $uninstallExitCode."
+$toggleStatePath = 'HKLM:\SOFTWARE\AtlasOS\Services\ProcessExplorer'
+$preserveEnabledState = $false
+if (Test-Path -LiteralPath $toggleStatePath) {
+    $stateKey = Get-Item -LiteralPath $toggleStatePath -ErrorAction Stop
+    if ($stateKey.GetValueNames() -contains 'state') {
+        $preserveEnabledState = $stateKey.GetValueKind('state') -eq
+            [Microsoft.Win32.RegistryValueKind]::DWord -and
+            [int]$stateKey.GetValue('state') -eq 1
     }
 }
-else {
-    Write-Warning "Process Explorer uninstall script '$uninstallScript' was not found; continuing upgrade cleanup."
+
+$uninstallScript = Join-Path -Path $windowsPath -ChildPath 'AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd'
+try {
+    if (Test-Path -LiteralPath $uninstallScript -PathType Leaf) {
+        $uninstallProcess = Start-Process -FilePath $uninstallScript -ArgumentList '/silent' -WindowStyle Hidden -PassThru
+        $uninstallExitCode = Wait-AtlasChildProcess -Process $uninstallProcess -TimeoutMilliseconds 300000 `
+            -Description 'Process Explorer uninstall'
+        if ($uninstallExitCode -ne 0) {
+            throw "Process Explorer uninstall failed with exit code $uninstallExitCode."
+        }
+    }
+    else {
+        Write-Warning "Process Explorer uninstall script '$uninstallScript' was not found; continuing upgrade cleanup."
+    }
+}
+finally {
+    if ($preserveEnabledState) {
+        if (-not (Test-Path -LiteralPath $toggleStatePath)) {
+            [void](New-Item -Path $toggleStatePath -Force -ErrorAction Stop)
+        }
+        New-ItemProperty -LiteralPath $toggleStatePath -Name state -PropertyType DWord `
+            -Value 1 -Force -ErrorAction Stop | Out-Null
+    }
 }
 
 $taskkillPath = Join-Path -Path $windowsPath -ChildPath 'System32\taskkill.exe'

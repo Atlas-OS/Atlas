@@ -9,8 +9,6 @@
         # Context
         'Get-AtlasContext'
         'Test-AtlasOption'
-        'New-AtlasFlag'
-        'Test-AtlasFlag'
         # Logging
         'Write-AtlasLog'
         'Start-AtlasPhase'
@@ -23,6 +21,9 @@
         'Invoke-AtlasTrustedInstaller'
         'Invoke-AtlasAsUser'
         'Get-AtlasUserProcessCommandLine'
+        # Process
+        'ConvertTo-AtlasWindowsArgumentString'
+        'Invoke-AtlasHiddenProcess'
         # UI (absorbed from the former Utils module)
         'Write-Title'
         'Read-Pause'

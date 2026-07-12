@@ -1,3 +1,14 @@
+[CmdletBinding()]
+param()
+
+$trustBootstrap = [IO.Path]::GetFullPath([IO.Path]::Combine(
+        $PSScriptRoot, '..', 'Internal', 'Initialize-PowerShellTrust.ps1'
+    ))
+if (-not [IO.File]::Exists($trustBootstrap)) {
+    throw "The PowerShell trust bootstrap is missing at '$trustBootstrap'."
+}
+. $trustBootstrap
+
 $ErrorActionPreference = 'Stop'
 
 $windowsPath = [Environment]::GetFolderPath('Windows')

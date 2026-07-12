@@ -7,10 +7,12 @@
             StateValue = 1
             Launcher   = '4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd'
             Reboot     = 'None'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = { param($Toggle) }
+            UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
                 # The old menu only activates when the InprocServer32 DEFAULT value is
                 # an empty string; a bare key ('value not set') leaves the modern menu.
@@ -23,10 +25,12 @@
             StateValue = 0
             Launcher   = '4. Interface Tweaks\Context Menus\Windows 11\New Context Menu.cmd'
             Reboot     = 'None'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = { param($Toggle) }
+            UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
                 Remove-AtlasRegistryKey -Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}'
 

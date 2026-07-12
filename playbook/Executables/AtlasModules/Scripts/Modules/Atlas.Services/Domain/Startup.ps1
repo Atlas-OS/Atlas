@@ -1,16 +1,25 @@
-# Atlas.Services domain: service/driver startup configuration.
-#
-# The startup type is written straight to the service key because Set-Service cannot
-# touch kernel drivers or protected services, even as TrustedInstaller. Start values:
-# 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled.
+# Atlas.Services domain: service and driver startup configuration.
+# Start values: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled.
+
+function Assert-AtlasServiceRegistryName {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name
+    )
+
+    if ($Name -in @('.', '..') -or $Name.Length -gt 256 -or
+        $Name.IndexOfAny([char[]]@('\', '/', ']')) -ge 0) {
+        throw "Service or driver name '$Name' is not canonical."
+    }
+    foreach ($character in $Name.ToCharArray()) {
+        if ([char]::IsControl($character)) {
+            throw "Service or driver name '$Name' is not canonical."
+        }
+    }
+}
 
 function Set-AtlasServiceStartup {
-    <#
-    .SYNOPSIS
-        Sets the Start value of a service or driver by writing the registry directly.
-        A missing service key logs a warning instead of failing, as service presence
-        differs between Windows editions and builds.
-    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -20,33 +29,52 @@ function Set-AtlasServiceStartup {
         [ValidateRange(0, 4)]
         [int]$StartupType,
 
-        # Overridable for tests; production callers always use the live services root.
+        [switch]$AllowMissing,
+        [switch]$PassThru,
+
+        # Tests can supply an isolated registry root.
         [ValidateNotNullOrEmpty()]
         [string]$ServicesRoot = 'HKLM:\SYSTEM\CurrentControlSet\Services'
     )
 
-    $serviceKey = Join-Path -Path $ServicesRoot -ChildPath $Name
-    if (-not (Test-Path -LiteralPath $serviceKey)) {
-        Write-AtlasLog -Level Warning -Message "Service or driver '$Name' does not exist; not changing its startup type."
+    Assert-AtlasServiceRegistryName -Name $Name
+    $servicePath = Join-Path -Path $ServicesRoot -ChildPath $Name
+    if (-not (Test-Path -LiteralPath $servicePath -ErrorAction Stop)) {
+        if (-not $AllowMissing) {
+            throw "Required service or driver '$Name' does not exist under '$ServicesRoot'."
+        }
+        Write-AtlasLog -Level Warning -Message (
+            "Optional service or driver '$Name' does not exist; skipping it."
+        )
+        if ($PassThru) {
+            return [pscustomobject]@{ Name = $Name; Applied = $false; StartupType = $null }
+        }
         return
     }
 
-    # A protected service (e.g. Defender under Tamper Protection) denies the write even
-    # as TrustedInstaller; surface it as a named warning rather than a raw Err-stream trace.
+    Set-ItemProperty -LiteralPath $servicePath -Name 'Start' -Value $StartupType `
+        -Type DWord -Force -ErrorAction Stop
+    $key = Get-Item -LiteralPath $servicePath -ErrorAction Stop
     try {
-        Set-ItemProperty -LiteralPath $serviceKey -Name 'Start' -Value $StartupType -Type DWord -Force -ErrorAction Stop
+        if ($key.GetValueKind('Start') -ne [Microsoft.Win32.RegistryValueKind]::DWord -or
+            [int]$key.GetValue('Start') -ne $StartupType) {
+            throw "Service or driver '$Name' did not retain startup type '$StartupType'."
+        }
     }
-    catch {
-        Write-AtlasLog -Level Warning -Message "Couldn't set startup type for '$Name': $($_.Exception.Message)"
+    finally {
+        $key.Close()
+    }
+
+    if ($PassThru) {
+        return [pscustomobject]@{
+            Name = $Name
+            Applied = $true
+            StartupType = $StartupType
+        }
     }
 }
 
 function Stop-AtlasService {
-    <#
-    .SYNOPSIS
-        Stops a service (forcing dependent services to stop too). Failures - including a
-        missing service - are logged as warnings so install phases keep going.
-    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -57,6 +85,8 @@ function Stop-AtlasService {
         Stop-Service -Name $Name -Force -ErrorAction Stop
     }
     catch {
-        Write-AtlasLog -Level Warning -Message "Couldn't stop service '$Name': $($_.Exception.Message)"
+        Write-AtlasLog -Level Warning -Message (
+            "Couldn't stop service '$Name': $($_.Exception.Message)"
+        )
     }
 }

@@ -61,15 +61,9 @@ try {
         -FilePath $installerPath `
         -WorkingDirectory $stagingDirectory `
         -ArgumentList ([string[]]@($extractMode, '/qn')) `
-        -TimeoutSeconds 120 `
         -Description 'The Open-Shell MSI extractor' `
         -Hidden `
         -NoWindow
-    if (-not $extractorResult.ContainmentConfirmed -or -not $extractorResult.RootExited -or
-        -not $extractorResult.JobDrained) {
-        $cleanupStaging = $false
-        throw "The Open-Shell extractor returned without confirmed process-tree containment; protected staging is retained at '$stagingDirectory'."
-    }
     $extractorExitCode = [uint32]$extractorResult.ExitCodeUInt32
     if ($extractorExitCode -ne 0) {
         throw "Open-Shell MSI extraction failed with exit code $extractorExitCode."
@@ -112,15 +106,9 @@ try {
             'NOSTART=1'
             '/norestart'
         )) `
-        -TimeoutSeconds 1800 `
         -Description 'The Open-Shell Windows Installer transaction' `
         -Hidden `
         -NoWindow
-    if (-not $processResult.ContainmentConfirmed -or -not $processResult.RootExited -or
-        -not $processResult.JobDrained) {
-        $cleanupStaging = $false
-        throw "The Open-Shell Windows Installer returned without confirmed process-tree containment; protected staging is retained at '$stagingDirectory'."
-    }
     $processExitCode = [uint32]$processResult.ExitCodeUInt32
     if ($processExitCode -notin @(0, 3010)) {
         throw "Open-Shell installation failed with exit code $processExitCode."

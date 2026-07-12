@@ -9,4 +9,4 @@ $scriptsRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\..'))
 # Clear the Start Menu experience host cache so the new layout takes effect.
 Import-Module -Name (Join-Path $scriptsRoot 'Modules\Atlas.Appx\Atlas.Appx.psd1') `
     -Force -ErrorAction Stop
-Clear-AtlasAppxCache -Name 'Microsoft.Windows.StartMenuExperienceHost*'
+Invoke-AtlasUserAppxCacheCleanup -Mode StartMenu

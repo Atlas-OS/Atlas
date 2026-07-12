@@ -9,22 +9,30 @@
     States        = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             MenuLabel  = 'Disable automatic repair'
             Reboot     = 'Recommend'
             Action     = {
                 param($Toggle)
 
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{current}' bootstatuspolicy IgnoreAllFailures | Out-Null
+                $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
+                Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                    -ArgumentList ([string[]]@('/set', '{current}', 'bootstatuspolicy', 'IgnoreAllFailures')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
             }
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             MenuLabel  = 'Enable automatic repair (default)'
             Reboot     = 'Recommend'
             Action     = {
                 param($Toggle)
 
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{current}' bootstatuspolicy DisplayAllFailures | Out-Null
+                $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
+                Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                    -ArgumentList ([string[]]@('/set', '{current}', 'bootstatuspolicy', 'DisplayAllFailures')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
             }
         }
     }

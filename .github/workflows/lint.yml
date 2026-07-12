@@ -25,24 +25,20 @@ on:
       - ".github/workflows/lint.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   psscriptanalyzer:
     runs-on: windows-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
-        # gh api repos/actions/checkout/commits/v6.0.2 --jq '.sha'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Cache PowerShell modules
-        # gh api repos/actions/cache/commits/v4 --jq '.sha'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          path: |
-            ~\Documents\PowerShell\Modules
-            ~\Documents\WindowsPowerShell\Modules
-          # Keep this key in sync with the pinned versions below - bump both together
-          key: psmodules-${{ runner.os }}-pester-5.7.1-pssa-1.25.0
+          persist-credentials: false
 
       - name: Install PSScriptAnalyzer
         shell: pwsh

@@ -24,6 +24,27 @@ function Test-AtlasArchMatch {
     }
 }
 
+function Get-AtlasRegistryEntryTargetScope {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path
+    )
+
+    $pathInfo = ConvertTo-AtlasRegistryPathInfo -Path $Path
+    if ($pathInfo.Root -eq 'HKEY_CURRENT_USER') {
+        return 'CurrentUser'
+    }
+    if ($pathInfo.Root -eq 'HKEY_USERS') {
+        $hiveName = @($pathInfo.SubPath -split '\\', 2)[0]
+        if ($hiveName -ceq $script:AtlasDefaultUserHiveName) {
+            return 'DefaultUser'
+        }
+        return 'ExplicitUserHive'
+    }
+    return 'Machine'
+}
+
 function Invoke-AtlasRegistryEntries {
     <#
     .SYNOPSIS
@@ -31,21 +52,55 @@ function Invoke-AtlasRegistryEntries {
         Operation ('Set' default, 'Delete', 'DeleteKey', 'AddKey'), Name/Type/Data for
         value operations, and optional Arch and IgnoreErrors gates. Failures are logged
         as warnings (or swallowed with IgnoreErrors) so one bad entry never aborts a tweak.
+        Scope permits install orchestration to separate machine entries, current-token
+        HKCU entries, and fixed default-user entries into distinct trust contexts.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [AllowEmptyCollection()]
-        [hashtable[]]$Entries
+        [hashtable[]]$Entries,
+
+        [ValidateSet('All', 'Machine', 'CurrentUser', 'DefaultUser')]
+        [string]$Scope = 'All',
+
+        [switch]$StopOnError,
+
+        [bool]$IsArm64
     )
 
-    $context = Get-AtlasContext
+    $arm64 = if ($PSBoundParameters.ContainsKey('IsArm64')) {
+        $IsArm64
+    }
+    else {
+        [bool](Get-AtlasContext).IsArm64
+    }
 
     foreach ($entry in $Entries) {
         $ignoreErrors = ($entry.ContainsKey('IgnoreErrors') -and $entry['IgnoreErrors'])
 
         try {
+            if (-not $entry.ContainsKey('Path') -or
+                [string]::IsNullOrWhiteSpace([string]$entry['Path'])) {
+                throw 'Registry entry has no Path.'
+            }
+
+            $targetScope = Get-AtlasRegistryEntryTargetScope -Path ([string]$entry['Path'])
+            if ($targetScope -ceq 'ExplicitUserHive') {
+                throw "Registry entry path '$($entry['Path'])' targets an explicit user hive; only ambient current-token HKCU or the fixed Atlas default-user hive is supported."
+            }
+
+            $appliesToScope = switch ($Scope) {
+                'All' { $true }
+                'Machine' { $targetScope -ceq 'Machine' }
+                'CurrentUser' { $targetScope -ceq 'CurrentUser' }
+                'DefaultUser' { $targetScope -in @('CurrentUser', 'DefaultUser') }
+            }
+            if (-not $appliesToScope) {
+                continue
+            }
+
             $arch = if ($entry.ContainsKey('Arch')) { [string]$entry['Arch'] } else { '' }
-            if (-not (Test-AtlasArchMatch -Arch $arch -IsArm64 ([bool]$context.IsArm64))) {
+            if (-not (Test-AtlasArchMatch -Arch $arch -IsArm64 $arm64)) {
                 continue
             }
 
@@ -73,12 +128,11 @@ function Invoke-AtlasRegistryEntries {
             }
         }
         catch {
-            if (Test-AtlasHkcuDeltaFailureException -Exception $_.Exception) {
-                throw
-            }
-
             if ($ignoreErrors) {
                 $null = $_
+            }
+            elseif ($StopOnError) {
+                throw
             }
             else {
                 $entryPath = if ($entry.ContainsKey('Path')) { $entry['Path'] } else { '<no path>' }

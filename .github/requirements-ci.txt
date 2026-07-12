@@ -1,0 +1,8 @@
+# Build-workflow Python dependencies. Python is fixed to CPython 3.13 x64 and pip is
+# invoked with --only-binary=:all: --require-hashes, so changing any package, interpreter,
+# platform, or artifact requires an explicit review of this lock file.
+# PyYAML authorizes the reviewed Windows x64 CPython 3.13 runner wheel and the 3.14 wheel
+# used by the current local validation environment; CI remains fixed to 3.13.
+yamllint==1.38.0 --hash=sha256:fc394a5b3be980a4062607b8fdddc0843f4fa394152b6da21722f5d59013c220
+pathspec==1.1.1 --hash=sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189
+PyYAML==6.0.3 --hash=sha256:79005a0d97d5ddabfeeea4cf676af11e647e41d81c9a7722a193022accdb6b7c --hash=sha256:4a2e8cebe2ff6ab7d1050ecd59c25d4c8bd7e6f400f5f82b96557ac0abafd0ac

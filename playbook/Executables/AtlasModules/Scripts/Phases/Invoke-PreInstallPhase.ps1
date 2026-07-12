@@ -1,59 +1,59 @@
-# PreInstall phase.
-# Prepares the machine before the main install runs: disables notifications so they do
-# not fire mid-deployment, then runs disk cleanup so it can work in the background.
-# Runs elevated (runas: currentUserElevated) so HKCU resolves to the interactive user
-# and the cleanup has the rights it needs. The security migration is required; later
-# convenience cleanup is best-effort and downgraded to a warning.
+# Pre-install phase: remove obsolete Atlas elevation artifacts and start best-effort cleanup.
 
-Assert-AtlasPrivilege -Administrator
+Assert-AtlasPrivilege -TrustedInstaller
+
+$context = Get-AtlasContext -Refresh
+if (-not $context.IsInstallStateBacked) {
+    throw 'Pre-install requires active Atlas install state.'
+}
+if (-not $context.IsOobe -and
+    [string]::IsNullOrWhiteSpace([string]$context.InteractiveUserSid)) {
+    throw 'Pre-install requires the install-state user outside OOBE.'
+}
 
 $internalRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Internal'
+$powerShellPath = Join-Path -Path ([Environment]::SystemDirectory) `
+    -ChildPath 'WindowsPowerShell\v1.0\powershell.exe'
 
-# This is a required security migration, not best-effort cleanup. It executes after the
-# new payload is copied and before any default-state replay can recreate legacy commands.
-$legacyMigration = Join-Path -Path $internalRoot -ChildPath 'Remove-AtlasLegacyElevationArtifacts.ps1'
-if (-not (Test-Path -LiteralPath $legacyMigration -PathType Leaf)) {
-    throw "Required legacy elevation migration '$legacyMigration' is missing."
-}
-$legacyMigrationOutput = @(& $legacyMigration)
-if ($legacyMigrationOutput.Count -ne 1) {
-    throw "Required legacy elevation migration returned $($legacyMigrationOutput.Count) result(s); expected exactly one."
-}
-$legacyMigrationResult = $legacyMigrationOutput[0]
-if ($legacyMigrationResult -isnot [Management.Automation.PSCustomObject]) {
-    throw 'Required legacy elevation migration did not return a typed result object.'
-}
-$resultProperties = @($legacyMigrationResult.PSObject.Properties | ForEach-Object { [string]$_.Name })
-if ($resultProperties.Count -ne 2 -or $resultProperties -cnotcontains 'AppliedCount' -or
-    $resultProperties -cnotcontains 'WarningCount') {
-    throw 'Required legacy elevation migration returned an unsupported result shape.'
-}
-$integralTypeCodes = @('SByte', 'Byte', 'Int16', 'UInt16', 'Int32', 'UInt32', 'Int64', 'UInt64')
-foreach ($propertyName in @('AppliedCount', 'WarningCount')) {
-    $property = $legacyMigrationResult.PSObject.Properties[$propertyName]
-    $value = if ($null -ne $property) { $property.Value } else { $null }
-    $typeCode = if ($null -ne $value) { [Type]::GetTypeCode($value.GetType()).ToString() } else { $null }
-    if ($integralTypeCodes -cnotcontains $typeCode -or [decimal]$value -lt 0) {
-        throw "Required legacy elevation migration returned an invalid $propertyName value."
+function Invoke-AtlasPreInstallUserScript {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Arguments,
+        [Parameter(Mandatory = $true)][string]$Description
+    )
+
+    if (-not [IO.File]::Exists($Path)) {
+        throw "$Description script is missing at '$Path'."
+    }
+    $commandLine = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" {1}' -f `
+        $Path, $Arguments
+    $exitCode = Invoke-AtlasAsUser -FilePath $powerShellPath -Arguments $commandLine
+    if ($exitCode -ne 0) {
+        throw "$Description exited with code $exitCode."
     }
 }
-Write-AtlasLog -Message (
-    'Legacy elevation migration applied {0} change(s) and retained {1} customized user artifact(s).' -f
-    $legacyMigrationResult.AppliedCount,
-    $legacyMigrationResult.WarningCount
-)
 
-# Prevent annoying notifications during deployment
-try {
-    & (Join-Path -Path $internalRoot -ChildPath 'Set-NotificationState.ps1') -Mode Disable
+# This migration is required so upgrades do not retain the old RunAsTI surface.
+$legacyMigration = Join-Path $internalRoot 'Remove-AtlasLegacyElevationArtifacts.ps1'
+if (-not [IO.File]::Exists($legacyMigration)) {
+    throw "Required legacy elevation migration is missing at '$legacyMigration'."
 }
-catch {
-    Write-AtlasLog -Level Warning -Message "Disabling notifications failed: $($_.Exception.Message)"
+& $legacyMigration -Scope Machine | Out-Null
+if (-not $context.IsOobe) {
+    Invoke-AtlasPreInstallUserScript -Path $legacyMigration `
+        -Arguments ('-Scope CurrentUser -ExpectedUserSid "{0}"' -f $context.InteractiveUserSid) `
+        -Description 'Current-user legacy elevation migration'
 }
 
-# Disk Cleanup (kicks off cleanmgr in the background and clears temp/shadow copies)
+# Cleanup is useful but must not turn an otherwise valid install into a failure.
 try {
-    & (Join-Path -Path $internalRoot -ChildPath 'Invoke-DiskCleanup.ps1')
+    $diskCleanup = Join-Path $internalRoot 'Invoke-DiskCleanup.ps1'
+    & $diskCleanup -Scope Machine
+    if (-not $context.IsOobe) {
+        Invoke-AtlasPreInstallUserScript -Path $diskCleanup `
+            -Arguments ('-Scope CurrentUser -ExpectedUserSid "{0}"' -f $context.InteractiveUserSid) `
+            -Description 'Current-user TEMP cleanup'
+    }
 }
 catch {
     Write-AtlasLog -Level Warning -Message "Disk cleanup failed: $($_.Exception.Message)"

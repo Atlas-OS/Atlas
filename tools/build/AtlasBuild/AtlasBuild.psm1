@@ -1,6 +1,8 @@
 #requires -Version 7.0
 Set-StrictMode -Version 3.0
 
+. (Join-Path -Path $PSScriptRoot -ChildPath 'AtlasYamlAction.ps1')
+
 $script:IsWindowsPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
     [System.Runtime.InteropServices.OSPlatform]::Windows)
 
@@ -19,6 +21,263 @@ function Set-ParentDirectory {
     $parent = Split-Path -Path $Path -Parent
     if ($parent -and -not (Test-Path -LiteralPath $parent)) {
         New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+}
+
+function Get-AtlasFileSha256 {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+}
+
+function Get-AtlasStreamSha256 {
+    param([Parameter(Mandatory = $true)][IO.Stream]$Stream)
+
+    if (-not $Stream.CanRead -or -not $Stream.CanSeek) {
+        throw 'SHA-256 verification requires a readable, seekable archive stream.'
+    }
+
+    $originalPosition = $Stream.Position
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        $Stream.Position = 0
+        $hashBytes = $sha256.ComputeHash($Stream)
+        return [BitConverter]::ToString($hashBytes).Replace('-', '')
+    }
+    finally {
+        $Stream.Position = $originalPosition
+        $sha256.Dispose()
+    }
+}
+
+function Initialize-AtlasAtomicFilePublisher {
+    if ($null -ne ('AtlasBuild.Native.AtomicFilePublisher' -as [type])) {
+        return
+    }
+
+    Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using Microsoft.Win32.SafeHandles;
+
+namespace AtlasBuild.Native
+{
+    public static class AtomicFilePublisher
+    {
+        private const uint GenericRead = 0x80000000;
+        private const uint Delete = 0x00010000;
+        private const uint FileShareRead = 0x00000001;
+        private const uint OpenExisting = 3;
+        private const uint FileAttributeNormal = 0x00000080;
+        private const int FileRenameInfo = 3;
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern SafeFileHandle CreateFileW(
+            string fileName,
+            uint desiredAccess,
+            uint shareMode,
+            IntPtr securityAttributes,
+            uint creationDisposition,
+            uint flagsAndAttributes,
+            IntPtr templateFile);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetFileInformationByHandle(
+            SafeFileHandle file,
+            int fileInformationClass,
+            IntPtr fileInformation,
+            uint bufferSize);
+
+        private static byte[] HashStream(Stream stream)
+        {
+            stream.Position = 0;
+            using (SHA256 sha = SHA256.Create())
+            {
+                return sha.ComputeHash(stream);
+            }
+        }
+
+        private static byte[] ParseHash(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value) || value.Length != 64)
+                throw new ArgumentException("Expected a 64-character SHA-256 value.", "expectedSha256");
+
+            byte[] result = new byte[32];
+            for (int i = 0; i < result.Length; i++)
+                result[i] = Convert.ToByte(value.Substring(i * 2, 2), 16);
+            return result;
+        }
+
+        private static bool FixedEquals(byte[] left, byte[] right)
+        {
+            if (left.Length != right.Length) return false;
+            int difference = 0;
+            for (int i = 0; i < left.Length; i++) difference |= left[i] ^ right[i];
+            return difference == 0;
+        }
+
+        public static void Publish(
+            string sourcePath,
+            string destinationPath,
+            string expectedSha256,
+            bool replaceExisting)
+        {
+            string source = Path.GetFullPath(sourcePath);
+            string destination = Path.GetFullPath(destinationPath);
+            string sourceDirectory = Path.GetDirectoryName(source);
+            string destinationDirectory = Path.GetDirectoryName(destination);
+            if (String.Equals(source, destination, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Atomic publication requires distinct source and destination files.");
+            if (!String.Equals(sourceDirectory, destinationDirectory, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Atomic publication requires sibling source and destination files.");
+
+            SafeFileHandle sourceHandle = CreateFileW(
+                source,
+                GenericRead | Delete,
+                FileShareRead,
+                IntPtr.Zero,
+                OpenExisting,
+                FileAttributeNormal,
+                IntPtr.Zero);
+            if (sourceHandle.IsInvalid)
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not bind the verified APBX file object.");
+
+            FileStream sourceStream = null;
+            try
+            {
+                sourceStream = new FileStream(sourceHandle, FileAccess.Read, 65536, false);
+                sourceHandle = null;
+                byte[] expected = ParseHash(expectedSha256);
+                byte[] actual = HashStream(sourceStream);
+                if (!FixedEquals(expected, actual))
+                    throw new InvalidDataException("The APBX sibling changed after semantic verification.");
+
+                byte[] nameBytes = System.Text.Encoding.Unicode.GetBytes(destination);
+                int rootOffset = IntPtr.Size == 8 ? 8 : 4;
+                int lengthOffset = rootOffset + IntPtr.Size;
+                int nameOffset = lengthOffset + 4;
+                // FILE_RENAME_INFO.FileNameLength excludes the UTF-16 terminator, but
+                // the Win32 structure still requires storage for that terminator.
+                int bufferSize = checked(nameOffset + nameBytes.Length + 2);
+                IntPtr buffer = Marshal.AllocHGlobal(bufferSize);
+                try
+                {
+                    for (int i = 0; i < bufferSize; i++) Marshal.WriteByte(buffer, i, 0);
+                    Marshal.WriteByte(buffer, 0, replaceExisting ? (byte)1 : (byte)0);
+                    Marshal.WriteIntPtr(buffer, rootOffset, IntPtr.Zero);
+                    Marshal.WriteInt32(buffer, lengthOffset, nameBytes.Length);
+                    Marshal.Copy(nameBytes, 0, IntPtr.Add(buffer, nameOffset), nameBytes.Length);
+                    if (!SetFileInformationByHandle(
+                        sourceStream.SafeFileHandle,
+                        FileRenameInfo,
+                        buffer,
+                        (uint)bufferSize))
+                    {
+                        throw new Win32Exception(Marshal.GetLastWin32Error(), "Handle-bound APBX publication failed.");
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(buffer);
+                }
+            }
+            finally
+            {
+                if (sourceStream != null) sourceStream.Dispose();
+                else if (sourceHandle != null) sourceHandle.Dispose();
+            }
+        }
+    }
+}
+'@
+}
+
+function Publish-AtlasVerifiedArchive {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourcePath,
+        [Parameter(Mandatory = $true)][string]$DestinationPath,
+        [Parameter(Mandatory = $true)][string]$ExpectedSha256,
+        [switch]$AllowReplace
+    )
+
+    if ($script:IsWindowsPlatform) {
+        Initialize-AtlasAtomicFilePublisher
+        [AtlasBuild.Native.AtomicFilePublisher]::Publish(
+            $SourcePath,
+            $DestinationPath,
+            $ExpectedSha256,
+            [bool]$AllowReplace
+        )
+        return
+    }
+
+    $actualSha256 = Get-AtlasFileSha256 -Path $SourcePath
+    if ($actualSha256 -cne $ExpectedSha256) {
+        throw 'The APBX sibling changed after semantic verification.'
+    }
+    if ((Test-Path -LiteralPath $DestinationPath -PathType Leaf) -and -not $AllowReplace) {
+        throw "Archive '$DestinationPath' appeared before publication; refusing to overwrite it."
+    }
+    [IO.File]::Move($SourcePath, $DestinationPath, [bool]$AllowReplace)
+}
+
+function Invoke-AtlasApbxVerifier {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$PlaybookPath,
+        [switch]$NoPassword
+    )
+
+    $pwshName = if ($script:IsWindowsPlatform) { 'pwsh.exe' } else { 'pwsh' }
+    $pwshPath = Join-Path -Path $PSHOME -ChildPath $pwshName
+    $verifierPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) `
+        -ChildPath 'Test-Apbx.ps1'
+    $arguments = @(
+        '-NoLogo', '-NoProfile', '-File', $verifierPath,
+        '-Path', $Path,
+        '-PlaybookPath', $PlaybookPath
+    )
+    if ($NoPassword) {
+        $arguments += @('-Password', '')
+    }
+
+    $output = @(& $pwshPath @arguments 2>&1)
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        $message = ($output | ForEach-Object { "$_" }) -join [Environment]::NewLine
+        if ($message.Length -gt 65536) {
+            $message = $message.Substring(0, 65536) + [Environment]::NewLine + '[output truncated]'
+        }
+        throw "Semantic APBX verification failed with exit code $exitCode.`n$message"
+    }
+    foreach ($line in $output) {
+        Write-Information -MessageData "$line" -InformationAction Continue
+    }
+}
+
+function Assert-NoAtlasPublicationArtifact {
+    param(
+        [Parameter(Mandatory = $true)][string]$Directory
+    )
+
+    $patterns = @(
+        '*.apbx.tmp',
+        '*.apbx.*.building.tmp*',
+        '*.apbx.*.replaced.bak'
+    )
+    $artifacts = @($patterns | ForEach-Object {
+            Get-ChildItem -LiteralPath $Directory -Filter $_ -File -Force -Recurse `
+                -ErrorAction Stop
+        } | Sort-Object FullName -Unique)
+    if ($artifacts.Count -gt 0) {
+        throw (
+            'Stale or concurrent APBX publication artifacts must be removed before building: ' +
+            (($artifacts | ForEach-Object FullName) -join ', ')
+        )
     }
 }
 
@@ -203,9 +462,13 @@ function Get-AvailableArchiveName {
 
     if ($AllowReplace -and (Test-Path -LiteralPath $candidatePath -PathType Leaf)) {
         try {
-            $stream = [IO.File]::Open($candidatePath, 'Open', 'Read', 'Write')
-            $stream.Close()
-            Remove-Item -LiteralPath $candidatePath -Force
+            $stream = [IO.File]::Open(
+                $candidatePath,
+                [IO.FileMode]::Open,
+                [IO.FileAccess]::ReadWrite,
+                [IO.FileShare]::None
+            )
+            $stream.Dispose()
         }
         catch {
             Write-Warning "Couldn't replace '$candidate', it's in use."
@@ -228,7 +491,8 @@ function Get-AtlasPlaybookPayloadPath {
         Returns the normalized relative path of every file that belongs in an APBX.
     .DESCRIPTION
         The playbook directory is the payload contract. Generated APBX files and their
-        interrupted-write temporary files are the only files excluded by New-Apbx.
+        recognized interrupted-build/publication artifacts are the only files excluded
+        by New-Apbx.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -241,7 +505,12 @@ function Get-AtlasPlaybookPayloadPath {
     }
 
     return @(Get-ChildItem -LiteralPath $resolvedRoot -File -Recurse |
-        Where-Object { $_.Name -notlike '*.apbx' -and $_.Name -notlike '*.apbx.tmp' } |
+        Where-Object {
+            $_.Name -notlike '*.apbx' -and
+            $_.Name -notlike '*.apbx.tmp' -and
+            $_.Name -notlike '*.apbx.*.building.tmp*' -and
+            $_.Name -notlike '*.apbx.*.replaced.bak'
+        } |
         ForEach-Object {
             [IO.Path]::GetRelativePath($resolvedRoot, $_.FullName).Replace('\', '/')
         } |
@@ -334,90 +603,6 @@ function New-StagedPlaybookConf {
     return (Test-Path -LiteralPath $DestinationPath)
 }
 
-function Add-LiveLogAction {
-    <#
-    .SYNOPSIS
-        Writes a copy of custom.yml with a live-log console action injected as the first
-        action, tailing AME Wizard's OutputBuffer.txt during installation.
-    .OUTPUTS
-        $true when a staged copy was written to DestinationPath.
-    #>
-    param(
-        [Parameter(Mandatory = $true)][string]$CustomYmlPath,
-        [Parameter(Mandatory = $true)][string]$DestinationPath
-    )
-
-    if (-not (Test-Path -LiteralPath $CustomYmlPath -PathType Leaf)) {
-        Write-Warning "Can't find '$CustomYmlPath', not adding live log."
-        return $false
-    }
-
-    Set-ParentDirectory -Path $DestinationPath
-    Copy-Item -Path $CustomYmlPath -Destination $DestinationPath -Force
-
-    $customYml = Get-Content -Path $DestinationPath
-    $actionsIndex = $customYml.IndexOf('actions:')
-    if ($actionsIndex -lt 0) {
-        Write-Warning "Can't find 'actions:' in '$CustomYmlPath', not adding live log."
-        Remove-Item -LiteralPath $DestinationPath -Force -ErrorAction SilentlyContinue
-        return $false
-    }
-
-    $liveLogScript = {
-        $a = Join-Path (Get-ChildItem (Join-Path $([Environment]::GetFolderPath('CommonApplicationData')) '\AME\Logs') -Directory |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1).FullName '\OutputBuffer.txt';
-        while ($true) { Get-Content -Wait -LiteralPath $a -EA 0 | Write-Output; Start-Sleep 1 }
-    }
-    $liveLogText = [string]$liveLogScript
-    $liveLogText = $liveLogText -replace '"', '"""'
-    $liveLogText = $liveLogText -replace "'", "''"
-    $liveLogText = $liveLogText.Trim() -replace "`r?`n", ' '
-
-    $liveLogAction = "  - !cmd: {command: 'start `"AME Wizard Live Log`" PowerShell -NoP -C `"$liveLogText`"'}"
-
-    $preActions = $customYml[0..$actionsIndex]
-    $postActions = @()
-    if ($actionsIndex + 1 -lt $customYml.Count) {
-        $postActions = $customYml[($actionsIndex + 1)..($customYml.Count - 1)]
-    }
-
-    @($preActions) + @($liveLogAction) + @($postActions) | Set-Content -Path $DestinationPath -Encoding UTF8
-    return $true
-}
-
-function Remove-DependencyBlock {
-    <#
-    .SYNOPSIS
-        Writes a copy of start.yml with the "NO LOCAL BUILD" block removed, so local test
-        builds skip steps that only work in a production install (DISM sources, downloads).
-    .OUTPUTS
-        $true when a staged copy was written to DestinationPath.
-    #>
-    param(
-        [Parameter(Mandatory = $true)][string]$StartYmlPath,
-        [Parameter(Mandatory = $true)][string]$DestinationPath
-    )
-
-    if (-not (Test-Path -LiteralPath $StartYmlPath -PathType Leaf)) {
-        Write-Warning "Can't find '$StartYmlPath', not removing dependencies section."
-        return $false
-    }
-
-    $startYmlContent = Get-Content -Path $StartYmlPath -Raw -Encoding UTF8
-    $blockPattern = '  ################ NO LOCAL BUILD ################.*?  ################ END NO LOCAL BUILD ################\r?\n?'
-    $updatedStartYml = [regex]::Replace($startYmlContent, $blockPattern, '', 'Singleline')
-
-    if ($updatedStartYml -eq $startYmlContent) {
-        Write-Warning "Couldn't find NO LOCAL BUILD block in '$StartYmlPath', not removing dependencies section."
-        return $false
-    }
-
-    Set-ParentDirectory -Path $DestinationPath
-    Set-Content -Path $DestinationPath -Value $updatedStartYml -Encoding UTF8
-    return $true
-}
-
 function Set-OemVersionStamp {
     <#
     .SYNOPSIS
@@ -462,8 +647,6 @@ function New-Apbx {
         [Parameter(Mandatory = $true)][string]$PlaybookPath,
         [string]$OutputDirectory,
         [string]$FileName = 'Atlas Test',
-        [switch]$AddLiveLog,
-        [switch]$RemoveDependencies,
         [switch]$RemoveRequirements,
         [switch]$RemoveWinverRequirement,
         [switch]$RemoveVerification,
@@ -475,6 +658,8 @@ function New-Apbx {
     if (-not (Test-Path -LiteralPath (Join-Path -Path $PlaybookPath -ChildPath 'playbook.conf') -PathType Leaf)) {
         throw "playbook.conf not found in '$PlaybookPath' - not a playbook directory."
     }
+    Assert-AtlasConfigurationRunnerBoundary `
+        -ConfigurationRoot (Join-Path -Path $PlaybookPath -ChildPath 'Configuration') | Out-Null
 
     if (-not $OutputDirectory) {
         $OutputDirectory = $PlaybookPath
@@ -485,6 +670,23 @@ function New-Apbx {
 
     $apbxFileName = Get-AvailableArchiveName -BaseName "$FileName.apbx" -WorkingDirectory $OutputDirectory -DisplayName $FileName -AllowReplace:$ReplaceOldPlaybook
     $apbxPath = Join-Path -Path $OutputDirectory -ChildPath $apbxFileName
+    Assert-NoAtlasPublicationArtifact -Directory $PlaybookPath
+    $pathComparison = if ($script:IsWindowsPlatform) {
+        [StringComparison]::OrdinalIgnoreCase
+    }
+    else {
+        [StringComparison]::Ordinal
+    }
+    if (-not [string]::Equals(
+            $PlaybookPath,
+            $OutputDirectory,
+            $pathComparison)) {
+        Assert-NoAtlasPublicationArtifact -Directory $OutputDirectory
+    }
+    $publicationId = [guid]::NewGuid().ToString('N')
+    $buildApbxPath = '{0}.{1}.building.tmp' -f `
+        $apbxPath,
+        $publicationId
 
     $rootTempDir = $null
     $filesListPath = $null
@@ -506,22 +708,6 @@ function New-Apbx {
             -RemoveWinverRequirement:$RemoveWinverRequirement `
             -RemoveVerification:$RemoveVerification
 
-        $customYmlRelativePath = Join-Path -Path 'Configuration' -ChildPath 'custom.yml'
-        $stagedCustomYml = $false
-        if ($AddLiveLog) {
-            $stagedCustomYml = Add-LiveLogAction `
-                -CustomYmlPath (Join-Path -Path $PlaybookPath -ChildPath $customYmlRelativePath) `
-                -DestinationPath (Join-Path -Path $stagingPath -ChildPath $customYmlRelativePath)
-        }
-
-        $startYmlRelativePath = Join-Path -Path (Join-Path -Path 'Configuration' -ChildPath 'atlas') -ChildPath 'start.yml'
-        $stagedStartYml = $false
-        if ($RemoveDependencies) {
-            $stagedStartYml = Remove-DependencyBlock `
-                -StartYmlPath (Join-Path -Path $PlaybookPath -ChildPath $startYmlRelativePath) `
-                -DestinationPath (Join-Path -Path $stagingPath -ChildPath $startYmlRelativePath)
-        }
-
         $oemScriptRelativePath = 'Executables\AtlasModules\Scripts\Tasks\Set-OemInformation.ps1'
         $stagedOemScript = $false
         try {
@@ -537,9 +723,9 @@ function New-Apbx {
 
         # Files replaced by staged overrides are excluded from the main pass so the
         # archive never contains duplicates.
-        $excludeFiles = @('*.apbx', '*.apbx.tmp')
-        if ($stagedCustomYml) { $excludeFiles += 'custom.yml' }
-        if ($stagedStartYml) { $excludeFiles += 'start.yml' }
+        $excludeFiles = @(
+            '*.apbx', '*.apbx.tmp', '*.apbx.*.building.tmp*', '*.apbx.*.replaced.bak'
+        )
         if ($stagedPlaybookConf) { $excludeFiles += 'playbook.conf' }
         if ($stagedOemScript) { $excludeFiles += 'Set-OemInformation.ps1' }
 
@@ -577,11 +763,12 @@ function New-Apbx {
             $archiveArgs += '-spf'
         }
         $archiveArgs += $passwordArgs
-        $archiveArgs += $apbxPath
+        $archiveArgs += $buildApbxPath
         # The @listfile syntax must not be quoted or 7-Zip misparses it.
         $archiveArgs += "@$filesListPath"
 
-        Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList $archiveArgs -ErrorContext 'Creating APBX archive' -ArchivePath $apbxPath | Out-Null
+        Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList $archiveArgs `
+            -ErrorContext 'Creating APBX archive' -ArchivePath $buildApbxPath | Out-Null
 
         $stagedFiles = Get-ChildItem -Path $stagingPath -File -Recurse -ErrorAction SilentlyContinue
         if ($stagedFiles) {
@@ -589,33 +776,110 @@ function New-Apbx {
             try {
                 $updateArgs = @('u', '-bso0', '-bse0', '-bsp0')
                 $updateArgs += $passwordArgs
-                $updateArgs += $apbxPath
+                $updateArgs += $buildApbxPath
                 $updateArgs += '*'
 
-                Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList $updateArgs -ErrorContext 'Adding staged overrides' -ArchivePath $apbxPath | Out-Null
+                Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList $updateArgs `
+                    -ErrorContext 'Adding staged overrides' -ArchivePath $buildApbxPath | Out-Null
             }
             finally {
                 Set-Location -LiteralPath $PlaybookPath
             }
         }
 
-        $apbxTmpPath = "$apbxPath.tmp"
-        if (Test-Path -LiteralPath $apbxTmpPath) {
-            Remove-Item -LiteralPath $apbxPath -Force -ErrorAction SilentlyContinue
-            Rename-Item -LiteralPath $apbxTmpPath -NewName (Split-Path -Path $apbxPath -Leaf)
+        $integrityArgs = @('t', '-bso0', '-bse0', '-bsp0') +
+            $passwordArgs + @($buildApbxPath)
+        Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList $integrityArgs `
+            -ErrorContext 'Verifying built APBX archive' | Out-Null
+
+        $semanticArchiveStream = [IO.File]::Open(
+            $buildApbxPath,
+            [IO.FileMode]::Open,
+            [IO.FileAccess]::Read,
+            [IO.FileShare]::Read
+        )
+        try {
+            $preVerificationSha256 = Get-AtlasStreamSha256 -Stream $semanticArchiveStream
+            Invoke-AtlasApbxVerifier `
+                -Path $buildApbxPath `
+                -PlaybookPath $PlaybookPath `
+                -NoPassword:$NoPassword
+            $postVerificationSha256 = Get-AtlasStreamSha256 -Stream $semanticArchiveStream
+            if ($preVerificationSha256 -cne $postVerificationSha256) {
+                throw 'The APBX sibling changed during semantic verification.'
+            }
         }
+        finally {
+            $semanticArchiveStream.Dispose()
+        }
+
+        Publish-AtlasVerifiedArchive `
+            -SourcePath $buildApbxPath `
+            -DestinationPath $apbxPath `
+            -ExpectedSha256 $postVerificationSha256 `
+            -AllowReplace:$ReplaceOldPlaybook
 
         return $apbxPath
     }
     finally {
-        Set-Location -LiteralPath $previousLocation.ProviderPath
-
-        if ($filesListPath -and (Test-Path -LiteralPath $filesListPath)) {
-            Remove-Item -LiteralPath $filesListPath -Force -ErrorAction SilentlyContinue
+        try {
+            Set-Location -LiteralPath $previousLocation.Path -ErrorAction Stop
+        }
+        catch {
+            try {
+                Set-Location -LiteralPath $OutputDirectory -ErrorAction Stop
+            }
+            catch {
+                try {
+                    Set-Location -LiteralPath $PlaybookPath -ErrorAction Stop
+                }
+                catch {
+                    # Publication has already succeeded or failed. Location restoration
+                    # must never replace that result with a cleanup-only exception.
+                    $null = $_
+                }
+            }
         }
 
-        if ($rootTempDir -and (Test-Path -LiteralPath $rootTempDir.FullName)) {
-            Remove-Item -LiteralPath $rootTempDir.FullName -Force -Recurse -ErrorAction SilentlyContinue
+        try {
+            if ($filesListPath -and (Test-Path -LiteralPath $filesListPath)) {
+                Remove-Item -LiteralPath $filesListPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+        catch {
+            # The OS temp file can be reclaimed independently of publication.
+            $null = $_
+        }
+
+        try {
+            if ($rootTempDir -and (Test-Path -LiteralPath $rootTempDir.FullName)) {
+                Remove-Item -LiteralPath $rootTempDir.FullName -Force -Recurse -ErrorAction SilentlyContinue
+            }
+        }
+        catch {
+            # The OS temp directory can be reclaimed independently of publication.
+            $null = $_
+        }
+
+        try {
+            if ($buildApbxPath -and (Test-Path -LiteralPath $buildApbxPath)) {
+                Remove-Item -LiteralPath $buildApbxPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+        catch {
+            # A stale sibling is rejected at the start of the next build.
+            $null = $_
+        }
+
+        try {
+            $buildLeaf = Split-Path -Path $buildApbxPath -Leaf
+            Get-ChildItem -LiteralPath $OutputDirectory -Filter "$buildLeaf.tmp*" `
+                -ErrorAction SilentlyContinue |
+                Remove-Item -Force -ErrorAction SilentlyContinue
+        }
+        catch {
+            # A stale 7-Zip working file is rejected at the start of the next build.
+            $null = $_
         }
     }
 }

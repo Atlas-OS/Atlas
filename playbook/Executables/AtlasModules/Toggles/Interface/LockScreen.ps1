@@ -7,12 +7,32 @@
             StateValue = 1
             Launcher   = '4. Interface Tweaks\Lock Screen\Show Lock Screen (default).cmd'
             Reboot     = 'None'
+            ReplayScope = 'Machine'
             Action     = {
                 param($Toggle)
 
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
                 $policyKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization'
-                Remove-ItemProperty -LiteralPath $policyKey -Name 'NoLockScreen' -Force -ErrorAction SilentlyContinue
-                Remove-ItemProperty -LiteralPath $policyKey -Name 'NoChangingLockScreen' -Force -ErrorAction SilentlyContinue
+                Remove-AtlasRegistryValue -Path $policyKey -Name 'NoLockScreen'
+                Remove-AtlasRegistryValue -Path $policyKey -Name 'NoChangingLockScreen'
+
+                $verifyKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey(
+                    'SOFTWARE\Policies\Microsoft\Windows\Personalization',
+                    $false
+                )
+                if ($null -ne $verifyKey) {
+                    try {
+                        $remainingNames = @($verifyKey.GetValueNames())
+                        foreach ($removedName in @('NoLockScreen', 'NoChangingLockScreen')) {
+                            if ($remainingNames -contains $removedName) {
+                                throw "Lock-screen policy value '$removedName' remains after removal."
+                            }
+                        }
+                    }
+                    finally {
+                        $verifyKey.Dispose()
+                    }
+                }
 
                 if (-not $Toggle.Silent) {
                     Write-Host 'Lock screen restored.' -ForegroundColor Green

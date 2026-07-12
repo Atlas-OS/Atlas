@@ -10,6 +10,7 @@
             Action     = {
                 param($Toggle)
 
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
                 foreach ($key in @(
                     'Registry::HKEY_CLASSES_ROOT\*\shellex\ContextMenuHandlers\Sharing'
                     'Registry::HKEY_CLASSES_ROOT\Directory\Background\shellex\ContextMenuHandlers\Sharing'
@@ -18,7 +19,7 @@
                     'Registry::HKEY_CLASSES_ROOT\LibraryFolder\background\shellex\ContextMenuHandlers\Sharing'
                     'Registry::HKEY_CLASSES_ROOT\UserLibraryFolder\shellex\ContextMenuHandlers\Sharing'
                 )) {
-                    Remove-Item -Path $key -Recurse -Force -ErrorAction SilentlyContinue
+                    Remove-AtlasRegistryKey -Path $key
                 }
 
                 if (-not $Toggle.Silent) {

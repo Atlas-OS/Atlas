@@ -12,8 +12,7 @@
 
                 $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Remove-Edge.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
-                    Write-Host "Script not found: `"$script`"" -ForegroundColor Red
-                    return
+                    throw "Required Edge action helper is missing: '$script'."
                 }
 
                 & $script

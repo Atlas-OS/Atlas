@@ -1,4 +1,4 @@
-# Toggle: Show the current Core Isolation (VBS) configuration (info only, no state recorded).
+# Toggle: Show the current VBS configuration once (info only, no state recorded).
 @{
     Name          = 'ConfigVBS'
     Elevation     = 'None'
@@ -12,12 +12,16 @@
                 param($Toggle)
 
                 $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-VbsConfiguration.ps1'
-                if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
-                    Write-Host "Script not found: `"$script`"" -ForegroundColor Red
-                    return
+                if (-not [IO.File]::Exists($script)) {
+                    throw "Required VBS configuration helper is missing at '$script'."
                 }
 
-                & $script
+                $report = & $script
+                Write-Host "VBS status: $($report.VbsStatus)"
+                Write-Host "Configured services: $($report.ConfiguredServices -join ', ')"
+                Write-Host "Running services: $($report.RunningServices -join ', ')"
+                Write-Host "Required security properties: $($report.RequiredProperties -join ', ')"
+                Write-Host "Available security properties: $($report.AvailableProperties -join ', ')"
             }
         }
     }

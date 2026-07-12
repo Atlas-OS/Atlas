@@ -1,11 +1,13 @@
 # Atlas.TasksProcs - scheduled task and process helper module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies Write-AtlasLog. Import it explicitly so standalone entry points
-# work without initPowerShell.ps1 having populated PSModulePath first.
-if (-not (Get-Command -Name 'Write-AtlasLog' -ErrorAction SilentlyContinue)) {
-    Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1')
+# Atlas.Core supplies Write-AtlasLog. Import the adjacent module so standalone
+# callers do not depend on PSModulePath or an ambient command with the same name.
+$coreManifestPath = Join-Path $PSScriptRoot '..\Atlas.Core\Atlas.Core.psd1'
+if (-not [IO.File]::Exists($coreManifestPath)) {
+    throw "Required Atlas.Core manifest is missing: '$coreManifestPath'."
 }
+Import-Module -Name $coreManifestPath -Force -ErrorAction Stop
 
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
@@ -14,7 +16,7 @@ foreach ($domainModule in @(
     'Processes.ps1'
 )) {
     $domainPath = Join-Path -Path $domainRoot -ChildPath $domainModule
-    if (-not (Test-Path -LiteralPath $domainPath -PathType Leaf)) {
+    if (-not [IO.File]::Exists($domainPath)) {
         throw "Required Atlas.TasksProcs domain module '$domainPath' is missing."
     }
 
@@ -23,5 +25,6 @@ foreach ($domainModule in @(
 
 Export-ModuleMember -Function @(
     'Disable-AtlasScheduledTask', 'Enable-AtlasScheduledTask', 'Remove-AtlasScheduledTask',
-    'Stop-AtlasProcess', 'Stop-AtlasProcessUnderRoot', 'Stop-AtlasScheduledTaskUnderRoot'
+    'Stop-AtlasProcess', 'Wait-AtlasExplorerShellRecovery',
+    'Stop-AtlasProcessUnderRoot', 'Stop-AtlasScheduledTaskUnderRoot'
 )

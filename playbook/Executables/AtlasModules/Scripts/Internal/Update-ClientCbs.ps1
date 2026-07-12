@@ -54,6 +54,9 @@ if ($ids.Count -le 0) {
 # Not set in the actual YAML in case no velocity IDs were found
 # If the velocity IDs aren't set, then the account page disappears
 & "$windir\AtlasModules\Scripts\Set-SettingsPageVisibilityLauncher.cmd" /hide account
+if ($LASTEXITCODE -ne 0) {
+    throw "Hiding the Microsoft account Settings page failed with exit code $LASTEXITCODE."
+}
 
 # Extract ViVeTool https://github.com/thebookisclosed/ViVe
 # Not done in PowerShell as it's too complicated, it's just easiest to use the actual tool

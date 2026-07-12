@@ -9,22 +9,36 @@
     States        = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             MenuLabel  = 'Disable (default)'
             Reboot     = 'Recommend'
             Action     = {
                 param($Toggle)
 
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /deletevalue '{globalsettings}' highestmode 2>$null | Out-Null
+                $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
+                $bcdEditOutput = Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                    -ArgumentList ([string[]]@('/enum', '{globalsettings}')) `
+                    -AllowedExitCodes ([int[]]@(0))
+                if (($bcdEditOutput -join [Environment]::NewLine) -match
+                    '(?im)^[ \t]*highestmode(?:[ \t]+|$)') {
+                    Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                        -ArgumentList ([string[]]@('/deletevalue', '{globalsettings}', 'highestmode')) `
+                        -AllowedExitCodes ([int[]]@(0)) | Out-Null
+                }
             }
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             MenuLabel  = 'Enable'
             Reboot     = 'Recommend'
             Action     = {
                 param($Toggle)
 
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{globalsettings}' highestmode true | Out-Null
+                $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
+                Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                    -ArgumentList ([string[]]@('/set', '{globalsettings}', 'highestmode', 'true')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
             }
         }
     }

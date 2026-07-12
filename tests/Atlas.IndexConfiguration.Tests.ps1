@@ -4,240 +4,394 @@ BeforeAll {
         'playbook\Executables\AtlasModules\Scripts\Internal\Set-IndexConfiguration.ps1'
     $script:launcherPath = Join-Path $script:repoRoot `
         'playbook\Executables\AtlasModules\Scripts\Set-IndexConfiguration.cmd'
-    $script:callerPath = Join-Path $script:repoRoot `
-        'playbook\Executables\AtlasModules\Toggles\General\Indexing.ps1'
+    $script:machineStatePath = Join-Path $script:repoRoot `
+        'playbook\Executables\AtlasModules\Scripts\Internal\Set-AtlasIndexingMachineState.ps1'
 
-    . $script:helperPath -LibraryOnly
+    # Load the production functions through a harmless validation failure. The script has
+    # no library/test mode: relative paths fail before the administrator or mutation paths.
+    $loadFailure = $null
+    try {
+        . $script:helperPath -Operation Include -IndexPath '.\relative' -InProcess
+    }
+    catch {
+        $loadFailure = $_
+    }
+    if ($null -eq $loadFailure -or
+        $loadFailure.Exception.Message -notlike '*fully qualified*') {
+        throw 'The IndexConfiguration test fixture did not stop at path validation.'
+    }
 }
 
-Describe 'Typed index configuration primitives' {
-    It 'preserves percent, exclamation, ampersand, and space characters as literal path data' {
-        $candidate = Join-Path $TestDrive 'Index %ATLAS_INDEX_PERCENT% & !ATLAS_INDEX_PATH_TEST! Folder'
-        $expected = [IO.Path]::GetFullPath($candidate)
-        $original = [Environment]::GetEnvironmentVariable('ATLAS_INDEX_PATH_TEST', 'Process')
-        try {
-            [Environment]::SetEnvironmentVariable('ATLAS_INDEX_PATH_TEST', 'MUTATED', 'Process')
-            ConvertTo-AtlasIndexPath -Candidate $candidate | Should -BeExactly $expected
-        }
-        finally {
-            [Environment]::SetEnvironmentVariable('ATLAS_INDEX_PATH_TEST', $original, 'Process')
+Describe 'Index path behavior' {
+    It 'preserves literal path data and accepts drive and UNC absolute paths' {
+        $drivePath = Join-Path $TestDrive `
+            'Index %ATLAS_PERCENT% & !ATLAS_BANG! Folder'
+        ConvertTo-AtlasIndexPath -Candidate $drivePath |
+            Should -BeExactly ([IO.Path]::GetFullPath($drivePath))
+
+        $uncPath = '\\server\share\Index %ATLAS_PERCENT% & !ATLAS_BANG! Folder'
+        ConvertTo-AtlasIndexPath -Candidate $uncPath |
+            Should -BeExactly ([IO.Path]::GetFullPath($uncPath))
+    }
+
+    It 'rejects relative, root-relative, incomplete UNC, and wildcard paths' {
+        foreach ($candidate in @(
+                '.\relative',
+                '\root-relative',
+                'C:drive-relative',
+                '\\server-only',
+                (Join-Path $TestDrive 'wild*card'),
+                (Join-Path $TestDrive 'wild?card')
+            )) {
+            { ConvertTo-AtlasIndexPath -Candidate $candidate } | Should -Throw
         }
     }
 
-    It 'rejects relative and wildcard paths before any registry operation' {
-        { ConvertTo-AtlasIndexPath -Candidate '.\relative' } | Should -Throw '*fully qualified*'
-        { ConvertTo-AtlasIndexPath -Candidate '\root-relative' } | Should -Throw '*fully qualified*'
-        { ConvertTo-AtlasIndexPath -Candidate 'C:drive-relative' } | Should -Throw '*fully qualified*'
-        { ConvertTo-AtlasIndexPath -Candidate '\\server-only' } | Should -Throw '*fully qualified*'
-        { ConvertTo-AtlasIndexPath -Candidate (Join-Path $TestDrive 'wild*card') } | Should -Throw '*wildcard*'
-    }
-
-    It 'selects the first free numeric registry entry deterministically' {
+    It 'creates the first free entry with the normalized path as REG_SZ' {
         Get-AtlasFirstFreeIndexEntryName -ExistingNames @() | Should -BeExactly '0'
-        Get-AtlasFirstFreeIndexEntryName -ExistingNames @('0', '1', '3', 'custom') | Should -BeExactly '2'
+        Get-AtlasFirstFreeIndexEntryName -ExistingNames @('0', '1', '3', 'custom') |
+            Should -BeExactly '2'
+
+        $existingEntry = [pscustomobject]@{
+            PSChildName = '0'
+            PSPath      = 'Registry::existing\0'
+            StoredPath  = 'C:\Other'
+        }
+        $existingEntry | Add-Member -MemberType ScriptMethod -Name GetValue -Value {
+            param($Name, $DefaultValue, $Options)
+            [void]$Name
+            [void]$DefaultValue
+            [void]$Options
+            return $this.StoredPath
+        }
+        Mock Test-Path { $true }
+        Mock Get-ChildItem { @($existingEntry) }
+        Mock New-Item {}
+        Mock Set-ItemProperty {}
+
+        $result = Add-AtlasIndexPath -Mode Include -Path 'C:\Wanted'
+
+        $result.EntryName | Should -BeExactly '1'
+        $result.Existing | Should -BeFalse
+        Should -Invoke New-Item -Times 1 -Exactly -ParameterFilter {
+            $Path -like 'Registry::*\1'
+        }
+        Should -Invoke Set-ItemProperty -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -like 'Registry::*\1' -and
+            $Name -eq 'Path' -and
+            $Value -eq 'C:\Wanted' -and
+            $Type -eq 'String'
+        }
     }
 
-    It 'preserves a protected native child failure without an ERRORLEVEL environment expansion' {
-        $cmdPath = Join-Path ([Environment]::GetFolderPath('System')) 'cmd.exe'
-        $caught = $null
-        $originalErrorLevel = [Environment]::GetEnvironmentVariable('ERRORLEVEL', 'Process')
-        try {
-            [Environment]::SetEnvironmentVariable('ERRORLEVEL', '91', 'Process')
-            try {
-                [void](Invoke-AtlasIndexNativeCommand -FilePath $cmdPath `
-                        -ArgumentList @('/d', '/s', '/c', 'exit /b 37') `
-                        -Description 'safe index exit probe')
-            }
-            catch {
-                $caught = $_
-            }
+    It 'reuses a case-insensitive matching entry without allocating another key' {
+        $existingEntry = [pscustomobject]@{
+            PSChildName = '4'
+            PSPath      = 'Registry::existing\4'
+            StoredPath  = 'c:\wanted'
         }
-        finally {
-            [Environment]::SetEnvironmentVariable('ERRORLEVEL', $originalErrorLevel, 'Process')
+        $existingEntry | Add-Member -MemberType ScriptMethod -Name GetValue -Value {
+            param($Name, $DefaultValue, $Options)
+            [void]$Name
+            [void]$DefaultValue
+            [void]$Options
+            return $this.StoredPath
         }
+        Mock Test-Path { $true }
+        Mock Get-ChildItem { @($existingEntry) }
+        Mock New-Item {}
+        Mock Set-ItemProperty {}
 
-        $caught | Should -Not -BeNullOrEmpty
-        $caught.Exception.Data['Atlas.IndexConfiguration.ExitCode'] | Should -Be 37
+        $result = Add-AtlasIndexPath -Mode Exclude -Path 'C:\Wanted'
+
+        $result.EntryName | Should -BeExactly '4'
+        $result.Existing | Should -BeTrue
+        Should -Invoke New-Item -Times 0 -Exactly
+        Should -Invoke Set-ItemProperty -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq 'Registry::existing\4' -and
+            $Value -eq 'C:\Wanted' -and
+            $Type -eq 'String'
+        }
     }
-
-    It 'round-trips native argv without a shell under the hidden process boundary' {
-        $probePath = Join-Path $TestDrive 'index-native-argv-probe.ps1'
-        @'
-param(
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [AllowEmptyCollection()]
-    [AllowEmptyString()]
-    [string[]]$Values
-)
-foreach ($value in $Values) {
-    'ARG:' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($value))
 }
-'@ | Set-Content -LiteralPath $probePath -Encoding UTF8
-        $powershellPath = Join-Path ([Environment]::GetFolderPath('System')) `
-            'WindowsPowerShell\v1.0\powershell.exe'
-        $expected = @(
-            'space & percent %UNDEFINED% !mark!'
-            'trailing-slash\'
-            'quoted"value'
-            ''
+
+Describe 'Index operation behavior' {
+    BeforeEach {
+        Mock Test-AtlasAdmin { $true }
+    }
+
+    It 'recreates every Windows Search policy and path root' {
+        Mock Test-Path { $true }
+        Mock Remove-Item {}
+        Mock New-Item {}
+
+        Clear-AtlasIndexPolicyRoots
+
+        Should -Invoke Remove-Item -Times 6 -Exactly
+        Should -Invoke New-Item -Times 6 -Exactly
+    }
+
+    It 'configures and moves WSearch to the requested runtime state' {
+        $script:serviceCalls = [Collections.Generic.List[string]]::new()
+        $script:nativeCalls = [Collections.Generic.List[string]]::new()
+        $service = [pscustomobject]@{
+            Status = [ServiceProcess.ServiceControllerStatus]::Stopped
+        }
+        $service | Add-Member -MemberType ScriptMethod -Name Refresh -Value {}
+        $service | Add-Member -MemberType ScriptMethod -Name Start -Value {
+            [void]$script:serviceCalls.Add('Start')
+            $this.Status = [ServiceProcess.ServiceControllerStatus]::Running
+        }
+        $service | Add-Member -MemberType ScriptMethod -Name Stop -Value {
+            [void]$script:serviceCalls.Add('Stop')
+            $this.Status = [ServiceProcess.ServiceControllerStatus]::Stopped
+        }
+        $service | Add-Member -MemberType ScriptMethod -Name Continue -Value {
+            [void]$script:serviceCalls.Add('Continue')
+            $this.Status = [ServiceProcess.ServiceControllerStatus]::Running
+        }
+        $service | Add-Member -MemberType ScriptMethod -Name WaitForStatus -Value {
+            param($RequestedStatus, $Timeout)
+            [void]$Timeout
+            [void]$script:serviceCalls.Add("Wait:$RequestedStatus")
+            $this.Status = $RequestedStatus
+        }
+        $service | Add-Member -MemberType ScriptMethod -Name Dispose -Value {
+            [void]$script:serviceCalls.Add('Dispose')
+        }
+
+        Mock Get-AtlasIndexNativePaths {
+            [pscustomobject]@{
+                GpUpdate = 'C:\Windows\System32\gpupdate.exe'
+                Sc       = 'C:\Windows\System32\sc.exe'
+            }
+        }
+        Mock Invoke-AtlasHiddenProcess {
+            [void]$script:nativeCalls.Add(($ArgumentList -join ','))
+        }
+        Mock Get-Service { $service }
+
+        Set-AtlasSearchServiceState -State Running
+        $service.Status = [ServiceProcess.ServiceControllerStatus]::Running
+        Set-AtlasSearchServiceState -State Stopped
+
+        @($script:nativeCalls) | Should -Be @(
+            'config,WSearch,start=,delayed-auto'
+            'config,WSearch,start=,disabled'
         )
+        @($script:serviceCalls) | Should -Be @(
+            'Start'
+            'Wait:Running'
+            'Dispose'
+            'Stop'
+            'Wait:Stopped'
+            'Dispose'
+        )
+        Should -Invoke Invoke-AtlasHiddenProcess -Times 2 -Exactly `
+            -ParameterFilter { $Wait }
+    }
 
-        $output = @(Invoke-AtlasIndexNativeCommand `
-                -FilePath $powershellPath `
-                -ArgumentList (@('-NoProfile', '-NoLogo', '-NonInteractive', '-File', $probePath) + $expected) `
-                -Description 'native argv round-trip probe')
-        $encodedValues = @(($output -join "`n") -split '\r?\n' | Where-Object {
-                $_.StartsWith('ARG:', [StringComparison]::Ordinal)
-            })
-        $actual = @($encodedValues | ForEach-Object {
-                [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($_.Substring(4)))
-            })
+    It 'starts WSearch, reveals settings, and performs a checked computer policy refresh' {
+        $script:indexSequence = [Collections.Generic.List[string]]::new()
+        Mock Set-AtlasSearchServiceState {
+            [void]$script:indexSequence.Add("service:$State")
+        }
+        Mock Set-AtlasIndexSettingsVisibility {
+            [void]$script:indexSequence.Add("hidden:$Hidden")
+        }
+        Mock Get-AtlasIndexNativePaths {
+            [pscustomobject]@{
+                GpUpdate = 'C:\Windows\System32\gpupdate.exe'
+                Sc       = 'C:\Windows\System32\sc.exe'
+            }
+        }
+        Mock Invoke-AtlasHiddenProcess {
+            [void]$script:indexSequence.Add(
+                "native:$([IO.Path]::GetFileName($FilePath)):$($ArgumentList -join ','):wait=$Wait"
+            )
+        }
 
-        $actual.Count | Should -Be $expected.Count
-        for ($index = 0; $index -lt $expected.Count; $index++) {
-            $actual[$index] | Should -BeExactly $expected[$index]
+        Invoke-AtlasIndexConfiguration -RequestedOperation Start `
+            -SettingValueWasBound $false
+
+        @($script:indexSequence) | Should -Be @(
+            'service:Running'
+            'hidden:False'
+            'native:gpupdate.exe:/target:computer,/force,/wait:600:wait=True'
+        )
+    }
+
+    It 'hides settings before stopping WSearch' {
+        $script:indexSequence = [Collections.Generic.List[string]]::new()
+        Mock Set-AtlasIndexSettingsVisibility {
+            [void]$script:indexSequence.Add("hidden:$Hidden")
+        }
+        Mock Set-AtlasSearchServiceState {
+            [void]$script:indexSequence.Add("service:$State")
+        }
+
+        Invoke-AtlasIndexConfiguration -RequestedOperation Stop `
+            -SettingValueWasBound $false
+
+        @($script:indexSequence) | Should -Be @(
+            'hidden:True'
+            'service:Stopped'
+        )
+    }
+
+    It 'writes the two supported DWORD settings with their product values' {
+        Mock Set-AtlasIndexDword {}
+
+        Invoke-AtlasIndexConfiguration -RequestedOperation SetRespectPowerModes `
+            -RequestedSettingValue 1 -SettingValueWasBound $true
+        Invoke-AtlasIndexConfiguration -RequestedOperation ResetSetupCompleted `
+            -SettingValueWasBound $false
+
+        Should -Invoke Set-AtlasIndexDword -Times 1 -Exactly -ParameterFilter {
+            $Name -eq 'RespectPowerModes' -and $Value -eq 1
+        }
+        Should -Invoke Set-AtlasIndexDword -Times 1 -Exactly -ParameterFilter {
+            $Name -eq 'SetupCompletedSuccessfully' -and $Value -eq 0
         }
     }
 
-    It 'preserves a typed native exit through the production error writer in a child host' {
+    It 'rejects operation-specific arguments before requesting elevation' {
+        Mock Test-AtlasAdmin { throw 'administrator check should not run' }
+
+        {
+            Invoke-AtlasIndexConfiguration -RequestedOperation Include `
+                -SettingValueWasBound $false
+        } | Should -Throw '*requires a fully qualified index path*'
+        {
+            Invoke-AtlasIndexConfiguration -RequestedOperation Stop `
+                -RequestedPath 'C:\Unexpected' -SettingValueWasBound $false
+        } | Should -Throw '*does not accept an index path*'
+        {
+            Invoke-AtlasIndexConfiguration -RequestedOperation SetRespectPowerModes `
+                -SettingValueWasBound $false
+        } | Should -Throw '*requires an explicit setting value*'
+        {
+            Invoke-AtlasIndexConfiguration -RequestedOperation Start `
+                -RequestedSettingValue 1 -SettingValueWasBound $true
+        } | Should -Throw '*does not accept a setting value*'
+
+        Should -Invoke Test-AtlasAdmin -Times 0 -Exactly
+    }
+}
+
+Describe 'Index configuration process contracts' {
+    It 'throws in-process and returns a checked standalone failure' {
+        {
+            & $script:helperPath -Operation Include `
+                -IndexPath '.\relative' -InProcess
+        } | Should -Throw '*fully qualified*'
+        $PID | Should -BeGreaterThan 0
+
         $hostPath = if ($PSVersionTable.PSEdition -eq 'Desktop') {
             Join-Path $PSHOME 'powershell.exe'
         }
         else {
             Join-Path $PSHOME 'pwsh.exe'
         }
-        $probePath = Join-Path $TestDrive 'index-typed-exit-probe.ps1'
+
+        $savedErrorPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $output = & $hostPath -NoProfile -NoLogo -NonInteractive `
+                -File $script:helperPath -Operation SetRespectPowerModes 2>&1
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $savedErrorPreference
+        }
+
+        $exitCode | Should -Be 1
+        ($output | Out-String) | Should -Match 'requires an explicit setting value'
+    }
+
+    It 'rejects unsupported compatibility-launcher arguments with code 2' {
+        $cmdPath = Join-Path ([Environment]::GetFolderPath('System')) 'cmd.exe'
+        & $cmdPath /d /c "call `"$script:launcherPath`" /unsupported" *> $null
+        $LASTEXITCODE | Should -Be 2
+
+        & $cmdPath /d /c "call `"$script:launcherPath`" /include" *> $null
+        $LASTEXITCODE | Should -Be 2
+    }
+}
+
+Describe 'Indexing product state plans' {
+    BeforeEach {
+        $script:machineTestRoot = Join-Path $TestDrive 'Internal'
+        New-Item -Path $script:machineTestRoot -ItemType Directory -Force | Out-Null
+        $script:machineTestScript = Join-Path $script:machineTestRoot `
+            'Set-AtlasIndexingMachineState.ps1'
+        Copy-Item -LiteralPath $script:machineStatePath `
+            -Destination $script:machineTestScript
+        $script:operationLog = Join-Path $TestDrive 'operations.jsonl'
+        Remove-Item -LiteralPath $script:operationLog `
+            -Force -ErrorAction SilentlyContinue
+        $env:ATLAS_INDEX_TEST_LOG = $script:operationLog
+
         @'
-param([Parameter(Mandatory = $true)][string]$HelperPath)
-. $HelperPath -LibraryOnly
-$cmdPath = Join-Path ([Environment]::GetFolderPath('System')) 'cmd.exe'
-try {
-    [void](Invoke-AtlasIndexNativeCommand -FilePath $cmdPath `
-            -ArgumentList @('/d', '/s', '/c', 'exit /b 37') `
-            -Description 'typed child exit probe')
-}
-catch {
-    exit (Write-AtlasIndexError -ErrorRecord $_)
-}
-exit 0
-'@ | Set-Content -LiteralPath $probePath -Encoding UTF8
-
-        $stderrPath = Join-Path $TestDrive 'index-typed-exit-probe.stderr.txt'
-        $process = Start-Process -FilePath $hostPath `
-            -ArgumentList @(
-                '-NoProfile',
-                '-NoLogo',
-                '-NonInteractive',
-                '-File',
-                "`"$probePath`"",
-                '-HelperPath',
-                "`"$script:helperPath`""
-            ) `
-            -RedirectStandardError $stderrPath `
-            -Wait `
-            -PassThru
-        $process.ExitCode | Should -Be 37
+param(
+    [string]$Operation,
+    [string]$IndexPath,
+    [int]$SettingValue,
+    [switch]$InProcess
+)
+[pscustomobject]@{
+    Operation         = $Operation
+    IndexPath         = $IndexPath
+    SettingValue      = $SettingValue
+    SettingValueBound = $PSBoundParameters.ContainsKey('SettingValue')
+    InProcess         = [bool]$InProcess
+} | ConvertTo-Json -Compress | Add-Content -LiteralPath $env:ATLAS_INDEX_TEST_LOG
+'@ | Set-Content -LiteralPath (Join-Path $script:machineTestRoot `
+                'Set-IndexConfiguration.ps1') -Encoding UTF8
     }
 
-    It 'throws in-process contract failures without terminating the caller host' {
-        {
-            & $script:helperPath -Operation SetRespectPowerModes -InProcess
-        } | Should -Throw '*requires an explicit setting value*'
-
-        # Reaching this assertion proves the helper returned control to the host.
-        $PID | Should -BeGreaterThan 0
-    }
-}
-
-Describe 'Index configuration compatibility launcher' {
-    It 'is a thin fixed-path PowerShell wrapper with a closed argument grammar' {
-        $launcher = Get-Content -LiteralPath $script:launcherPath -Raw
-
-        $launcher | Should -Match '(?m)^verify other 2>nul\r?\nsetlocal EnableExtensions DisableDelayedExpansion\r?\nif errorlevel 1 exit /b 1\r?$'
-        $launcher | Should -Match 'Internal\\Set-IndexConfiguration\.ps1'
-        $launcher | Should -Match ([regex]::Escape('"%AtlasNativeFltmc%"'))
-        $launcher | Should -Match ([regex]::Escape('"%AtlasNativePowerShell%"'))
-        $launcher | Should -Not -Match '%__APPDIR__%WindowsPowerShell|%__APPDIR__%fltmc'
-        foreach ($mapping in @(
-                @{ Argument = '/include'; Operation = 'Include' }
-                @{ Argument = '/exclude'; Operation = 'Exclude' }
-                @{ Argument = '/cleanpolicies'; Operation = 'CleanPolicies' }
-                @{ Argument = '/start'; Operation = 'Start' }
-                @{ Argument = '/stop'; Operation = 'Stop' }
-            )) {
-            $launcher | Should -Match ([regex]::Escape(('"%~1"=="{0}"' -f $mapping.Argument)))
-            $launcher | Should -Match ([regex]::Escape(('set "operation={0}"' -f $mapping.Operation)))
-        }
-        $launcher | Should -Match '-Operation "%operation%" -IndexPath "%indexPath%"'
-        ([regex]::Matches(
-                $launcher,
-                '(?ms)^if errorlevel 0 \(\r?\n\s+if errorlevel 1 exit /b\r?\n\) else \(\r?\n\s+exit /b 1\r?\n\)\r?\nexit /b 0\r?$'
-            )).Count | Should -Be 2
-        $launcher | Should -Not -Match '(?im)^\s*(?:reg|sc|gpupdate|netsh)\b|for /f|enabledelayedexpansion|%errorlevel%|!errorlevel!|%\*'
+    AfterEach {
+        Remove-Item Env:ATLAS_INDEX_TEST_LOG -ErrorAction SilentlyContinue
     }
 
-    It 'uses CRLF exclusively for the CMD compatibility surface' {
-        $bytes = [IO.File]::ReadAllBytes($script:launcherPath)
-        for ($index = 0; $index -lt $bytes.Length; $index++) {
-            if ($bytes[$index] -eq 10) {
-                $index | Should -BeGreaterThan 0
-                $bytes[$index - 1] | Should -Be 13
-            }
-        }
-    }
-}
+    It 'emits the unchanged minimal-indexing plan' {
+        & $script:machineTestScript -State Minimal
+        $operations = @(Get-Content -LiteralPath $script:operationLog |
+                ForEach-Object { $_ | ConvertFrom-Json })
 
-Describe 'Index configuration state postconditions' {
-    It 'implements registry, service, visibility, and policy-refresh postconditions in PowerShell' {
-        $helper = Get-Content -LiteralPath $script:helperPath -Raw
-
-        foreach ($operation in @(
-                'Include',
-                'Exclude',
-                'CleanPolicies',
-                'Start',
-                'Stop',
-                'SetRespectPowerModes',
-                'ResetSetupCompleted'
-            )) {
-            $helper | Should -Match ([regex]::Escape("'$operation'"))
-        }
-        $helper | Should -Match '\[Microsoft\.Win32\.Registry\]::LocalMachine\.DeleteSubKeyTree'
-        $helper | Should -Match "SetValue\('Path'.+RegistryValueKind\]::String\)"
-        $helper | Should -Match "GetValueKind\('Path'\)"
-        $helper | Should -Match "GetValueKind\('Start'\)"
-        $helper | Should -Match "GetValueKind\('DelayedAutoStart'\)"
-        $helper | Should -Match 'Set-AtlasIndexRegistryDword'
-        $helper | Should -Match 'RegistryValueKind\]::DWord'
-        $helper | Should -Match '\$startInfo\.UseShellExecute = \$false'
-        $helper | Should -Match '\$startInfo\.CreateNoWindow = \$true'
-        $helper | Should -Match '\$startInfo\.WindowStyle = \[Diagnostics\.ProcessWindowStyle\]::Hidden'
-        $helper | Should -Match 'Assert-AtlasSearchServiceConfiguration'
-        $helper | Should -Match 'Assert-AtlasSearchServiceState'
-        $helper | Should -Match 'WaitForStatus\('
-        $helper | Should -Match 'Assert-AtlasIndexSettingsVisibility'
-        $helper | Should -Match "ArgumentList @\('/force', '/wait:600'\)"
-        $gpUpdateIndex = $helper.IndexOf("-Description 'refreshing Group Policy'", [StringComparison]::Ordinal)
-        $gpUpdateIndex | Should -BeGreaterThan -1
-        $helper.IndexOf('Assert-AtlasSearchServiceConfiguration -Configuration DelayedAutomatic', $gpUpdateIndex) |
-            Should -BeGreaterThan $gpUpdateIndex
-        $helper.IndexOf('Assert-AtlasSearchServiceState -State Running', $gpUpdateIndex) |
-            Should -BeGreaterThan $gpUpdateIndex
-        $helper.IndexOf('Assert-AtlasIndexSettingsVisibility -Hidden $false', $gpUpdateIndex) |
-            Should -BeGreaterThan $gpUpdateIndex
-        $helper | Should -Not -Match '/wait:0|Invoke-Expression|%errorlevel%|!errorlevel!'
+        @($operations.Operation) | Should -Be @(
+            'Stop',
+            'CleanPolicies',
+            'Include',
+            'Include',
+            'Exclude',
+            'Start',
+            'ResetSetupCompleted',
+            'SetRespectPowerModes'
+        )
+        $operations[-1].SettingValueBound | Should -BeTrue
+        $operations[-1].SettingValue | Should -Be 1
+        @($operations | Where-Object { -not $_.InProcess }).Count | Should -Be 0
     }
 
-    It 'uses the typed helper in-process without a cmd command string or nonterminating registry writes' {
-        $caller = Get-Content -LiteralPath $script:callerPath -Raw
+    It 'emits the unchanged full-indexing plan and requested power mode' {
+        & $script:machineTestScript -State Full -RespectPowerModes 1
+        $operations = @(Get-Content -LiteralPath $script:operationLog |
+                ForEach-Object { $_ | ConvertFrom-Json })
 
-        $caller | Should -Match 'Internal'',\s*\r?\n\s*''Set-IndexConfiguration\.ps1'''
-        $caller | Should -Match '& \$helperPath @invokeParameters'
-        $caller | Should -Match 'InProcess = \$true'
-        $caller | Should -Match 'Invoke-AtlasIndexConfig -Operation Include -IndexPath \$programsPath'
-        $caller | Should -Match 'Invoke-AtlasIndexConfig -Operation SetRespectPowerModes -SettingValue 1'
-        $caller | Should -Match 'Invoke-AtlasIndexConfig -Operation ResetSetupCompleted'
-        $caller | Should -Match 'Get-ChildItem -LiteralPath \$usersPath -Directory -ErrorAction Stop'
-        $caller | Should -Not -Match '(?i)cmd\.exe|Start-Process|ArgumentList|/c.+call|Set-IndexConfiguration\.cmd|New-ItemProperty|SilentlyContinue'
+        @($operations[0..4].Operation) | Should -Be @(
+            'Stop',
+            'CleanPolicies',
+            'Include',
+            'Include',
+            'Include'
+        )
+        @($operations[-3..-1].Operation) | Should -Be @(
+            'Start',
+            'ResetSetupCompleted',
+            'SetRespectPowerModes'
+        )
+        $operations[-1].SettingValueBound | Should -BeTrue
+        $operations[-1].SettingValue | Should -Be 1
     }
 }

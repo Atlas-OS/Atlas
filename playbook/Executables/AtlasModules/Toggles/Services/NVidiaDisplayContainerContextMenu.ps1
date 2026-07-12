@@ -12,11 +12,7 @@
                 param($Toggle)
 
                 if (-not (Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem')) {
-                    if (-not $Toggle.Silent) {
-                        Write-Host 'The NVIDIA Display Container LS service does not exist, you cannot continue.'
-                        Write-Host 'You may not have NVIDIA drivers installed.'
-                    }
-                    return
+                    throw 'NVIDIA Display Container LS is not installed; its context menu cannot be added and no state was recorded.'
                 }
 
                 if (-not $Toggle.Silent) {
@@ -65,7 +61,8 @@
                     Write-Host 'Explorer will be restarted to ensure that the context menu is removed.'
                 }
 
-                Remove-Item -Path 'Registry::HKEY_CLASSES_ROOT\DesktopBackground\Shell\NVIDIAContainer' -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath 'Registry::HKEY_CLASSES_ROOT\DesktopBackground\Shell\NVIDIAContainer' `
+                    -Recurse -Force -ErrorAction Stop
             }
         }
     }

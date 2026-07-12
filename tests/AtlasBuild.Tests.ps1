@@ -98,62 +98,112 @@ Describe 'New-StagedPlaybookConf' {
     }
 }
 
-Describe 'Add-LiveLogAction' {
-    It 'injects a live-log action directly after the actions key' {
-        $customYml = Join-Path $TestDrive 'custom.yml'
-        @'
-title: Root Playbook File
-actions:
-  - !powerShell: {command: 'Write-Host hi', wait: true}
-'@ | Set-Content -Path $customYml -Encoding UTF8
-        $staged = Join-Path $TestDrive 'staged-custom.yml'
+Describe 'Atlas configuration build boundary' {
+    BeforeAll {
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
+        $script:BuildBoundarySourceConfiguration = Join-Path $repoRoot 'playbook\Configuration'
 
-        Add-LiveLogAction -CustomYmlPath $customYml -DestinationPath $staged | Should -BeTrue
+        function Copy-AtlasTaskFreeConfiguration {
+            param([Parameter(Mandatory = $true)][string]$Destination)
 
-        $lines = Get-Content $staged
-        $actionsIndex = $lines.IndexOf('actions:')
-        $lines[$actionsIndex + 1] | Should -Match 'AME Wizard Live Log'
-        # The original first action must still follow the injected one
-        $lines[$actionsIndex + 2] | Should -Match 'Write-Host hi'
+            Copy-Item -LiteralPath $script:BuildBoundarySourceConfiguration `
+                -Destination $Destination -Recurse
+            $customYml = Join-Path $Destination 'custom.yml'
+            $content = [IO.File]::ReadAllText($customYml) -replace `
+                '(?m)^  - !task:.*\r?\n', ''
+            [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
+            return $Destination
+        }
     }
 
-    It 'returns false when actions key is missing' {
-        $customYml = Join-Path $TestDrive 'no-actions.yml'
-        'title: Nothing here' | Set-Content -Path $customYml -Encoding UTF8
-        $staged = Join-Path $TestDrive 'staged-no-actions.yml'
+    It 'accepts the compact reviewed runner configuration' {
+        $fixture = Copy-AtlasTaskFreeConfiguration `
+            -Destination (Join-Path $TestDrive 'task-free-target')
+        $summary = Assert-AtlasConfigurationRunnerBoundary `
+            -ConfigurationRoot $fixture
 
-        Add-LiveLogAction -CustomYmlPath $customYml -DestinationPath $staged -WarningAction SilentlyContinue | Should -BeFalse
-        Test-Path $staged | Should -BeFalse
-    }
-}
-
-Describe 'Remove-DependencyBlock' {
-    It 'removes the NO LOCAL BUILD block' {
-        $startYml = Join-Path $TestDrive 'start.yml'
-        @'
-actions:
-  - !writeStatus: {status: 'Before'}
-  ################ NO LOCAL BUILD ################
-  - !cmd: {command: 'dism /online /something'}
-  ################ END NO LOCAL BUILD ################
-  - !writeStatus: {status: 'After'}
-'@ | Set-Content -Path $startYml -Encoding UTF8
-        $staged = Join-Path $TestDrive 'staged-start.yml'
-
-        Remove-DependencyBlock -StartYmlPath $startYml -DestinationPath $staged | Should -BeTrue
-
-        $content = Get-Content $staged -Raw
-        $content | Should -Not -Match 'dism /online'
-        $content | Should -Match 'Before'
-        $content | Should -Match 'After'
+        $summary.Actions | Should -Be 29
+        $summary.Runs | Should -Be 26
     }
 
-    It 'returns false when the block markers are absent' {
-        $startYml = Join-Path $TestDrive 'plain-start.yml'
-        'actions: []' | Set-Content -Path $startYml -Encoding UTF8
-        $staged = Join-Path $TestDrive 'staged-plain.yml'
+    It 'rejects currentUserElevated even when every other run field is canonical' {
+        $fixture = Copy-AtlasTaskFreeConfiguration `
+            -Destination (Join-Path $TestDrive 'current-user-elevated')
+        $customYml = Join-Path $fixture 'custom.yml'
+        $content = [IO.File]::ReadAllText($customYml)
+        $content = [regex]::new('runas: trustedInstaller').Replace(
+            $content,
+            'runas: currentUserElevated',
+            1
+        )
+        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
 
-        Remove-DependencyBlock -StartYmlPath $startYml -DestinationPath $staged -WarningAction SilentlyContinue | Should -BeFalse
+        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
+            Should -Throw -ExpectedMessage "*unsupported runas 'currentUserElevated'*"
+    }
+
+    It 'rejects Command mode now that every privileged runner uses a direct script file' {
+        $fixture = Copy-AtlasTaskFreeConfiguration `
+            -Destination (Join-Path $TestDrive 'command-mode')
+        $customYml = Join-Path $fixture 'custom.yml'
+        $content = [IO.File]::ReadAllText($customYml)
+        $content = [regex]::new(' -File ').Replace($content, ' -Command ', 1)
+        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
+
+        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
+            Should -Throw -ExpectedMessage '*!run must use direct File mode*'
+    }
+
+    It 'rejects abbreviated Command mode even when its command text contains a File decoy' {
+        $fixture = Copy-AtlasTaskFreeConfiguration `
+            -Destination (Join-Path $TestDrive 'abbreviated-command-mode')
+        $customYml = Join-Path $fixture 'custom.yml'
+        $content = [IO.File]::ReadAllText($customYml)
+        $content = [regex]::new('-File "[^"]+"').Replace(
+            $content,
+            '-C "Write-Output 1; # -File decoy"',
+            1
+        )
+        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
+
+        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
+            Should -Throw -ExpectedMessage '*!run must use direct File mode*'
+    }
+
+    It 'rejects an unreviewed .yaml configuration variant before packaging' {
+        $fixture = Copy-AtlasTaskFreeConfiguration `
+            -Destination (Join-Path $TestDrive 'alternate-extension')
+        'actions: []' | Set-Content -LiteralPath (Join-Path $fixture 'extra.yaml') -Encoding UTF8
+
+        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
+            Should -Throw -ExpectedMessage '*unreviewed YAML filename variants*extra.yaml*'
+    }
+
+    It 'rejects every AME task action' {
+        $fixture = Copy-AtlasTaskFreeConfiguration `
+            -Destination (Join-Path $TestDrive 'task-action')
+        $customYml = Join-Path $fixture 'custom.yml'
+        $content = [IO.File]::ReadAllText($customYml) -replace `
+            '(?m)^actions:\s*$',
+            "actions:`n  - !task: {path: 'atlas\start.yml'}"
+        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
+
+        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
+            Should -Throw -ExpectedMessage '*must contain zero AME !task actions*'
+    }
+
+    It 'freezes the one ISO-only WdBoot registry mutation' {
+        $fixture = Copy-AtlasTaskFreeConfiguration `
+            -Destination (Join-Path $TestDrive 'registry-drift')
+        $customYml = Join-Path $fixture 'custom.yml'
+        $content = [IO.File]::ReadAllText($customYml).Replace(
+            'HKLM\OfflineSys\ControlSet001\Services\WdBoot',
+            'HKLM\OfflineSys\ControlSet001\Services\WdFilter'
+        )
+        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
+
+        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
+            Should -Throw -ExpectedMessage '*!registryKey contract differs from the reviewed ISO-only WdBoot delete*'
     }
 }
 
@@ -188,11 +238,255 @@ Describe 'Get-AvailableArchiveName' {
             Should -Be 'Atlas (1).apbx'
     }
 
-    It 'replaces the existing file when allowed' {
+    It 'selects the existing name without deleting it when replacement is allowed' {
         New-Item -Path (Join-Path $TestDrive 'Atlas.apbx') -ItemType File -Force | Out-Null
         Get-AvailableArchiveName -BaseName 'Atlas.apbx' -WorkingDirectory $TestDrive -DisplayName 'Atlas' -AllowReplace |
             Should -Be 'Atlas.apbx'
-        Test-Path (Join-Path $TestDrive 'Atlas.apbx') | Should -BeFalse
+        Test-Path (Join-Path $TestDrive 'Atlas.apbx') | Should -BeTrue
+    }
+}
+
+Describe 'Atomic APBX publication' {
+    BeforeEach {
+        $playbook = Join-Path $TestDrive 'playbook'
+        $output = Join-Path $TestDrive 'output'
+        New-Item -ItemType Directory -Path $playbook, $output -Force | Out-Null
+        '<Playbook><Title>Atlas v0.6.0</Title><Version>0.6.0</Version></Playbook>' |
+            Set-Content -LiteralPath (Join-Path $playbook 'playbook.conf') -Encoding UTF8
+        Mock Assert-AtlasConfigurationRunnerBoundary {
+            [pscustomobject]@{ Files = 1; Actions = 29; Runs = 26 }
+        } -ModuleName AtlasBuild
+        Mock Resolve-SevenZip { 'mock-7z.exe' } -ModuleName AtlasBuild
+        Mock Invoke-AtlasApbxVerifier { } -ModuleName AtlasBuild
+    }
+
+    It 'preserves the previous APBX when integrity verification of the sibling build fails' {
+        $existingArchive = Join-Path $output 'Atlas.apbx'
+        [IO.File]::WriteAllBytes($existingArchive, [byte[]](1, 2, 3, 4))
+        Mock Invoke-SevenZip {
+            param($SevenZipPath, $ArgumentList, $ErrorContext, $ArchivePath)
+            $null = $SevenZipPath, $ArgumentList
+            if ($ErrorContext -eq 'Creating APBX archive') {
+                [IO.File]::WriteAllBytes($ArchivePath, [byte[]](9, 8, 7, 6))
+                return
+            }
+            if ($ErrorContext -eq 'Verifying built APBX archive') {
+                throw 'simulated integrity failure'
+            }
+        } -ModuleName AtlasBuild
+
+        {
+            New-Apbx -PlaybookPath $playbook -OutputDirectory $output -FileName 'Atlas' `
+                -NoPassword -ReplaceOldPlaybook
+        } | Should -Throw -ExpectedMessage '*simulated integrity failure*'
+
+        [IO.File]::ReadAllBytes($existingArchive) | Should -Be ([byte[]](1, 2, 3, 4))
+        Get-ChildItem -LiteralPath $output -Filter '*.building.tmp*' |
+            Should -BeNullOrEmpty
+    }
+
+    It 'preserves the previous APBX when semantic verification of the sibling build fails' {
+        $existingArchive = Join-Path $output 'Atlas.apbx'
+        [IO.File]::WriteAllBytes($existingArchive, [byte[]](1, 2, 3, 4))
+        Mock Invoke-SevenZip {
+            param($SevenZipPath, $ArgumentList, $ErrorContext, $ArchivePath)
+            $null = $SevenZipPath, $ArgumentList, $ErrorContext
+            if ($ArchivePath) {
+                [IO.File]::WriteAllBytes($ArchivePath, [byte[]](9, 8, 7, 6))
+            }
+        } -ModuleName AtlasBuild
+        Mock Invoke-AtlasApbxVerifier {
+            throw 'simulated semantic verification failure'
+        } -ModuleName AtlasBuild
+
+        {
+            New-Apbx -PlaybookPath $playbook -OutputDirectory $output -FileName 'Atlas' `
+                -NoPassword -ReplaceOldPlaybook
+        } | Should -Throw -ExpectedMessage '*simulated semantic verification failure*'
+
+        [IO.File]::ReadAllBytes($existingArchive) | Should -Be ([byte[]](1, 2, 3, 4))
+        Should -Invoke Invoke-AtlasApbxVerifier -ModuleName AtlasBuild -Times 1 -Exactly
+        Get-ChildItem -LiteralPath $output -Filter '*.building.tmp*' |
+            Should -BeNullOrEmpty
+    }
+
+    It 'denies an attempted sibling change while semantic verification holds its file identity' {
+        $existingArchive = Join-Path $output 'Atlas.apbx'
+        [IO.File]::WriteAllBytes($existingArchive, [byte[]](1, 2, 3, 4))
+        Mock Invoke-SevenZip {
+            param($SevenZipPath, $ArgumentList, $ErrorContext, $ArchivePath)
+            $null = $SevenZipPath, $ArgumentList, $ErrorContext
+            if ($ArchivePath) {
+                [IO.File]::WriteAllBytes($ArchivePath, [byte[]](9, 8, 7, 6))
+            }
+        } -ModuleName AtlasBuild
+        Mock Invoke-AtlasApbxVerifier {
+            param($Path, $PlaybookPath, [switch]$NoPassword)
+            $null = $PlaybookPath, $NoPassword
+            $mutationBlocked = $false
+            try {
+                [IO.File]::WriteAllBytes($Path, [byte[]](5, 5, 5, 5))
+            }
+            catch {
+                $writeException = $_.Exception
+                while ($null -ne $writeException.InnerException) {
+                    $writeException = $writeException.InnerException
+                }
+                if ($writeException -is [IO.IOException] -or
+                    $writeException -is [UnauthorizedAccessException]) {
+                    $mutationBlocked = $true
+                }
+                else {
+                    throw
+                }
+            }
+            if (-not $mutationBlocked) {
+                throw 'The semantic archive lock allowed a write.'
+            }
+            throw 'simulated sibling mutation was blocked by semantic lock'
+        } -ModuleName AtlasBuild
+
+        {
+            New-Apbx -PlaybookPath $playbook -OutputDirectory $output -FileName 'Atlas' `
+                -NoPassword -ReplaceOldPlaybook
+        } | Should -Throw -ExpectedMessage '*mutation was blocked by semantic lock*'
+
+        [IO.File]::ReadAllBytes($existingArchive) | Should -Be ([byte[]](1, 2, 3, 4))
+        Get-ChildItem -LiteralPath $output -Filter '*.building.tmp*' |
+            Should -BeNullOrEmpty
+    }
+
+    It 'preserves the previous APBX when handle hashes diverge across semantic verification' {
+        $existingArchive = Join-Path $output 'Atlas.apbx'
+        [IO.File]::WriteAllBytes($existingArchive, [byte[]](1, 2, 3, 4))
+        Mock Invoke-SevenZip {
+            param($SevenZipPath, $ArgumentList, $ErrorContext, $ArchivePath)
+            $null = $SevenZipPath, $ArgumentList, $ErrorContext
+            if ($ArchivePath) {
+                [IO.File]::WriteAllBytes($ArchivePath, [byte[]](9, 8, 7, 6))
+            }
+        } -ModuleName AtlasBuild
+        Mock Get-AtlasStreamSha256 {
+            $script:AtlasSemanticHashInvocation++
+            if ($script:AtlasSemanticHashInvocation -eq 1) {
+                return ('A' * 64)
+            }
+            return ('B' * 64)
+        } -ModuleName AtlasBuild
+        & (Get-Module AtlasBuild) { $script:AtlasSemanticHashInvocation = 0 }
+
+        {
+            New-Apbx -PlaybookPath $playbook -OutputDirectory $output -FileName 'Atlas' `
+                -NoPassword -ReplaceOldPlaybook
+        } | Should -Throw -ExpectedMessage '*changed during semantic verification*'
+
+        [IO.File]::ReadAllBytes($existingArchive) | Should -Be ([byte[]](1, 2, 3, 4))
+        Should -Invoke Invoke-AtlasApbxVerifier -ModuleName AtlasBuild -Times 1 -Exactly
+        Get-ChildItem -LiteralPath $output -Filter '*.building.tmp*' |
+            Should -BeNullOrEmpty
+    }
+
+    It 'rejects stale publication artifacts before invoking 7-Zip' {
+        $stalePaths = @(
+            Join-Path $output 'Atlas.apbx.tmp'
+            Join-Path $output 'Other.apbx.0123456789abcdef0123456789abcdef.building.tmp'
+            Join-Path $output 'Legacy.apbx.0123456789abcdef0123456789abcdef.replaced.bak'
+        )
+        foreach ($stalePath in $stalePaths) {
+            [IO.File]::WriteAllBytes($stalePath, [byte[]](7, 7, 7, 7))
+        }
+        Mock Invoke-SevenZip {
+            throw 'archive execution must remain unreachable'
+        } -ModuleName AtlasBuild
+
+        {
+            New-Apbx -PlaybookPath $playbook -OutputDirectory $output -FileName 'Atlas' `
+                -NoPassword -ReplaceOldPlaybook
+        } | Should -Throw -ExpectedMessage '*publication artifacts must be removed*'
+
+        Should -Invoke Invoke-SevenZip -ModuleName AtlasBuild -Times 0 -Exactly
+        foreach ($stalePath in $stalePaths) {
+            $stalePath | Should -Exist
+        }
+        Remove-Item -LiteralPath $stalePaths -Force
+    }
+
+    It 'atomically publishes the verified sibling over the previous APBX' {
+        $existingArchive = Join-Path $output 'Atlas.apbx'
+        [IO.File]::WriteAllBytes($existingArchive, [byte[]](1, 2, 3, 4))
+        Mock Invoke-SevenZip {
+            param($SevenZipPath, $ArgumentList, $ErrorContext, $ArchivePath)
+            $null = $SevenZipPath, $ArgumentList
+            if ($ErrorContext -eq 'Creating APBX archive') {
+                [IO.File]::WriteAllBytes($ArchivePath, [byte[]](9, 8, 7, 6))
+            }
+        } -ModuleName AtlasBuild
+
+        $result = New-Apbx -PlaybookPath $playbook -OutputDirectory $output `
+            -FileName 'Atlas' -NoPassword -ReplaceOldPlaybook -WarningAction SilentlyContinue
+
+        $result | Should -BeExactly $existingArchive
+        [IO.File]::ReadAllBytes($existingArchive) | Should -Be ([byte[]](9, 8, 7, 6))
+        Should -Invoke Invoke-SevenZip -ModuleName AtlasBuild -Times 1 -Exactly `
+            -ParameterFilter { $ErrorContext -eq 'Verifying built APBX archive' }
+        Should -Invoke Invoke-AtlasApbxVerifier -ModuleName AtlasBuild -Times 1 -Exactly `
+            -ParameterFilter {
+                $Path -like '*.building.tmp' -and
+                $PlaybookPath -eq $playbook -and
+                $NoPassword
+            }
+        Get-ChildItem -LiteralPath $output -Filter '*.building.tmp*' |
+            Should -BeNullOrEmpty
+    }
+
+    It 'returns a successful publication result when invoked from a non-filesystem provider' {
+        Mock Invoke-SevenZip {
+            param($SevenZipPath, $ArgumentList, $ErrorContext, $ArchivePath)
+            $null = $SevenZipPath, $ArgumentList, $ErrorContext
+            if ($ArchivePath) {
+                [IO.File]::WriteAllBytes($ArchivePath, [byte[]](9, 8, 7, 6))
+            }
+        } -ModuleName AtlasBuild
+        $originalLocation = Get-Location
+        try {
+            Set-Location Function:\
+            $result = New-Apbx -PlaybookPath $playbook -OutputDirectory $output `
+                -FileName 'Provider' -NoPassword -WarningAction SilentlyContinue
+
+            $result | Should -BeExactly (Join-Path $output 'Provider.apbx')
+            [IO.File]::ReadAllBytes($result) | Should -Be ([byte[]](9, 8, 7, 6))
+            (Get-Location).Provider.Name | Should -BeExactly 'Function'
+        }
+        finally {
+            Set-Location -LiteralPath $originalLocation.Path
+        }
+    }
+
+    It 'refuses to publish a different file object than the verified content' `
+        -Skip:(-not $IsWindows) {
+        $source = Join-Path $output 'Atlas.apbx.bound.building.tmp'
+        $destination = Join-Path $output 'Atlas.apbx'
+        [IO.File]::WriteAllBytes($source, [byte[]](9, 8, 7, 6))
+        [IO.File]::WriteAllBytes($destination, [byte[]](1, 2, 3, 4))
+        $verifiedHash = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
+        Move-Item -LiteralPath $source -Destination "$source.verified-object"
+        [IO.File]::WriteAllBytes($source, [byte[]](5, 5, 5, 5))
+
+        {
+            & (Get-Module AtlasBuild) {
+                param($Source, $Destination, $ExpectedSha256)
+                Publish-AtlasVerifiedArchive `
+                    -SourcePath $Source `
+                    -DestinationPath $Destination `
+                    -ExpectedSha256 $ExpectedSha256 `
+                    -AllowReplace
+            } $source $destination $verifiedHash
+        } | Should -Throw -ExpectedMessage '*changed after semantic verification*'
+
+        [IO.File]::ReadAllBytes($destination) | Should -Be ([byte[]](1, 2, 3, 4))
+        [IO.File]::ReadAllBytes($source) | Should -Be ([byte[]](5, 5, 5, 5))
+        [IO.File]::ReadAllBytes("$source.verified-object") |
+            Should -Be ([byte[]](9, 8, 7, 6))
     }
 }
 
@@ -206,6 +500,12 @@ Describe 'APBX payload path contracts' {
         'payload' | Set-Content -Path (Join-Path $playbook 'Executables\Nested\tool.txt') -Encoding UTF8
         'generated' | Set-Content -Path (Join-Path $playbook 'Atlas Test.apbx') -Encoding UTF8
         'interrupted' | Set-Content -Path (Join-Path $playbook 'Atlas Test.apbx.tmp') -Encoding UTF8
+        'building' | Set-Content -Path `
+            (Join-Path $playbook 'Atlas Test.apbx.0123456789abcdef0123456789abcdef.building.tmp') `
+            -Encoding UTF8
+        'backup' | Set-Content -Path `
+            (Join-Path $playbook 'Atlas Test.apbx.0123456789abcdef0123456789abcdef.replaced.bak') `
+            -Encoding UTF8
 
         @(Get-AtlasPlaybookPayloadPath -PlaybookPath $playbook) | Should -Be @(
             'Configuration/custom.yml'
@@ -233,6 +533,54 @@ Describe 'APBX payload path contracts' {
         $result.Matches | Should -BeFalse
         $result.Missing.Count | Should -Be 1
         $result.Unexpected.Count | Should -Be 1
+    }
+}
+
+Describe 'APBX verifier extraction gate' {
+    It 'never invokes 7-Zip extraction after an unsafe archive path is listed' `
+        -Skip:(-not $IsWindows) {
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
+        $fakeBin = Join-Path $TestDrive 'fake-bin'
+        $playbook = Join-Path $TestDrive 'playbook'
+        New-Item -ItemType Directory -Path $fakeBin, $playbook -Force | Out-Null
+        '<Playbook />' | Set-Content -LiteralPath (Join-Path $playbook 'playbook.conf') `
+            -Encoding UTF8
+        $archive = Join-Path $TestDrive 'unsafe.apbx'
+        [IO.File]::WriteAllBytes($archive, [byte[]](1))
+        $logPath = Join-Path $TestDrive 'fake-7z.log'
+        @'
+@echo off
+>>"%ATLAS_FAKE_7Z_LOG%" echo %*
+if /i "%~1"=="l" (
+  echo Path = Configuration/../../outside.yml
+  echo Folder = -
+  echo.
+)
+exit /b 0
+'@ | Set-Content -LiteralPath (Join-Path $fakeBin '7z.cmd') -Encoding Ascii
+
+        $oldPath = $env:PATH
+        $oldLog = $env:ATLAS_FAKE_7Z_LOG
+        try {
+            $env:PATH = "$fakeBin$([IO.Path]::PathSeparator)$oldPath"
+            $env:ATLAS_FAKE_7Z_LOG = $logPath
+            $pwshPath = (Get-Command pwsh -CommandType Application).Source
+            $output = & $pwshPath -NoLogo -NoProfile -File `
+                (Join-Path $repoRoot 'tools\build\Test-Apbx.ps1') `
+                -Path $archive -PlaybookPath $playbook 2>&1
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $env:PATH = $oldPath
+            $env:ATLAS_FAKE_7Z_LOG = $oldLog
+        }
+
+        $exitCode | Should -Be 1
+        ($output -join "`n") | Should -Match 'Archive extraction was blocked'
+        $sevenZipCalls = (Get-Content -LiteralPath $logPath) -join "`n"
+        $sevenZipCalls | Should -Match '(?m)^t\s'
+        $sevenZipCalls | Should -Match '(?m)^l\s'
+        $sevenZipCalls | Should -Not -Match '(?m)^[ex](?:\s|$)'
     }
 }
 
@@ -273,12 +621,4 @@ exit 37
         $capture | Should -Match '\|-LocalTest\s*$'
     }
 
-    It 'preserves the child exit code in the shell wrapper' {
-        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
-        $content = Get-Content -LiteralPath (Join-Path $repoRoot 'build.sh') -Raw
-
-        $content | Should -Match 'pwsh .* -File "\$script_dir/tools/build/Build-Playbook\.ps1" -LocalTest'
-        $content | Should -Match 'build_exit=\$\?'
-        $content.TrimEnd() | Should -Match 'exit "\$build_exit"$'
-    }
 }

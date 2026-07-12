@@ -19,13 +19,25 @@
                 Write-Host $dashes
                 Write-Host 'Restoring the component store...'
                 Write-Host $dashes
-                & "$($Toggle.WinDir)\System32\dism.exe" /online /cleanup-image /restorehealth
+                $system32 = Join-Path $Toggle.WinDir 'System32'
+                [void](Invoke-AtlasToggleNativeCommand `
+                        -FilePath (Join-Path $system32 'dism.exe') `
+                        -ArgumentList @(
+                            '/Online'
+                            '/Cleanup-Image'
+                            '/RestoreHealth'
+                            '/NoRestart'
+                        ) `
+                        -AllowedExitCodes @(0))
 
                 Write-Host ''
                 Write-Host $dashes
                 Write-Host 'Restoring system files...'
                 Write-Host $dashes
-                & "$($Toggle.WinDir)\System32\sfc.exe" /scannow
+                [void](Invoke-AtlasToggleNativeCommand `
+                        -FilePath (Join-Path $system32 'sfc.exe') `
+                        -ArgumentList @('/scannow') `
+                        -AllowedExitCodes @(0))
             }
         }
     }

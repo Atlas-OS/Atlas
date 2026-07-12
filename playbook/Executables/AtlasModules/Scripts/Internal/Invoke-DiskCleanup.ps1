@@ -1,18 +1,96 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('Machine', 'CurrentUser')]
+    [string]$Scope,
+
+    [string]$ExpectedUserSid
+)
+
 $ErrorActionPreference = 'Stop'
 
-$executablesRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-$initScript = Join-Path -Path $executablesRoot -ChildPath 'AtlasModules\initPowerShell.ps1'
-if (-not (Test-Path -LiteralPath $initScript -PathType Leaf)) {
-    throw "Atlas PowerShell initialization script '$initScript' is missing."
+function Invoke-AtlasCleanupEntryRemoval {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $attributes = [IO.File]::GetAttributes($Path)
+    $isDirectory = ($attributes -band [IO.FileAttributes]::Directory) -ne 0
+
+    if (($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        # Delete only the link. Never enumerate or delete its target.
+        if ($isDirectory) {
+            [IO.Directory]::Delete($Path, $false)
+        }
+        else {
+            [IO.File]::Delete($Path)
+        }
+        return
+    }
+
+    if ($isDirectory) {
+        foreach ($child in @([IO.Directory]::GetFileSystemEntries($Path))) {
+            Invoke-AtlasCleanupEntryRemoval -Path $child
+        }
+        [IO.File]::SetAttributes($Path, [IO.FileAttributes]::Normal)
+        [IO.Directory]::Delete($Path, $false)
+        return
+    }
+
+    [IO.File]::SetAttributes($Path, [IO.FileAttributes]::Normal)
+    [IO.File]::Delete($Path)
 }
 
-. $initScript
+function Invoke-AtlasTempCleanup {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not [IO.Path]::IsPathRooted($Path) -or -not [IO.Directory]::Exists($Path)) {
+        throw "Cleanup path '$Path' is not a rooted directory."
+    }
+    if (([IO.File]::GetAttributes($Path) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Cleanup path '$Path' is a reparse point."
+    }
+
+    foreach ($entry in @([IO.Directory]::GetFileSystemEntries($Path))) {
+        if ([IO.Path]::GetFileName($entry) -ceq 'AME') {
+            continue
+        }
+        try {
+            Invoke-AtlasCleanupEntryRemoval -Path $entry
+        }
+        catch {
+            Write-Warning "Could not remove TEMP entry '$entry': $($_.Exception.Message)"
+        }
+    }
+}
+
+function Test-AtlasOtherWindowsInstall {
+    param([Parameter(Mandatory = $true)][string]$SystemRoot)
+
+    $canonicalSystemRoot = [IO.Path]::GetFullPath($SystemRoot).TrimEnd('\', '/')
+    foreach ($drive in @(Get-PSDrive -PSProvider FileSystem -ErrorAction Stop)) {
+        $driveRoot = [IO.Path]::GetFullPath([string]$drive.Root).TrimEnd('\', '/')
+        if ([string]::Equals(
+                $driveRoot,
+                $canonicalSystemRoot,
+                [StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+
+        if ([IO.Directory]::Exists([IO.Path]::Combine($driveRoot, 'Windows'))) {
+            return $true
+        }
+    }
+
+    return $false
+}
 
 function Invoke-AtlasDiskCleanup {
-    Get-Process -Name cleanmgr -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    param([Parameter(Mandatory = $true)][string]$CleanMgrPath)
+
+    Get-Process -Name cleanmgr -ErrorAction SilentlyContinue |
+        Stop-Process -Force -ErrorAction SilentlyContinue
 
     $baseKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches'
-    $regValues = @{
+    $categories = @{
         'Active Setup Temp Folders'             = 2
         'BranchCache'                           = 2
         'D3D Shader Cache'                      = 0
@@ -37,111 +115,129 @@ function Invoke-AtlasDiskCleanup {
         'Device Driver Packages'                = 2
     }
 
-    foreach ($entry in $regValues.GetEnumerator()) {
-        $key = Join-Path -Path $baseKey -ChildPath $entry.Key
+    foreach ($category in $categories.GetEnumerator()) {
+        $key = Join-Path -Path $baseKey -ChildPath $category.Key
         if (-not (Test-Path -LiteralPath $key)) {
             Write-Output "'$key' not found, not configuring it."
             continue
         }
-
-        Set-ItemProperty -Path $key -Name 'StateFlags0064' -Value $entry.Value -Type DWord -ErrorAction Stop
+        Set-ItemProperty -LiteralPath $key -Name 'StateFlags0064' `
+            -Value $category.Value -Type DWord -ErrorAction Stop
     }
 
-    Start-Process -FilePath 'cleanmgr.exe' -ArgumentList '/sagerun:64' | Out-Null
+    Start-Process -FilePath $CleanMgrPath -ArgumentList '/sagerun:64' `
+        -WindowStyle Hidden | Out-Null
 }
 
-function Test-OtherWindowsInstall {
-    $systemDrive = Get-SystemDrive
-    $drives = (Get-PSDrive -PSProvider FileSystem).Root | Where-Object { $_ -ne $systemDrive }
-
-    foreach ($drive in $drives) {
-        if (Test-Path -LiteralPath (Join-Path -Path $drive -ChildPath 'Windows') -PathType Container) {
-            return $true
-        }
-    }
-
-    return $false
-}
-
-function Clear-DirectoryChildren {
+function Invoke-AtlasSystemShadowCopyCleanup {
     param(
-        [Parameter(Mandatory = $true)][string]$Path,
-        [string[]]$ExcludeName = @()
+        [Parameter(Mandatory = $true)][string]$VssAdminPath,
+        [Parameter(Mandatory = $true)][string]$SystemDrive
     )
 
-    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
-        throw "Cleanup path '$Path' is not a directory."
-    }
-
-    $resolvedPath = (Resolve-Path -LiteralPath $Path).ProviderPath
-    Get-ChildItem -LiteralPath $resolvedPath -Force -ErrorAction Stop |
-        Where-Object { $ExcludeName -notcontains $_.Name } |
-        ForEach-Object {
-            Remove-Item -LiteralPath $_.FullName -Force -Recurse -ErrorAction SilentlyContinue
+    try {
+        $volumes = @(Get-CimInstance -ClassName Win32_Volume `
+                -Filter ("DriveLetter = '{0}'" -f $SystemDrive) -ErrorAction Stop)
+        if ($volumes.Count -ne 1) {
+            throw "Resolved $($volumes.Count) system volumes for '$SystemDrive'."
         }
+        $volume = $volumes[0]
+        $shadowCopies = @(Get-CimInstance -ClassName Win32_ShadowCopy -ErrorAction Stop |
+            Where-Object { $_.VolumeName -eq $volume.DeviceID })
+    }
+    catch {
+        Write-Warning "Could not inspect system-volume shadow copies: $($_.Exception.Message)"
+        return
+    }
+
+    if ($shadowCopies.Count -eq 0) {
+        Write-Output 'No restore points found, skipping shadow copy deletion.'
+        return
+    }
+
+    $output = & $VssAdminPath delete shadows "/for=$SystemDrive" /all /quiet 2>&1
+    $exitCode = $LASTEXITCODE
+    if ($output) {
+        $output | Write-Output
+    }
+    if ($exitCode -ne 0) {
+        throw "vssadmin.exe failed to delete system-volume restore points with exit code $exitCode."
+    }
 }
 
-function Get-FirstExistingDirectory {
-    param([string[]]$Paths)
+function Invoke-AtlasMachineCleanup {
+    param(
+        [Parameter(Mandatory = $true)][string]$SystemRoot,
+        [Parameter(Mandatory = $true)][string]$WindowsRoot,
+        [Parameter(Mandatory = $true)][string]$CleanMgrPath,
+        [Parameter(Mandatory = $true)][string]$VssAdminPath
+    )
 
-    foreach ($path in $Paths) {
-        if ($path -and (Test-Path -LiteralPath $path -PathType Container)) {
-            return (Resolve-Path -LiteralPath $path).ProviderPath
+    if (Test-AtlasOtherWindowsInstall -SystemRoot $SystemRoot) {
+        Write-Output 'Not running machine cleanup because another Windows installation was found.'
+        return
+    }
+
+    foreach ($requiredExecutable in @($CleanMgrPath, $VssAdminPath)) {
+        if (-not [IO.File]::Exists($requiredExecutable)) {
+            throw "Required inbox cleanup executable '$requiredExecutable' is missing."
         }
     }
-
-    return $null
-}
-
-if (Test-OtherWindowsInstall) {
-    Write-Output 'Not running Disk Cleanup, other Windows drives found.'
-}
-else {
-    Write-Output 'No other Windows drives found, running Disk Cleanup.'
-    Invoke-AtlasDiskCleanup
-}
-
-$localAppDataTemp = if ($env:LOCALAPPDATA) { Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Temp' } else { $null }
-$userTemp = Get-FirstExistingDirectory -Paths @($env:TEMP, $env:TMP, $localAppDataTemp)
-if ($userTemp) {
-    Write-Output 'Cleaning user TEMP folder...'
-    Clear-DirectoryChildren -Path $userTemp -ExcludeName @('AME')
-}
-else {
-    Write-Error 'User temp folder not found!'
-}
-
-$machine = [System.EnvironmentVariableTarget]::Machine
-$systemTemp = Get-FirstExistingDirectory -Paths @(
-    [System.Environment]::GetEnvironmentVariable('Temp', $machine),
-    [System.Environment]::GetEnvironmentVariable('Tmp', $machine),
-    (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'Temp')
-)
-if ($systemTemp) {
-    Write-Output 'Cleaning system TEMP folder...'
-    # AME Wizard runs mid-install while this phase executes; its deletable state
-    # must survive the sweep, so exclude 'AME' exactly as the user-TEMP call does.
-    Clear-DirectoryChildren -Path $systemTemp -ExcludeName @('AME')
-}
-else {
-    Write-Error 'System temp folder not found!'
-}
-
-# vssadmin returns non-zero (with a localized message) when there are simply no restore
-# points to delete, so detect the benign case up front via CIM instead of parsing the
-# output text.
-$shadowCopyCount = @(Get-CimInstance -ClassName Win32_ShadowCopy -ErrorAction SilentlyContinue).Count
-if ($shadowCopyCount -eq 0) {
-    Write-Output 'No restore points found, skipping shadow copy deletion.'
-}
-else {
-    $vssadminOutput = & vssadmin.exe delete shadows /all /quiet 2>&1
-    $vssadminExitCode = $LASTEXITCODE
-    if ($vssadminOutput) {
-        $vssadminOutput | Write-Output
+    if (-not [IO.Directory]::Exists($WindowsRoot) -or
+        ([IO.File]::GetAttributes($WindowsRoot) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "The exact Windows directory '$WindowsRoot' is unavailable or is a reparse point."
     }
 
-    if ($vssadminExitCode -ne 0) {
-        throw "vssadmin.exe failed to delete restore points with exit code $vssadminExitCode."
-    }
+    $systemDrive = [IO.Path]::GetFullPath($SystemRoot).TrimEnd('\', '/')
+    Write-Output 'No other Windows installation found, running machine cleanup.'
+    Invoke-AtlasDiskCleanup -CleanMgrPath $CleanMgrPath
+    Invoke-AtlasTempCleanup -Path ([IO.Path]::Combine($WindowsRoot, 'Temp'))
+    Invoke-AtlasSystemShadowCopyCleanup -VssAdminPath $VssAdminPath -SystemDrive $systemDrive
 }
+
+if ($Scope -eq 'CurrentUser') {
+    if ([string]::IsNullOrWhiteSpace($ExpectedUserSid)) {
+        throw 'Current-user TEMP cleanup requires the install-state user SID.'
+    }
+    $expectedSid = try {
+        (New-Object Security.Principal.SecurityIdentifier($ExpectedUserSid)).Value
+    }
+    catch {
+        throw "The expected TEMP-cleanup user SID '$ExpectedUserSid' is invalid."
+    }
+    $actualSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    if ([string]$actualSid -cne [string]$expectedSid) {
+        throw "TEMP-cleanup token SID '$actualSid' does not match install-state SID '$expectedSid'."
+    }
+
+    $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
+    if ([string]::IsNullOrWhiteSpace($localAppData) -or
+        -not [IO.Path]::IsPathRooted($localAppData) -or
+        -not [IO.Directory]::Exists($localAppData)) {
+        throw 'The exact user LocalApplicationData directory is unavailable for TEMP cleanup.'
+    }
+    $localAppData = [IO.Path]::GetFullPath($localAppData)
+    if (([IO.File]::GetAttributes($localAppData) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "The exact user LocalApplicationData directory '$localAppData' is a reparse point."
+    }
+
+    Write-Output 'Cleaning install-state user TEMP folder...'
+    Invoke-AtlasTempCleanup -Path ([IO.Path]::Combine($localAppData, 'Temp'))
+    return
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ExpectedUserSid)) {
+    throw 'Machine disk cleanup must not accept a user SID.'
+}
+
+$scriptsRoot = Split-Path -Parent $PSScriptRoot
+$coreManifest = Join-Path -Path $scriptsRoot -ChildPath 'Modules\Atlas.Core\Atlas.Core.psd1'
+Import-Module -Name $coreManifest -Force -ErrorAction Stop
+Assert-AtlasPrivilege -TrustedInstaller
+
+$systemRoot = [IO.Path]::GetPathRoot([Environment]::SystemDirectory)
+$windowsRoot = [IO.Directory]::GetParent([Environment]::SystemDirectory).FullName
+$cleanMgrPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'cleanmgr.exe')
+$vssAdminPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'vssadmin.exe')
+Invoke-AtlasMachineCleanup -SystemRoot $systemRoot -WindowsRoot $windowsRoot `
+    -CleanMgrPath $cleanMgrPath -VssAdminPath $vssAdminPath

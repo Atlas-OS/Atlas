@@ -29,6 +29,7 @@ BeforeAll {
                 silent            = $true
                 justContext       = $false
                 noExplorerRestart = $true
+                machineOnly       = $false
             }
         }
 
@@ -108,18 +109,14 @@ Describe 'Atlas elevation canonical request protocol' {
                     silent            = $true
                     justContext       = $false
                     noExplorerRestart = $true
+                    machineOnly       = $false
                 }
-                Json = '{"protocolVersion":2,"requestId":"11111111222233334444555555555555","requesterSid":"S-1-5-21-100-200-300-1001","requesterProcessId":4242,"requesterCreationFileTime":"01DB000000000000","requesterSessionId":7,"operation":"Toggle","operationData":{"name":"Indexing","state":"Disable","silent":true,"justContext":false,"noExplorerRestart":true},"timeoutMilliseconds":900000,"windowMode":"NonInteractive"}'
+                Json = '{"protocolVersion":2,"requestId":"11111111222233334444555555555555","requesterSid":"S-1-5-21-100-200-300-1001","requesterProcessId":4242,"requesterCreationFileTime":"01DB000000000000","requesterSessionId":7,"operation":"Toggle","operationData":{"name":"Indexing","state":"Disable","silent":true,"justContext":false,"noExplorerRestart":true,"machineOnly":false},"timeoutMilliseconds":900000,"windowMode":"NonInteractive"}'
             },
             @{
                 Operation = 'ResetServices'
                 Data = [ordered]@{ restoreSource = 'ToggleDefaults' }
                 Json = '{"protocolVersion":2,"requestId":"11111111222233334444555555555555","requesterSid":"S-1-5-21-100-200-300-1001","requesterProcessId":4242,"requesterCreationFileTime":"01DB000000000000","requesterSessionId":7,"operation":"ResetServices","operationData":{"restoreSource":"ToggleDefaults"},"timeoutMilliseconds":900000,"windowMode":"NonInteractive"}'
-            },
-            @{
-                Operation = 'SafeModeRecovery'
-                Data = [ordered]@{ operationId = '1234567890abcdef1234567890abcdef' }
-                Json = '{"protocolVersion":2,"requestId":"11111111222233334444555555555555","requesterSid":"S-1-5-21-100-200-300-1001","requesterProcessId":4242,"requesterCreationFileTime":"01DB000000000000","requesterSessionId":7,"operation":"SafeModeRecovery","operationData":{"operationId":"1234567890abcdef1234567890abcdef"},"timeoutMilliseconds":900000,"windowMode":"NonInteractive"}'
             }
         )
 
@@ -298,6 +295,7 @@ Describe 'Atlas elevation closed operation schemas' {
                 silent            = $true
                 justContext       = $false
                 noExplorerRestart = $true
+                machineOnly       = $false
             }) `
             -RequesterSid $script:requesterSid `
             -RequesterProcessId $script:requesterProcessId `
@@ -307,24 +305,10 @@ Describe 'Atlas elevation closed operation schemas' {
         @($envelope.PSObject.Properties.Name) | Should -Be @('Request', 'Bytes', 'Sha256')
     }
 
-    It 'uses one request ID for transport correlation and keeps operation IDs inside typed payloads' {
-        $document = New-TestElevationDocument -Operation SafeModeRecovery `
-            -OperationData ([ordered]@{ operationId = '1234567890abcdef1234567890abcdef' })
-
-        @($document.PSObject.Properties.Name) | Should -Be @(
-            'protocolVersion', 'requestId', 'requesterSid', 'requesterProcessId',
-            'requesterCreationFileTime', 'requesterSessionId', 'operation',
-            'operationData', 'timeoutMilliseconds', 'windowMode'
-        )
-        $document.requestId | Should -BeExactly $script:requestId
-        $document.requestId | Should -Match '^[0-9a-f]{32}$'
-        $document.requestId | Should -Not -BeExactly ('0' * 32)
-        $document.operationData.operationId | Should -Not -BeExactly $document.requestId
-    }
-
     It 'accepts ordinary hashtables but emits canonical property order' {
         $data = @{
             noExplorerRestart = $false
+            machineOnly       = $false
             justContext       = $true
             silent            = $true
             state             = 'Enable'
@@ -332,7 +316,42 @@ Describe 'Atlas elevation closed operation schemas' {
         }
         $document = New-TestElevationDocument -Operation Toggle -OperationData $data
         @($document.operationData.PSObject.Properties.Name) |
-            Should -Be @('name', 'state', 'silent', 'justContext', 'noExplorerRestart')
+            Should -Be @('name', 'state', 'silent', 'justContext', 'noExplorerRestart', 'machineOnly')
+    }
+
+    It 'requires and round-trips machineOnly as one exact Boolean' {
+        $baseline = [ordered]@{
+            name              = 'Indexing'
+            state             = 'Disable'
+            silent            = $true
+            justContext       = $false
+            noExplorerRestart = $true
+            machineOnly       = $true
+        }
+        $document = New-TestElevationDocument -Operation Toggle -OperationData $baseline
+        $document.operationData.machineOnly | Should -BeOfType ([bool])
+        $document.operationData.machineOnly | Should -BeTrue
+
+        $bytes = ConvertTo-AtlasElevationRequestBytes -Request $document
+        $hash = Get-AtlasElevationSha256 -Bytes $bytes
+        $imported = ConvertFrom-AtlasElevationRequestBytes -Bytes $bytes `
+            -ExpectedRequestId $script:requestId -ExpectedSha256 $hash
+        $imported.operationData.machineOnly | Should -BeOfType ([bool])
+        $imported.operationData.machineOnly | Should -BeTrue
+        $script:utf8.GetString($bytes) | Should -Match '"machineOnly":true'
+
+        foreach ($invalidValue in @(0, 1, 'false', 'true')) {
+            $invalid = [ordered]@{} + $baseline
+            $invalid.machineOnly = $invalidValue
+            { New-TestElevationDocument -Operation Toggle -OperationData $invalid } |
+                Should -Throw
+        }
+
+        $missing = [ordered]@{} + $baseline
+        $missing.Remove('machineOnly')
+        $missing.Contains('machineOnly') | Should -BeFalse
+        { New-TestElevationDocument -Operation Toggle -OperationData $missing } |
+            Should -Throw
     }
 
     It 'rejects raw command, executable, script, scriptblock, and argv properties' {
@@ -343,6 +362,7 @@ Describe 'Atlas elevation closed operation schemas' {
                 silent            = $true
                 justContext       = $false
                 noExplorerRestart = $true
+                machineOnly       = $false
             }
             $data.Add($rawName, 'whoami')
             { New-TestElevationDocument -Operation Toggle -OperationData $data } | Should -Throw
@@ -356,6 +376,7 @@ Describe 'Atlas elevation closed operation schemas' {
             silent            = $true
             justContext       = $false
             noExplorerRestart = $true
+            machineOnly       = $false
         }
 
         $interactive = [ordered]@{} + $baseline
@@ -391,30 +412,6 @@ Describe 'Atlas elevation closed operation schemas' {
         { New-TestElevationDocument -Operation ResetServices `
                 -OperationData ([ordered]@{ restoreSource = 'ToggleDefaults'; silent = $true }) } |
             Should -Throw
-    }
-
-    It 'pins SafeModeRecovery to one nonzero lowercase 32-hex operation ID' {
-        $valid = New-TestElevationDocument -Operation SafeModeRecovery `
-            -OperationData ([ordered]@{ operationId = '1234567890abcdef1234567890abcdef' })
-        @($valid.operationData.PSObject.Properties.Name) | Should -Be @('operationId')
-        $valid.operationData.operationId | Should -BeExactly '1234567890abcdef1234567890abcdef'
-
-        foreach ($invalid in @(
-                ('0' * 32),
-                '1234567890ABCDEF1234567890ABCDEF',
-                '1234567890abcdef1234567890abcde',
-                '1234567890abcdef1234567890abcdef0',
-                '..\Recover-AtlasSafeMode.ps1',
-                '1234567890abcdef1234567890abcdeg'
-            )) {
-            { New-TestElevationDocument -Operation SafeModeRecovery `
-                    -OperationData ([ordered]@{ operationId = $invalid }) } | Should -Throw
-        }
-
-        { New-TestElevationDocument -Operation SafeModeRecovery -OperationData ([ordered]@{
-                    operationId = '1234567890abcdef1234567890abcdef'
-                    scriptPath = 'C:\untrusted.ps1'
-                }) } | Should -Throw
     }
 
     It 'removes RegistryImport rather than transporting caller-authored privileged mutations' {

@@ -90,9 +90,8 @@ function Set-AtlasRegistryValue {
     <#
     .SYNOPSIS
         Writes a registry value, creating missing keys. An empty Name writes the key's
-        default value. Under SYSTEM/TrustedInstaller, HKCU paths are redirected to the
-        active user's hive and mirrored into the default-user hive
-        (HKU\AME_UserHive_Default) when it is loaded.
+        default value. HKCU is either the proven current token's ambient hive or the
+        explicitly install-state-bound fixed default-user hive.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -115,12 +114,7 @@ function Set-AtlasRegistryValue {
     }
 
     # The scriptblock resolves $Name/$Type/$Data dynamically from this function's scope.
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Delta @{
-        Operation = 'SetValue'
-        Name      = $Name
-        Kind      = $Type
-        Data      = $Data
-    } -Action {
+    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
         param($providerPath)
         Set-AtlasRegistryValueCore -ProviderPath $providerPath -Name $Name -Type $Type -Data $Data
     }
@@ -130,7 +124,7 @@ function Remove-AtlasRegistryValue {
     <#
     .SYNOPSIS
         Deletes a registry value if it exists (a missing key or value is not an error),
-        with the same HKCU redirection and default-user-hive mirroring as
+        with the same token/default-user scope binding as
         Set-AtlasRegistryValue.
     #>
     param(
@@ -143,10 +137,7 @@ function Remove-AtlasRegistryValue {
         [string]$Name
     )
 
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Delta @{
-        Operation = 'DeleteValue'
-        Name      = $Name
-    } -Action {
+    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
         param($providerPath)
 
         $split = Split-AtlasRegistryProviderPath -ProviderPath $providerPath

@@ -1,27 +1,28 @@
 # AppxSupport phase.
-# Runs as the elevated interactive user selected by the AME shim. Ordering is deliberate:
-# snapshot, package-process stop, installed/provisioned removal, Phone Link cleanup,
-# deprovision markers, then cache clearing. Required package failures are aggregated so
+# Runs as TrustedInstaller. Ordering is deliberate:
+# snapshot, exact-user package-process quiescence, installed/provisioned removal,
+# Phone Link cleanup, deprovision markers, then exact-user cache clearing. Required package failures are aggregated so
 # cleanup still runs before the checked phase returns nonzero to AME.
 #
-# This is a deliberate privilege reduction from AME's former TI/KPH-backed AppX action:
-# Microsoft requires administrator permission for the all-user package cmdlets, not a
-# TrustedInstaller token. Staying in the elevated interactive-user context also preserves
-# the snapshot's installing-user semantics.
+# Machine AppX work remains in this strict TrustedInstaller token and every package
+# query/removal uses AllUsers. User-controlled package cache trees are instead handed to
+# an install-state-bound medium user child; this phase never enumerates profile roots or recursively
+# deletes through a privileged token.
 # https://learn.microsoft.com/en-us/powershell/module/appx/remove-appxpackage
 
-Assert-AtlasPrivilege -Administrator
+Assert-AtlasPrivilege -TrustedInstaller
 
 $modulesRoot = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Modules'
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Appx\Atlas.Appx.psd1') -Force -ErrorAction Stop
-Import-Module -Name (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
 
 # Get current AppX packages to deprovision removed ones afterward. A failed snapshot is
 # fatal before mutation because cleanup could not safely determine what Atlas removed.
 Save-AtlasAppxSnapshot
 
-# Stop legacy and current Teams processes so their registrations are not in use.
-Stop-AtlasProcess -Name 'msteams*', 'ms-teams*'
+# Quiesce Teams/Search in the exact install-state user's nonzero session before
+# removal. This checked launch is process-only; cache mutation remains after removal
+# and deprovisioning. This strict TI process never enumerates or terminates UI.
+Invoke-AtlasUserAppxCacheCleanup -Mode AppxQuiesce
 
 $requiredFailures = [System.Collections.Generic.List[string]]::new()
 try {
@@ -53,8 +54,7 @@ catch {
 
 # Clear caches of Client.CBS and more (Start menu cache is cleared later).
 try {
-    Stop-AtlasProcess -Name 'SearchHost*', 'SearchApp*'
-    Clear-AtlasAppxCache -Name '*MicrosoftWindows.Client.CBS*', '*Microsoft.Windows.Search*', '*Microsoft.Windows.SecHealthUI*'
+    Invoke-AtlasUserAppxCacheCleanup -Mode AppxSupport
 }
 catch {
     $message = "Clearing AppX caches failed: $($_.Exception.Message)"

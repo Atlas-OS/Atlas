@@ -10,7 +10,8 @@
             Action     = {
                 param($Toggle)
 
-                Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\MTCUVC' -Name 'EnableMtcUvc' -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\MTCUVC' -Name 'EnableMtcUvc'
 
                 if (-not $Toggle.Silent) {
                     Write-Host 'Changes applied successfully.'

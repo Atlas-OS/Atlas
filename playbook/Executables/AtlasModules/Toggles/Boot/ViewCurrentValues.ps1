@@ -12,7 +12,10 @@
             Action   = {
                 param($Toggle)
 
-                $output = & "$($Toggle.WinDir)\System32\bcdedit.exe" /enum '{current}'
+                $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
+                $output = Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                    -ArgumentList ([string[]]@('/enum', '{current}')) `
+                    -AllowedExitCodes ([int[]]@(0))
                 $output | Select-Object -Skip 3 | ForEach-Object { Write-Host $_ }
             }
         }

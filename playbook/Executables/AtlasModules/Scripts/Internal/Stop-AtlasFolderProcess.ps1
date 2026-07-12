@@ -1,3 +1,12 @@
+[CmdletBinding()]
+param()
+
+$trustBootstrap = [IO.Path]::Combine($PSScriptRoot, 'Initialize-PowerShellTrust.ps1')
+if (-not [IO.File]::Exists($trustBootstrap)) {
+    throw "The PowerShell trust bootstrap is missing at '$trustBootstrap'."
+}
+. $trustBootstrap
+
 $ErrorActionPreference = 'Stop'
 
 # Runs before the payload copy on upgrades, so the module is imported from the
@@ -35,7 +44,9 @@ if (-not $targetRoots) {
 }
 
 $rootsLower = $targetRoots | ForEach-Object { ($_ + '\').ToLowerInvariant() }
-Stop-AtlasProcessUnderRoot -RootsLower $rootsLower
+# This helper runs as TrustedInstaller in session 0. Interactive Atlas tools in
+# another Windows session are not cleanup targets; open handles will make replacement fail.
+Stop-AtlasProcessUnderRoot -RootsLower $rootsLower -SessionId 0
 Stop-AtlasScheduledTaskUnderRoot -RootsLower $rootsLower
 
 $timerExePath = Join-Path -Path $windir -ChildPath 'AtlasModules\Tools\SetTimerResolution.exe'
@@ -45,7 +56,7 @@ if (Test-Path -LiteralPath $timerExePath -PathType Leaf) {
         $stream.Dispose()
     }
     catch {
-        Stop-AtlasProcessUnderRoot -RootsLower $rootsLower
+        Stop-AtlasProcessUnderRoot -RootsLower $rootsLower -SessionId 0
         Start-Sleep -Milliseconds 500
     }
 }

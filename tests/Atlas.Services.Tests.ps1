@@ -5,10 +5,29 @@ BeforeAll {
 
     $script:testRoot = 'HKCU:\Software\AtlasRewriteTest'
     $script:servicesRoot = "$script:testRoot\Services"
+
+    function Write-TestAtlasServicesBackup {
+        param(
+            [Parameter(Mandatory = $true)]
+            [string]$Path,
+
+            [Parameter(Mandatory = $true)]
+            [AllowEmptyString()]
+            [string[]]$Lines
+        )
+
+        $parent = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($Path))
+        [void][IO.Directory]::CreateDirectory($parent)
+        [IO.File]::WriteAllLines(
+            $Path,
+            $Lines,
+            (New-Object Text.UTF8Encoding($false, $true))
+        )
+    }
 }
 
 AfterAll {
-    Remove-Item -Path 'HKCU:\Software\AtlasRewriteTest' -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Set-AtlasServiceStartup' {
@@ -21,96 +40,173 @@ Describe 'Set-AtlasServiceStartup' {
         Remove-Item -Path $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    It 'writes the Start value directly to the service key' {
+    It 'writes and returns a typed Start value' {
         New-Item -Path "$script:servicesRoot\TestSvc" -Force | Out-Null
 
-        Set-AtlasServiceStartup -Name 'TestSvc' -StartupType 4 -ServicesRoot $script:servicesRoot
+        $result = Set-AtlasServiceStartup -Name 'TestSvc' -StartupType 4 `
+            -ServicesRoot $script:servicesRoot -PassThru
 
         $key = Get-Item -LiteralPath "$script:servicesRoot\TestSvc"
         $key.GetValue('Start') | Should -Be 4
-        $key.GetValueKind('Start') | Should -Be ([Microsoft.Win32.RegistryValueKind]::DWord)
+        $key.GetValueKind('Start') |
+            Should -Be ([Microsoft.Win32.RegistryValueKind]::DWord)
+        $result.Applied | Should -BeTrue
+        $result.StartupType | Should -Be 4
     }
 
-    It 'overwrites an existing Start value' {
+    It 'fails for a missing required service but allows reviewed optional absence' {
+        { Set-AtlasServiceStartup -Name 'MissingSvc' -StartupType 4 `
+                -ServicesRoot $script:servicesRoot } |
+            Should -Throw '*Required service or driver*'
+
+        $result = Set-AtlasServiceStartup -Name 'MissingSvc' -StartupType 4 `
+            -ServicesRoot $script:servicesRoot -AllowMissing -PassThru
+        $result.Applied | Should -BeFalse
+        $result.StartupType | Should -BeNullOrEmpty
+    }
+
+    It 'does not let AllowMissing hide an existing-service write failure' {
         New-Item -Path "$script:servicesRoot\TestSvc" -Force | Out-Null
-        Set-ItemProperty -LiteralPath "$script:servicesRoot\TestSvc" -Name 'Start' -Value 2 -Type DWord
+        Mock Set-ItemProperty -ModuleName Atlas.Services { throw 'simulated access denied' }
 
-        Set-AtlasServiceStartup -Name 'TestSvc' -StartupType 3 -ServicesRoot $script:servicesRoot
-
-        (Get-Item -LiteralPath "$script:servicesRoot\TestSvc").GetValue('Start') | Should -Be 3
+        { Set-AtlasServiceStartup -Name 'TestSvc' -StartupType 4 `
+                -ServicesRoot $script:servicesRoot -AllowMissing } |
+            Should -Throw '*simulated access denied*'
     }
 
-    It 'warns instead of failing when the service key is missing' {
-        { Set-AtlasServiceStartup -Name 'AtlasRewriteTestMissingSvc' -StartupType 4 -ServicesRoot $script:servicesRoot } |
-            Should -Not -Throw
-
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter {
-            $Level -eq 'Warning' -and $Message -like "*AtlasRewriteTestMissingSvc*"
+    It 'rejects invalid startup types and provider navigation names' {
+        { Set-AtlasServiceStartup -Name 'TestSvc' -StartupType 5 `
+                -ServicesRoot $script:servicesRoot } | Should -Throw
+        foreach ($name in @('.', '..')) {
+            { Set-AtlasServiceStartup -Name $name -StartupType 4 `
+                    -ServicesRoot $script:servicesRoot } | Should -Throw '*not canonical*'
         }
-    }
-
-    It 'rejects startup types outside 0-4' {
-        { Set-AtlasServiceStartup -Name 'TestSvc' -StartupType 5 -ServicesRoot $script:servicesRoot } |
-            Should -Throw
-        { Set-AtlasServiceStartup -Name 'TestSvc' -StartupType -1 -ServicesRoot $script:servicesRoot } |
-            Should -Throw
     }
 }
 
 Describe 'Stop-AtlasService' {
-    It 'warns instead of failing when the service does not exist' {
+    It 'warns instead of failing when a service cannot be stopped' {
         Mock Write-AtlasLog -ModuleName Atlas.Services
 
         { Stop-AtlasService -Name 'AtlasRewriteTestMissingSvc' } | Should -Not -Throw
 
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter {
-            $Level -eq 'Warning'
-        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly
     }
 }
 
-Describe 'Export-AtlasServicesBackup' {
+Describe 'Atlas service backup' {
     BeforeEach {
         Mock Write-AtlasLog -ModuleName Atlas.Services
+        $script:backupPath = Join-Path -Path $TestDrive -ChildPath 'Other\services.reg'
     }
 
-    It 'exports service Start values in the reg.exe format used by BACKUP.ps1' {
-        $backupPath = Join-Path -Path $TestDrive -ChildPath 'winServices.reg'
+    It 'exports sorted service Start values and validates the result' {
+        Mock Get-AtlasServicesBackupRecordSet -ModuleName Atlas.Services {
+            @(
+                [pscustomobject]@{ Name = 'Zulu'; Start = [int]4 }
+                [pscustomobject]@{ Name = 'Alpha'; Start = [int]2 }
+            )
+        }
 
-        Export-AtlasServicesBackup -FilePath $backupPath
+        Export-AtlasServicesBackup -FilePath $script:backupPath
+        $content = Get-Content -LiteralPath $script:backupPath -Raw
 
-        Test-Path -LiteralPath $backupPath | Should -BeTrue
-        $lines = Get-Content -LiteralPath $backupPath
-        $lines[0] | Should -Be 'Windows Registry Editor Version 5.00'
-        @($lines | Where-Object { $_ -like '`[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\*`]' }).Count |
-            Should -BeGreaterThan 0
-        @($lines | Where-Object { $_ -match '^"Start"=dword:0000000\d$' }).Count | Should -BeGreaterThan 0
+        $content | Should -Match '"Start"=dword:00000004'
+        $content.IndexOf('Services\Alpha]') |
+            Should -BeLessThan $content.IndexOf('Services\Zulu]')
     }
 
-    It 'writes the file without a byte order mark so reg.exe can import it' {
-        $backupPath = Join-Path -Path $TestDrive -ChildPath 'noBom.reg'
+    It 'keeps the first valid backup without enumerating current services again' {
+        Write-TestAtlasServicesBackup -Path $script:backupPath -Lines @(
+            'Windows Registry Editor Version 5.00'
+            ''
+            '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Original]'
+            '"Start"=dword:00000003'
+        )
+        $originalBytes = [Convert]::ToBase64String(
+            [IO.File]::ReadAllBytes($script:backupPath)
+        )
+        Mock Get-AtlasServicesBackupRecordSet -ModuleName Atlas.Services {
+            throw 'service enumeration should not run'
+        }
 
-        Export-AtlasServicesBackup -FilePath $backupPath
+        Export-AtlasServicesBackup -FilePath $script:backupPath
 
-        $bytes = [System.IO.File]::ReadAllBytes($backupPath)
-        # UTF-8 BOM is EF BB BF
-        (($bytes[0] -eq 0xEF) -and ($bytes[1] -eq 0xBB) -and ($bytes[2] -eq 0xBF)) | Should -BeFalse
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($script:backupPath)) |
+            Should -BeExactly $originalBytes
+        Should -Invoke Get-AtlasServicesBackupRecordSet `
+            -ModuleName Atlas.Services -Times 0 -Exactly
     }
 
-    It 'never overwrites an existing backup' {
-        $backupPath = Join-Path -Path $TestDrive -ChildPath 'existing.reg'
-        Set-Content -LiteralPath $backupPath -Value 'sentinel'
+    It 'does not overwrite an invalid existing backup' {
+        Write-TestAtlasServicesBackup -Path $script:backupPath -Lines @('not a registry backup')
+        Mock Get-AtlasServicesBackupRecordSet -ModuleName Atlas.Services {
+            @([pscustomobject]@{ Name = 'Alpha'; Start = [int]2 })
+        }
 
-        Export-AtlasServicesBackup -FilePath $backupPath
+        { Export-AtlasServicesBackup -FilePath $script:backupPath } | Should -Throw
 
-        Get-Content -LiteralPath $backupPath | Should -Be 'sentinel'
+        Get-Content -LiteralPath $script:backupPath -Raw |
+            Should -Match '^not a registry backup'
+        Should -Invoke Get-AtlasServicesBackupRecordSet `
+            -ModuleName Atlas.Services -Times 0 -Exactly
     }
 
-    It 'creates the parent directory when missing' {
-        $backupPath = Join-Path -Path $TestDrive -ChildPath 'sub\dir\winServices.reg'
+    It 'rejects malformed, duplicate, and excluded records' {
+        Mock Set-AtlasServiceStartup -ModuleName Atlas.Services
+        $invalidBackups = @(
+            @(
+                'Windows Registry Editor Version 5.00'
+                '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Alpha]'
+            )
+            @(
+                'Windows Registry Editor Version 5.00'
+                '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Alpha]'
+                '"Start"=dword:00000002'
+                '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Alpha]'
+                '"Start"=dword:00000003'
+            )
+            @(
+                'Windows Registry Editor Version 5.00'
+                '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinDefend]'
+                '"Start"=dword:00000002'
+            )
+        )
 
-        Export-AtlasServicesBackup -FilePath $backupPath
-
-        Test-Path -LiteralPath $backupPath | Should -BeTrue
+        foreach ($lines in $invalidBackups) {
+            Write-TestAtlasServicesBackup -Path $script:backupPath -Lines $lines
+            { Restore-AtlasServicesBackup -FilePath $script:backupPath } |
+                Should -Throw
+        }
+        Should -Invoke Set-AtlasServiceStartup `
+            -ModuleName Atlas.Services -Times 0 -Exactly
     }
+
+    It 'restores typed values and reports services removed since backup' {
+        Write-TestAtlasServicesBackup -Path $script:backupPath -Lines @(
+            'Windows Registry Editor Version 5.00'
+            '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Alpha]'
+            '"Start"=dword:00000002'
+            '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Removed]'
+            '"Start"=dword:00000004'
+        )
+        Mock Set-AtlasServiceStartup -ModuleName Atlas.Services {
+            if ($Name -ceq 'Alpha') {
+                return [pscustomobject]@{
+                    Name = $Name; Applied = $true; StartupType = [int]$StartupType
+                }
+            }
+            return [pscustomobject]@{
+                Name = $Name; Applied = $false; StartupType = $null
+            }
+        }
+
+        $result = Restore-AtlasServicesBackup -FilePath $script:backupPath
+
+        $result.RestoredCount | Should -Be 1
+        $result.MissingCount | Should -Be 1
+        Should -Invoke Set-AtlasServiceStartup `
+            -ModuleName Atlas.Services -Times 2 -Exactly
+    }
+
 }

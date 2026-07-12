@@ -6,6 +6,7 @@ $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 foreach ($domainModule in @(
     'State.ps1'
     'Interaction.ps1'
+    'Native.ps1'
     'Engine.ps1'
     'Reapply.ps1'
 )) {
@@ -21,5 +22,6 @@ Export-ModuleMember -Function @(
     'Get-AtlasToggleDefinition', 'Invoke-AtlasToggle',
     'Get-AtlasToggleState', 'Set-AtlasToggleState',
     'Show-AtlasStateMenu',
+    'Invoke-AtlasToggleNativeCommand',
     'Initialize-AtlasToggleStateStore', 'Invoke-AtlasToggleReapply'
 )

@@ -7,10 +7,12 @@
             StateValue = 1
             Launcher   = '4. Interface Tweaks\Snap Layouts\Enable Snap Layouts (default).cmd'
             Reboot     = 'None'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = { param($Toggle) }
+            UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
                 Set-AtlasRegistryValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'EnableSnapAssistFlyout' -Type DWord -Data 1
                 Set-AtlasRegistryValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'EnableSnapBar' -Type DWord -Data 1
@@ -24,10 +26,12 @@
             StateValue = 0
             Launcher   = '4. Interface Tweaks\Snap Layouts\Disable Snap Layouts.cmd'
             Reboot     = 'None'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = { param($Toggle) }
+            UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
                 Set-AtlasRegistryValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'EnableSnapAssistFlyout' -Type DWord -Data 0
                 Set-AtlasRegistryValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'EnableSnapBar' -Type DWord -Data 0

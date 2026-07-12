@@ -1,12 +1,12 @@
 # Atlas.Services - service and driver configuration module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies Write-AtlasLog/Get-AtlasContext. Import it explicitly so that
-# standalone entry points (setSvc.cmd, Internal\Set-ServiceStartup.ps1) work without
-# initPowerShell.ps1 having populated PSModulePath first.
-if (-not (Get-Command -Name 'Write-AtlasLog' -ErrorAction SilentlyContinue)) {
-    Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1')
+# Atlas.Core supplies logging and install context for the service helpers.
+$coreManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1'
+if (-not (Test-Path -LiteralPath $coreManifest -PathType Leaf)) {
+    throw "Required Atlas.Core manifest '$coreManifest' is missing."
 }
+Import-Module -Name $coreManifest -Force -ErrorAction Stop
 
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
@@ -23,5 +23,6 @@ foreach ($domainModule in @(
 }
 
 Export-ModuleMember -Function @(
-    'Set-AtlasServiceStartup', 'Stop-AtlasService', 'Export-AtlasServicesBackup'
+    'Set-AtlasServiceStartup', 'Stop-AtlasService',
+    'Restore-AtlasServicesBackup', 'Export-AtlasServicesBackup'
 )

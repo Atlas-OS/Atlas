@@ -4,9 +4,13 @@ $ErrorActionPreference = 'Stop'
 
 $defaultValues = @(
     @{ SubKey = 'powerscheme\DefaultIcon'; Data = '%windir%\System32\powercpl.dll,1' }
-    # powercfg /import requires administrator rights, so the verb elevates first -
-    # a plain 'powercfg /import "%1"' fails silently when launched from Explorer.
-    @{ SubKey = 'powerscheme\Shell\open\command'; Data = 'powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Process ''powercfg.exe'' -ArgumentList ''/import'',''""%1""'' -Verb RunAs"' }
+    # Keep the selected path in argv. The protected handler validates one absolute .pow
+    # file, then elevates only the exact inbox powercfg executable.
+    @{
+        SubKey = 'powerscheme\Shell\open\command'
+        Type = [Microsoft.Win32.RegistryValueKind]::ExpandString
+        Data = '"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SystemRoot%\AtlasModules\Scripts\Internal\Import-PowerPlanFile.ps1" -PowerPlanPath "%1"'
+    }
     @{ SubKey = '.pow'; Data = 'powerscheme' }
 )
 
@@ -17,7 +21,13 @@ foreach ($entry in $defaultValues) {
     }
 
     try {
-        $key.SetValue('', $entry.Data, [Microsoft.Win32.RegistryValueKind]::String)
+        $valueKind = if ($entry.ContainsKey('Type')) {
+            $entry.Type
+        }
+        else {
+            [Microsoft.Win32.RegistryValueKind]::String
+        }
+        $key.SetValue('', $entry.Data, $valueKind)
     }
     finally {
         $key.Close()

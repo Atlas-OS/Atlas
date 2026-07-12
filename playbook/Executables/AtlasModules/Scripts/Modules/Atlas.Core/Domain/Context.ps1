@@ -1,63 +1,169 @@
-# Atlas.Core domain: install context and option flags.
+# Atlas.Core domain: active install state and post-install flag context.
 #
-# AME Wizard evaluates FeaturePage options, onUpgrade and oobe gating in YAML only.
-# The shim (Configuration/custom.yml) translates those decisions into flag files under
-# %windir%\AtlasModules\Flags right after the payload copy, and this module is how the
-# rest of the framework reads them.
+# While installation is active, mode, identity, and FeaturePage options come from
+# Atlas.InstallState. After successful completion archives that state, the published
+# Upgrade, Interactive, and option flags remain the compatibility contract.
 
 $script:AtlasContext = $null
+
+function Read-AtlasActiveInstallState {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$WindowsPath
+    )
+
+    $statePath = Join-Path -Path $WindowsPath -ChildPath 'AtlasOS\Install\active.json'
+    if (-not (Test-Path -LiteralPath $statePath -ErrorAction Stop)) {
+        return $null
+    }
+    if (-not (Test-Path -LiteralPath $statePath -PathType Leaf -ErrorAction Stop)) {
+        throw "The Atlas install-state path is not a regular file: '$statePath'."
+    }
+
+    $stateManifest = [IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot `
+        -ChildPath '..\..\Atlas.InstallState\Atlas.InstallState.psd1'))
+    if (-not (Test-Path -LiteralPath $stateManifest -PathType Leaf)) {
+        throw "The active Atlas install state exists, but its reader module is missing: '$stateManifest'."
+    }
+
+    Import-Module -Name $stateManifest -Force -DisableNameChecking -ErrorAction Stop
+    return Get-AtlasInstallState -StatePath $statePath
+}
 
 function Get-AtlasContext {
     <#
     .SYNOPSIS
         Returns cached information about the machine and the current install run.
     .OUTPUTS
-        PSCustomObject with WinDir, AtlasModulesPath, FlagsPath, LogsPath, IsArm64,
-        WindowsBuild, IsUpgrade and IsOobe.
+        PSCustomObject with filesystem paths, Windows facts and the authoritative install
+        mode, option set, target version and interactive-user identity.
     #>
     param(
-        [switch]$Refresh
+        [switch]$Refresh,
+
+        # Read-only seams keep context behavior deterministic in Pester without touching
+        # the host registry or canonical Windows transaction store.
+        [string]$WindowsPath,
+        [scriptblock]$StateReader,
+        [scriptblock]$WindowsBuildReader,
+        [scriptblock]$OobeReader
     )
 
-    if ($script:AtlasContext -and -not $Refresh) {
+    $usingReadSeam = $PSBoundParameters.ContainsKey('WindowsPath') -or
+        $PSBoundParameters.ContainsKey('StateReader') -or
+        $PSBoundParameters.ContainsKey('WindowsBuildReader') -or
+        $PSBoundParameters.ContainsKey('OobeReader')
+    if ($script:AtlasContext -and -not $Refresh -and -not $usingReadSeam) {
         return $script:AtlasContext
     }
 
-    $winDir = [Environment]::GetFolderPath('Windows')
+    $winDir = if ([string]::IsNullOrWhiteSpace($WindowsPath)) {
+        [Environment]::GetFolderPath('Windows')
+    }
+    else {
+        [IO.Path]::GetFullPath($WindowsPath)
+    }
     $atlasModulesPath = Join-Path -Path $winDir -ChildPath 'AtlasModules'
     $flagsPath = Join-Path -Path $atlasModulesPath -ChildPath 'Flags'
 
     $windowsBuild = 0
     try {
-        $buildNumber = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentBuildNumber -ErrorAction Stop).CurrentBuildNumber
+        $buildNumber = if ($null -ne $WindowsBuildReader) {
+            & $WindowsBuildReader
+        }
+        else {
+            (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' `
+                -Name CurrentBuildNumber -ErrorAction Stop).CurrentBuildNumber
+        }
         $windowsBuild = [int]$buildNumber
     }
     catch {
         Write-Warning "Couldn't read the Windows build number: $($_.Exception.Message)"
     }
 
-    # The shim writes Interactive.flag for normal (non-OOBE) installs. When it is absent,
-    # fall back to the live OOBE indicator so post-install tools also resolve correctly.
-    $isOobe = $false
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Interactive.flag') -PathType Leaf)) {
-        try {
-            $oobeInProgress = (Get-ItemProperty -Path 'HKLM:\SYSTEM\Setup' -Name 'OOBEInProgress' -ErrorAction Stop).OOBEInProgress
-            $isOobe = ($oobeInProgress -eq 1)
+    $statePath = Join-Path -Path $winDir -ChildPath 'AtlasOS\Install\active.json'
+    $installState = if ($null -ne $StateReader) {
+        & $StateReader $statePath
+    }
+    else {
+        Read-AtlasActiveInstallState -WindowsPath $winDir
+    }
+
+    $isInstallStateBacked = $null -ne $installState
+    $mode = $null
+    $targetVersion = $null
+    $interactiveUserSid = $null
+    $interactiveUserSessionId = $null
+    $transactionId = $null
+    $options = @()
+    if ($isInstallStateBacked) {
+        $mode = [string]$installState.mode
+        if ($mode -cnotin @('Fresh', 'Upgrade', 'Reapply')) {
+            throw "The Atlas install-state mode '$mode' is invalid."
         }
-        catch {
-            $isOobe = $false
+        $targetVersion = [string]$installState.targetVersion
+        $interactiveUserSid = if ([string]::IsNullOrWhiteSpace([string]$installState.userSid)) {
+            $null
         }
+        else {
+            [string]$installState.userSid
+        }
+        if ($null -ne $installState.userSessionId) {
+            $interactiveUserSessionId = [long]$installState.userSessionId
+        }
+        $transactionId = [string]$installState.transactionId
+        $options = @($installState.options | ForEach-Object { [string]$_ })
+    }
+
+    $isUpgrade = if ($isInstallStateBacked) {
+        $mode -cin @('Upgrade', 'Reapply')
+    }
+    else {
+        Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Upgrade.flag') -PathType Leaf
+    }
+
+    $isOobe = if ($isInstallStateBacked) {
+        [bool]$installState.isOobe
+    }
+    else {
+        # Completion publishes Interactive.flag for normal installs. Its absence can
+        # mean OOBE or a machine predating that contract, so consult the live setup
+        # indicator only when context is flag-backed.
+        $flagBackedOobe = $false
+        if (-not (Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Interactive.flag') -PathType Leaf)) {
+            try {
+                $oobeInProgress = if ($null -ne $OobeReader) {
+                    & $OobeReader
+                }
+                else {
+                    (Get-ItemProperty -Path 'HKLM:\SYSTEM\Setup' -Name 'OOBEInProgress' `
+                        -ErrorAction Stop).OOBEInProgress
+                }
+                $flagBackedOobe = ($oobeInProgress -eq 1)
+            }
+            catch {
+                $flagBackedOobe = $false
+            }
+        }
+        $flagBackedOobe
     }
 
     $script:AtlasContext = [pscustomobject]@{
-        WinDir           = $winDir
-        AtlasModulesPath = $atlasModulesPath
-        FlagsPath        = $flagsPath
-        LogsPath         = Join-Path -Path $atlasModulesPath -ChildPath 'Logs'
-        IsArm64          = ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
-        WindowsBuild     = $windowsBuild
-        IsUpgrade        = (Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Upgrade.flag') -PathType Leaf)
-        IsOobe           = $isOobe
+        WinDir             = $winDir
+        AtlasModulesPath   = $atlasModulesPath
+        FlagsPath          = $flagsPath
+        LogsPath           = Join-Path -Path $atlasModulesPath -ChildPath 'Logs'
+        IsArm64            = ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+        WindowsBuild       = $windowsBuild
+        IsUpgrade          = $isUpgrade
+        IsOobe             = $isOobe
+        IsInstallStateBacked     = $isInstallStateBacked
+        Mode                     = if ($isInstallStateBacked) { $mode } else { 'Legacy' }
+        TargetVersion            = $targetVersion
+        InteractiveUserSid       = $interactiveUserSid
+        InteractiveUserSessionId = $interactiveUserSessionId
+        TransactionId            = $transactionId
+        Options                  = $options
     }
 
     return $script:AtlasContext
@@ -66,8 +172,8 @@ function Get-AtlasContext {
 function Test-AtlasOption {
     <#
     .SYNOPSIS
-        Returns whether the user selected the given AME Wizard FeaturePage option
-        (e.g. 'defender-disable', 'browser-brave') during installation.
+        Returns whether the active install state contains an AME Wizard FeaturePage
+        option. After completion, reads the corresponding published option flag.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -75,40 +181,11 @@ function Test-AtlasOption {
         [string]$Name
     )
 
-    $flagsPath = (Get-AtlasContext).FlagsPath
-    return Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath "option-$Name.flag") -PathType Leaf
-}
-
-function New-AtlasFlag {
-    <#
-    .SYNOPSIS
-        Creates a named flag file under the Atlas flags directory.
-    #>
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Name
-    )
-
-    $flagsPath = (Get-AtlasContext).FlagsPath
-    if (-not (Test-Path -LiteralPath $flagsPath -PathType Container)) {
-        New-Item -Path $flagsPath -ItemType Directory -Force | Out-Null
+    $context = Get-AtlasContext
+    if ($context.IsInstallStateBacked) {
+        return @($context.Options) -ccontains $Name
     }
 
-    New-Item -Path (Join-Path -Path $flagsPath -ChildPath "$Name.flag") -ItemType File -Force | Out-Null
-}
-
-function Test-AtlasFlag {
-    <#
-    .SYNOPSIS
-        Returns whether a named flag file exists under the Atlas flags directory.
-    #>
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Name
-    )
-
-    $flagsPath = (Get-AtlasContext).FlagsPath
-    return Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath "$Name.flag") -PathType Leaf
+    $flagsPath = $context.FlagsPath
+    return Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath "option-$Name.flag") -PathType Leaf
 }

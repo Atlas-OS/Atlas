@@ -1,8 +1,8 @@
 # Features phase.
 # Windows optional-feature work via DISM: enable DirectPlay, remove the Steps Recorder
-# capability (fresh installs only), and clean the component store. Runs elevated; requires
-# online sources, so its shim call lives inside the NO LOCAL BUILD block of atlas\start.yml.
-Assert-AtlasPrivilege -Administrator
+# capability (fresh installs only), and clean the component store. Runs as TrustedInstaller; requires
+# online sources, so its custom.yml call lives inside the NO LOCAL BUILD marker block.
+Assert-AtlasPrivilege -TrustedInstaller
 
 $context = Get-AtlasContext
 $dism = Join-Path -Path $context.WinDir -ChildPath 'System32\dism.exe'

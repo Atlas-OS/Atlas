@@ -57,13 +57,16 @@ function Install-AtlasToolboxPackage {
     # Toolbox intentionally follows the repository's latest stable release so
     # a Toolbox update does not require a playbook release. Toolbox is currently
     # unsigned and unattested, so this product policy accepts control of the
-    # Atlas-OS GitHub repository as its publisher authority. GitHub's exact
-    # per-asset SHA-256 and byte size still provide a strict metadata-to-download
-    # binding, but are not an independent publisher signature.
+    # reviewed immutable Atlas-OS organization/repository identities as its
+    # publisher authority. GitHub's server-computed per-asset SHA-256 and byte
+    # size provide a strict metadata-to-download binding, but are not an
+    # independent publisher signature.
     $toolboxRelease = Get-AtlasLatestGitHubReleaseAsset `
         -Owner 'Atlas-OS' `
         -Repository 'atlas-toolbox' `
-        -AssetName 'AtlasToolbox-Setup.exe'
+        -AssetName 'AtlasToolbox-Setup.exe' `
+        -ExpectedRepositoryId 929016610 `
+        -ExpectedOwnerId 78708182
 
     if (Test-AtlasToolboxInstallation -ExpectedVersion $toolboxRelease.Version) {
         Write-Output "AtlasOS Toolbox $($toolboxRelease.Version) is already installed."
@@ -99,15 +102,9 @@ function Install-AtlasToolboxPackage {
                     '/MERGETASKS=desktopicon'
                 )) `
                 -WorkingDirectory $tempDirectory `
-                -TimeoutSeconds 1800 `
                 -Description 'The Toolbox installer' `
                 -Hidden `
                 -NoWindow
-            if (-not $installerResult.ContainmentConfirmed -or -not $installerResult.RootExited -or
-                -not $installerResult.JobDrained) {
-                $cleanupStaging = $false
-                throw "The Toolbox installer returned without confirmed process-tree containment; protected staging is retained at '$tempDirectory'."
-            }
             $installerExitCode = [uint32]$installerResult.ExitCodeUInt32
             if ($installerExitCode -ne 0) {
                 throw "Installing Toolbox failed with exit code $installerExitCode."

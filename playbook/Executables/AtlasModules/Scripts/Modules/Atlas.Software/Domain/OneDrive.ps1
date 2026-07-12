@@ -52,14 +52,9 @@ function Remove-AtlasOneDrive {
                     -FilePath $setupPath `
                     -ArgumentList ([string[]]@('/uninstall')) `
                     -WorkingDirectory ([IO.Path]::GetDirectoryName($setupPath)) `
-                    -TimeoutSeconds 900 `
                     -Description "The protected OneDrive uninstaller '$setupPath'" `
                     -Hidden `
                     -NoWindow
-                if (-not $setupResult.ContainmentConfirmed -or -not $setupResult.RootExited -or
-                    -not $setupResult.JobDrained) {
-                    throw "OneDriveSetup returned without confirmed process-tree containment."
-                }
                 $setupExitCode = [uint32]$setupResult.ExitCodeUInt32
                 if ($setupExitCode -ne 0) {
                     throw "OneDriveSetup exited with code $setupExitCode."

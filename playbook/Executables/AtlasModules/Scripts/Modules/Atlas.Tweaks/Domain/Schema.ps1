@@ -2,7 +2,7 @@
 
 $script:AtlasTweakTopLevelKeys = @(
     'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'Oobe', 'RunAs', 'MinBuild', 'MaxBuild',
-    'Registry', 'Services', 'ScheduledTasks', 'StopProcesses', 'Run', 'RemovePaths', 'Script'
+    'Registry', 'PostUserRegistryRefresh', 'Services', 'ScheduledTasks', 'Run', 'RemovePaths', 'Script'
 )
 
 $script:AtlasKnownOptions = @(
@@ -114,11 +114,15 @@ function Test-AtlasTweakFileSchema {
     }
 
     if ($tweak.ContainsKey('RunAs')) {
-        if ($tweak['RunAs'] -notin @('User', 'UserElevated')) {
-            Add-Problem -Problem "'RunAs' must be 'User' or 'UserElevated', got '$($tweak['RunAs'])'."
+        if ($tweak['RunAs'] -cne 'User') {
+            Add-Problem -Problem "'RunAs' must be 'User'; elevated user launches are unsupported, got '$($tweak['RunAs'])'."
         }
         if (-not $tweak.ContainsKey('Script')) {
             Add-Problem -Problem "'RunAs' only applies to the 'Script' key, but no 'Script' is present."
+        }
+        if ($tweak['RunAs'] -ceq 'User' -and
+            (-not $tweak.ContainsKey('Oobe') -or $tweak['Oobe'] -ne $false)) {
+            Add-Problem -Problem "'RunAs=User' companion tweaks require 'Oobe = `$false' and an explicit first-login path."
         }
     }
 
@@ -139,7 +143,9 @@ function Test-AtlasTweakFileSchema {
                 Add-Problem -Problem 'Registry entry is missing its Path.'
             }
 
-            if ($operation -in @('Set', 'Delete') -and (-not $entry.ContainsKey('Name') -or [string]::IsNullOrWhiteSpace([string]$entry['Name']))) {
+            # An empty value name denotes the registry key's default value and is a
+            # supported, identity-safe Atlas.Registry operation.
+            if ($operation -in @('Set', 'Delete') -and -not $entry.ContainsKey('Name')) {
                 Add-Problem -Problem "Registry '$operation' entry is missing its Name."
             }
 
@@ -159,6 +165,34 @@ function Test-AtlasTweakFileSchema {
             if ($entry.ContainsKey('IgnoreErrors') -and -not ($entry['IgnoreErrors'] -is [bool])) {
                 Add-Problem -Problem "Registry entry 'IgnoreErrors' must be a boolean."
             }
+        }
+    }
+
+    if ($tweak.ContainsKey('PostUserRegistryRefresh')) {
+        $refreshOperation = $tweak['PostUserRegistryRefresh']
+        if (-not ($refreshOperation -is [string]) -or
+            $script:AtlasTweakPostUserRegistryRefreshOperations -cnotcontains $refreshOperation) {
+            Add-Problem -Problem "'PostUserRegistryRefresh' must be exactly one of: $($script:AtlasTweakPostUserRegistryRefreshOperations -join ', ')."
+        }
+        if (-not $tweak.ContainsKey('Oobe') -or $tweak['Oobe'] -ne $false) {
+            Add-Problem -Problem "'PostUserRegistryRefresh' requires 'Oobe = `$false' because no live-user registry pass exists during OOBE."
+        }
+
+        $hasCurrentUserRegistryEntry = $false
+        if ($tweak.ContainsKey('Registry')) {
+            foreach ($entry in @($tweak['Registry'])) {
+                if ($entry -isnot [hashtable] -or -not $entry.ContainsKey('Path')) {
+                    continue
+                }
+                $registryPath = ([string]$entry['Path']).Trim()
+                if ($registryPath -match '^(?i)(?:Registry::)?(?:HKCU|HKEY_CURRENT_USER)(?::)?(?:\\|$)') {
+                    $hasCurrentUserRegistryEntry = $true
+                    break
+                }
+            }
+        }
+        if (-not $hasCurrentUserRegistryEntry) {
+            Add-Problem -Problem "'PostUserRegistryRefresh' requires at least one ambient HKCU Registry entry."
         }
     }
 
@@ -182,6 +216,10 @@ function Test-AtlasTweakFileSchema {
                     Add-Problem -Problem "Service 'Change' entry needs an integer StartupType between 0 and 4."
                 }
             }
+
+            if ($entry.ContainsKey('IgnoreErrors') -and -not ($entry['IgnoreErrors'] -is [bool])) {
+                Add-Problem -Problem "Service entry 'IgnoreErrors' must be a boolean."
+            }
         }
     }
 
@@ -195,13 +233,9 @@ function Test-AtlasTweakFileSchema {
             if ($entry.ContainsKey('Operation') -and $entry['Operation'] -notin @('Disable', 'Enable')) {
                 Add-Problem -Problem "ScheduledTasks entry has an unknown Operation '$($entry['Operation'])'."
             }
-        }
-    }
 
-    if ($tweak.ContainsKey('StopProcesses')) {
-        foreach ($processName in @($tweak['StopProcesses'])) {
-            if (-not ($processName -is [string]) -or [string]::IsNullOrWhiteSpace($processName)) {
-                Add-Problem -Problem "'StopProcesses' entries must be non-empty process name strings."
+            if ($entry.ContainsKey('IgnoreErrors') -and -not ($entry['IgnoreErrors'] -is [bool])) {
+                Add-Problem -Problem "ScheduledTasks entry 'IgnoreErrors' must be a boolean."
             }
         }
     }
@@ -212,17 +246,73 @@ function Test-AtlasTweakFileSchema {
             if (-not $entry.ContainsKey('Exe') -or [string]::IsNullOrWhiteSpace([string]$entry['Exe'])) {
                 Add-Problem -Problem 'Run entry is missing its Exe.'
             }
+            elseif ([string]$entry['Exe'] -notmatch '^(?:\{windir\}|[A-Za-z]:[\\/])') {
+                Add-Problem -Problem "Run entry 'Exe' must be an explicit absolute local path or start with '{windir}'."
+            }
+
+            if ($entry.ContainsKey('Args')) {
+                if ($entry['Args'] -is [string] -or $entry['Args'] -isnot [array]) {
+                    Add-Problem -Problem "Run entry 'Args' must be an array of exact argument strings."
+                }
+                else {
+                    foreach ($argument in $entry['Args']) {
+                        if ($null -eq $argument -or $argument -isnot [string]) {
+                            Add-Problem -Problem "Run entry 'Args' must contain only non-null strings."
+                        }
+                    }
+                }
+            }
+
+            if ($entry.ContainsKey('AllowedExitCodes')) {
+                $allowedExitCodes = $entry['AllowedExitCodes']
+                $hasExactRebootRequiredSet = $allowedExitCodes -is [array]
+                if ($hasExactRebootRequiredSet) {
+                    foreach ($allowedExitCode in $allowedExitCodes) {
+                        if ($allowedExitCode -isnot [int]) {
+                            $hasExactRebootRequiredSet = $false
+                            break
+                        }
+                    }
+                }
+                if (-not $hasExactRebootRequiredSet -or
+                    @($allowedExitCodes).Count -ne 2 -or
+                    $allowedExitCodes -notcontains 0 -or
+                    $allowedExitCodes -notcontains 3010) {
+                    Add-Problem -Problem "Run entry 'AllowedExitCodes' must be the unique integer exit-code set @(0, 3010)."
+                }
+
+                if (-not $entry.ContainsKey('Exe') -or
+                    [string]$entry['Exe'] -ine '{windir}\System32\dism.exe') {
+                    Add-Problem -Problem "Run entry 'AllowedExitCodes' is only supported for the exact '{windir}\System32\dism.exe' executable."
+                }
+                if ($entry.ContainsKey('RunAs')) {
+                    Add-Problem -Problem "Run entry 'AllowedExitCodes' cannot be combined with 'RunAs'; exact-user launches require exit code 0."
+                }
+            }
 
             if ($entry.ContainsKey('Arch') -and $entry['Arch'] -notin @('X64', 'ARM64')) {
                 Add-Problem -Problem "Run entry 'Arch' must be 'X64' or 'ARM64'."
             }
 
-            if ($entry.ContainsKey('Wait') -and -not ($entry['Wait'] -is [bool])) {
-                Add-Problem -Problem "Run entry 'Wait' must be a boolean."
+            if ($entry.ContainsKey('Wait') -and
+                (-not ($entry['Wait'] -is [bool]) -or $entry['Wait'] -ne $true)) {
+                Add-Problem -Problem "Run entry 'Wait' can only be `$true; unchecked launches are unsupported."
             }
 
             if ($entry.ContainsKey('IgnoreErrors') -and -not ($entry['IgnoreErrors'] -is [bool])) {
                 Add-Problem -Problem "Run entry 'IgnoreErrors' must be a boolean."
+            }
+
+            if ($entry.ContainsKey('RunAs')) {
+                if ($entry['RunAs'] -cne 'User') {
+                    Add-Problem -Problem "Run entry 'RunAs' must be exactly 'User'."
+                }
+                if (-not $entry.ContainsKey('Wait') -or $entry['Wait'] -ne $true) {
+                    Add-Problem -Problem "Run entry 'RunAs=User' requires 'Wait = `$true'."
+                }
+                if ($entry.ContainsKey('IgnoreErrors') -and $entry['IgnoreErrors'] -eq $true) {
+                    Add-Problem -Problem "Run entry 'RunAs=User' cannot ignore identity-bound launch failures."
+                }
             }
         }
     }
@@ -236,6 +326,10 @@ function Test-AtlasTweakFileSchema {
 
             if ($entry.ContainsKey('Arch') -and $entry['Arch'] -notin @('X64', 'ARM64')) {
                 Add-Problem -Problem "RemovePaths entry 'Arch' must be 'X64' or 'ARM64'."
+            }
+
+            if ($entry.ContainsKey('IgnoreErrors') -and -not ($entry['IgnoreErrors'] -is [bool])) {
+                Add-Problem -Problem "RemovePaths entry 'IgnoreErrors' must be a boolean."
             }
         }
     }

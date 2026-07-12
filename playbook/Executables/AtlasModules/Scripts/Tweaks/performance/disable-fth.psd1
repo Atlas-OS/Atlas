@@ -6,7 +6,7 @@
     )
     Run         = @(
         # Reset & disable FTH for AMD64
-        @{ Exe = 'rundll32.exe'; Args = 'fthsvc.dll,FthSysprepSpecialize'; Arch = 'X64' }
+        @{ Exe = '{windir}\System32\rundll32.exe'; Args = @('fthsvc.dll,FthSysprepSpecialize'); Arch = 'X64' }
     )
     RemovePaths = @(
         # https://devblogs.microsoft.com/oldnewthing/20120125-00/?p=8463

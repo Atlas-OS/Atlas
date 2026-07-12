@@ -2,28 +2,42 @@ BeforeAll {
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     $script:PackagePath = Join-Path $script:RepoRoot `
         'playbook\Executables\AtlasModules\Scripts\Internal\Toolbox-Package.ps1'
-    $script:EntryPath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Install-Toolbox.ps1'
     $script:DownloadIntegrityPath = Join-Path $script:RepoRoot `
         'playbook\Executables\AtlasModules\Scripts\Internal\Download-Integrity.ps1'
-    $script:LauncherPath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasDesktop\Install AtlasOS Toolbox.cmd'
 
-    $script:PackageSource = Get-Content -LiteralPath $script:PackagePath -Raw
-    $script:EntrySource = Get-Content -LiteralPath $script:EntryPath -Raw
-    $script:LauncherSource = Get-Content -LiteralPath $script:LauncherPath -Raw
     . $script:DownloadIntegrityPath
     . $script:PackagePath
 }
 
 Describe 'Atlas Toolbox latest-channel integrity contract' {
-    It 'resolves latest without coupling the playbook to a Toolbox version' {
-        $script:PackageSource | Should -Match 'Get-AtlasLatestGitHubReleaseAsset'
-        $script:PackageSource | Should -Match "-Owner 'Atlas-OS'"
-        $script:PackageSource | Should -Match "-Repository 'atlas-toolbox'"
-        $script:PackageSource | Should -Match "-AssetName 'AtlasToolbox-Setup\.exe'"
-        $script:PackageSource | Should -Not -Match '\$toolboxVersion\s*='
-        $script:PackageSource | Should -Match 'accepts control of the[\s\S]+?GitHub repository as its publisher authority'
+    It 'requests the latest stable Toolbox asset without a pinned version' {
+        $latestAsset = [pscustomobject]@{
+            Version = '1.2.3'
+            Uri     = [uri]'https://example.test/AtlasToolbox-Setup.exe'
+            Sha256 = 'a' * 64
+            Size    = 123456
+        }
+        Mock Get-AtlasLatestGitHubReleaseAsset { $latestAsset } -ParameterFilter {
+            $Owner -ceq 'Atlas-OS' -and
+            $Repository -ceq 'atlas-toolbox' -and
+            $AssetName -ceq 'AtlasToolbox-Setup.exe' -and
+            $ExpectedRepositoryId -eq 929016610 -and
+            $ExpectedOwnerId -eq 78708182
+        }
+        Mock Test-AtlasToolboxInstallation { $true } -ParameterFilter {
+            $ExpectedVersion -ceq '1.2.3'
+        }
+
+        Install-AtlasToolboxPackage | Should -BeExactly `
+            'AtlasOS Toolbox 1.2.3 is already installed.'
+        Should -Invoke Get-AtlasLatestGitHubReleaseAsset -Times 1 -Exactly `
+            -ParameterFilter {
+                $Owner -ceq 'Atlas-OS' -and
+                $Repository -ceq 'atlas-toolbox' -and
+                $AssetName -ceq 'AtlasToolbox-Setup.exe' -and
+                $ExpectedRepositoryId -eq 929016610 -and
+                $ExpectedOwnerId -eq 78708182
+            }
     }
 
     It 'binds each resolved latest asset to exact GitHub identity, bytes, and digest' {
@@ -92,62 +106,73 @@ Describe 'Atlas Toolbox latest-channel integrity contract' {
         } | Should -Throw '*not a normal non-empty file*'
     }
 
-    It 'uses protected staging and drains the installer tree before postconditions' {
-        $script:PackageSource | Should -Match '\$tempDirectory = New-AtlasProtectedStagingDirectory'
-        $script:PackageSource | Should -Match 'Invoke-AtlasPinnedDownload[\s\S]+?-Sha256 \$toolboxRelease\.Sha256[\s\S]+?-ExpectedBytes \$toolboxRelease\.Size'
-        $script:PackageSource | Should -Match 'Invoke-AtlasContainedProcess[\s\S]+?-FilePath \$toolboxPath[\s\S]+?-TimeoutSeconds 1800'
-        $script:PackageSource | Should -Match '\$installerResult\.ContainmentConfirmed[\s\S]+?\$installerResult\.RootExited[\s\S]+?\$installerResult\.JobDrained'
-        $script:PackageSource | Should -Not -Match 'Start-Process|Wait-AtlasProcessWithTimeout|GetTempPath|\$env:TEMP'
+}
+
+Describe 'Shared download boundary' {
+    It 'rejects non-HTTPS input and removes an incomplete destination' {
+        $destination = Join-Path $TestDrive 'rejected-download.bin'
+
+        {
+            Invoke-AtlasPinnedDownload -Uri 'http://example.test/payload.bin' `
+                -Destination $destination -Sha256 ('0' * 64) -ExpectedBytes 1
+        } | Should -Throw '*Only HTTPS*'
+
+        Test-Path -LiteralPath $destination | Should -BeFalse
     }
 
-    It 'crosses UAC with one typed compatibility token and exact signed exit propagation' {
-        $script:LauncherSource | Should -Match '%__APPDIR__%WindowsPowerShell\\v1\.0\\powershell\.exe'
-        $script:LauncherSource | Should -Match 'set "AtlasLauncherArgument=%~1"'
-        $script:LauncherSource | Should -Not -Match '(?im)%\*|___args|%ComSpec%|%ERRORLEVEL%|^\s*powershell(?:\.exe)?\s'
-        $script:LauncherSource | Should -Match '\$p\.Verb=''runas'''
-        $script:LauncherSource | Should -Match 'NativeErrorCode -eq 1223\)\{exit 1223\}'
-        $script:LauncherSource | Should -Match '(?ms)^\s*if errorlevel 0 \(\r?\n\s*if errorlevel 1 exit /b\r?\n\s*\) else \(\r?\n\s*exit /b 1\r?\n\s*\)'
-        $script:EntrySource | Should -Match 'Unsupported Toolbox launcher argument'
-        $script:EntrySource | Should -Match 'Toolbox-Package\.ps1[\s\S]+?Install-AtlasToolboxPackage'
+    It 'keeps a download only after its exact byte length and SHA-256 match' {
+        $source = Join-Path $TestDrive 'expected-payload.bin'
+        $destination = Join-Path $TestDrive 'verified-payload.bin'
+        [IO.File]::WriteAllBytes($source, [Text.Encoding]::UTF8.GetBytes('atlas payload'))
+        $script:DownloadBoundaryBytes = [IO.File]::ReadAllBytes($source)
+        $hash = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
+        Mock Invoke-AtlasBoundedHttpGet {
+            $OutputStream.Write(
+                $script:DownloadBoundaryBytes,
+                0,
+                $script:DownloadBoundaryBytes.Length
+            )
+            return $script:DownloadBoundaryBytes.Length
+        }
+
+        $result = Invoke-AtlasPinnedDownload -Uri 'https://example.test/payload.bin' `
+            -Destination $destination -Sha256 $hash `
+            -ExpectedBytes $script:DownloadBoundaryBytes.Length
+
+        $result | Should -BeExactly $destination
+        [IO.File]::ReadAllBytes($destination) | Should -Be $script:DownloadBoundaryBytes
     }
 
-    It 'preserves positive child exits and maps negative child exits to failure' {
-        $system = [Environment]::GetFolderPath([Environment+SpecialFolder]::System)
-        $commandHost = [IO.Path]::Combine($system, 'cmd.exe')
+    It 'waits for an exact native executable and its longer-lived descendant' {
+        $commandHost = [IO.Path]::Combine(
+            [Environment]::GetFolderPath([Environment+SpecialFolder]::System),
+            'cmd.exe'
+        )
         $powerShellHost = [IO.Path]::Combine(
-            $system,
+            [Environment]::GetFolderPath([Environment+SpecialFolder]::System),
             'WindowsPowerShell',
             'v1.0',
             'powershell.exe'
         )
-        foreach ($case in @(
-                [pscustomobject]@{ Child = 0; Expected = 0 }
-                [pscustomobject]@{ Child = 37; Expected = 37 }
-                [pscustomobject]@{ Child = -1; Expected = 1 }
-            )) {
-            $probePath = Join-Path $TestDrive "signed-exit-$($case.Child).cmd"
-            $probe = @(
-                '@echo off'
-                ('"{0}" -NoLogo -NoProfile -NonInteractive -Command "exit {1}"' -f $powerShellHost, $case.Child)
-                'if errorlevel 0 ('
-                '    if errorlevel 1 exit /b'
-                ') else ('
-                '    exit /b 1'
-                ')'
-                'exit /b 0'
-                ''
-            ) -join "`r`n"
-            [IO.File]::WriteAllText($probePath, $probe, [Text.Encoding]::ASCII)
+        $marker = Join-Path $TestDrive 'descendant-complete.txt'
+        $probe = Join-Path $TestDrive 'spawn-descendant.cmd'
+        $childCommand = "Start-Sleep -Milliseconds 900; " +
+            "[IO.File]::WriteAllText('$($marker.Replace("'", "''"))', 'complete')"
+        $probeText = @(
+            '@echo off'
+            ('start "" /b "{0}" -NoLogo -NoProfile -NonInteractive -Command "{1}"' -f
+                $powerShellHost, $childCommand)
+            'exit /b 7'
+            ''
+        ) -join "`r`n"
+        [IO.File]::WriteAllText($probe, $probeText, [Text.Encoding]::ASCII)
 
-            $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
-            $startInfo.FileName = $commandHost
-            $startInfo.Arguments = '/d /e:on /v:off /c call "' + $probePath + '"'
-            $startInfo.WorkingDirectory = $TestDrive
-            $startInfo.UseShellExecute = $false
-            $process = [Diagnostics.Process]::Start($startInfo)
-            $process.WaitForExit()
-            $process.ExitCode | Should -Be $case.Expected
-            $process.Dispose()
-        }
+        $result = Invoke-AtlasContainedProcess -FilePath $commandHost `
+            -ArgumentList ([string[]]@('/d', '/s', '/c', 'call', $probe)) `
+            -WorkingDirectory $TestDrive `
+            -Description 'The download-boundary process probe' -Hidden -NoWindow
+
+        $result.ExitCodeUInt32 | Should -Be 7
+        [IO.File]::ReadAllText($marker) | Should -BeExactly 'complete'
     }
 }

@@ -9,6 +9,7 @@ foreach ($domainModule in @(
     'TrustedInstallerProcess.ps1'
     'ElevationStorage.ps1'
     'Privilege.ps1'
+    'Process.ps1'
     'Ui.ps1'
     'RunAsUser.ps1'
 )) {
@@ -21,8 +22,9 @@ foreach ($domainModule in @(
 }
 
 Export-ModuleMember -Function @(
-    'Get-AtlasContext', 'Test-AtlasOption', 'New-AtlasFlag', 'Test-AtlasFlag',
+    'Get-AtlasContext', 'Test-AtlasOption',
     'Write-AtlasLog', 'Start-AtlasPhase', 'Stop-AtlasPhase',
     'Test-AtlasAdmin', 'Test-AtlasSystem', 'Test-AtlasTrustedInstaller', 'Assert-AtlasPrivilege', 'Invoke-AtlasTrustedInstaller', 'Invoke-AtlasAsUser', 'Get-AtlasUserProcessCommandLine',
+    'ConvertTo-AtlasWindowsArgumentString', 'Invoke-AtlasHiddenProcess',
     'Write-Title', 'Read-Pause', 'Read-MessageBox'
 )

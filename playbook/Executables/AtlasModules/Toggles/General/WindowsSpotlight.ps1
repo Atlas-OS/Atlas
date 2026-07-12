@@ -1,7 +1,7 @@
 # Toggle: Windows Spotlight (lock screen, tips, suggestions, spotlight content).
 #
-# The HKLM CloudContent policy uses plain cmdlets; all per-user (HKCU) values go through
-# Atlas.Registry so they resolve the real user under elevation.
+# The HKLM CloudContent policy runs in the machine child; per-user values run only in
+# the original non-elevated caller.
 @{
     Name      = 'WindowsSpotlight'
     Elevation = 'Admin'
@@ -10,14 +10,18 @@
             StateValue = 0
             Launcher   = '3. General Configuration\Windows Spotlight\Disable Windows Spotlight (default).cmd'
             Reboot     = 'None'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = {
                 param($Toggle)
-
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
 
                 $hklmCloud = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
                 if (-not (Test-Path -LiteralPath $hklmCloud)) { New-Item -Path $hklmCloud -Force | Out-Null }
                 New-ItemProperty -LiteralPath $hklmCloud -Name 'DisableCloudOptimizedContent' -Value 1 -PropertyType DWord -Force | Out-Null
+            }
+            UserAction = {
+                param($Toggle)
+
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
                 Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightFeatures' -Type DWord -Data 1
                 Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightWindowsWelcomeExperience' -Type DWord -Data 1
@@ -40,12 +44,18 @@
             StateValue = 1
             Launcher   = '3. General Configuration\Windows Spotlight\Enable Windows Spotlight.cmd'
             Reboot     = 'None'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
-                Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableCloudOptimizedContent' -Force -ErrorAction SilentlyContinue
+                Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableCloudOptimizedContent'
+            }
+            UserAction = {
+                param($Toggle)
+
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
                 Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightFeatures'
                 Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightWindowsWelcomeExperience'

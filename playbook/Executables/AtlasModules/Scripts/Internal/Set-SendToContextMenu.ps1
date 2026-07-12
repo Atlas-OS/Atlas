@@ -1,115 +1,231 @@
-param (
-    [array]$Disable,
-    [array]$Enable,
-    [switch]$DebloatDefaults
+[CmdletBinding()]
+param(
+    [string[]]$Disable,
+    [string[]]$Enable,
+    [switch]$DebloatDefaults,
+    [string]$ExpectedUserSid
 )
 
-if ($DebloatDefaults) {
-    if ($Disable -or $Enable) {
-        throw '-DebloatDefaults cannot be combined with -Disable or -Enable.'
-    }
-    $Disable = @('Documents', 'Mail Recipient', 'Fax recipient', 'Bluetooth')
-}
+Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
 
-$removableDrivePath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
-$removableDriveValue = "NoDrivesInSendToMenu"
-# First value in an array is the disable, second is enable
-$items = @{
-    "Removable Drives" = @(
-        { New-ItemProperty -Path $removableDrivePath -Name $removableDriveValue -Value 1 -PropertyType DWORD -Force },
-        { Remove-ItemProperty -Path $removableDrivePath -Name $removableDriveValue -Force -EA 0 }
+function Resolve-AtlasSendToSelectorName {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [string[]]$Selector,
+        [Parameter(Mandatory = $true)]
+        [string[]]$KnownName
     )
-}
-$sendTo = Get-ChildItem ([Environment]::GetFolderPath('SendTo')) -Force
-$sys32 = [Environment]::GetFolderPath('System')
-$shell = New-Object -Com WScript.Shell
-$windir = [Environment]::GetFolderPath('Windows')
-& "$windir\AtlasModules\initPowerShell.ps1"
 
-foreach ($lnk in (($sendTo | Where-Object { $_.Extension -eq ".lnk" }).FullName)) {
-    $target = $shell.CreateShortcut($lnk).TargetPath
-    if ($target -eq "$sys32\fsquirt.exe") {
-        $items["Bluetooth"] = $lnk
-        $blueFound = $true
-    } elseif ($target -eq "$sys32\WFS.exe") {
-        $items["Fax recipient"] = $lnk
-        $faxFound = $true
+    if ($Selector.Count -eq 0) {
+        throw 'A Send-To selector list cannot be empty.'
     }
 
-    if ($faxFound -and $blueFound) {
-        break
+    $resolved = @()
+    foreach ($candidate in $Selector) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) {
+            throw 'A Send-To selector cannot be empty or whitespace.'
+        }
+        $matchingNames = @($KnownName | Where-Object { $_ -like $candidate })
+        if ($matchingNames.Count -eq 0) {
+            throw "Unsupported Send-To item selector '$candidate'."
+        }
+        foreach ($match in $matchingNames) {
+            if ($resolved -cnotcontains $match) { $resolved += $match }
+        }
+    }
+    return $resolved
+}
+
+function ConvertFrom-AtlasSendToChoice {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [AllowEmptyString()]
+        [string[]]$Output,
+        [Parameter(Mandatory = $true)]
+        [string[]]$AvailableName,
+        [Parameter(Mandatory = $true)]
+        [string]$DisableAllChoice
+    )
+
+    if ($Output.Count -gt 1) {
+        throw "The Send-To choice helper returned $($Output.Count) output lines."
+    }
+    $choices = if ($Output.Count -eq 1) {
+        @($Output[0].Split([char]';') | Where-Object {
+                -not [string]::IsNullOrWhiteSpace($_)
+            })
+    }
+    else { @() }
+    if ($choices.Count -eq 0) {
+        return [pscustomobject]@{ Cancelled = $true; Enabled = [string[]]@() }
+    }
+
+    $validChoices = @($AvailableName + $DisableAllChoice)
+    $unsupported = @($choices | Where-Object { $validChoices -cnotcontains $_ })
+    if ($unsupported.Count -gt 0) {
+        throw "The Send-To choice helper returned unsupported item '$($unsupported[0])'."
+    }
+    if (@($choices | Sort-Object -Unique).Count -ne $choices.Count) {
+        throw 'The Send-To choice helper returned a duplicate item.'
+    }
+    if ($choices -ccontains $DisableAllChoice) {
+        if ($choices.Count -ne 1) {
+            throw 'The disable-all Send-To choice cannot be combined with enabled items.'
+        }
+        $choices = @()
+    }
+
+    return [pscustomobject]@{ Cancelled = $false; Enabled = [string[]]$choices }
+}
+
+function Set-AtlasSendToItemState {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSUseShouldProcessForStateChangingFunctions',
+        '',
+        Justification = 'This private helper applies the state selected by the parent script.'
+    )]
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][AllowNull()][AllowEmptyString()][string]$Path,
+        [Parameter(Mandatory = $true)][bool]$Enabled
+    )
+
+    if ($Name -ceq 'Removable Drives') {
+        $policyPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+        if ($Enabled) {
+            Remove-AtlasRegistryValue -Path $policyPath -Name 'NoDrivesInSendToMenu'
+        }
+        else {
+            Set-AtlasRegistryValue -Path $policyPath -Name 'NoDrivesInSendToMenu' `
+                -Type DWord -Data 1
+        }
+        return
+    }
+
+    $file = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    if ($Enabled) {
+        $file.Attributes = $file.Attributes -band (-bnot [IO.FileAttributes]::Hidden)
+    }
+    else {
+        $file.Attributes = $file.Attributes -bor [IO.FileAttributes]::Hidden
     }
 }
 
-# Items with specific extensions
-foreach ($ext in @{
-    "Compressed (zipped) folder" = "ZFSendToTarget"
-    "Desktop (create shortcut)" = "DeskLink"
-    "Mail recipient" = "MAPIMail"
-    "Documents" = "mydocs"
-}.GetEnumerator()) {
-    $path = $sendTo | Where-Object { $_.Extension -eq ".$($ext.Value)" } | Select-Object -First 1
-    if ($path) { $items[$ext.Key] = $path.FullName }
+$hasDisable = $PSBoundParameters.ContainsKey('Disable')
+$hasEnable = $PSBoundParameters.ContainsKey('Enable')
+if (($hasDisable -and $hasEnable) -or
+    ($DebloatDefaults -and ($hasDisable -or $hasEnable))) {
+    throw 'Choose exactly one of -Disable, -Enable, or -DebloatDefaults.'
+}
+if ($DebloatDefaults) {
+    $Disable = @('Documents', 'Mail Recipient', 'Fax recipient', 'Bluetooth')
+    $hasDisable = $true
 }
 
-function EnableSendTo($value) {
-    if ($value -is [string]) {
-        $item = Get-Item -LiteralPath $value -Force
-        $item.Attributes = $item.Attributes -band -bnot [System.IO.FileAttributes]::Hidden
-    } elseif ($value -is [array]) {
-        & $value[1] | Out-Null
+$scriptsRoot = Split-Path -Parent $PSScriptRoot
+Import-Module (Join-Path $scriptsRoot 'Modules\Atlas.Core\Atlas.Core.psd1') `
+    -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $scriptsRoot 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
+    -Force -DisableNameChecking -ErrorAction Stop
+
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+try {
+    if ($null -eq $identity.User) {
+        throw 'The Send-To process token has no user SID.'
+    }
+    $actualSid = $identity.User.Value
+    if (-not $identity.User.IsAccountSid() -or
+        $actualSid -in @('S-1-5-18', 'S-1-5-19', 'S-1-5-20')) {
+        throw "Send-To requires a user account token, not '$actualSid'."
     }
 }
-function DisableSendTo($value) {
-    if ($value -is [string]) {
-        $item = Get-Item -LiteralPath $value -Force
-        $item.Attributes = $item.Attributes -bor [System.IO.FileAttributes]::Hidden
-    } elseif ($value -is [array]) {
-        & $value[0] | Out-Null
-    }
+finally {
+    $identity.Dispose()
+}
+if ([string]::IsNullOrWhiteSpace($ExpectedUserSid)) { $ExpectedUserSid = $actualSid }
+Initialize-AtlasRegistryIdentityContext -CurrentToken `
+    -ExpectedUserSid $ExpectedUserSid | Out-Null
+
+$sendToPath = [Environment]::GetFolderPath([Environment+SpecialFolder]::SendTo)
+$systemPath = [Environment]::GetFolderPath([Environment+SpecialFolder]::System)
+if ([string]::IsNullOrWhiteSpace($sendToPath) -or
+    [string]::IsNullOrWhiteSpace($systemPath)) {
+    throw 'The current user Send-To directory or Windows System32 directory is unavailable.'
 }
 
-if ($Enable) {
-    foreach ($item in $items.GetEnumerator()) {
-        foreach ($itemToEnable in $Enable) {
-            if ($item.Key -like "$itemToEnable") {
-                EnableSendTo $item.Value
-            }
+$knownNames = [string[]]@(
+    'Removable Drives', 'Bluetooth', 'Fax recipient', 'Compressed (zipped) folder',
+    'Desktop (create shortcut)', 'Mail recipient', 'Documents'
+)
+$items = [ordered]@{ 'Removable Drives' = $null }
+$sendToEntries = @(Get-ChildItem -LiteralPath $sendToPath -Force -ErrorAction Stop)
+$shell = New-Object -ComObject WScript.Shell
+foreach ($link in @($sendToEntries | Where-Object { $_.Extension -ieq '.lnk' })) {
+    $target = [string]$shell.CreateShortcut($link.FullName).TargetPath
+    if ($target -ieq (Join-Path $systemPath 'fsquirt.exe')) {
+        $items['Bluetooth'] = $link.FullName
+    }
+    elseif ($target -ieq (Join-Path $systemPath 'WFS.exe')) {
+        $items['Fax recipient'] = $link.FullName
+    }
+}
+$extensions = [ordered]@{
+    'Compressed (zipped) folder' = '.ZFSendToTarget'
+    'Desktop (create shortcut)'  = '.DeskLink'
+    'Mail recipient'             = '.MAPIMail'
+    'Documents'                  = '.mydocs'
+}
+foreach ($name in $extensions.Keys) {
+    $entry = @($sendToEntries | Where-Object {
+            $_.Extension -ieq $extensions[$name]
+        }) | Select-Object -First 1
+    if ($null -ne $entry) { $items[$name] = $entry.FullName }
+}
+
+if ($hasDisable -or $hasEnable) {
+    $selectors = if ($hasEnable) { $Enable } else { $Disable }
+    foreach ($name in @(Resolve-AtlasSendToSelectorName -Selector $selectors `
+                -KnownName $knownNames)) {
+        if ($items.Contains($name)) {
+            Set-AtlasSendToItemState -Name $name -Path $items[$name] -Enabled $hasEnable
+        }
+        else {
+            Write-Verbose "Optional Send-To item '$name' is not present for this user."
         }
     }
     return
-} elseif ($Disable) {
-    foreach ($item in $items.GetEnumerator()) {
-        foreach ($itemToDisable in $Disable) {
-            if ($item.Key -like "$itemToDisable") {
-                DisableSendTo $item.Value
-            }
-        }
-    }
-    return
 }
 
-$multiChoice = Join-Path -Path $windir -ChildPath 'AtlasModules\Tools\multichoice.exe'
+$windowsRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::Windows)
+$multiChoice = Join-Path $windowsRoot 'AtlasModules\Tools\multichoice.exe'
 if (-not (Test-Path -LiteralPath $multiChoice -PathType Leaf)) {
-    throw "The protected Send-To choice helper is missing at '$multiChoice'."
+    throw "The Send-To choice helper is missing at '$multiChoice'."
+}
+$disableAllChoice = '[Apply with every listed Send-To item disabled]'
+$availableNames = [string[]]@($items.Keys)
+$choiceOutput = @(& $multiChoice 'Send To Debloat' `
+        "Tick the 'Send To' items to enable. Unchecked items are disabled." `
+        (@($availableNames + $disableAllChoice) -join ';'))
+if ($LASTEXITCODE -ne 0) {
+    throw "The Send-To choice helper exited with code $LASTEXITCODE."
+}
+$selection = ConvertFrom-AtlasSendToChoice -Output $choiceOutput `
+    -AvailableName $availableNames -DisableAllChoice $disableAllChoice
+if ($selection.Cancelled) {
+    Write-Verbose 'The Send-To selection dialog was cancelled; no state was changed.'
+    return
 }
 
-$choices = (& $multiChoice "Send To Debloat" `
-    "Tick the 'Send To' context menu items that you want to enable here (un-checked items are disabled)" `
-    "$($items.Keys -join ';')") -split ';'
-
-foreach ($item in $items.GetEnumerator()) {
-    $value = $item.Value
-    if ($item.Key -in $choices) {
-        EnableSendTo $value
-        continue
-    }
-    if ($item.Key -notin $choices) {
-        DisableSendTo $value
-        continue
-    }
+foreach ($name in $availableNames) {
+    Set-AtlasSendToItemState -Name $name -Path $items[$name] `
+        -Enabled ($selection.Enabled -ccontains $name)
 }
-
-if ((Read-MessageBox -Title "Atlas - Send To Debloat" -Body 'Would you like to restart Windows Explorer? This will finalize the Send-To changes.' -Icon Info) -eq 'Yes') {
-    Stop-Process -Name explorer -Force
+if ((Read-MessageBox -Title 'Atlas - Send To Debloat' `
+        -Body 'Would you like to restart Windows Explorer to apply the changes now?' `
+        -Icon Info) -eq 'Yes') {
+    & (Join-Path $PSScriptRoot 'Invoke-AtlasUserShellRefresh.ps1') `
+        -CurrentSession -Operation ExplorerRefresh
 }

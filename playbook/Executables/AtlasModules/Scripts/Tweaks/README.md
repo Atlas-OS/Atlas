@@ -5,8 +5,8 @@ organized as `<category>\...\<name>.psd1`, plus `tweaks.manifest.psd1` which def
 category order and the tweak list per category (disabling a tweak = commenting out its
 manifest line). Files are parsed with `Import-PowerShellDataFile` (no code execution)
 and applied by the `Atlas.Tweaks` module (`Invoke-AtlasTweak` / `Invoke-AtlasTweakCategory`),
-which centralizes the hard semantics once: HKCU resolution under TrustedInstaller,
-default-user-hive mirroring, architecture gating and per-entry error handling.
+which centralizes the hard semantics once: exact-user HKCU and fixed-default-hive scope
+separation, architecture gating and per-entry error handling.
 
 Validate any file or folder with `Test-AtlasTweakSchema -Path <path>`. Validate the
 manifest and complete execution graph with `Test-AtlasTweakManifest -Path
@@ -55,7 +55,9 @@ categories/slugs, unsafe paths, unknown keys and unclassified files also fail.
 
 ## Tweak schema
 
-All keys are optional except `Name`. Keys are applied in the order listed below.
+All keys are optional except `Name`. Action keys run in the documented machine-pass order;
+`PostUserRegistryRefresh` is phase orchestration metadata and runs only at its explicit
+post-live-HKCU boundary.
 
 | Key | Type | Meaning |
 | --- | --- | --- |
@@ -66,34 +68,33 @@ All keys are optional except `Name`. Keys are applied in the order listed below.
 | `MinBuild` / `MaxBuild` | integer | Only apply on this Windows build range (inclusive). Maps the old YAML `builds: ['>=22000']` (`MinBuild = 22000`) and `builds: ['<22000']` (`MaxBuild = 21999`). Not enforced when the build number can't be read. |
 | `OnUpgrade` | `'Both'` (default), `'Skip'` or `'Only'` | `Skip` = fresh installs only, `Only` = upgrade installs only, `Both` = always. The default matches the legacy YAML semantics (actions without an `onUpgrade` gate ran on fresh installs and upgrades). |
 | `Oobe` | bool | When `$false`, the tweak is skipped during OOBE installs. |
-| `RunAs` | `'User'` or `'UserElevated'` | Runs the companion `Script` in the interactive user's session (via `Invoke-AtlasAsUser`) instead of in the TrustedInstaller engine process. Only affects `Script`; the other keys still run in the engine context. **Do not use this for shell COM that restarts explorer (theme apply, pin-to-Home): during the SYSTEM install phase the child is parented under the phase, so a shell restart tears the phase down. Put that work in `Initialize-NewUser.ps1`, which runs at first logon in the real user session.** No shipped tweak currently uses `RunAs`. |
+| `RunAs` | `'User'` | Runs the companion `Script` as the exact install-state-bound, non-elevated user via `Invoke-AtlasAsUser`; other keys keep their own execution context. Requires `Oobe = $false`, a first-login path for the eventual user, and a successful `-ExpectedUserSid` token check. Elevated user companions are unsupported; shell work must use the session-filtered refresh helper. |
 | `Registry` | array of hashtables | Registry operations, see below. |
-| `Services` | array of hashtables | `@{ Name; StartupType (int 0-4); Operation }`. `Operation` is `'Change'` (default; writes the service key's `Start` value directly so protected services work), `'Stop'` or `'Start'`. `StartupType` is required for `Change`: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled. |
-| `ScheduledTasks` | array of hashtables | `@{ Path; Operation }` with `Operation` = `'Disable'` (default) or `'Enable'`, applied via `schtasks.exe /Change`. A missing task only logs a warning. |
-| `StopProcesses` | array of strings | Process names (wildcards allowed, no `.exe`) stopped with `-Force`; missing processes are ignored. |
-| `Run` | array of hashtables | `@{ Exe; Args; Arch; IgnoreErrors; Wait }`. `Wait` defaults to `$true`; when waiting, a non-zero exit code other than 3010 (reboot required, e.g. DISM) is a failure. `{windir}` in `Exe` and `Args` expands to the Windows directory. |
-| `RemovePaths` | array of hashtables | `@{ Path; Arch }`; paths are removed recursively, `{windir}` expands to the Windows directory, missing paths are ignored. |
+| `PostUserRegistryRefresh` | `'ShellRefresh'`, `'ExplorerRefresh'`, `'SearchShellRefresh'`, `'StartMenuRefresh'`, or `'ExplorerAndSettingsRefresh'` | After the exact install-state-bound user's live-HKCU pass succeeds, runs the selected session-filtered refresh and requires exit code 0. Requires `Oobe = $false` and an ambient HKCU entry; duplicate operations are collapsed in manifest order. Do not duplicate the refresh in `Run` or `Script`. |
+| `Services` | array of hashtables | `@{ Name; StartupType (int 0-4); Operation; IgnoreErrors }`. `Operation` is `'Change'` (default; writes the service key's `Start` value directly so protected services work), `'Stop'` or `'Start'`. `StartupType` is required for `Change`: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled. Missing services and failed mutations are errors unless the entry explicitly declares `IgnoreErrors = $true`. |
+| `ScheduledTasks` | array of hashtables | `@{ Path; Operation; IgnoreErrors }` with `Operation` = `'Disable'` (default) or `'Enable'`, applied through one waited, checked call to the exact System32 `schtasks.exe`. Any nonzero result fails by default; edition/build-optional tasks must explicitly declare `IgnoreErrors = $true`. |
+| `Run` | array of hashtables | `@{ Exe; Args; Arch; IgnoreErrors; Wait; RunAs; AllowedExitCodes }`. `Exe` must be absolute or start with `{windir}`; `Args` is an array of exact strings. Runs are always waited and checked, accepting only 0 unless exact System32 DISM declares `@(0, 3010)`. `IgnoreErrors = $true` turns a machine-run failure into a warning. `RunAs = 'User'` runs as the exact install-state-bound user, requires `Wait = $true`, passes `-ExpectedUserSid`, and cannot ignore failure. |
+| `RemovePaths` | array of hashtables | `@{ Path; Arch; IgnoreErrors }`; paths must resolve beneath `{windir}`, are removed recursively, and an already-missing path is success. A failed removal is fatal by default unless the entry explicitly declares `IgnoreErrors = $true`. |
 | `Script` | string | Relative path to a companion `.ps1` next to the tweak file, invoked after all other keys for genuinely imperative work. |
 
 ### Registry entries
 
 ```powershell
 @{
-    Path         = 'HKLM:\...' # or 'HKCU\...', 'HKU\...', 'Registry::HKEY_...'
+    Path         = 'HKLM:\...' # or 'HKCU\...', the fixed HKU\Atlas_DefaultUser, Registry::HKEY_...
     Name         = 'ValueName' # required for Set/Delete
     Type         = 'DWord'     # String | ExpandString | Binary | DWord | MultiString | QWord | None
     Data         = 0           # required for Set unless Type is None/String/ExpandString
     Operation    = 'Set'       # Set (default) | Delete | DeleteKey | AddKey
     Arch         = 'X64'       # optional per-entry architecture gate
-    IgnoreErrors = $true       # optional: swallow failures silently
+    IgnoreErrors = $true       # optional: warn and continue
 }
 ```
 
-HKCU semantics: when the install runs as SYSTEM/TrustedInstaller, `HKCU` paths are
-resolved to the interactive user's hive under `HKEY_USERS\<SID>` and mirrored into the
-loaded default-user hive (`HKU\AME_UserHive_Default`) so new accounts inherit the tweak.
-Never hardcode `HKEY_USERS\<SID>` paths yourself - write `HKCU\...` and let the engine
-resolve it.
+HKCU entries run in separate scopes. Outside OOBE, the exact install-state-bound user applies
+the live-user pass through ambient `HKCU`; TrustedInstaller applies the same entries to the fixed
+default-user mount (`HKU\Atlas_DefaultUser`). Other explicit user hives are rejected. Write
+`HKCU\...` and let the ordered install plan select the scope.
 
 ## Full example
 
@@ -117,9 +118,8 @@ resolve it.
     ScheduledTasks = @(
         @{ Path = '\Microsoft\Windows\Example\ExampleTask' }       # Operation defaults to 'Disable'
     )
-    StopProcesses  = @('example*')
     Run            = @(
-        @{ Exe = 'rundll32.exe'; Args = 'fthsvc.dll,FthSysprepSpecialize'; Arch = 'X64' }
+        @{ Exe = '{windir}\System32\rundll32.exe'; Args = @('fthsvc.dll,FthSysprepSpecialize'); Arch = 'X64' }
     )
     RemovePaths    = @(
         @{ Path = '{windir}\ExampleLeftover' }

@@ -1,6 +1,14 @@
 # Atlas.Tweaks - declarative tweak engine module.
 Set-StrictMode -Version 3.0
 
+$script:AtlasTweakPostUserRegistryRefreshOperations = @(
+    'ShellRefresh'
+    'ExplorerRefresh'
+    'SearchShellRefresh'
+    'StartMenuRefresh'
+    'ExplorerAndSettingsRefresh'
+)
+
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(
@@ -20,6 +28,7 @@ foreach ($domainModule in @(
 
 Export-ModuleMember -Function @(
     'Get-AtlasTweakManifest', 'Test-AtlasTweakManifest', 'Test-AtlasTweakApplicable',
+    'Get-AtlasTweakCategoryPostUserRegistryRefresh',
     'Invoke-AtlasTweak', 'Invoke-AtlasTweakCategory',
     'Test-AtlasTweakSchema'
 )

@@ -5,6 +5,7 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '7. Security\Mitigations\Fault Tolerant Heap\Disable FTH (default).cmd'
             Reboot     = 'None'
             Action     = {
@@ -21,6 +22,7 @@
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '7. Security\Mitigations\Fault Tolerant Heap\Enable FTH.cmd'
             Reboot     = 'None'
             Action     = {

@@ -10,7 +10,7 @@
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
                 Import-AtlasRegFile -Path (Join-Path $Toggle.ScriptsPath 'Registry\Terminals\disabled.reg')
 
                 if (-not $Toggle.Silent) {
@@ -25,7 +25,7 @@
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
                 Import-AtlasRegFile -Path (Join-Path $Toggle.ScriptsPath 'Registry\Terminals\enabled.reg')
 
                 if (-not $Toggle.Silent) {
@@ -40,7 +40,7 @@
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
                 Import-AtlasRegFile -Path (Join-Path $Toggle.ScriptsPath 'Registry\Terminals\minimal.reg')
 
                 if (-not $Toggle.Silent) {

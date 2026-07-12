@@ -51,6 +51,7 @@
             Action     = {
                 param($Toggle)
 
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
                 $svcKey = 'HKLM:\SOFTWARE\AtlasOS\Services\PauseUpdates'
                 if (-not (Test-Path -LiteralPath $svcKey)) { New-Item -Path $svcKey -Force | Out-Null }
                 New-ItemProperty -LiteralPath $svcKey -Name 'days' -Value 0 -PropertyType DWord -Force | Out-Null
@@ -58,13 +59,13 @@
                 Write-Host 'Resetting Windows Update pause policies...'
 
                 $wuKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-                Remove-ItemProperty -LiteralPath $wuKey -Name 'DeferFeatureUpdates' -Force -ErrorAction SilentlyContinue
-                Remove-ItemProperty -LiteralPath $wuKey -Name 'DeferFeatureUpdatesPeriodInDays' -Force -ErrorAction SilentlyContinue
-                Remove-ItemProperty -LiteralPath $wuKey -Name 'DeferQualityUpdates' -Force -ErrorAction SilentlyContinue
-                Remove-ItemProperty -LiteralPath $wuKey -Name 'DeferQualityUpdatesPeriodInDays' -Force -ErrorAction SilentlyContinue
+                Remove-AtlasRegistryValue -Path $wuKey -Name 'DeferFeatureUpdates'
+                Remove-AtlasRegistryValue -Path $wuKey -Name 'DeferFeatureUpdatesPeriodInDays'
+                Remove-AtlasRegistryValue -Path $wuKey -Name 'DeferQualityUpdates'
+                Remove-AtlasRegistryValue -Path $wuKey -Name 'DeferQualityUpdatesPeriodInDays'
                 foreach ($k in @('Feature', 'Quality')) {
-                    Remove-ItemProperty -LiteralPath $wuKey -Name "Pause${k}Updates" -Force -ErrorAction SilentlyContinue
-                    Remove-ItemProperty -LiteralPath $wuKey -Name "Pause${k}UpdatesStartTime" -Force -ErrorAction SilentlyContinue
+                    Remove-AtlasRegistryValue -Path $wuKey -Name "Pause${k}Updates"
+                    Remove-AtlasRegistryValue -Path $wuKey -Name "Pause${k}UpdatesStartTime"
                 }
 
                 $upKey = 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings'
@@ -79,10 +80,10 @@
                         'PauseUpdatesStartTime', 'PauseUpdatesExpiryTime',
                         'PausedFeatureStatus', 'PausedQualityStatus', 'FlightSettingsMaxPauseDays',
                         'HideMCTLink', 'RestartNotificationsAllowed2')) {
-                    Remove-ItemProperty -LiteralPath $uxKey -Name $v -Force -ErrorAction SilentlyContinue
+                    Remove-AtlasRegistryValue -Path $uxKey -Name $v
                 }
 
-                Remove-ItemProperty -LiteralPath 'HKLM:\SYSTEM\Setup\UpgradeNotification' -Name 'UpgradeAvailable' -Force -ErrorAction SilentlyContinue
+                Remove-AtlasRegistryValue -Path 'HKLM:\SYSTEM\Setup\UpgradeNotification' -Name 'UpgradeAvailable'
 
                 Write-Host 'Done. Updates have been unpaused.'
             }

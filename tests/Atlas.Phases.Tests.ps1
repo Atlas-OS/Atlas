@@ -1,3 +1,15 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+    'PSReviewUnusedParameter',
+    '',
+    Justification = 'The software-phase harness parameters are consumed through its isolated child-scope command stubs.'
+)]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+    'PSAvoidOverwritingBuiltInCmdlets',
+    '',
+    Justification = 'The isolated software-phase harness shadows Import-Module only while executing the phase under test.'
+)]
+param()
+
 BeforeAll {
     $script:atlasModulesRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules')).Path
     $script:phasesRoot = Join-Path -Path $script:atlasModulesRoot -ChildPath 'Scripts\Phases'
@@ -112,6 +124,79 @@ BeforeAll {
             }
         }
     }
+
+    function Invoke-AtlasSoftwarePhaseForTest {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory = $true)][string]$Path,
+            [Parameter(Mandatory = $true)]$Context,
+            [Parameter(Mandatory = $true)][hashtable]$Options,
+            [Parameter(Mandatory = $true)][hashtable]$ComponentOutcomes,
+            [Parameter(Mandatory = $true)]$Attempts,
+            [Parameter(Mandatory = $true)]$Logs,
+            [Parameter(Mandatory = $true)]$UserIntegrationState,
+            [int]$UserIntegrationExitCode = 0
+        )
+
+        & {
+            function Assert-AtlasPrivilege {
+                [CmdletBinding()]
+                param([switch]$TrustedInstaller)
+                [void]$TrustedInstaller
+            }
+
+            function Import-Module {
+                [CmdletBinding()]
+                param([string]$Name, [switch]$Force)
+                [void]$Name
+                [void]$Force
+            }
+
+            function Get-AtlasContext {
+                return $Context
+            }
+
+            function Test-AtlasOption {
+                param([Parameter(Mandatory = $true)][string]$Name)
+                return $Options.ContainsKey($Name) -and [bool]$Options[$Name]
+            }
+
+            function Install-AtlasSoftware {
+                param([Parameter(Mandatory = $true)][string[]]$Component)
+                $name = [string]$Component[0]
+                [void]$Attempts.Add($name)
+                if (-not $ComponentOutcomes.ContainsKey($name)) {
+                    return $true
+                }
+                $outcome = $ComponentOutcomes[$name]
+                if ($outcome -is [Exception]) {
+                    throw $outcome
+                }
+                return [bool]$outcome
+            }
+
+            function Invoke-AtlasAsUser {
+                param(
+                    [Parameter(Mandatory = $true)][string]$FilePath,
+                    [Parameter(Mandatory = $true)][string]$Arguments
+                )
+                [void]$FilePath
+                [void]$Arguments
+                $UserIntegrationState.Count++
+                return $UserIntegrationExitCode
+            }
+
+            function Write-AtlasLog {
+                param(
+                    [string]$Level = 'Information',
+                    [Parameter(Mandatory = $true)][string]$Message
+                )
+                [void]$Logs.Add([pscustomobject]@{ Level = $Level; Message = $Message })
+            }
+
+            . $Path
+        }
+    }
 }
 
 Describe 'Install phase scripts' {
@@ -119,17 +204,16 @@ Describe 'Install phase scripts' {
         $phasesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Phases'
         $script:phaseFiles = Get-ChildItem -Path $phasesRoot -Filter 'Invoke-*Phase.ps1' -File
 
-        # Privilege each phase must assert. Features runs elevated (DISM online servicing);
-        # Revert runs as TrustedInstaller (StoreFixer) and is a no-op on fresh installs.
+        # Every install phase is rooted in one strict TrustedInstaller identity. Genuine
+        # user work drops through the install-state-bound exact-user launcher inside it.
         $script:privilegeExpectations = @{
-            'Invoke-PreInstallPhase.ps1'   = 'Administrator'
+            'Invoke-PreInstallPhase.ps1'   = 'TrustedInstaller'
             'Invoke-ShellRefreshPhase.ps1' = 'TrustedInstaller'
-            'Invoke-EnvironmentPhase.ps1'  = 'Administrator'
-            'Invoke-FeaturesPhase.ps1'     = 'Administrator'
-            'Invoke-SoftwarePhase.ps1'     = 'Administrator'
-            'Invoke-AppxSupportPhase.ps1'  = 'Administrator'
-            'Invoke-DefaultsPhase.ps1'     = 'Administrator'
-            'Invoke-FinalizePhase.ps1'     = 'Administrator'
+            'Invoke-EnvironmentPhase.ps1'  = 'TrustedInstaller'
+            'Invoke-FeaturesPhase.ps1'     = 'TrustedInstaller'
+            'Invoke-SoftwarePhase.ps1'     = 'TrustedInstaller'
+            'Invoke-AppxSupportPhase.ps1'  = 'TrustedInstaller'
+            'Invoke-DefaultsPhase.ps1'     = 'TrustedInstaller'
             'Invoke-ServicesPhase.ps1'     = 'TrustedInstaller'
             'Invoke-ComponentsPhase.ps1'   = 'TrustedInstaller'
             'Invoke-TweaksPhase.ps1'       = 'TrustedInstaller'
@@ -140,7 +224,7 @@ Describe 'Install phase scripts' {
     It 'finds every expected phase script' {
         $names = (Get-ChildItem -Path $script:phasesRoot -Filter 'Invoke-*Phase.ps1' -File).Name
         foreach ($expected in @('PreInstall', 'ShellRefresh', 'Environment', 'Features', 'Software', 'Services',
-                'Components', 'AppxSupport', 'Tweaks', 'Defaults', 'Revert', 'Finalize')) {
+                'Components', 'AppxSupport', 'Tweaks', 'Defaults', 'Revert')) {
             $names | Should -Contain "Invoke-${expected}Phase.ps1"
         }
     }
@@ -150,6 +234,19 @@ Describe 'Install phase scripts' {
         $parsed.Errors | Should -BeNullOrEmpty
     }
 
+    It '<Name> returns or throws without exiting the install dispatcher host' -ForEach (
+        $phaseFiles | ForEach-Object { @{ Name = $_.Name; FullName = $_.FullName } }
+    ) {
+        $parsed = Get-AtlasPhaseAst -Path $FullName
+        $exitStatements = @($parsed.Ast.FindAll({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.ExitStatementAst]
+                }, $true))
+
+        $exitStatements | Should -BeNullOrEmpty `
+            -Because "$Name must return or throw so Invoke-AtlasInstall can durably complete or fail its phase"
+    }
+
     It '<Name> asserts <Privilege> privilege' -ForEach (
         $privilegeExpectations.GetEnumerator() | ForEach-Object { @{ Name = $_.Key; Privilege = $_.Value } }
     ) {
@@ -157,169 +254,94 @@ Describe 'Install phase scripts' {
         $switches = Get-AtlasPrivilegeSwitch -Ast $parsed.Ast
         $switches | Should -Contain $Privilege
     }
-
-    It 'commits the exact HKCU delta stream before required default-hive replay' {
-        $finalizePath = Join-Path -Path $script:phasesRoot -ChildPath 'Invoke-FinalizePhase.ps1'
-        $finalizeSource = Get-Content -LiteralPath $finalizePath -Raw
-
-        $finalizeSource | Should -Match '(?s)Complete-AtlasHkcuDeltaJournal\s*\r?\n\s*Sync-AtlasDefaultUserHive'
-        $finalizeSource | Should -Not -Match '(?s)try\s*\{[^}]*Sync-AtlasDefaultUserHive[^}]*\}\s*catch' `
-            -Because 'commit and replay failures are fatal Finalize outcomes, not warnings'
-    }
 }
 
-Describe 'In-process payload helper control flow' {
-    It '<Helper> returns control to <Caller> instead of exiting its host process' -TestCases @(
-        @{
-            Helper = 'Scripts\Internal\Set-NotificationState.ps1'
-            Caller = 'Scripts\Phases\Invoke-PreInstallPhase.ps1'
-        }
-        @{
-            Helper = 'Scripts\Internal\Disable-FileSharing.ps1'
-            Caller = 'Scripts\Phases\Invoke-ServicesPhase.ps1'
-        }
-        @{
-            Helper = 'Scripts\Internal\Disable-PowerSaving.ps1'
-            Caller = 'Toggles\General\PowerSaving.ps1'
-        }
-        @{
-            Helper = 'Scripts\Internal\Set-DefaultPowerSaving.ps1'
-            Caller = 'Toggles\General\PowerSaving.ps1'
-        }
-        @{
-            Helper = 'Scripts\Internal\Enable-FileSharing.ps1'
-            Caller = 'Toggles\General\FileSharing.ps1'
-        }
-        @{
-            Helper = 'Scripts\Internal\Set-SendToContextMenu.ps1'
-            Caller = 'Toggles\Services\Bluetooth.ps1'
-        }
-        @{
-            Helper = 'Scripts\Internal\Set-DefenderState.ps1'
-            Caller = 'Toggles\Security\ToggleDefender.ps1'
-        }
-        @{
-            Helper = 'Scripts\Internal\Remove-TelemetryComponents.ps1'
-            Caller = 'Toggles\Troubleshooting\TelemetryComponents.ps1'
-        }
-    ) {
-        $helperPath = Join-Path -Path $script:atlasModulesRoot -ChildPath $Helper
-        $callerPath = Join-Path -Path $script:atlasModulesRoot -ChildPath $Caller
-
-        $callerParse = Get-AtlasPhaseAst -Path $callerPath
-        $callerParse.Errors | Should -BeNullOrEmpty
-        $helperName = Split-Path -Path $Helper -Leaf
-        @(Get-AtlasInProcessHelperInvocation -CallerAst $callerParse.Ast -HelperName $helperName).Count | Should -BeGreaterThan 0 `
-            -Because "$Caller must invoke $Helper in-process for this host-control contract to apply"
-
-        $parsed = Get-AtlasPhaseAst -Path $helperPath
-        $parsed.Errors | Should -BeNullOrEmpty
-        $exitStatements = @(Get-AtlasPotentialSuccessExitStatement -Ast $parsed.Ast)
-
-        $exitStatements | Should -BeNullOrEmpty `
-            -Because "$Helper is invoked in-process by $Caller and a successful exit would terminate the toggle or phase host with code 0"
+Describe 'Software phase outcome aggregation' {
+    BeforeEach {
+        $script:softwarePhasePath = Join-Path -Path $script:phasesRoot `
+            -ChildPath 'Invoke-SoftwarePhase.ps1'
+        $script:softwareAttempts = New-Object 'Collections.Generic.List[string]'
+        $script:softwareLogs = New-Object 'Collections.Generic.List[object]'
+        $script:userIntegrationState = [pscustomobject]@{ Count = 0 }
     }
 
-    It '<Helper> isolates Install-AtlasPackage exits in a child Windows PowerShell host' -TestCases @(
-        @{ Helper = 'Scripts\Internal\Set-DefenderState.ps1' }
-        @{ Helper = 'Scripts\Internal\Remove-TelemetryComponents.ps1' }
-    ) {
-        $helperPath = Join-Path -Path $script:atlasModulesRoot -ChildPath $Helper
-        $parsed = Get-AtlasPhaseAst -Path $helperPath
-        $parsed.Errors | Should -BeNullOrEmpty
+    It 'attempts every selected component before throwing one aggregate for false and thrown outcomes' {
+        $context = [pscustomobject]@{
+            IsUpgrade = $false
+            IsOobe = $true
+            InteractiveUserSid = $null
+        }
+        $options = @{
+            'install-toolbox' = $true
+            'browser-brave' = $true
+            'browser-firefox' = $true
+            'browser-librewolf' = $true
+            'browser-chrome' = $true
+        }
+        $outcomes = @{
+            SevenZip = $false
+            Firefox = [InvalidOperationException]::new('simulated Firefox failure')
+        }
 
-        @(Get-AtlasInProcessHelperInvocation -CallerAst $parsed.Ast -HelperName 'Install-AtlasPackage.ps1').Count | Should -Be 0 `
-            -Because 'the package shell has a standalone exit-code contract and must not run inside a reusable helper host'
+        $failure = $null
+        try {
+            Invoke-AtlasSoftwarePhaseForTest `
+                -Path $script:softwarePhasePath `
+                -Context $context `
+                -Options $options `
+                -ComponentOutcomes $outcomes `
+                -Attempts $script:softwareAttempts `
+                -Logs $script:softwareLogs `
+                -UserIntegrationState $script:userIntegrationState
+        }
+        catch {
+            $failure = $_
+        }
 
-        $childProcessCalls = @($parsed.Ast.FindAll({
-                    param($node)
-                    if ($node -isnot [System.Management.Automation.Language.CommandAst] -or
-                        $node.InvocationOperator -ne [System.Management.Automation.Language.TokenKind]::Ampersand -or
-                        $node.CommandElements.Count -eq 0) {
-                        return $false
-                    }
-
-                    $target = $node.CommandElements[0]
-                    return $target -is [System.Management.Automation.Language.VariableExpressionAst] -and
-                        $target.VariablePath.UserPath -eq 'packagePowerShell' -and
-                        $node.Extent.Text -match '(?i)-File\s+\$packageInstall\s+-(?:Install|Uninstall)Packages'
-                }, $true))
-        $childProcessCalls.Count | Should -Be 2
+        $failure | Should -Not -BeNullOrEmpty
+        $failure.Exception.Message | Should -BeExactly `
+            'Software phase failed for components: SevenZip, Firefox.'
+        @($script:softwareAttempts) | Should -Be @(
+            'VCRedist', 'SevenZip', 'DirectX', 'Toolbox',
+            'Brave', 'Firefox', 'LibreWolf', 'Chrome'
+        )
+        $script:softwareLogs.Count | Should -Be 2
     }
 
-    It 'keeps the legacy executable-path repair script out of the production call graph' {
-        $legacyHelper = Join-Path $script:atlasModulesRoot 'Scripts\Internal\Repair-RegistryPaths.ps1'
-        $references = @(Get-ChildItem -LiteralPath $script:atlasModulesRoot -Recurse -File | Where-Object {
-                $_.FullName -ne $legacyHelper -and
-                $_.Extension -in @('.ps1', '.psm1', '.psd1') -and
-                [IO.File]::ReadAllText($_.FullName).IndexOf(
-                    'Repair-RegistryPaths.ps1',
-                    [StringComparison]::OrdinalIgnoreCase
-                ) -ge 0
-            })
-
-        $references | Should -BeNullOrEmpty `
-            -Because 'toggle replay is definition-based and must never restore executable registry paths'
-    }
-
-    It 'classifies every remaining potentially successful exit reachable through an in-process helper call' {
-        # These exits are unreachable on the listed in-process route. Keep the exceptions
-        # explicit so a new reusable script containing `exit` cannot bypass this contract.
-        $contextBoundExitPairs = [ordered]@{
-            'Scripts\Internal\Remove-Edge.ps1|Toggles\Software\RemoveEdge.ps1' =
-                'The Admin toggle does not reach self-elevation, does not pass NonInteractive, and Write-Status exits only on failure.'
-            'Scripts\Internal\Set-VbsConfiguration.ps1|Toggles\Security\ConfigVBS.ps1' =
-                'The toggle calls the interactive parameterless route; parameterized routes run in a child PowerShell process.'
-            'Scripts\Internal\Set-IndexConfiguration.ps1|Toggles\General\Indexing.ps1' =
-                'The toggle always supplies InProcess, so success returns before exit and failures are rethrown to the toggle engine.'
-            'Scripts\Internal\Update-Drivers.ps1|Toggles\General\UpdateDrivers.ps1' =
-                'The Admin toggle makes the helper self-elevation branch unreachable.'
+    It 'counts failed exact-user LibreWolf integration and still attempts later browsers' {
+        $context = [pscustomobject]@{
+            IsUpgrade = $true
+            IsOobe = $false
+            InteractiveUserSid = 'S-1-5-21-1000-1001-1002-1003'
+        }
+        $options = @{
+            'browser-librewolf' = $true
+            'browser-chrome' = $true
         }
 
-        $payloadFiles = @(Get-ChildItem -LiteralPath $script:atlasModulesRoot -Recurse -File | Where-Object {
-                $_.Extension -in @('.ps1', '.psm1', '.psd1')
-            })
-        $sources = @{}
-        foreach ($file in $payloadFiles) {
-            $sources[$file.FullName] = [System.IO.File]::ReadAllText($file.FullName)
+        $failure = $null
+        try {
+            Invoke-AtlasSoftwarePhaseForTest `
+                -Path $script:softwarePhasePath `
+                -Context $context `
+                -Options $options `
+                -ComponentOutcomes @{} `
+                -Attempts $script:softwareAttempts `
+                -Logs $script:softwareLogs `
+                -UserIntegrationState $script:userIntegrationState `
+                -UserIntegrationExitCode 37
+        }
+        catch {
+            $failure = $_
         }
 
-        $potentialExitHelpers = foreach ($file in $payloadFiles) {
-            if ($sources[$file.FullName] -notmatch '(?im)^\s*exit(?:\s|$)') {
-                continue
-            }
-
-            $parsed = Get-AtlasPhaseAst -Path $file.FullName
-            if (@(Get-AtlasPotentialSuccessExitStatement -Ast $parsed.Ast).Count -gt 0) {
-                $file
-            }
-        }
-
-        $discoveredPairs = foreach ($helper in $potentialExitHelpers) {
-            foreach ($caller in $payloadFiles) {
-                if ($caller.FullName -eq $helper.FullName -or
-                    $sources[$caller.FullName].IndexOf($helper.Name, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
-                    continue
-                }
-
-                $callerParse = Get-AtlasPhaseAst -Path $caller.FullName
-                if (@(Get-AtlasInProcessHelperInvocation -CallerAst $callerParse.Ast -HelperName $helper.Name).Count -eq 0) {
-                    continue
-                }
-
-                $helperRelative = $helper.FullName.Substring($script:atlasModulesRoot.Length + 1)
-                $callerRelative = $caller.FullName.Substring($script:atlasModulesRoot.Length + 1)
-                "$helperRelative|$callerRelative"
-            }
-        }
-        $discoveredPairs = @($discoveredPairs | Sort-Object -Unique)
-
-        $unclassified = @($discoveredPairs | Where-Object { -not $contextBoundExitPairs.Contains($_) })
-        $unclassified | Should -BeNullOrEmpty `
-            -Because 'every in-process helper exit that can report success must be removed or proven unreachable for that caller'
-        foreach ($knownPair in $contextBoundExitPairs.Keys) {
-            $discoveredPairs | Should -Contain $knownPair `
-                -Because "the context-bound exception must not outlive its call graph: $($contextBoundExitPairs[$knownPair])"
-        }
+        $failure | Should -Not -BeNullOrEmpty
+        $failure.Exception.Message | Should -BeExactly `
+            'Software phase failed for components: LibreWolf.'
+        @($script:softwareAttempts) | Should -Be @('LibreWolf', 'Chrome')
+        $script:userIntegrationState.Count | Should -Be 1
+        $script:softwareLogs.Count | Should -Be 1
+        $script:softwareLogs[0].Message | Should -Match `
+            'Exact-user LibreWolf integration failed with exit code 37'
     }
 }

@@ -1,8 +1,8 @@
 # Atlas.Tweaks domain: tweak application.
 #
 # A tweak is a data-only .psd1 (see Scripts\Tweaks\README.md for the schema). Keys are
-# applied in a fixed order and every sub-step is wrapped so a single failing entry logs
-# a warning instead of aborting the tweak, and a failing tweak never aborts a category.
+# applied in a fixed order. Required work fails immediately; only entries that
+# explicitly declare IgnoreErrors remain best-effort.
 
 function Get-AtlasTweakEntryValue {
     param(
@@ -23,13 +23,7 @@ function Get-AtlasTweakEntryValue {
 }
 
 function Test-AtlasArchMatch {
-    <#
-    .SYNOPSIS
-        Returns whether an entry's optional Arch gate ('X64' or 'ARM64') matches the
-        current machine architecture. An absent gate always matches. (Module-private
-        twin of the identical Atlas.Registry helper - private functions do not cross
-        module boundaries.)
-    #>
+    # Private twin of the Atlas.Registry architecture gate.
     param(
         [string]$Arch,
 
@@ -48,6 +42,23 @@ function Test-AtlasArchMatch {
     }
 }
 
+function Get-AtlasTweakUserSid {
+    param([Parameter(Mandatory = $true)][object]$Context)
+
+    if (-not $Context.IsInstallStateBacked -or $Context.IsOobe -or
+        [string]::IsNullOrWhiteSpace([string]$Context.InteractiveUserSid)) {
+        throw 'RunAs=User requires a non-OOBE install-state user SID.'
+    }
+    try {
+        return (New-Object Security.Principal.SecurityIdentifier(
+                [string]$Context.InteractiveUserSid
+            )).Value
+    }
+    catch {
+        throw "RunAs=User received an invalid install-state user SID '$($Context.InteractiveUserSid)'."
+    }
+}
+
 function Invoke-AtlasTweakServiceEntries {
     param(
         [Parameter(Mandatory = $true)]
@@ -56,6 +67,7 @@ function Invoke-AtlasTweakServiceEntries {
     )
 
     foreach ($entry in $Entries) {
+        $ignoreErrors = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'IgnoreErrors' -Default $false)
         try {
             $serviceName = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Name')
             if (-not $serviceName) {
@@ -73,12 +85,8 @@ function Invoke-AtlasTweakServiceEntries {
                     }
 
                     $serviceKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName"
-                    if (-not (Test-Path -LiteralPath $serviceKey)) {
-                        Write-AtlasLog -Message "Service '$serviceName' does not exist; not changing its startup type." -Level Warning
-                    }
-                    else {
-                        Set-ItemProperty -LiteralPath $serviceKey -Name 'Start' -Value ([int]$startupType) -Type DWord -Force
-                    }
+                    Set-ItemProperty -LiteralPath $serviceKey -Name 'Start' `
+                        -Value ([int]$startupType) -Type DWord -Force -ErrorAction Stop
                 }
                 'Stop' {
                     Stop-Service -Name $serviceName -Force -ErrorAction Stop
@@ -93,7 +101,11 @@ function Invoke-AtlasTweakServiceEntries {
         }
         catch {
             $entryName = Get-AtlasTweakEntryValue -Entry $entry -Key 'Name' -Default '<no name>'
-            Write-AtlasLog -Message "Service entry failed (service: '$entryName'): $($_.Exception.Message)" -Level Warning
+            if ($ignoreErrors) {
+                Write-AtlasLog -Message "Ignored service entry failure (service: '$entryName'): $($_.Exception.Message)" -Level Warning
+                continue
+            }
+            throw
         }
     }
 }
@@ -102,10 +114,16 @@ function Invoke-AtlasTweakScheduledTaskEntries {
     param(
         [Parameter(Mandatory = $true)]
         [AllowEmptyCollection()]
-        [hashtable[]]$Entries
+        [hashtable[]]$Entries,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$WinDir
     )
 
+    $schtasksPath = Join-Path -Path $WinDir -ChildPath 'System32\schtasks.exe'
     foreach ($entry in $Entries) {
+        $ignoreErrors = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'IgnoreErrors' -Default $false)
         try {
             $taskPath = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Path')
             if (-not $taskPath) {
@@ -119,32 +137,16 @@ function Invoke-AtlasTweakScheduledTaskEntries {
                 default { throw "Unknown scheduled task operation '$operation'." }
             }
 
-            # Exit code 1 is schtasks' generic error, not specifically "not found", so a
-            # locale-independent existence probe decides which failure this actually is -
-            # otherwise access-denied and similar real errors would be logged as a
-            # harmless missing task.
-            $previousErrorActionPreference = $ErrorActionPreference
-            $ErrorActionPreference = 'Continue'
-            try {
-                $null = & schtasks.exe /Query /TN "$taskPath" 2>&1
-                if ($LASTEXITCODE -ne 0) {
-                    Write-AtlasLog -Message "Scheduled task '$taskPath' was not found; nothing to $($operation.ToLowerInvariant())." -Level Warning
-                    continue
-                }
-
-                $output = & schtasks.exe /Change /TN "$taskPath" $stateArgument 2>&1
-                if ($LASTEXITCODE -ne 0) {
-                    $details = (@($output) | ForEach-Object { "$_" }) -join ' '
-                    throw "schtasks.exe exited with code $LASTEXITCODE - $details"
-                }
-            }
-            finally {
-                $ErrorActionPreference = $previousErrorActionPreference
-            }
+            Invoke-AtlasHiddenProcess -FilePath $schtasksPath `
+                -ArgumentList @('/Change', '/TN', $taskPath, $stateArgument) -Wait | Out-Null
         }
         catch {
             $entryPath = Get-AtlasTweakEntryValue -Entry $entry -Key 'Path' -Default '<no path>'
-            Write-AtlasLog -Message "Scheduled task entry failed (task: '$entryPath'): $($_.Exception.Message)" -Level Warning
+            if ($ignoreErrors) {
+                Write-AtlasLog -Message "Ignored scheduled task entry failure (task: '$entryPath'): $($_.Exception.Message)" -Level Warning
+                continue
+            }
+            throw
         }
     }
 }
@@ -159,11 +161,16 @@ function Invoke-AtlasTweakRunEntries {
         [bool]$IsArm64,
 
         [Parameter(Mandatory = $true)]
-        [string]$WinDir
+        [string]$WinDir,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [object]$Context
     )
 
     foreach ($entry in $Entries) {
         $ignoreErrors = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'IgnoreErrors' -Default $false)
+        $runAs = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'RunAs' -Default '')
 
         try {
             $arch = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Arch' -Default '')
@@ -177,39 +184,52 @@ function Invoke-AtlasTweakRunEntries {
             }
             $exe = $exe -replace '\{windir\}', $WinDir
 
-            $wait = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'Wait' -Default $true)
-            $arguments = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Args' -Default '')
-            $arguments = $arguments -replace '\{windir\}', $WinDir
-
-            $startParams = @{
-                FilePath = $exe
-                PassThru = $true
-            }
-            if ($arguments) {
-                $startParams['ArgumentList'] = $arguments
-            }
-            if ($wait) {
-                $startParams['Wait'] = $true
-                $startParams['NoNewWindow'] = $true
-            }
-
-            $process = Start-Process @startParams
-            if ($wait) {
-                # 3010 = ERROR_SUCCESS_REBOOT_REQUIRED (DISM and installers), still a success.
-                $exitCode = $process.ExitCode
-                if ($exitCode -ne 0 -and $exitCode -ne 3010) {
-                    throw "'$exe' exited with code $exitCode."
+            $arguments = @()
+            if ($entry.ContainsKey('Args')) {
+                $arguments = @($entry['Args'])
+                if ($entry['Args'] -isnot [array] -or
+                    @($arguments | Where-Object { $_ -isnot [string] }).Count) {
+                    throw 'Run entry Args must be an array of strings.'
                 }
+                $arguments = [string[]]@($arguments -replace '\{windir\}', $WinDir)
             }
+
+            $allowedExitCodes = [int[]]@(0)
+            if ($entry.ContainsKey('AllowedExitCodes')) {
+                $dismPath = Join-Path -Path $WinDir -ChildPath 'System32\dism.exe'
+                if ($runAs -or
+                    -not [string]::Equals($exe, $dismPath, [StringComparison]::OrdinalIgnoreCase)) {
+                    throw "AllowedExitCodes is restricted to @(0, 3010) on '$dismPath'."
+                }
+                $allowedExitCodes = [int[]]@(0, 3010)
+            }
+
+            if (-not [string]::IsNullOrWhiteSpace($runAs)) {
+                if ($runAs -cne 'User') {
+                    throw "Run entry has unsupported RunAs '$runAs'."
+                }
+                $expectedUserSid = Get-AtlasTweakUserSid -Context $Context
+                $arguments += @('-ExpectedUserSid', $expectedUserSid)
+                $serializedArguments = ConvertTo-AtlasWindowsArgumentString `
+                    -ArgumentList ([string[]]$arguments)
+                $exitCode = Invoke-AtlasAsUser -FilePath $exe -Arguments $serializedArguments
+                if ($exitCode -ne 0) {
+                    throw "RunAs=User entry '$exe' exited with code $exitCode."
+                }
+                continue
+            }
+
+            Invoke-AtlasHiddenProcess -FilePath $exe `
+                -ArgumentList ([string[]]$arguments) -Wait `
+                -AllowedExitCode $allowedExitCodes | Out-Null
         }
         catch {
-            if ($ignoreErrors) {
-                $null = $_
+            if ($ignoreErrors -and [string]::IsNullOrWhiteSpace($runAs)) {
+                $entryExe = Get-AtlasTweakEntryValue -Entry $entry -Key 'Exe' -Default '<no executable>'
+                Write-AtlasLog -Message "Ignored Run entry failure (executable: '$entryExe'): $($_.Exception.Message)" -Level Warning
+                continue
             }
-            else {
-                $entryExe = Get-AtlasTweakEntryValue -Entry $entry -Key 'Exe' -Default '<no exe>'
-                Write-AtlasLog -Message "Run entry failed (exe: '$entryExe'): $($_.Exception.Message)" -Level Warning
-            }
+            throw
         }
     }
 }
@@ -227,26 +247,41 @@ function Invoke-AtlasTweakRemovePathEntries {
         [string]$WinDir
     )
 
+    $windowsRoot = [IO.Path]::GetFullPath($WinDir).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $windowsPrefix = $windowsRoot + [IO.Path]::DirectorySeparatorChar
+
     foreach ($entry in $Entries) {
+        $ignoreErrors = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'IgnoreErrors' -Default $false)
         try {
             $arch = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Arch' -Default '')
             if (-not (Test-AtlasArchMatch -Arch $arch -IsArm64 $IsArm64)) {
                 continue
             }
 
-            $targetPath = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Path')
-            if (-not $targetPath) {
+            $declaredPath = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Path')
+            if (-not $declaredPath) {
                 throw 'RemovePaths entry has no Path.'
             }
+            if (-not $declaredPath.StartsWith('{windir}\', [StringComparison]::OrdinalIgnoreCase)) {
+                throw "RemovePaths entry '$declaredPath' must start with '{windir}\'."
+            }
 
-            $targetPath = $targetPath -replace '\{windir\}', $WinDir
+            $relativePath = $declaredPath.Substring('{windir}\'.Length)
+            $targetPath = [IO.Path]::GetFullPath([IO.Path]::Combine($windowsRoot, $relativePath))
+            if (-not $targetPath.StartsWith($windowsPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+                throw "RemovePaths entry '$declaredPath' resolves outside the Windows directory."
+            }
             if (Test-Path -LiteralPath $targetPath) {
                 Remove-Item -LiteralPath $targetPath -Recurse -Force -ErrorAction Stop
             }
         }
         catch {
             $entryPath = Get-AtlasTweakEntryValue -Entry $entry -Key 'Path' -Default '<no path>'
-            Write-AtlasLog -Message "RemovePaths entry failed (path: '$entryPath'): $($_.Exception.Message)" -Level Warning
+            if ($ignoreErrors) {
+                Write-AtlasLog -Message "Ignored RemovePaths entry failure (path: '$entryPath'): $($_.Exception.Message)" -Level Warning
+                continue
+            }
+            throw
         }
     }
 }
@@ -255,13 +290,21 @@ function Invoke-AtlasTweak {
     <#
     .SYNOPSIS
         Loads a tweak .psd1, checks its gates and applies its keys in order: Registry,
-        Services, ScheduledTasks, StopProcesses, Run, RemovePaths, then the companion
-        Script. Each sub-step failure is logged as a warning and processing continues.
+        Services, ScheduledTasks, Run, RemovePaths, then the companion Script.
+        Every required sub-step failure is fatal; individual entries may opt into
+        reviewed best-effort behavior with IgnoreErrors.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$Path
+        [string]$Path,
+
+        [ValidateSet('All', 'Machine', 'CurrentUser', 'DefaultUser')]
+        [string]$RegistryScope = 'All',
+
+        [switch]$RegistryOnly,
+
+        [psobject]$Context
     )
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -274,96 +317,74 @@ function Invoke-AtlasTweak {
     }
 
     $tweakName = [string]$tweak['Name']
-    $skipReason = Get-AtlasTweakSkipReason -Tweak $tweak
+    if (-not $PSBoundParameters.ContainsKey('Context')) {
+        $Context = Get-AtlasContext
+    }
+    $skipReason = Get-AtlasTweakSkipReason -Tweak $tweak -Context $Context
     if ($skipReason) {
         Write-AtlasLog -Message "Skipping tweak '$tweakName': $skipReason."
         return
     }
 
     Write-AtlasLog -Message "Applying tweak '$tweakName'."
-    $context = Get-AtlasContext
 
     if ($tweak.ContainsKey('Registry') -and $tweak['Registry']) {
-        try {
-            Invoke-AtlasRegistryEntries -Entries $tweak['Registry']
-        }
-        catch {
-            Write-AtlasLog -Message "Tweak '$tweakName': Registry step failed: $($_.Exception.Message)" -Level Warning
-        }
+        Invoke-AtlasRegistryEntries -Entries $tweak['Registry'] `
+            -Scope $RegistryScope -StopOnError -IsArm64 ([bool]$Context.IsArm64)
+    }
+
+    if ($RegistryOnly) {
+        return
     }
 
     if ($tweak.ContainsKey('Services') -and $tweak['Services']) {
-        try {
-            Invoke-AtlasTweakServiceEntries -Entries $tweak['Services']
-        }
-        catch {
-            Write-AtlasLog -Message "Tweak '$tweakName': Services step failed: $($_.Exception.Message)" -Level Warning
-        }
+        Invoke-AtlasTweakServiceEntries -Entries $tweak['Services']
     }
 
     if ($tweak.ContainsKey('ScheduledTasks') -and $tweak['ScheduledTasks']) {
-        try {
-            Invoke-AtlasTweakScheduledTaskEntries -Entries $tweak['ScheduledTasks']
-        }
-        catch {
-            Write-AtlasLog -Message "Tweak '$tweakName': ScheduledTasks step failed: $($_.Exception.Message)" -Level Warning
-        }
-    }
-
-    if ($tweak.ContainsKey('StopProcesses') -and $tweak['StopProcesses']) {
-        try {
-            foreach ($processName in @($tweak['StopProcesses'])) {
-                Stop-Process -Name $processName -Force -ErrorAction SilentlyContinue
-            }
-        }
-        catch {
-            Write-AtlasLog -Message "Tweak '$tweakName': StopProcesses step failed: $($_.Exception.Message)" -Level Warning
-        }
+        Invoke-AtlasTweakScheduledTaskEntries -Entries $tweak['ScheduledTasks'] `
+            -WinDir ([string]$Context.WinDir)
     }
 
     if ($tweak.ContainsKey('Run') -and $tweak['Run']) {
-        try {
-            Invoke-AtlasTweakRunEntries -Entries $tweak['Run'] -IsArm64 ([bool]$context.IsArm64) -WinDir ([string]$context.WinDir)
-        }
-        catch {
-            Write-AtlasLog -Message "Tweak '$tweakName': Run step failed: $($_.Exception.Message)" -Level Warning
-        }
+        Invoke-AtlasTweakRunEntries -Entries $tweak['Run'] -IsArm64 ([bool]$Context.IsArm64) `
+            -WinDir ([string]$Context.WinDir) -Context $Context
     }
 
     if ($tweak.ContainsKey('RemovePaths') -and $tweak['RemovePaths']) {
-        try {
-            Invoke-AtlasTweakRemovePathEntries -Entries $tweak['RemovePaths'] -IsArm64 ([bool]$context.IsArm64) -WinDir ([string]$context.WinDir)
-        }
-        catch {
-            Write-AtlasLog -Message "Tweak '$tweakName': RemovePaths step failed: $($_.Exception.Message)" -Level Warning
-        }
+        Invoke-AtlasTweakRemovePathEntries -Entries $tweak['RemovePaths'] `
+            -IsArm64 ([bool]$Context.IsArm64) -WinDir ([string]$Context.WinDir)
     }
 
     if ($tweak.ContainsKey('Script') -and $tweak['Script']) {
         $scriptPath = Join-Path -Path (Split-Path -Path $Path -Parent) -ChildPath ([string]$tweak['Script'])
+        $runAs = [string](Get-AtlasTweakEntryValue -Entry $tweak -Key 'RunAs' -Default '')
         if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
-            Write-AtlasLog -Message "Tweak '$tweakName': companion script '$scriptPath' is missing." -Level Warning
+            throw "Tweak '$tweakName': companion script '$scriptPath' is missing."
         }
-        else {
-            $runAs = [string](Get-AtlasTweakEntryValue -Entry $tweak -Key 'RunAs' -Default '')
-            try {
-                if ($runAs -eq 'User' -or $runAs -eq 'UserElevated') {
-                    # Run the companion in the interactive user's session (shell COM, per-user
-                    # profile). The engine runs as TrustedInstaller, so this bounces down to the
-                    # logged-on user; if there is no interactive session it throws and we warn.
-                    $arguments = '-NoProfile -NoLogo -ExecutionPolicy Bypass -File "{0}"' -f $scriptPath
-                    $exitCode = Invoke-AtlasAsUser -FilePath (Join-Path -Path $context.WinDir -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe') -Arguments $arguments -Elevated:($runAs -eq 'UserElevated')
-                    if ($exitCode -ne 0) {
-                        Write-AtlasLog -Message "Tweak '$tweakName': companion script (RunAs=$runAs) exited with code $exitCode." -Level Warning
-                    }
-                }
-                else {
-                    & $scriptPath
-                }
-            }
-            catch {
-                Write-AtlasLog -Message "Tweak '$tweakName': companion script failed: $($_.Exception.Message)" -Level Warning
-            }
+
+        if ([string]::IsNullOrWhiteSpace($runAs)) {
+            & $scriptPath
+            return
+        }
+        if ($runAs -cne 'User') {
+            throw "Tweak '$tweakName' has unsupported companion RunAs '$runAs'."
+        }
+        if ($Context.IsOobe) {
+            Write-AtlasLog -Message "Skipping tweak '$tweakName' RunAs=User companion during OOBE."
+            return
+        }
+
+        $expectedUserSid = Get-AtlasTweakUserSid -Context $Context
+        $arguments = ConvertTo-AtlasWindowsArgumentString -ArgumentList @(
+            '-NoProfile', '-NoLogo', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath,
+            '-ExpectedUserSid', $expectedUserSid
+        )
+        $powerShellPath = Join-Path -Path $Context.WinDir `
+            -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        $exitCode = Invoke-AtlasAsUser -FilePath $powerShellPath -Arguments $arguments
+        if ($exitCode -ne 0) {
+            throw "Tweak '$tweakName' companion script (RunAs=$runAs) exited with code $exitCode."
         }
     }
 }
@@ -371,56 +392,106 @@ function Invoke-AtlasTweak {
 function Invoke-AtlasTweakCategory {
     <#
     .SYNOPSIS
-        Applies every tweak of a manifest category in order. A missing tweak file or a
-        failing tweak is logged as an error and the remaining tweaks still run.
+        Applies every tweak of a manifest category in order. A missing or failing tweak
+        is fatal; individual entries must declare IgnoreErrors to be best-effort.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$Name,
 
-        [string]$TweaksRoot
+        [string]$TweaksRoot,
+
+        [ValidateSet('All', 'Machine', 'CurrentUser', 'DefaultUser')]
+        [string]$RegistryScope = 'All',
+
+        [switch]$RegistryOnly,
+
+        [psobject]$Context
     )
 
+    if ($null -eq $Context) {
+        $Context = Get-AtlasContext
+    }
     if (-not $TweaksRoot) {
-        $TweaksRoot = Join-Path -Path (Get-AtlasContext).AtlasModulesPath -ChildPath 'Scripts\Tweaks'
+        $TweaksRoot = Join-Path -Path $Context.AtlasModulesPath -ChildPath 'Scripts\Tweaks'
     }
 
     $manifest = Get-AtlasTweakManifest -Path (Join-Path -Path $TweaksRoot -ChildPath 'tweaks.manifest.psd1')
 
-    $category = $null
-    foreach ($candidate in @($manifest['Categories'])) {
-        if ([string]$candidate['Name'] -eq $Name) {
-            $category = $candidate
-            break
-        }
-    }
-
+    $category = $manifest['Categories'] |
+        Where-Object { [string]$_['Name'] -ceq $Name } | Select-Object -First 1
     if ($null -eq $category) {
         throw "Category '$Name' is not defined in the tweak manifest."
     }
 
-    $tweakNames = @()
-    if ($category.ContainsKey('Tweaks') -and $category['Tweaks']) {
-        $tweakNames = @($category['Tweaks'])
-    }
+    $tweakNames = @($category['Tweaks'])
+    $categoryRoot = Join-Path -Path $TweaksRoot -ChildPath $Name
 
     Write-AtlasLog -Message "Applying tweak category '$Name' ($(@($tweakNames).Count) tweak(s))."
 
     foreach ($tweakName in $tweakNames) {
         $relativePath = ([string]$tweakName -replace '/', '\') + '.psd1'
-        $tweakFile = Join-Path -Path (Join-Path -Path $TweaksRoot -ChildPath $Name) -ChildPath $relativePath
+        $tweakFile = Join-Path -Path $categoryRoot -ChildPath $relativePath
 
-        if (-not (Test-Path -LiteralPath $tweakFile -PathType Leaf)) {
-            Write-AtlasLog -Message "Tweak file missing for '$Name/$tweakName': '$tweakFile'." -Level Error
+        Invoke-AtlasTweak -Path $tweakFile -RegistryScope $RegistryScope `
+            -RegistryOnly:$RegistryOnly -Context $Context
+    }
+}
+
+function Get-AtlasTweakCategoryPostUserRegistryRefresh {
+    <#
+    .SYNOPSIS
+        Returns the ordered, de-duplicated post-live-HKCU shell refresh operations
+        declared by applicable definitions in one tweak category.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name,
+
+        [string]$TweaksRoot,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [psobject]$Context
+    )
+
+    if (-not $TweaksRoot) {
+        if ($null -eq $Context.PSObject.Properties['AtlasModulesPath'] -or
+            [string]::IsNullOrWhiteSpace([string]$Context.AtlasModulesPath)) {
+            throw 'Post-user-registry refresh resolution requires a protected AtlasModulesPath.'
+        }
+        $TweaksRoot = Join-Path -Path ([string]$Context.AtlasModulesPath) -ChildPath 'Scripts\Tweaks'
+    }
+
+    $manifest = Get-AtlasTweakManifest `
+        -Path (Join-Path -Path $TweaksRoot -ChildPath 'tweaks.manifest.psd1')
+    $category = $manifest['Categories'] |
+        Where-Object { [string]$_['Name'] -ceq $Name } | Select-Object -First 1
+    if ($null -eq $category) {
+        throw "Category '$Name' is not defined in the tweak manifest."
+    }
+
+    $categoryRoot = Join-Path -Path $TweaksRoot -ChildPath $Name
+    $operations = @()
+    foreach ($tweakName in @($category['Tweaks'])) {
+        $relativePath = ([string]$tweakName -replace '/', '\') + '.psd1'
+        $tweakPath = Join-Path -Path $categoryRoot -ChildPath $relativePath
+        $tweak = Import-AtlasDataFile -LiteralPath $tweakPath
+        if ($null -ne (Get-AtlasTweakSkipReason -Tweak $tweak -Context $Context) -or
+            -not $tweak.ContainsKey('PostUserRegistryRefresh')) {
             continue
         }
 
-        try {
-            Invoke-AtlasTweak -Path $tweakFile
+        $operation = [string]$tweak['PostUserRegistryRefresh']
+        if ($script:AtlasTweakPostUserRegistryRefreshOperations -cnotcontains $operation) {
+            throw "Tweak '$Name/$tweakName' has invalid PostUserRegistryRefresh operation '$operation'."
         }
-        catch {
-            Write-AtlasLog -Message "Tweak '$Name/$tweakName' failed: $($_.Exception.Message)" -Level Error
+        if ($operations -cnotcontains $operation) {
+            $operations += $operation
         }
     }
+
+    return $operations
 }

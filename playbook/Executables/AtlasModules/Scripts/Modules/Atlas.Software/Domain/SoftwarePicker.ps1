@@ -63,7 +63,17 @@ function Get-AtlasSoftwarePickerItem {
         $items += @{ Text = 'StartIsBack'; Package = 'StartIsBack.StartIsBack' }
     }
 
-    return @($items | ForEach-Object { [pscustomobject]$_ })
+    return @($items | ForEach-Object {
+            [pscustomobject]@{
+                Text    = $_.Text
+                Package = $_.Package
+                # Microsoft Store product IDs are 12-character values beginning
+                # with 9. All named packages in this catalog use the community
+                # source. Pinning the source prevents a user-added source from
+                # satisfying an otherwise exact package ID.
+                Source  = if ($_.Package -match '^9[A-Z0-9]{11}$') { 'msstore' } else { 'winget' }
+            }
+        })
 }
 
 function Set-AtlasSoftwarePickerTheme {
@@ -95,6 +105,51 @@ function Set-AtlasSoftwarePickerTheme {
     }
 }
 
+function Invoke-AtlasSoftwarePickerPackageInstall {
+    <#
+    .SYNOPSIS
+        Brokers one selected package through the medium-integrity Explorer shell.
+    .DESCRIPTION
+        The InstallSoftware toggle is intentionally medium-integrity. Keep WinGet
+        in this process, validate the exact built-in source immediately before
+        installation, and trust the real native exit code rather than a writable
+        side-channel result file.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$')]
+        [string]$PackageId,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('winget', 'msstore')]
+        [string]$Source,
+
+        [Parameter(Mandatory = $true)]
+        $AtlasContext
+    )
+
+    $downloadIntegrity = [IO.Path]::Combine(
+        $AtlasContext.AtlasModulesPath,
+        'Scripts',
+        'Internal',
+        'Download-Integrity.ps1'
+    )
+    if (-not [IO.File]::Exists($downloadIntegrity)) {
+        throw "The Atlas download-integrity helper is missing at '$downloadIntegrity'."
+    }
+    . $downloadIntegrity
+
+    $wingetPath = Get-AtlasTrustedWingetPath
+    Assert-AtlasTrustedWingetSource -WingetPath $wingetPath -Name $Source
+    & $wingetPath install --exact --id $PackageId --source $Source `
+        --accept-package-agreements --accept-source-agreements `
+        --disable-interactivity --silent
+    $wingetExitCode = $LASTEXITCODE
+    if ($wingetExitCode -ne 0) {
+        throw "WinGet failed to install '$PackageId' from '$Source' with exit code $wingetExitCode."
+    }
+}
+
 function Show-AtlasSoftwarePicker {
     <#
     .SYNOPSIS
@@ -102,9 +157,34 @@ function Show-AtlasSoftwarePicker {
         Returns $false when WinGet is unavailable (Test-Winget.cmd failed), $true
         otherwise.
     #>
-    $wingetCheck = Join-Path -Path (Get-AtlasContext).AtlasModulesPath -ChildPath 'Scripts\Test-Winget.cmd'
-    & $wingetCheck
-    if ($LASTEXITCODE -ne 0) {
+    $atlasContext = Get-AtlasContext
+    $trustBootstrap = [IO.Path]::Combine(
+        $atlasContext.AtlasModulesPath,
+        'Scripts',
+        'Internal',
+        'Initialize-PowerShellTrust.ps1'
+    )
+    if (-not [IO.File]::Exists($trustBootstrap)) {
+        throw "The PowerShell trust bootstrap is missing at '$trustBootstrap'."
+    }
+    . $trustBootstrap
+
+    $downloadIntegrity = [IO.Path]::Combine(
+        $atlasContext.AtlasModulesPath,
+        'Scripts',
+        'Internal',
+        'Download-Integrity.ps1'
+    )
+    if (-not [IO.File]::Exists($downloadIntegrity)) {
+        throw "The Atlas download-integrity helper is missing at '$downloadIntegrity'."
+    }
+    . $downloadIntegrity
+    try {
+        $wingetPath = Get-AtlasTrustedWingetPath
+        Assert-AtlasTrustedWingetSource -WingetPath $wingetPath -Name winget
+    }
+    catch {
+        Write-Warning "WinGet is unavailable: $($_.Exception.Message)"
         return $false
     }
 
@@ -221,7 +301,12 @@ function Show-AtlasSoftwarePicker {
             Write-Host ''
             Start-Sleep 1
             foreach ($package in $installPackages) {
-                & winget install -e --id $package --accept-package-agreements --accept-source-agreements --disable-interactivity --force -h | Out-Host
+                $source = ($items | Where-Object { $_.Package -eq $package } | Select-Object -First 1).Source
+                if ($source -notin @('winget', 'msstore')) {
+                    throw "No trusted WinGet source is declared for package '$package'."
+                }
+                Invoke-AtlasSoftwarePickerPackageInstall `
+                    -PackageId $package -Source $source -AtlasContext $atlasContext
             }
             Write-Host ''
             Read-Pause

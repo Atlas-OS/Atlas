@@ -3,6 +3,7 @@ readme:
 
 actions:
 - .github/workflows/**/*
+- .github/requirements-ci.txt
 - .github/labeler.yml
 
 # Playbook
@@ -11,18 +12,21 @@ playbook:
 - playbook/**/*
 
 appx:
-- playbook/Configuration/atlas/appx.yml
+- playbook/Executables/AtlasModules/Scripts/Phases/Invoke-AppxSupportPhase.ps1
+- playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/**/*
 
 components:
-- playbook/Configuration/atlas/components.yml
+- playbook/Executables/AtlasModules/Scripts/Phases/Invoke-ComponentsPhase.ps1
 
 services:
 - playbook/Executables/AtlasModules/Scripts/Phases/Invoke-ServicesPhase.ps1
 - playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Services/**/*
 
 tweaks:
-- playbook/Configuration/tweaks.yml
-- playbook/Configuration/tweaks/**/*
+- playbook/Configuration/custom.yml
+- playbook/Executables/AtlasModules/Scripts/Phases/Invoke-TweaksPhase.ps1
+- playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Tweaks/**/*
+- playbook/Executables/AtlasModules/Scripts/Tweaks/**/*
 
 desktop folder:
 - playbook/Executables/AtlasDesktop/**/*

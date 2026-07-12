@@ -4,6 +4,10 @@
     Option      = 'auto-updates-disable'
     Run         = @(
         # Disable auto-updates
-        @{ Exe = '{windir}\AtlasDesktop\3. General Configuration\Automatic Updates\Disable Automatic Updates (default).cmd'; Args = '/silent'; Wait = $true }
+        @{
+            Exe  = '{windir}\System32\WindowsPowerShell\v1.0\powershell.exe'
+            Args = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', '{windir}\AtlasModules\Scripts\Internal\Invoke-AtlasInstallMachineToggle.ps1', '-Name', 'AutomaticUpdates')
+            Wait = $true
+        }
     )
 }

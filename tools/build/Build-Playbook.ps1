@@ -7,7 +7,6 @@
     playbook location defaults to the repository's playbook/ directory.
 .PARAMETER Removals
     Dev-build content removals:
-      Dependencies       - strip the "NO LOCAL BUILD" block from start.yml
       Requirements       - strip <Requirement> pre-flight gates from playbook.conf
       WinverRequirement  - strip <SupportedBuilds> from playbook.conf
       Verification       - strip <ProductCode> from playbook.conf
@@ -15,11 +14,10 @@
 #requires -Version 7.0
 Param(
     [switch]$LocalTest,
-    [switch]$AddLiveLog,
     [switch]$ReplaceOldPlaybook,
     [switch]$DontOpenPbLocation,
     [switch]$NoPassword,
-    [ValidateSet('Dependencies', 'Requirements', 'WinverRequirement', 'Verification', IgnoreCase = $true)]
+    [ValidateSet('Requirements', 'WinverRequirement', 'Verification', IgnoreCase = $true)]
     [string[]]$Removals,
     [string]$FileName = 'Atlas Test',
     [string]$PlaybookPath,
@@ -39,7 +37,6 @@ if ($LocalTest) {
     # `pwsh -File` cannot bind a comma-separated command-line token to string[] reliably,
     # so the wrappers should not reconstruct a PowerShell command string just to express
     # these two removals.
-    $AddLiveLog = $true
     $ReplaceOldPlaybook = $true
     $DontOpenPbLocation = $true
     $profileRemovals = @('WinverRequirement', 'Verification')
@@ -70,8 +67,6 @@ $apbxPath = New-Apbx `
     -PlaybookPath $PlaybookPath `
     -OutputDirectory $OutputPath `
     -FileName $FileName `
-    -AddLiveLog:$AddLiveLog `
-    -RemoveDependencies:$removalSet.ContainsKey('dependencies') `
     -RemoveRequirements:$removalSet.ContainsKey('requirements') `
     -RemoveWinverRequirement:$removalSet.ContainsKey('winverrequirement') `
     -RemoveVerification:$removalSet.ContainsKey('verification') `

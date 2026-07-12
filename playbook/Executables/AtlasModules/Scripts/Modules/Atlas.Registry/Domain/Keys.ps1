@@ -3,9 +3,9 @@
 function New-AtlasRegistryKey {
     <#
     .SYNOPSIS
-        Creates a registry key (and any missing parents). Under SYSTEM/TrustedInstaller,
-        HKCU paths are redirected to the active user's hive and mirrored into the
-        default-user hive when it is loaded. An existing key is not an error.
+        Creates a registry key (and any missing parents). HKCU is either the proven
+        current token's ambient hive or the explicitly bound fixed default-user hive.
+        An existing key is not an error.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -13,9 +13,7 @@ function New-AtlasRegistryKey {
         [string]$Path
     )
 
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Delta @{
-        Operation = 'CreateKey'
-    } -Action {
+    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
         param($providerPath)
 
         $split = Split-AtlasRegistryProviderPath -ProviderPath $providerPath
@@ -36,7 +34,7 @@ function Remove-AtlasRegistryKey {
     <#
     .SYNOPSIS
         Recursively deletes a registry key if it exists (a missing key is not an error),
-        with the same HKCU redirection and default-user-hive mirroring as
+        with the same token/default-user scope binding as
         New-AtlasRegistryKey.
     #>
     param(
@@ -50,9 +48,7 @@ function Remove-AtlasRegistryKey {
         throw "Refusing to delete the registry root '$Path'."
     }
 
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Delta @{
-        Operation = 'DeleteKey'
-    } -Action {
+    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
         param($providerPath)
 
         $split = Split-AtlasRegistryProviderPath -ProviderPath $providerPath

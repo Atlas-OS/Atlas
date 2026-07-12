@@ -12,8 +12,7 @@
 
                 $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Install-Software.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
-                    Write-Host "Script not found: `"$script`"" -ForegroundColor Red
-                    return
+                    throw "InstallSoftware: the protected picker entry point is missing at '$script'."
                 }
 
                 & $script

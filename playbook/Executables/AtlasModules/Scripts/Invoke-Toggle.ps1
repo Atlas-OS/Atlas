@@ -4,9 +4,11 @@
 .DESCRIPTION
     Generated .cmd launchers call this script as:
 
-        powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File
-            "%windir%\AtlasModules\Scripts\Invoke-Toggle.ps1"
-            -Name <SettingName> [-State <State>] -LauncherPath "%~f0" %*
+        "%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe"
+            -NoProfile -NoLogo -ExecutionPolicy Bypass -File
+            "%AtlasWindowsRoot%\AtlasModules\Scripts\Invoke-Toggle.ps1"
+            -Name <SettingName> [-State <State>] -LauncherPath "%~f0"
+            [<canonical launcher flags>]
 
     Remaining arguments carry the launcher flag surface: /silent (and /quiet),
     /justcontext and /noAction, with either / or - prefixes, case-insensitive.
@@ -24,13 +26,21 @@ param(
 
     [string]$LauncherPath,
 
+    [switch]$MachineOnly,
+
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest
 )
 
+$trustBootstrap = [IO.Path]::Combine($PSScriptRoot, 'Internal', 'Initialize-PowerShellTrust.ps1')
+if (-not [IO.File]::Exists($trustBootstrap)) {
+    throw "The PowerShell trust bootstrap is missing at '$trustBootstrap'."
+}
+. $trustBootstrap
+
 Set-StrictMode -Version 3.0
 
-# Normalize the flags forwarded by the launcher's %*.
+# Normalize canonical flags supplied by a generated launcher or a direct caller.
 $silent = $false
 $justContext = $false
 $noExplorerRestart = $false
@@ -45,7 +55,8 @@ foreach ($token in @($Rest)) {
         'justcontext' { $justContext = $true }
         'noaction' { $noExplorerRestart = $true }
         default {
-            # Unknown extra arguments are ignored; launchers forward %* verbatim.
+            # Generated launchers reject unknown tokens before this boundary. Keep
+            # direct invocation backward-compatible by ignoring unrelated extras.
         }
     }
 }
@@ -71,6 +82,7 @@ try {
         Silent            = $silent
         JustContext       = $justContext
         NoExplorerRestart = $noExplorerRestart
+        MachineOnly       = [bool]$MachineOnly
     }
     if ($State) {
         $invokeParams['State'] = $State
@@ -83,10 +95,24 @@ try {
     exit 0
 }
 catch {
+    $exitCode = 1
+    $adminChildExitKey = 'Atlas.Toggle.AdminChildExitCode'
+    if ($null -ne $_.Exception.Data -and $_.Exception.Data.Contains($adminChildExitKey)) {
+        try {
+            $candidateExitCode = [int]$_.Exception.Data[$adminChildExitKey]
+            if ($candidateExitCode -ne 0) {
+                $exitCode = $candidateExitCode
+            }
+        }
+        catch {
+            $exitCode = 1
+        }
+    }
+
     if (-not $silent) {
         Write-Host 'Something went wrong while applying this setting:' -ForegroundColor Red
         Write-Host $_.Exception.Message -ForegroundColor Red
         $null = Read-Host 'Press Enter to exit'
     }
-    exit 1
+    exit $exitCode
 }

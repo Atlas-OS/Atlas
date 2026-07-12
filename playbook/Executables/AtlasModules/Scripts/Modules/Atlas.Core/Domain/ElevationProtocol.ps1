@@ -261,12 +261,12 @@ function ConvertTo-AtlasCanonicalOperationData {
         $OperationData
     )
 
-    if (@('Toggle', 'ResetServices', 'SafeModeRecovery') -cnotcontains $Operation) {
+    if (@('Toggle', 'ResetServices') -cnotcontains $Operation) {
         throw "Unsupported TrustedInstaller operation '$Operation'."
     }
     switch ($Operation) {
         'Toggle' {
-            $names = @('name', 'state', 'silent', 'justContext', 'noExplorerRestart')
+            $names = @('name', 'state', 'silent', 'justContext', 'noExplorerRestart', 'machineOnly')
             Assert-AtlasElevationExactProperties -InputObject $OperationData -Names $names -Label 'Toggle operationData'
             Assert-AtlasElevationString -Value $OperationData.name -Label 'Toggle name' -MaximumLength 128
             Assert-AtlasElevationString -Value $OperationData.state -Label 'Toggle state' -MaximumLength 128
@@ -288,6 +288,7 @@ function ConvertTo-AtlasCanonicalOperationData {
             Assert-AtlasElevationBoolean -Value $OperationData.silent -Label 'Toggle silent'
             Assert-AtlasElevationBoolean -Value $OperationData.justContext -Label 'Toggle justContext'
             Assert-AtlasElevationBoolean -Value $OperationData.noExplorerRestart -Label 'Toggle noExplorerRestart'
+            Assert-AtlasElevationBoolean -Value $OperationData.machineOnly -Label 'Toggle machineOnly'
             if (-not $OperationData.silent) {
                 throw 'The initial noninteractive Toggle protocol requires silent=true.'
             }
@@ -298,6 +299,7 @@ function ConvertTo-AtlasCanonicalOperationData {
                 silent            = [bool]$OperationData.silent
                 justContext       = [bool]$OperationData.justContext
                 noExplorerRestart = [bool]$OperationData.noExplorerRestart
+                machineOnly       = [bool]$OperationData.machineOnly
             }
         }
         'ResetServices' {
@@ -310,20 +312,6 @@ function ConvertTo-AtlasCanonicalOperationData {
 
             return [pscustomobject][ordered]@{
                 restoreSource = [string]$OperationData.restoreSource
-            }
-        }
-        'SafeModeRecovery' {
-            $names = @('operationId')
-            Assert-AtlasElevationExactProperties -InputObject $OperationData -Names $names -Label 'SafeModeRecovery operationData'
-            Assert-AtlasElevationString -Value $OperationData.operationId `
-                -Label 'SafeModeRecovery operationId' -MaximumLength 32
-            if ($OperationData.operationId -cnotmatch '^[a-f0-9]{32}$' -or
-                [string]::Equals($OperationData.operationId, ('0' * 32), [StringComparison]::Ordinal)) {
-                throw 'SafeModeRecovery operationId must be a nonzero lowercase 32-hex identifier.'
-            }
-
-            return [pscustomobject][ordered]@{
-                operationId = [string]$OperationData.operationId
             }
         }
         default {
@@ -384,7 +372,7 @@ function ConvertTo-AtlasCanonicalElevationRequest {
         -Label 'requesterSessionId' -Minimum 0 -Maximum ([int]::MaxValue)
 
     Assert-AtlasElevationString -Value $Request.operation -Label 'operation' -MaximumLength 32
-    if (@('Toggle', 'ResetServices', 'SafeModeRecovery') -cnotcontains [string]$Request.operation) {
+    if (@('Toggle', 'ResetServices') -cnotcontains [string]$Request.operation) {
         throw "Unsupported TrustedInstaller operation '$($Request.operation)'."
     }
     $operationData = ConvertTo-AtlasCanonicalOperationData -Operation $Request.operation -OperationData $Request.operationData
@@ -426,13 +414,11 @@ function ConvertTo-AtlasCanonicalOperationDataJson {
                 ',"state":' + (ConvertTo-AtlasCanonicalJsonString $OperationData.state) +
                 ',"silent":' + $OperationData.silent.ToString().ToLowerInvariant() +
                 ',"justContext":' + $OperationData.justContext.ToString().ToLowerInvariant() +
-                ',"noExplorerRestart":' + $OperationData.noExplorerRestart.ToString().ToLowerInvariant() + '}'
+                ',"noExplorerRestart":' + $OperationData.noExplorerRestart.ToString().ToLowerInvariant() +
+                ',"machineOnly":' + $OperationData.machineOnly.ToString().ToLowerInvariant() + '}'
         }
         'ResetServices' {
             return '{"restoreSource":' + (ConvertTo-AtlasCanonicalJsonString $OperationData.restoreSource) + '}'
-        }
-        'SafeModeRecovery' {
-            return '{"operationId":' + (ConvertTo-AtlasCanonicalJsonString $OperationData.operationId) + '}'
         }
     }
 }
@@ -588,7 +574,7 @@ function New-AtlasElevationRequestEnvelope {
     )]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Toggle', 'ResetServices', 'SafeModeRecovery')]
+        [ValidateSet('Toggle', 'ResetServices')]
         [string]$Operation,
 
         [Parameter(Mandatory = $true)]
@@ -649,7 +635,7 @@ function New-AtlasElevationRequestDocument {
     )]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Toggle', 'ResetServices', 'SafeModeRecovery')]
+        [ValidateSet('Toggle', 'ResetServices')]
         [string]$Operation,
 
         [Parameter(Mandatory = $true)]

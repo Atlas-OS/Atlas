@@ -1,17 +1,15 @@
 @echo off
-set "script=%windir%\AtlasModules\Scripts\Initialize-NewUser.ps1"
+setlocal EnableExtensions DisableDelayedExpansion
 
-if not exist "%script%" (
-    echo Script not found: "%script%"
-    pause
-    exit /b 1
+if not "%~1"=="" (
+    >&2 echo Initialize-NewUser does not accept command-line arguments.
+    exit /b 2
 )
 
-whoami /user | find /i "S-1-5-18" > nul 2>&1 || (
-    call "%~dp0RunAsTI.cmd" "%~f0" %*
-    exit /b
-)
+set "script=%~dp0Initialize-NewUser.ps1"
+set "powershell=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+if not exist "%script%" exit /b 1
+if not exist "%powershell%" exit /b 1
 
-powershell -ExecutionPolicy RemoteSigned -NoProfile -File "%script%"
-
-pause
+"%powershell%" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%script%"
+exit /b %errorlevel%

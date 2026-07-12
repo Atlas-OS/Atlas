@@ -313,7 +313,7 @@ function Invoke-AtlasTrustedInstaller {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Toggle', 'ResetServices', 'SafeModeRecovery')]
+        [ValidateSet('Toggle', 'ResetServices')]
         [string]$Operation,
 
         [string]$Name,
@@ -321,28 +321,24 @@ function Invoke-AtlasTrustedInstaller {
         [bool]$Silent = $true,
         [switch]$JustContext,
         [switch]$NoExplorerRestart,
+        [switch]$MachineOnly,
 
         [ValidateSet('ToggleDefaults', 'WindowsBackup', 'AtlasBackup')]
         [string]$RestoreSource,
-
-        [ValidatePattern('^[a-f0-9]{32}$')]
-        [string]$RecoveryOperationId,
 
         [ValidateRange(1, 86400)]
         [int]$TimeoutSeconds = 900
     )
 
-    if (@('Toggle', 'ResetServices', 'SafeModeRecovery') -cnotcontains $Operation) {
+    if (@('Toggle', 'ResetServices') -cnotcontains $Operation) {
         throw "TrustedInstaller operation '$Operation' is not canonical."
     }
     $operationParameterAllowlist = @{
-        Toggle           = @('Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart')
-        ResetServices    = @('RestoreSource')
-        SafeModeRecovery = @('RecoveryOperationId')
+        Toggle           = @('Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly')
+        ResetServices = @('RestoreSource')
     }
     $allOperationParameters = @(
-        'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart',
-        'RestoreSource', 'RecoveryOperationId'
+        'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource'
     )
     foreach ($operationParameter in $allOperationParameters) {
         if ($PSBoundParameters.ContainsKey($operationParameter) -and
@@ -365,6 +361,7 @@ function Invoke-AtlasTrustedInstaller {
                 silent            = $true
                 justContext       = [bool]$JustContext
                 noExplorerRestart = [bool]$NoExplorerRestart
+                machineOnly       = [bool]$MachineOnly
             }
         }
         'ResetServices' {
@@ -372,14 +369,6 @@ function Invoke-AtlasTrustedInstaller {
                 throw 'ResetServices requires a typed -RestoreSource value.'
             }
             $operationData = [pscustomobject][ordered]@{ restoreSource = $RestoreSource }
-        }
-        'SafeModeRecovery' {
-            if ([string]::IsNullOrWhiteSpace($RecoveryOperationId)) {
-                throw 'SafeModeRecovery requires -RecoveryOperationId.'
-            }
-            $operationData = [pscustomobject][ordered]@{
-                operationId = $RecoveryOperationId
-            }
         }
     }
 

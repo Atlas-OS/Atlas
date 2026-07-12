@@ -11,7 +11,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Toggle', 'ResetServices', 'SafeModeRecovery')]
+    [ValidateSet('Toggle', 'ResetServices')]
     [string]$Operation,
 
     [string]$Name,
@@ -19,12 +19,10 @@ param(
     [bool]$Silent = $true,
     [switch]$JustContext,
     [switch]$NoExplorerRestart,
+    [switch]$MachineOnly,
 
     [ValidateSet('ToggleDefaults', 'WindowsBackup', 'AtlasBackup')]
     [string]$RestoreSource,
-
-    [ValidatePattern('^[a-f0-9]{32}$')]
-    [string]$RecoveryOperationId,
 
     [ValidateRange(1, 86400)]
     [int]$TimeoutSeconds = 900
@@ -34,17 +32,15 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 try {
-    if (@('Toggle', 'ResetServices', 'SafeModeRecovery') -cnotcontains $Operation) {
+    if (@('Toggle', 'ResetServices') -cnotcontains $Operation) {
         throw "TrustedInstaller operation '$Operation' is not canonical."
     }
     $operationParameterAllowlist = @{
-        Toggle           = @('Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart')
-        ResetServices    = @('RestoreSource')
-        SafeModeRecovery = @('RecoveryOperationId')
+        Toggle           = @('Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly')
+        ResetServices = @('RestoreSource')
     }
     $allOperationParameters = @(
-        'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart',
-        'RestoreSource', 'RecoveryOperationId'
+        'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource'
     )
     foreach ($operationParameter in $allOperationParameters) {
         if ($PSBoundParameters.ContainsKey($operationParameter) -and
@@ -67,12 +63,10 @@ try {
             $parameters.Silent = $Silent
             $parameters.JustContext = [bool]$JustContext
             $parameters.NoExplorerRestart = [bool]$NoExplorerRestart
+            $parameters.MachineOnly = [bool]$MachineOnly
         }
         'ResetServices' {
             $parameters.RestoreSource = $RestoreSource
-        }
-        'SafeModeRecovery' {
-            $parameters.RecoveryOperationId = $RecoveryOperationId
         }
     }
 

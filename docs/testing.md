@@ -30,27 +30,25 @@ parses every payload script with `[System.Management.Automation.Language.Parser]
 
 ## 3. Pester unit tests
 
-Pester 5 tests under `tests/` cover the pure logic of the framework (the registry engine's
-HKCU resolution and default-hive mirroring, tweak schema and gating, toggle state, the
-build module, etc.). Contract suites also pin FeaturePage/flag/schema parity, AME phase
-handoff and halt behavior, generated launchers, clean-process module imports/exports, local
-wrapper exit propagation, binary/package manifests, and paired payload assets. They run
-unelevated and never make persistent machine changes — registry tests use and clean up a
-scratch key under `HKCU:\Software\AtlasRewriteTest`.
+Pester 5 tests under `tests/` cover shared pure logic and important behavior boundaries:
+install-state retry, registry targeting, tweak/toggle execution, process argument handling,
+package selection, and build/archive parity. They run unelevated and never make persistent
+machine changes; registry tests use and remove a scratch key under
+`HKCU:\Software\AtlasRewriteTest`.
 
-In CI the suite runs twice: once under PowerShell 7 (`pwsh`) and once under Windows
-PowerShell 5.1 (`powershell`), the runtime the payload actually ships to — so tests must
-pass on both. `AtlasBuild.Tests.ps1` is excluded from the 5.1 leg because the build
-tooling requires pwsh.
+Prefer focused behavioral tests for shared logic and real process, privilege, persistence,
+or recovery boundaries. Ordinary feature helpers do not need source-text contract tests.
+
+CI runs the runtime and payload suites under Windows PowerShell 5.1 (`powershell`),
+the host they actually ship to. `AtlasBuild.Tests.ps1` runs separately under PowerShell 7
+(`pwsh`), which the build tooling requires. This covers each surface on its supported host
+without running every payload test twice.
 
 ```powershell
 $config = New-PesterConfiguration
 $config.Run.Path = 'tests'
 Invoke-Pester -Configuration $config
 ```
-
-> If a PowerShell 7 install has polluted your `PSModulePath`, the tweak engine's data-file
-> loader falls back to an AST parse, so tests still pass under 5.1.
 
 ## 4. Apbx smoke verification
 

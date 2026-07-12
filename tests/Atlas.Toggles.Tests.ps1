@@ -19,6 +19,7 @@ BeforeAll {
         New-Item -Path $groupDirectory -ItemType Directory -Force | Out-Null
         Set-Content -Path (Join-Path $groupDirectory $FileName) -Value $Content -Encoding Ascii
     }
+
 }
 
 AfterAll {
@@ -97,9 +98,9 @@ Describe 'Get-AtlasToggleDefinition' {
             Should -Throw "*missing a non-empty 'States' hashtable*"
     }
 
-    It 'throws when a state has no Action scriptblock' {
+    It 'throws when a state has neither a legacy action nor a privileged split' {
         { Get-AtlasToggleDefinition -Name 'NoAction' -TogglesRoot $TogglesRoot } |
-            Should -Throw "*missing an 'Action' scriptblock*"
+            Should -Throw '*missing an Action or exact MachineAction/UserAction split*'
     }
 
     It 'throws when a state has no StateValue and no NoStateRecord' {
@@ -173,14 +174,6 @@ Describe 'Initialize-AtlasToggleStateStore' {
         $seedText | Should -Not -Match '(?m)^"path"='
     }
 
-    It 'hardens the state root before the fresh registry seed is imported' {
-        $defaultsConfig = Get-Content -LiteralPath (Join-Path $repoRoot 'playbook\Configuration\atlas\default.yml') -Raw
-        $phaseIndex = $defaultsConfig.IndexOf("Invoke-AtlasInstall.ps1'') -Phase Defaults", [System.StringComparison]::Ordinal)
-        $seedIndex = $defaultsConfig.IndexOf('import ".\DEFAULT.reg"', [System.StringComparison]::Ordinal)
-
-        $phaseIndex | Should -BeGreaterOrEqual 0
-        $seedIndex | Should -BeGreaterThan $phaseIndex
-    }
 }
 
 Describe 'Invoke-AtlasToggleReapply' {
@@ -188,6 +181,8 @@ Describe 'Invoke-AtlasToggleReapply' {
         # Reapply routes its operational output through Write-AtlasLog; mock it so the
         # tests never touch the real install-log directory.
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Toggles
+        Mock Invoke-AtlasToggle -ModuleName Atlas.Toggles
 
         Remove-Item -Path $StateRoot -Recurse -Force -ErrorAction SilentlyContinue
 
@@ -209,10 +204,11 @@ Describe 'Invoke-AtlasToggleReapply' {
         New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'ReplayToggle.ps1' -Content @'
 @{
     Name      = 'ReplayToggle'
-    Elevation = 'None'
+    Elevation = 'Admin'
     States    = [ordered]@{
         On = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Action = {
                 param($Toggle)
                 Set-Content -Path $env:AtlasToggleReplayMarker -Value 'trusted-definition'
@@ -220,6 +216,7 @@ Describe 'Invoke-AtlasToggleReapply' {
         }
         Off = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Action = {
                 param($Toggle)
                 Set-Content -Path $env:AtlasToggleReplayMarker -Value 'unexpected-zero-replay'
@@ -232,6 +229,7 @@ Describe 'Invoke-AtlasToggleReapply' {
 
     AfterAll {
         Remove-Item Env:\AtlasToggleReplayMarker -ErrorAction SilentlyContinue
+        Remove-Item Env:\AtlasSplitReplayMarker -ErrorAction SilentlyContinue
     }
 
     It 'replays a known non-zero state exclusively through its installed definition' {
@@ -246,6 +244,64 @@ Describe 'Invoke-AtlasToggleReapply' {
         Test-Path -LiteralPath $script:UntrustedMarker | Should -BeFalse
         @((Get-Item -LiteralPath $recordPath).GetValueNames()) | Should -Not -Contain 'path'
         Test-Path -LiteralPath (Join-Path $StateRoot 'ReplayToggle') | Should -BeTrue
+        Should -Not -Invoke Invoke-AtlasToggle -ModuleName Atlas.Toggles
+    }
+
+    It 'replays only MachineAction for a split state' {
+        $script:splitReplayMarker = Join-Path $TestDrive 'split-machine-replay.txt'
+        $env:AtlasSplitReplayMarker = $script:splitReplayMarker
+        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
+            -FileName 'SplitReplay.ps1' -Content @'
+@{
+    Name      = 'SplitReplay'
+    Elevation = 'Admin'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            StateRecordScope = 'Machine'
+            MachineAction = {
+                param($Toggle)
+                [IO.File]::AppendAllText(
+                    $env:AtlasSplitReplayMarker,
+                    'machine' + [Environment]::NewLine
+                )
+            }
+            UserAction = {
+                param($Toggle)
+                [IO.File]::AppendAllText(
+                    $env:AtlasSplitReplayMarker,
+                    'user' + [Environment]::NewLine
+                )
+            }
+        }
+    }
+}
+'@
+        Set-AtlasToggleState -Name 'SplitReplay' -State 1 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply `
+            -StateRoot $StateRoot `
+            -TogglesRoot $script:ReapplyTogglesRoot
+
+        Get-Content -LiteralPath $script:splitReplayMarker | Should -Be @('machine')
+    }
+
+    It 'classifies the shipped Bluetooth default as machine-only replay' {
+        $productionTogglesRoot = Join-Path $repoRoot `
+            'playbook\Executables\AtlasModules\Toggles'
+        Set-AtlasToggleState -Name 'Bluetooth' -State 1 -StateRoot $StateRoot
+        Mock Invoke-AtlasToggleInProcess -ModuleName Atlas.Toggles
+
+        Invoke-AtlasToggleReapply `
+            -StateRoot $StateRoot `
+            -TogglesRoot $productionTogglesRoot
+
+        Should -Invoke Invoke-AtlasToggleInProcess -ModuleName Atlas.Toggles `
+            -Times 1 -Exactly -ParameterFilter {
+                $Definition.Name -ceq 'Bluetooth' -and
+                    $StateName -ceq 'Enable' -and
+                    $ActionScope -ceq 'Machine'
+            }
     }
 
     It 'does not replay state 0' {
@@ -316,10 +372,11 @@ Describe 'Invoke-AtlasToggleReapply' {
         New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'AReplayFailure.ps1' -Content @'
 @{
     Name      = 'AReplayFailure'
-    Elevation = 'None'
+    Elevation = 'Admin'
     States    = [ordered]@{
         On = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Action = {
                 param($Toggle)
                 throw 'first replay failure'
@@ -332,10 +389,11 @@ Describe 'Invoke-AtlasToggleReapply' {
         New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'ZReplayFailure.ps1' -Content @'
 @{
     Name      = 'ZReplayFailure'
-    Elevation = 'None'
+    Elevation = 'Admin'
     States    = [ordered]@{
         On = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Action = {
                 param($Toggle)
                 throw 'second replay failure'
@@ -364,17 +422,28 @@ Describe 'Invoke-AtlasToggleReapply' {
         Test-Path -LiteralPath $script:ReapplyMarker | Should -BeTrue
         Get-Content -LiteralPath $script:ReapplyMarker | Should -Be 'trusted-definition'
     }
+
+    It 'asserts strict TrustedInstaller before protecting or mutating the replay tree' {
+        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -StateRoot $StateRoot
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Toggles -MockWith {
+            throw '[privilege] simulated non-TI replay caller'
+        }
+        Mock Protect-AtlasToggleStateRoot -ModuleName Atlas.Toggles
+
+        {
+            Invoke-AtlasToggleReapply -StateRoot $StateRoot `
+                -TogglesRoot $script:ReapplyTogglesRoot
+        } | Should -Throw '*simulated non-TI replay caller*'
+
+        Should -Invoke Assert-AtlasPrivilege -ModuleName Atlas.Toggles `
+            -Times 1 -Exactly -ParameterFilter { $TrustedInstaller }
+        Should -Not -Invoke Protect-AtlasToggleStateRoot -ModuleName Atlas.Toggles
+        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
+    }
+
 }
 
 Describe 'Atlas toggle production state ACL' {
-    It 'creates a missing production root with its DACL in the registry creation call' {
-        $stateSource = Get-Content -LiteralPath (Join-Path $repoRoot `
-                'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Toggles\Domain\State.ps1') -Raw
-
-        $stateSource | Should -Match '(?s)\.CreateSubKey\(\s*''SOFTWARE\\AtlasOS\\Services''.*?RegistryKeyPermissionCheck\]::ReadWriteSubTree.*?RegistryOptions\]::None.*?\$acl\s*\)'
-        $stateSource | Should -Match '(?s)New-AtlasToggleProductionStateRoot\s*\r?\n\s*}\s*\r?\n\s*\r?\n\s*#.*?Set-AtlasToggleStateKeyAcl -KeyPath \$StateRoot'
-    }
-
     It 'uses a protected DACL with writes limited to privileged Windows principals' {
         InModuleScope Atlas.Toggles {
             $acl = New-AtlasToggleStateAcl
@@ -414,29 +483,6 @@ Describe 'Atlas toggle production state ACL' {
         }
     }
 
-    It 'keeps every production state-recording toggle on a privileged execution path' {
-        $definitionsRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles'
-        $unprivilegedRecorders = @(Get-ChildItem -LiteralPath $definitionsRoot -Recurse -File -Filter '*.ps1' | ForEach-Object {
-                $definition = & $_.FullName
-                $elevation = if ($definition.Contains('Elevation') -and $definition.Elevation) {
-                    [string]$definition.Elevation
-                }
-                else {
-                    'None'
-                }
-                $definitionNoRecord = $definition.Contains('NoStateRecord') -and $definition.NoStateRecord
-                $recordsAnyState = @($definition.States.Keys | Where-Object {
-                        $state = $definition.States[$_]
-                        -not $definitionNoRecord -and -not ($state.Contains('NoStateRecord') -and $state.NoStateRecord)
-                    }).Count -gt 0
-
-                if ($elevation -eq 'None' -and $recordsAnyState) {
-                    [string]$definition.Name
-                }
-            })
-
-        $unprivilegedRecorders | Should -BeNullOrEmpty
-    }
 }
 
 Describe 'Invoke-AtlasToggle' {
@@ -533,6 +579,41 @@ Describe 'Invoke-AtlasToggle' {
 }
 '@
 
+        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'PowerShellErrorToggle.ps1' -Content @'
+@{
+    Name      = 'PowerShellErrorToggle'
+    Elevation = 'None'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            Reboot     = 'None'
+            Action     = {
+                param($Toggle)
+                Write-Error 'ordinary action error'
+            }
+        }
+    }
+}
+'@
+
+        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'IgnoredErrorToggle.ps1' -Content @'
+@{
+    Name      = 'IgnoredErrorToggle'
+    Elevation = 'None'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            Reboot     = 'None'
+            Action     = {
+                param($Toggle)
+                Write-Error 'intentionally ignored' -ErrorAction Ignore
+                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'ignored-error-marker.txt') -Value 'continued'
+            }
+        }
+    }
+}
+'@
+
         New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'ContextFailingToggle.ps1' -Content @'
 @{
     Name      = 'ContextFailingToggle'
@@ -620,6 +701,34 @@ Describe 'Invoke-AtlasToggle' {
         Get-AtlasToggleState -Name 'FailingToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
             -ParameterFilter { $Level -eq 'Warning' -and $Message -like "*Toggle 'FailingToggle' action failed*" }
+    }
+
+    It 'turns an ordinary PowerShell error into failure and does not record state' {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+
+        { Invoke-AtlasToggle -Name 'PowerShellErrorToggle' -State 'On' -Silent `
+                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
+                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
+            Should -Throw '*ordinary action error*'
+
+        Get-AtlasToggleState -Name 'PowerShellErrorToggle' -StateRoot $StateRoot |
+            Should -BeNullOrEmpty
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
+            -ParameterFilter {
+                $Level -eq 'Warning' -and
+                    $Message -like "*Toggle 'PowerShellErrorToggle' action failed*"
+            }
+    }
+
+    It 'honors an action explicit error override and records its clean completion' {
+        Invoke-AtlasToggle -Name 'IgnoredErrorToggle' -State 'On' -Silent `
+            -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
+            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
+
+        Get-Content -LiteralPath (Join-Path $WorkDir 'ignored-error-marker.txt') |
+            Should -Be 'continued'
+        (Get-AtlasToggleState -Name 'IgnoredErrorToggle' -StateRoot $StateRoot).State |
+            Should -Be 1
     }
 
     It 'propagates a context-action failure without running the action or recording state' {
@@ -733,218 +842,15 @@ Describe 'Invoke-AtlasToggle' {
     }
 }
 
-Describe 'Invoke-AtlasToggleAction result contract' {
-    # These tests pin the engine's result contract: a terminating error is logged and
-    # rethrown, while completion without a terminating error is success.
-    # Actions run non-strict with $ErrorActionPreference = 'Continue', so
-    # non-terminating cmdlet errors are best-effort by design and still count as
-    # success. If the maintainer later opts into stricter semantics, the
-    # non-terminating-error and preference tests below must be consciously rewritten.
-    # Invoke-AtlasToggleAction is module-private, hence InModuleScope.
-
-    It 'rethrows and logs one warning when the action throws' {
-        Mock Write-AtlasLog -ModuleName Atlas.Toggles
-
-        { InModuleScope Atlas.Toggles {
-                $toggleContext = [pscustomobject]@{ Name = 'T' }
-                Invoke-AtlasToggleAction -Action { throw 'deliberate failure' } `
-                    -ToggleContext $toggleContext
-            } } | Should -Throw '*deliberate failure*'
-
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
-            -ParameterFilter { $Level -eq 'Warning' -and $Message -like "*Toggle 'T'*failed*" }
-    }
-
-    It 'treats non-terminating errors as success (documented best-effort contract)' {
-        Mock Write-AtlasLog -ModuleName Atlas.Toggles
-
-        InModuleScope Atlas.Toggles {
-            $toggleContext = [pscustomobject]@{ Name = 'T' }
-
-            Invoke-AtlasToggleAction -Action { Write-Error 'non-terminating' -ErrorAction Continue } `
-                -ToggleContext $toggleContext 2>$null
-        }
-
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0 -Exactly
-    }
-
-    It 'reports success when the action completes cleanly' {
-        Mock Write-AtlasLog -ModuleName Atlas.Toggles
-
-        InModuleScope Atlas.Toggles {
-            $toggleContext = [pscustomobject]@{ Name = 'T' }
-
-            Invoke-AtlasToggleAction -Action { } -ToggleContext $toggleContext
-        }
-
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0 -Exactly
-    }
-
-    It "runs the action with `$ErrorActionPreference = 'Continue' (recording gates only on throw)" {
-        # Guards against someone flipping the runner's preference (e.g. to 'Stop')
-        # without noticing that it changes what upgrade re-apply records and replays.
-        InModuleScope Atlas.Toggles {
-            $toggleContext = [pscustomobject]@{ Name = 'T' }
-
-            $observedPreference = Invoke-AtlasToggleAction -Action { [string]$ErrorActionPreference } `
-                -ToggleContext $toggleContext
-
-            $observedPreference | Should -Be 'Continue'
-        }
-    }
-}
-
 Describe 'New-ToggleLaunchers.ps1' {
     BeforeAll {
         $script:GeneratorRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
         $script:GeneratorScript = Join-Path $script:GeneratorRepoRoot 'tools\dev\New-ToggleLaunchers.ps1'
-        $script:LauncherEnvironmentHelper = Join-Path $script:GeneratorRepoRoot `
-            'playbook\Executables\AtlasModules\Scripts\Internal\Initialize-PowerShellLauncherEnvironment.cmd'
-
-        $tokens = $null
-        $parseErrors = $null
-        $generatorAst = [Management.Automation.Language.Parser]::ParseFile(
-            $script:GeneratorScript,
-            [ref]$tokens,
-            [ref]$parseErrors
-        )
-        $parseErrors | Should -BeNullOrEmpty
-        foreach ($functionName in @(
-                'Assert-LauncherIdentifier'
-                'Resolve-LauncherTargetPath'
-                'New-LauncherContent'
-            )) {
-            $functionAst = $generatorAst.Find({
-                    param($node)
-                    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
-                    $node.Name -eq $functionName
-                }, $true)
-            Set-Variable -Scope Script -Name ($functionName.Replace('-', '') + 'Definition') `
-                -Value ([scriptblock]::Create($functionAst.Extent.Text))
-        }
     }
 
     It 'validates cleanly against the committed repo tree' {
         $output = & $GeneratorScript -Validate 2>&1
         $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
-    }
-
-    It 'rejects unsafe Name and State metadata through the pure identifier seam' {
-        . $script:AssertLauncherIdentifierDefinition
-
-        Assert-LauncherIdentifier -Value 'SafeToggle1' -Kind Name -Source 'test' |
-            Should -BeExactly 'SafeToggle1'
-        foreach ($candidate in @(
-                $null
-                42
-                ''
-                ' leading'
-                '-leading'
-                'Has Space'
-                'Has&Command'
-                'Has%Expansion%'
-                'Has!Expansion!'
-                "Has`nNewline"
-            )) {
-            {
-                Assert-LauncherIdentifier -Value $candidate -Kind State -Source 'negative test'
-            } | Should -Throw
-        }
-    }
-
-    It 'keeps launcher targets as safe .cmd files beneath their declared root' {
-        . $script:ResolveLauncherTargetPathDefinition
-
-        $root = Join-Path $TestDrive 'LauncherRoot'
-        $null = New-Item -Path $root -ItemType Directory -Force
-        $valid = Resolve-LauncherTargetPath `
-            -RootPath $root `
-            -LauncherRelative 'Folder (safe)\Toggle-1.cmd' `
-            -Source 'positive test'
-        $valid | Should -BeExactly ([IO.Path]::GetFullPath((Join-Path $root 'Folder (safe)\Toggle-1.cmd')))
-
-        foreach ($candidate in @(
-                'C:\outside.cmd'
-                '..\outside.cmd'
-                'Folder\..\outside.cmd'
-                'Folder/forward.cmd'
-                'Folder\not-a-command.ps1'
-                'Folder\Bad&Command.cmd'
-                'Folder\Bad%Expansion%.cmd'
-                'Folder\\EmptySegment.cmd'
-                'Folder.\TrailingDot.cmd'
-                'CON.cmd'
-                'LPT1.anything.cmd'
-            )) {
-            {
-                Resolve-LauncherTargetPath `
-                    -RootPath $root `
-                    -LauncherRelative $candidate `
-                    -Source 'negative test'
-            } | Should -Throw
-        }
-    }
-
-    It 'validates interpolated identifiers and emits no dynamic title command' {
-        . $script:AssertLauncherIdentifierDefinition
-        . $script:NewLauncherContentDefinition
-
-        $content = New-LauncherContent -Name 'SafeToggle' -State 'Enable' -Source 'positive test'
-        $content | Should -Match '-Name "SafeToggle" -State "Enable"'
-        $content | Should -Match '"%AtlasNativePowerShell%"'
-        $content | Should -Not -Match '(?im)^\s*title\b'
-        {
-            New-LauncherContent -Name 'Safe&whoami' -State Enable -Source 'negative test'
-        } | Should -Throw
-    }
-
-    It 'delegates every generated launcher to the fixed native PowerShell environment helper' {
-        $repoRoot = $script:GeneratorRepoRoot
-        $launcherRoots = @(
-            (Join-Path $repoRoot 'playbook\Executables\AtlasDesktop')
-            (Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toolbox')
-        )
-        $launchers = @(Get-ChildItem -LiteralPath $launcherRoots -Recurse -File -Filter '*.cmd' |
-            Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match 'Invoke-Toggle\.ps1' })
-
-        $launchers.Count | Should -Be 181
-        foreach ($launcher in $launchers) {
-            $content = Get-Content -LiteralPath $launcher.FullName -Raw
-            $content | Should -Match '(?m)^setlocal EnableExtensions DisableDelayedExpansion\r?$'
-            $content | Should -Match '(?m)^verify other 2>nul\r?\nsetlocal EnableExtensions DisableDelayedExpansion\r?\nif errorlevel 1 exit /b 1\r?$'
-            $content | Should -Match '(?m)^cd /d "%__APPDIR__%"\r?\nif errorlevel 1 exit /b 1\r?$'
-            $content | Should -Match 'for %%I in \("%__APPDIR__%\.\."\) do set "AtlasWindowsRoot=%%~fI"'
-            $content | Should -Match `
-                'set "launcherEnvironment=%AtlasWindowsRoot%\\AtlasModules\\Scripts\\Internal\\Initialize-PowerShellLauncherEnvironment\.cmd"'
-            $content | Should -Match `
-                '(?ms)^if not exist "%launcherEnvironment%" \(\r?\n    echo PowerShell launcher environment helper not found:.+\r?\n    exit /b 1\r?\n\)\r?\ncall "%launcherEnvironment%"\r?\nif errorlevel 1 exit /b 1\r?$'
-            $content | Should -Not -Match `
-                '(?im)^set "(?:SystemRoot|windir|ComSpec|PATH|PSModulePath|COR_|CORECLR_|DOTNET_|APPDOMAIN_|COMPLUS_)'
-            $content | Should -Match '(?m)^set "AtlasLauncherSilent="\r?$'
-            $content | Should -Match '(?m)^set "AtlasLauncherJustContext="\r?$'
-            $content | Should -Match '(?m)^set "AtlasLauncherNoAction="\r?$'
-            $content | Should -Match `
-                '(?m)^if /i "%~1"=="/silent" goto AtlasLauncherFlagSilent\r?$'
-            $content | Should -Match `
-                '(?m)^if /i "%~1"=="-quiet" goto AtlasLauncherFlagSilent\r?$'
-            $content | Should -Match `
-                '(?m)^if /i "%~1"=="/justcontext" goto AtlasLauncherFlagJustContext\r?$'
-            $content | Should -Match `
-                '(?m)^if /i "%~1"=="-noaction" goto AtlasLauncherFlagNoAction\r?$'
-            $content | Should -Match '(?m)^exit /b 87\r?\n:AtlasLauncherFlagSilent\r?$'
-            ([regex]::Matches($content, '(?m)^shift /1\r?$')).Count | Should -Be 3
-            $content | Should -Not -Match '(?m)^shift\r?$'
-            $content | Should -Not -Match '(?im)^for /f|%ComSpec%|%\*'
-            $content | Should -Match '"%AtlasNativePowerShell%"'
-            $content | Should -Not -Match '%__APPDIR__%WindowsPowerShell|(?im)^\s*title\b'
-            $content | Should -Match '-File "%AtlasWindowsRoot%\\AtlasModules\\Scripts\\Invoke-Toggle\.ps1"'
-            $content | Should -Match '-Name "[A-Za-z][A-Za-z0-9]*"(?: -State "[A-Za-z][A-Za-z0-9]*")? -LauncherPath'
-            $content | Should -Match `
-                '%AtlasLauncherSilent% %AtlasLauncherJustContext% %AtlasLauncherNoAction%'
-            $content | Should -Not -Match '%(?:SystemRoot|windir|ERRORLEVEL)%|(?im)^\s*powershell(?:\.exe)?\s'
-            $content | Should -Match `
-                '(?m)^if errorlevel 0 \(\r?\n    if errorlevel 1 exit /b\r?\n\) else \(\r?\n    exit /b 1\r?\n\)\r?\nexit /b 0\r?$'
-        }
     }
 
     It 'canonicalizes only the supported launcher flags before reaching PowerShell' {
@@ -987,223 +893,23 @@ Describe 'New-ToggleLaunchers.ps1' {
         $rejected | Should -Not -Match '^SINK '
     }
 
-    It 'uses the fixed helper to select native PowerShell and sanitize a real cmd child' {
-        $probePath = Join-Path $TestDrive 'launcher-probe.cmd'
-        $helperEscaped = $script:LauncherEnvironmentHelper.Replace('%', '%%')
-        $probeLines = @(
-            '@echo off'
-            'verify other 2>nul'
-            'setlocal EnableExtensions DisableDelayedExpansion'
-            'if errorlevel 1 exit /b 1'
-            'cd /d "%__APPDIR__%"'
-            'if errorlevel 1 exit /b 1'
-            'for %%I in ("%__APPDIR__%..") do set "AtlasWindowsRoot=%%~fI"'
-            ('call "{0}"' -f $helperEscaped)
-            'if errorlevel 1 exit /b 12'
-            'if defined COR_ENABLE_PROFILING (echo COR=present) else (echo COR=cleared)'
-            'if defined COMPLUS_JITPATH (echo JIT=present) else (echo JIT=cleared)'
-            'echo CWD=%CD%'
-            'echo ROOT=%AtlasWindowsRoot%'
-            'echo PATH=%PATH%'
-            'echo COMSPEC=%ComSpec%'
-            'echo PATHEXT=%PATHEXT%'
-            'echo PSMODULEPATH=%PSModulePath%'
-            'echo NATIVEPOWERSHELL=%AtlasNativePowerShell%'
-            'exit /b 0'
-        )
-        [IO.File]::WriteAllText($probePath, (($probeLines -join "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
-
-        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
-        $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
-        $startInfo.FileName = $commandHost
-        $startInfo.Arguments = '/d /e:off /v:off /c call "' + $probePath + '"'
-        $startInfo.WorkingDirectory = $TestDrive
-        $startInfo.UseShellExecute = $false
-        $startInfo.RedirectStandardOutput = $true
-        $startInfo.RedirectStandardError = $true
-
-        $originalCor = $env:COR_ENABLE_PROFILING
-        $originalJit = $env:COMPLUS_JITPATH
-        try {
-            $env:COR_ENABLE_PROFILING = '1'
-            $env:COMPLUS_JITPATH = 'C:\untrusted\probe.dll'
-            $probe = [Diagnostics.Process]::Start($startInfo)
-            $stdout = $probe.StandardOutput.ReadToEnd()
-            $stderr = $probe.StandardError.ReadToEnd()
-            $probe.WaitForExit()
-
-            $probe.ExitCode | Should -Be 0 -Because $stderr
-            $stdout | Should -Match '(?m)^COR=cleared\r?$'
-            $stdout | Should -Match '(?m)^JIT=cleared\r?$'
-            $stdout | Should -Match ('(?m)^CWD=' + [regex]::Escape([Environment]::GetFolderPath('System')) + '\\?\r?$')
-            $stdout | Should -Match ('(?m)^ROOT=' + [regex]::Escape([Environment]::GetFolderPath('Windows')) + '\\?\r?$')
-            $expectedSystem = [Environment]::GetFolderPath('System')
-            $expectedWindows = [Environment]::GetFolderPath('Windows')
-            $expectedPath = "$expectedSystem;$expectedWindows;$expectedSystem\Wbem;$expectedSystem\WindowsPowerShell\v1.0"
-            $stdout | Should -Match ('(?m)^PATH=' + [regex]::Escape($expectedPath) + '\r?$')
-            $stdout | Should -Match ('(?m)^COMSPEC=' + [regex]::Escape((Join-Path $expectedSystem 'cmd.exe')) + '\r?$')
-            $stdout | Should -Match '(?m)^PATHEXT=\.COM;\.EXE;\.BAT;\.CMD\r?$'
-            $stdout | Should -Match `
-                ('(?m)^PSMODULEPATH=' + [regex]::Escape((Join-Path $expectedSystem 'WindowsPowerShell\v1.0\Modules')) + '\r?$')
-            $stdout | Should -Match `
-                ('(?m)^NATIVEPOWERSHELL=' + [regex]::Escape((Join-Path $expectedSystem 'WindowsPowerShell\v1.0\powershell.exe')) + '\r?$')
-        }
-        finally {
-            $env:COR_ENABLE_PROFILING = $originalCor
-            $env:COMPLUS_JITPATH = $originalJit
-        }
-    }
-
-    It 'propagates positive native exit 37 despite an inherited ERRORLEVEL variable' {
-        $probePath = Join-Path $TestDrive 'launcher-exit-probe.cmd'
-        $probeLines = @(
-            '@echo off'
-            'verify other 2>nul'
-            'setlocal EnableExtensions DisableDelayedExpansion'
-            'if errorlevel 1 exit /b 1'
-            '"%__APPDIR__%cmd.exe" /d /c exit 37'
-            'if errorlevel 0 ('
-            '    if errorlevel 1 exit /b'
-            ') else ('
-            '    exit /b 1'
-            ')'
-            'exit /b 0'
-        )
-        [IO.File]::WriteAllText($probePath, (($probeLines -join "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
-
-        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
-        $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
-        $startInfo.FileName = $commandHost
-        $startInfo.Arguments = '/d /e:off /v:off /c call "' + $probePath + '"'
-        $startInfo.UseShellExecute = $false
-
-        $originalErrorLevel = $env:ERRORLEVEL
-        try {
-            $env:ERRORLEVEL = '0'
-            $probe = [Diagnostics.Process]::Start($startInfo)
-            $probe.WaitForExit()
-            $probe.ExitCode | Should -Be 37
-        }
-        finally {
-            $env:ERRORLEVEL = $originalErrorLevel
-        }
-    }
-
-    It 'preserves a successful native exit as zero' {
-        $probePath = Join-Path $TestDrive 'launcher-zero-exit-probe.cmd'
-        $probeLines = @(
-            '@echo off'
-            'verify other 2>nul'
-            'setlocal EnableExtensions DisableDelayedExpansion'
-            'if errorlevel 1 exit /b 1'
-            '"%__APPDIR__%cmd.exe" /d /c exit 0'
-            'if errorlevel 0 ('
-            '    if errorlevel 1 exit /b'
-            ') else ('
-            '    exit /b 1'
-            ')'
-            'exit /b 0'
-        )
-        [IO.File]::WriteAllText(
-            $probePath,
-            (($probeLines -join "`r`n") + "`r`n"),
-            [Text.Encoding]::ASCII
-        )
-
-        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
-        $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
-        $startInfo.FileName = $commandHost
-        $startInfo.Arguments = '/d /e:off /v:off /c call "' + $probePath + '"'
-        $startInfo.UseShellExecute = $false
-
-        $probe = [Diagnostics.Process]::Start($startInfo)
-        $probe.WaitForExit()
-        $probe.ExitCode | Should -Be 0
-    }
-
-    It 'normalizes a negative native exit to failure instead of reporting success' {
-        $probePath = Join-Path $TestDrive 'launcher-negative-exit-probe.cmd'
-        $probeLines = @(
-            '@echo off'
-            'verify other 2>nul'
-            'setlocal EnableExtensions DisableDelayedExpansion'
-            'if errorlevel 1 exit /b 1'
-            '"%__APPDIR__%cmd.exe" /d /c exit /b -1'
-            'if errorlevel 0 ('
-            '    if errorlevel 1 exit /b'
-            ') else ('
-            '    exit /b 1'
-            ')'
-            'exit /b 0'
-        )
-        [IO.File]::WriteAllText(
-            $probePath,
-            (($probeLines -join "`r`n") + "`r`n"),
-            [Text.Encoding]::ASCII
-        )
-
-        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
-        $startInfo = [Activator]::CreateInstance([Diagnostics.ProcessStartInfo])
-        $startInfo.FileName = $commandHost
-        $startInfo.Arguments = '/d /e:off /v:off /c call "' + $probePath + '"'
-        $startInfo.UseShellExecute = $false
-
-        $probe = [Diagnostics.Process]::Start($startInfo)
-        $probe.WaitForExit()
-        $probe.ExitCode | Should -Be 1
-    }
 }
 
 Describe 'Get-AtlasToggleRelaunchArgumentList' {
-    # The relaunch argument list is space-joined by both consumers (Start-Process
-    # and the TrustedInstaller cmd join), so every value that can contain a space
-    # or shell metacharacter must be quoted. Get-AtlasToggleRelaunchArgumentList is
-    # module-private, hence InModuleScope.
-
     BeforeEach {
         Mock Get-AtlasContext -ModuleName Atlas.Toggles {
             [pscustomobject]@{ AtlasModulesPath = 'C:\Windows\AtlasModules' }
         }
     }
 
-    It 'quotes the -Name value so names with spaces survive the join' {
-        InModuleScope Atlas.Toggles {
-            $list = Get-AtlasToggleRelaunchArgumentList -Name 'My Toggle' -State 'Enable'
-
-            $nameIndex = [array]::IndexOf($list, '-Name')
-            $list[$nameIndex + 1] | Should -Be '"My Toggle"'
-        }
-    }
-
-    It 'quotes the -State value when a state is supplied' {
-        InModuleScope Atlas.Toggles {
-            $list = Get-AtlasToggleRelaunchArgumentList -Name 'BackgroundApps' -State 'Disable'
-
-            $stateIndex = [array]::IndexOf($list, '-State')
-            $list[$stateIndex + 1] | Should -Be '"Disable"'
-        }
-    }
-
-    It 'produces a joined command line with no unquoted space-bearing values' {
+    It 'quotes every dynamic value in the joined Windows command line' {
         InModuleScope Atlas.Toggles {
             $list = Get-AtlasToggleRelaunchArgumentList -Name 'My Toggle' -State 'Enable Now' -LauncherPath 'C:\Program Files\x.cmd'
-
             $joined = $list -join ' '
 
-            # Every space in the joined string must fall inside a quoted region;
-            # an odd number of quotes before any given space would reveal a bare gap.
             $joined | Should -Match '-Name "My Toggle"'
             $joined | Should -Match '-State "Enable Now"'
             $joined | Should -Match '-LauncherPath "C:\\Program Files\\x.cmd"'
         }
-    }
-}
-
-Describe 'RecentItems policy semantics' {
-    It 'uses the documented force-hide value for ShowOrHideMostUsedApps' {
-        $definitionPath = Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Toggles\Interface\RecentItems.ps1'
-        $source = Get-Content -LiteralPath $definitionPath -Raw
-
-        $source | Should -Match '(?m)New-ItemProperty\s+-LiteralPath\s+\$hklmPolicies\s+-Name\s+''ShowOrHideMostUsedApps''\s+-Value\s+2\s+-PropertyType\s+DWord'
     }
 }

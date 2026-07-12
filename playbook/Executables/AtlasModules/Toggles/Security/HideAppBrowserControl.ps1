@@ -5,6 +5,7 @@
     States    = [ordered]@{
         Hide = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '7. Security\Defender\Hide App and Browser Control\Hide App and Browser Control (default).cmd'
             Reboot     = 'None'
             Action     = {
@@ -21,12 +22,14 @@
         }
         Show = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '7. Security\Defender\Hide App and Browser Control\Show App and Browser Control.cmd'
             Reboot     = 'None'
             Action     = {
                 param($Toggle)
 
-                Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\App and Browser protection' -Name 'UILockdown' -Force -ErrorAction SilentlyContinue
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\App and Browser protection' -Name 'UILockdown'
 
                 if (-not $Toggle.Silent) { Write-Host 'Changes applied successfully.' }
             }

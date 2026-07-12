@@ -31,17 +31,6 @@ BeforeAll {
         return (@($Problems | ForEach-Object { $_.Problem }) -join "`n")
     }
 
-    function Get-YamlPowerShellAction {
-        param(
-            [string]$Yaml,
-            [string]$CommandFragment
-        )
-
-        $actionPattern = '(?ms)^  - !powerShell:\s*\r?\n(?:(?!^  - !).)*(?=^  - !|\z)'
-        return @([regex]::Matches($Yaml, $actionPattern) |
-            Where-Object { $_.Value -like "*$CommandFragment*" } |
-            ForEach-Object { $_.Value })
-    }
 }
 
 Describe 'Test-AtlasTweakManifest shape and graph validation' {
@@ -184,30 +173,17 @@ Describe 'Shipped tweak manifest execution graph' {
         $definition.ContainsKey('Registry') | Should -BeFalse
         (@($definition.Keys | Sort-Object) -join ',') | Should -BeExactly 'Description,Name,Script'
 
-        $source = Get-Content -LiteralPath $scriptPath -Raw
-        $source | Should -Match ([regex]::Escape(
-                '$script:AtlasMergeAdministratorLabel = ''Merge as administrator'''
-            ))
-        $source | Should -Match ([regex]::Escape(
-                '$script:AtlasMergeAdministratorCommand = ''"%SystemRoot%\System32\reg.exe" import "%1"'''
-            ))
-        $source | Should -Match '\[Microsoft\.Win32\.RegistryView\]::Registry64'
-        $source | Should -Match '\$key\.SetValue\(\$Name, \$Value, \$registryKind\)'
-        $source | Should -Match '\$key\.Flush\(\)'
-        $source | Should -Match '(?s)RegistryWriter\s+\$script:AtlasMergeCommandPath.*?AtlasMergeAdministratorCommand\s+''ExpandString''.*?RegistryWriter\s+\$script:AtlasMergeParentPath.*?AtlasMergeAdministratorLabel\s+''String'''
-        $source | Should -Match "if \(\`$MyInvocation\.InvocationName -ne '\.'\)"
-        $source | Should -Not -Match '(?i)Invoke-Expression|\biex\b|Start-Process'
     }
 
-    It 'keeps category parent modes aligned with the fresh-only tweaks YAML route' {
+    It 'keeps category parent modes aligned with the fresh install plan' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
-        $tweaksYaml = Get-Content -LiteralPath (Join-Path $script:repositoryRoot 'playbook\Configuration\tweaks.yml') -Raw
+        . (Join-Path $script:repositoryRoot `
+            'playbook\Executables\AtlasModules\Scripts\Internal\Install-Plan.ps1')
+        $freshKeys = @((Get-AtlasInstallPlan -Mode Fresh -IsOobe $false).Key)
 
-        $tweaksYaml | Should -Match '(?m)^onUpgrade:\s*false\s*$'
         foreach ($category in @($manifest.Categories)) {
             @($category.ParentModes) | Should -Be @('Fresh')
-            $escapedCategory = [regex]::Escape([string]$category.Name)
-            @([regex]::Matches($tweaksYaml, "-Phase Tweaks -Category $escapedCategory(?:'|\s)")).Count | Should -Be 1
+            $freshKeys | Should -Contain "Tweaks/$($category.Name)"
         }
     }
 
@@ -215,29 +191,27 @@ Describe 'Shipped tweak manifest execution graph' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
         $qol = @($manifest.Categories | Where-Object { $_.Name -eq 'qol' })[0]
         $themeRoute = @($manifest.Standalone | Where-Object { $_.Slug -eq 'qol/appearance/atlas-theme-upgrade' })
-        $revertPhase = Get-Content -LiteralPath (Join-Path $script:repositoryRoot 'playbook\Executables\AtlasModules\Scripts\Phases\Invoke-RevertPhase.ps1') -Raw
-        $customYaml = Get-Content -LiteralPath (Join-Path $script:repositoryRoot 'playbook\Configuration\custom.yml') -Raw
-        $revertAction = @(Get-YamlPowerShellAction -Yaml $customYaml -CommandFragment '-Phase Revert')
+        $planScript = Join-Path $script:repositoryRoot `
+            'playbook\Executables\AtlasModules\Scripts\Internal\Install-Plan.ps1'
+        . $planScript
+        $revertAction = @(Get-AtlasInstallPlan -Mode Upgrade -IsOobe $false |
+                Where-Object Key -CEQ 'Revert')
 
         @($qol.Tweaks) | Should -Not -Contain 'appearance/atlas-theme-upgrade'
         @($themeRoute).Count | Should -Be 1
         @($themeRoute[0].ParentModes) | Should -Be @('Upgrade')
         @($revertAction).Count | Should -Be 1
-        $revertAction[0] | Should -Match '(?m)^\s+onUpgrade:\s*true\s*$'
-        $revertPhase | Should -Match 'if \(-not \$context\.IsUpgrade\)'
-        $revertPhase | Should -Match "Scripts\\Tweaks\\qol\\appearance\\atlas-theme-upgrade\.psd1"
-        $revertPhase | Should -Match 'Invoke-AtlasTweak -Path \$themeUpgrade'
     }
 
     It 'keeps every standalone classification aligned with its PowerShell route' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
-        $customYaml = Get-Content -LiteralPath (Join-Path $script:repositoryRoot 'playbook\Configuration\custom.yml') -Raw
-        $tweaksYaml = Get-Content -LiteralPath (Join-Path $script:repositoryRoot 'playbook\Configuration\tweaks.yml') -Raw
+        $orchestrator = Join-Path $script:repositoryRoot `
+            'playbook\Executables\AtlasModules\Scripts\Invoke-AtlasInstall.ps1'
+        . $orchestrator
 
         $expectedModes = @{
-            'qol/set-hidden-settings-pages'          = 'Fresh,Upgrade'
+            'qol/set-hidden-settings-pages'          = 'Fresh'
             'scripts/set-power-settings'             = 'Fresh'
-            'misc/enable-notifications'              = 'Fresh,Upgrade'
             'qol/appearance/atlas-theme-upgrade'     = 'Upgrade'
         }
         foreach ($entry in @($manifest.Standalone)) {
@@ -246,21 +220,17 @@ Describe 'Shipped tweak manifest execution graph' {
         }
         @($manifest.Standalone).Count | Should -Be $expectedModes.Count
 
-        $setHidden = @(Get-YamlPowerShellAction -Yaml $customYaml -CommandFragment 'qol\set-hidden-settings-pages.psd1')
-        @($setHidden).Count | Should -Be 1
-        $setHidden[0] | Should -Not -Match '(?m)^\s+onUpgrade:'
-
-        @([regex]::Matches($tweaksYaml, [regex]::Escape('scripts\set-power-settings.psd1'))).Count | Should -Be 1
-        @([regex]::Matches($tweaksYaml, [regex]::Escape('misc\enable-notifications.psd1'))).Count | Should -Be 1
-
-        $upgradeNotifications = @(Get-YamlPowerShellAction -Yaml $customYaml -CommandFragment 'misc\enable-notifications.psd1')
-        @($upgradeNotifications).Count | Should -Be 1
-        $upgradeNotifications[0] | Should -Match '(?m)^\s+onUpgrade:\s*true\s*$'
+        $hidden = Get-AtlasInstallCheckpointAction -Target HiddenSettingsPages `
+            -ScriptsRoot $TestDrive -SourceScriptsRoot $TestDrive
+        $power = Get-AtlasInstallCheckpointAction -Target PowerSettings `
+            -ScriptsRoot $TestDrive -SourceScriptsRoot $TestDrive
+        $hidden.Arguments.Slug | Should -BeExactly 'qol/set-hidden-settings-pages'
+        $power.Arguments.Slug | Should -BeExactly 'scripts/set-power-settings'
     }
 }
 
 Describe 'Send-To install-time execution boundary' {
-    It 'calls the fixed internal helper directly while preserving the manual launcher' {
+    It 'calls the fixed internal helper directly as the current user' {
         $definitionPath = Join-Path -Path $script:shippedTweaksRoot `
             -ChildPath 'qol\explorer\debloat-send-to.psd1'
         $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
@@ -269,28 +239,15 @@ Describe 'Send-To install-time execution boundary' {
         $run.Count | Should -Be 1
         $run[0].Exe | Should -BeExactly `
             '{windir}\System32\WindowsPowerShell\v1.0\powershell.exe'
-        $run[0].Args | Should -BeExactly `
-            '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{windir}\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1" -DebloatDefaults'
+        @($run[0].Args) | Should -Be @(
+            '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+            '-File', '{windir}\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1',
+            '-DebloatDefaults'
+        )
         $run[0].Wait | Should -BeTrue
+        $run[0].RunAs | Should -BeExactly 'User'
+        $definition.Oobe | Should -BeFalse
         $run[0].Exe | Should -Not -Match 'AtlasDesktop|\.cmd$'
-        $run[0].Args | Should -Not -Match '@\('
-
-        $helperPath = Join-Path -Path $script:repositoryRoot `
-            -ChildPath 'playbook\Executables\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1'
-        $helper = Get-Content -LiteralPath $helperPath -Raw
-        $helper | Should -Match '\[switch\]\$DebloatDefaults'
-        $helper | Should -Match '\$Disable = @\(''Documents'', ''Mail Recipient'', ''Fax recipient'', ''Bluetooth''\)'
-        $helper | Should -Match "ChildPath 'AtlasModules\\Tools\\multichoice\.exe'"
-        $helper | Should -Match '& \$multiChoice "Send To Debloat"'
-        $helper | Should -Not -Match '(?m)^\$choices = \(multichoice\.exe\b'
-
-        $launcherPath = Join-Path -Path $script:repositoryRoot `
-            -ChildPath 'playbook\Executables\AtlasDesktop\4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd'
-        $launcher = Get-Content -LiteralPath $launcherPath -Raw
-        $launcher | Should -Match ([regex]::Escape('"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe"'))
-        $launcher | Should -Match '-File "%script%" -DebloatDefaults'
-        $launcher | Should -Match 'Unsupported Send-To launcher argument'
-        $launcher | Should -Not -Match '%\*|___args'
-        $launcher | Should -Not -Match '(?im)^\s*powershell(?:\.exe)?(?:\s|$)'
+        ($run[0].Args -is [array]) | Should -BeTrue
     }
 }

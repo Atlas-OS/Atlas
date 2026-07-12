@@ -1,42 +1,96 @@
 #Requires -RunAsAdministrator
 
-param (
-    [switch]$Silent
-)
+[CmdletBinding()]
+param([switch]$Silent)
 
 Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
 
-$fileSharingConfigPath = "$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\File Sharing"
+$modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\Modules'
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Registry\Atlas.Registry.psd1') `
+    -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Services\Atlas.Services.psd1') `
+    -Force -ErrorAction Stop
 
-Get-NetAdapterBinding -Name "*" -ComponentID ms_msclient, ms_server, ms_lltdio, ms_rspndr -ErrorAction SilentlyContinue |
-    Disable-NetAdapterBinding -ErrorAction SilentlyContinue |
-    Out-Null
-
-# Disable NetBios over TCP/IP
-$interfaces = Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces' -Recurse -ErrorAction SilentlyContinue |
-    Where-Object { $_.GetValue('NetbiosOptions') -ne $null }
-foreach ($interface in $interfaces) {
-    Set-ItemProperty -Path $interface.PSPath -Name "NetbiosOptions" -Value 2 | Out-Null
+$components = @('ms_msclient', 'ms_server', 'ms_lltdio', 'ms_rspndr')
+foreach ($binding in @(Get-NetAdapterBinding -Name '*' -ComponentID $components `
+            -ErrorAction Stop)) {
+    if ([bool]$binding.Enabled) {
+        Disable-NetAdapterBinding -Name ([string]$binding.Name) `
+            -ComponentID ([string]$binding.ComponentID) -Confirm:$false `
+            -ErrorAction Stop | Out-Null
+    }
+}
+if (@(Get-NetAdapterBinding -Name '*' -ComponentID $components -ErrorAction Stop |
+        Where-Object { [bool]$_.Enabled }).Count -ne 0) {
+    throw 'File Sharing disable left a managed adapter binding enabled.'
 }
 
-# Disable NetBIOS service
-Set-Service -Name NetBT -StartupType Disabled
+$interfacesPath = 'HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces'
+foreach ($interface in @(Get-ChildItem -LiteralPath $interfacesPath -ErrorAction Stop |
+            Where-Object { $_.GetValueNames() -contains 'NetbiosOptions' })) {
+    Set-ItemProperty -LiteralPath $interface.PSPath -Name 'NetbiosOptions' `
+        -Value 2 -Type DWord -Force -ErrorAction Stop
+    $key = Get-Item -LiteralPath $interface.PSPath -ErrorAction Stop
+    try {
+        if ($key.GetValueKind('NetbiosOptions') -ne
+            [Microsoft.Win32.RegistryValueKind]::DWord -or
+            [int]$key.GetValue('NetbiosOptions') -ne 2) {
+            throw "NetBIOS interface '$($interface.PSChildName)' did not retain disabled mode."
+        }
+    }
+    finally {
+        $key.Close()
+    }
+}
+Set-AtlasServiceStartup -Name 'NetBT' -StartupType 4
 
-Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Public
+foreach ($networkProfile in @(Get-NetConnectionProfile -ErrorAction Stop)) {
+    if ([string]$networkProfile.NetworkCategory -cne 'Public') {
+        Set-NetConnectionProfile -InputObject $networkProfile -NetworkCategory Public `
+            -ErrorAction Stop
+    }
+}
+if (@(Get-NetConnectionProfile -ErrorAction Stop | Where-Object {
+            [string]$_.NetworkCategory -cne 'Public'
+        }).Count -ne 0) {
+    throw 'File Sharing disable left a network profile outside the Public category.'
+}
 
-Get-NetFirewallRule | Where-Object {
-    # File and Printer Sharing, Network Discovery
-    (
-        ($_.Group -eq "@FirewallAPI.dll,-28502" -or $_.Group -eq "@FirewallAPI.dll,-32752") -or
-        ($_.DisplayGroup -eq "File and Printer Sharing" -or $_.DisplayGroup -eq "Network Discovery")
-    ) -and
-    ($_.Profile -like "*Private*")
-} | Disable-NetFirewallRule
+function Get-AtlasFileSharingFirewallRule {
+    @(Get-NetFirewallRule -ErrorAction Stop | Where-Object {
+            ($_.Group -in @('@FirewallAPI.dll,-28502', '@FirewallAPI.dll,-32752') -or
+                $_.DisplayGroup -in @('File and Printer Sharing', 'Network Discovery')) -and
+            $_.Profile -like '*Private*'
+        })
+}
 
-& "$fileSharingConfigPath\Network Navigation Pane\Disable Network Navigation Pane (default).cmd" /silent
-& "$fileSharingConfigPath\Give Access To Menu\Disable Give Access To Menu (default).cmd" /silent
+$rules = @(Get-AtlasFileSharingFirewallRule)
+if ($rules.Count -ne 0) {
+    $rules | Disable-NetFirewallRule -ErrorAction Stop | Out-Null
+}
+foreach ($rule in @(Get-AtlasFileSharingFirewallRule)) {
+    if ([string]$rule.Enabled -notin @('False', '0')) {
+        throw "Firewall rule '$($rule.Name)' did not retain its disabled state."
+    }
+}
 
-if ($Silent) { return }
+$sharingKeys = @(
+    'HKLM:\SOFTWARE\Classes\*\shellex\ContextMenuHandlers\Sharing'
+    'HKLM:\SOFTWARE\Classes\Directory\Background\shellex\ContextMenuHandlers\Sharing'
+    'HKLM:\SOFTWARE\Classes\Directory\shellex\ContextMenuHandlers\Sharing'
+    'HKLM:\SOFTWARE\Classes\Drive\shellex\ContextMenuHandlers\Sharing'
+    'HKLM:\SOFTWARE\Classes\LibraryFolder\background\shellex\ContextMenuHandlers\Sharing'
+    'HKLM:\SOFTWARE\Classes\UserLibraryFolder\shellex\ContextMenuHandlers\Sharing'
+)
+foreach ($key in $sharingKeys) {
+    Remove-AtlasRegistryKey -Path $key
+    if (Test-Path -LiteralPath $key -ErrorAction Stop) {
+        throw "File Sharing disable left the context-menu key '$key'."
+    }
+}
 
-Write-Host "`nCompleted! " -ForegroundColor Green -NoNewLine
-Write-Host "You'll need to restart to apply the changes." -ForegroundColor Yellow
+if (-not $Silent) {
+    Write-Host "`nCompleted! " -ForegroundColor Green -NoNewLine
+    Write-Host "You'll need to restart to apply the changes." -ForegroundColor Yellow
+}

@@ -9,6 +9,6 @@
         # Belt-and-braces on top of the registry disable. netsh matches the LOCALIZED rule
         # group name, so this only matches on English Windows and returns exit code 1
         # elsewhere - IgnoreErrors keeps that from failing the tweak.
-        @{ Exe = 'netsh'; Args = 'advfirewall firewall set rule group="Remote Assistance" new enable=no'; IgnoreErrors = $true }
+        @{ Exe = '{windir}\System32\netsh.exe'; Args = @('advfirewall', 'firewall', 'set', 'rule', 'group=Remote Assistance', 'new', 'enable=no'); IgnoreErrors = $true }
     )
 }

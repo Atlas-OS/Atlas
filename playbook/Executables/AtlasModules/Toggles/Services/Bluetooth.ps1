@@ -8,8 +8,11 @@
             StateValue = 0
             Launcher   = '6. Advanced Configuration\Services\Bluetooth\Disable Bluetooth.cmd'
             Reboot     = 'Recommend'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = {
                 param($Toggle)
+
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
                 Write-Host 'Disabling Bluetooth... This might take a minute.'
                 $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
@@ -18,20 +21,20 @@
                     'BthHFEnum', 'BthLEEnum', 'BthMini', 'BTHMODEM', 'BTHPORT', 'bthserv',
                     'BTHUSB', 'HidBth', 'Microsoft_Bluetooth_AvrcpTransport', 'RFCOMM'
                 )) {
-                    & $setSvc -Name $svc -Start 4
+                    & $setSvc -Name $svc -Start 4 -AllowMissing
                 }
-                & $setSvc -Name 'BthPan' -Start 4 2>$null
+                & $setSvc -Name 'BthPan' -Start 4 -AllowMissing
 
                 $toggleDevice = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-DeviceState.ps1'
-                & $toggleDevice -Silent '*Bluetooth*'
+                & $toggleDevice -Silent -AllowNoMatch '*Bluetooth*'
+
+                Set-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth' -Name 'value' -Type DWord -Data 0
+            }
+            UserAction = {
+                param($Toggle)
 
                 $sendTo = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SendToContextMenu.ps1'
                 & $sendTo -Disable @('Bluetooth')
-
-                $key = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth'
-                if (-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null }
-                Set-ItemProperty -LiteralPath $key -Name 'value' -Value 0 -Type DWord -Force
-
                 if (-not $Toggle.Silent) { Write-Host 'Finished, please reboot your device for changes to apply.' }
             }
         }
@@ -39,8 +42,11 @@
             StateValue = 1
             Launcher   = '6. Advanced Configuration\Services\Bluetooth\Enable Bluetooth (default).cmd'
             Reboot     = 'Recommend'
-            Action     = {
+            StateRecordScope = 'Machine'
+            MachineAction = {
                 param($Toggle)
+
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 
                 $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 foreach ($svc in @(
@@ -48,16 +54,17 @@
                     'BthHFEnum', 'BthLEEnum', 'BthMini', 'BTHMODEM', 'BTHPORT', 'bthserv',
                     'BTHUSB', 'HidBth', 'Microsoft_Bluetooth_AvrcpTransport', 'RFCOMM'
                 )) {
-                    & $setSvc -Name $svc -Start 3
+                    & $setSvc -Name $svc -Start 3 -AllowMissing
                 }
-                & $setSvc -Name 'BthPan' -Start 3 2>$null
+                & $setSvc -Name 'BthPan' -Start 3 -AllowMissing
 
                 $toggleDevice = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-DeviceState.ps1'
-                & $toggleDevice -Silent -Enable '*Bluetooth*'
+                & $toggleDevice -Silent -Enable -AllowNoMatch '*Bluetooth*'
 
-                $key = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth'
-                if (-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null }
-                Set-ItemProperty -LiteralPath $key -Name 'value' -Value 2 -Type DWord -Force
+                Set-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\AllowBluetooth' -Name 'value' -Type DWord -Data 2
+            }
+            UserAction = {
+                param($Toggle)
 
                 $sendTo = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SendToContextMenu.ps1'
                 $enableSendTo = $false

@@ -71,12 +71,12 @@ Describe 'Stop-AtlasProcess' {
         Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Name -eq 'msteams*' } -MockWith {
             [System.Diagnostics.Process]::GetCurrentProcess()
         }
-        Mock Stop-Process -ModuleName Atlas.TasksProcs
+        Mock Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs
 
         Stop-AtlasProcess -Name 'msteams*'
 
-        Should -Invoke Stop-Process -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
-            $InputObject.Id -eq $PID -and $Force
+        Should -Invoke Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Process.Id -eq $PID
         }
     }
 
@@ -84,7 +84,7 @@ Describe 'Stop-AtlasProcess' {
         Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Name -eq 'msteams*' } -MockWith {
             [pscustomobject]@{ ProcessName = 'msteams'; Id = 4242 }
         }
-        Mock Stop-Process -ModuleName Atlas.TasksProcs -MockWith { throw 'Access is denied.' }
+        Mock Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs -MockWith { throw 'Access is denied.' }
         Mock Write-AtlasLog -ModuleName Atlas.TasksProcs
 
         { Stop-AtlasProcess -Name 'msteams*' } | Should -Not -Throw
@@ -92,6 +92,110 @@ Describe 'Stop-AtlasProcess' {
         Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
             $Level -eq 'Warning' -and $Message -like "*msteams*"
         }
+    }
+
+    It 'stops only processes in the explicitly requested Windows session' {
+        Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Name -eq 'explorer' } -MockWith {
+            @(
+                [pscustomobject]@{ ProcessName = 'explorer'; Id = 7001; SessionId = 7 }
+                [pscustomobject]@{ ProcessName = 'explorer'; Id = 8001; SessionId = 8 }
+            )
+        }
+        Mock Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs
+
+        Stop-AtlasProcess -Name 'explorer' -SessionId 7 -StopOnError
+
+        Should -Invoke Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs -Times 1 -Exactly `
+            -ParameterFilter { $Process.Id -eq 7001 }
+        Should -Invoke Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs -Times 0 -Exactly `
+            -ParameterFilter { $Process.Id -eq 8001 }
+    }
+
+    It 'fails closed when a requested-session process cannot be stopped' {
+        Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Name -eq 'explorer' } -MockWith {
+            [pscustomobject]@{ ProcessName = 'explorer'; Id = 7001; SessionId = 7 }
+        }
+        Mock Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs -MockWith { throw 'injected stop failure' }
+
+        { Stop-AtlasProcess -Name 'explorer' -SessionId 7 -StopOnError } |
+            Should -Throw -ExpectedMessage '*injected stop failure*'
+    }
+
+    It 'tolerates the checked process exiting naturally before termination' {
+        Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Name -eq 'explorer' } -MockWith {
+            [pscustomobject]@{
+                ProcessName = 'explorer'; Id = 7001; SessionId = 7; HasExited = $true
+            }
+        }
+        Mock Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs -MockWith { throw 'process already exited' }
+
+        { Stop-AtlasProcess -Name 'explorer' -SessionId 7 -StopOnError } |
+            Should -Not -Throw
+    }
+
+    It 'requires the retained stopped process to reach a bounded exit postcondition' {
+        Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Name -eq 'explorer' } -MockWith {
+            [pscustomobject]@{ ProcessName = 'explorer'; Id = 7001; SessionId = 7 }
+        }
+        Mock Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs
+        Mock Wait-AtlasProcessExit -ModuleName Atlas.TasksProcs
+
+        Stop-AtlasProcess -Name explorer -SessionId 7 -StopOnError `
+            -WaitTimeoutMilliseconds 5000
+
+        Should -Invoke Wait-AtlasProcessExit -ModuleName Atlas.TasksProcs `
+            -Times 1 -Exactly -ParameterFilter {
+                $Process.Id -eq 7001 -and $TimeoutMilliseconds -eq 5000
+            }
+    }
+
+    It 'fails closed when a stopped process misses its bounded exit postcondition' {
+        Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Name -eq 'msteams*' } -MockWith {
+            [pscustomobject]@{
+                ProcessName = 'msteams'; Id = 7002; SessionId = 7; HasExited = $false
+            }
+        }
+        Mock Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs
+        Mock Wait-AtlasProcessExit -ModuleName Atlas.TasksProcs -MockWith { throw 'wait timed out' }
+
+        {
+            Stop-AtlasProcess -Name 'msteams*' -SessionId 7 -StopOnError `
+                -WaitTimeoutMilliseconds 5000
+        } | Should -Throw -ExpectedMessage '*wait timed out*'
+    }
+
+    It 'accepts Explorer only when it owns the shell window in the requested session' {
+        Mock Get-AtlasShellWindowProcessId -ModuleName Atlas.TasksProcs -MockWith { 7002 }
+        Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Id -eq 7002 } -MockWith {
+            [pscustomobject]@{
+                Id = 7002; ProcessName = 'explorer'; SessionId = 7; HasExited = $false
+            }
+        }
+
+        $result = Wait-AtlasExplorerShellRecovery -SessionId 7 -TimeoutSeconds 1
+
+        $result.Id | Should -Be 7002
+        $result.SessionId | Should -Be 7
+    }
+
+    It 'waits past a shell-window owner from another session' {
+        $script:processRead = 0
+        Mock Get-AtlasShellWindowProcessId -ModuleName Atlas.TasksProcs -MockWith { 7002 }
+        Mock Get-Process -ModuleName Atlas.TasksProcs -ParameterFilter { $Id -eq 7002 } -MockWith {
+            $script:processRead++
+            [pscustomobject]@{
+                Id = 7002
+                ProcessName = 'explorer'
+                SessionId = if ($script:processRead -eq 1) { 8 } else { 7 }
+                HasExited = $false
+            }
+        }
+        Mock Start-Sleep -ModuleName Atlas.TasksProcs
+
+        $result = Wait-AtlasExplorerShellRecovery -SessionId 7 -TimeoutSeconds 1
+
+        $result.SessionId | Should -Be 7
+        Should -Invoke Get-Process -ModuleName Atlas.TasksProcs -Times 2 -Exactly
     }
 }
 
@@ -152,6 +256,7 @@ Describe 'Root-scoped cleanup helpers live in Atlas.TasksProcs' {
         $exported = (Get-Command -Module Atlas.TasksProcs).Name
         $exported | Should -Contain 'Stop-AtlasProcessUnderRoot'
         $exported | Should -Contain 'Stop-AtlasScheduledTaskUnderRoot'
+        $exported | Should -Contain 'Wait-AtlasExplorerShellRecovery'
     }
 
     It 'no longer exposes the old Stop-ProcessesUnderRoots name' {
@@ -160,5 +265,27 @@ Describe 'Root-scoped cleanup helpers live in Atlas.TasksProcs' {
 
     It 'no longer exposes the old Stop-TasksUnderRoots name' {
         Get-Command -Name 'Stop-TasksUnderRoots' -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+
+    It 'keeps TI root cleanup inside the explicitly requested Windows session' {
+        Mock Get-Process -ModuleName Atlas.TasksProcs -MockWith {
+            @(
+                [pscustomobject]@{
+                    Id = 100; Path = 'C:\Windows\AtlasModules\Tools\machine.exe'; SessionId = 0
+                }
+                [pscustomobject]@{
+                    Id = 101; Path = 'C:\Windows\AtlasModules\Tools\user.exe'; SessionId = 7
+                }
+            )
+        }
+        Mock Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs
+        Mock Wait-AtlasProcessExit -ModuleName Atlas.TasksProcs
+
+        Stop-AtlasProcessUnderRoot -RootsLower @('c:\windows\atlasmodules\') -SessionId 0
+
+        Should -Invoke Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs -Times 1 -Exactly `
+            -ParameterFilter { $Process.Id -eq 100 }
+        Should -Invoke Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs -Times 0 -Exactly `
+            -ParameterFilter { $Process.Id -eq 101 }
     }
 }

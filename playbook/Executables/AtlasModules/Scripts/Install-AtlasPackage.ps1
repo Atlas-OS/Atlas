@@ -5,24 +5,21 @@
 #
 # Interactive shell around the Atlas.Software CBS package engine
 # (Install-AtlasCbsPackage / Uninstall-AtlasCbsPackage). This script stays at this
-# exact path because the Safe Mode Winlogon shell value, the AtlasFailedComponentMsgBox
-# scheduled task and the toolbox scripts (Internal\Set-DefenderState.ps1,
-# Internal\Remove-TelemetryComponents.ps1) all invoke it. The install phases call the module
+# exact path because toolbox scripts (Internal\Set-DefenderState.ps1,
+# Internal\Remove-TelemetryComponents.ps1) invoke it. Install phases call the module
 # functions directly instead.
 
 param (
 	[array]$InstallPackages,
 	[array]$UninstallPackages,
 	[string]$PackagesPath = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Packages",
-	[switch]$NoInteraction,
-	[switch]$SafeMode,
-	[switch]$FailMessage
+	[switch]$NoInteraction
 )
 
 Set-StrictMode -Version 3.0
 
 if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18')) {
-	throw "This script must be ran as TrustedInstaller/SYSTEM."
+	throw 'This script must be run as TrustedInstaller or SYSTEM.'
 }
 
 # ======================================================================================================================= #
@@ -31,16 +28,25 @@ if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-1
 $windir = [Environment]::GetFolderPath('Windows')
 $atlasModulesRoot = Split-Path -Parent $PSScriptRoot
 $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Modules'
+$cbsRetryScript = Join-Path -Path $PSScriptRoot -ChildPath 'Internal\CbsRetry.ps1'
+if (!(Test-Path -LiteralPath $cbsRetryScript -PathType Leaf)) {
+	throw "Required CBS retry helper '$cbsRetryScript' is missing."
+}
+$helperItem = Get-Item -LiteralPath $cbsRetryScript -Force -ErrorAction Stop
+if (($helperItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+	throw "Required CBS retry helper '$cbsRetryScript' is a reparse point."
+}
+. $cbsRetryScript -LibraryOnly
+
 & (Join-Path -Path $atlasModulesRoot -ChildPath 'initPowerShell.ps1')
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force -ErrorAction Stop
 $sys32 = [Environment]::GetFolderPath('System')
-$safeModePackageList = "$sys32\safeModePackagesToInstall.atlasmodule"
 $env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
 $script:errorLevel = 0
 $script:warningLevel = 0
-
-$safeModeStatus = (Get-CimInstance -Class Win32_ComputerSystem).BootupState -ne 'Normal boot'
+$script:retryPackages = @()
+$literalPackages = $null
 
 # ======================================================================================================================= #
 # FUNCTIONS                                                                                                               #
@@ -51,36 +57,6 @@ function Write-BulletPoint($message) {
 		Write-Host $_
 	}
 	Write-Host ""
-}
-
-function Set-AtlasSafeBoot {
-	param (
-		[switch]$Enable,
-		[array]$FailedPackageList,
-		[string]$FailedPackageListPath = $safeModePackageList
-	)
-
-	if ($Enable) {
-		$bcdeditArgs = '/set {current} safeboot minimal'
-		$shellValue = "explorer.exe,cmd /c RunAsTI powershell -NoP -EP RemoteSigned -File `"$PSCommandPath`" -SafeMode"
-
-		if ($FailedPackageList) {
-			Set-Content -Path $FailedPackageListPath -Value $FailedPackageList
-		}
-	} else {
-		$bcdeditArgs = '/deletevalue {current} safeboot'
-		$shellValue = 'explorer.exe'
-	}
-
-	if ($bcdeditArgs) { Start-Process -FilePath "bcdedit" -ArgumentList $bcdeditArgs -WindowStyle Hidden -Wait }
-	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name Shell -Value $shellValue -Force
-}
-if (
-	($safeModeStatus -and
-	(Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name Shell).Shell -like "*$PSCommandPath*") -or
-	$SafeMode
-) {
-	Set-AtlasSafeBoot
 }
 
 function Restart {
@@ -117,22 +93,19 @@ $separator
 			Read-Pause
 		}
 
-		if ($safeModeStatus) {
-			Write-Host "Please report this to the Atlas team, as there's no automatic fallbacks past Safe Mode." -ForegroundColor Magenta
-			choice /c yn /n /m "Would you like to restart out of Safe Mode? [Y/N] "
-			if ($lastexitcode -eq 1) {
-				Restart
-			} else {
-				NoRestart
-			}
+		if (@($script:retryPackages).Count -eq 0) {
+			Write-Host 'The failed packages are not eligible for a Safe Mode retry.' -ForegroundColor Red
+			NoRestart
+			exit $script:errorLevel
+		}
+		choice /c yn /n /m "Would you like to arm a Safe Mode retry? [Y/N] "
+		if ($lastexitcode -eq 1) {
+			$retryPaths = @($script:retryPackages | ForEach-Object { [string]$_.Path })
+			[void](Enable-AtlasCbsRetry -Packages $retryPaths)
+			Write-Host 'Safe Mode retry armed. Run CbsRetry.ps1 -Recover from the Safe Mode command prompt.' -ForegroundColor Yellow
+			Restart
 		} else {
-			choice /c yn /n /m "Would you like to boot into Safe Mode and attempt to install them? [Y/N] "
-			if ($lastexitcode -eq 1) {
-				Set-AtlasSafeBoot -Enable -FailedPackageList $failedPackages
-				Restart
-			} else {
-				NoRestart
-			}
+			NoRestart
 		}
 
 		exit $script:errorLevel
@@ -167,55 +140,6 @@ if ($UninstallPackages) {
 }
 
 # ======================================================================================================================= #
-# SAFE MODE PACKAGE LIST                                                                                                  #
-# ======================================================================================================================= #
-$literalPackages = $null
-if ($SafeMode) {
-	function ExitSafeModePrompt {
-		choice /c yn /n /m "Would you like to restart to get out of Safe Mode? [Y/N] "
-		if ($lastexitcode -eq 1) {
-			Restart
-		} else {
-			exit 1
-		}
-	}
-
-	$literalPackages = @(Get-Content $safeModePackageList -ErrorAction SilentlyContinue)
-
-	if ($literalPackages.Count -le 0) {
-		Write-Host "[ERROR] Safe Mode package list not found! Please report this to Atlas." -ForegroundColor Red
-		ExitSafeModePrompt
-	}
-
-	$packagesThatDontExist = $literalPackages | ForEach-Object { if (!(Test-Path $_ -PathType Leaf)) { $_ } }
-	if ($packagesThatDontExist) {
-		Write-Host "[ERROR] Some Safe Mode packages weren't found. Please report this to Atlas." -ForegroundColor Red
-		Write-BulletPoint $packagesThatDontExist
-		ExitSafeModePrompt
-	}
-}
-
-# ======================================================================================================================= #
-# FAIL MESSAGE                                                                                                            #
-# ======================================================================================================================= #
-if ($FailMessage) {
-	$body = @"
-It appears that there was an issue while attempting to disable certain Windows components.
-
-Would you like Atlas to restart your system into Safe Mode and try again? This process shouldn't take much time.
-
-Please note that if you chose to disable Windows Defender, it may still remain enabled if you select 'No'. However, you can always try disabling it later in the Atlas folder.
-"@
-
-	if ((Read-MessageBox -Title "Atlas - Component Modification" -Body $body -Icon Question) -eq 'Yes') {
-		Set-AtlasSafeBoot -Enable
-		Restart
-	}
-
-	exit
-}
-
-# ======================================================================================================================= #
 # UI - SELECT PACKAGES                                                                                                    #
 # ======================================================================================================================= #
 if (!$InstallPackages -and !$literalPackages) {
@@ -244,8 +168,7 @@ try {
 		$installResult = Install-AtlasCbsPackage -Packages $InstallPackages -PackagesPath $PackagesPath -NonInteractive:$NoInteraction
 	}
 } catch {
-	# Zero CABs matched, or a NoInteraction failure (the module already registered the
-	# Safe Mode retry fallback and the next-boot message box in that case).
+	# Zero CABs matched, or a NoInteraction failure after the module armed a retry.
 	Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
 	$script:errorLevel++
 	if (!$NoInteraction) { Read-Pause }
@@ -254,6 +177,7 @@ try {
 
 $script:errorLevel += @($installResult.FailedPackages).Count
 $script:warningLevel += @($installResult.UnmatchedPatterns).Count
+$script:retryPackages = @($installResult.RetryPackages)
 
 # ======================================================================================================================= #
 # RESTART                                                                                                                 #

@@ -9,22 +9,36 @@
     States        = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             MenuLabel  = 'Disable the spinning animation'
             Reboot     = 'Recommend'
             Action     = {
                 param($Toggle)
 
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /set '{globalsettings}' custom:16000069 true | Out-Null
+                $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
+                Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                    -ArgumentList ([string[]]@('/set', '{globalsettings}', 'custom:16000069', 'true')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
             }
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             MenuLabel  = 'Enable the spinning animation (default)'
             Reboot     = 'Recommend'
             Action     = {
                 param($Toggle)
 
-                & "$($Toggle.WinDir)\System32\bcdedit.exe" /deletevalue '{globalsettings}' custom:16000069 2>$null | Out-Null
+                $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
+                $bcdEditOutput = Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                    -ArgumentList ([string[]]@('/enum', '{globalsettings}')) `
+                    -AllowedExitCodes ([int[]]@(0))
+                if (($bcdEditOutput -join [Environment]::NewLine) -match
+                    '(?im)^[ \t]*custom:16000069(?:[ \t]+|$)') {
+                    Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+                        -ArgumentList ([string[]]@('/deletevalue', '{globalsettings}', 'custom:16000069')) `
+                        -AllowedExitCodes ([int[]]@(0)) | Out-Null
+                }
             }
         }
     }

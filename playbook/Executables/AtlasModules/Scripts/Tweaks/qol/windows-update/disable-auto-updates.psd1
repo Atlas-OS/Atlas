@@ -22,7 +22,7 @@
         # - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell\Update\Packages\Components', value: 'WindowsBackup', operation: delete}
         # - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\LastOnlineScanTimeForAppCategory\855E8A7C-ECB4-4CA3-B045-1DFA50104289', value: 'EA6A8EC8-24BF-48A3-B0F0-A86A6447C0E2', operation: delete}
         # - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RequestedAppCategories\855E8A7C-ECB4-4CA3-B045-1DFA50104289', value: 'EA6A8EC8-24BF-48A3-B0F0-A86A6447C0E2', operation: delete}
-        # - Windows Web Experience Pack firewall block rules (see git history of
+        # - Windows Web Experience Pack firewall block rules (see the pre-rewrite history of
         #   playbook/Configuration/tweaks/qol/windows-update/disable-auto-updates.yml for the full data)
     )
 }

@@ -1,18 +1,14 @@
-# Atlas.Core domain: run a process as the interactive user from a SYSTEM context.
+# Atlas.Core domain: run the inbox Windows PowerShell host as the installing user.
 #
-# This drops from SYSTEM (including a strict TrustedInstaller service token) down to the
-# logged-on interactive user. It is the technique
-# AME Wizard's backend (TrustedUninstaller) uses for `runas: currentUser` - grab the active
-# console session's user token with WTSQueryUserToken and CreateProcessAsUser onto the
-# interactive desktop (winsta0\default), which shell COM (theme apply, pin-to-Home) needs.
-#
-# Requires the calling process to be SYSTEM (S-1-5-18) so it holds SeTcbPrivilege; the
-# install phases that use this run as TrustedInstaller, which qualifies.
+# The install state supplies one explicit account SID and Windows session. Atlas asks
+# WTS for only that session, verifies the returned token, and never enumerates sessions
+# or falls back to whichever account happens to be active.
 
 $script:AtlasRunAsUserTypeLoaded = $false
 
 function Initialize-AtlasRunAsUserType {
-    if ($script:AtlasRunAsUserTypeLoaded) {
+    if ($script:AtlasRunAsUserTypeLoaded -or ('Atlas.UserProcess' -as [type])) {
+        $script:AtlasRunAsUserTypeLoaded = $true
         return
     }
 
@@ -20,6 +16,7 @@ function Initialize-AtlasRunAsUserType {
 using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 
 namespace Atlas {
@@ -27,275 +24,202 @@ namespace Atlas {
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         struct STARTUPINFO {
             public int cb;
-            public string lpReserved;
-            public string lpDesktop;
-            public string lpTitle;
-            public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
+            public string lpReserved, lpDesktop, lpTitle;
+            public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars;
+            public int dwFillAttribute, dwFlags;
             public short wShowWindow, cbReserved2;
             public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
         }
-
         [StructLayout(LayoutKind.Sequential)]
         struct PROCESS_INFORMATION {
             public IntPtr hProcess, hThread;
             public int dwProcessId, dwThreadId;
         }
-
         [StructLayout(LayoutKind.Sequential)]
-        struct SECURITY_ATTRIBUTES {
-            public int nLength;
-            public IntPtr lpSecurityDescriptor;
-            public bool bInheritHandle;
-        }
-
-        enum SECURITY_IMPERSONATION_LEVEL { SecurityAnonymous, SecurityIdentification, SecurityImpersonation, SecurityDelegation }
-        enum TOKEN_TYPE { TokenPrimary = 1, TokenImpersonation }
-        enum TOKEN_INFORMATION_CLASS { TokenLinkedToken = 19 }
-
+        struct SID_AND_ATTRIBUTES { public IntPtr Sid; public uint Attributes; }
         [StructLayout(LayoutKind.Sequential)]
-        struct TOKEN_LINKED_TOKEN {
-            public IntPtr LinkedToken;
+        struct TOKEN_USER { public SID_AND_ATTRIBUTES User; }
+        enum SECURITY_IMPERSONATION_LEVEL {
+            SecurityAnonymous, SecurityIdentification, SecurityImpersonation, SecurityDelegation
         }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct LUID {
-            public uint LowPart;
-            public int HighPart;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct TOKEN_PRIVILEGES {
-            public int PrivilegeCount;
-            public LUID Luid;
-            public int Attributes;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct WTS_SESSION_INFO {
-            public uint SessionId;
-            public IntPtr pWinStationName;
-            public int State; // WTS_CONNECTSTATE_CLASS; 0 = WTSActive
-        }
-
+        const int TokenUser = 1;
+        const int TokenType = 8;
+        const int TokenSessionId = 12;
+        const int PrimaryToken = 1;
+        const int TOKEN_ASSIGN_PRIMARY = 0x0001;
         const int TOKEN_DUPLICATE = 0x0002;
-        const int TOKEN_ADJUST_PRIVILEGES = 0x0020;
         const int TOKEN_QUERY = 0x0008;
-        const int SE_PRIVILEGE_ENABLED = 0x0002;
-        const int ERROR_NOT_ALL_ASSIGNED = 1300;
-        const uint MAXIMUM_ALLOWED = 0x02000000;
+        const int KEY_QUERY_VALUE = 0x0001;
         const int CREATE_UNICODE_ENVIRONMENT = 0x00000400;
         const int CREATE_NO_WINDOW = 0x08000000;
-        const uint WAIT_OBJECT_0 = 0x00000000;
+        const uint WAIT_OBJECT_0 = 0;
         const uint WAIT_TIMEOUT = 0x00000102;
         const uint WAIT_FAILED = 0xFFFFFFFF;
-        const uint MAX_WAIT_TIMEOUT_MILLISECONDS = 3600000;
-
+        [DllImport("wtsapi32.dll", SetLastError = true)]
+        static extern bool WTSQueryUserToken(uint sessionId, out IntPtr token);
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern bool DuplicateTokenEx(IntPtr existingToken, uint access,
+            IntPtr tokenAttributes, SECURITY_IMPERSONATION_LEVEL impersonationLevel,
+            int tokenType, out IntPtr newToken);
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern bool GetTokenInformation(IntPtr token, int informationClass,
+            IntPtr information, int length, out int returned);
+        [DllImport("advapi32.dll", EntryPoint = "RegOpenKeyExW", CharSet = CharSet.Unicode)]
+        static extern int RegOpenKeyEx(UIntPtr key, string subKey, uint options,
+            int access, out IntPtr result);
+        [DllImport("advapi32.dll")]
+        static extern int RegCloseKey(IntPtr key);
+        [DllImport("userenv.dll", SetLastError = true)]
+        static extern bool CreateEnvironmentBlock(out IntPtr environment, IntPtr token,
+            bool inherit);
+        [DllImport("userenv.dll", SetLastError = true)]
+        static extern bool DestroyEnvironmentBlock(IntPtr environment);
+        [DllImport("advapi32.dll", EntryPoint = "CreateProcessAsUserW",
+            CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern bool CreateProcessAsUser(IntPtr token, string applicationName,
+            StringBuilder commandLine, IntPtr processAttributes, IntPtr threadAttributes,
+            bool inheritHandles, int flags, IntPtr environment, string currentDirectory,
+            ref STARTUPINFO startupInfo, out PROCESS_INFORMATION processInformation);
         [DllImport("kernel32.dll", SetLastError = true)]
-        static extern uint WTSGetActiveConsoleSessionId();
+        static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool TerminateProcess(IntPtr process, uint exitCode);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool CloseHandle(IntPtr handle);
 
-        [DllImport("kernel32.dll")]
-        static extern IntPtr GetCurrentProcess();
+        static Win32Exception LastError(string operation) {
+            int error = Marshal.GetLastWin32Error();
+            return new Win32Exception(error,
+                String.Format("{0} (Win32 error {1}).", operation, error));
+        }
 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        static extern bool OpenProcessToken(IntPtr ProcessHandle, int DesiredAccess, out IntPtr TokenHandle);
-
-        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        static extern bool LookupPrivilegeValue(string lpSystemName, string lpName, out LUID lpLuid);
-
-        [DllImport("advapi32.dll", SetLastError = true)]
-        static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, int BufferLength, IntPtr PreviousState, IntPtr ReturnLength);
-
-        [DllImport("wtsapi32.dll", SetLastError = true)]
-        static extern bool WTSEnumerateSessions(IntPtr hServer, int Reserved, int Version, out IntPtr ppSessionInfo, out int pCount);
-
-        [DllImport("wtsapi32.dll")]
-        static extern void WTSFreeMemory(IntPtr pMemory);
-
-        [DllImport("wtsapi32.dll", SetLastError = true)]
-        static extern bool WTSQueryUserToken(uint sessionId, out IntPtr phToken);
-
-        // SYSTEM holds these privileges but they can arrive disabled; WTSQueryUserToken
-        // needs SeTcb and CreateProcessAsUser needs SeAssignPrimaryToken + SeIncreaseQuota.
-        static void EnablePrivilege(string name) {
-            IntPtr token;
-            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out token)) {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "OpenProcessToken failed.");
-            }
+        static string ReadTokenSid(IntPtr token) {
+            int required;
+            GetTokenInformation(token, TokenUser, IntPtr.Zero, 0, out required);
+            IntPtr buffer = Marshal.AllocHGlobal(required);
             try {
-                LUID luid;
-                if (!LookupPrivilegeValue(null, name, out luid)) {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "LookupPrivilegeValue(" + name + ") failed.");
+                if (!GetTokenInformation(token, TokenUser, buffer, required, out required)) {
+                    throw LastError("GetTokenInformation(TokenUser) failed");
                 }
-                TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES();
-                tp.PrivilegeCount = 1;
-                tp.Luid = luid;
-                tp.Attributes = SE_PRIVILEGE_ENABLED;
-                if (!AdjustTokenPrivileges(token, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero) || Marshal.GetLastWin32Error() == ERROR_NOT_ALL_ASSIGNED) {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Enabling privilege " + name + " failed (is the caller SYSTEM?).");
-                }
+                TOKEN_USER user = (TOKEN_USER)Marshal.PtrToStructure(buffer,
+                    typeof(TOKEN_USER));
+                return new SecurityIdentifier(user.User.Sid).Value;
             }
-            finally {
-                CloseHandle(token);
+            finally { Marshal.FreeHGlobal(buffer); }
+        }
+
+        static int ReadTokenInt32(IntPtr token, int informationClass) {
+            IntPtr buffer = Marshal.AllocHGlobal(sizeof(int));
+            try {
+                int returned;
+                if (!GetTokenInformation(token, informationClass, buffer, sizeof(int),
+                        out returned)) {
+                    throw LastError("GetTokenInformation failed");
+                }
+                return Marshal.ReadInt32(buffer);
+            }
+            finally { Marshal.FreeHGlobal(buffer); }
+        }
+
+        public static void ValidateIdentity(string expectedSid, uint expectedSession,
+            string actualSid, uint actualSession, int tokenType) {
+            string canonicalExpected = new SecurityIdentifier(expectedSid).Value;
+            string canonicalActual = new SecurityIdentifier(actualSid).Value;
+            if (!String.Equals(canonicalExpected, canonicalActual,
+                    StringComparison.Ordinal)) {
+                throw new InvalidOperationException("The WTS token SID does not match the installing user.");
+            }
+            if (expectedSession == 0 || actualSession != expectedSession) {
+                throw new InvalidOperationException("The WTS token session does not match the installing user.");
+            }
+            if (tokenType != PrimaryToken) {
+                throw new InvalidOperationException("WTSQueryUserToken did not return a primary token.");
             }
         }
 
-        // The interactive user can be in a non-console session (Hyper-V enhanced session,
-        // RDP), so pick the first active user session and only fall back to the console.
-        static uint GetInteractiveSessionId() {
-            IntPtr pSessions;
-            int count;
-            if (WTSEnumerateSessions(IntPtr.Zero, 0, 1, out pSessions, out count)) {
-                try {
-                    int size = Marshal.SizeOf(typeof(WTS_SESSION_INFO));
-                    for (int i = 0; i < count; i++) {
-                        WTS_SESSION_INFO info = (WTS_SESSION_INFO)Marshal.PtrToStructure(new IntPtr(pSessions.ToInt64() + (long)i * size), typeof(WTS_SESSION_INFO));
-                        if (info.State == 0 && info.SessionId != 0) {
-                            return info.SessionId;
-                        }
-                    }
-                }
-                finally {
-                    WTSFreeMemory(pSessions);
-                }
-            }
-            return WTSGetActiveConsoleSessionId();
+        static void ValidateToken(IntPtr token, string expectedSid, uint expectedSession) {
+            ValidateIdentity(expectedSid, expectedSession, ReadTokenSid(token),
+                unchecked((uint)ReadTokenInt32(token, TokenSessionId)),
+                ReadTokenInt32(token, TokenType));
         }
 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        static extern bool DuplicateTokenEx(IntPtr hExistingToken, uint dwDesiredAccess, IntPtr lpTokenAttributes,
-            SECURITY_IMPERSONATION_LEVEL impersonationLevel, TOKEN_TYPE tokenType, out IntPtr phNewToken);
-
-        [DllImport("advapi32.dll", SetLastError = true)]
-        static extern bool GetTokenInformation(IntPtr TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass,
-            out TOKEN_LINKED_TOKEN TokenInformation, int TokenInformationLength, out int ReturnLength);
-
-        [DllImport("userenv.dll", SetLastError = true)]
-        static extern bool CreateEnvironmentBlock(out IntPtr lpEnvironment, IntPtr hToken, bool bInherit);
-
-        [DllImport("userenv.dll", SetLastError = true)]
-        static extern bool DestroyEnvironmentBlock(IntPtr lpEnvironment);
-
-        [DllImport("advapi32.dll", EntryPoint = "CreateProcessAsUserW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
-        static extern bool CreateProcessAsUser(IntPtr hToken, string lpApplicationName, StringBuilder lpCommandLine,
-            IntPtr lpProcessAttributes, IntPtr lpThreadAttributes, bool bInheritHandles, int dwCreationFlags,
-            IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool CloseHandle(IntPtr hObject);
-
-        // Runs the command line as the active console user; returns the child exit code
-        // (or 0 when not waiting). Throws when token setup, launch, or waiting fails.
-        public static int Launch(string applicationName, string commandLine, string workingDirectory, bool wait, bool elevated, uint timeoutMilliseconds) {
-            if (wait && (timeoutMilliseconds == 0 || timeoutMilliseconds > MAX_WAIT_TIMEOUT_MILLISECONDS)) {
-                throw new ArgumentOutOfRangeException("timeoutMilliseconds", "The wait timeout must be between 1 millisecond and 1 hour.");
-            }
-
-            EnablePrivilege("SeTcbPrivilege");
-            EnablePrivilege("SeAssignPrimaryTokenPrivilege");
-            EnablePrivilege("SeIncreaseQuotaPrivilege");
-
-            uint sessionId = GetInteractiveSessionId();
-            if (sessionId == 0xFFFFFFFF) {
-                throw new InvalidOperationException("No active user session; there is no interactive user to run as.");
-            }
-
+        public static int Launch(string applicationName, string commandLine,
+            string workingDirectory, uint timeoutMilliseconds,
+            uint sessionId, string expectedSid) {
+            IntPtr profile = IntPtr.Zero;
             IntPtr userToken = IntPtr.Zero;
-            if (!WTSQueryUserToken(sessionId, out userToken)) {
-                int error = Marshal.GetLastWin32Error();
-                throw new Win32Exception(error, string.Format("WTSQueryUserToken failed for session {0} (Win32 error {1}).", sessionId, error));
-            }
-
             IntPtr primaryToken = IntPtr.Zero;
-            IntPtr envBlock = IntPtr.Zero;
-            IntPtr linkedToken = IntPtr.Zero;
+            IntPtr environment = IntPtr.Zero;
+            PROCESS_INFORMATION process = new PROCESS_INFORMATION();
             try {
-                IntPtr sourceToken = userToken;
+                int profileStatus = RegOpenKeyEx(new UIntPtr(0x80000003u), expectedSid,
+                    0, KEY_QUERY_VALUE, out profile);
+                if (profileStatus != 0 || profile == IntPtr.Zero) {
+                    throw new Win32Exception(profileStatus,
+                        "The installing user's HKU profile is not loaded.");
+                }
+                if (!WTSQueryUserToken(sessionId, out userToken)) {
+                    throw LastError("WTSQueryUserToken failed for session " + sessionId);
+                }
+                ValidateToken(userToken, expectedSid, sessionId);
+                uint access = TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY;
+                if (!DuplicateTokenEx(userToken, access, IntPtr.Zero,
+                        SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation,
+                        PrimaryToken, out primaryToken)) {
+                    throw LastError("DuplicateTokenEx failed for the installing user");
+                }
+                ValidateToken(primaryToken, expectedSid, sessionId);
+                if (!CreateEnvironmentBlock(out environment, primaryToken, false)) {
+                    throw LastError("CreateEnvironmentBlock failed for the installing user");
+                }
 
-                // For UserElevated, follow the linked (elevated) token when the interactive
-                // token is a filtered admin token.
-                if (elevated) {
-                    TOKEN_LINKED_TOKEN info;
-                    int returned;
-                    int infoSize = Marshal.SizeOf(typeof(TOKEN_LINKED_TOKEN));
-                    if (!GetTokenInformation(userToken, TOKEN_INFORMATION_CLASS.TokenLinkedToken, out info, infoSize, out returned)) {
-                        int error = Marshal.GetLastWin32Error();
-                        throw new Win32Exception(error, string.Format("GetTokenInformation(TokenLinkedToken) failed (Win32 error {0}); refusing to run UserElevated with the filtered token.", error));
+                STARTUPINFO startup = new STARTUPINFO();
+                startup.cb = Marshal.SizeOf(typeof(STARTUPINFO));
+                startup.lpDesktop = "winsta0\\default";
+                if (!CreateProcessAsUser(primaryToken, applicationName,
+                        new StringBuilder(commandLine), IntPtr.Zero, IntPtr.Zero, false,
+                        CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW, environment,
+                        workingDirectory, ref startup, out process)) {
+                    throw LastError("CreateProcessAsUser failed");
+                }
+
+                uint waitResult = WaitForSingleObject(process.hProcess, timeoutMilliseconds);
+                if (waitResult == WAIT_TIMEOUT) {
+                    if (!TerminateProcess(process.hProcess, 0xC000013Au) &&
+                            WaitForSingleObject(process.hProcess, 0) != WAIT_OBJECT_0) {
+                        throw LastError("TerminateProcess failed after the installing-user timeout");
                     }
-                    if (returned < infoSize) {
-                        throw new InvalidOperationException("GetTokenInformation(TokenLinkedToken) returned an incomplete TOKEN_LINKED_TOKEN structure.");
+                    uint terminateWait = WaitForSingleObject(process.hProcess, 10000);
+                    if (terminateWait == WAIT_TIMEOUT) {
+                        throw new TimeoutException(
+                            "The installing-user process did not terminate after its timeout.");
                     }
-
-                    linkedToken = info.LinkedToken;
-                    if (linkedToken == IntPtr.Zero) {
-                        throw new InvalidOperationException("The interactive user token has no linked elevated token; refusing to run UserElevated with the filtered token.");
+                    if (terminateWait == WAIT_FAILED) {
+                        throw LastError("Waiting for the timed-out installing-user process failed");
                     }
-                    sourceToken = linkedToken;
+                    throw new TimeoutException("The installing-user process timed out.");
                 }
-
-                if (!DuplicateTokenEx(sourceToken, MAXIMUM_ALLOWED, IntPtr.Zero,
-                        SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation, TOKEN_TYPE.TokenPrimary, out primaryToken)) {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "DuplicateTokenEx failed.");
+                if (waitResult == WAIT_FAILED) {
+                    throw LastError("WaitForSingleObject failed");
                 }
-
-                if (!CreateEnvironmentBlock(out envBlock, primaryToken, false)) {
-                    int error = Marshal.GetLastWin32Error();
-                    throw new Win32Exception(error, string.Format("CreateEnvironmentBlock failed for the interactive user (Win32 error {0}).", error));
+                if (waitResult != WAIT_OBJECT_0) {
+                    throw new InvalidOperationException("WaitForSingleObject returned an unexpected status.");
                 }
-
-                STARTUPINFO si = new STARTUPINFO();
-                si.cb = Marshal.SizeOf(si);
-                si.lpDesktop = "winsta0\\default"; // the interactive desktop, required for shell COM
-
-                PROCESS_INFORMATION pi;
-                int flags = CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW;
-                StringBuilder cmd = new StringBuilder(commandLine);
-
-                bool ok = CreateProcessAsUser(primaryToken, applicationName, cmd, IntPtr.Zero, IntPtr.Zero,
-                    false, flags, envBlock, workingDirectory, ref si, out pi);
-                if (!ok) {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessAsUser failed.");
+                uint exitCode;
+                if (!GetExitCodeProcess(process.hProcess, out exitCode)) {
+                    throw LastError("GetExitCodeProcess failed");
                 }
-
-                int exitCode = 0;
-                try {
-                    if (wait) {
-                        uint waitResult = WaitForSingleObject(pi.hProcess, timeoutMilliseconds);
-                        if (waitResult == WAIT_TIMEOUT) {
-                            throw new TimeoutException(string.Format("The interactive user process (PID {0}) did not exit within {1} milliseconds and was left running.", pi.dwProcessId, timeoutMilliseconds));
-                        }
-                        if (waitResult == WAIT_FAILED) {
-                            int error = Marshal.GetLastWin32Error();
-                            throw new Win32Exception(error, string.Format("WaitForSingleObject failed for interactive user process PID {0} (Win32 error {1}).", pi.dwProcessId, error));
-                        }
-                        if (waitResult != WAIT_OBJECT_0) {
-                            throw new InvalidOperationException(string.Format("WaitForSingleObject returned unexpected status 0x{0:X8} for interactive user process PID {1}.", waitResult, pi.dwProcessId));
-                        }
-
-                        uint code;
-                        if (!GetExitCodeProcess(pi.hProcess, out code)) {
-                            int error = Marshal.GetLastWin32Error();
-                            throw new Win32Exception(error, string.Format("GetExitCodeProcess failed for interactive user process PID {0} (Win32 error {1}).", pi.dwProcessId, error));
-                        }
-                        exitCode = unchecked((int)code);
-                    }
-                }
-                finally {
-                    if (pi.hThread != IntPtr.Zero) { CloseHandle(pi.hThread); }
-                    if (pi.hProcess != IntPtr.Zero) { CloseHandle(pi.hProcess); }
-                }
-                return exitCode;
+                return unchecked((int)exitCode);
             }
             finally {
-                if (envBlock != IntPtr.Zero) { DestroyEnvironmentBlock(envBlock); }
-                if (linkedToken != IntPtr.Zero) { CloseHandle(linkedToken); }
-                if (primaryToken != IntPtr.Zero) { CloseHandle(primaryToken); }
-                if (userToken != IntPtr.Zero) { CloseHandle(userToken); }
+                if (process.hThread != IntPtr.Zero) CloseHandle(process.hThread);
+                if (process.hProcess != IntPtr.Zero) CloseHandle(process.hProcess);
+                if (environment != IntPtr.Zero) DestroyEnvironmentBlock(environment);
+                if (primaryToken != IntPtr.Zero) CloseHandle(primaryToken);
+                if (userToken != IntPtr.Zero) CloseHandle(userToken);
+                if (profile != IntPtr.Zero) RegCloseKey(profile);
             }
         }
     }
@@ -307,66 +231,145 @@ namespace Atlas {
 }
 
 function Get-AtlasUserProcessCommandLine {
-    <#
-    .SYNOPSIS
-        Builds the CreateProcessAsUser command line: the exe path quoted first so paths
-        with spaces survive, then the raw argument string.
-    #>
     param(
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$FilePath,
         [string]$Arguments = ''
     )
 
     $commandLine = '"{0}"' -f $FilePath
-    if ($Arguments) {
+    if (-not [string]::IsNullOrEmpty($Arguments)) {
         $commandLine += " $Arguments"
     }
     return $commandLine
 }
 
+function ConvertTo-AtlasRunAsUserSid {
+    param([AllowNull()][AllowEmptyString()][string]$Value)
+
+    try {
+        $sid = New-Object Security.Principal.SecurityIdentifier($Value)
+    }
+    catch {
+        throw 'The install state does not contain a valid interactive user SID.'
+    }
+    if (-not $sid.IsAccountSid() -or $sid.Value -cne $Value -or
+        $sid.Value -in @('S-1-5-18', 'S-1-5-19', 'S-1-5-20')) {
+        throw 'The install state does not contain an interactive account SID.'
+    }
+    return $sid.Value
+}
+
+function Invoke-AtlasBoundUserProcess {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSUseShouldProcessForStateChangingFunctions', '',
+        Justification = 'This private helper owns the checked native child launch.'
+    )]
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [string]$Arguments = '',
+        [string]$WorkingDirectory,
+        [bool]$Wait = $true,
+        [ValidateRange(1, 3600)][int]$TimeoutSeconds = 900,
+        [scriptblock]$ContextReader = { Get-AtlasContext },
+        [scriptblock]$ProcessLauncher = {
+            param($ApplicationPath, $CommandLine, $CurrentDirectory,
+                $TimeoutMilliseconds, $UserSid, $UserSessionId)
+            Initialize-AtlasRunAsUserType
+            [Atlas.UserProcess]::Launch($ApplicationPath, $CommandLine,
+                $CurrentDirectory, $TimeoutMilliseconds,
+                $UserSessionId, $UserSid)
+        }
+    )
+
+    $contexts = @(& $ContextReader)
+    if ($contexts.Count -ne 1 -or $null -eq $contexts[0]) {
+        throw 'Get-AtlasContext must return exactly one install context.'
+    }
+    $context = $contexts[0]
+    if ($context.IsOobe -isnot [bool]) {
+        throw 'The install context does not contain a valid OOBE state.'
+    }
+    if ([bool]$context.IsOobe) {
+        return 0
+    }
+    if (-not $Wait) {
+        throw 'Detached installing-user processes are not supported.'
+    }
+
+    $userSid = ConvertTo-AtlasRunAsUserSid -Value ([string]$context.InteractiveUserSid)
+    $sessionProperty = $context.PSObject.Properties['InteractiveUserSessionId']
+    if ($null -eq $sessionProperty -or
+        $sessionProperty.Value -isnot [int] -and
+        $sessionProperty.Value -isnot [long]) {
+        throw 'The install state does not contain an integer interactive user session ID.'
+    }
+    $sessionId = [long]$sessionProperty.Value
+    if ($sessionId -lt 1 -or $sessionId -gt [int]::MaxValue) {
+        throw 'The install state contains an invalid interactive user session ID.'
+    }
+
+    if ([string]::IsNullOrWhiteSpace([string]$context.WinDir) -or
+        -not [IO.Path]::IsPathRooted([string]$context.WinDir)) {
+        throw 'The install context does not contain an absolute Windows path.'
+    }
+    $windowsPath = [IO.Path]::GetFullPath([string]$context.WinDir)
+    $expectedPowerShell = [IO.Path]::Combine(
+        $windowsPath, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'
+    )
+    if (-not [IO.Path]::IsPathRooted($FilePath) -or
+        -not [IO.Path]::GetFullPath($FilePath).Equals(
+            $expectedPowerShell, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Installing-user launches require the inbox Windows PowerShell host '$expectedPowerShell'."
+    }
+    if (-not [IO.File]::Exists($expectedPowerShell) -or
+        (([IO.File]::GetAttributes($expectedPowerShell) -band
+                [IO.FileAttributes]::ReparsePoint) -ne 0)) {
+        throw "The inbox Windows PowerShell host is unavailable at '$expectedPowerShell'."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) {
+        $WorkingDirectory = $windowsPath
+    }
+    if (-not [IO.Path]::IsPathRooted($WorkingDirectory)) {
+        throw 'The installing-user working directory must be absolute.'
+    }
+
+    $commandLine = Get-AtlasUserProcessCommandLine -FilePath $expectedPowerShell `
+        -Arguments $Arguments
+    $results = @(& $ProcessLauncher $expectedPowerShell $commandLine `
+            ([IO.Path]::GetFullPath($WorkingDirectory)) `
+            ([uint32]($TimeoutSeconds * 1000)) $userSid ([uint32]$sessionId))
+    if ($results.Count -ne 1 -or
+        ($results[0] -isnot [int] -and $results[0] -isnot [long])) {
+        throw 'The installing-user process launcher must return one integer exit code.'
+    }
+    $exitCode = [long]$results[0]
+    if ($exitCode -lt [int]::MinValue -or $exitCode -gt [int]::MaxValue) {
+        throw 'The installing-user process launcher returned an invalid exit code.'
+    }
+    return [int]$exitCode
+}
+
 function Invoke-AtlasAsUser {
     <#
     .SYNOPSIS
-        Runs a command line as the interactive console user from a SYSTEM
-        context, on the interactive desktop. Returns the child process exit code.
-    .DESCRIPTION
-        The engine equivalent of AME Wizard's `runas: currentUser`. The caller MUST be
-        SYSTEM (the install phases that use this run as TrustedInstaller). Throws when
-        there is no active interactive session (e.g. a headless stage) - callers should
-        treat that as "skip, log a warning".
-    .PARAMETER TimeoutSeconds
-        Maximum time to wait for the child process. Defaults to 15 minutes and is ignored
-        when Wait is false. A timeout throws but does not terminate the child process.
+        Runs inbox Windows PowerShell as the exact installing user and returns its exit code.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSUseShouldProcessForStateChangingFunctions', '',
+        Justification = 'This function is the explicit user-process execution boundary.'
+    )]
     param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$FilePath,
-
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$FilePath,
         [string]$Arguments = '',
-
         [string]$WorkingDirectory,
-
-        [switch]$Elevated,
-
         [bool]$Wait = $true,
-
-        [ValidateRange(1, 3600)]
-        [int]$TimeoutSeconds = 900
+        [ValidateRange(1, 3600)][int]$TimeoutSeconds = 900
     )
 
     if (-not (Test-AtlasSystem)) {
-        throw '[privilege] Invoke-AtlasAsUser must run as SYSTEM to obtain the interactive user token.'
+        throw '[privilege] Invoke-AtlasAsUser must run as SYSTEM.'
     }
-
-    Initialize-AtlasRunAsUserType
-
-    if (-not $WorkingDirectory) {
-        $WorkingDirectory = (Get-AtlasContext).WinDir
-    }
-
-    $commandLine = Get-AtlasUserProcessCommandLine -FilePath $FilePath -Arguments $Arguments
-    $timeoutMilliseconds = [uint32]($TimeoutSeconds * 1000)
-
-    return [Atlas.UserProcess]::Launch($FilePath, $commandLine, $WorkingDirectory, $Wait, [bool]$Elevated, $timeoutMilliseconds)
+    return Invoke-AtlasBoundUserProcess -FilePath $FilePath -Arguments $Arguments `
+        -WorkingDirectory $WorkingDirectory -Wait:$Wait -TimeoutSeconds $TimeoutSeconds
 }

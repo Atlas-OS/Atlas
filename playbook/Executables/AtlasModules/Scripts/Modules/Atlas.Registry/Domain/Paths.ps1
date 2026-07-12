@@ -1,14 +1,153 @@
-# Atlas.Registry domain: registry path parsing, HKCU redirection and user hive enumeration.
+# Atlas.Registry domain: registry path parsing and explicit HKCU scope binding.
 #
-# Atlas install actions can run with a LocalSystem token (S-1-5-18), including through
-# the strict TrustedInstaller service-token path. In that context the
-# ambient HKCU drive points at SYSTEM's hive, so HKCU paths must be resolved explicitly
-# to the interactive user's hive under HKEY_USERS and mirrored into the default-user
-# hive (HKU\AME_UserHive_Default) that the install keeps loaded for new accounts.
+# A privileged process must never redirect HKCU to a live user's HKEY_USERS path. A
+# user can create registry links inside their own hive, so an otherwise exact SID still
+# leaves TrustedInstaller acting as a deputy over user-controlled traversal. Live-user
+# mutations therefore run in that user's own medium-token process and use ambient HKCU.
+# The privileged install process may target only the fixed, separately loaded Atlas
+# default-user hive after binding to the active install state.
 
-$script:AtlasActiveUserSid = $null
-$script:AtlasDefaultUserHiveRoot = 'Registry::HKEY_USERS\AME_UserHive_Default'
-$script:AtlasDefaultUserHiveName = 'AME_UserHive_Default'
+$script:AtlasRegistryIdentityContext = $null
+$script:AtlasDefaultUserHiveRoot = 'Registry::HKEY_USERS\Atlas_DefaultUser'
+$script:AtlasDefaultUserHiveName = 'Atlas_DefaultUser'
+
+function Test-AtlasDefaultUserHiveLoaded {
+    $usersKey = [Microsoft.Win32.Registry]::Users
+    $hiveKey = $usersKey.OpenSubKey($script:AtlasDefaultUserHiveName, $false)
+    if ($null -eq $hiveKey) {
+        return $false
+    }
+    $hiveKey.Dispose()
+    return $true
+}
+
+function ConvertTo-AtlasCanonicalRegistrySid {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Sid,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Label
+    )
+
+    try {
+        $canonicalSid = New-Object Security.Principal.SecurityIdentifier($Sid)
+    }
+    catch {
+        throw "$Label '$Sid' is not a valid Windows SID."
+    }
+
+    if (-not [string]::Equals($canonicalSid.Value, $Sid, [StringComparison]::Ordinal)) {
+        throw "$Label '$Sid' is not canonical."
+    }
+
+    return $canonicalSid.Value
+}
+
+function Get-AtlasRegistryCurrentTokenSid {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    if ($null -eq $identity -or $null -eq $identity.User) {
+        throw 'The current process token has no user SID; refusing to resolve HKCU.'
+    }
+
+    return ConvertTo-AtlasCanonicalRegistrySid -Sid $identity.User.Value `
+        -Label 'Current process token SID'
+}
+
+function Initialize-AtlasRegistryIdentityContext {
+    <#
+    .SYNOPSIS
+        Binds HKCU operations to either the current process token or the fixed Atlas
+        default-user hive. The binding is immutable for the module lifetime.
+    .DESCRIPTION
+        CurrentToken is used by an exact user process and never redirects through HKU.
+        DefaultUserOnly is accepted only from strict TrustedInstaller and is bound to
+        the active install state. There is deliberately no live-user
+        SID redirection mode.
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'CurrentToken')]
+    param(
+        [Parameter(Mandatory = $true, ParameterSetName = 'CurrentToken')]
+        [switch]$CurrentToken,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'CurrentToken')]
+        [ValidateNotNullOrEmpty()]
+        [string]$ExpectedUserSid,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'DefaultUserOnly')]
+        [switch]$DefaultUserOnly,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'DefaultUserOnly')]
+        [ValidateNotNullOrEmpty()]
+        [string]$TransactionId
+    )
+
+    $newContext = $null
+    switch ($PSCmdlet.ParameterSetName) {
+        'CurrentToken' {
+            if (-not $CurrentToken) {
+                throw 'CurrentToken registry identity context requires -CurrentToken:$true.'
+            }
+            if (Test-AtlasSystem) {
+                throw 'CurrentToken registry identity context cannot be initialized from LocalSystem or TrustedInstaller.'
+            }
+
+            $expectedSid = ConvertTo-AtlasCanonicalRegistrySid -Sid $ExpectedUserSid `
+                -Label 'Expected current-user SID'
+            $actualSid = Get-AtlasRegistryCurrentTokenSid
+            if (-not [string]::Equals($actualSid, $expectedSid, [StringComparison]::Ordinal)) {
+                throw "The current process token SID '$actualSid' does not match expected user SID '$expectedSid'."
+            }
+
+            $newContext = [pscustomobject]@{
+                Mode          = 'CurrentToken'
+                UserSid       = $actualSid
+                TransactionId = $null
+            }
+        }
+        'DefaultUserOnly' {
+            if (-not $DefaultUserOnly) {
+                throw 'DefaultUserOnly registry identity context requires -DefaultUserOnly:$true.'
+            }
+            if (-not (Test-AtlasTrustedInstaller)) {
+                throw 'DefaultUserOnly registry identity context requires strict TrustedInstaller token evidence.'
+            }
+
+            $transaction = Get-AtlasContext -Refresh
+            if (-not [bool]$transaction.IsInstallStateBacked) {
+                throw 'DefaultUserOnly registry identity requires an active Atlas install state.'
+            }
+            if (-not [string]::Equals(
+                    [string]$transaction.TransactionId,
+                    $TransactionId,
+                    [StringComparison]::Ordinal
+                )) {
+                throw "The active Atlas transaction '$($transaction.TransactionId)' does not match expected transaction '$TransactionId'."
+            }
+
+            $newContext = [pscustomobject]@{
+                Mode          = 'DefaultUserOnly'
+                UserSid       = $null
+                TransactionId = [string]$transaction.TransactionId
+            }
+        }
+    }
+
+    if ($null -ne $script:AtlasRegistryIdentityContext) {
+        if ([string]$script:AtlasRegistryIdentityContext.Mode -cne [string]$newContext.Mode -or
+            [string]$script:AtlasRegistryIdentityContext.UserSid -cne [string]$newContext.UserSid -or
+            [string]$script:AtlasRegistryIdentityContext.TransactionId -cne [string]$newContext.TransactionId) {
+            throw 'Atlas.Registry identity context is already initialized to a different immutable scope.'
+        }
+
+        return $script:AtlasRegistryIdentityContext
+    }
+
+    $script:AtlasRegistryIdentityContext = $newContext
+    return $script:AtlasRegistryIdentityContext
+}
 
 function ConvertTo-AtlasRegistryPathInfo {
     <#
@@ -62,44 +201,17 @@ function ConvertTo-AtlasRegistryPathInfo {
 function Resolve-AtlasRegistryPath {
     <#
     .SYNOPSIS
-        Resolves a registry path to the provider path that should actually be written.
-        With -RedirectHkcu, HKCU paths resolve to the given user's hive under HKEY_USERS
-        and also produce the default-user-hive mirror path; other roots pass through.
+        Normalizes a registry path without changing its identity scope. Privileged
+        live-user HKU redirection is deliberately not part of this API.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$Path,
-
-        [string]$ActiveUserSid,
-
-        [switch]$RedirectHkcu
+        [string]$Path
     )
 
     $pathInfo = ConvertTo-AtlasRegistryPathInfo -Path $Path
     $isHkcu = ($pathInfo.Root -eq 'HKEY_CURRENT_USER')
-
-    if ($isHkcu -and $RedirectHkcu) {
-        if ([string]::IsNullOrEmpty($ActiveUserSid)) {
-            throw "An active user SID is required to redirect the HKCU path '$Path'."
-        }
-
-        $userRoot = "Registry::HKEY_USERS\$ActiveUserSid"
-        $mirrorRoot = $script:AtlasDefaultUserHiveRoot
-        $primary = $userRoot
-        $mirror = $mirrorRoot
-        if ($pathInfo.SubPath) {
-            $primary = "$userRoot\$($pathInfo.SubPath)"
-            $mirror = "$mirrorRoot\$($pathInfo.SubPath)"
-        }
-
-        return [pscustomobject]@{
-            Primary     = $primary
-            Mirror      = $mirror
-            HkcuSubPath = $pathInfo.SubPath
-            IsHkcu      = $true
-        }
-    }
 
     $primary = "Registry::$($pathInfo.Root)"
     if ($pathInfo.SubPath) {
@@ -117,9 +229,9 @@ function Resolve-AtlasRegistryPath {
 function Resolve-AtlasRegistryTarget {
     <#
     .SYNOPSIS
-        Resolves a registry path for the current process context: HKCU is redirected to
-        the active user's hive only when running as LocalSystem (S-1-5-18);
-        as a plain admin or user, the ambient HKCU drive is already correct.
+        Resolves a registry path for the explicitly proven process context. A
+        non-System token uses only its own ambient HKCU. TrustedInstaller can resolve
+        HKCU only after an explicit DefaultUserOnly transaction binding.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -127,12 +239,72 @@ function Resolve-AtlasRegistryTarget {
         [string]$Path
     )
 
-    $resolved = Resolve-AtlasRegistryPath -Path $Path
-    if ($resolved.IsHkcu -and (Test-AtlasSystem)) {
-        $resolved = Resolve-AtlasRegistryPath -Path $Path -RedirectHkcu -ActiveUserSid (Get-AtlasActiveUserSid)
+    $pathInfo = ConvertTo-AtlasRegistryPathInfo -Path $Path
+    $isSystem = Test-AtlasSystem
+
+    if ($isSystem -and $pathInfo.Root -eq 'HKEY_USERS') {
+        $hiveName = @($pathInfo.SubPath -split '\\', 2)[0]
+        if ([string]::IsNullOrWhiteSpace($hiveName) -or
+            $hiveName -cne $script:AtlasDefaultUserHiveName) {
+            throw "A privileged Atlas.Registry caller may target only the fixed '$($script:AtlasDefaultUserHiveName)' HKEY_USERS hive, not '$Path'."
+        }
     }
 
-    return $resolved
+    if ($pathInfo.Root -ne 'HKEY_CURRENT_USER') {
+        return Resolve-AtlasRegistryPath -Path $Path
+    }
+
+    if ($null -eq $script:AtlasRegistryIdentityContext) {
+        if ($isSystem) {
+            throw 'Privileged HKCU access has no explicit DefaultUserOnly identity context; live-user HKU redirection is forbidden.'
+        }
+
+        # This is not discovery: Windows binds ambient HKCU to the current process token.
+        # Resolve the token SID on every operation so no process-global identity guess is
+        # cached or reused after an embedding host changes impersonation state.
+        $null = Get-AtlasRegistryCurrentTokenSid
+        return Resolve-AtlasRegistryPath -Path $Path
+    }
+
+    switch ([string]$script:AtlasRegistryIdentityContext.Mode) {
+        'CurrentToken' {
+            if ($isSystem) {
+                throw 'A CurrentToken registry identity context became privileged; refusing HKCU access.'
+            }
+
+            $actualSid = Get-AtlasRegistryCurrentTokenSid
+            if (-not [string]::Equals(
+                    $actualSid,
+                    [string]$script:AtlasRegistryIdentityContext.UserSid,
+                    [StringComparison]::Ordinal
+                )) {
+                throw 'The current process token changed after Atlas.Registry identity initialization.'
+            }
+            return Resolve-AtlasRegistryPath -Path $Path
+        }
+        'DefaultUserOnly' {
+            if (-not $isSystem -or -not (Test-AtlasTrustedInstaller)) {
+                throw 'The DefaultUserOnly registry identity context lost strict TrustedInstaller identity.'
+            }
+            if (-not (Test-AtlasDefaultUserHiveLoaded)) {
+                throw "The fixed Atlas default-user hive is not loaded at '$($script:AtlasDefaultUserHiveRoot)'."
+            }
+
+            $primary = $script:AtlasDefaultUserHiveRoot
+            if ($pathInfo.SubPath) {
+                $primary = "$primary\$($pathInfo.SubPath)"
+            }
+            return [pscustomobject]@{
+                Primary     = $primary
+                Mirror      = $null
+                HkcuSubPath = $pathInfo.SubPath
+                IsHkcu      = $true
+            }
+        }
+        default {
+            throw "Unsupported Atlas.Registry identity context mode '$($script:AtlasRegistryIdentityContext.Mode)'."
+        }
+    }
 }
 
 function Split-AtlasRegistryProviderPath {
@@ -163,142 +335,10 @@ function Split-AtlasRegistryProviderPath {
     }
 }
 
-function Get-AtlasActiveUserSid {
-    <#
-    .SYNOPSIS
-        Returns the SID of the interactive user, resolved in order: the owner of
-        explorer.exe, then the loaded S-1-5-21-* hive under HKEY_USERS that has a
-        'Volatile Environment' key, then the single loaded user hive when exactly one
-        exists (a guess that cannot be wrong). Otherwise throws - both when no user hive
-        is loaded and when multiple hives are loaded with no signal to pick between them -
-        because writing HKCU tweaks to the wrong hive must never happen silently.
-    #>
-    param(
-        [switch]$Refresh
-    )
-
-    if ($script:AtlasActiveUserSid -and -not $Refresh) {
-        return $script:AtlasActiveUserSid
-    }
-
-    $sid = $null
-    try {
-        $explorerProcesses = @(Get-CimInstance -ClassName Win32_Process -Filter "Name='explorer.exe'" -ErrorAction Stop)
-        foreach ($process in $explorerProcesses) {
-            try {
-                $owner = Invoke-CimMethod -InputObject $process -MethodName GetOwner -ErrorAction Stop
-                if ($owner.ReturnValue -ne 0 -or [string]::IsNullOrEmpty($owner.User)) {
-                    continue
-                }
-
-                $account = New-Object System.Security.Principal.NTAccount($owner.Domain, $owner.User)
-                $sid = $account.Translate([System.Security.Principal.SecurityIdentifier]).Value
-                break
-            }
-            catch {
-                $null = $_
-            }
-        }
-    }
-    catch {
-        $null = $_
-    }
-
-    if (-not $sid) {
-        $hiveKeys = @(Get-ChildItem -Path 'Registry::HKEY_USERS' -ErrorAction SilentlyContinue |
-            Where-Object { $_.PSChildName -match '^S-1-5-21-' -and $_.PSChildName -notmatch '_Classes$' })
-
-        $chosen = $null
-        foreach ($hiveKey in $hiveKeys) {
-            if (Test-Path -LiteralPath (Join-Path -Path $hiveKey.PSPath -ChildPath 'Volatile Environment') -PathType Container) {
-                $chosen = $hiveKey
-                break
-            }
-        }
-
-        if (-not $chosen) {
-            if (@($hiveKeys).Count -eq 1) {
-                # Exactly one loaded user hive: the guess cannot be wrong.
-                $chosen = $hiveKeys[0]
-            }
-            elseif (@($hiveKeys).Count -gt 1) {
-                $hiveList = ($hiveKeys | ForEach-Object { $_.PSChildName }) -join ', '
-                throw "Could not determine the active user SID: no explorer.exe owner could be resolved and multiple user hives are loaded ($hiveList). Refusing to guess - HKCU tweaks would land in an arbitrary user's profile."
-            }
-        }
-
-        if ($chosen) {
-            $sid = $chosen.PSChildName
-        }
-    }
-
-    if (-not $sid) {
-        throw 'Could not determine the active user SID: no explorer.exe owner could be resolved and no S-1-5-21-* user hive is loaded under HKEY_USERS.'
-    }
-
-    $script:AtlasActiveUserSid = $sid
-    return $sid
-}
-
-function Get-AtlasUserHives {
-    <#
-    .SYNOPSIS
-        Returns Registry:: provider paths for every real user hive loaded under
-        HKEY_USERS (S-1-5-21-* SIDs, excluding the _Classes hives and built-in accounts).
-    #>
-    $hives = @(Get-ChildItem -Path 'Registry::HKEY_USERS' -ErrorAction SilentlyContinue |
-        Where-Object { $_.PSChildName -match '^S-1-5-21-' -and $_.PSChildName -notmatch '_Classes$' })
-
-    $paths = @()
-    foreach ($hive in $hives) {
-        $paths += "Registry::HKEY_USERS\$($hive.PSChildName)"
-    }
-
-    return $paths
-}
-
-function Get-RegUserPaths {
-    <#
-    .SYNOPSIS
-        Returns the registry key objects for loaded user hives under HKU (and the AME
-        default-user hives), optionally filtered to proper users via their
-        'Volatile Environment' key.
-    #>
-    param(
-        [switch]$DontCheckEnv,
-        [switch]$NoDefault
-    )
-
-    $regPattern = 'Volatile Environment|AME_UserHive_'
-    if ($NoDefault) { $regPattern = "$regPattern[1-9].*" }
-    $initPaths = @(Get-ChildItem -Path 'Registry::HKU' -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -match "S-[0-9-]+(?!.*_)|$regPattern" })
-
-    # If the 'Volatile Environment' key exists, that means it is a proper user.
-    # Built-in accounts/SIDs don't have this key.
-    $paths = @()
-    if (-not $DontCheckEnv) {
-        foreach ($userKey in $initPaths) {
-            $envKeys = @(Get-ChildItem -Path $userKey.PSPath -ErrorAction SilentlyContinue |
-                Where-Object { $_.Name -match $regPattern })
-            if (@($envKeys).Count -ne 0) {
-                $paths += $userKey
-            }
-        }
-    }
-    else {
-        $paths = $initPaths
-    }
-
-    return $paths
-}
-
 function Invoke-AtlasRegistryTargetOperation {
     <#
     .SYNOPSIS
-        Runs a registry operation against the resolved target of a path, records the
-        exact typed mutation for redirected HKCU paths, and repeats the operation
-        against the default-user hive mirror when that hive is loaded.
+        Runs a registry operation against the explicitly resolved target of a path.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -306,41 +346,9 @@ function Invoke-AtlasRegistryTargetOperation {
         [string]$Path,
 
         [Parameter(Mandatory = $true)]
-        [scriptblock]$Action,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        [hashtable]$Delta
+        [scriptblock]$Action
     )
 
     $resolved = Resolve-AtlasRegistryTarget -Path $Path
     & $Action $resolved.Primary
-
-    if ($null -ne $resolved.HkcuSubPath) {
-        try {
-            $deltaParameters = @{
-                SubPath   = $resolved.HkcuSubPath
-                Operation = $Delta['Operation']
-            }
-            foreach ($propertyName in @('Name', 'Kind', 'Data')) {
-                if ($Delta.ContainsKey($propertyName)) {
-                    $deltaParameters[$propertyName] = $Delta[$propertyName]
-                }
-            }
-
-            Write-AtlasHkcuDeltaRecord @deltaParameters
-        }
-        catch {
-            throw (New-AtlasHkcuDeltaFailureException -SubPath $resolved.HkcuSubPath -InnerException $_.Exception)
-        }
-
-        if ($resolved.Mirror -and (Test-Path -LiteralPath $script:AtlasDefaultUserHiveRoot)) {
-            try {
-                & $Action $resolved.Mirror
-            }
-            catch {
-                Write-AtlasLog -Message "Default-user-hive mirror operation failed for '$($resolved.Mirror)': $($_.Exception.Message)" -Level Warning
-            }
-        }
-    }
 }

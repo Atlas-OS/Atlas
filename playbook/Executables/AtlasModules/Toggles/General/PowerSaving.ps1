@@ -1,7 +1,6 @@
-# Toggle: Power-saving (Atlas power scheme vs. default Windows schemes).
+# Toggle: Power-saving (documented Atlas AC policy vs. the prior power plan).
 #
-# Calls the Internal\*PowerSaving.ps1 scripts directly (the real implementation behind
-# the ScriptWrappers\*PowerSaving.ps1 passthroughs).
+# Both states use the same internal implementation.
 @{
     Name      = 'PowerSaving'
     Elevation = 'Admin'
@@ -10,20 +9,20 @@
             StateValue = 0
             Launcher   = '3. General Configuration\Power-saving\Disable Power-saving.cmd'
             Reboot     = 'None'
+            ReplayScope = 'Machine'
             Action     = {
                 param($Toggle)
 
-                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Disable-PowerSaving.ps1'
+                $script = Join-Path -Path $Toggle.ScriptsPath `
+                    -ChildPath 'Internal\Set-PowerSavingState.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
-                    Write-Host "Script not found: `"$script`"" -ForegroundColor Red
-                    return
+                    throw "Required Power Saving helper is missing: '$script'."
                 }
-
-                & $script -Silent:$Toggle.Silent
+                & $script -Mode Atlas -Silent:$Toggle.Silent
 
                 if (-not $Toggle.Silent) {
                     Write-Host ''
-                    Write-Host 'Power Saving has been disabled.'
+                    Write-Host 'The documented Atlas AC power policy has been applied.'
                 }
             }
         }
@@ -31,20 +30,20 @@
             StateValue = 1
             Launcher   = '3. General Configuration\Power-saving\Default Power-saving (default).cmd'
             Reboot     = 'None'
+            ReplayScope = 'Machine'
             Action     = {
                 param($Toggle)
 
-                $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-DefaultPowerSaving.ps1'
+                $script = Join-Path -Path $Toggle.ScriptsPath `
+                    -ChildPath 'Internal\Set-PowerSavingState.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
-                    Write-Host "Script not found: `"$script`"" -ForegroundColor Red
-                    return
+                    throw "Required Power Saving helper is missing: '$script'."
                 }
-
-                & $script -Silent:$Toggle.Silent
+                & $script -Mode Default -Silent:$Toggle.Silent
 
                 if (-not $Toggle.Silent) {
                     Write-Host ''
-                    Write-Host 'Default Power Saving has been set to its default configuration.'
+                    Write-Host 'The prior installed power plan, or Balanced fallback, is active and the Atlas plan has been removed.'
                 }
             }
         }

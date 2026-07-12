@@ -10,13 +10,14 @@
             Action     = {
                 param($Toggle)
 
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
                 $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked'
                 foreach ($guid in @(
                         '{b8cdcb65-b1bf-4b42-9428-1dfdb7ee92af}',
                         '{BD472F60-27FA-11cf-B8B4-444553540000}',
                         '{EE07CEF5-3441-4CFB-870A-4002C724783A}',
                         '{D12E3394-DE4B-4777-93E9-DF0AC88F8584}')) {
-                    Remove-ItemProperty -LiteralPath $key -Name $guid -Force -ErrorAction SilentlyContinue
+                    Remove-AtlasRegistryValue -Path $key -Name $guid
                 }
 
                 if (-not $Toggle.Silent) { Write-Host 'Changes applied successfully.' }

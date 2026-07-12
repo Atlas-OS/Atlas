@@ -17,8 +17,8 @@ From the repository root:
 ```
 
 Both wrap `tools/build/Build-Playbook.ps1` with the standard `-LocalTest` profile, which
-enables the live log, replaces the prior test archive, removes the version/product
-verification gates, and does not open Explorer. The resulting `Atlas Test.apbx` is written
+replaces the prior test archive, removes the version/product verification gates, and does
+not open Explorer. The resulting `Atlas Test.apbx` is written
 inside `playbook/` (i.e. `playbook/Atlas Test.apbx`).
 
 The wrappers require `pwsh` and return the underlying build exit code, so they are safe to
@@ -40,20 +40,18 @@ Editor integrations are provided for VS Code (`.vscode/launch.json`) and Zed
 
 | Parameter | Meaning |
 | --- | --- |
-| `-LocalTest` | Standard local profile used by `build.cmd`/`build.sh`: live log, replace existing test APBX, remove `WinverRequirement` and `Verification`, and do not open Explorer. |
+| `-LocalTest` | Standard local profile used by `build.cmd`/`build.sh`: replace existing test APBX, remove `WinverRequirement` and `Verification`, and do not open Explorer. |
 | `-FileName <name>` | Output name (default `Atlas Test`). |
-| `-ReplaceOldPlaybook` | Overwrite an existing archive of the same name. |
-| `-AddLiveLog` | Inject a console action that tails AME Wizard's `OutputBuffer.txt` during install. |
+| `-ReplaceOldPlaybook` | Replace an existing archive only after the new archive passes verification. |
 | `-DontOpenPbLocation` | Do not open Explorer at the built file (used by CI and the local wrappers). |
 | `-NoPassword` | Build without the `malte` ZIP password. |
 | `-PlaybookPath` / `-OutputPath` | Override the playbook dir / output dir (defaults to the repo layout). |
-| `-Removals <list>` | Strip content for dev builds so they install on unsupported machines. |
+| `-Removals <list>` | Strip selected metadata gates for dev builds. |
 
 `-Removals` values:
 
 | Value | Effect |
 | --- | --- |
-| `Dependencies` | Strip the `NO LOCAL BUILD` block from `atlas/start.yml` (DISM/download steps that only work in a real install). |
 | `Requirements` | Strip `<Requirement>` pre-flight gates from `playbook.conf`. |
 | `WinverRequirement` | Strip `<SupportedBuilds>` from `playbook.conf`. |
 | `Verification` | Strip `<ProductCode>` from `playbook.conf`. |
@@ -63,8 +61,20 @@ Editor integrations are provided for VS Code (`.vscode/launch.json`) and Zed
 `tools/build/Test-Apbx.ps1 -Path "<file>.apbx"` checks archive integrity and password,
 rejects rooted/traversal paths and duplicate file entries, requires exact file-path parity
 with the source `playbook/` tree, checks the archive root layout and tooling exclusions,
-and validates `playbook.conf` plus the stamped OEM version. Use `-PlaybookPath` when
-verifying against a non-default source tree. CI runs it on every build.
+compares the configuration with the source, and validates `playbook.conf`, the AME handoff,
+and the stamped OEM version. Use `-PlaybookPath` when verifying against a non-default source
+tree. The builder verifies its temporary archive before publishing it, and CI runs the same
+verifier independently. A failed build leaves an existing destination archive unchanged.
+
+## CI and releases
+
+The ordinary build workflow produces short-lived review artifacts and does not publish a
+release. SxS CAB candidates are separate artifacts and must be reviewed before they are
+committed to the playbook payload.
+
+A canonical `vX.Y.Z` tag matching `playbook.conf` builds and verifies the APBX and release
+ZIP, records their hashes and attestations, then creates a draft GitHub release through the
+`release` environment. That environment must define `ATLAS_RELEASE_ENABLED=true`.
 
 ## Version bumps
 
@@ -76,7 +86,7 @@ pwsh tools/build/Set-AtlasVersion.ps1 -Version 0.7.0
 
 This updates `<Version>`, rewrites `<Title>` to `Atlas v0.7.0`, and moves the previous
 version into `<UpgradableFrom>` — one edit, one commit. Tagging `v0.7.0` then triggers the
-release workflow, which asserts the tag matches `<Version>` before building.
+release workflow described above.
 
 ## Optional developer setup
 

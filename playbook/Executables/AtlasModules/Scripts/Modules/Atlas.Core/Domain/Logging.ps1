@@ -1,7 +1,7 @@
 # Atlas.Core domain: logging and phase lifecycle.
 #
-# Each install phase runs in its own PowerShell process (invoked by AME Wizard), so a
-# named mutex serializes appends to the shared log files across privilege contexts.
+# The one-shot orchestrator owns install sequencing, while exact-user helpers and other
+# privilege contexts can also write these files. A named mutex serializes their appends.
 
 $script:AtlasCurrentPhase = $null
 $script:AtlasTranscriptActive = $false
@@ -48,7 +48,7 @@ function Write-AtlasLog {
     <#
     .SYNOPSIS
         Writes a structured line to the shared install log (and warnings summary for
-        Warning/Error), echoing it to the console for the AME live log.
+        Warning/Error), echoing it to the current console.
     #>
     param(
         [Parameter(Mandatory = $true)]

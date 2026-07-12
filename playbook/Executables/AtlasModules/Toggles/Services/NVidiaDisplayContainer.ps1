@@ -6,6 +6,7 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher        = '6. Advanced Configuration\Services\NVIDIA Display Container\Disable NVIDIA Display Container LS.cmd'
             ToolboxLauncher = 'Scripts\NVidia\DisableNVIDIADisplayContainerLS.cmd'
             Reboot          = 'None'
@@ -13,11 +14,7 @@
                 param($Toggle)
 
                 if (-not (Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem')) {
-                    if (-not $Toggle.Silent) {
-                        Write-Host 'The NVIDIA Display Container LS service does not exist, you cannot continue.'
-                        Write-Host 'You may not have NVIDIA drivers installed.'
-                    }
-                    return
+                    throw 'NVIDIA Display Container LS is not installed; the requested state is not applicable and was not recorded.'
                 }
 
                 if (-not $Toggle.Silent) {
@@ -33,11 +30,15 @@
 
                 $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setServiceStartup -Name 'NVDisplay.ContainerLocalSystem' -Start 4
-                & "$($Toggle.WinDir)\System32\sc.exe" stop 'NVDisplay.ContainerLocalSystem' 2>$null | Out-Null
+                $service = Get-Service -Name 'NVDisplay.ContainerLocalSystem' -ErrorAction Stop
+                if ($service.Status -ne [ServiceProcess.ServiceControllerStatus]::Stopped) {
+                    Stop-Service -InputObject $service -Force -ErrorAction Stop
+                }
             }
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher        = '6. Advanced Configuration\Services\NVIDIA Display Container\Enable NVIDIA Display Container LS (default).cmd'
             ToolboxLauncher = 'Scripts\NVidia\EnableNVIDIADisplayContainerLS.cmd'
             Reboot          = 'None'
@@ -45,16 +46,15 @@
                 param($Toggle)
 
                 if (-not (Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem')) {
-                    if (-not $Toggle.Silent) {
-                        Write-Host 'The NVIDIA Display Container LS service does not exist, you cannot continue.'
-                        Write-Host 'You may not have NVIDIA drivers installed.'
-                    }
-                    return
+                    throw 'NVIDIA Display Container LS is not installed; the requested state is not applicable and was not recorded.'
                 }
 
                 $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
                 & $setServiceStartup -Name 'NVDisplay.ContainerLocalSystem' -Start 2
-                & "$($Toggle.WinDir)\System32\sc.exe" start 'NVDisplay.ContainerLocalSystem' 2>$null | Out-Null
+                $service = Get-Service -Name 'NVDisplay.ContainerLocalSystem' -ErrorAction Stop
+                if ($service.Status -ne [ServiceProcess.ServiceControllerStatus]::Running) {
+                    Start-Service -InputObject $service -ErrorAction Stop
+                }
             }
         }
     }

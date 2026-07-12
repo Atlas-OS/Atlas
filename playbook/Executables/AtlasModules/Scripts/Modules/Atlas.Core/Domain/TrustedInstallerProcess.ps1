@@ -127,8 +127,8 @@ namespace Atlas {
         public bool Silent { get; set; }
         public bool JustContext { get; set; }
         public bool NoExplorerRestart { get; set; }
+        public bool MachineOnly { get; set; }
         public string RestoreSource { get; set; }
-        public string SafeModeOperationId { get; set; }
         public int TimeoutMilliseconds { get; set; }
         public int RequesterProcessId { get; set; }
         public long RequesterCreationFileTime { get; set; }
@@ -999,6 +999,7 @@ namespace Atlas {
                 if (request.Silent) values.Add("/silent");
                 if (request.JustContext) values.Add("/justcontext");
                 if (request.NoExplorerRestart) values.Add("/noaction");
+                if (request.MachineOnly) values.Add("-MachineOnly");
                 arguments = values.ToArray();
                 return;
             }
@@ -1016,33 +1017,6 @@ namespace Atlas {
                 arguments = new string[] {
                     "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                     "-File", scriptPath, "-RestoreSource", request.RestoreSource
-                };
-                return;
-            }
-
-            if (String.Equals(request.Operation, "SafeModeRecovery", StringComparison.Ordinal)) {
-                string operationId = RequireSafeModeOperationId(request.SafeModeOperationId);
-                string protectedAtlasRoot = Path.Combine(windowsDirectory, "AtlasOS");
-                string recoveryRoot = Path.Combine(protectedAtlasRoot, "SafeModeRecovery");
-                string carrierPath = Path.Combine(recoveryRoot, "Recover-AtlasSafeMode.ps1");
-                string helperPath = Path.Combine(recoveryRoot, "SafeMode-Recovery.ps1");
-                string statePath = Path.Combine(recoveryRoot, "transition.state");
-
-                ValidatePathSegmentsNotReparse(protectedAtlasRoot);
-                heldObjects.Add(OpenProtectedDirectory(protectedAtlasRoot, true));
-                ValidateDirectorySecurity(protectedAtlasRoot);
-                ValidatePathSegmentsNotReparse(recoveryRoot);
-                heldObjects.Add(OpenProtectedDirectory(recoveryRoot, false));
-                ValidateDirectorySecurity(recoveryRoot);
-                heldObjects.Add(OpenProtectedFile(carrierPath, true, recoveryRoot));
-                heldObjects.Add(OpenProtectedFile(helperPath, true, recoveryRoot));
-                ValidateSafeModeRecoveryStateBinding(statePath, recoveryRoot, operationId);
-
-                applicationPath = Path.Combine(systemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
-                heldObjects.Add(OpenProtectedFile(applicationPath, true, null));
-                arguments = new string[] {
-                    "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "RemoteSigned",
-                    "-File", carrierPath, "-OperationId", operationId
                 };
                 return;
             }
@@ -1613,59 +1587,6 @@ namespace Atlas {
             }
         }
 
-        static string RequireSafeModeOperationId(string value) {
-            RequireBoundedScalar(value, "SafeModeOperationId", 32, false);
-            if (value.Length != 32) {
-                throw new ArgumentException("SafeModeOperationId must contain exactly 32 lowercase hexadecimal characters.", "SafeModeOperationId");
-            }
-            bool nonzero = false;
-            for (int index = 0; index < value.Length; index++) {
-                char current = value[index];
-                if (!((current >= '0' && current <= '9') || (current >= 'a' && current <= 'f'))) {
-                    throw new ArgumentException("SafeModeOperationId must contain exactly 32 lowercase hexadecimal characters.", "SafeModeOperationId");
-                }
-                if (current != '0') nonzero = true;
-            }
-            if (!nonzero) {
-                throw new ArgumentException("SafeModeOperationId must not be the all-zero identifier.", "SafeModeOperationId");
-            }
-            return value;
-        }
-
-        static void ValidateSafeModeRecoveryStateBinding(string statePath, string recoveryRoot, string operationId) {
-            FileStream state = OpenProtectedFile(statePath, true, recoveryRoot);
-            using (state) {
-                if (state.Length < 1 || state.Length > 65536) {
-                    throw new InvalidDataException("The protected Safe Mode recovery state is empty or exceeds 64 KiB.");
-                }
-                byte[] bytes = new byte[checked((int)state.Length)];
-                int offset = 0;
-                while (offset < bytes.Length) {
-                    int read = state.Read(bytes, offset, bytes.Length - offset);
-                    if (read == 0) throw new EndOfStreamException("The protected Safe Mode recovery state ended unexpectedly.");
-                    offset += read;
-                }
-                ValidateSafeModeRecoveryStateBytes(bytes, operationId);
-            }
-        }
-
-        static void ValidateSafeModeRecoveryStateBytes(byte[] bytes, string operationId) {
-            operationId = RequireSafeModeOperationId(operationId);
-            if (bytes == null || bytes.Length < 1 || bytes.Length > 65536) {
-                throw new InvalidDataException("The protected Safe Mode recovery state is empty or exceeds 64 KiB.");
-            }
-            // This is the broker's early request-to-state binding. The held fixed
-            // carrier/helper perform the complete checksummed schema validation under
-            // the Safe Mode recovery lock before changing BCD, Winlogon, or packages.
-            string text = new UTF8Encoding(false, true).GetString(bytes);
-            string expectedPrefix = "ATLAS-SAFE-MODE-STATE|2\r\nOperationId=" + operationId + "\r\n";
-            if (text.IndexOf('\0') >= 0 ||
-                !text.StartsWith(expectedPrefix, StringComparison.Ordinal) ||
-                !text.EndsWith("\r\n", StringComparison.Ordinal)) {
-                throw new InvalidDataException("The protected Safe Mode recovery state is not canonically bound to the requested operation ID.");
-            }
-        }
-
         static void RequireBoundedScalar(string value, string name, int maxLength, bool allowEmpty) {
             if (value == null || (!allowEmpty && value.Length == 0)) throw new ArgumentException(name + " is required.", name);
             if (value.Length > maxLength) throw new ArgumentOutOfRangeException(name, name + " exceeds its bounded length.");
@@ -1693,7 +1614,7 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Toggle', 'ResetServices', 'SafeModeRecovery')]
+        [ValidateSet('Toggle', 'ResetServices')]
         [string]$Operation,
 
         [Parameter(Mandatory = $true)]
@@ -1730,19 +1651,10 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
         [switch]$Silent,
         [switch]$JustContext,
         [switch]$NoExplorerRestart,
+        [switch]$MachineOnly,
         [ValidateSet('ToggleDefaults', 'WindowsBackup', 'AtlasBackup')]
-        [string]$RestoreSource,
-        [ValidatePattern('^[a-f0-9]{32}$')]
-        [string]$RecoveryOperationId
+        [string]$RestoreSource
     )
-
-    if ($Operation -ne 'SafeModeRecovery' -and $PSBoundParameters.ContainsKey('RecoveryOperationId')) {
-        throw '-RecoveryOperationId is valid only for SafeModeRecovery.'
-    }
-    if ($Operation -eq 'SafeModeRecovery' -and
-        ([string]::IsNullOrWhiteSpace($RecoveryOperationId) -or $RecoveryOperationId -ceq ('0' * 32))) {
-        throw 'SafeModeRecovery requires a nonzero lowercase 32-hex -RecoveryOperationId.'
-    }
 
     Initialize-AtlasTrustedInstallerNativeType
 
@@ -1755,8 +1667,8 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
     $request.Silent = [bool]$Silent
     $request.JustContext = [bool]$JustContext
     $request.NoExplorerRestart = [bool]$NoExplorerRestart
+    $request.MachineOnly = [bool]$MachineOnly
     $request.RestoreSource = $RestoreSource
-    $request.SafeModeOperationId = $RecoveryOperationId
     $request.TimeoutMilliseconds = $TimeoutMilliseconds
     $request.RequesterProcessId = $RequesterProcessId
     $request.RequesterCreationFileTime = $RequesterCreationFileTime

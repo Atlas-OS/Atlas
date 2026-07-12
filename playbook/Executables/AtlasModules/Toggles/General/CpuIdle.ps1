@@ -4,9 +4,7 @@
 #   "Disable Idle" (state 0) sets the idle-disable value to 1 (idle off),
 #   "Enable Idle"  (state 1) sets it to 0 (idle on).
 # On Hyper-Threading/SMT systems disabling idle harms performance, so the action
-# only warns and leaves idle untouched. The engine records the toggle state before
-# the Action runs, so on an SMT machine the state is recorded but the powercfg
-# value is left unchanged; re-apply is self-correcting.
+# rejects the transition without changing or recording the requested state.
 @{
     Name      = 'CpuIdle'
     Elevation = 'Admin'
@@ -37,8 +35,7 @@
                         Write-Host 'overall CPU performance much worse. Consider disabling C-states in BIOS'
                         Write-Host 'instead. No changes were made.'
                     }
-                    Write-AtlasLog -Level Warning -Message 'CpuIdle: SMT detected; idle states left enabled.'
-                    return
+                    throw 'CpuIdle cannot disable processor idle while Hyper-Threading or SMT is enabled; no changes were made.'
                 }
 
                 if (-not $Toggle.Silent) {
@@ -47,21 +44,30 @@
                     Write-Host 'percentage - other tools (Process Explorer, System Informer) report correctly.'
                 }
 
-                & $powercfg /setacvalueindex scheme_current sub_processor $idleGuid 1
-                & $powercfg /setactive scheme_current
+                Invoke-AtlasToggleNativeCommand -FilePath $powercfg `
+                    -ArgumentList ([string[]]@('/setacvalueindex', 'scheme_current', 'sub_processor', $idleGuid, '1')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
+                Invoke-AtlasToggleNativeCommand -FilePath $powercfg `
+                    -ArgumentList ([string[]]@('/setactive', 'scheme_current')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
                 if (-not $Toggle.Silent) { Write-Host 'Finished, changes have been applied.' }
             }
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\CPU Idle\Enable Idle (default).cmd'
             Reboot     = 'None'
             Action     = {
                 param($Toggle)
 
                 $powercfg = "$($Toggle.WinDir)\System32\powercfg.exe"
-                & $powercfg /setacvalueindex scheme_current sub_processor '5d76a2ca-e8c0-402f-a133-2158492d58ad' 0
-                & $powercfg /setactive scheme_current
+                Invoke-AtlasToggleNativeCommand -FilePath $powercfg `
+                    -ArgumentList ([string[]]@('/setacvalueindex', 'scheme_current', 'sub_processor', '5d76a2ca-e8c0-402f-a133-2158492d58ad', '0')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
+                Invoke-AtlasToggleNativeCommand -FilePath $powercfg `
+                    -ArgumentList ([string[]]@('/setactive', 'scheme_current')) `
+                    -AllowedExitCodes ([int[]]@(0)) | Out-Null
                 if (-not $Toggle.Silent) { Write-Host 'Finished, changes have been applied.' }
             }
         }

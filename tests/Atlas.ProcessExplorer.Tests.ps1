@@ -1,985 +1,324 @@
 BeforeAll {
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
-    $script:PackageHelperPath = Join-Path -Path $script:RepoRoot -ChildPath `
+    $script:PackageHelperPath = Join-Path $script:RepoRoot `
         'playbook\Executables\AtlasModules\Scripts\Internal\ProcessExplorer-Package.ps1'
-    $script:TogglePath = Join-Path -Path $script:RepoRoot -ChildPath `
+    $script:TogglePath = Join-Path $script:RepoRoot `
         'playbook\Executables\AtlasModules\Toggles\Advanced\ProcessExplorer.ps1'
+    $script:UpgradeStopPath = Join-Path $script:RepoRoot `
+        'playbook\Executables\AtlasModules\Scripts\Tasks\Stop-ProcessExplorerUpgrade.ps1'
     . $script:PackageHelperPath
 }
 
-Describe 'Process Explorer protected package transaction' {
-    BeforeEach {
-        Mock Assert-AtlasProcessExplorerParent {}
-        Mock Assert-AtlasProcessExplorerOperationLock {}
-        Mock Stop-AtlasProcessExplorerPackageProcesses {}
-        Mock Get-Acl { New-AtlasProtectedStagingAcl }
-    }
-
-    It 'rejects a custom interactive SID with a direct Modify ACE' {
-        $acl = New-Object Security.AccessControl.DirectorySecurity
-        $acl.SetAccessRuleProtection($true, $false)
-        $administrators = New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')
-        $interactiveUser = New-Object Security.Principal.SecurityIdentifier(
-            'S-1-5-21-111111111-222222222-333333333-1001'
-        )
-        $acl.SetOwner($administrators)
-        [void]$acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(
-                    $administrators,
-                    [Security.AccessControl.FileSystemRights]::FullControl,
-                    [Security.AccessControl.AccessControlType]::Allow
-                )))
-        [void]$acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(
-                    $interactiveUser,
-                    [Security.AccessControl.FileSystemRights]::Modify,
-                    [Security.AccessControl.AccessControlType]::Allow
-                )))
-
-        (Test-AtlasProcessExplorerProtectedAcl -Acl $acl) | Should -BeFalse
-    }
-
-    It 'models Start Menu delete-only access separately from shortcut content mutation' {
-        $acl = New-Object Security.AccessControl.DirectorySecurity
-        $acl.SetAccessRuleProtection($true, $false)
-        $administrators = New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')
-        $interactiveUser = New-Object Security.Principal.SecurityIdentifier(
-            'S-1-5-21-111111111-222222222-333333333-1001'
-        )
-        $acl.SetOwner($administrators)
-        [void]$acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(
-                    $administrators,
-                    [Security.AccessControl.FileSystemRights]::FullControl,
-                    [Security.AccessControl.AccessControlType]::Allow
-                )))
-        [void]$acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(
-                    $interactiveUser,
-                    ([Security.AccessControl.FileSystemRights]::DeleteSubdirectoriesAndFiles -bor
-                        [Security.AccessControl.FileSystemRights]::Delete),
-                    [Security.AccessControl.AccessControlType]::Allow
-                )))
-
-        (Test-AtlasProcessExplorerShortcutAcl -Acl $acl) | Should -BeTrue
-        (Test-AtlasProcessExplorerProtectedAcl -Acl $acl) | Should -BeFalse
-
-        [void]$acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(
-                    $interactiveUser,
-                    [Security.AccessControl.FileSystemRights]::WriteData,
-                    [Security.AccessControl.AccessControlType]::Allow
-                )))
-        (Test-AtlasProcessExplorerShortcutAcl -Acl $acl) | Should -BeFalse
-    }
-
-    It 'keeps the old package until the explicit outer commit' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'Apps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        $operationId = [guid]::NewGuid().ToString('N')
-        $backupPath = Join-Path -Path $appsPath -ChildPath "ProcessExplorer.old-$operationId"
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [void](New-Item -Path $backupPath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'new-package')
-        [IO.File]::WriteAllText((Join-Path $backupPath 'procexp.exe'), 'old-package')
-        $installedHash = Get-AtlasProcessExplorerFileSha256 -Path (Join-Path $packagePath 'procexp.exe')
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -DebuggerPriorExists $false `
-            -DebuggerPriorValue $null `
-            -DebuggerPriorKind $null `
-            -PcwChanged $false `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $false `
-            -ShortcutPriorBytes $null `
-            -ShortcutInstalledSha256 ('ab' * 32)
-        Write-AtlasProcessExplorerInstallState -PackagePath $packagePath -State $state
-        $pending = New-AtlasProcessExplorerPendingInstall `
-            -PackagePath $packagePath `
-            -InstallState $state `
-            -ImmediateDebuggerExists $false `
-            -ImmediateDebuggerValue $null `
-            -ImmediateDebuggerKind $null `
-            -ImmediatePcwStart 3 `
-            -ImmediateShortcutExists $false `
-            -ImmediateShortcutBytes $null `
-            -ConfigurePcw $false
-        $pending.OperationId = $operationId
-        $pending.Package.HadPreviousPackage = $true
-        $pending.Package.InstalledSha256 = $installedHash
-        $pending.Desired.ShortcutSha256 = [string]$state.Shortcut.InstalledSha256
-        $pending.Progress.PackagePublished = $true
-        $pending.Progress.ShortcutApplied = $true
-        $pending.Progress.DebuggerApplied = $true
-        $pending.Progress.PcwApplied = $true
-        $pending.Progress.OwnershipStateWritten = $true
-        $pending.Phase = 'ReadyToCommit'
-        Write-AtlasProcessExplorerPendingInstall -PackagePath $packagePath -Pending $pending
-        $transaction = New-AtlasProcessExplorerPackageTransaction `
-            -OperationId $pending.OperationId `
-            -AppsPath $appsPath `
-            -HadPreviousPackage $true `
-            -InstalledSha256 $installedHash
-        $transaction.OperationLock = [pscustomobject]@{}
-
-        [IO.Directory]::Exists($backupPath) | Should -BeTrue
-        $transaction.State | Should -Be 'Published'
-
-        Complete-AtlasProcessExplorerPackageInstall -Transaction $transaction
-
-        $transaction.State | Should -Be 'Committed'
-        [IO.Directory]::Exists($backupPath) | Should -BeFalse
-        [IO.File]::ReadAllText((Join-Path $packagePath 'procexp.exe')) |
-            Should -Be 'new-package'
-    }
-
-    It 'blocks uninstall until a failed committed-backup cleanup converges' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'CommitCleanupApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        $operationId = [guid]::NewGuid().ToString('N')
-        $backupPath = Join-Path -Path $appsPath -ChildPath "ProcessExplorer.old-$operationId"
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [void](New-Item -Path $backupPath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'new-package')
-        [IO.File]::WriteAllText((Join-Path $backupPath 'procexp.exe'), 'old-package')
-        $installedHash = Get-AtlasProcessExplorerFileSha256 -Path (Join-Path $packagePath 'procexp.exe')
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -DebuggerPriorExists $false `
-            -DebuggerPriorValue $null `
-            -DebuggerPriorKind $null `
-            -PcwChanged $false `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $false `
-            -ShortcutPriorBytes $null `
-            -ShortcutInstalledSha256 ('33' * 32)
-        Write-AtlasProcessExplorerInstallState -PackagePath $packagePath -State $state
-        $pending = New-AtlasProcessExplorerPendingInstall `
-            -PackagePath $packagePath `
-            -InstallState $state `
-            -ImmediateDebuggerExists $false `
-            -ImmediateDebuggerValue $null `
-            -ImmediateDebuggerKind $null `
-            -ImmediatePcwStart 3 `
-            -ImmediateShortcutExists $false `
-            -ImmediateShortcutBytes $null `
-            -ConfigurePcw $false
-        $pending.OperationId = $operationId
-        $pending.Package.HadPreviousPackage = $true
-        $pending.Package.InstalledSha256 = $installedHash
-        $pending.Desired.ShortcutSha256 = [string]$state.Shortcut.InstalledSha256
-        $pending.Progress.PackagePublished = $true
-        $pending.Progress.ShortcutApplied = $true
-        $pending.Progress.DebuggerApplied = $true
-        $pending.Progress.PcwApplied = $true
-        $pending.Progress.OwnershipStateWritten = $true
-        $pending.Phase = 'ReadyToCommit'
-        Write-AtlasProcessExplorerPendingInstall -PackagePath $packagePath -Pending $pending
-        $control = @{ FailBackupCleanup = $true }
-        Mock Remove-AtlasProcessExplorerDirectory {
-            if ($control.FailBackupCleanup -and
-                [IO.Path]::GetFullPath($Path).Equals(
-                    [IO.Path]::GetFullPath($backupPath),
-                    [StringComparison]::OrdinalIgnoreCase
-                )) {
-                throw 'injected committed-backup cleanup failure'
-            }
-            [IO.Directory]::Delete($Path, $true)
+Describe 'Process Explorer package identity' {
+    It 'selects the reviewed native binary for <Architecture>' -TestCases @(
+        @{
+            Architecture = 'X86'
+            Name = 'procexp.exe'
+            Hash = 'b29917ce089e46bc6238e3e9e20596599bcbe7aa10d4f688bc32db94d6e4dae8'
         }
-        $script:commitCleanupAppsPath = $appsPath
-        $script:commitCleanupPackagePath = $packagePath
-        Mock Get-AtlasProcessExplorerLayout {
-            [pscustomobject]@{
-                AppsPath = $script:commitCleanupAppsPath
-                PackagePath = $script:commitCleanupPackagePath
-            }
+        @{
+            Architecture = 'X64'
+            Name = 'procexp64.exe'
+            Hash = '8404b6cfad9d998b10d2df6073e1275b7744c0416982bdc5cb7ef5b74348333d'
         }
-        $transaction = New-AtlasProcessExplorerPackageTransaction `
-            -OperationId $operationId `
-            -AppsPath $appsPath `
-            -HadPreviousPackage $true `
-            -InstalledSha256 $installedHash
-        $transaction.OperationLock = [pscustomobject]@{}
+        @{
+            Architecture = 'ARM64'
+            Name = 'procexp64a.exe'
+            Hash = 'f2a763d4ad679a2e585ff95c792b476c749832a1b6ba1f7521f387ff4e943f56'
+        }
+    ) {
+        param($Architecture, $Name, $Hash)
 
-        { Complete-AtlasProcessExplorerPackageInstall -Transaction $transaction } |
-            Should -Throw '*injected committed-backup cleanup failure*'
-        [IO.Directory]::Exists($backupPath) | Should -BeTrue
-        (Read-AtlasProcessExplorerPendingInstall -PackagePath $packagePath).Phase |
-            Should -Be 'Committed'
-        { Uninstall-AtlasProcessExplorerPackage `
-                -DependentStateRestored `
-                -OperationLock ([pscustomobject]@{}) } |
-            Should -Throw '*blocked until committed backup-generation cleanup completes*'
-        [IO.Directory]::Exists($packagePath) | Should -BeTrue
-
-        $control.FailBackupCleanup = $false
-        $retryTransaction = New-AtlasProcessExplorerPackageTransaction `
-            -OperationId $operationId `
-            -AppsPath $appsPath `
-            -HadPreviousPackage $true `
-            -InstalledSha256 $installedHash
-        $retryTransaction.OperationLock = [pscustomobject]@{}
-        Complete-AtlasProcessExplorerPackageInstall -Transaction $retryTransaction
-        [IO.Directory]::Exists($backupPath) | Should -BeFalse
-        Uninstall-AtlasProcessExplorerPackage `
-            -DependentStateRestored `
-            -OperationLock ([pscustomobject]@{})
-        [IO.Directory]::Exists($packagePath) | Should -BeFalse
+        $binary = Get-AtlasProcessExplorerBinary -Architecture $Architecture
+        $binary.ArchiveName | Should -Be $Name
+        $binary.Sha256 | Should -Be $Hash
     }
 
-    It 'atomically restores the old package through the typed rollback' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'RollbackApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        $operationId = [guid]::NewGuid().ToString('N')
-        $backupPath = Join-Path -Path $appsPath -ChildPath "ProcessExplorer.old-$operationId"
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [void](New-Item -Path $backupPath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'trusted-new')
-        [IO.File]::WriteAllText((Join-Path $backupPath 'procexp.exe'), 'trusted-old')
-        $installedHash = Get-AtlasProcessExplorerFileSha256 -Path (Join-Path $packagePath 'procexp.exe')
-        $transaction = New-AtlasProcessExplorerPackageTransaction `
-            -OperationId $operationId `
-            -AppsPath $appsPath `
-            -HadPreviousPackage $true `
-            -InstalledSha256 $installedHash
-        $transaction.OperationLock = [pscustomobject]@{}
-
-        Undo-AtlasProcessExplorerPackageInstall -Transaction $transaction
-
-        $transaction.State | Should -Be 'RolledBack'
-        [IO.Directory]::Exists($backupPath) | Should -BeFalse
-        [IO.Directory]::Exists($transaction.CandidatePath) | Should -BeFalse
-        [IO.File]::ReadAllText((Join-Path $packagePath 'procexp.exe')) |
-            Should -Be 'trusted-old'
-    }
-
-    It 'retains the current trusted package when the old backup is unavailable' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'MissingBackupApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        $operationId = [guid]::NewGuid().ToString('N')
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'trusted-current')
-        $installedHash = Get-AtlasProcessExplorerFileSha256 -Path (Join-Path $packagePath 'procexp.exe')
-        $transaction = New-AtlasProcessExplorerPackageTransaction `
-            -OperationId $operationId `
-            -AppsPath $appsPath `
-            -HadPreviousPackage $true `
-            -InstalledSha256 $installedHash
-        $transaction.OperationLock = [pscustomobject]@{}
-
-        { Undo-AtlasProcessExplorerPackageInstall -Transaction $transaction } |
-            Should -Throw '*previous Process Explorer package is unavailable*'
-        [IO.File]::ReadAllText((Join-Path $packagePath 'procexp.exe')) |
-            Should -Be 'trusted-current'
-        $transaction.State | Should -Be 'Published'
-    }
-
-    It 'checkpoints failures after IFEO and shortcut success and converges on retry' {
-        $state = [pscustomobject]@{
-            RestoreProgress = [pscustomobject]@{
-                Debugger = $false
-                Shortcut = $false
-                Pcw = $false
-            }
-        }
-        $control = @{ FailAt = 'Shortcut' }
-        $calls = @{ Debugger = 0; Shortcut = 0; Pcw = 0; Persist = 0 }
-        $steps = @(
-            [pscustomobject]@{
-                Name = 'Debugger'
-                Action = { $calls.Debugger++ }.GetNewClosure()
-            }
-            [pscustomobject]@{
-                Name = 'Shortcut'
-                Action = {
-                    $calls.Shortcut++
-                    if ($control.FailAt -eq 'Shortcut') { throw 'injected shortcut failure' }
-                }.GetNewClosure()
-            }
-            [pscustomobject]@{
-                Name = 'Pcw'
-                Action = {
-                    $calls.Pcw++
-                    if ($control.FailAt -eq 'Pcw') { throw 'injected pcw failure' }
-                }.GetNewClosure()
-            }
-        )
-        $persist = {
-            param($Value)
-            [void]$Value
-            $calls.Persist++
-        }.GetNewClosure()
-
-        $first = Invoke-AtlasProcessExplorerRestorePlan `
-            -State $state `
-            -Steps $steps `
-            -PersistState $persist
-        $first.AllComplete | Should -BeFalse
-        $state.RestoreProgress.Debugger | Should -BeTrue
-        $state.RestoreProgress.Shortcut | Should -BeFalse
-
-        $control.FailAt = 'Pcw'
-        $second = Invoke-AtlasProcessExplorerRestorePlan `
-            -State $state `
-            -Steps $steps `
-            -PersistState $persist
-        $second.AllComplete | Should -BeFalse
-        $state.RestoreProgress.Shortcut | Should -BeTrue
-        $state.RestoreProgress.Pcw | Should -BeFalse
-
-        $control.FailAt = $null
-        $third = Invoke-AtlasProcessExplorerRestorePlan `
-            -State $state `
-            -Steps $steps `
-            -PersistState $persist
-        $third.AllComplete | Should -BeTrue
-        $calls.Debugger | Should -Be 1
-        $calls.Shortcut | Should -Be 2
-        $calls.Pcw | Should -Be 2
-        $calls.Persist | Should -Be 3
-    }
-
-    It 'round-trips a large pending record from a physical candidate against the canonical path' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'PendingApps'
-        $canonicalPath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        $largeShortcut = New-Object byte[] 1048576
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $canonicalPath `
-            -DebuggerPriorExists $false `
-            -DebuggerPriorValue $null `
-            -DebuggerPriorKind $null `
-            -PcwChanged $false `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $true `
-            -ShortcutPriorBytes $largeShortcut `
-            -ShortcutInstalledSha256 ('ab' * 32)
-        $pending = New-AtlasProcessExplorerPendingInstall `
-            -PackagePath $canonicalPath `
-            -InstallState $state `
-            -ImmediateDebuggerExists $false `
-            -ImmediateDebuggerValue $null `
-            -ImmediateDebuggerKind $null `
-            -ImmediatePcwStart 3 `
-            -ImmediateShortcutExists $true `
-            -ImmediateShortcutBytes $largeShortcut `
-            -ConfigurePcw $false
-        $pending.Package.InstalledSha256 = ('cd' * 32)
-        $pending.Desired.ShortcutSha256 = [string]$state.Shortcut.InstalledSha256
-        $candidatePath = Join-Path -Path $appsPath -ChildPath (
-            'ProcessExplorer.new-' + $pending.OperationId
-        )
-        [void](New-Item -Path $candidatePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $candidatePath 'procexp.exe'), 'candidate')
-
-        Write-AtlasProcessExplorerPendingInstall `
-            -PackagePath $candidatePath `
-            -CanonicalPackagePath $canonicalPath `
-            -Pending $pending
-        $pendingPath = Join-Path $candidatePath 'Atlas.ProcessExplorer.Pending.json'
-        (Get-Item -LiteralPath $pendingPath).Length | Should -BeGreaterThan 2097152
-        (Get-Item -LiteralPath $pendingPath).Length | Should -BeLessOrEqual 4194304
-
-        $roundTrip = Read-AtlasProcessExplorerPendingInstall `
-            -PackagePath $candidatePath `
-            -CanonicalPackagePath $canonicalPath
-        $roundTrip.OperationId | Should -Be $pending.OperationId
-        $roundTrip.Desired.DebuggerValue | Should -Be (
-            Join-Path $canonicalPath 'procexp.exe'
-        )
-    }
-
-    It 'recovers fresh-start candidates interrupted before and during the first pending write' {
-        foreach ($withInterruptedTemp in @($false, $true)) {
-            $appsPath = Join-Path -Path $TestDrive -ChildPath (
-                'PrePendingApps-' + [int]$withInterruptedTemp
-            )
-            $canonicalPath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-            $operationId = [guid]::NewGuid().ToString('N')
-            $candidatePath = Join-Path -Path $appsPath -ChildPath (
-                'ProcessExplorer.new-' + $operationId
-            )
-            [void](New-Item -Path $canonicalPath -ItemType Directory -Force)
-            [void](New-Item -Path $candidatePath -ItemType Directory -Force)
-            [IO.File]::WriteAllText((Join-Path $canonicalPath 'procexp.exe'), 'old')
-            [IO.File]::WriteAllText((Join-Path $candidatePath 'procexp.exe'), 'new')
-            if ($withInterruptedTemp) {
-                $tempPath = Join-Path $candidatePath (
-                    'Atlas.ProcessExplorer.Pending.json.new-' + [guid]::NewGuid().ToString('N')
-                )
-                [IO.File]::WriteAllBytes($tempPath, (New-Object byte[] 3145728))
-            }
-
-            $result = Repair-AtlasProcessExplorerPackageGenerations `
-                -OperationLock ([pscustomobject]@{}) `
-                -AppsPath $appsPath
-            $result | Should -BeNullOrEmpty
-            [IO.Directory]::Exists($candidatePath) | Should -BeFalse
-            [IO.File]::ReadAllText((Join-Path $canonicalPath 'procexp.exe')) |
-                Should -Be 'old'
-        }
-    }
-
-    It 'recovers both caught rename topologies without stranding the old generation' {
-        foreach ($candidatePublished in @($false, $true)) {
-            $appsPath = Join-Path -Path $TestDrive -ChildPath (
-                'CaughtRenameApps-' + [int]$candidatePublished
-            )
-            $canonicalPath = Join-Path $appsPath 'ProcessExplorer'
-            $operationId = [guid]::NewGuid().ToString('N')
-            $candidatePath = Join-Path $appsPath "ProcessExplorer.new-$operationId"
-            $backupPath = Join-Path $appsPath "ProcessExplorer.old-$operationId"
-            [void](New-Item -Path $candidatePath -ItemType Directory -Force)
-            [void](New-Item -Path $backupPath -ItemType Directory -Force)
-            [IO.File]::WriteAllText((Join-Path $candidatePath 'procexp.exe'), 'new-package')
-            [IO.File]::WriteAllText((Join-Path $backupPath 'procexp.exe'), 'old-package')
-            $state = New-AtlasProcessExplorerInstallState `
-                -PackagePath $canonicalPath `
-                -DebuggerPriorExists $false `
-                -DebuggerPriorValue $null `
-                -DebuggerPriorKind $null `
-                -PcwChanged $false `
-                -PcwPriorStart 3 `
-                -ShortcutPriorExists $false `
-                -ShortcutPriorBytes $null `
-                -ShortcutInstalledSha256 ('11' * 32)
-            $pending = New-AtlasProcessExplorerPendingInstall `
-                -PackagePath $canonicalPath `
-                -InstallState $state `
-                -ImmediateDebuggerExists $false `
-                -ImmediateDebuggerValue $null `
-                -ImmediateDebuggerKind $null `
-                -ImmediatePcwStart 3 `
-                -ImmediateShortcutExists $false `
-                -ImmediateShortcutBytes $null `
-                -ConfigurePcw $false
-            $pending.OperationId = $operationId
-            $pending.Package.HadPreviousPackage = $true
-            $pending.Package.InstalledSha256 = ('22' * 32)
-            $pending.Desired.ShortcutSha256 = [string]$state.Shortcut.InstalledSha256
-            Write-AtlasProcessExplorerPendingInstall `
-                -PackagePath $candidatePath `
-                -CanonicalPackagePath $canonicalPath `
-                -Pending $pending
-            if ($candidatePublished) {
-                [IO.Directory]::Move($candidatePath, $canonicalPath)
-            }
-
-            $context = Repair-AtlasProcessExplorerPackageGenerations `
-                -OperationLock ([pscustomobject]@{}) `
-                -AppsPath $appsPath
-            if ($candidatePublished) {
-                $context | Should -Not -BeNullOrEmpty
-                Undo-AtlasProcessExplorerPackageInstall -Transaction $context.Transaction
-            }
-            else {
-                $context | Should -BeNullOrEmpty
-            }
-            [IO.File]::ReadAllText((Join-Path $canonicalPath 'procexp.exe')) |
-                Should -Be 'old-package'
-            [IO.Directory]::Exists($backupPath) | Should -BeFalse
-            [IO.Directory]::Exists($candidatePath) | Should -BeFalse
-        }
-    }
-
-    It 'retains the package when durable dependent restoration fails' {
-        $appsPath = Join-Path $TestDrive 'DependentFailureApps'
-        $packagePath = Join-Path $appsPath 'ProcessExplorer'
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'retained-package')
-        $state = [pscustomobject]@{
-            RestoreProgress = [pscustomobject]@{
-                Debugger = $false
-                Shortcut = $false
-                Pcw = $false
-            }
-        }
-        $steps = @(
-            [pscustomobject]@{ Name = 'Debugger'; Action = { throw 'injected restore failure' } }
-            [pscustomobject]@{ Name = 'Shortcut'; Action = {} }
-            [pscustomobject]@{ Name = 'Pcw'; Action = {} }
-        )
-        $result = Invoke-AtlasProcessExplorerRestorePlan `
-            -State $state `
-            -Steps $steps `
-            -PersistState {}
-        Mock Get-AtlasProcessExplorerLayout {
-            [pscustomobject]@{ AppsPath = $appsPath; PackagePath = $packagePath }
-        }
-
-        { Uninstall-AtlasProcessExplorerPackage `
-                -DependentStateRestored:$result.AllComplete `
-                -OperationLock ([pscustomobject]@{}) } |
-            Should -Throw '*requires confirmed dependent-state restoration*'
-        [IO.File]::ReadAllText((Join-Path $packagePath 'procexp.exe')) |
-            Should -Be 'retained-package'
-    }
-
-    It 'serializes two processes through the protected Apps lock' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'LockApps'
-        [void](New-Item -Path $appsPath -ItemType Directory -Force)
-        $lockPath = Join-Path -Path $appsPath -ChildPath 'Atlas.ProcessExplorer.lock'
-        $stream = $null
-        try {
-            $stream = New-Object IO.FileStream(
-                $lockPath,
-                [IO.FileMode]::OpenOrCreate,
-                [IO.FileAccess]::ReadWrite,
-                [IO.FileShare]::None
-            )
-            $escapedLock = $lockPath.Replace("'", "''")
-            $childCode = @"
-try {
-    `$childLock = New-Object IO.FileStream('$escapedLock',[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
-    `$childLock.Dispose()
-    exit 0
-}
-catch [IO.IOException] { exit 42 }
-"@
-            $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($childCode))
-            $hostExecutable = if ($PSVersionTable.PSEdition -eq 'Core') {
-                Join-Path $PSHOME 'pwsh.exe'
-            }
-            else { Join-Path $PSHOME 'powershell.exe' }
-            $blocked = Start-Process -FilePath $hostExecutable `
-                -ArgumentList @('-NoProfile', '-NonInteractive', '-EncodedCommand', $encoded) `
-                -Wait -PassThru
-            $blocked.ExitCode | Should -Be 42
-            $stream.Dispose()
-            $stream = $null
-
-            $acquired = Start-Process -FilePath $hostExecutable `
-                -ArgumentList @('-NoProfile', '-NonInteractive', '-EncodedCommand', $encoded) `
-                -Wait -PassThru
-            $acquired.ExitCode | Should -Be 0
-        }
-        finally {
-            if ($null -ne $stream) { $stream.Dispose() }
-        }
+    It 'rejects an unsupported native architecture' {
+        { Get-AtlasProcessExplorerBinary -Architecture 'RISCV64' } |
+            Should -Throw "*does not support native architecture 'RISCV64'*"
     }
 }
 
 Describe 'Process Explorer ownership state' {
-    BeforeEach {
-        Mock Assert-AtlasProcessExplorerParent {}
-        Mock Get-Acl { New-AtlasProtectedStagingAcl }
+    It 'records only package identity and the pcw value Atlas changed' {
+        $state = ConvertTo-AtlasProcessExplorerState -Architecture X64 `
+            -InstalledBinarySha256 ('a' * 64) -PcwStart 2 `
+            -DisablePcw $true -ExistingState $null
+
+        $state.SchemaVersion | Should -Be 1
+        $state.PackageVersion | Should -Be '17.12'
+        $state.PcwChanged | Should -BeTrue
+        $state.PcwPriorStart | Should -Be 2
+        @($state.PSObject.Properties.Name) | Should -Be @(
+            'SchemaVersion', 'PackageVersion', 'Architecture',
+            'InstalledBinarySha256', 'PcwChanged', 'PcwPriorStart'
+        )
     }
 
-    It 'round-trips prior Debugger kind, pcw Start, and shortcut bytes' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'StateApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'trusted-package')
-        $priorShortcutBytes = [Text.Encoding]::UTF8.GetBytes('prior-shortcut-state')
-        $installedShortcutHash = ('ab' * 32)
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -DebuggerPriorExists $true `
-            -DebuggerPriorValue '%SystemRoot%\System32\custom-debugger.exe' `
-            -DebuggerPriorKind 'ExpandString' `
-            -PcwChanged $true `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $true `
-            -ShortcutPriorBytes $priorShortcutBytes `
-            -ShortcutInstalledSha256 $installedShortcutHash
+    It 'preserves the original pcw value across reinstall' {
+        $existing = [pscustomobject]@{ PcwChanged = $true; PcwPriorStart = 3 }
+        $state = ConvertTo-AtlasProcessExplorerState -Architecture X64 `
+            -InstalledBinarySha256 ('b' * 64) -PcwStart 4 `
+            -DisablePcw $true -ExistingState $existing
 
-        Write-AtlasProcessExplorerInstallState -PackagePath $packagePath -State $state
-        $roundTrip = Read-AtlasProcessExplorerInstallState -PackagePath $packagePath
-
-        $roundTrip.PSObject.TypeNames | Should -Contain 'Atlas.ProcessExplorer.InstallState'
-        $roundTrip.Debugger.PriorExists | Should -BeTrue
-        $roundTrip.Debugger.PriorValue | Should -Be '%SystemRoot%\System32\custom-debugger.exe'
-        $roundTrip.Debugger.PriorKind | Should -Be 'ExpandString'
-        $roundTrip.Pcw.Changed | Should -BeTrue
-        $roundTrip.Pcw.PriorStart | Should -Be 3
-        [Convert]::FromBase64String([string]$roundTrip.Shortcut.PriorBytesBase64) |
-            Should -Be $priorShortcutBytes
-        $roundTrip.Shortcut.InstalledSha256 | Should -Be $installedShortcutHash
+        $state.PcwChanged | Should -BeTrue
+        $state.PcwPriorStart | Should -Be 3
     }
 
-    It 'atomically replaces shortcut, ownership, and pending checkpoint files' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'ReplaceApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'trusted-package')
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -DebuggerPriorExists $false `
-            -DebuggerPriorValue $null `
-            -DebuggerPriorKind $null `
-            -PcwChanged $false `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $false `
-            -ShortcutPriorBytes $null `
-            -ShortcutInstalledSha256 ('12' * 32)
-        Write-AtlasProcessExplorerInstallState -PackagePath $packagePath -State $state
-        $firstInstallId = $state.InstallId
-        $state.InstallId = [guid]::NewGuid().ToString('N')
-        Write-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -State $state `
-            -ReplaceExisting
-        (Read-AtlasProcessExplorerInstallState -PackagePath $packagePath).InstallId |
-            Should -Not -Be $firstInstallId
+    It 'round-trips the bounded JSON record' {
+        $statePath = Join-Path $TestDrive 'ProcessExplorer\Atlas.ProcessExplorer.State.json'
+        $state = ConvertTo-AtlasProcessExplorerState -Architecture ARM64 `
+            -InstalledBinarySha256 ('c' * 64) -PcwStart 4 `
+            -DisablePcw $false -ExistingState $null
 
-        $pending = New-AtlasProcessExplorerPendingInstall `
-            -PackagePath $packagePath `
-            -InstallState $state `
-            -ImmediateDebuggerExists $false `
-            -ImmediateDebuggerValue $null `
-            -ImmediateDebuggerKind $null `
-            -ImmediatePcwStart 3 `
-            -ImmediateShortcutExists $false `
-            -ImmediateShortcutBytes $null `
-            -ConfigurePcw $false
-        $pending.Package.InstalledSha256 = ('34' * 32)
-        $pending.Desired.ShortcutSha256 = [string]$state.Shortcut.InstalledSha256
-        Write-AtlasProcessExplorerPendingInstall -PackagePath $packagePath -Pending $pending
-        $pending.Progress.ShortcutApplied = $true
-        Write-AtlasProcessExplorerPendingInstall `
-            -PackagePath $packagePath `
-            -Pending $pending `
-            -ReplaceExisting
-        (Read-AtlasProcessExplorerPendingInstall -PackagePath $packagePath).Progress.ShortcutApplied |
-            Should -BeTrue
+        Write-AtlasProcessExplorerState -StatePath $statePath -State $state
+        $actual = Read-AtlasProcessExplorerState -StatePath $statePath
 
-        $shortcutParent = Join-Path -Path $TestDrive -ChildPath 'Programs'
-        [void](New-Item -Path $shortcutParent -ItemType Directory -Force)
-        $shortcutPath = Join-Path -Path $shortcutParent -ChildPath 'Process Explorer.lnk'
-        [IO.File]::WriteAllBytes($shortcutPath, [byte[]](1, 2, 3))
-        $replacementBytes = [byte[]](4, 5, 6, 7)
-        $priorShortcutHash = Get-AtlasProcessExplorerFileSha256 -Path $shortcutPath
-        [void](Set-AtlasProcessExplorerShortcutBytesAtomically `
-            -Path $shortcutPath `
-            -Bytes $replacementBytes `
-            -ArtifactId ([guid]::NewGuid().ToString('N')) `
-            -AlternateSha256 $priorShortcutHash)
-        [IO.File]::ReadAllBytes($shortcutPath) | Should -Be $replacementBytes
-        @(Get-ChildItem -LiteralPath $shortcutParent -Filter '*.atlas-*') |
-            Should -HaveCount 0
+        $actual.Architecture | Should -Be 'ARM64'
+        $actual.InstalledBinarySha256 | Should -Be ('c' * 64)
+        $actual.PcwChanged | Should -BeFalse
+        $actual.PcwPriorStart | Should -BeNullOrEmpty
+        @(Get-ChildItem (Split-Path -Parent $statePath) -Force).Count | Should -Be 1
     }
 
-    It 'cleans an interrupted restore temp while preserving the durable Immediate shortcut' {
-        $parent = Join-Path $TestDrive 'ShortcutRestoreCrash'
-        [void](New-Item -Path $parent -ItemType Directory -Force)
-        $path = Join-Path $parent 'Process Explorer.lnk'
-        $artifactId = [guid]::NewGuid().ToString('N')
-        $immediateBytes = [Text.Encoding]::UTF8.GetBytes('immediate-shortcut')
-        $desiredBytes = [Text.Encoding]::UTF8.GetBytes('desired-shortcut')
-        [IO.File]::WriteAllBytes($path, $immediateBytes)
-        [IO.File]::WriteAllBytes("$path.atlas-restore-$artifactId", $desiredBytes)
-        $immediateHash = Get-AtlasProcessExplorerBytesSha256 -Bytes $immediateBytes
-        $desiredHash = Get-AtlasProcessExplorerBytesSha256 -Bytes $desiredBytes
+    It 'rejects state that claims pcw ownership without a prior value' {
+        $statePath = Join-Path $TestDrive 'invalid.json'
+        [IO.File]::WriteAllText($statePath, @'
+{"SchemaVersion":1,"PackageVersion":"17.12","Architecture":"X64","InstalledBinarySha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","PcwChanged":true,"PcwPriorStart":null}
+'@)
 
-        $result = Repair-AtlasProcessExplorerShortcutArtifacts `
-            -Path $path `
-            -ArtifactId $artifactId `
-            -TargetExists $true `
-            -TargetSha256 $immediateHash `
-            -AlternateSha256 $desiredHash `
-            -AllowCompleteTarget
-
-        $result.TargetSatisfied | Should -BeTrue
-        [IO.File]::ReadAllBytes($path) | Should -Be $immediateBytes
-        @(Get-ChildItem -LiteralPath $parent -Filter '*.atlas-*') | Should -HaveCount 0
-    }
-
-    It 'cleans an interrupted backup after the durable shortcut is already restored' {
-        $parent = Join-Path $TestDrive 'ShortcutBackupCrash'
-        [void](New-Item -Path $parent -ItemType Directory -Force)
-        $path = Join-Path $parent 'Process Explorer.lnk'
-        $artifactId = [guid]::NewGuid().ToString('N')
-        $priorBytes = [Text.Encoding]::UTF8.GetBytes('prior-shortcut')
-        $installedBytes = [Text.Encoding]::UTF8.GetBytes('installed-shortcut')
-        [IO.File]::WriteAllBytes($path, $priorBytes)
-        [IO.File]::WriteAllBytes("$path.atlas-backup-$artifactId", $installedBytes)
-        $priorHash = Get-AtlasProcessExplorerBytesSha256 -Bytes $priorBytes
-        $installedHash = Get-AtlasProcessExplorerBytesSha256 -Bytes $installedBytes
-
-        $result = Repair-AtlasProcessExplorerShortcutArtifacts `
-            -Path $path `
-            -ArtifactId $artifactId `
-            -TargetExists $true `
-            -TargetSha256 $priorHash `
-            -AlternateSha256 $installedHash `
-            -AllowCompleteTarget
-
-        $result.TargetSatisfied | Should -BeTrue
-        [IO.File]::ReadAllBytes($path) | Should -Be $priorBytes
-        @(Get-ChildItem -LiteralPath $parent -Filter '*.atlas-*') | Should -HaveCount 0
-    }
-
-    It 'promotes a durable backup target after an interrupted shortcut replacement' {
-        $parent = Join-Path $TestDrive 'ShortcutPromoteCrash'
-        [void](New-Item -Path $parent -ItemType Directory -Force)
-        $path = Join-Path $parent 'Process Explorer.lnk'
-        $artifactId = [guid]::NewGuid().ToString('N')
-        $immediateBytes = [Text.Encoding]::UTF8.GetBytes('immediate-target')
-        $desiredBytes = [Text.Encoding]::UTF8.GetBytes('desired-primary')
-        [IO.File]::WriteAllBytes($path, $desiredBytes)
-        [IO.File]::WriteAllBytes("$path.atlas-backup-$artifactId", $immediateBytes)
-        $immediateHash = Get-AtlasProcessExplorerBytesSha256 -Bytes $immediateBytes
-        $desiredHash = Get-AtlasProcessExplorerBytesSha256 -Bytes $desiredBytes
-
-        $result = Repair-AtlasProcessExplorerShortcutArtifacts `
-            -Path $path `
-            -ArtifactId $artifactId `
-            -TargetExists $true `
-            -TargetSha256 $immediateHash `
-            -AlternateSha256 $desiredHash `
-            -AllowCompleteTarget
-
-        $result.TargetSatisfied | Should -BeTrue
-        [IO.File]::ReadAllBytes($path) | Should -Be $immediateBytes
-        @(Get-ChildItem -LiteralPath $parent -Filter '*.atlas-*') | Should -HaveCount 0
-    }
-
-    It 'preserves contradictory, foreign, and unknown shortcut artifacts' {
-        $parent = Join-Path $TestDrive 'ShortcutArtifactRejects'
-        [void](New-Item -Path $parent -ItemType Directory -Force)
-        $path = Join-Path $parent 'Process Explorer.lnk'
-        $artifactId = [guid]::NewGuid().ToString('N')
-        $foreignId = [guid]::NewGuid().ToString('N')
-        $immediateBytes = [Text.Encoding]::UTF8.GetBytes('strict-immediate')
-        $desiredBytes = [Text.Encoding]::UTF8.GetBytes('strict-desired')
-        $unknownBytes = [Text.Encoding]::UTF8.GetBytes('unknown-artifact')
-        $immediateHash = Get-AtlasProcessExplorerBytesSha256 -Bytes $immediateBytes
-        $desiredHash = Get-AtlasProcessExplorerBytesSha256 -Bytes $desiredBytes
-        [IO.File]::WriteAllBytes($path, $immediateBytes)
-        $restorePath = "$path.atlas-restore-$artifactId"
-        [IO.File]::WriteAllBytes($restorePath, $desiredBytes)
-
-        { Repair-AtlasProcessExplorerShortcutArtifacts `
-                -Path $path `
-                -ArtifactId $artifactId `
-                -TargetExists $true `
-                -TargetSha256 $desiredHash `
-                -AlternateSha256 $immediateHash } |
-            Should -Throw '*contradicts its durable completed phase*'
-        [IO.File]::Exists($restorePath) | Should -BeTrue
-
-        [IO.File]::Delete($restorePath)
-        $foreignPath = "$path.atlas-backup-$foreignId"
-        [IO.File]::WriteAllBytes($foreignPath, $desiredBytes)
-        { Repair-AtlasProcessExplorerShortcutArtifacts `
-                -Path $path `
-                -ArtifactId $artifactId `
-                -TargetExists $true `
-                -TargetSha256 $immediateHash `
-                -AlternateSha256 $desiredHash `
-                -AllowCompleteTarget } |
-            Should -Throw '*foreign*'
-        [IO.File]::Exists($foreignPath) | Should -BeTrue
-
-        [IO.File]::Delete($foreignPath)
-        $unknownPath = "$path.atlas-backup-$artifactId"
-        [IO.File]::WriteAllBytes($unknownPath, $unknownBytes)
-        { Repair-AtlasProcessExplorerShortcutArtifacts `
-                -Path $path `
-                -ArtifactId $artifactId `
-                -TargetExists $true `
-                -TargetSha256 $immediateHash `
-                -AlternateSha256 $desiredHash `
-                -AllowCompleteTarget } |
-            Should -Throw '*unknown bytes*'
-        [IO.File]::Exists($unknownPath) | Should -BeTrue
-    }
-
-    It 'reconciles valid primary state and pending records left with displaced failed generations' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'FailedRecordRecoveryApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'trusted-package')
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -DebuggerPriorExists $false `
-            -DebuggerPriorValue $null `
-            -DebuggerPriorKind $null `
-            -PcwChanged $false `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $false `
-            -ShortcutPriorBytes $null `
-            -ShortcutInstalledSha256 ('bc' * 32)
-        Write-AtlasProcessExplorerInstallState -PackagePath $packagePath -State $state
-        $statePath = Join-Path $packagePath 'Atlas.ProcessExplorer.State.json'
-        $stateFailed = "$statePath.failed-$([guid]::NewGuid().ToString('N'))"
-        [IO.File]::WriteAllText($stateFailed, 'displaced-old-state')
-        (Read-AtlasProcessExplorerInstallState -PackagePath $packagePath).InstallId |
-            Should -Be $state.InstallId
-        [IO.File]::Exists($stateFailed) | Should -BeFalse
-
-        $pending = New-AtlasProcessExplorerPendingInstall `
-            -PackagePath $packagePath `
-            -InstallState $state `
-            -ImmediateDebuggerExists $false `
-            -ImmediateDebuggerValue $null `
-            -ImmediateDebuggerKind $null `
-            -ImmediatePcwStart 3 `
-            -ImmediateShortcutExists $false `
-            -ImmediateShortcutBytes $null `
-            -ConfigurePcw $false
-        $pending.Package.InstalledSha256 = ('de' * 32)
-        $pending.Desired.ShortcutSha256 = [string]$state.Shortcut.InstalledSha256
-        Write-AtlasProcessExplorerPendingInstall -PackagePath $packagePath -Pending $pending
-        $pendingPath = Join-Path $packagePath 'Atlas.ProcessExplorer.Pending.json'
-        $pendingFailed = "$pendingPath.failed-$([guid]::NewGuid().ToString('N'))"
-        [IO.File]::WriteAllText($pendingFailed, 'displaced-old-pending')
-        (Read-AtlasProcessExplorerPendingInstall -PackagePath $packagePath).OperationId |
-            Should -Be $pending.OperationId
-        [IO.File]::Exists($pendingFailed) | Should -BeFalse
-    }
-
-    It 'restores the previous ownership checkpoint when the replacement primary is corrupted' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'CorruptStateReplaceApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'trusted-package')
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -DebuggerPriorExists $false `
-            -DebuggerPriorValue $null `
-            -DebuggerPriorKind $null `
-            -PcwChanged $false `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $false `
-            -ShortcutPriorBytes $null `
-            -ShortcutInstalledSha256 ('56' * 32)
-        Write-AtlasProcessExplorerInstallState -PackagePath $packagePath -State $state
-        $previousInstallId = [string]$state.InstallId
-        $state.InstallId = [guid]::NewGuid().ToString('N')
-        $statePath = Join-Path $packagePath 'Atlas.ProcessExplorer.State.json'
-
-        Mock ConvertFrom-AtlasProcessExplorerJsonFile {
-            [IO.File]::WriteAllText($Path, '{injected-corruption')
-            throw 'injected new-primary corruption'
-        } -ParameterFilter { $Path -eq $statePath }
-
-        { Write-AtlasProcessExplorerInstallState `
-                -PackagePath $packagePath `
-                -State $state `
-                -ReplaceExisting } |
-            Should -Throw '*did not retain the intended record*'
-        $restored = [IO.File]::ReadAllText($statePath) | ConvertFrom-Json
-        $restored.InstallId | Should -Be $previousInstallId
-        @(Get-ChildItem -LiteralPath $packagePath -Filter 'Atlas.ProcessExplorer.State.json.*-*') |
-            Should -HaveCount 0
-    }
-
-    It 'restores the previous pending checkpoint when the replacement primary is corrupted' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'CorruptPendingReplaceApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'trusted-package')
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -DebuggerPriorExists $false `
-            -DebuggerPriorValue $null `
-            -DebuggerPriorKind $null `
-            -PcwChanged $false `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $false `
-            -ShortcutPriorBytes $null `
-            -ShortcutInstalledSha256 ('78' * 32)
-        $pending = New-AtlasProcessExplorerPendingInstall `
-            -PackagePath $packagePath `
-            -InstallState $state `
-            -ImmediateDebuggerExists $false `
-            -ImmediateDebuggerValue $null `
-            -ImmediateDebuggerKind $null `
-            -ImmediatePcwStart 3 `
-            -ImmediateShortcutExists $false `
-            -ImmediateShortcutBytes $null `
-            -ConfigurePcw $false
-        $pending.Package.InstalledSha256 = ('9a' * 32)
-        $pending.Desired.ShortcutSha256 = [string]$state.Shortcut.InstalledSha256
-        Write-AtlasProcessExplorerPendingInstall -PackagePath $packagePath -Pending $pending
-        $pending.Progress.ShortcutApplied = $true
-        $pendingPath = Join-Path $packagePath 'Atlas.ProcessExplorer.Pending.json'
-
-        Mock ConvertFrom-AtlasProcessExplorerJsonFile {
-            [IO.File]::WriteAllText($Path, '{injected-corruption')
-            throw 'injected new-primary corruption'
-        } -ParameterFilter { $Path -eq $pendingPath }
-
-        { Write-AtlasProcessExplorerPendingInstall `
-                -PackagePath $packagePath `
-                -Pending $pending `
-                -ReplaceExisting } |
-            Should -Throw '*did not retain the intended record*'
-        $restored = [IO.File]::ReadAllText($pendingPath) | ConvertFrom-Json
-        $restored.Progress.ShortcutApplied | Should -BeFalse
-        @(Get-ChildItem -LiteralPath $packagePath -Filter 'Atlas.ProcessExplorer.Pending.json.*-*') |
-            Should -HaveCount 0
-    }
-
-    It 'rejects a tampered shortcut ownership snapshot' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'TamperedStateApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'trusted-package')
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -DebuggerPriorExists $false `
-            -DebuggerPriorValue $null `
-            -DebuggerPriorKind $null `
-            -PcwChanged $false `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $true `
-            -ShortcutPriorBytes ([byte[]](1, 2, 3)) `
-            -ShortcutInstalledSha256 ('cd' * 32)
-        $state.Shortcut.PriorBytesBase64 = [Convert]::ToBase64String([byte[]](4, 5, 6))
-
-        { Assert-AtlasProcessExplorerInstallState -State $state -PackagePath $packagePath } |
-            Should -Throw '*snapshot failed its hash check*'
-    }
-
-    It 'accepts protected prior state after a future package pin changes' {
-        $appsPath = Join-Path -Path $TestDrive -ChildPath 'PriorVersionStateApps'
-        $packagePath = Join-Path -Path $appsPath -ChildPath 'ProcessExplorer'
-        [void](New-Item -Path $packagePath -ItemType Directory -Force)
-        [IO.File]::WriteAllText((Join-Path $packagePath 'procexp.exe'), 'trusted-package')
-        $state = New-AtlasProcessExplorerInstallState `
-            -PackagePath $packagePath `
-            -DebuggerPriorExists $false `
-            -DebuggerPriorValue $null `
-            -DebuggerPriorKind $null `
-            -PcwChanged $false `
-            -PcwPriorStart 3 `
-            -ShortcutPriorExists $false `
-            -ShortcutPriorBytes $null `
-            -ShortcutInstalledSha256 ('ef' * 32)
-        $state.SchemaVersion = 1
-        $state.PSObject.Properties.Remove('RestoreProgress')
-        Write-AtlasProcessExplorerInstallState -PackagePath $packagePath -State $state
-
-        $previousPin = $script:AtlasProcessExplorerVersion
-        try {
-            $script:AtlasProcessExplorerVersion = '18.0'
-            $priorState = Read-AtlasProcessExplorerInstallState -PackagePath $packagePath
-            $priorState.PackageVersion | Should -Be $previousPin
-            $priorState.SchemaVersion | Should -Be 2
-        }
-        finally {
-            $script:AtlasProcessExplorerVersion = $previousPin
-        }
-    }
-
-    It 'orders ownership persistence before commit and restoration before package removal' {
-        $toggle = Get-Content -LiteralPath $script:TogglePath -Raw
-        $writeState = $toggle.IndexOf('Write-AtlasProcessExplorerInstallState')
-        $commit = $toggle.IndexOf('Complete-AtlasProcessExplorerPackageInstall')
-        $restorationGate = $toggle.LastIndexOf('$restoreResult.Failures.Count -ne 0')
-        $packageRemoval = $toggle.LastIndexOf('Uninstall-AtlasProcessExplorerPackage')
-
-        $toggle | Should -Match 'refusing to replace a non-Atlas Task Manager Debugger'
-        $toggle | Should -Match 'if \(-not \$debuggerOwned -and -not \$debuggerAlreadyRestored\)[\s\S]+?throw'
-        $toggle | Should -Match 'InstalledSha256[\s\S]+?Get-AtlasProcessExplorerShortcutState'
-        $writeState | Should -BeGreaterThan -1
-        $commit | Should -BeGreaterThan $writeState
-        $restorationGate | Should -BeGreaterThan $commit
-        $packageRemoval | Should -BeGreaterThan $restorationGate
+        { Read-AtlasProcessExplorerState -StatePath $statePath } |
+            Should -Throw '*pcw ownership state is invalid*'
     }
 }
 
-Describe 'Process Explorer host shortcut boundary' {
-    It 'accepts the real common Start Menu ACL without treating it as a protected package ACL' {
-        $programsPath = Join-Path ([Environment]::GetFolderPath('CommonStartMenu')) 'Programs'
-        $acl = Microsoft.PowerShell.Security\Get-Acl -LiteralPath $programsPath -ErrorAction Stop
+Describe 'Process Explorer file publication' {
+    It 'publishes checked bytes without leaving transaction artifacts' {
+        $source = Join-Path $TestDrive 'source.exe'
+        $destination = Join-Path $TestDrive 'package\procexp.exe'
+        [IO.File]::WriteAllText($source, 'reviewed-binary')
+        [void](New-Item (Split-Path -Parent $destination) -ItemType Directory -Force)
+        [IO.File]::WriteAllText($destination, 'old-binary')
+        $hash = Get-AtlasProcessExplorerFileSha256 -Path $source
 
-        (Test-AtlasProcessExplorerShortcutAcl -Acl $acl) | Should -BeTrue
+        Copy-AtlasProcessExplorerFile -Source $source -Destination $destination `
+            -ExpectedSha256 $hash
+
+        [IO.File]::ReadAllText($destination) | Should -Be 'reviewed-binary'
+        @(Get-ChildItem (Split-Path -Parent $destination) -Filter '*.new-*').Count |
+            Should -Be 0
     }
+
+    It 'leaves the working binary untouched when copied bytes fail validation' {
+        $source = Join-Path $TestDrive 'bad-source.exe'
+        $destination = Join-Path $TestDrive 'existing\procexp.exe'
+        [void](New-Item (Split-Path -Parent $destination) -ItemType Directory -Force)
+        [IO.File]::WriteAllText($source, 'unexpected')
+        [IO.File]::WriteAllText($destination, 'working')
+
+        { Copy-AtlasProcessExplorerFile -Source $source -Destination $destination `
+                -ExpectedSha256 ('0' * 64) } | Should -Throw '*failed its SHA-256 check*'
+        [IO.File]::ReadAllText($destination) | Should -Be 'working'
+    }
+}
+
+Describe 'Process Explorer integration ownership' {
+    BeforeEach {
+        $script:Layout = [pscustomobject]@{
+            WindowsPath = 'C:\Windows'
+            PackagePath = Join-Path $TestDrive 'ProcessExplorer'
+            BinaryPath = Join-Path $TestDrive 'ProcessExplorer\procexp.exe'
+            StatePath = Join-Path $TestDrive 'ProcessExplorer\Atlas.ProcessExplorer.State.json'
+            ShortcutPath = Join-Path $TestDrive 'Process Explorer.lnk'
+            IfeoPath = 'HKLM:\Test\taskmgr.exe'
+            PcwPath = 'HKLM:\Test\pcw'
+        }
+        Remove-Item -LiteralPath $script:Layout.PackagePath -Recurse -Force `
+            -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $script:Layout.ShortcutPath -Force `
+            -ErrorAction SilentlyContinue
+    }
+
+    It 'refuses a foreign Task Manager debugger before mutation' {
+        $debugger = [pscustomobject]@{
+            Exists = $true
+            Value = 'C:\Other\task-manager.exe'
+            Kind = 'String'
+        }
+
+        { Assert-AtlasProcessExplorerInstallOwnership -Layout $Layout `
+                -ExistingState $null -Debugger $debugger -ShortcutTarget $null `
+                -PcwStart 3 -ExpectedBinarySha256 ('0' * 64) } |
+            Should -Throw '*will not replace another Task Manager Debugger*'
+    }
+
+    It 'refuses to replace a foreign common Start menu shortcut' {
+        [IO.File]::WriteAllText($Layout.ShortcutPath, 'foreign-link')
+        $debugger = [pscustomobject]@{ Exists = $false; Value = $null; Kind = $null }
+
+        { Assert-AtlasProcessExplorerInstallOwnership -Layout $Layout `
+                -ExistingState $null -Debugger $debugger `
+                -ShortcutTarget 'C:\Other\tool.exe' -PcwStart 3 `
+                -ExpectedBinarySha256 ('0' * 64) } |
+            Should -Throw '*will not replace the existing Start menu shortcut*'
+    }
+
+    It 'accepts the exact new pin when state refresh was interrupted' {
+        [void](New-Item $Layout.PackagePath -ItemType Directory -Force)
+        [IO.File]::WriteAllText($Layout.BinaryPath, 'new-reviewed-binary')
+        $newHash = Get-AtlasProcessExplorerFileSha256 -Path $Layout.BinaryPath
+        $existing = [pscustomobject]@{
+            PcwChanged = $false
+            PcwPriorStart = $null
+            InstalledBinarySha256 = ('1' * 64)
+        }
+        $debugger = [pscustomobject]@{ Exists = $false; Value = $null; Kind = $null }
+
+        {
+            Assert-AtlasProcessExplorerInstallOwnership -Layout $Layout `
+                -ExistingState $existing -Debugger $debugger -ShortcutTarget $null `
+                -PcwStart 3 -ExpectedBinarySha256 $newHash
+        } | Should -Not -Throw
+    }
+
+    It 'removes only exact Atlas integrations and restores owned pcw state' {
+        [IO.File]::WriteAllText($Layout.ShortcutPath, 'atlas-link')
+        $state = [pscustomobject]@{ PcwChanged = $true; PcwPriorStart = 2 }
+        Mock Get-AtlasProcessExplorerDebugger {
+            [pscustomobject]@{ Exists = $true; Value = $script:Layout.BinaryPath; Kind = 'String' }
+        }
+        Mock Write-AtlasProcessExplorerDebugger {}
+        Mock Get-AtlasProcessExplorerShortcutTarget { $script:Layout.BinaryPath }
+        Mock Get-AtlasProcessExplorerPcwStart { 4 }
+        Mock Invoke-AtlasProcessExplorerPcwStartUpdate {}
+
+        Restore-AtlasProcessExplorerIntegration -Layout $Layout -State $state
+
+        [IO.File]::Exists($Layout.ShortcutPath) | Should -BeFalse
+        Should -Invoke Write-AtlasProcessExplorerDebugger -Times 1 -Exactly
+        Should -Invoke Invoke-AtlasProcessExplorerPcwStartUpdate -Times 1 -Exactly `
+            -ParameterFilter { $Start -eq 2 }
+    }
+
+    It 'leaves newer foreign integration values untouched' {
+        [IO.File]::WriteAllText($Layout.ShortcutPath, 'custom-link')
+        $state = [pscustomobject]@{ PcwChanged = $true; PcwPriorStart = 2 }
+        Mock Get-AtlasProcessExplorerDebugger {
+            [pscustomobject]@{ Exists = $true; Value = 'C:\Other\tool.exe'; Kind = 'String' }
+        }
+        Mock Write-AtlasProcessExplorerDebugger {}
+        Mock Get-AtlasProcessExplorerShortcutTarget { 'C:\Other\tool.exe' }
+        Mock Get-AtlasProcessExplorerPcwStart { 3 }
+        Mock Invoke-AtlasProcessExplorerPcwStartUpdate {}
+
+        Restore-AtlasProcessExplorerIntegration -Layout $Layout -State $state
+
+        [IO.File]::Exists($Layout.ShortcutPath) | Should -BeTrue
+        Should -Invoke Write-AtlasProcessExplorerDebugger -Times 0 -Exactly
+        Should -Invoke Invoke-AtlasProcessExplorerPcwStartUpdate -Times 0 -Exactly
+    }
+
+    It 'retains the package when dependent restoration fails' {
+        [void](New-Item $Layout.PackagePath -ItemType Directory -Force)
+        [IO.File]::WriteAllText($Layout.BinaryPath, 'working-package')
+        $hash = Get-AtlasProcessExplorerFileSha256 -Path $Layout.BinaryPath
+        $state = ConvertTo-AtlasProcessExplorerState -Architecture X64 `
+            -InstalledBinarySha256 $hash -PcwStart 3 `
+            -DisablePcw $false -ExistingState $null
+        Write-AtlasProcessExplorerState -StatePath $Layout.StatePath -State $state
+        Mock Get-AtlasProcessExplorerLayout { $script:Layout }
+        Mock Restore-AtlasProcessExplorerIntegration { throw 'restore failed' }
+
+        { Uninstall-AtlasProcessExplorerPackageCore } | Should -Throw '*restore failed*'
+        [IO.File]::Exists($Layout.BinaryPath) | Should -BeTrue
+        [IO.File]::Exists($Layout.StatePath) | Should -BeTrue
+    }
+}
+
+Describe 'Process Explorer toggle caller' {
+    BeforeEach {
+        $internalPath = Join-Path $TestDrive 'Scripts\Internal'
+        [void](New-Item $internalPath -ItemType Directory -Force)
+        $fakeHelper = Join-Path $internalPath 'ProcessExplorer-Package.ps1'
+        Set-Content -LiteralPath $fakeHelper -Encoding Ascii -Value @'
+function Install-AtlasProcessExplorerPackage {
+    param([switch]$DisablePcw)
+    $script:AtlasProcessExplorerTestCall = "Install:$([bool]$DisablePcw)"
+}
+function Uninstall-AtlasProcessExplorerPackage {
+    $script:AtlasProcessExplorerTestCall = 'Uninstall'
+}
+function Write-AtlasProcessExplorerUserPreference {
+    $script:AtlasProcessExplorerTestCall = 'UserPreference'
+}
+'@
+        $script:ToggleContext = [pscustomobject]@{
+            ScriptsPath = (Split-Path -Parent $internalPath)
+            Silent = $true
+        }
+        $script:Definition = . $script:TogglePath
+        $script:AtlasProcessExplorerTestCall = $null
+    }
+
+    AfterEach {
+        Remove-Variable AtlasProcessExplorerTestCall -Scope Script -ErrorAction SilentlyContinue
+    }
+
+    It 'passes the silent pcw choice to the machine package operation' {
+        & $Definition.States.Install.MachineAction $ToggleContext
+        $script:AtlasProcessExplorerTestCall | Should -Be 'Install:True'
+    }
+
+    It 'sets OneInstance in the initiating user action' {
+        & $Definition.States.Install.UserAction $ToggleContext
+        $script:AtlasProcessExplorerTestCall | Should -Be 'UserPreference'
+    }
+
+    It 'delegates uninstall to the machine package operation' {
+        & $Definition.States.Uninstall.MachineAction $ToggleContext
+        $script:AtlasProcessExplorerTestCall | Should -Be 'Uninstall'
+    }
+}
+
+Describe 'Process Explorer upgrade teardown' {
+    BeforeEach {
+        $script:UpgradeStateValue = 1
+        $script:UpgradeStatePath = 'HKLM:\SOFTWARE\AtlasOS\Services\ProcessExplorer'
+        $script:UpgradeUninstallPath = Join-Path `
+            ([Environment]::GetFolderPath('Windows')) `
+            'AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd'
+        $script:FakeUpgradeProcess = [pscustomobject]@{ ExitCode = 0 }
+        $script:FakeUpgradeProcess | Add-Member -MemberType ScriptMethod `
+            -Name WaitForExit -Value { return $true }
+
+        Mock Test-Path {
+            return $LiteralPath -in @($script:UpgradeStatePath, $script:UpgradeUninstallPath)
+        }
+        Mock Get-Item {
+            $key = [pscustomobject]@{ StateValue = $script:UpgradeStateValue }
+            $key | Add-Member -MemberType ScriptMethod -Name GetValueNames `
+                -Value { return @('state') }
+            $key | Add-Member -MemberType ScriptMethod -Name GetValueKind `
+                -Value { return [Microsoft.Win32.RegistryValueKind]::DWord }
+            $key | Add-Member -MemberType ScriptMethod -Name GetValue `
+                -Value { return $this.StateValue }
+            return $key
+        } -ParameterFilter { $LiteralPath -eq $script:UpgradeStatePath }
+        Mock Start-Process { return $script:FakeUpgradeProcess }
+        Mock Get-Process { return @() }
+        Mock Get-ItemProperty { return $null }
+        Mock New-ItemProperty {}
+        Mock New-Item {}
+    }
+
+    It 'preserves an enabled replay preference across teardown' {
+        . $script:UpgradeStopPath
+
+        Should -Invoke New-ItemProperty -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq $script:UpgradeStatePath -and
+            $Name -eq 'state' -and $PropertyType -eq 'DWord' -and $Value -eq 1
+        }
+    }
+
 }

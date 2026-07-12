@@ -3,61 +3,212 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
-permissions:
-  contents: write # create the GitHub Release
+# Jobs opt into only the permissions they require. In particular, the build job cannot
+# mutate repository/release state and the publishing job never checks out repository code.
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  release:
+  build:
+    if: github.repository == 'Atlas-OS/Atlas'
     runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout code
-        # gh api repos/actions/checkout/commits/v6 --jq '.sha'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Verify tag matches playbook version
-        shell: pwsh
-        run: |
-          $conf = [xml](Get-Content -Path 'playbook/playbook.conf' -Raw)
-          $version = $conf.Playbook.Version
-          $tag = '${{ github.ref_name }}'
-          if ($tag -ne "v$version") {
-              Write-Host "::error::Tag '$tag' does not match playbook.conf version 'v$version'."
-              exit 1
-          }
-          Write-Host "Tag matches playbook version v$version."
-
-      - name: Build playbook
-        shell: pwsh
-        run: |
-          # A release build: no dev removals, no live log.
-          & ./tools/build/Build-Playbook.ps1 -FileName "Atlas ${{ github.ref_name }}" -DontOpenPbLocation
-
-      - name: Verify playbook package
-        shell: pwsh
-        run: |
-          $apbx = Get-ChildItem 'playbook' -Filter *.apbx | Select-Object -First 1
-          & ./tools/build/Test-Apbx.ps1 -Path $apbx.FullName
-
-      - name: Assemble release ZIP
-        shell: pwsh
-        run: |
-          $staging = Join-Path $env:RUNNER_TEMP 'release'
-          New-Item -ItemType Directory -Path $staging -Force | Out-Null
-          Get-ChildItem 'playbook' -Filter *.apbx | Copy-Item -Destination $staging
-          Get-ChildItem 'tools/release-zip' -File | Copy-Item -Destination $staging
-          $zipPath = "Atlas ${{ github.ref_name }}.zip"
-          Compress-Archive -Path "$staging/*" -DestinationPath $zipPath -Force
-          "ZIP_PATH=$zipPath" >> $env:GITHUB_ENV
-
-      - name: Create draft release
-        # gh api repos/softprops/action-gh-release/commits/v2.4.1 --jq '.sha'
-        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.4.1
+      - name: Checkout the tagged source
+        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          draft: true
-          name: Atlas ${{ github.ref_name }}
-          files: |
-            playbook/*.apbx
-            ${{ env.ZIP_PATH }}
+          persist-credentials: false
+
+      - name: Build, verify, and hash the release bundle
+        shell: pwsh
+        env:
+          ATLAS_TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+
+          $tag = $env:ATLAS_TAG
+          if ($tag -cnotmatch '^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$') {
+              throw "Release tag '$tag' is not a canonical stable semantic version."
+          }
+
+          $conf = [xml](Get-Content -LiteralPath 'playbook\playbook.conf' -Raw)
+          $version = [string]$conf.Playbook.Version
+          if ($tag -cne "v$version") {
+              throw "Tag '$tag' does not match playbook.conf version 'v$version'."
+          }
+
+          $playbookName = "Atlas $tag"
+          & .\tools\build\Build-Playbook.ps1 -FileName $playbookName -DontOpenPbLocation
+          $apbx = Get-Item -LiteralPath "playbook\$playbookName.apbx" -ErrorAction Stop
+          & .\tools\build\Test-Apbx.ps1 -Path $apbx.FullName
+
+          $bundle = Join-Path $env:RUNNER_TEMP 'atlas-release'
+          $zipContents = Join-Path $env:RUNNER_TEMP 'atlas-release-zip'
+          New-Item -Path $bundle -ItemType Directory -Force | Out-Null
+          New-Item -Path $zipContents -ItemType Directory -Force | Out-Null
+
+          $apbxCopy = Copy-Item -LiteralPath $apbx.FullName -Destination $bundle -PassThru -Force
+          Copy-Item -LiteralPath $apbx.FullName -Destination $zipContents -Force
+          Get-ChildItem -LiteralPath 'tools\release-zip' -File |
+              Copy-Item -Destination $zipContents -Force
+
+          $zip = Join-Path $bundle "$playbookName.zip"
+          Compress-Archive -Path (Join-Path $zipContents '*') -DestinationPath $zip -Force
+          $zipFile = Get-Item -LiteralPath $zip -ErrorAction Stop
+
+          $releaseFiles = @($apbxCopy, $zipFile) | Sort-Object Name
+          $hashLines = @($releaseFiles | ForEach-Object {
+                  $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                  "$hash  $($_.Name)"
+              })
+          [IO.File]::WriteAllLines((Join-Path $bundle 'SHA256SUMS.txt'), $hashLines,
+              [Text.Encoding]::ASCII)
+
+          "ATLAS_RELEASE_BUNDLE=$bundle" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload the release promotion bundle
+        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: atlas-release-${{ github.sha }}
+          path: ${{ env.ATLAS_RELEASE_BUNDLE }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  attest-promotion:
+    if: github.repository == 'Atlas-OS/Atlas'
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download the exact promotion bundle
+        # gh api repos/actions/download-artifact/commits/v8.0.1 --jq '.sha'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: atlas-release-${{ github.sha }}
+          path: ${{ runner.temp }}/atlas-release
+          digest-mismatch: error
+
+      - name: Attest the verified APBX
+        # gh api repos/actions/attest/commits/v4.1.1 --jq '.sha'
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: ${{ runner.temp }}/atlas-release/*.apbx
+
+      - name: Attest the release ZIP
+        # gh api repos/actions/attest/commits/v4.1.1 --jq '.sha'
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: ${{ runner.temp }}/atlas-release/*.zip
+
+  publish-draft:
+    if: github.repository == 'Atlas-OS/Atlas'
+    needs: attest-promotion
+    runs-on: windows-latest
+    timeout-minutes: 10
+    environment:
+      name: release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Require the configured release environment
+        shell: pwsh
+        env:
+          ATLAS_RELEASE_ENABLED: ${{ vars.ATLAS_RELEASE_ENABLED }}
+        run: |
+          if ($env:ATLAS_RELEASE_ENABLED -cne 'true') {
+              throw "The release environment must define ATLAS_RELEASE_ENABLED=true."
+          }
+
+      - name: Download the exact promotion bundle
+        # gh api repos/actions/download-artifact/commits/v8.0.1 --jq '.sha'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: atlas-release-${{ github.sha }}
+          path: ${{ runner.temp }}/atlas-release
+          digest-mismatch: error
+
+      - name: Verify the promotion bundle hashes
+        shell: pwsh
+        env:
+          ATLAS_TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+
+          $tag = $env:ATLAS_TAG
+          if ($tag -cnotmatch '^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$') {
+              throw "Release tag '$tag' is not a canonical stable semantic version."
+          }
+
+          $bundle = Join-Path $env:RUNNER_TEMP 'atlas-release'
+          $hashFile = Get-Item -LiteralPath (Join-Path $bundle 'SHA256SUMS.txt') -ErrorAction Stop
+          $apbxFiles = @(Get-ChildItem -LiteralPath $bundle -Filter '*.apbx' -File)
+          $zipFiles = @(Get-ChildItem -LiteralPath $bundle -Filter '*.zip' -File)
+          if ($apbxFiles.Count -ne 1 -or $zipFiles.Count -ne 1) {
+              throw 'The promotion bundle must contain exactly one APBX and one ZIP.'
+          }
+          if ($apbxFiles[0].Name -cne "Atlas $tag.apbx" -or
+              $zipFiles[0].Name -cne "Atlas $tag.zip") {
+              throw 'The promotion bundle filenames do not match the release tag.'
+          }
+
+          $expectedNames = @($apbxFiles[0].Name, $zipFiles[0].Name) | Sort-Object
+          $manifestNames = [Collections.Generic.List[string]]::new()
+          foreach ($line in [IO.File]::ReadAllLines($hashFile.FullName, [Text.Encoding]::ASCII)) {
+              if ($line -cnotmatch '^(?<Hash>[0-9a-f]{64})  (?<Name>[^\\/]+)$') {
+                  throw "Invalid SHA256SUMS entry: '$line'."
+              }
+              $name = $Matches.Name
+              $expectedHash = $Matches.Hash
+              if ($manifestNames.Contains($name)) {
+                  throw "Duplicate SHA256SUMS entry for '$name'."
+              }
+              $manifestNames.Add($name)
+              $file = Get-Item -LiteralPath (Join-Path $bundle $name) -ErrorAction Stop
+              $actual = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              if ($actual -cne $expectedHash) {
+                  throw "SHA-256 mismatch for '$name'."
+              }
+          }
+          if ([string]::Join('|', @($manifestNames | Sort-Object)) -cne
+              [string]::Join('|', $expectedNames)) {
+              throw 'SHA256SUMS.txt does not bind exactly the APBX and release ZIP.'
+          }
+
+      - name: Create a draft release
+        shell: pwsh
+        env:
+          ATLAS_TAG: ${{ github.ref_name }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:ATLAS_TAG
+          $bundle = Join-Path $env:RUNNER_TEMP 'atlas-release'
+          $apbx = Get-Item -LiteralPath (Join-Path $bundle "Atlas $tag.apbx") -ErrorAction Stop
+          $zip = Get-Item -LiteralPath (Join-Path $bundle "Atlas $tag.zip") -ErrorAction Stop
+          $hashes = Get-Item -LiteralPath (Join-Path $bundle 'SHA256SUMS.txt') -ErrorAction Stop
+          & gh release create $tag --draft --verify-tag --title "Atlas $tag" `
+              $apbx.FullName $zip.FullName $hashes.FullName
+          if ($LASTEXITCODE -ne 0) {
+              throw "Creating the draft release for '$tag' failed."
+          }

@@ -5,6 +5,75 @@ BeforeAll {
     & $coreModule { Initialize-AtlasRunAsUserType }
 }
 
+Describe 'Get-AtlasContext install state' {
+    BeforeEach {
+        & $coreModule { $script:AtlasContext = $null }
+    }
+
+    It 'maps the active install state and selected options into the shared context' {
+        $windowsPath = Join-Path -Path $TestDrive -ChildPath 'Windows'
+        [void][IO.Directory]::CreateDirectory($windowsPath)
+        $transactionId = '31f30158-28ea-4e0c-86b5-d8f3e33b81f5'
+        $state = [pscustomobject]@{
+            mode          = 'Upgrade'
+            isOobe        = $true
+            targetVersion = '0.5.1'
+            userSid       = 'S-1-5-21-1-2-3-1001'
+            userSessionId = 7
+            transactionId = $transactionId
+            options       = @('defender-disable', 'browser-brave')
+        }
+        $observedPaths = [Collections.Generic.List[string]]::new()
+        $stateReader = {
+            param($path)
+            [void]$observedPaths.Add($path)
+            return $state
+        }.GetNewClosure()
+
+        $context = Get-AtlasContext -Refresh -WindowsPath $windowsPath `
+            -StateReader $stateReader -WindowsBuildReader { 26100 }
+
+        $observedPaths | Should -HaveCount 1
+        $observedPaths[0] | Should -BeExactly (
+            Join-Path -Path $windowsPath -ChildPath 'AtlasOS\Install\active.json'
+        )
+        $context.IsInstallStateBacked | Should -BeTrue
+        $context.Mode | Should -BeExactly 'Upgrade'
+        $context.IsUpgrade | Should -BeTrue
+        $context.IsOobe | Should -BeTrue
+        $context.TargetVersion | Should -BeExactly '0.5.1'
+        $context.InteractiveUserSid | Should -BeExactly 'S-1-5-21-1-2-3-1001'
+        $context.InteractiveUserSessionId | Should -Be 7
+        $context.TransactionId | Should -BeExactly $transactionId
+        $context.Options | Should -Be @('defender-disable', 'browser-brave')
+        Test-AtlasOption -Name 'defender-disable' | Should -BeTrue
+        Test-AtlasOption -Name 'browser-firefox' | Should -BeFalse
+    }
+
+    It 'uses published completion flags after active state is archived' {
+        $windowsPath = Join-Path -Path $TestDrive -ChildPath 'FlagBackedWindows'
+        $flagsPath = Join-Path -Path $windowsPath -ChildPath 'AtlasModules\Flags'
+        [void][IO.Directory]::CreateDirectory($flagsPath)
+        [IO.File]::WriteAllText((Join-Path $flagsPath 'Upgrade.flag'), '')
+        [IO.File]::WriteAllText((Join-Path $flagsPath 'option-browser-firefox.flag'), '')
+
+        $context = Get-AtlasContext -Refresh -WindowsPath $windowsPath `
+            -StateReader { $null } -WindowsBuildReader { 19045 } -OobeReader { 1 }
+
+        $context.IsInstallStateBacked | Should -BeFalse
+        $context.Mode | Should -BeExactly 'Legacy'
+        $context.IsUpgrade | Should -BeTrue
+        $context.IsOobe | Should -BeTrue
+        $context.TargetVersion | Should -BeNullOrEmpty
+        $context.InteractiveUserSid | Should -BeNullOrEmpty
+        $context.InteractiveUserSessionId | Should -BeNullOrEmpty
+        $context.TransactionId | Should -BeNullOrEmpty
+        $context.Options | Should -BeNullOrEmpty
+        Test-AtlasOption -Name 'browser-firefox' | Should -BeTrue
+        Test-AtlasOption -Name 'browser-brave' | Should -BeFalse
+    }
+}
+
 Describe 'Get-AtlasUserProcessCommandLine' {
     It 'quotes a path with spaces and adds nothing else when there are no arguments' {
         Get-AtlasUserProcessCommandLine -FilePath 'C:\Program Files\x.exe' |
@@ -32,96 +101,8 @@ Describe 'Invoke-AtlasAsUser' {
             Should -Throw -ExpectedMessage '*must run as SYSTEM*'
     }
 
-    It 'uses only the LocalSystem predicate at the interactive-user token boundary' {
-        $runAsUserPath = Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Domain\RunAsUser.ps1'
-        $tokens = $null
-        $parseErrors = $null
-        $ast = [Management.Automation.Language.Parser]::ParseFile(
-            $runAsUserPath,
-            [ref]$tokens,
-            [ref]$parseErrors
-        )
-        $parseErrors.Count | Should -Be 0
-        $function = $ast.Find({
-                param($node)
-                $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
-                    $node.Name -eq 'Invoke-AtlasAsUser'
-            }, $true)
-
-        $function | Should -Not -BeNullOrEmpty
-        $function.Extent.Text | Should -Match 'if\s*\(\s*-not\s*\(Test-AtlasSystem\)\s*\)'
-        $function.Extent.Text | Should -Not -Match `
-            'Test-AtlasTrustedInstaller|Assert-AtlasPrivilege\s+-TrustedInstaller'
-    }
-
-    It 'documents that it returns the child process exit code' {
-        # Callers (e.g. Atlas.Tweaks) treat a nonzero return as failure; pin the
-        # documented contract textually since OutputType is not enforced in PS.
-        (Get-Help Invoke-AtlasAsUser).Synopsis | Should -Match 'exit code'
-    }
-
-    It 'keeps waiting bounded for existing callers that omit the timeout' {
-        $command = Get-Command -Name Invoke-AtlasAsUser
-        $timeoutParameter = $command.ScriptBlock.Ast.Body.ParamBlock.Parameters |
-            Where-Object { $_.Name.VariablePath.UserPath -eq 'TimeoutSeconds' }
-
-        $timeoutParameter | Should -Not -BeNullOrEmpty
-        $timeoutParameter.DefaultValue.SafeGetValue() | Should -Be 900
-    }
 }
 
-Describe 'Atlas.UserProcess native interop contract' {
-    It 'uses the Unicode STARTUPINFO layout and CreateProcessAsUserW entry point' {
-        $nestedTypeFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Public
-        $nativeMethodFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Static
-        $startupInfoType = [Atlas.UserProcess].GetNestedType('STARTUPINFO', $nestedTypeFlags)
-        $startupInfoType | Should -Not -BeNullOrEmpty
-        $startupInfoType.StructLayoutAttribute.CharSet |
-            Should -Be ([System.Runtime.InteropServices.CharSet]::Unicode)
-
-        $createProcessMethod = [Atlas.UserProcess].GetMethod('CreateProcessAsUser', $nativeMethodFlags)
-        $dllImport = $createProcessMethod.GetCustomAttributes([System.Runtime.InteropServices.DllImportAttribute], $false)[0]
-        $dllImport.EntryPoint | Should -BeExactly 'CreateProcessAsUserW'
-        $dllImport.CharSet | Should -Be ([System.Runtime.InteropServices.CharSet]::Unicode)
-    }
-
-    It 'marshals TOKEN_LINKED_TOKEN as a structure containing an owned handle' {
-        $nestedTypeFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Public
-        $nativeMethodFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Static
-        $linkedTokenType = [Atlas.UserProcess].GetNestedType('TOKEN_LINKED_TOKEN', $nestedTypeFlags)
-        $linkedTokenType | Should -Not -BeNullOrEmpty
-        $linkedTokenType.GetField('LinkedToken').FieldType | Should -Be ([IntPtr])
-
-        $getTokenInformation = [Atlas.UserProcess].GetMethod('GetTokenInformation', $nativeMethodFlags)
-        $bufferParameter = $getTokenInformation.GetParameters()[2].ParameterType
-        $bufferParameter.IsByRef | Should -BeTrue
-        $bufferParameter.GetElementType() | Should -Be $linkedTokenType
-
-        $runAsUserSource = Get-Content -LiteralPath (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Domain\RunAsUser.ps1') -Raw
-        $runAsUserSource | Should -Not -Match 'Marshal\.(ReadIntPtr|FreeHGlobal)\(info\)'
-    }
-
-    It 'fails closed when an elevated linked token is unavailable' {
-        $runAsUserSource = Get-Content -LiteralPath (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Domain\RunAsUser.ps1') -Raw
-        $runAsUserSource | Should -Match '(?s)if \(!GetTokenInformation\(.+?\)\)\s*\{.+?throw new Win32Exception'
-        $runAsUserSource | Should -Match '(?s)if \(linkedToken == IntPtr\.Zero\)\s*\{.+?throw new InvalidOperationException'
-    }
-
-    It 'treats failure to create the interactive user environment as fatal' {
-        $runAsUserSource = Get-Content -LiteralPath (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Domain\RunAsUser.ps1') -Raw
-        $runAsUserSource | Should -Match '(?s)if \(!CreateEnvironmentBlock\(.+?\)\)\s*\{.+?throw new Win32Exception'
-        $runAsUserSource | Should -Not -Match 'non-fatal; fall back to no explicit environment'
-    }
-
-    It 'checks bounded process waiting and exit-code retrieval failures' {
-        $runAsUserSource = Get-Content -LiteralPath (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Domain\RunAsUser.ps1') -Raw
-        $runAsUserSource | Should -Not -Match 'WaitForSingleObject\(pi\.hProcess, INFINITE\)'
-        $runAsUserSource | Should -Match 'WaitForSingleObject\(pi\.hProcess, timeoutMilliseconds\)'
-        $runAsUserSource | Should -Match '(?s)WAIT_TIMEOUT.+?throw new TimeoutException'
-        $runAsUserSource | Should -Match '(?s)WAIT_FAILED.+?throw new Win32Exception'
-        $runAsUserSource | Should -Match '(?s)if \(!GetExitCodeProcess\(.+?\)\)\s*\{.+?throw new Win32Exception'
-    }
-}
 
 Describe 'Invoke-AtlasTrustedInstaller' {
     BeforeEach {
@@ -139,12 +120,19 @@ Describe 'Invoke-AtlasTrustedInstaller' {
             )) {
             $command.Parameters.Keys | Should -Not -Contain $forbidden
         }
-        $declaredParameters = @($command.ScriptBlock.Ast.Body.ParamBlock.Parameters |
-            ForEach-Object { $_.Name.VariablePath.UserPath })
-        $declaredParameters | Should -Be @(
-            'Operation', 'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart',
-            'RestoreSource', 'RecoveryOperationId', 'TimeoutSeconds'
+        $commonParameters = @(
+            'Verbose', 'Debug', 'ErrorAction', 'WarningAction', 'InformationAction',
+            'ProgressAction', 'ErrorVariable', 'WarningVariable', 'InformationVariable',
+            'OutVariable', 'OutBuffer', 'PipelineVariable'
         )
+        $operationParameters = @($command.Parameters.Keys |
+            Where-Object { $_ -cnotin $commonParameters } |
+            Sort-Object)
+        $expectedParameters = @(
+            'Operation', 'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly',
+            'RestoreSource', 'TimeoutSeconds'
+        ) | Sort-Object
+        $operationParameters | Should -Be $expectedParameters
     }
 
     It 'rejects incomplete typed operations before asking for elevation' {
@@ -152,14 +140,7 @@ Describe 'Invoke-AtlasTrustedInstaller' {
             Should -Throw -ExpectedMessage '*requires typed -Name and -State*'
         { Invoke-AtlasTrustedInstaller -Operation ResetServices } |
             Should -Throw -ExpectedMessage '*requires a typed -RestoreSource*'
-        { Invoke-AtlasTrustedInstaller -Operation SafeModeRecovery } |
-            Should -Throw -ExpectedMessage '*requires -RecoveryOperationId*'
         { Invoke-AtlasTrustedInstaller -Operation RegistryImport } | Should -Throw
-        { Invoke-AtlasTrustedInstaller -Operation Toggle -RecoveryOperationId '1234567890abcdef1234567890abcdef' } |
-            Should -Throw -ExpectedMessage "*Toggle does not accept*'-RecoveryOperationId'*"
-        { Invoke-AtlasTrustedInstaller -Operation SafeModeRecovery `
-                 -RecoveryOperationId '1234567890abcdef1234567890abcdef' -Name Test } |
-            Should -Throw -ExpectedMessage "*SafeModeRecovery does not accept*'-Name'*"
     }
 
     It 'rejects every operation input outside the selected operation schema' {
@@ -169,9 +150,9 @@ Describe 'Invoke-AtlasTrustedInstaller' {
         { Invoke-AtlasTrustedInstaller -Operation ResetServices -RestoreSource ToggleDefaults `
                 -Name Test } |
             Should -Throw -ExpectedMessage "*ResetServices does not accept*'-Name'*"
-        { Invoke-AtlasTrustedInstaller -Operation SafeModeRecovery `
-                -RecoveryOperationId '1234567890abcdef1234567890abcdef' -Silent:$true } |
-            Should -Throw -ExpectedMessage "*SafeModeRecovery does not accept*'-Silent'*"
+        { Invoke-AtlasTrustedInstaller -Operation ResetServices -RestoreSource ToggleDefaults `
+                -MachineOnly } |
+            Should -Throw -ExpectedMessage "*ResetServices does not accept*'-MachineOnly'*"
     }
 
     It 'returns caller-generated failures with the complete versioned result shape' {

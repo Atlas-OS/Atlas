@@ -15,8 +15,7 @@
 
                 $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-DefenderState.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
-                    Write-Host "Script not found: `"$script`"" -ForegroundColor Red
-                    return
+                    throw "Required Defender state helper is missing: '$script'."
                 }
 
                 $scriptArgs = @()

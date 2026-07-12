@@ -28,4 +28,9 @@ else {
 }
 
 $themeUpgrade = Join-Path -Path $context.AtlasModulesPath -ChildPath 'Scripts\Tweaks\qol\appearance\atlas-theme-upgrade.psd1'
-Invoke-AtlasTweak -Path $themeUpgrade
+try {
+    Invoke-AtlasTweak -Path $themeUpgrade
+}
+catch {
+    Write-AtlasLog -Message "The optional upgrade theme policy could not be refreshed: $($_.Exception.Message)" -Level Warning
+}

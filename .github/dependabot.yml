@@ -8,6 +8,11 @@ updates:
       actions:
         patterns:
           - "actions/*"
-      tj-actions:
+  - package-ecosystem: "pip"
+    directory: "/.github"
+    schedule:
+      interval: "weekly"
+    groups:
+      ci-python:
         patterns:
-          - "tj-actions/*"
+          - "*"

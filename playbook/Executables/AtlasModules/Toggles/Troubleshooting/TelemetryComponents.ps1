@@ -13,8 +13,7 @@
 
                 $script = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Remove-TelemetryComponents.ps1'
                 if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
-                    Write-Host "Script not found: `"$script`"" -ForegroundColor Red
-                    return
+                    throw "Required telemetry-components helper is missing: '$script'."
                 }
 
                 & $script

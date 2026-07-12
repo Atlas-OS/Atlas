@@ -12,9 +12,10 @@
         'Get-AvailableArchiveName'
         'Get-AtlasPlaybookPayloadPath'
         'Compare-AtlasPayloadPath'
+        'Get-AtlasYamlAction'
+        'Get-AtlasConfigurationRunnerContract'
+        'Assert-AtlasConfigurationRunnerBoundary'
         'New-StagedPlaybookConf'
-        'Add-LiveLogAction'
-        'Remove-DependencyBlock'
         'Set-OemVersionStamp'
         'New-Apbx'
     )

@@ -1,3 +1,14 @@
+[CmdletBinding()]
+param()
+
+$trustBootstrap = [IO.Path]::GetFullPath([IO.Path]::Combine(
+        $PSScriptRoot, '..', 'Internal', 'Initialize-PowerShellTrust.ps1'
+    ))
+if (-not [IO.File]::Exists($trustBootstrap)) {
+    throw "The PowerShell trust bootstrap is missing at '$trustBootstrap'."
+}
+. $trustBootstrap
+
 $ErrorActionPreference = 'Stop'
 
 $windowsPath = [Environment]::GetFolderPath('Windows')
@@ -5,8 +16,12 @@ if ([string]::IsNullOrWhiteSpace($windowsPath) -or -not (Test-Path -LiteralPath 
     throw "Windows directory '$windowsPath' is not available."
 }
 
+$executablesRoot = [IO.Path]::GetFullPath([IO.Path]::Combine(
+        $PSScriptRoot, '..', '..', '..'
+    ))
+
 foreach ($folderName in @('AtlasModules', 'AtlasDesktop')) {
-    $source = Join-Path -Path (Get-Location).Path -ChildPath $folderName
+    $source = Join-Path -Path $executablesRoot -ChildPath $folderName
     if (-not (Test-Path -LiteralPath $source -PathType Container)) {
         throw "Required playbook payload folder '$source' is missing."
     }
@@ -14,7 +29,7 @@ foreach ($folderName in @('AtlasModules', 'AtlasDesktop')) {
     Copy-Item -LiteralPath $source -Destination $windowsPath -Force -Recurse -ErrorAction Stop
 }
 
-$themesSourceRoot = Join-Path -Path (Get-Location).Path -ChildPath 'Themes'
+$themesSourceRoot = Join-Path -Path $executablesRoot -ChildPath 'Themes'
 if (-not (Test-Path -LiteralPath $themesSourceRoot -PathType Container)) {
     throw "Required Themes payload folder '$themesSourceRoot' is missing."
 }

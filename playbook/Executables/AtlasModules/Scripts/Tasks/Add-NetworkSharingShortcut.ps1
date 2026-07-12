@@ -8,4 +8,5 @@ if (-not (Test-Path -LiteralPath $initScript -PathType Leaf)) {
 . $initScript
 
 $destination = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasDesktop\3. General Configuration\File Sharing\Sharing Settings.lnk'
-New-AtlasShortcut -Source 'control.exe' -Destination $destination -Arguments '/name Microsoft.NetworkAndSharingCenter /page Advanced'
+$controlPanel = Join-Path -Path ([Environment]::GetFolderPath('System')) -ChildPath 'control.exe'
+New-AtlasShortcut -Source $controlPanel -Destination $destination -Arguments '/name Microsoft.NetworkAndSharingCenter /page Advanced'

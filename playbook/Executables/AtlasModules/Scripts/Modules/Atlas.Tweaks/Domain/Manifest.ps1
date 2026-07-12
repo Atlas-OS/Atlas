@@ -2,8 +2,8 @@
 #
 # The manifest (Scripts\Tweaks\tweaks.manifest.psd1) defines category order, the
 # tweak files inside each category, standalone routes and deliberately disabled
-# definitions. ParentModes records the fresh/upgrade modes allowed by the AME shim
-# which invokes each PowerShell route; the validator composes that outer gate with
+# definitions. ParentModes records the fresh/upgrade modes allowed by the ordered
+# install-plan route; the validator composes that outer gate with
 # each definition's OnUpgrade gate so an enabled-but-unreachable tweak cannot ship.
 
 $script:AtlasTweakManifestKeys = @('Categories', 'Standalone', 'Disabled')

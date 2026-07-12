@@ -5,6 +5,6 @@
     # control (e.g. Windows 10 or no velocity IDs), which would otherwise terminate the
     # whole Tweaks phase process. IgnoreErrors keeps its nonzero exits from failing the tweak.
     Run         = @(
-        @{ Exe = 'powershell.exe'; Args = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{windir}\AtlasModules\Scripts\Internal\Update-ClientCbs.ps1"'; IgnoreErrors = $true }
+        @{ Exe = '{windir}\System32\WindowsPowerShell\v1.0\powershell.exe'; Args = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', '{windir}\AtlasModules\Scripts\Internal\Update-ClientCbs.ps1'); IgnoreErrors = $true }
     )
 }

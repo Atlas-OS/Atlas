@@ -11,7 +11,9 @@ BeforeAll {
             [bool]$IsArm64 = $false,
             [bool]$IsUpgrade = $false,
             [bool]$IsOobe = $false,
-            [int]$WindowsBuild = 26100
+            [int]$WindowsBuild = 26100,
+            [bool]$IsInstallStateBacked = $false,
+            [string]$InteractiveUserSid = 'S-1-5-21-1-2-3-1001'
         )
 
         [pscustomobject]@{
@@ -23,6 +25,8 @@ BeforeAll {
             WindowsBuild     = $WindowsBuild
             IsUpgrade        = $IsUpgrade
             IsOobe           = $IsOobe
+            IsInstallStateBacked = $IsInstallStateBacked
+            InteractiveUserSid = $InteractiveUserSid
         }
     }
 }
@@ -53,19 +57,20 @@ Describe 'Test-AtlasTweakSchema' {
         @{ Path = 'HKLM:\SOFTWARE\TestKey'; Operation = 'AddKey'; Arch = 'ARM64' }
         @{ Path = 'HKLM:\SOFTWARE\Marker'; Name = 'Flag'; Type = 'None' }
     )
+    PostUserRegistryRefresh = 'ExplorerRefresh'
     Services       = @(
-        @{ Name = 'TestSvc'; StartupType = 4 }
+        @{ Name = 'TestSvc'; StartupType = 4; IgnoreErrors = $false }
         @{ Name = 'TestSvc'; Operation = 'Stop' }
     )
     ScheduledTasks = @(
-        @{ Path = '\Microsoft\Windows\Test\Task'; Operation = 'Disable' }
+        @{ Path = '\Microsoft\Windows\Test\Task'; Operation = 'Disable'; IgnoreErrors = $false }
     )
-    StopProcesses  = @('test*')
     Run            = @(
-        @{ Exe = 'cmd.exe'; Args = '/c exit 0'; Wait = $true; IgnoreErrors = $false }
+        @{ Exe = 'C:\Windows\System32\whoami.exe'; Args = @('/all'); Wait = $true; IgnoreErrors = $false }
+        @{ Exe = '{windir}\System32\dism.exe'; Args = @('/Online'); AllowedExitCodes = @(0, 3010) }
     )
     RemovePaths    = @(
-        @{ Path = '{windir}\Test'; Arch = 'X64' }
+        @{ Path = '{windir}\Test'; Arch = 'X64'; IgnoreErrors = $false }
     )
     Script         = 'companion.ps1'
 }
@@ -83,18 +88,28 @@ Describe 'Test-AtlasTweakSchema' {
     Option      = 'not-a-real-option'
     Arch        = 'X86'
     OnUpgrade   = 'Sometimes'
+    Oobe        = $true
+    RunAs       = 'UserElevated'
     MinBuild    = 'notanumber'
     Bogus       = $true
+    PostUserRegistryRefresh = 'explorerrefresh'
     Registry    = @(
         @{ Name = 'MissingPath'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKLM:\SOFTWARE\Test'; Name = 'BadType'; Type = 'SuperString' }
         @{ Path = 'HKLM:\SOFTWARE\Test'; Name = 'NoData'; Type = 'DWord' }
     )
     Services    = @(
-        @{ StartupType = 9 }
+        @{ StartupType = 9; IgnoreErrors = 'yes' }
+    )
+    ScheduledTasks = @(
+        @{ Path = '\Microsoft\Windows\Test\Task'; IgnoreErrors = 'yes' }
     )
     Run         = @(
-        @{ Args = '/c exit 0' }
+        @{ Exe = 'C:\Windows\System32\whoami.exe'; Args = '/all'; AllowedExitCodes = @('0', 1641); RunAs = 'UserElevated' }
+        @{ Exe = 'tool.exe'; RunAs = 'User'; Wait = $false; IgnoreErrors = $true }
+    )
+    RemovePaths = @(
+        @{ Path = 'C:\Test'; IgnoreErrors = 'yes' }
     )
     Script      = 'does-not-exist.ps1'
 }
@@ -109,12 +124,25 @@ Describe 'Test-AtlasTweakSchema' {
         $problemText | Should -Match "'Arch' must be"
         $problemText | Should -Match "'OnUpgrade' must be"
         $problemText | Should -Match "'MinBuild' must be an integer"
+        $problemText | Should -Match "'RunAs' must be 'User'"
+        $problemText | Should -Match "'PostUserRegistryRefresh' must be exactly one of"
+        $problemText | Should -Match "requires 'Oobe = \`$false'"
+        $problemText | Should -Match 'requires at least one ambient HKCU Registry entry'
         $problemText | Should -Match 'Registry entry is missing its Path'
         $problemText | Should -Match "needs a Type"
         $problemText | Should -Match "is missing its Data"
         $problemText | Should -Match 'Service entry is missing its Name'
         $problemText | Should -Match 'integer StartupType between 0 and 4'
-        $problemText | Should -Match 'Run entry is missing its Exe'
+        $problemText | Should -Match "Service entry 'IgnoreErrors' must be a boolean"
+        $problemText | Should -Match "ScheduledTasks entry 'IgnoreErrors' must be a boolean"
+        $problemText | Should -Match "Run entry 'Args' must be an array"
+        $problemText | Should -Match "AllowedExitCodes.*unique integer exit-code set"
+        $problemText | Should -Match "AllowedExitCodes.*only supported for the exact.*dism\.exe"
+        $problemText | Should -Match "AllowedExitCodes.*cannot be combined with.*RunAs"
+        $problemText | Should -Match "Run entry 'RunAs=User' requires 'Wait = \`$true'"
+        $problemText | Should -Match "Run entry 'RunAs=User' cannot ignore"
+        $problemText | Should -Match "Run entry 'RunAs' must be exactly 'User'"
+        $problemText | Should -Match "RemovePaths entry 'IgnoreErrors' must be a boolean"
         $problemText | Should -Match 'does not exist next to the tweak file'
     }
 
@@ -150,41 +178,6 @@ Describe 'Shipped tweak definitions' {
         $report | Should -BeNullOrEmpty
     }
 
-    It 'every manifest entry resolves to a shipped tweak file' {
-        $manifest = Get-AtlasTweakManifest -Path (Join-Path -Path $script:shippedTweaksRoot -ChildPath 'tweaks.manifest.psd1')
-
-        $missing = foreach ($category in $manifest.Categories) {
-            foreach ($tweak in $category.Tweaks) {
-                $tweakFile = Join-Path -Path $script:shippedTweaksRoot -ChildPath (Join-Path -Path $category.Name -ChildPath "$tweak.psd1")
-                if (-not (Test-Path -LiteralPath $tweakFile -PathType Leaf)) {
-                    "$($category.Name)/$tweak"
-                }
-            }
-        }
-
-        @($missing) -join "`n" | Should -BeNullOrEmpty
-    }
-
-    It 'no tweak invokes a toggle with /justcontext but without /silent' {
-        # A tweak runs unattended, so a /justcontext launcher call must also pass /silent -
-        # otherwise the toggle engine pauses for "Press Enter to exit" and hangs the install.
-        $offenders = InModuleScope Atlas.Tweaks -Parameters @{ Root = $script:shippedTweaksRoot } {
-            param($Root)
-            foreach ($file in Get-ChildItem -Path $Root -Recurse -Filter '*.psd1') {
-                if ($file.Name -eq 'tweaks.manifest.psd1') { continue }
-                $tweak = Import-AtlasDataFile -LiteralPath $file.FullName
-                if (-not $tweak.ContainsKey('Run')) { continue }
-                foreach ($entry in @($tweak['Run'])) {
-                    $entryArgs = [string]$entry['Args']
-                    if ($entryArgs -match '/justcontext' -and $entryArgs -notmatch '/silent') {
-                        "$($file.Name): $entryArgs"
-                    }
-                }
-            }
-        }
-
-        @($offenders) -join "`n" | Should -BeNullOrEmpty
-    }
 }
 
 Describe 'Test-AtlasTweakApplicable' {
@@ -305,7 +298,51 @@ Describe 'Invoke-AtlasTweak' {
         $key.GetValue('ArmOnly', $null) | Should -BeNullOrEmpty
     }
 
+    It 'uses the passed option snapshot without rereading machine install state in the user pass' {
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith {
+            throw 'The exact-user registry pass must not reread machine install state.'
+        }
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Registry -MockWith {
+            throw 'Atlas.Registry must receive architecture explicitly in the exact-user pass.'
+        }
+        Mock -CommandName Test-AtlasOption -ModuleName Atlas.Tweaks -MockWith {
+            throw 'Option gates must use the injected protected snapshot.'
+        }
+
+        $marker = Join-Path -Path $TestDrive -ChildPath 'registry-only-script.txt'
+        $companion = Join-Path -Path $TestDrive -ChildPath 'registry-only.ps1'
+        "Set-Content -LiteralPath '$marker' -Value 'unexpected'" | Set-Content -Path $companion
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'explicit-context.psd1'
+        @'
+@{
+    Name     = 'Explicit Context Tweak'
+    Option   = 'selected-option'
+    Registry = @(
+        @{ Path = 'HKCU:\Software\AtlasRewriteTest\ExplicitContext'; Name = 'Applied'; Type = 'DWord'; Data = 1 }
+    )
+    Script   = 'registry-only.ps1'
+}
+'@ | Set-Content -Path $tweakFile
+
+        $explicitContext = [pscustomobject]@{
+            WinDir = 'C:\Windows'; AtlasModulesPath = 'C:\Windows\AtlasModules'
+            IsArm64 = $false; WindowsBuild = 26100; IsUpgrade = $false; IsOobe = $false
+            IsInstallStateBacked = $true; Options = @('selected-option')
+        }
+        Invoke-AtlasTweak -Path $tweakFile -RegistryScope CurrentUser `
+            -RegistryOnly -Context $explicitContext
+
+        (Get-Item "$script:testRoot\ExplicitContext").GetValue('Applied') | Should -Be 1
+        Test-Path -LiteralPath $marker | Should -BeFalse
+        Should -Invoke Get-AtlasContext -ModuleName Atlas.Tweaks -Times 0 -Exactly
+        Should -Invoke Get-AtlasContext -ModuleName Atlas.Registry -Times 0 -Exactly
+        Should -Invoke Test-AtlasOption -ModuleName Atlas.Tweaks -Times 0 -Exactly
+    }
+
     It 'runs a RunAs=User companion script via Invoke-AtlasAsUser instead of in-process' {
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith {
+            New-TestContextMock -IsInstallStateBacked $true
+        }
         Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 0 }
         $companion = Join-Path -Path $TestDrive -ChildPath 'runas.ps1'
         'New-Item -Path (Join-Path $env:TEMP "atlas-runas-should-not-exist.txt") -Force | Out-Null' | Set-Content -Path $companion
@@ -313,6 +350,7 @@ Describe 'Invoke-AtlasTweak' {
         @'
 @{
     Name   = 'RunAs Tweak'
+    Oobe   = $false
     RunAs  = 'User'
     Script = 'runas.ps1'
 }
@@ -322,8 +360,15 @@ Describe 'Invoke-AtlasTweak' {
 
         # The engine must delegate to Invoke-AtlasAsUser (mocked) and NOT dot-source the
         # companion into the current process.
-        Should -Invoke -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -Times 1
+        Should -Invoke -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -Times 1 `
+            -ParameterFilter {
+                -not $PSBoundParameters.ContainsKey('Elevated') -and
+                $Arguments -match '-ExpectedUserSid S-1-5-21-1-2-3-1001$'
+            }
         Test-Path (Join-Path $env:TEMP 'atlas-runas-should-not-exist.txt') | Should -BeFalse
+
+        Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 9 }
+        { Invoke-AtlasTweak -Path $tweakFile } | Should -Throw '*exited with code 9*'
     }
 
     It 'runs a companion without RunAs in-process' {
@@ -343,24 +388,201 @@ Describe 'Invoke-AtlasTweak' {
 
         Should -Invoke -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -Times 0
         Test-Path $marker | Should -BeTrue
+
+        "throw 'companion failure marker'" | Set-Content -Path $companion
+        { Invoke-AtlasTweak -Path $tweakFile } | Should -Throw '*companion failure marker*'
+
+        "@{ Name = 'Bad authority'; RunAs = 'UserElevated'; Script = 'inproc.ps1' }" |
+            Set-Content -Path $tweakFile
+        { Invoke-AtlasTweak -Path $tweakFile } | Should -Throw '*unsupported companion RunAs*'
     }
 
-    It 'expands {windir} in Run entry Exe and Args' {
-        $marker = Join-Path -Path $TestDrive -ChildPath 'windir-out.txt'
+    It 'expands {windir} independently in exact Run entry argv elements' {
+        [AppDomain]::CurrentDomain.SetData('AtlasTweaksExpandedRun', $null)
+        Mock -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -MockWith {
+            [AppDomain]::CurrentDomain.SetData('AtlasTweaksExpandedRun', [pscustomobject]@{
+                FilePath        = $FilePath
+                ArgumentList    = [string[]]$ArgumentList
+                AllowedExitCode = [int[]]$AllowedExitCode
+            })
+        }
         $tweakFile = Join-Path -Path $TestDrive -ChildPath 'run-tweak.psd1'
-        @"
+        @'
 @{
     Name = 'Run Tweak'
     Run  = @(
-        @{ Exe = 'cmd.exe'; Args = '/c echo {windir}> "$marker"' }
+        @{ Exe = '{windir}\System32\example.exe'; Args = @('{windir}\path with spaces\', 'embedded"quote', '') }
     )
 }
-"@ | Set-Content -Path $tweakFile
+'@ | Set-Content -Path $tweakFile
 
         Invoke-AtlasTweak -Path $tweakFile
 
-        Test-Path $marker | Should -BeTrue
-        (Get-Content $marker -Raw).Trim() | Should -Be ([Environment]::GetFolderPath('Windows'))
+        $captured = [AppDomain]::CurrentDomain.GetData('AtlasTweaksExpandedRun')
+        $captured.FilePath | Should -Be `
+            (Join-Path ([Environment]::GetFolderPath('Windows')) 'System32\example.exe')
+        @($captured.ArgumentList) | Should -Be @(
+            (Join-Path ([Environment]::GetFolderPath('Windows')) 'path with spaces\')
+            'embedded"quote'
+            ''
+        )
+        @($captured.AllowedExitCode) | Should -Be @(0)
+    }
+
+    It 'passes the narrowly declared reboot-required exit contract only to DISM' {
+        Mock -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'dism-exit-contract.psd1'
+        @'
+@{
+    Name = 'DISM exit contract'
+    Run = @(
+        @{ Exe = '{windir}\System32\dism.exe'; Args = @('/Online'); AllowedExitCodes = @(0, 3010) }
+    )
+}
+'@ | Set-Content -Path $tweakFile
+
+        Invoke-AtlasTweak -Path $tweakFile
+
+        Should -Invoke -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks `
+            -Times 1 -Exactly -ParameterFilter {
+                $FilePath -eq 'C:\Windows\System32\dism.exe' -and
+                @($AllowedExitCode).Count -eq 2 -and
+                $AllowedExitCode -contains 0 -and
+                $AllowedExitCode -contains 3010
+            }
+
+        $wrongExeFile = Join-Path -Path $TestDrive -ChildPath 'wrong-exe-exit-contract.psd1'
+        "@{ Name = 'Wrong executable'; Run = @( @{ Exe = 'C:\Windows\System32\whoami.exe'; AllowedExitCodes = @(0, 3010) } ) }" |
+            Set-Content -Path $wrongExeFile
+        { Invoke-AtlasTweak -Path $wrongExeFile } |
+            Should -Throw '*AllowedExitCodes is restricted*'
+    }
+
+    It 'runs a User-scoped entry through the exact-user launcher and never ignores its failure' {
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith {
+            New-TestContextMock -IsInstallStateBacked $true
+        }
+        Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 0 }
+        Mock -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'user-run-tweak.psd1'
+        @'
+@{
+    Name = 'User Run Tweak'
+    Run = @(
+        @{ Exe = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'; Args = @('-File', 'C:\Windows\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1', '-DebloatDefaults'); Wait = $true; RunAs = 'User'; IgnoreErrors = $true }
+    )
+}
+'@ | Set-Content -Path $tweakFile
+
+        Invoke-AtlasTweak -Path $tweakFile
+
+        Should -Invoke -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -Times 1 -Exactly `
+            -ParameterFilter {
+                $FilePath -eq 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -and
+                $Arguments -eq '-File C:\Windows\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1 -DebloatDefaults -ExpectedUserSid S-1-5-21-1-2-3-1001'
+            }
+        Should -Invoke -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -Times 0
+
+        Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 5 }
+        { Invoke-AtlasTweak -Path $tweakFile } | Should -Throw '*exited with code 5*'
+    }
+
+    It 'propagates a required machine Run failure by default' {
+        Mock -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -MockWith {
+            throw "'C:\Windows\System32\failure.exe' exited with disallowed code 17."
+        }
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'failed-machine-run.psd1'
+        @'
+@{
+    Name = 'Failed Machine Run'
+    Run = @(
+        @{ Exe = 'C:\Windows\System32\failure.exe'; Wait = $true }
+    )
+}
+'@ | Set-Content -Path $tweakFile
+
+        { Invoke-AtlasTweak -Path $tweakFile } |
+            Should -Throw '*disallowed code 17*'
+    }
+
+    It 'retains explicit IgnoreErrors for a reviewed optional machine Run' {
+        Mock -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -MockWith {
+            throw "'C:\Windows\System32\optional.exe' exited with disallowed code 17."
+        }
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'optional-machine-run.psd1'
+        @'
+@{
+    Name = 'Optional Machine Run'
+    Run = @(
+        @{ Exe = 'C:\Windows\System32\optional.exe'; Wait = $true; IgnoreErrors = $true }
+    )
+}
+'@ | Set-Content -Path $tweakFile
+
+        { Invoke-AtlasTweak -Path $tweakFile } | Should -Not -Throw
+        Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Tweaks -Times 1 -Exactly `
+            -ParameterFilter {
+                $Level -eq 'Warning' -and
+                $Message -like "Ignored Run entry failure (executable: 'C:\Windows\System32\optional.exe'):*disallowed code 17*"
+            }
+    }
+
+    It 'uses exact System32 schtasks and propagates its checked failure' {
+        Mock -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -MockWith {
+            throw "'C:\Windows\System32\schtasks.exe' exited with disallowed code 5."
+        }
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'failed-scheduled-task.psd1'
+        @'
+@{
+    Name = 'Failed Scheduled Task'
+    ScheduledTasks = @(
+        @{ Path = '\Microsoft\Windows\Test\RequiredTask' }
+    )
+}
+'@ | Set-Content -Path $tweakFile
+
+        { Invoke-AtlasTweak -Path $tweakFile } |
+            Should -Throw '*schtasks.exe*disallowed code 5*'
+        Should -Invoke -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks `
+            -Times 1 -Exactly -ParameterFilter {
+                $FilePath -eq 'C:\Windows\System32\schtasks.exe' -and
+                $ArgumentList[0] -eq '/Change'
+            }
+    }
+
+    It 'bounds RemovePaths to the Windows directory and propagates required removal failures' {
+        $targetPath = Join-Path -Path $TestDrive -ChildPath 'protected-removal'
+        New-Item -Path $targetPath -ItemType Directory -Force | Out-Null
+        Mock -CommandName Remove-Item -ModuleName Atlas.Tweaks -MockWith {
+            throw 'path access denied'
+        } -ParameterFilter { $LiteralPath -eq $targetPath }
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'failed-removal.psd1'
+        @'
+@{
+    Name = 'Failed RemovePaths'
+    RemovePaths = @(
+        @{ Path = '{windir}\protected-removal' }
+    )
+}
+'@ | Set-Content -Path $tweakFile
+
+        $context = New-TestContextMock
+        $context.WinDir = $TestDrive
+        { Invoke-AtlasTweak -Path $tweakFile -Context $context } |
+            Should -Throw '*path access denied*'
+
+        $outsideTweak = Join-Path -Path $TestDrive -ChildPath 'outside-removal.psd1'
+        @'
+@{
+    Name = 'Outside RemovePaths'
+    RemovePaths = @(
+        @{ Path = '{windir}\..\outside' }
+    )
+}
+'@ | Set-Content -Path $outsideTweak
+
+        { Invoke-AtlasTweak -Path $outsideTweak -Context $context } |
+            Should -Throw '*resolves outside the Windows directory*'
     }
 
     It 'skips a tweak whose option is not selected' {
@@ -381,25 +603,6 @@ Describe 'Invoke-AtlasTweak' {
 
         Test-Path -Path "$script:testRoot\Gated" | Should -BeFalse
         Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Tweaks -Times 1 -Exactly -ParameterFilter { $Message -like "Skipping tweak 'Gated Tweak'*" }
-    }
-
-    It 'runs the companion script after the other keys' {
-        $tweakDir = Join-Path -Path $TestDrive -ChildPath 'WithScript'
-        New-Item -Path $tweakDir -ItemType Directory -Force | Out-Null
-
-        $marker = Join-Path -Path $TestDrive -ChildPath 'script-ran.txt'
-        Set-Content -Path (Join-Path -Path $tweakDir -ChildPath 'companion.ps1') -Value "Set-Content -Path '$marker' -Value 'ran'"
-
-        $tweakFile = Join-Path -Path $tweakDir -ChildPath 'script-tweak.psd1'
-        @'
-@{
-    Name   = 'Script Tweak'
-    Script = 'companion.ps1'
-}
-'@ | Set-Content -Path $tweakFile
-
-        Invoke-AtlasTweak -Path $tweakFile
-        Test-Path -Path $marker | Should -BeTrue
     }
 
     It 'throws on a missing tweak file' {
@@ -464,21 +667,75 @@ Describe 'Get-AtlasTweakManifest and Invoke-AtlasTweakCategory' {
         @($manifest.Categories)[0].Name | Should -Be 'testing'
     }
 
+    It 'resolves only applicable post-user-registry refreshes in declaration order without duplicates' {
+        @'
+@{
+    Categories = @(
+        @{
+            Name = 'testing'
+            Tweaks = @('first-tweak', 'sub/second-tweak', 'third-tweak')
+        }
+    )
+}
+'@ | Set-Content -Path (Join-Path $script:tweaksRoot 'tweaks.manifest.psd1')
+
+        '@{ Name = ''First''; Oobe = $false; PostUserRegistryRefresh = ''ExplorerRefresh'' }' |
+            Set-Content -Path (Join-Path $script:tweaksRoot 'testing\first-tweak.psd1')
+        '@{ Name = ''Upgrade''; Oobe = $false; OnUpgrade = ''Only''; PostUserRegistryRefresh = ''SearchShellRefresh'' }' |
+            Set-Content -Path (Join-Path $script:tweaksRoot 'testing\sub\second-tweak.psd1')
+        '@{ Name = ''Duplicate''; Oobe = $false; PostUserRegistryRefresh = ''ExplorerRefresh'' }' |
+            Set-Content -Path (Join-Path $script:tweaksRoot 'testing\third-tweak.psd1')
+
+        $fresh = @(Get-AtlasTweakCategoryPostUserRegistryRefresh -Name testing `
+                -TweaksRoot $script:tweaksRoot -Context (New-TestContextMock))
+        $upgrade = @(Get-AtlasTweakCategoryPostUserRegistryRefresh -Name testing `
+                -TweaksRoot $script:tweaksRoot -Context (New-TestContextMock -IsUpgrade $true))
+
+        $fresh | Should -Be @('ExplorerRefresh')
+        $upgrade | Should -Be @('ExplorerRefresh', 'SearchShellRefresh')
+    }
+
     It 'throws on a missing manifest' {
         { Get-AtlasTweakManifest -Path (Join-Path -Path $TestDrive -ChildPath 'nope.psd1') } | Should -Throw '*not found*'
     }
 
-    It 'applies every tweak in the category and logs missing files as errors' {
-        Invoke-AtlasTweakCategory -Name 'testing' -TweaksRoot $script:tweaksRoot
+    It 'applies a category in order and fails when a manifest-listed tweak is missing' {
+        { Invoke-AtlasTweakCategory -Name 'testing' -TweaksRoot $script:tweaksRoot } |
+            Should -Throw '*Tweak file not found*missing-tweak.psd1*'
 
         $key = Get-Item -Path "$script:testRoot\Category"
         $key.GetValue('First') | Should -Be 1
         $key.GetValue('Second') | Should -Be 2
-
-        Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Tweaks -Times 1 -Exactly -ParameterFilter { $Level -eq 'Error' -and $Message -like '*missing-tweak*' }
     }
 
     It 'throws on an unknown category' {
         { Invoke-AtlasTweakCategory -Name 'nope' -TweaksRoot $script:tweaksRoot } | Should -Throw '*not defined*'
+    }
+
+}
+
+Describe 'Invoke-RevertPhase optional theme refresh' {
+    It 'warns and continues when the upgrade-only theme tweak fails' {
+        Mock -CommandName Assert-AtlasPrivilege
+        Mock -CommandName Import-Module
+        Mock -CommandName Get-AtlasContext -MockWith {
+            [pscustomobject]@{
+                IsUpgrade       = $true
+                AtlasModulesPath = $TestDrive
+            }
+        }
+        Mock -CommandName Test-Path -MockWith { $false }
+        Mock -CommandName Invoke-AtlasTweak -MockWith { throw 'theme failure marker' }
+        Mock -CommandName Write-AtlasLog
+
+        $phase = Join-Path -Path $PSScriptRoot -ChildPath `
+            '..\playbook\Executables\AtlasModules\Scripts\Phases\Invoke-RevertPhase.ps1'
+        { . $phase } | Should -Not -Throw
+
+        Should -Invoke -CommandName Invoke-AtlasTweak -Times 1 -Exactly
+        Should -Invoke -CommandName Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and
+            $Message -like '*optional upgrade theme policy*theme failure marker*'
+        }
     }
 }

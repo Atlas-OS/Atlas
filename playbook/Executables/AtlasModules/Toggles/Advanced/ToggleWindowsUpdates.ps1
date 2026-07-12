@@ -17,35 +17,42 @@
             Action     = {
                 param($Toggle)
 
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name ScheduledTasks -Force -ErrorAction Stop
+
                 Write-Host 'Disabling Windows Update service and scheduled tasks...'
                 $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
-                $sc = "$($Toggle.WinDir)\System32\sc.exe"
-                $schtasks = "$($Toggle.WinDir)\System32\schtasks.exe"
+                foreach ($serviceName in @('wuauserv', 'UsoSvc', 'WaaSMedicSvc')) {
+                    $service = Get-Service -Name $serviceName -ErrorAction Stop
+                    if ($service.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+                        Stop-Service -Name $serviceName -Force -ErrorAction Stop
+                    }
+                    & $setSvc -Name $serviceName -Start 4
+                }
 
-                & $sc stop wuauserv 2>$null | Out-Null
-                & $setSvc -Name 'wuauserv' -Start 4
-                & $sc stop UsoSvc 2>$null | Out-Null
-                & $setSvc -Name 'UsoSvc' -Start 4
-                & $setSvc -Name 'WaaSMedicSvc' -Start 4
-                & $sc stop WaaSMedicSvc 2>$null | Out-Null
-
-                foreach ($task in @(
+                $allTasks = @(Get-ScheduledTask -ErrorAction Stop)
+                foreach ($taskPath in @(
                     'Microsoft\Windows\WindowsUpdate\sih'
                     'Microsoft\Windows\WindowsUpdate\sihboot'
                     'Microsoft\Windows\UpdateOrchestrator\Schedule Scan'
                     'Microsoft\Windows\UpdateOrchestrator\USO_UxBroker'
                     'Microsoft\Windows\UpdateOrchestrator\Reboot'
                 )) {
-                    & $schtasks /Change /TN $task /Disable 2>$null | Out-Null
+                    $task = $allTasks | Where-Object {
+                        ([string]::Concat([string]$_.TaskPath, [string]$_.TaskName)).Trim([char]'\') -ieq $taskPath
+                    } | Select-Object -First 1
+                    if ($null -eq $task) {
+                        Write-Verbose "ToggleWindowsUpdates: optional scheduled task '$taskPath' is not present on this Windows build."
+                        continue
+                    }
+
+                    Disable-ScheduledTask -InputObject $task -ErrorAction Stop | Out-Null
                 }
 
                 $wu = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-                if (-not (Test-Path -LiteralPath $wu)) { New-Item -Path $wu -Force | Out-Null }
-                New-ItemProperty -LiteralPath $wu -Name 'DisableWindowsUpdateAccess' -Value 1 -PropertyType DWord -Force | Out-Null
-                New-ItemProperty -LiteralPath $wu -Name 'DoNotConnectToWindowsUpdateInternetLocations' -Value 1 -PropertyType DWord -Force | Out-Null
-                $wuAu = "$wu\AU"
-                if (-not (Test-Path -LiteralPath $wuAu)) { New-Item -Path $wuAu -Force | Out-Null }
-                New-ItemProperty -LiteralPath $wuAu -Name 'NoAutoUpdate' -Value 1 -PropertyType DWord -Force | Out-Null
+                Set-AtlasRegistryValue -Path $wu -Name 'DisableWindowsUpdateAccess' -Type DWord -Data 1
+                Set-AtlasRegistryValue -Path $wu -Name 'DoNotConnectToWindowsUpdateInternetLocations' -Type DWord -Data 1
+                Set-AtlasRegistryValue -Path "$wu\AU" -Name 'NoAutoUpdate' -Type DWord -Data 1
 
                 & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1') hide windowsupdate -Silent:$Toggle.Silent
 
@@ -61,32 +68,43 @@
             Action     = {
                 param($Toggle)
 
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name ScheduledTasks -Force -ErrorAction Stop
+
                 Write-Host 'Enabling Windows Update service and scheduled tasks...'
                 $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
-                $sc = "$($Toggle.WinDir)\System32\sc.exe"
-                $schtasks = "$($Toggle.WinDir)\System32\schtasks.exe"
+                foreach ($serviceName in @('wuauserv', 'UsoSvc', 'WaaSMedicSvc')) {
+                    & $setSvc -Name $serviceName -Start 3
 
-                & $setSvc -Name 'wuauserv' -Start 3
-                & $sc start wuauserv 2>$null | Out-Null
-                & $setSvc -Name 'UsoSvc' -Start 3
-                & $sc start UsoSvc 2>$null | Out-Null
-                & $setSvc -Name 'WaaSMedicSvc' -Start 3
-                & $sc start WaaSMedicSvc 2>$null | Out-Null
+                    $service = Get-Service -Name $serviceName -ErrorAction Stop
+                    if ($service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+                        Start-Service -Name $serviceName -ErrorAction Stop
+                    }
+                }
 
-                foreach ($task in @(
+                $allTasks = @(Get-ScheduledTask -ErrorAction Stop)
+                foreach ($taskPath in @(
                     'Microsoft\Windows\WindowsUpdate\sih'
                     'Microsoft\Windows\WindowsUpdate\sihboot'
                     'Microsoft\Windows\UpdateOrchestrator\Schedule Scan'
                     'Microsoft\Windows\UpdateOrchestrator\USO_UxBroker'
                     'Microsoft\Windows\UpdateOrchestrator\Reboot'
                 )) {
-                    & $schtasks /Change /TN $task /Enable 2>$null | Out-Null
+                    $task = $allTasks | Where-Object {
+                        ([string]::Concat([string]$_.TaskPath, [string]$_.TaskName)).Trim([char]'\') -ieq $taskPath
+                    } | Select-Object -First 1
+                    if ($null -eq $task) {
+                        Write-Verbose "ToggleWindowsUpdates: optional scheduled task '$taskPath' is not present on this Windows build."
+                        continue
+                    }
+
+                    Enable-ScheduledTask -InputObject $task -ErrorAction Stop | Out-Null
                 }
 
                 $wu = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-                Remove-ItemProperty -LiteralPath $wu -Name 'DisableWindowsUpdateAccess' -Force -ErrorAction SilentlyContinue
-                Remove-ItemProperty -LiteralPath $wu -Name 'DoNotConnectToWindowsUpdateInternetLocations' -Force -ErrorAction SilentlyContinue
-                Remove-ItemProperty -LiteralPath "$wu\AU" -Name 'NoAutoUpdate' -Force -ErrorAction SilentlyContinue
+                Remove-AtlasRegistryValue -Path $wu -Name 'DisableWindowsUpdateAccess'
+                Remove-AtlasRegistryValue -Path $wu -Name 'DoNotConnectToWindowsUpdateInternetLocations'
+                Remove-AtlasRegistryValue -Path "$wu\AU" -Name 'NoAutoUpdate'
 
                 & (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1') unhide windowsupdate -Silent:$Toggle.Silent
 
