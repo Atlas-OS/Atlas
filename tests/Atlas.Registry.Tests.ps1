@@ -318,22 +318,21 @@ Describe 'Invoke-AtlasRegistryEntries' {
         Test-Path -Path "$script:testRoot\EntryOps\AddedKey" | Should -BeTrue
     }
 
-    It 'logs a warning for a failing entry and continues' {
-        Invoke-AtlasRegistryEntries -Entries @(
-            @{ Path = "$script:testRoot\EntryFail"; Name = 'Broken' } # Set without a Type
-            @{ Path = "$script:testRoot\EntryFail"; Name = 'Works'; Type = 'DWord'; Data = 1 }
-        )
-
-        Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly -ParameterFilter { $Level -eq 'Warning' }
-        (Get-Item -Path "$script:testRoot\EntryFail").GetValue('Works') | Should -Be 1
+    It 'fails a malformed or unwritable entry by default' {
+        {
+            Invoke-AtlasRegistryEntries -Entries @(
+                @{ Path = "$script:testRoot\EntryFail"; Name = 'Broken' } # Set without a Type
+            )
+        } | Should -Throw
     }
 
-    It 'swallows failures silently with IgnoreErrors' {
+    It 'logs and continues when IgnoreErrors is explicit' {
         Invoke-AtlasRegistryEntries -Entries @(
             @{ Path = "$script:testRoot\EntryFail"; Name = 'Broken'; IgnoreErrors = $true } # Set without a Type
         )
 
-        Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Registry -Times 0 -Exactly
+        Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly `
+            -ParameterFilter { $Level -eq 'Warning' }
     }
 }
 

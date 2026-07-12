@@ -50,8 +50,9 @@ function Invoke-AtlasRegistryEntries {
     .SYNOPSIS
         Applies a tweak's Registry entry array. Each entry is a hashtable with Path,
         Operation ('Set' default, 'Delete', 'DeleteKey', 'AddKey'), Name/Type/Data for
-        value operations, and optional Arch and IgnoreErrors gates. Failures are logged
-        as warnings (or swallowed with IgnoreErrors) so one bad entry never aborts a tweak.
+        value operations, and optional Arch and IgnoreErrors gates. Missing Delete and
+        DeleteKey targets are successful no-ops. Other failures are fatal unless the
+        entry explicitly declares IgnoreErrors, in which case they are logged.
         Scope permits install orchestration to separate machine entries, current-token
         HKCU entries, and fixed default-user entries into distinct trust contexts.
     #>
@@ -62,8 +63,6 @@ function Invoke-AtlasRegistryEntries {
 
         [ValidateSet('All', 'Machine', 'CurrentUser', 'DefaultUser')]
         [string]$Scope = 'All',
-
-        [switch]$StopOnError,
 
         [bool]$IsArm64
     )
@@ -128,16 +127,15 @@ function Invoke-AtlasRegistryEntries {
             }
         }
         catch {
+            $entryPath = if ($entry.ContainsKey('Path')) { $entry['Path'] } else { '<no path>' }
             if ($ignoreErrors) {
-                $null = $_
+                Write-AtlasLog -Message `
+                    "Ignoring registry entry failure (path: '$entryPath'): $($_.Exception.Message)" `
+                    -Level Warning -ErrorRecord $_
+                continue
             }
-            elseif ($StopOnError) {
-                throw
-            }
-            else {
-                $entryPath = if ($entry.ContainsKey('Path')) { $entry['Path'] } else { '<no path>' }
-                Write-AtlasLog -Message "Registry entry failed (path: '$entryPath'): $($_.Exception.Message)" -Level Warning
-            }
+
+            throw
         }
     }
 }
