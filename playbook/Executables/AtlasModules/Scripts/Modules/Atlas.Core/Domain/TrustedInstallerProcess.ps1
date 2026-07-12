@@ -70,7 +70,11 @@ function Add-AtlasTrustedInstallerNativeType {
         if (Test-Path -LiteralPath $compilerTemp) {
             throw "Random protected compiler directory '$compilerTemp' unexpectedly exists."
         }
-        [void]$createWithSecurity.Invoke($null, @($compilerTemp, $security))
+        $createArguments = [object[]]@(
+            [string]$compilerTemp,
+            $security.PSObject.BaseObject
+        )
+        [void]$createWithSecurity.Invoke($null, $createArguments)
         $env:TEMP = $compilerTemp
         $env:TMP = $compilerTemp
         Add-Type -TypeDefinition $TypeDefinition -Language CSharp -ErrorAction Stop
