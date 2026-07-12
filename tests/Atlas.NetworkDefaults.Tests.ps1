@@ -155,16 +155,17 @@ Describe 'Atlas adapter defaults' {
         Should -Invoke Write-AtlasRegistryString -Times 1 -Exactly
     }
 
-    It 'fails when no PCI adapter or no managed setting is present' {
+    It 'skips adapters that expose no applicable Atlas settings' {
         Mock Get-AtlasNetworkAdapter { @() }
-        { Get-AtlasPciNetworkClassKey } |
-            Should -Throw '*No applicable PCI network-adapter class keys*'
+        @(Get-AtlasPciNetworkClassKey) | Should -BeNullOrEmpty
 
         Mock Get-AtlasPciNetworkClassKey { 'SYSTEM\CurrentControlSet\Control\Class\key' }
         Mock Get-AtlasRegistryValueName { @('UnmanagedProperty') }
         Mock Write-AtlasRegistryString { throw 'must not write' }
-        { Invoke-AtlasNetworkAdapterDefault } |
-            Should -Throw '*exposed none of the Atlas-managed advanced properties*'
+        $result = Invoke-AtlasNetworkAdapterDefault
+
+        $result.AdapterClassKeyCount | Should -Be 1
+        $result.ChangedValueCount | Should -Be 0
         Should -Invoke Write-AtlasRegistryString -Times 0
     }
 }

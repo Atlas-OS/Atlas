@@ -166,9 +166,6 @@ function Get-AtlasPciNetworkClassKey {
         }
     }
 
-    if ($classKeys.Count -eq 0) {
-        throw 'No applicable PCI network-adapter class keys were found.'
-    }
     return $classKeys.ToArray()
 }
 
@@ -195,9 +192,6 @@ function Invoke-AtlasNetworkAdapterDefault {
         }
     }
 
-    if ($changedValues -eq 0) {
-        throw 'Applicable PCI network adapters exposed none of the Atlas-managed advanced properties.'
-    }
     return [pscustomobject]@{
         AdapterClassKeyCount = $classKeys.Count
         ChangedValueCount    = $changedValues
