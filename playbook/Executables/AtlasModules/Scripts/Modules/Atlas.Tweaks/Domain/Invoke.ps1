@@ -428,7 +428,15 @@ function Invoke-AtlasTweakCategory {
     $tweakNames = @($category['Tweaks'])
     $categoryRoot = Join-Path -Path $TweaksRoot -ChildPath $Name
 
-    Write-AtlasLog -Message "Applying tweak category '$Name' ($(@($tweakNames).Count) tweak(s))."
+    $passDescription = if ($RegistryOnly) {
+        "$RegistryScope registry-only"
+    }
+    else {
+        "$RegistryScope registry and companion"
+    }
+    Write-AtlasLog -Message (
+        "Applying tweak category '$Name' ($(@($tweakNames).Count) tweak(s); $passDescription pass)."
+    )
 
     foreach ($tweakName in $tweakNames) {
         $relativePath = ([string]$tweakName -replace '/', '\') + '.psd1'

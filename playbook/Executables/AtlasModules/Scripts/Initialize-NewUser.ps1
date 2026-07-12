@@ -98,17 +98,6 @@ function Set-SearchTaskbarMode {
     Set-ItemProperty -Path $settingsPath -Name IsDeviceSearchHistoryEnabled -Value 0 -Type DWord -Force
     Set-ItemProperty -Path $settingsPath -Name IsDynamicSearchBoxEnabled -Value 0 -Type DWord -Force
     Set-ItemProperty -Path $settingsPath -Name IsMSACloudSearchEnabled -Value 0 -Type DWord -Force
-
-    $policyPath = 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
-    try {
-        if (-not (Test-Path -LiteralPath $policyPath)) {
-            $null = New-Item -Path $policyPath -Force
-        }
-        Set-ItemProperty -Path $policyPath -Name DisableSearchBoxSuggestions -Value 1 -Type DWord -Force
-    }
-    catch {
-        Write-Warning "Couldn't write optional search policy '$policyPath': $($_.Exception.Message)"
-    }
 }
 
 function Invoke-CurrentSessionExplorerRefresh {

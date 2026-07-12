@@ -277,8 +277,8 @@ function Invoke-AtlasAppxRemovalPlan {
                 Write-AtlasLog -Message "Removed installed AppX package '$fullName' for all users."
             }
             catch {
-                Write-AtlasLog -Level Warning -Message `
-                    "Installed AppX removal command failed for '$fullName'; final inventory will determine the result: $($_.Exception.Message)"
+                Write-AtlasLog -Message `
+                    "Installed AppX removal command reported an error for '$fullName'; deferring to final inventory: $($_.Exception.Message)"
             }
         }
 
@@ -302,8 +302,8 @@ function Invoke-AtlasAppxRemovalPlan {
                 Write-AtlasLog -Message "Removed provisioned AppX package '$packageName'."
             }
             catch {
-                Write-AtlasLog -Level Warning -Message `
-                    "Provisioned AppX removal command failed for '$packageName'; final inventory will determine the result: $($_.Exception.Message)"
+                Write-AtlasLog -Message `
+                    "Provisioned AppX removal command reported an error for '$packageName'; deferring to final inventory: $($_.Exception.Message)"
             }
         }
     }
