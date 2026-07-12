@@ -1,9 +1,9 @@
 # Toggle: Windows Update services, scheduled tasks and policies (single-launcher menu).
 #
 # The engine's generic menu can't render a "(current)" marker computed from the live
-# service state, so static labels are used (cosmetic only). No SilentDefault is declared:
-# upgrade re-apply only re-runs the recorded state (state != 0, i.e. Enable), and a bare
-# silent call with no recorded state is a no-op path that never occurs for a menu.
+# service state, so static labels are used (cosmetic only). Both choices are explicitly
+# machine-replayable; No SilentDefault is needed because reapply resolves the recorded
+# state rather than choosing a default.
 @{
     Name      = 'ToggleWindowsUpdates'
     Elevation = 'Admin'
@@ -11,10 +11,11 @@
     Launcher  = '6. Advanced Configuration\Toggle Windows Updates\Toggle Windows Updates.cmd'
     States    = [ordered]@{
         Disable = @{
-            StateValue = 0
-            MenuLabel  = 'Disable Windows Updates'
-            Reboot     = 'Prompt'
-            Action     = {
+            StateValue  = 0
+            ReplayScope = 'Machine'
+            MenuLabel   = 'Disable Windows Updates'
+            Reboot      = 'Prompt'
+            Action      = {
                 param($Toggle)
 
                 Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
@@ -62,10 +63,11 @@
             }
         }
         Enable  = @{
-            StateValue = 1
-            MenuLabel  = 'Enable Windows Updates'
-            Reboot     = 'Prompt'
-            Action     = {
+            StateValue  = 1
+            ReplayScope = 'Machine'
+            MenuLabel   = 'Enable Windows Updates'
+            Reboot      = 'Prompt'
+            Action      = {
                 param($Toggle)
 
                 Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop

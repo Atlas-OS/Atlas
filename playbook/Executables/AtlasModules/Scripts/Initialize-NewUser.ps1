@@ -288,6 +288,7 @@ if (-not [string]::IsNullOrWhiteSpace($browser)) {
     $pinArguments['Browser'] = $browser
 }
 & (Join-Path $atlasModules 'Scripts\Internal\Set-TaskbarPins.ps1') @pinArguments
+Invoke-AtlasToggleUserReapply
 Set-SearchTaskbarMode
 
 if ($FromInstall) {

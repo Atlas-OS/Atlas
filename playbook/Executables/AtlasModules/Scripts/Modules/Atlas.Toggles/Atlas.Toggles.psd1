@@ -19,6 +19,7 @@
         # State-store initialization and upgrade re-apply
         'Initialize-AtlasToggleStateStore'
         'Invoke-AtlasToggleReapply'
+        'Invoke-AtlasToggleUserReapply'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

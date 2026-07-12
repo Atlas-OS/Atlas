@@ -286,6 +286,48 @@ Describe 'Invoke-AtlasToggleReapply' {
         Get-Content -LiteralPath $script:splitReplayMarker | Should -Be @('machine')
     }
 
+    It 'replays only UserAction for a recorded split state, including state 0' {
+        $script:userReplayMarker = Join-Path $TestDrive 'split-user-replay.txt'
+        $env:AtlasSplitReplayMarker = $script:userReplayMarker
+        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
+            -FileName 'SplitUserReplay.ps1' -Content @'
+@{
+    Name      = 'SplitUserReplay'
+    Elevation = 'Admin'
+    States    = [ordered]@{
+        Off = @{
+            StateValue = 0
+            StateRecordScope = 'Machine'
+            MachineAction = {
+                param($Toggle)
+                [IO.File]::AppendAllText(
+                    $env:AtlasSplitReplayMarker,
+                    'machine-off' + [Environment]::NewLine
+                )
+            }
+            UserAction = {
+                param($Toggle)
+                [IO.File]::AppendAllText(
+                    $env:AtlasSplitReplayMarker,
+                    'user-off' + [Environment]::NewLine
+                )
+            }
+        }
+    }
+}
+'@
+        Set-AtlasToggleState -Name 'SplitUserReplay' -State 0 -StateRoot $StateRoot
+        Mock Test-AtlasSystem { $false } -ModuleName Atlas.Toggles
+        Mock Test-AtlasAdmin { $false } -ModuleName Atlas.Toggles
+
+        Invoke-AtlasToggleUserReapply `
+            -StateRoot $StateRoot `
+            -TogglesRoot $script:ReapplyTogglesRoot
+
+        Get-Content -LiteralPath $script:userReplayMarker | Should -Be @('user-off')
+        (Get-AtlasToggleState -Name 'SplitUserReplay' -StateRoot $StateRoot).State | Should -Be 0
+    }
+
     It 'classifies the shipped Bluetooth default as machine-only replay' {
         $productionTogglesRoot = Join-Path $repoRoot `
             'playbook\Executables\AtlasModules\Toggles'
@@ -304,12 +346,12 @@ Describe 'Invoke-AtlasToggleReapply' {
             }
     }
 
-    It 'does not replay state 0' {
+    It 'replays an explicitly classified state 0' {
         Set-AtlasToggleState -Name 'ReplayToggle' -State 0 -StateRoot $StateRoot
 
         Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
 
-        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
+        Get-Content -LiteralPath $script:ReapplyMarker | Should -Be 'unexpected-zero-replay'
     }
 
     It 'scrubs an unknown record without executing its legacy raw path' {
