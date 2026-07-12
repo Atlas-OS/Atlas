@@ -9,18 +9,12 @@ param (
 
     [switch]$Silent,
 
-    [switch]$NoProcessCleanup,
-
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$RemainingArgs
+    [switch]$NoProcessCleanup
 )
 
 $ErrorActionPreference = 'Stop'
 [void]$Silent
 
-if (@($RemainingArgs).Count -ne 0) {
-    throw "Unsupported Settings page visibility arguments: $($RemainingArgs -join ' ')."
-}
 if ([string]::IsNullOrWhiteSpace($Page) -or
     $Page.Length -gt 256 -or
     $Page -cnotmatch '^[a-z0-9-]+$') {
