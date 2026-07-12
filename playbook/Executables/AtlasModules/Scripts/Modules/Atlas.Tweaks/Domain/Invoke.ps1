@@ -330,7 +330,7 @@ function Invoke-AtlasTweak {
 
     if ($tweak.ContainsKey('Registry') -and $tweak['Registry']) {
         Invoke-AtlasRegistryEntries -Entries $tweak['Registry'] `
-            -Scope $RegistryScope -StopOnError -IsArm64 ([bool]$Context.IsArm64)
+            -Scope $RegistryScope -IsArm64 ([bool]$Context.IsArm64)
     }
 
     if ($RegistryOnly) {
