@@ -9,9 +9,14 @@ actions:
     wait: true
     onUpgrade: false
     runas: currentUserElevated
-  - !powerShell:
-    command: '.\DEFAULT.ps1'
-    exeDir: true
-    onUpgrade: true
-    wait: true
-    runas: currentUserElevated
+  # this being commented is normal
+  # I felt that it created more problems than it actually solves any.
+  # and since we are rewriting a bunch of the playbook in powershell, this isn't really needed for the time being
+  # should have an automated function which changes the paths in the registry when the script moves places
+  #
+  # - !powerShell:
+  #   command: '.\DEFAULT.ps1'
+  #   exeDir: true
+  #   onUpgrade: true
+  #   wait: true
+  #   runas: currentUserElevated
