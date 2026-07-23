@@ -362,6 +362,53 @@ Describe 'Get-AtlasSoftwarePickerItem' {
     }
 }
 
+Describe 'Invoke-AtlasSoftwarePickerPackageBatch' {
+    It 'attempts every selected package and returns an aggregate failure record' {
+        InModuleScope Atlas.Software {
+            Mock Invoke-AtlasSoftwarePickerPackageInstall {
+                if ($PackageId -ceq 'Vendor.Broken') {
+                    throw 'fixture install failed'
+                }
+            }
+            Mock Write-Warning
+            $catalog = @(
+                [pscustomobject]@{ Package = 'Vendor.First'; Source = 'winget' }
+                [pscustomobject]@{ Package = 'Vendor.Broken'; Source = 'winget' }
+                [pscustomobject]@{ Package = 'Vendor.Last'; Source = 'msstore' }
+            )
+
+            $failures = @(Invoke-AtlasSoftwarePickerPackageBatch `
+                    -PackageId @('Vendor.First', 'Vendor.Broken', 'Vendor.Last') `
+                    -Catalog $catalog -AtlasContext ([pscustomobject]@{}))
+
+            Should -Invoke Invoke-AtlasSoftwarePickerPackageInstall -Times 3 -Exactly
+            Should -Invoke Write-Warning -Times 1 -Exactly
+            $failures.Count | Should -Be 1
+            $failures[0].PackageId | Should -BeExactly 'Vendor.Broken'
+            $failures[0].Message | Should -BeExactly 'fixture install failed'
+        }
+    }
+
+    It 'reports missing catalog entries without skipping later packages' {
+        InModuleScope Atlas.Software {
+            Mock Invoke-AtlasSoftwarePickerPackageInstall
+            Mock Write-Warning
+            $catalog = @(
+                [pscustomobject]@{ Package = 'Vendor.Present'; Source = 'winget' }
+            )
+
+            $failures = @(Invoke-AtlasSoftwarePickerPackageBatch `
+                    -PackageId @('Vendor.Missing', 'Vendor.Present') `
+                    -Catalog $catalog -AtlasContext ([pscustomobject]@{}))
+
+            Should -Invoke Invoke-AtlasSoftwarePickerPackageInstall -Times 1 -Exactly `
+                -ParameterFilter { $PackageId -ceq 'Vendor.Present' }
+            $failures.Count | Should -Be 1
+            $failures[0].PackageId | Should -BeExactly 'Vendor.Missing'
+        }
+    }
+}
+
 Describe 'CBS Safe Mode retry fallback' {
     It 'arms the compact retry with the verified package paths' {
         InModuleScope Atlas.Software {
@@ -388,7 +435,7 @@ Describe 'Start-AtlasSoftwareInstaller' {
                 }
             }
 
-            { Start-AtlasSoftwareInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList @('/S', '/AllUsers') -Description 'Test' } |
+            { Start-AtlasSoftwareInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList @('/S', '/AllUsers') -Description 'Test' -TimeoutSeconds 123 } |
                 Should -Not -Throw
 
             Should -Invoke Invoke-AtlasContainedProcess -Times 1 -Exactly -ParameterFilter {
@@ -397,6 +444,7 @@ Describe 'Start-AtlasSoftwareInstaller' {
                 $ArgumentList[0] -ceq '/S' -and
                 $ArgumentList[1] -ceq '/AllUsers' -and
                 $WorkingDirectory -eq 'C:\fake' -and
+                $TimeoutSeconds -eq 123 -and
                 $Hidden -and $NoWindow
             }
         }

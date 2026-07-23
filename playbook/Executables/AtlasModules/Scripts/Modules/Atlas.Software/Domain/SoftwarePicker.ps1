@@ -150,6 +150,52 @@ function Invoke-AtlasSoftwarePickerPackageInstall {
     }
 }
 
+function Invoke-AtlasSoftwarePickerPackageBatch {
+    <#
+    .SYNOPSIS
+        Attempts every selected package and returns a failure record for each
+        package that could not be installed.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [string[]]$PackageId,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [object[]]$Catalog,
+
+        [Parameter(Mandatory = $true)]
+        $AtlasContext
+    )
+
+    $failures = New-Object 'System.Collections.Generic.List[object]'
+    foreach ($package in $PackageId) {
+        try {
+            $catalogItem = $Catalog | Where-Object { $_.Package -ceq $package } | Select-Object -First 1
+            if ($null -eq $catalogItem) {
+                throw "Package '$package' is not present in the Atlas software catalog."
+            }
+            if ($catalogItem.Source -notin @('winget', 'msstore')) {
+                throw "No trusted WinGet source is declared for package '$package'."
+            }
+
+            $null = Invoke-AtlasSoftwarePickerPackageInstall `
+                -PackageId $package -Source $catalogItem.Source -AtlasContext $AtlasContext
+        }
+        catch {
+            $message = $_.Exception.Message
+            Write-Warning "Failed to install '$package': $message"
+            $failures.Add([pscustomobject]@{
+                    PackageId = $package
+                    Message   = $message
+                })
+        }
+    }
+
+    return $failures.ToArray()
+}
+
 function Show-AtlasSoftwarePicker {
     <#
     .SYNOPSIS
@@ -284,35 +330,36 @@ function Show-AtlasSoftwarePicker {
     })
     $form.Controls.Add($installButton)
 
-    $form.Add_Shown({ $this.Activate() })
-    [void]$form.ShowDialog()
+    try {
+        $form.Add_Shown({ $this.Activate() })
+        [void]$form.ShowDialog()
 
-    if ($form.Tag.Install) {
-        $installPackages = @($form.Controls |
-            Where-Object { $_ -is [System.Windows.Forms.CheckBox] -and $_.Checked } |
-            Select-Object -ExpandProperty Name)
+        if ($form.Tag.Install) {
+            $installPackages = @($form.Controls |
+                Where-Object { $_ -is [System.Windows.Forms.CheckBox] -and $_.Checked } |
+                Select-Object -ExpandProperty Name)
 
-        if ($installPackages.Count -ne 0) {
-            Write-Host 'Installing: ' -ForegroundColor Yellow
-            foreach ($package in $installPackages) {
-                Write-Host '- ' -NoNewline -ForegroundColor Blue
-                Write-Host $package
-            }
-            Write-Host ''
-            Start-Sleep 1
-            foreach ($package in $installPackages) {
-                $source = ($items | Where-Object { $_.Package -eq $package } | Select-Object -First 1).Source
-                if ($source -notin @('winget', 'msstore')) {
-                    throw "No trusted WinGet source is declared for package '$package'."
+            if ($installPackages.Count -ne 0) {
+                Write-Host 'Installing: ' -ForegroundColor Yellow
+                foreach ($package in $installPackages) {
+                    Write-Host '- ' -NoNewline -ForegroundColor Blue
+                    Write-Host $package
                 }
-                Invoke-AtlasSoftwarePickerPackageInstall `
-                    -PackageId $package -Source $source -AtlasContext $atlasContext
+                Write-Host ''
+                Start-Sleep 1
+                $failures = @(Invoke-AtlasSoftwarePickerPackageBatch `
+                        -PackageId $installPackages -Catalog $items -AtlasContext $atlasContext)
+                Write-Host ''
+                Read-Pause
+                if ($failures.Count -ne 0) {
+                    $summary = @($failures | ForEach-Object { "- $($_.PackageId): $($_.Message)" }) -join [Environment]::NewLine
+                    throw "$($failures.Count) selected software package(s) failed to install:$([Environment]::NewLine)$summary"
+                }
             }
-            Write-Host ''
-            Read-Pause
         }
     }
-
-    $form.Dispose()
+    finally {
+        $form.Dispose()
+    }
     return $true
 }

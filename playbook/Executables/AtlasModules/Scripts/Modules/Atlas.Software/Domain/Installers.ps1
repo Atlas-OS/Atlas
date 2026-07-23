@@ -157,7 +157,8 @@ function Start-AtlasSoftwareInstaller {
         [Parameter(Mandatory = $true)][string]$FilePath,
         [AllowEmptyCollection()][string[]]$ArgumentList = @(),
         [Parameter(Mandatory = $true)][string]$Description,
-        [uint32[]]$SuccessExitCode = @(0)
+        [uint32[]]$SuccessExitCode = @(0),
+        [ValidateRange(1, 86400)][int]$TimeoutSeconds = 1800
     )
 
     Write-Host "Installing $Description..."
@@ -167,6 +168,7 @@ function Start-AtlasSoftwareInstaller {
         -ArgumentList ([string[]]$ArgumentList) `
         -WorkingDirectory $workingDirectory `
         -Description "The $Description installer" `
+        -TimeoutSeconds $TimeoutSeconds `
         -Hidden `
         -NoWindow
     $exitCode = [uint32]$result.ExitCodeUInt32
@@ -181,7 +183,8 @@ function Start-AtlasSoftwareOptionalInstaller {
         [Parameter(Mandatory = $true)][string]$FilePath,
         [AllowEmptyCollection()][string[]]$ArgumentList = @(),
         [Parameter(Mandatory = $true)][string]$Description,
-        [uint32[]]$SuccessExitCode = @(0)
+        [uint32[]]$SuccessExitCode = @(0),
+        [ValidateRange(1, 86400)][int]$TimeoutSeconds = 1800
     )
 
     try {
@@ -189,7 +192,8 @@ function Start-AtlasSoftwareOptionalInstaller {
             -FilePath $FilePath `
             -ArgumentList $ArgumentList `
             -Description $Description `
-            -SuccessExitCode $SuccessExitCode
+            -SuccessExitCode $SuccessExitCode `
+            -TimeoutSeconds $TimeoutSeconds
         return $true
     }
     catch {
