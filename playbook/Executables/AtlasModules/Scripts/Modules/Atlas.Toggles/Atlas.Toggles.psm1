@@ -20,8 +20,8 @@ foreach ($domainModule in @(
 
 Export-ModuleMember -Function @(
     'Get-AtlasToggleDefinition', 'Invoke-AtlasToggle',
+    'Invoke-AtlasToggleMachineDependency',
     'Get-AtlasToggleState', 'Set-AtlasToggleState',
-    'Show-AtlasStateMenu',
     'Invoke-AtlasToggleNativeCommand',
     'Initialize-AtlasToggleStateStore',
     'Invoke-AtlasToggleReapply', 'Invoke-AtlasToggleUserReapply'

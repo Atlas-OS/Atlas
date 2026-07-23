@@ -7,6 +7,9 @@
         Disable = @{
             StateValue = 0
             ReplayScope = 'Machine'
+            ReplayApplicable = {
+                Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem'
+            }
             Launcher        = '6. Advanced Configuration\Services\NVIDIA Display Container\Disable NVIDIA Display Container LS.cmd'
             ToolboxLauncher = 'Scripts\NVidia\DisableNVIDIADisplayContainerLS.cmd'
             Reboot          = 'None'
@@ -39,6 +42,9 @@
         Enable  = @{
             StateValue = 1
             ReplayScope = 'Machine'
+            ReplayApplicable = {
+                Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem'
+            }
             Launcher        = '6. Advanced Configuration\Services\NVIDIA Display Container\Enable NVIDIA Display Container LS (default).cmd'
             ToolboxLauncher = 'Scripts\NVidia\EnableNVIDIADisplayContainerLS.cmd'
             Reboot          = 'None'

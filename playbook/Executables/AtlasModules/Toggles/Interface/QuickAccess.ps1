@@ -5,6 +5,7 @@
     States    = [ordered]@{
         Remove = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '4. Interface Tweaks\File Explorer Customization\Quick Access\Remove Quick Access.cmd'
             Reboot     = 'None'
             Action     = {
@@ -25,7 +26,7 @@
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' -Name 'HubMode'
 
                 if (-not $Toggle.Silent) { Write-Host 'Changes applied successfully.' }

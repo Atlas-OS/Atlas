@@ -5,7 +5,7 @@ $fsoGameBarMachineAction = {
 
     Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
             -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-        -Force -ErrorAction Stop
+        -ErrorAction Stop
 
     $presenceKey = 'HKLM:\SOFTWARE\Microsoft\WindowsRuntime\ActivatableClassId\Windows.Gaming.GameBar.PresenceServer.Internal.PresenceWriter'
     $allowGameDvrKey = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR'
@@ -48,7 +48,7 @@ $fsoGameBarUserAction = {
 
     Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
             -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-        -Force -ErrorAction Stop
+        -ErrorAction Stop
 
     switch -CaseSensitive ([string]$Toggle.State) {
         'Disable' {
@@ -58,9 +58,9 @@ $fsoGameBarUserAction = {
             Set-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_FSEBehavior' -Type DWord -Data 2
             Set-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_FSEBehaviorMode' -Type DWord -Data 2
             Set-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_HonorUserFSEBehaviorMode' -Type DWord -Data 1
-            Set-AtlasRegistryValue -Path 'HKCU:\System\GameBar' -Name 'GamePanelStartupTipIndex' -Type DWord -Data 3
-            Set-AtlasRegistryValue -Path 'HKCU:\System\GameBar' -Name 'ShowStartupPanel' -Type DWord -Data 0
-            Set-AtlasRegistryValue -Path 'HKCU:\System\GameBar' -Name 'UseNexusForGameBarEnabled' -Type DWord -Data 0
+            Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\GameBar' -Name 'GamePanelStartupTipIndex' -Type DWord -Data 3
+            Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\GameBar' -Name 'ShowStartupPanel' -Type DWord -Data 0
+            Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\GameBar' -Name 'UseNexusForGameBarEnabled' -Type DWord -Data 0
             Set-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_Enabled' -Type DWord -Data 0
             Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR' -Name 'AppCaptureEnabled' -Type DWord -Data 0
         }
@@ -78,9 +78,9 @@ $fsoGameBarUserAction = {
             Remove-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_FSEBehavior'
             Set-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_FSEBehaviorMode' -Type DWord -Data 2
             Set-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_HonorUserFSEBehaviorMode' -Type DWord -Data 0
-            Remove-AtlasRegistryValue -Path 'HKCU:\System\GameBar' -Name 'GamePanelStartupTipIndex'
-            Remove-AtlasRegistryValue -Path 'HKCU:\System\GameBar' -Name 'ShowStartupPanel'
-            Remove-AtlasRegistryValue -Path 'HKCU:\System\GameBar' -Name 'UseNexusForGameBarEnabled'
+            Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\GameBar' -Name 'GamePanelStartupTipIndex'
+            Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\GameBar' -Name 'ShowStartupPanel'
+            Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\GameBar' -Name 'UseNexusForGameBarEnabled'
             Set-AtlasRegistryValue -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_Enabled' -Type DWord -Data 1
             Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR' -Name 'AppCaptureEnabled'
         }

@@ -4,7 +4,7 @@ $action = {
 
     Import-Module -Name (Join-Path $Toggle.ScriptsPath `
             'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-        -Force -ErrorAction Stop
+        -ErrorAction Stop
 
     $enable = $Toggle.State -ceq 'Enable'
     $classKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}'

@@ -5,6 +5,7 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Automatic Updates\Disable Automatic Updates (default).cmd'
             Reboot     = 'None'
             Action     = {
@@ -19,12 +20,13 @@
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Automatic Updates\Enable Automatic Updates.cmd'
             Reboot     = 'None'
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'AUOptions'
 
                 if (-not $Toggle.Silent) { Write-Host 'Automatic Updates have been enabled.' }

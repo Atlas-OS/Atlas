@@ -5,12 +5,13 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\File Sharing\Give Access To Menu\Disable Give Access To Menu (default).cmd'
             Reboot     = 'None'
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 foreach ($key in @(
                     'Registry::HKEY_CLASSES_ROOT\*\shellex\ContextMenuHandlers\Sharing'
                     'Registry::HKEY_CLASSES_ROOT\Directory\Background\shellex\ContextMenuHandlers\Sharing'
@@ -29,6 +30,7 @@
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\File Sharing\Give Access To Menu\Enable Give Access To Menu.cmd'
             Reboot     = 'None'
             Action     = {

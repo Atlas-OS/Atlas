@@ -5,7 +5,7 @@ $machineAction = {
 
     $registryModule = Join-Path $Toggle.ScriptsPath `
         'Modules\Atlas.Registry\Atlas.Registry.psd1'
-    Import-Module -Name $registryModule -Force -ErrorAction Stop
+    Import-Module -Name $registryModule -ErrorAction Stop
 
     $settingsPages = Join-Path $Toggle.ScriptsPath `
         'Internal\Set-SettingsPageVisibility.ps1'
@@ -29,9 +29,9 @@ $machineAction = {
     }
 
     Import-Module -Name (Join-Path $Toggle.ScriptsPath `
-            'Modules\Atlas.Appx\Atlas.Appx.psd1') -Force -ErrorAction Stop
+            'Modules\Atlas.Appx\Atlas.Appx.psd1') -ErrorAction Stop
     Import-Module -Name (Join-Path $Toggle.ScriptsPath `
-            'Modules\Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
+            'Modules\Atlas.TasksProcs\Atlas.TasksProcs.psd1') -ErrorAction Stop
 
     Set-AtlasRegistryValue `
         -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' `
@@ -64,7 +64,7 @@ $userAction = {
     param($Toggle)
 
     Import-Module -Name (Join-Path $Toggle.ScriptsPath `
-            'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+            'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
     $enable = $Toggle.State -ceq 'Enable'
     $resumeAllowed = if ($enable) { 1 } else { 0 }
@@ -72,6 +72,11 @@ $userAction = {
     Set-AtlasRegistryValue `
         -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CrossDeviceResume\Configuration' `
         -Name 'IsResumeAllowed' -Type DWord -Data $resumeAllowed
+    # Windows 11 25H2 exposes the OneDrive provider through the taskbar Resume
+    # switch separately from the original cross-device master value.
+    Set-AtlasRegistryValue `
+        -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CrossDeviceResume\Configuration' `
+        -Name 'IsOneDriveResumeAllowed' -Type DWord -Data $resumeAllowed
     Set-AtlasRegistryValue `
         -Path 'HKCU:\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\DisableCrossDeviceResume' `
         -Name 'Value' -Type DWord -Data $disableResume

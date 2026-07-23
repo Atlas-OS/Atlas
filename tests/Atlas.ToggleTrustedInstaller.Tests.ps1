@@ -21,11 +21,12 @@ BeforeAll {
 @{
     Name          = '__NAME__'
     Elevation     = '__ELEVATION__'
+    Warning       = 'Confirm privileged action.'
     NoStateRecord = $true
     States        = [ordered]@{
         Enable = @{
             StateValue = 1
-            Reboot     = 'None'
+            Reboot     = 'Recommend'
             Action     = {
                 param($Toggle)
                 [IO.File]::WriteAllText('__MARKER__', 'ran')
@@ -151,6 +152,32 @@ Describe 'TrustedInstaller toggle broker boundary' {
         } | Should -Throw -ExpectedMessage '*disallowed code 5*'
 
         $script:actionMarker | Should -Not -Exist
+    }
+
+    It 'confirms before TrustedInstaller dispatch and reports reboot only after broker success' {
+        $script:BrokerEvents = [Collections.Generic.List[string]]::new()
+        Mock -CommandName Read-Pause -ModuleName Atlas.Toggles -MockWith {
+            if ($Message -ceq 'Press Enter to continue or Ctrl+C to cancel') {
+                [void]$script:BrokerEvents.Add('confirm')
+            }
+            elseif ($Message -ceq 'Press Enter to exit') {
+                [void]$script:BrokerEvents.Add('post-action')
+            }
+        }
+        Mock -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -MockWith {
+            [void]$script:BrokerEvents.Add('broker')
+            [pscustomobject]@{ ExitCode = 0 }
+        }
+        Mock -CommandName Write-Host -ModuleName Atlas.Toggles
+
+        Invoke-AtlasToggle -Name BrokerToggle -State Enable `
+            -TogglesRoot $script:toggleRoot
+
+        $script:BrokerEvents | Should -Be @('confirm', 'broker', 'post-action')
+        Should -Invoke -CommandName Write-Host -ModuleName Atlas.Toggles `
+            -Times 1 -Exactly -ParameterFilter {
+                $Object -ceq 'Finished, please reboot your device for changes to apply.'
+            }
     }
 
     It 'runs split machine and user scopes with state owned only by the machine scope' {

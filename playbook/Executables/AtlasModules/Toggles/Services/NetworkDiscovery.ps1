@@ -1,8 +1,7 @@
 # Toggle: Network Discovery services.
 #
 # Disable also unpins 'Network' from the Explorer sidebar (NetworkNavigationPane toggle);
-# Enable first enables its Lanman Workstation (SMB) dependency. NlaSvc uses startup type 2
-# on Windows 10 and 3 on Windows 11.
+# Enable first enables its Lanman Workstation (SMB) dependency. NlaSvc uses startup type 3.
 @{
     Name      = 'NetworkDiscovery'
     Elevation = 'Admin'
@@ -26,7 +25,7 @@
             UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 Set-AtlasRegistryValue `
                     -Path 'HKCU:\SOFTWARE\Classes\CLSID\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}' `
                     -Name 'System.IsPinnedToNameSpaceTree' `
@@ -56,12 +55,7 @@
                 foreach ($svc in @('fdPHost', 'FDResPub', 'lmhosts', 'netman')) {
                     & $setSvc -Name $svc -Start 3
                 }
-                if ($Toggle.WindowsBuild -lt 22000) {
-                    & $setSvc -Name 'NlaSvc' -Start 2
-                }
-                else {
-                    & $setSvc -Name 'NlaSvc' -Start 3
-                }
+                & $setSvc -Name 'NlaSvc' -Start 3
                 & $setSvc -Name 'SSDPSRV' -Start 3
 
                 if (-not $Toggle.Silent) { Write-Host 'Finished, please reboot your device for changes to apply.' }

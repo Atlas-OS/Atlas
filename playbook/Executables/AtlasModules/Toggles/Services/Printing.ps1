@@ -23,7 +23,7 @@ $contextAction = {
     Write-Host $message
     Import-Module -Name (Join-Path $Toggle.ScriptsPath `
             'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-        -Force -ErrorAction Stop
+        -ErrorAction Stop
 
     $classesRoot = 'HKLM:\SOFTWARE\Classes'
     $printKeys = @("$classesRoot\SystemFileAssociations\image\shell\print")
@@ -44,25 +44,23 @@ $contextAction = {
         }
     }
 
-    if ($Toggle.WindowsBuild -ge 22000) {
-        foreach ($key in @(
-                "$classesRoot\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\Print"
-                "$classesRoot\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\PrintTo"
-            )) {
-            if ($enable) {
-                foreach ($valueName in @(
-                        'LegacyDisable', 'ProgrammaticAccessOnly', 'HideBasedOnVelocityId'
-                    )) {
-                    Remove-AtlasRegistryValue -Path $key -Name $valueName
-                }
+    foreach ($key in @(
+            "$classesRoot\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\Print"
+            "$classesRoot\AppX4ztfk9wxr86nxmzzq47px0nh0e58b8fw\Shell\PrintTo"
+        )) {
+        if ($enable) {
+            foreach ($valueName in @(
+                    'LegacyDisable', 'ProgrammaticAccessOnly', 'HideBasedOnVelocityId'
+                )) {
+                Remove-AtlasRegistryValue -Path $key -Name $valueName
             }
-            else {
-                Set-AtlasRegistryValue -Path $key -Name 'LegacyDisable' -Type String -Data ''
-                Set-AtlasRegistryValue -Path $key -Name 'ProgrammaticAccessOnly' `
-                    -Type String -Data ''
-                Set-AtlasRegistryValue -Path $key -Name 'HideBasedOnVelocityId' `
-                    -Type DWord -Data 6527944
-            }
+        }
+        else {
+            Set-AtlasRegistryValue -Path $key -Name 'LegacyDisable' -Type String -Data ''
+            Set-AtlasRegistryValue -Path $key -Name 'ProgrammaticAccessOnly' `
+                -Type String -Data ''
+            Set-AtlasRegistryValue -Path $key -Name 'HideBasedOnVelocityId' `
+                -Type DWord -Data 6527944
         }
     }
 }

@@ -12,7 +12,7 @@
             UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
                 # The old menu only activates when the InprocServer32 DEFAULT value is
                 # an empty string; a bare key ('value not set') leaves the modern menu.
@@ -30,7 +30,7 @@
             UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
                 Remove-AtlasRegistryKey -Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}'
 

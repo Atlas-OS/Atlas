@@ -17,6 +17,8 @@ Import-Module -Name (Join-Path $modulesRoot 'Atlas.Registry\Atlas.Registry.psd1'
     -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Services\Atlas.Services.psd1') `
     -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') `
+    -ErrorAction Stop
 
 $components = @('ms_msclient', 'ms_server', 'ms_lltdio', 'ms_rspndr')
 foreach ($binding in @(Get-NetAdapterBinding -Name '*' -ComponentID $components `

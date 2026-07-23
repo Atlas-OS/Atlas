@@ -13,6 +13,11 @@ $wingetPath = Get-AtlasTrustedWingetPath
 Assert-AtlasTrustedWingetSource -WingetPath $wingetPath -Name msstore
 & $wingetPath install --exact --id 9NZKPSTSNW4P --source msstore `
     --accept-package-agreements --accept-source-agreements --disable-interactivity --silent
-if ($LASTEXITCODE -ne 0) {
+$exitCode = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]$LASTEXITCODE), 0)
+$noApplicableUpgrade = [Convert]::ToUInt32('8A15002B', 16)
+if ($exitCode -eq $noApplicableUpgrade) {
+    Write-Output 'Xbox Game Bar is already installed and no applicable upgrade is available.'
+}
+elseif ($exitCode -ne 0) {
     throw "WinGet failed to install Xbox Game Bar with exit code $LASTEXITCODE."
 }

@@ -18,9 +18,6 @@
             UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
-                Remove-AtlasRegistryValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\WindowsAI' -Name 'DisableClickToDo'
-
                 if (-not $Toggle.Silent) { Write-Host 'Click To Do has been disabled.' }
             }
         }
@@ -32,14 +29,11 @@
             MachineAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' -Name 'DisableClickToDo'
             }
             UserAction = {
                 param($Toggle)
-
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
-                Remove-AtlasRegistryValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\WindowsAI' -Name 'DisableClickToDo'
 
                 if (-not $Toggle.Silent) { Write-Host 'Click To Do has been enabled.' }
             }

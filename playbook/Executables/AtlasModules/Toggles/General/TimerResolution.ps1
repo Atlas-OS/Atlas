@@ -4,14 +4,14 @@ $timerResolutionAction = {
 
     Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
             -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-        -Force -ErrorAction Stop
+        -ErrorAction Stop
 
     $scheduledTasksModule = Join-Path -Path $Toggle.WinDir `
         -ChildPath 'System32\WindowsPowerShell\v1.0\Modules\ScheduledTasks\ScheduledTasks.psd1'
     if (-not (Test-Path -LiteralPath $scheduledTasksModule -PathType Leaf)) {
         throw "TimerResolution: the inbox ScheduledTasks module is missing at '$scheduledTasksModule'."
     }
-    Import-Module -Name $scheduledTasksModule -Force -ErrorAction Stop
+    Import-Module -Name $scheduledTasksModule -ErrorAction Stop
 
     $kernelKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
     $taskName = 'Force Timer Resolution'

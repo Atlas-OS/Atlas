@@ -11,6 +11,7 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\CPU Idle\Disable Idle.cmd'
             Reboot     = 'None'
             Action     = {

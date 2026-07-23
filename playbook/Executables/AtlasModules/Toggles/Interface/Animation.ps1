@@ -11,7 +11,7 @@ $animationUserAction = {
 
     Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
             -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-        -Force -ErrorAction Stop
+        -ErrorAction Stop
 
     $desktopKey = 'HKCU:\Control Panel\Desktop'
     $advancedKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'

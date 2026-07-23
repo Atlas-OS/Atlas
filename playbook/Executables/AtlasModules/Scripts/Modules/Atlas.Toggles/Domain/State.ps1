@@ -196,14 +196,22 @@ function Get-AtlasToggleState {
         return $null
     }
 
-    $properties = Get-ItemProperty -LiteralPath $keyPath -ErrorAction SilentlyContinue
-    if ($null -eq $properties) {
+    $key = Get-Item -LiteralPath $keyPath -ErrorAction SilentlyContinue
+    if ($null -eq $key) {
         return $null
     }
 
     $state = $null
-    if ($properties.PSObject.Properties['state']) {
-        $state = [int]$properties.state
+    try {
+        if (@($key.GetValueNames()) -contains 'state') {
+            if ($key.GetValueKind('state') -ne [Microsoft.Win32.RegistryValueKind]::DWord) {
+                throw "Toggle '$Name' has a non-REG_DWORD 'state' record under '$keyPath'."
+            }
+            $state = [int]$key.GetValue('state')
+        }
+    }
+    finally {
+        $key.Close()
     }
 
     return [pscustomobject]@{

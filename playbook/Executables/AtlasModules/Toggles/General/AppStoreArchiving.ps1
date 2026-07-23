@@ -5,6 +5,7 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Store App Archiving\Disable Store App Archiving (default).cmd'
             Reboot     = 'None'
             Action     = {
@@ -22,6 +23,7 @@
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Store App Archiving\Enable Store App Archiving.cmd'
             Reboot     = 'None'
             Action     = {

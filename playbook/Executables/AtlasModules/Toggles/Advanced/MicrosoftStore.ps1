@@ -6,6 +6,7 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '6. Advanced Configuration\Microsoft Store\Disable Microsoft Store.cmd'
             Reboot     = 'None'
             Action     = {
@@ -25,6 +26,7 @@
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '6. Advanced Configuration\Microsoft Store\Enable Microsoft Store (default).cmd'
             Reboot     = 'None'
             Action     = {

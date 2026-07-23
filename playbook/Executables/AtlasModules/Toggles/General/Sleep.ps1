@@ -73,6 +73,7 @@ $sleepAction = {
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Sleep\Disable Sleep.cmd'
             Reboot     = 'None'
             Action     = $sleepAction

@@ -9,6 +9,7 @@
     States    = [ordered]@{
         Pause   = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Pause Updates\Pause Windows Updates.cmd'
             Reboot     = 'None'
             Action     = {
@@ -46,12 +47,13 @@
         }
         Unpause = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Pause Updates\Unpause Windows Updates.cmd'
             Reboot     = 'None'
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 $svcKey = 'HKLM:\SOFTWARE\AtlasOS\Services\PauseUpdates'
                 if (-not (Test-Path -LiteralPath $svcKey)) { New-Item -Path $svcKey -Force | Out-Null }
                 New-ItemProperty -LiteralPath $svcKey -Name 'days' -Value 0 -PropertyType DWord -Force | Out-Null

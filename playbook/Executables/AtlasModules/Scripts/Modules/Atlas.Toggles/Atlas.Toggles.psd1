@@ -9,11 +9,11 @@
         # Engine
         'Get-AtlasToggleDefinition'
         'Invoke-AtlasToggle'
+        # Machine-classified dependency states invoked from other privileged scripts
+        'Invoke-AtlasToggleMachineDependency'
         # State registry (HKLM\SOFTWARE\AtlasOS\Services compatibility contract)
         'Get-AtlasToggleState'
         'Set-AtlasToggleState'
-        # Interaction
-        'Show-AtlasStateMenu'
         # Checked native command invocation for toggle actions
         'Invoke-AtlasToggleNativeCommand'
         # State-store initialization and upgrade re-apply

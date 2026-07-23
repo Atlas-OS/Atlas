@@ -44,7 +44,7 @@ Describe 'Get-AtlasToggleDefinition' {
 
         New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'NoName.ps1' -Content @'
 @{
-    States = @{ On = @{ StateValue = 1; Action = { param($Toggle) } } }
+    States = [ordered]@{ On = @{ StateValue = 1; Action = { param($Toggle) } } }
 }
 '@
 
@@ -57,20 +57,36 @@ Describe 'Get-AtlasToggleDefinition' {
         New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'NoAction.ps1' -Content @'
 @{
     Name   = 'NoAction'
-    States = @{ On = @{ StateValue = 1 } }
+    States = [ordered]@{ On = @{ StateValue = 1 } }
 }
 '@
 
         New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'NoStateValue.ps1' -Content @'
 @{
     Name   = 'NoStateValue'
-    States = @{ On = @{ Action = { param($Toggle) } } }
+    States = [ordered]@{ On = @{ Action = { param($Toggle) } } }
 }
 '@
 
         New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'WrongName.ps1' -Content @'
 @{
     Name   = 'SomethingElse'
+    States = [ordered]@{ On = @{ StateValue = 1; Action = { param($Toggle) } } }
+}
+'@
+
+        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'UnknownKey.ps1' -Content @'
+@{
+    Name       = 'UnknownKey'
+    Elevation  = 'None'
+    Sideload   = $true
+    States     = [ordered]@{ On = @{ StateValue = 1; Action = { param($Toggle) } } }
+}
+'@
+
+        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'UnorderedStates.ps1' -Content @'
+@{
+    Name   = 'UnorderedStates'
     States = @{ On = @{ StateValue = 1; Action = { param($Toggle) } } }
 }
 '@
@@ -95,7 +111,17 @@ Describe 'Get-AtlasToggleDefinition' {
 
     It 'throws when the definition is missing States' {
         { Get-AtlasToggleDefinition -Name 'NoStates' -TogglesRoot $TogglesRoot } |
-            Should -Throw "*missing a non-empty 'States' hashtable*"
+            Should -Throw "*'States' dictionary*"
+    }
+
+    It 'throws when States is not an ordered dictionary' {
+        { Get-AtlasToggleDefinition -Name 'UnorderedStates' -TogglesRoot $TogglesRoot } |
+            Should -Throw "*'States' dictionary*"
+    }
+
+    It 'throws on an unknown top-level key' {
+        { Get-AtlasToggleDefinition -Name 'UnknownKey' -TogglesRoot $TogglesRoot } |
+            Should -Throw "*unknown top-level key 'Sideload'*"
     }
 
     It 'throws when a state has neither a legacy action nor a privileged split' {
@@ -111,6 +137,94 @@ Describe 'Get-AtlasToggleDefinition' {
     It 'throws when the declared Name does not match the file name' {
         { Get-AtlasToggleDefinition -Name 'WrongName' -TogglesRoot $TogglesRoot } |
             Should -Throw "*declares Name 'SomethingElse'*"
+    }
+}
+
+Describe 'Shipped toggle replay classification' {
+    It 'classifies every recordable persistent action for replay' {
+        $togglesRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles'
+        $unclassified = @()
+
+        foreach ($file in Get-ChildItem -LiteralPath $togglesRoot -Recurse -File -Filter '*.ps1') {
+            $definition = & $file.FullName
+            foreach ($stateName in $definition.States.Keys) {
+                $stateEntry = $definition.States[$stateName]
+                $noStateRecord = ($definition.Contains('NoStateRecord') -and $definition.NoStateRecord) -or
+                    ($stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord)
+                if ($noStateRecord) {
+                    continue
+                }
+
+                $isSplit = $stateEntry.Contains('MachineAction') -and
+                    $stateEntry.MachineAction -is [scriptblock] -and
+                    $stateEntry.Contains('UserAction') -and
+                    $stateEntry.UserAction -is [scriptblock]
+                $isMachine = $stateEntry.Contains('Action') -and
+                    $stateEntry.Action -is [scriptblock] -and
+                    $stateEntry.Contains('ReplayScope') -and
+                    [string]$stateEntry.ReplayScope -ceq 'Machine'
+                if (-not $isSplit -and -not $isMachine) {
+                    $unclassified += "$($definition.Name):$stateName"
+                }
+            }
+        }
+
+        $unclassified | Should -BeNullOrEmpty
+    }
+
+    It 'keeps protected HKCU policy paths out of medium-token UserAction blocks' {
+        $togglesRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles'
+        $violations = @()
+
+        foreach ($file in Get-ChildItem -LiteralPath $togglesRoot -Recurse -File -Filter '*.ps1') {
+            $definition = & $file.FullName
+            foreach ($stateName in $definition.States.Keys) {
+                $stateEntry = $definition.States[$stateName]
+                if (-not $stateEntry.Contains('UserAction') -or
+                    -not ($stateEntry.UserAction -is [scriptblock])) {
+                    continue
+                }
+                $source = $stateEntry.UserAction.ToString()
+                if ($source -match '(?i)HKCU:?[\\].*(?:CurrentVersion[\\]Policies|[\\]Policies)') {
+                    $violations += "$($definition.Name):$stateName"
+                }
+            }
+        }
+
+        $violations | Should -BeNullOrEmpty
+    }
+
+    It 'treats the WinGet no-applicable-upgrade result as an idempotent Game Bar success' {
+        $installer = Join-Path $repoRoot `
+            'playbook\Executables\AtlasModules\Scripts\Internal\Install-GameBar.ps1'
+        $installerRoot = Join-Path $TestDrive 'gamebar-installer'
+        New-Item -ItemType Directory -Path $installerRoot -Force | Out-Null
+
+        $installerUnderTest = Join-Path $installerRoot 'Install-GameBar.ps1'
+        Copy-Item -LiteralPath $installer -Destination $installerUnderTest
+
+        $fakeWinget = Join-Path $installerRoot 'winget.cmd'
+        [IO.File]::WriteAllText(
+            $fakeWinget,
+            "@echo off`r`nexit /b -1978335189`r`n",
+            [Text.Encoding]::ASCII
+        )
+
+        $escapedWinget = $fakeWinget.Replace("'", "''")
+        $integrityHelper = Join-Path $installerRoot 'Download-Integrity.ps1'
+        [IO.File]::WriteAllText(
+            $integrityHelper,
+            @"
+function Get-AtlasTrustedWingetPath { '$escapedWinget' }
+function Assert-AtlasTrustedWingetSource { param([string]`$WingetPath, [string]`$Name) }
+"@,
+            [Text.UTF8Encoding]::new($false)
+        )
+
+        $output = & $installerUnderTest
+
+        $output | Should -Contain `
+            'Xbox Game Bar is already installed and no applicable upgrade is available.'
     }
 }
 
@@ -354,6 +468,57 @@ Describe 'Invoke-AtlasToggleReapply' {
         Get-Content -LiteralPath $script:ReapplyMarker | Should -Be 'unexpected-zero-replay'
     }
 
+    It 'scrubs a recorded machine state that is no longer applicable' {
+        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
+            -FileName 'UnavailableHardware.ps1' -Content @'
+@{
+    Name      = 'UnavailableHardware'
+    Elevation = 'Admin'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            ReplayScope = 'Machine'
+            ReplayApplicable = { $false }
+            Action = { throw 'inapplicable action must not run' }
+        }
+    }
+}
+'@
+        Set-AtlasToggleState -Name 'UnavailableHardware' -State 1 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
+
+        Test-Path -LiteralPath (Join-Path $StateRoot 'UnavailableHardware') | Should -BeFalse
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -ParameterFilter {
+            $Message -like "*UnavailableHardware*no longer applicable*Removing stale registry record*"
+        }
+    }
+
+    It 'preserves and reports a replay applicability check failure' {
+        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
+            -FileName 'BrokenApplicability.ps1' -Content @'
+@{
+    Name      = 'BrokenApplicability'
+    Elevation = 'Admin'
+    States    = [ordered]@{
+        On = @{
+            StateValue = 1
+            ReplayScope = 'Machine'
+            ReplayApplicable = { throw 'applicability probe failed' }
+            Action = { throw 'action must not run after probe failure' }
+        }
+    }
+}
+'@
+        Set-AtlasToggleState -Name 'BrokenApplicability' -State 1 -StateRoot $StateRoot
+
+        {
+            Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
+        } | Should -Throw "*'BrokenApplicability': applicability probe failed*"
+
+        Test-Path -LiteralPath (Join-Path $StateRoot 'BrokenApplicability') | Should -BeTrue
+    }
+
     It 'scrubs an unknown record without executing its legacy raw path' {
         Set-AtlasToggleState -Name 'GhostToggle' -State 1 -StateRoot $StateRoot
         $recordPath = Join-Path $StateRoot 'GhostToggle'
@@ -363,6 +528,21 @@ Describe 'Invoke-AtlasToggleReapply' {
 
         Test-Path -LiteralPath $script:UntrustedMarker | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $StateRoot 'GhostToggle') | Should -BeFalse
+    }
+
+    It 'preserves a record when its installed definition fails to load' {
+        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
+            -FileName 'BrokenDefinition.ps1' -Content @'
+throw 'simulated installed definition load failure'
+'@
+        Set-AtlasToggleState -Name 'BrokenDefinition' -State 1 -StateRoot $StateRoot
+
+        {
+            Invoke-AtlasToggleReapply -StateRoot $StateRoot `
+                -TogglesRoot $script:ReapplyTogglesRoot
+        } | Should -Throw '*simulated installed definition load failure*'
+
+        Test-Path -LiteralPath (Join-Path $StateRoot 'BrokenDefinition') | Should -BeTrue
     }
 
     It 'scrubs a known record whose numeric state is not defined' {
@@ -825,12 +1005,12 @@ Describe 'Invoke-AtlasToggle' {
         Join-Path $WorkDir 'action-marker.txt' | Should -Not -Exist
     }
 
-    It 'still records state with -JustContext (batch parity)' {
+    It 'does not record state with -JustContext because the state action was not applied' {
         Invoke-AtlasToggle -Name 'MarkerToggle' -State 'On' -Silent -JustContext `
             -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
             -TogglesRoot $TogglesRoot -StateRoot $StateRoot
 
-        (Get-AtlasToggleState -Name 'MarkerToggle' -StateRoot $StateRoot).State | Should -Be 1
+        Get-AtlasToggleState -Name 'MarkerToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
     }
 
     It 'throws on an unknown state' {

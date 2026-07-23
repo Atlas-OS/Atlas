@@ -5,6 +5,50 @@
 # classified machine action. Split per-user actions are replayed separately in the
 # affected user's non-elevated first-logon context.
 
+function New-AtlasToggleStaleReplayRecordException {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Message
+    )
+
+    $exception = [System.IO.InvalidDataException]::new($Message)
+    $exception.Data['AtlasToggleReplayRecordDisposition'] = 'Stale'
+    return $exception
+}
+
+function Get-AtlasToggleReplayDefinition {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name,
+
+        [string]$TogglesRoot
+    )
+
+    $root = Get-AtlasToggleRoot -TogglesRoot $TogglesRoot
+    if (-not (Test-Path -LiteralPath $root -PathType Container)) {
+        throw "Toggle definitions root '$root' does not exist."
+    }
+
+    $files = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter "$Name.ps1" `
+        -ErrorAction Stop | Where-Object { $_.BaseName -ceq $Name })
+    if ($files.Count -eq 0) {
+        throw (New-AtlasToggleStaleReplayRecordException `
+                -Message "has no installed toggle definition named '$Name'.")
+    }
+    if ($files.Count -gt 1) {
+        throw "Multiple toggle definitions named '$Name' were found under '$root': $(($files | ForEach-Object { $_.FullName }) -join ', ')."
+    }
+
+    # Loading or validating an installed definition is operational work. Those failures
+    # must preserve the user's record so a corrected payload can replay it later.
+    $definition = & $files[0].FullName
+    Assert-AtlasToggleDefinition -Definition $definition -ExpectedName $Name `
+        -SourcePath $files[0].FullName
+    return $definition
+}
+
 function Resolve-AtlasToggleReplayRecord {
     param(
         [Parameter(Mandatory = $true)]
@@ -18,14 +62,15 @@ function Resolve-AtlasToggleReplayRecord {
     if ($null -eq $properties -or
         -not $properties.PSObject.Properties['state'] -or
         $Subkey.GetValueKind('state') -ne [Microsoft.Win32.RegistryValueKind]::DWord) {
-        throw 'has no REG_DWORD state.'
+        throw (New-AtlasToggleStaleReplayRecordException -Message 'has no REG_DWORD state.')
     }
     $recordedState = [int]$properties.state
 
-    $definition = Get-AtlasToggleDefinition -Name ([string]$Subkey.PSChildName) `
+    $definition = Get-AtlasToggleReplayDefinition -Name ([string]$Subkey.PSChildName) `
         -TogglesRoot $TogglesRoot
     if ($definition.Contains('NoStateRecord') -and $definition.NoStateRecord) {
-        throw 'belongs to a definition that no longer records state.'
+        throw (New-AtlasToggleStaleReplayRecordException `
+                -Message 'belongs to a definition that no longer records state.')
     }
 
     $matchingStates = @($definition.States.Keys | Where-Object {
@@ -33,13 +78,15 @@ function Resolve-AtlasToggleReplayRecord {
             $entry.Contains('StateValue') -and [int]$entry.StateValue -eq $recordedState
         })
     if ($matchingStates.Count -ne 1) {
-        throw "state '$recordedState' does not map to exactly one installed state."
+        throw (New-AtlasToggleStaleReplayRecordException `
+                -Message "state '$recordedState' does not map to exactly one installed state.")
     }
 
     $stateName = [string]$matchingStates[0]
     $stateEntry = $definition.States[$stateName]
     if ($stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord) {
-        throw "state '$stateName' no longer records state."
+        throw (New-AtlasToggleStaleReplayRecordException `
+                -Message "state '$stateName' no longer records state.")
     }
 
     return [pscustomobject]@{
@@ -169,10 +216,22 @@ function Invoke-AtlasToggleReapply {
             $replay = Resolve-AtlasToggleReplayRecord -Subkey $subkey -TogglesRoot $TogglesRoot
         }
         catch {
-            Remove-AtlasToggleReplayRecord `
-                -Name $name `
-                -KeyPath $subkey.PSPath `
-                -Reason $_.Exception.Message
+            if ($_.Exception.Data['AtlasToggleReplayRecordDisposition'] -ceq 'Stale') {
+                Remove-AtlasToggleReplayRecord `
+                    -Name $name `
+                    -KeyPath $subkey.PSPath `
+                    -Reason $_.Exception.Message
+            }
+            else {
+                $failureMessage = $_.Exception.Message
+                Write-AtlasLog -Level Warning -Message `
+                    "Resolving toggle '$name' for re-apply failed; preserving its record: $failureMessage" `
+                    -ErrorRecord $_
+                $failures += [pscustomobject]@{
+                    Name    = $name
+                    Message = [string]$failureMessage
+                }
+            }
             continue
         }
 
@@ -190,6 +249,30 @@ function Invoke-AtlasToggleReapply {
             Write-AtlasLog -Level Warning -Message `
                 "Toggle '$name' state '$stateName' is not classified for machine replay; leaving its record unchanged."
             continue
+        }
+
+        if ($stateEntry.Contains('ReplayApplicable')) {
+            try {
+                $isReplayApplicable = & $stateEntry.ReplayApplicable
+            }
+            catch {
+                $failureMessage = $_.Exception.Message
+                Write-AtlasLog -Level Warning -Message `
+                    "Checking replay applicability for toggle '$name' failed; preserving its record: $failureMessage" `
+                    -ErrorRecord $_
+                $failures += [pscustomobject]@{
+                    Name    = $name
+                    Message = [string]$failureMessage
+                }
+                continue
+            }
+            if (-not $isReplayApplicable) {
+                Remove-AtlasToggleReplayRecord `
+                    -Name $name `
+                    -KeyPath $subkey.PSPath `
+                    -Reason "state '$stateName' is no longer applicable."
+                continue
+            }
         }
 
         Write-AtlasLog -Message "Re-applying toggle '$name' machine state '$stateName'."

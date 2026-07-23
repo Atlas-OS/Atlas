@@ -5,12 +5,13 @@
     States    = [ordered]@{
         Default = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '4. Interface Tweaks\Shortcut Icon\Default Windows (default).cmd'
             Reboot     = 'None'
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Icons' -Name '29'
 
                 if (-not $Toggle.Silent) {
@@ -20,6 +21,7 @@
         }
         Classic = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '4. Interface Tweaks\Shortcut Icon\Classic.cmd'
             Reboot     = 'None'
             Action     = {
@@ -38,6 +40,7 @@
         }
         None    = @{
             StateValue = 2
+            ReplayScope = 'Machine'
             Launcher   = '4. Interface Tweaks\Shortcut Icon\None (security risk).cmd'
             Reboot     = 'None'
             Action     = {

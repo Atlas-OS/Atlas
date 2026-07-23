@@ -10,7 +10,7 @@ $hibernationAction = {
 
     Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
             -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-        -Force -ErrorAction Stop
+        -ErrorAction Stop
 
     $powercfg = Join-Path -Path $Toggle.WinDir -ChildPath 'System32\powercfg.exe'
     if (-not (Test-Path -LiteralPath $powercfg -PathType Leaf)) {
@@ -39,12 +39,14 @@ $hibernationAction = {
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Hibernation\Disable Hibernation (default).cmd'
             Reboot     = 'Prompt'
             Action     = $hibernationAction
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Hibernation\Enable Hibernation.cmd'
             Reboot     = 'None'
             Action     = $hibernationAction

@@ -26,7 +26,7 @@
 
                 Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
                         -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-                    -Force -ErrorAction Stop
+                    -ErrorAction Stop
 
                 $consent = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'
                 Set-AtlasRegistryValue -Path $consent -Name 'ShowGlobalPrompts' `
@@ -40,6 +40,7 @@
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Location\Enable Location.cmd'
             Reboot     = 'None'
             Action     = {
@@ -55,7 +56,7 @@
                 if (-not $Toggle.Silent) {
                     Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
                             -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-                        -Force -ErrorAction Stop
+                        -ErrorAction Stop
                     $settingsPages = [IO.Path]::Combine(
                         $Toggle.ScriptsPath,
                         'Internal',

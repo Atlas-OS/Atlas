@@ -8,6 +8,7 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Widgets (News and Interests)\Disable Widgets (default).cmd'
             Reboot     = 'RestartExplorer'
             ShellRefreshOperation = 'ExplorerRefresh'
@@ -21,7 +22,7 @@
                 if (-not [IO.File]::Exists($registryManifest)) {
                     throw "Widgets: the Atlas.Registry module is missing at '$registryManifest'."
                 }
-                Import-Module -Name $registryManifest -Force -ErrorAction Stop
+                Import-Module -Name $registryManifest -ErrorAction Stop
 
                 if (-not $Toggle.Silent) {
                     Write-Host ''
@@ -43,6 +44,7 @@
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Widgets (News and Interests)\Enable Widgets.cmd'
             Reboot     = 'RestartExplorer'
             ShellRefreshOperation = 'ExplorerRefresh'
@@ -56,7 +58,7 @@
                 if (-not [IO.File]::Exists($registryManifest)) {
                     throw "Widgets: the Atlas.Registry module is missing at '$registryManifest'."
                 }
-                Import-Module -Name $registryManifest -Force -ErrorAction Stop
+                Import-Module -Name $registryManifest -ErrorAction Stop
 
                 if (-not $Toggle.Silent) {
                     $programFilesX86 = [Environment]::GetFolderPath(

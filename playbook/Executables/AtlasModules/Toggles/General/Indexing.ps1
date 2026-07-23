@@ -9,6 +9,7 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Search Indexing\Disable Search Indexing.cmd'
             Reboot     = 'None'
             Action     = {

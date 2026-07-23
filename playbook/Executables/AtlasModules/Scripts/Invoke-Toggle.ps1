@@ -109,6 +109,24 @@ catch {
         }
     }
 
+    # Silent launches have no interactive window, so the failure must reach the
+    # captured process output (and the shared install log when available) for the
+    # caller's transcript; the nonzero exit code alone carries no message.
+    $failureMessage = "Applying toggle '$Name' failed: $($_.Exception.Message)"
+    $failureLogged = $false
+    try {
+        if (Get-Command -Name Write-AtlasLog -ErrorAction SilentlyContinue) {
+            Write-AtlasLog -Level Error -Message $failureMessage -ErrorRecord $_
+            $failureLogged = $true
+        }
+    }
+    catch {
+        $failureLogged = $false
+    }
+    if (-not $failureLogged) {
+        Write-Host $failureMessage -ForegroundColor Red
+    }
+
     if (-not $silent) {
         Write-Host 'Something went wrong while applying this setting:' -ForegroundColor Red
         Write-Host $_.Exception.Message -ForegroundColor Red

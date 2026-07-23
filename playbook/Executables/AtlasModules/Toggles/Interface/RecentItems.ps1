@@ -21,9 +21,12 @@
                 }
 
                 New-ItemProperty -LiteralPath $hklmExplorer -Name 'NoStartMenuMFUprogramsList' -Value 1 -PropertyType DWord -Force | Out-Null
+                New-ItemProperty -LiteralPath $hklmExplorer -Name 'NoInstrumentation' -Value 1 -PropertyType DWord -Force | Out-Null
+                New-ItemProperty -LiteralPath $hklmExplorer -Name 'ClearRecentDocsOnExit' -Value 1 -PropertyType DWord -Force | Out-Null
                 New-ItemProperty -LiteralPath $hklmExplorer -Name 'NoRecentDocsHistory' -Value 1 -PropertyType DWord -Force | Out-Null
                 New-ItemProperty -LiteralPath $hklmPolicies -Name 'ShowOrHideMostUsedApps' -Value 2 -PropertyType DWord -Force | Out-Null
                 New-ItemProperty -LiteralPath $hklmPolicies -Name 'HideRecentlyAddedApps' -Value 1 -PropertyType DWord -Force | Out-Null
+                New-ItemProperty -LiteralPath $hklmPolicies -Name 'NoRemoteDestinations' -Value 1 -PropertyType DWord -Force | Out-Null
 
                 $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages hide privacy-general -Silent:$Toggle.Silent -NoProcessCleanup
@@ -31,16 +34,8 @@
             UserAction = {
                 param($Toggle)
 
-                $hkcuExplorer = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-                $hkcuPolicies = 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
                 $advanced = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-                foreach ($key in @($hkcuExplorer, $hkcuPolicies, $advanced)) {
-                    if (-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null }
-                }
-                New-ItemProperty -LiteralPath $hkcuExplorer -Name 'NoInstrumentation' -Value 1 -PropertyType DWord -Force | Out-Null
-                New-ItemProperty -LiteralPath $hkcuExplorer -Name 'ClearRecentDocsOnExit' -Value 1 -PropertyType DWord -Force | Out-Null
-                New-ItemProperty -LiteralPath $hkcuExplorer -Name 'NoRecentDocsHistory' -Value 1 -PropertyType DWord -Force | Out-Null
-                New-ItemProperty -LiteralPath $hkcuPolicies -Name 'NoRemoteDestinations' -Value 1 -PropertyType DWord -Force | Out-Null
+                if (-not (Test-Path -LiteralPath $advanced)) { New-Item -Path $advanced -Force | Out-Null }
                 New-ItemProperty -LiteralPath $advanced -Name 'Start_TrackProgs' -Value 0 -PropertyType DWord -Force | Out-Null
                 New-ItemProperty -LiteralPath $advanced -Name 'Start_TrackDocs' -Value 0 -PropertyType DWord -Force | Out-Null
 
@@ -59,16 +54,19 @@
             MachineAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
                 Write-Host 'Unlocking recent items...'
 
                 $hklmExplorer = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
                 $hklmPolicies = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
                 Remove-AtlasRegistryValue -Path $hklmExplorer -Name 'NoStartMenuMFUprogramsList'
+                Remove-AtlasRegistryValue -Path $hklmExplorer -Name 'NoInstrumentation'
+                Remove-AtlasRegistryValue -Path $hklmExplorer -Name 'ClearRecentDocsOnExit'
                 Remove-AtlasRegistryValue -Path $hklmExplorer -Name 'NoRecentDocsHistory'
                 Remove-AtlasRegistryValue -Path $hklmPolicies -Name 'ShowOrHideMostUsedApps'
                 Remove-AtlasRegistryValue -Path $hklmPolicies -Name 'HideRecentlyAddedApps'
+                Remove-AtlasRegistryValue -Path $hklmPolicies -Name 'NoRemoteDestinations'
 
                 $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages unhide privacy-general -Silent:$Toggle.Silent -NoProcessCleanup
@@ -76,14 +74,7 @@
             UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
-
-                $hkcuExplorer = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-                $hkcuPolicies = 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
-                Remove-AtlasRegistryValue -Path $hkcuExplorer -Name 'NoInstrumentation'
-                Remove-AtlasRegistryValue -Path $hkcuExplorer -Name 'ClearRecentDocsOnExit'
-                Remove-AtlasRegistryValue -Path $hkcuExplorer -Name 'NoRecentDocsHistory'
-                Remove-AtlasRegistryValue -Path $hkcuPolicies -Name 'NoRemoteDestinations'
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
                 $advanced = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
                 if (-not (Test-Path -LiteralPath $advanced)) { New-Item -Path $advanced -Force | Out-Null }

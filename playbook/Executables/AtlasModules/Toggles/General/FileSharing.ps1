@@ -32,14 +32,14 @@ $userAction = {
             return
         }
         Import-Module -Name (Join-Path $Toggle.ScriptsPath `
-                'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
         Remove-AtlasRegistryValue -Path $networkClsid `
             -Name 'System.IsPinnedToNameSpaceTree'
         return
     }
 
     Import-Module -Name (Join-Path $Toggle.ScriptsPath `
-            'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+            'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
     Set-AtlasRegistryValue -Path $networkClsid `
         -Name 'System.IsPinnedToNameSpaceTree' -Type DWord -Data 0
 }

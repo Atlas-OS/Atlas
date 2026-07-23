@@ -18,8 +18,8 @@
             Action      = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
-                Import-Module -Name ScheduledTasks -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
+                Import-Module -Name ScheduledTasks -ErrorAction Stop
 
                 Write-Host 'Disabling Windows Update service and scheduled tasks...'
                 $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'
@@ -70,8 +70,8 @@
             Action      = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
-                Import-Module -Name ScheduledTasks -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
+                Import-Module -Name ScheduledTasks -ErrorAction Stop
 
                 Write-Host 'Enabling Windows Update service and scheduled tasks...'
                 $setSvc = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-ServiceStartup.ps1'

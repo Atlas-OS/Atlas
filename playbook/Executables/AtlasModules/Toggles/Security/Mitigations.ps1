@@ -3,7 +3,7 @@ $action = {
     param($Toggle)
 
     Import-Module -Name (Join-Path $Toggle.ScriptsPath `
-            'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+            'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
     $memoryManagement = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
     $kernel = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'

@@ -27,7 +27,14 @@
                     throw "Copilot: the Atlas.Appx module is missing at '$appxManifest'."
                 }
 
-                Import-Module -Name $appxManifest -Force -ErrorAction Stop
+                Import-Module -Name $appxManifest -ErrorAction Stop
+                Import-Module -Name ([IO.Path]::Combine(
+                        $Toggle.ScriptsPath,
+                        'Modules\Atlas.Registry\Atlas.Registry.psd1'
+                    )) -Force -ErrorAction Stop
+                Set-AtlasRegistryValue `
+                    -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' `
+                    -Name 'RemoveMicrosoftCopilotApp' -Type DWord -Data 1
                 Invoke-AtlasAppxRemovalPlan -Definition @(
                     [pscustomobject]@{
                         Name         = 'Microsoft.Copilot*'
@@ -46,10 +53,9 @@
                 if (-not [IO.File]::Exists($registryManifest)) {
                     throw "Copilot: the Atlas.Registry module is missing at '$registryManifest'."
                 }
-                Import-Module -Name $registryManifest -Force -ErrorAction Stop
+                Import-Module -Name $registryManifest -ErrorAction Stop
 
                 Set-AtlasRegistryValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'ShowCopilotButton' -Type DWord -Data 0
-                Set-AtlasRegistryValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' -Name 'TurnOffWindowsCopilot' -Type DWord -Data 1
             }
         }
         Enable  = @{
@@ -75,6 +81,13 @@
                 if (-not [IO.File]::Exists($edgePath)) {
                     throw "Copilot: Microsoft Edge is unavailable at '$edgePath'."
                 }
+                Import-Module -Name ([IO.Path]::Combine(
+                        $Toggle.ScriptsPath,
+                        'Modules\Atlas.Registry\Atlas.Registry.psd1'
+                    )) -Force -ErrorAction Stop
+                Remove-AtlasRegistryValue `
+                    -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' `
+                    -Name 'RemoveMicrosoftCopilotApp'
             }
             UserAction = {
                 param($Toggle)
@@ -92,7 +105,7 @@
                 if (-not [IO.File]::Exists($registryManifest)) {
                     throw "Copilot: the Atlas.Registry module is missing at '$registryManifest'."
                 }
-                Import-Module -Name $registryManifest -Force -ErrorAction Stop
+                Import-Module -Name $registryManifest -ErrorAction Stop
 
                 Write-Host 'Enabling Copilot...'
 
@@ -136,8 +149,6 @@
                 else {
                     Set-AtlasRegistryValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'ShowCopilotButton' -Type DWord -Data 1
                 }
-
-                Remove-AtlasRegistryValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' -Name 'TurnOffWindowsCopilot'
             }
         }
     }

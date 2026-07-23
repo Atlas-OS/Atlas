@@ -16,18 +16,22 @@
 
                 $hklmCloud = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
                 if (-not (Test-Path -LiteralPath $hklmCloud)) { New-Item -Path $hklmCloud -Force | Out-Null }
-                New-ItemProperty -LiteralPath $hklmCloud -Name 'DisableCloudOptimizedContent' -Value 1 -PropertyType DWord -Force | Out-Null
+                foreach ($name in @(
+                        'DisableCloudOptimizedContent'
+                        'DisableWindowsSpotlightFeatures'
+                        'DisableWindowsSpotlightWindowsWelcomeExperience'
+                        'DisableWindowsSpotlightOnActionCenter'
+                        'DisableWindowsSpotlightOnSettings'
+                        'DisableThirdPartySuggestions'
+                    )) {
+                    New-ItemProperty -LiteralPath $hklmCloud -Name $name -Value 1 -PropertyType DWord -Force | Out-Null
+                }
             }
             UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
-                Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightFeatures' -Type DWord -Data 1
-                Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightWindowsWelcomeExperience' -Type DWord -Data 1
-                Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightOnActionCenter' -Type DWord -Data 1
-                Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightOnSettings' -Type DWord -Data 1
-                Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableThirdPartySuggestions' -Type DWord -Data 1
                 Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'ContentDeliveryAllowed' -Type DWord -Data 0
                 Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'FeatureManagementEnabled' -Type DWord -Data 0
                 Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SubscribedContentEnabled' -Type DWord -Data 0
@@ -48,20 +52,26 @@
             MachineAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
-                Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableCloudOptimizedContent'
+                foreach ($name in @(
+                        'DisableCloudOptimizedContent'
+                        'DisableWindowsSpotlightFeatures'
+                        'DisableWindowsSpotlightWindowsWelcomeExperience'
+                        'DisableWindowsSpotlightOnActionCenter'
+                        'DisableWindowsSpotlightOnSettings'
+                        'DisableThirdPartySuggestions'
+                    )) {
+                    Remove-AtlasRegistryValue `
+                        -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' `
+                        -Name $name
+                }
             }
             UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
-                Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightFeatures'
-                Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightWindowsWelcomeExperience'
-                Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightOnActionCenter'
-                Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableWindowsSpotlightOnSettings'
-                Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' -Name 'DisableThirdPartySuggestions'
                 Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'ContentDeliveryAllowed' -Type DWord -Data 1
                 Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'FeatureManagementEnabled' -Type DWord -Data 1
                 Set-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -Name 'SubscribedContentEnabled' -Type DWord -Data 1

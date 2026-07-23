@@ -6,6 +6,7 @@
     States    = [ordered]@{
         Add    = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\Add Container Context Menu.cmd'
             Reboot     = 'RestartExplorer'
             Action     = {
@@ -45,6 +46,7 @@
         }
         Remove = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\Remove Container Context Menu (default).cmd'
             Reboot     = 'RestartExplorer'
             Action     = {

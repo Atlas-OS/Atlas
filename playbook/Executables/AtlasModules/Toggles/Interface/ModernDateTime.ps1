@@ -5,6 +5,7 @@
     States    = [ordered]@{
         Modern = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '4. Interface Tweaks\Old Flyouts\Date and Time Flyout\Modern Date and Time Flyout (default).cmd'
             Reboot     = 'None'
             Action     = {
@@ -23,6 +24,7 @@
         }
         Old    = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '4. Interface Tweaks\Old Flyouts\Date and Time Flyout\Old Date and Time Flyout.cmd'
             Reboot     = 'None'
             Action     = {

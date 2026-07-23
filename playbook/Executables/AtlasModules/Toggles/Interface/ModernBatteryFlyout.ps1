@@ -5,6 +5,7 @@
     States    = [ordered]@{
         Modern = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '4. Interface Tweaks\Old Flyouts\Battery Flyout\Modern Battery Flyout (default).cmd'
             Reboot     = 'None'
             Action     = {
@@ -23,6 +24,7 @@
         }
         Old    = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '4. Interface Tweaks\Old Flyouts\Battery Flyout\Old Battery Flyout.cmd'
             Reboot     = 'None'
             Action     = {

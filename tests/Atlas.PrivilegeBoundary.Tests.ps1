@@ -50,6 +50,7 @@ BeforeAll {
 @{
     Name          = '__NAME__'
     Elevation     = '__ELEVATION__'
+    Warning       = 'Confirm split action.'
     NoStateRecord = $true
     States        = [ordered]@{
         Enable = @{
@@ -193,6 +194,86 @@ Describe 'Atlas toggle privilege routing' {
         Should -Invoke -CommandName Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles `
             -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains '-MachineOnly' }
         Should -Not -Invoke -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles
+        Should -Invoke -CommandName Read-Pause -ModuleName Atlas.Toggles `
+            -Times 1 -Exactly -ParameterFilter {
+                $Message -ceq 'Press Enter to continue or Ctrl+C to cancel'
+            }
+    }
+
+    It 'routes a normal split TrustedInstaller caller through Administrator and the TI broker before the bound user action' {
+        $script:CallerBindings = [Collections.Generic.Queue[object]]::new()
+        foreach ($unused in 1..2) {
+            $script:CallerBindings.Enqueue([pscustomobject]@{
+                    Sid       = 'S-1-5-21-111-222-333-1001'
+                    SessionId = 7
+                })
+        }
+        $script:InElevatedChild = $false
+        Mock -CommandName Get-AtlasToggleUserCallerBinding -ModuleName Atlas.Toggles -MockWith {
+            $script:CallerBindings.Dequeue()
+        }
+        Mock -CommandName Test-AtlasAdmin -ModuleName Atlas.Toggles -MockWith {
+            $script:InElevatedChild
+        }
+        Mock -CommandName Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles -MockWith {
+            [IO.File]::AppendAllText($script:EventPath, "admin-child`n")
+            $script:InElevatedChild = $true
+            try {
+                Invoke-AtlasToggle -Name SplitTrusted -State Enable -Silent -MachineOnly `
+                    -TogglesRoot $script:ToggleRoot
+            }
+            finally {
+                $script:InElevatedChild = $false
+            }
+            [pscustomobject]@{ ExitCode = 0 }
+        }
+        Mock -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -MockWith {
+            [IO.File]::AppendAllText($script:EventPath, "ti-broker`n")
+            [pscustomobject]@{ ExitCode = 0 }
+        }
+
+        Invoke-AtlasToggle -Name SplitTrusted -State Enable -NoExplorerRestart `
+            -TogglesRoot $script:ToggleRoot
+
+        Get-Content -LiteralPath $script:EventPath | Should -Be @(
+            'admin-child'
+            'ti-broker'
+            'user'
+        )
+        Should -Invoke -CommandName Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles `
+            -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains '-MachineOnly' }
+        Should -Invoke -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles `
+            -Times 1 -Exactly -ParameterFilter {
+                $Operation -ceq 'Toggle' -and
+                    $Name -ceq 'SplitTrusted' -and
+                    $State -ceq 'Enable' -and
+                    $Silent -and
+                    $NoExplorerRestart -and
+                    $MachineOnly
+            }
+        Should -Invoke -CommandName Read-Pause -ModuleName Atlas.Toggles `
+            -Times 1 -Exactly -ParameterFilter {
+                $Message -ceq 'Press Enter to continue or Ctrl+C to cancel'
+            }
+    }
+
+    It 'rejects an already-elevated top-level split toggle before either scope runs' -TestCases @(
+        @{ Name = 'SplitAdmin' }
+        @{ Name = 'SplitTrusted' }
+    ) {
+        param($Name)
+
+        Mock -CommandName Test-AtlasAdmin -ModuleName Atlas.Toggles -MockWith { $true }
+
+        {
+            Invoke-AtlasToggle -Name $Name -State Enable -NoExplorerRestart `
+                -TogglesRoot $script:ToggleRoot
+        } | Should -Throw '*must be launched from a non-elevated user process*'
+
+        $script:EventPath | Should -Not -Exist
+        Should -Not -Invoke -CommandName Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles
+        Should -Not -Invoke -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles
+        Should -Not -Invoke -CommandName Read-Pause -ModuleName Atlas.Toggles
     }
 
     It 'blocks the user action when the caller SID or session changes' -TestCases @(

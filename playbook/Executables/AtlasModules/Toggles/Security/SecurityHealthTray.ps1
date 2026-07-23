@@ -11,7 +11,7 @@
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 Import-AtlasRegFile -Path (Join-Path $Toggle.ScriptsPath 'Registry\SecurityHealthTray\disable.reg')
 
                 if (-not $Toggle.Silent) {
@@ -27,7 +27,7 @@
             Action     = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 Import-AtlasRegFile -Path (Join-Path $Toggle.ScriptsPath 'Registry\SecurityHealthTray\enable.reg')
 
                 if (-not $Toggle.Silent) {

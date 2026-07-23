@@ -2,8 +2,8 @@
 #
 # Explorer/SearchHost are restarted unless the launcher was called with /noAction
 # (engine -NoExplorerRestart). HKCU writes run only in the bound non-elevated caller.
-# Enable installs the Bing search provider via winget and, on Windows 11 with search
-# indexing stopped, offers to enable indexing (a graphical-bug fix).
+# Enable installs the Bing search provider via winget and, with search indexing
+# stopped, offers to enable indexing (a graphical-bug fix).
 @{
     Name      = 'WebSearch'
     Elevation = 'Admin'
@@ -19,10 +19,10 @@
 
                 Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
                         -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-                    -Force -ErrorAction Stop
+                    -ErrorAction Stop
                 Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
                         -ChildPath 'Modules\Atlas.Appx\Atlas.Appx.psd1') `
-                    -Force -ErrorAction Stop
+                    -ErrorAction Stop
 
                 $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
                 & $settingsPages hide search-permissions -Silent -NoProcessCleanup
@@ -35,6 +35,9 @@
                     -Name 'DisableWebSearch' -Type DWord -Data 1
                 Set-AtlasRegistryValue -Path $windowsSearchPolicy `
                     -Name 'EnableDynamicContentInWSB' -Type DWord -Data 0
+                Set-AtlasRegistryValue `
+                    -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer' `
+                    -Name 'DisableSearchBoxSuggestions' -Type DWord -Data 1
 
                 Invoke-AtlasAppxRemovalPlan -Definition @(
                     [pscustomobject]@{
@@ -49,7 +52,7 @@
 
                 Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
                         -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-                    -Force -ErrorAction Stop
+                    -ErrorAction Stop
 
                 Set-AtlasRegistryValue `
                     -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' `
@@ -66,9 +69,6 @@
                 Set-AtlasRegistryValue `
                     -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' `
                     -Name 'SafeSearchMode' -Type DWord -Data 0
-                Set-AtlasRegistryValue `
-                    -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer' `
-                    -Name 'DisableSearchBoxSuggestions' -Type DWord -Data 1
                 Set-AtlasRegistryValue `
                     -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' `
                     -Name 'SearchboxTaskbarMode' -Type DWord -Data 1
@@ -87,7 +87,7 @@
             MachineAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
                 Write-Host 'Enabling Web Search & Search Highlights...'
 
@@ -105,21 +105,19 @@
                         -Name 'AllowSearchToUseLocation' -Type DWord -Data 0
                 }
 
-                # Windows 11 with search indexing stopped shows a graphical bug in web search.
-                if ($Toggle.WindowsBuild -ge 22000) {
-                    $wsearch = Get-Service -Name wsearch -ErrorAction Stop
-                    if ($wsearch.Status -eq 'Stopped') {
-                        $enableIndexing = $true
-                        if (-not $Toggle.Silent) {
-                            Write-Host 'On Windows 11, disabled search indexing causes a graphical bug in web search.'
-                            $answer = Read-Host 'Would you like to enable search indexing to fix it? [Y/N]'
-                            $enableIndexing = ($answer -match '^(y|yes)$')
-                        }
-                        if ($enableIndexing) {
-                            $indexingMachineState = Join-Path $Toggle.ScriptsPath `
-                                'Internal\Set-AtlasIndexingMachineState.ps1'
-                            & $indexingMachineState -State Full
-                        }
+                # Stopped search indexing shows a graphical bug in web search.
+                $wsearch = Get-Service -Name wsearch -ErrorAction Stop
+                if ($wsearch.Status -eq 'Stopped') {
+                    $enableIndexing = $true
+                    if (-not $Toggle.Silent) {
+                        Write-Host 'Disabled search indexing causes a graphical bug in web search.'
+                        $answer = Read-Host 'Would you like to enable search indexing to fix it? [Y/N]'
+                        $enableIndexing = ($answer -match '^(y|yes)$')
+                    }
+                    if ($enableIndexing) {
+                        $indexingMachineState = Join-Path $Toggle.ScriptsPath `
+                            'Internal\Set-AtlasIndexingMachineState.ps1'
+                        & $indexingMachineState -State Full
                     }
                 }
 
@@ -130,6 +128,7 @@
                     @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'ConnectedSearchUseWeb' }
                     @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'DisableWebSearch' }
                     @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'EnableDynamicContentInWSB' }
+                    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'; Name = 'DisableSearchBoxSuggestions' }
                 )) {
                     Remove-AtlasRegistryValue -Path $v.Path -Name $v.Name
                 }
@@ -137,7 +136,7 @@
             UserAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
 
                 . (Join-Path $Toggle.ScriptsPath 'Internal\Initialize-PowerShellTrust.ps1')
                 . (Join-Path $Toggle.ScriptsPath 'Internal\Download-Integrity.ps1')
@@ -165,7 +164,6 @@
                     @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsDeviceSearchHistoryEnabled' }
                     @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsMSACloudSearchEnabled' }
                     @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'SafeSearchMode' }
-                    @{ Path = 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer'; Name = 'DisableSearchBoxSuggestions' }
                 )) {
                     Remove-AtlasRegistryValue -Path $v.Path -Name $v.Name
                 }

@@ -13,7 +13,7 @@
 
                 Import-Module -Name (Join-Path $Toggle.ScriptsPath `
                         'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-                    -Force -ErrorAction Stop
+                    -ErrorAction Stop
 
                 $priorityRoot = 'HKLM:\SOFTWARE\Classes\exefile\Shell\Priority'
                 $shellRoot = "$priorityRoot\ExtendedSubCommandsKey\Shell"
@@ -57,7 +57,7 @@
 
                 Import-Module -Name (Join-Path $Toggle.ScriptsPath `
                         'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-                    -Force -ErrorAction Stop
+                    -ErrorAction Stop
                 Remove-AtlasRegistryKey `
                     -Path 'HKLM:\SOFTWARE\Classes\exefile\Shell\Priority'
 

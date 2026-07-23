@@ -21,11 +21,6 @@
             UserAction = {
                 param($Toggle)
 
-                # The policy is documented Device AND User scope - cover the initiating user hive too.
-                $userKey = 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
-                if (-not (Test-Path -LiteralPath $userKey)) { New-Item -Path $userKey -Force | Out-Null }
-                New-ItemProperty -LiteralPath $userKey -Name 'DisableAIDataAnalysis' -Value 1 -PropertyType DWord -Force | Out-Null
-
                 if (-not $Toggle.Silent) { Write-Host 'Recall has been disabled.' }
             }
         }
@@ -37,15 +32,12 @@
             MachineAction = {
                 param($Toggle)
 
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
+                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
                 Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' -Name 'DisableAIDataAnalysis'
                 Remove-AtlasRegistryValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' -Name 'AllowRecallEnablement'
             }
             UserAction = {
                 param($Toggle)
-
-                Import-Module -Name (Join-Path $Toggle.ScriptsPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
-                Remove-AtlasRegistryValue -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' -Name 'DisableAIDataAnalysis'
 
                 if (-not $Toggle.Silent) { Write-Host 'Recall has been enabled.' }
             }

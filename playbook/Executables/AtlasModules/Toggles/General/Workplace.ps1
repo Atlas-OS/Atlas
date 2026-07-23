@@ -8,6 +8,7 @@
     States    = [ordered]@{
         Disable = @{
             StateValue = 0
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Workplace\Disable Workplace.cmd'
             Reboot     = 'None'
             Action     = {
@@ -24,6 +25,7 @@
         }
         Enable  = @{
             StateValue = 1
+            ReplayScope = 'Machine'
             Launcher   = '3. General Configuration\Workplace\Enable Workplace.cmd'
             Reboot     = 'None'
             Action     = {

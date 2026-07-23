@@ -76,8 +76,8 @@ Describe 'Copilot toggle' {
                 $Name -ceq 'ShowCopilotButton' -and $Type -ceq 'DWord' -and $Data -eq 0
         }
         Should -Invoke Set-AtlasRegistryValue -Times 1 -Exactly -ParameterFilter {
-            $Path -ceq 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' -and
-                $Name -ceq 'TurnOffWindowsCopilot' -and $Type -ceq 'DWord' -and $Data -eq 1
+            $Path -ceq 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' -and
+                $Name -ceq 'RemoveMicrosoftCopilotApp' -and $Type -ceq 'DWord' -and $Data -eq 1
         }
     }
 
@@ -100,13 +100,10 @@ Describe 'Copilot toggle' {
                 $AllowedExitCodes.Count -eq 1 -and $AllowedExitCodes[0] -eq 0
         }
         Should -Not -Invoke Set-AtlasRegistryValue
-        Should -Invoke Remove-AtlasRegistryValue -Times 1 -Exactly -ParameterFilter {
-            $Path -ceq 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' -and
-                $Name -ceq 'TurnOffWindowsCopilot'
-        }
+        Should -Not -Invoke Remove-AtlasRegistryValue
     }
 
-    It 'does not remove the blocking policy when Store installation fails' {
+    It 'propagates Store installation failure without applying a partial user state' {
         Mock Get-ItemPropertyValue { 0 }
         Mock Invoke-AtlasToggleNativeCommand { throw 'simulated winget failure' }
         $context = [pscustomobject]@{

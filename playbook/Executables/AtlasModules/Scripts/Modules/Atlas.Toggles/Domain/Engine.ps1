@@ -9,6 +9,8 @@
 #       Warning   = '...'                 # optional, shown + confirmed interactively
 #       Menu      = $false                # $true for single-launcher multi-state pickers
 #       Launcher  = '...'                 # Menu toggles: AtlasDesktop-relative launcher
+#       ToolboxLauncher = '...'           # optional, Toolbox-relative launcher consumed by
+#                                         # the launcher generator (tools\dev)
 #       SilentDefault = 'Enable'          # Menu toggles: state used with /silent and no
 #                                         # recorded state to re-apply
 #       NoStateRecord = $true             # optional, skip the state registry entirely
@@ -28,6 +30,8 @@
 #               # Legacy machine-only states must opt in before strict-TI
 #               # upgrade replay may execute their Action.
 #               ReplayScope = 'Machine'
+#               ReplayApplicable = { ... } # optional, false removes a stale machine
+#                                          # replay record without running Action
 #               ContextAction = { ... }   # optional, runs before Action; -JustContext
 #                                         # stops after it
 #               NoStateRecord = $true     # optional, per-state variant
@@ -95,6 +99,16 @@ function Assert-AtlasToggleDefinition {
         throw "Toggle definition '$SourcePath' did not return a hashtable."
     }
 
+    $allowedTopLevelKeys = @(
+        'Name', 'Elevation', 'Warning', 'Menu', 'Launcher', 'ToolboxLauncher',
+        'SilentDefault', 'NoStateRecord', 'States'
+    )
+    foreach ($topLevelKey in @($Definition.Keys)) {
+        if ($allowedTopLevelKeys -cnotcontains [string]$topLevelKey) {
+            throw "Toggle definition '$SourcePath' has an unknown top-level key '$topLevelKey'. Valid keys: $($allowedTopLevelKeys -join ', ')."
+        }
+    }
+
     if (-not $Definition.Contains('Name') -or [string]::IsNullOrWhiteSpace([string]$Definition.Name)) {
         throw "Toggle definition '$SourcePath' is missing the required 'Name' key."
     }
@@ -108,8 +122,11 @@ function Assert-AtlasToggleDefinition {
         throw "Toggle definition '$SourcePath' has an invalid Elevation '$($Definition.Elevation)'. Valid values: Admin, TrustedInstaller, None."
     }
 
-    if (-not $Definition.Contains('States') -or $Definition.States -isnot [System.Collections.IDictionary] -or $Definition.States.Count -eq 0) {
-        throw "Toggle definition '$SourcePath' is missing a non-empty 'States' hashtable."
+    # States must be [ordered] so menu numbering and replay resolution are deterministic.
+    if (-not $Definition.Contains('States') -or
+        $Definition.States -isnot [System.Collections.Specialized.OrderedDictionary] -or
+        $Definition.States.Count -eq 0) {
+        throw "Toggle definition '$SourcePath' is missing a non-empty '[ordered]' 'States' dictionary."
     }
 
     $elevation = if ($Definition.Contains('Elevation') -and $Definition.Elevation) {
@@ -148,6 +165,12 @@ function Assert-AtlasToggleDefinition {
             (-not $hasAction -or [string]$stateEntry.ReplayScope -cne 'Machine' -or
                 $elevation -notin @('Admin', 'TrustedInstaller'))) {
             throw "Toggle definition '$SourcePath' state '$stateName' has an invalid machine replay classification."
+        }
+        if ($stateEntry.Contains('ReplayApplicable') -and
+            ($stateEntry.ReplayApplicable -isnot [scriptblock] -or
+                -not $stateEntry.Contains('ReplayScope') -or
+                [string]$stateEntry.ReplayScope -cne 'Machine')) {
+            throw "Toggle definition '$SourcePath' state '$stateName' has an invalid ReplayApplicable predicate."
         }
 
         $stateNoRecord = $stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord
@@ -430,6 +453,102 @@ function Get-AtlasToggleUserCallerBinding {
     }
 }
 
+function Show-AtlasTogglePreamble {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [System.Collections.IDictionary]$Definition,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [System.Collections.IDictionary]$StateEntry,
+
+        [string]$LauncherPath,
+
+        [switch]$JustContext
+    )
+
+    $displayName = [string]$Definition.Name
+    if ($LauncherPath) {
+        $displayName = [System.IO.Path]::GetFileNameWithoutExtension($LauncherPath)
+    }
+    elseif ($StateEntry.Contains('Launcher') -and $StateEntry.Launcher) {
+        $displayName = [System.IO.Path]::GetFileNameWithoutExtension([string]$StateEntry.Launcher)
+    }
+    elseif ($Definition.Contains('Launcher') -and $Definition.Launcher) {
+        $displayName = [System.IO.Path]::GetFileNameWithoutExtension([string]$Definition.Launcher)
+    }
+    Write-Title -Text $displayName
+
+    if (-not $JustContext -and $Definition.Contains('Warning') -and $Definition.Warning) {
+        Write-Host $Definition.Warning -ForegroundColor Yellow
+        Read-Pause -Message 'Press Enter to continue or Ctrl+C to cancel'
+    }
+}
+
+function Invoke-AtlasTogglePostAction {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ToggleName,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [System.Collections.IDictionary]$StateEntry,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        $Context,
+
+        [switch]$Silent,
+
+        [switch]$NoExplorerRestart
+    )
+
+    $reboot = 'None'
+    if ($StateEntry.Contains('Reboot') -and $StateEntry.Reboot) {
+        $reboot = [string]$StateEntry.Reboot
+    }
+
+    switch ($reboot) {
+        'RestartExplorer' {
+            if (-not $NoExplorerRestart) {
+                if (Test-AtlasSystem) {
+                    Write-AtlasLog -Level Warning -Message `
+                        "Toggle '$ToggleName' cannot refresh an interactive shell from SYSTEM; restart Explorer in the affected user session."
+                }
+                else {
+                    $operation = if ($StateEntry.Contains('ShellRefreshOperation')) {
+                        [string]$StateEntry.ShellRefreshOperation
+                    }
+                    else {
+                        'ExplorerRefresh'
+                    }
+                    Invoke-AtlasToggleCurrentSessionShellRefresh -Operation $operation
+                }
+            }
+        }
+        'Recommend' {
+            if (-not $Silent) {
+                Write-Host ''
+                Write-Host 'Finished, please reboot your device for changes to apply.'
+            }
+        }
+        'Prompt' {
+            if (-not $Silent) {
+                $answer = Read-Host 'Finished. Would you like to reboot now? (y/n)'
+                if ($answer -match '^(y|yes)$') {
+                    & "$($Context.WinDir)\System32\shutdown.exe" /r /t 0
+                }
+            }
+        }
+    }
+
+    if (-not $Silent) {
+        Read-Pause -Message 'Press Enter to exit'
+    }
+}
+
 function Invoke-AtlasToggleInProcess {
     param(
         [Parameter(Mandatory = $true)]
@@ -455,6 +574,8 @@ function Invoke-AtlasToggleInProcess {
 
         [switch]$ResetServices,
 
+        [switch]$SkipPreamble,
+
         [ValidateSet('Automatic', 'Machine', 'User')]
         [string]$ActionScope = 'Automatic'
     )
@@ -478,23 +599,9 @@ function Invoke-AtlasToggleInProcess {
         throw "Legacy toggle '$($Definition.Name)' does not accept a scoped Machine or User action."
     }
 
-    if (-not $Silent) {
-        $displayName = [string]$Definition.Name
-        if ($LauncherPath) {
-            $displayName = [System.IO.Path]::GetFileNameWithoutExtension($LauncherPath)
-        }
-        elseif ($stateEntry.Contains('Launcher') -and $stateEntry.Launcher) {
-            $displayName = [System.IO.Path]::GetFileNameWithoutExtension([string]$stateEntry.Launcher)
-        }
-        elseif ($Definition.Contains('Launcher') -and $Definition.Launcher) {
-            $displayName = [System.IO.Path]::GetFileNameWithoutExtension([string]$Definition.Launcher)
-        }
-        Write-Title -Text $displayName
-
-        if (-not $JustContext -and $Definition.Contains('Warning') -and $Definition.Warning) {
-            Write-Host $Definition.Warning -ForegroundColor Yellow
-            Read-Pause -Message 'Press Enter to continue or Ctrl+C to cancel'
-        }
+    if (-not $Silent -and -not $SkipPreamble) {
+        Show-AtlasTogglePreamble -Definition $Definition -StateEntry $stateEntry `
+            -LauncherPath $LauncherPath -JustContext:$JustContext
     }
 
     $stateValue = $null
@@ -544,7 +651,7 @@ function Invoke-AtlasToggleInProcess {
         Invoke-AtlasToggleAction -Action $action -ToggleContext $toggleContext -Label $actionLabel
     }
 
-    $shouldRecord = -not $UserContext -and $ActionScope -cne 'User' -and
+    $shouldRecord = -not $JustContext -and -not $UserContext -and $ActionScope -cne 'User' -and
         -not ($Definition.Contains('NoStateRecord') -and $Definition.NoStateRecord) -and
         -not ($stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord)
     if ($shouldRecord) {
@@ -565,48 +672,12 @@ function Invoke-AtlasToggleInProcess {
         return
     }
 
-    $reboot = 'None'
-    if ($stateEntry.Contains('Reboot') -and $stateEntry.Reboot) {
-        $reboot = [string]$stateEntry.Reboot
-    }
-
-    switch ($reboot) {
-        'RestartExplorer' {
-            if (-not $NoExplorerRestart) {
-                if (Test-AtlasSystem) {
-                    Write-AtlasLog -Level Warning -Message `
-                        "Toggle '$($Definition.Name)' cannot refresh an interactive shell from SYSTEM; restart Explorer in the affected user session."
-                }
-                else {
-                    $operation = if ($stateEntry.Contains('ShellRefreshOperation')) {
-                        [string]$stateEntry.ShellRefreshOperation
-                    }
-                    else {
-                        'ExplorerRefresh'
-                    }
-                    Invoke-AtlasToggleCurrentSessionShellRefresh -Operation $operation
-                }
-            }
-        }
-        'Recommend' {
-            if (-not $Silent) {
-                Write-Host ''
-                Write-Host 'Finished, please reboot your device for changes to apply.'
-            }
-        }
-        'Prompt' {
-            if (-not $Silent) {
-                $answer = Read-Host 'Finished. Would you like to reboot now? (y/n)'
-                if ($answer -match '^(y|yes)$') {
-                    & "$($context.WinDir)\System32\shutdown.exe" /r /t 0
-                }
-            }
-        }
-    }
-
-    if (-not $Silent) {
-        Read-Pause -Message 'Press Enter to exit'
-    }
+    Invoke-AtlasTogglePostAction `
+        -ToggleName ([string]$Definition.Name) `
+        -StateEntry $stateEntry `
+        -Context $context `
+        -Silent:$Silent `
+        -NoExplorerRestart:$NoExplorerRestart
 }
 
 function Invoke-AtlasToggleMachineDependency {
@@ -851,6 +922,11 @@ function Invoke-AtlasToggle {
         $elevation = 'None'
     }
 
+    if ($isSplitAction -and -not $MachineOnly -and -not $userContext -and
+        -not $trustedInstaller -and -not (Test-AtlasSystem) -and (Test-AtlasAdmin)) {
+        throw "Split toggle '$Name' must be launched from a non-elevated user process so its UserAction cannot inherit an Administrator token."
+    }
+
     if ($MachineOnly) {
         if (-not $isSplitAction) {
             throw "Toggle '$Name' does not declare a privileged MachineAction/UserAction split."
@@ -862,7 +938,21 @@ function Invoke-AtlasToggle {
             throw "Toggle '$Name' MachineAction requires an already elevated Administrator child."
         }
         if ($elevation -ceq 'TrustedInstaller' -and -not $trustedInstaller) {
-            throw "Toggle '$Name' MachineAction requires an already validated TrustedInstaller child."
+            if (Test-AtlasSystem) {
+                throw "Toggle '$Name' is running as LocalSystem without strict TrustedInstaller token evidence."
+            }
+            if (-not (Test-AtlasAdmin)) {
+                throw "Toggle '$Name' MachineAction requires an already elevated Administrator child."
+            }
+
+            Invoke-AtlasTrustedInstaller `
+                -Operation Toggle `
+                -Name ([string]$definition.Name) `
+                -State $stateName `
+                -Silent:$true `
+                -NoExplorerRestart:$true `
+                -MachineOnly | Out-Null
+            return
         }
         Invoke-AtlasToggleInProcess @coreParams -NoExplorerRestart -ActionScope Machine
         return
@@ -871,11 +961,19 @@ function Invoke-AtlasToggle {
     $userCallerBinding = $null
     if ($isSplitAction) {
         $userCallerBinding = Get-AtlasToggleUserCallerBinding
+        if (-not $Silent) {
+            Show-AtlasTogglePreamble -Definition $definition -StateEntry $stateEntry `
+                -LauncherPath $LauncherPath -JustContext:$JustContext
+        }
+    }
+    elseif ($elevation -ceq 'TrustedInstaller' -and -not $trustedInstaller -and -not $Silent) {
+        Show-AtlasTogglePreamble -Definition $definition -StateEntry $stateEntry `
+            -LauncherPath $LauncherPath -JustContext:$JustContext
     }
 
     if ($userContext -and $isSplitAction) {
         Invoke-AtlasToggleInProcess @coreParams -NoExplorerRestart:$NoExplorerRestart -UserContext `
-            -ActionScope User
+            -SkipPreamble -ActionScope User
         return
     }
 
@@ -896,7 +994,8 @@ function Invoke-AtlasToggle {
 
         Write-AtlasLog -Message 'Administrator privileges are required.'
         $argumentList = Get-AtlasToggleRelaunchArgumentList -Name $Name -State $stateName -LauncherPath $LauncherPath `
-            -Silent:$Silent -JustContext:$JustContext `
+            -Silent:($Silent -or $isSplitAction -or $elevation -ceq 'TrustedInstaller') `
+            -JustContext:$JustContext `
             -NoExplorerRestart:($NoExplorerRestart -or $deferShellRefreshToCaller) `
             -MachineOnly:$isSplitAction
         $powershellPath = [IO.Path]::Combine(
@@ -961,7 +1060,22 @@ function Invoke-AtlasToggle {
                 throw 'The split toggle caller identity or Windows session changed across the privileged machine action.'
             }
             Invoke-AtlasToggleInProcess @coreParams -NoExplorerRestart:$NoExplorerRestart `
-                -ActionScope User
+                -SkipPreamble -ActionScope User
+        }
+        elseif ($elevation -ceq 'TrustedInstaller') {
+            if ($JustContext) {
+                if (-not $Silent) {
+                    Read-Pause -Message 'Press Enter to exit'
+                }
+            }
+            else {
+                Invoke-AtlasTogglePostAction `
+                    -ToggleName ([string]$definition.Name) `
+                    -StateEntry $stateEntry `
+                    -Context (Get-AtlasContext) `
+                    -Silent:$Silent `
+                    -NoExplorerRestart:$NoExplorerRestart
+            }
         }
         elseif ($deferShellRefreshToCaller) {
             Invoke-AtlasToggleCurrentSessionShellRefresh -Operation $shellRefreshOperation
