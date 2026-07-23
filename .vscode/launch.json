@@ -5,15 +5,15 @@
       "type": "PowerShell",
       "request": "launch",
       "name": "Build Playbook (Test)",
-      "script": "& \"$(Join-Path '${workspaceFolder}' 'tools/build/Build-Playbook.ps1')\" -AddLiveLog -ReplaceOldPlaybook -Removals WinverRequirement, Verification",
+      "script": "& \"$(Join-Path '${workspaceFolder}' 'tools/build/Build-Playbook.ps1')\" -LocalTest",
       "cwd": "${workspaceFolder}/playbook",
       "args": []
     },
     {
       "type": "PowerShell",
       "request": "launch",
-      "name": "Build Playbook (Test w/o deps)",
-      "script": "& \"$(Join-Path '${workspaceFolder}' 'tools/build/Build-Playbook.ps1')\" -AddLiveLog -ReplaceOldPlaybook -Removals Dependencies, WinverRequirement, Verification",
+      "name": "Build Playbook (Test w/o requirement gates)",
+      "script": "& \"$(Join-Path '${workspaceFolder}' 'tools/build/Build-Playbook.ps1')\" -LocalTest -Removals Requirements",
       "cwd": "${workspaceFolder}/playbook",
       "args": []
     },
