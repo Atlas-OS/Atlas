@@ -140,7 +140,14 @@ Describe 'Exact-user AppX cache deletion' {
         Set-Content -LiteralPath $cacheSentinel -Value 'preflight must preserve this'
         $junctionPath = Join-Path -Path $script:packageRoot `
             -ChildPath 'LocalState\WebCache\Redirect'
-        New-Item -Path $junctionPath -ItemType Junction -Target $outside | Out-Null
+        try {
+            New-Item -Path $junctionPath -ItemType Junction -Target $outside `
+                -ErrorAction Stop | Out-Null
+        }
+        catch {
+            Set-ItResult -Skipped -Because "Directory junctions are unavailable: $($_.Exception.Message)"
+            return
+        }
 
         {
             InModuleScope Atlas.Appx -Parameters @{ ProfileRoot = $script:profileRoot } {
@@ -484,8 +491,14 @@ Describe 'Install-state-bound AppX cache launcher' {
         Set-Content -LiteralPath $junctionPowerShell -Value 'test executable'
         Set-Content -LiteralPath (Join-Path $outsideInternal 'Clear-AtlasUserAppxCache.ps1') `
             -Value 'redirected script'
-        New-Item -Path (Join-Path $scriptsPath 'Internal') -ItemType Junction `
-            -Target $outsideInternal | Out-Null
+        try {
+            New-Item -Path (Join-Path $scriptsPath 'Internal') -ItemType Junction `
+                -Target $outsideInternal -ErrorAction Stop | Out-Null
+        }
+        catch {
+            Set-ItResult -Skipped -Because "Directory junctions are unavailable: $($_.Exception.Message)"
+            return
+        }
         $context = [pscustomobject]@{
             IsInstallStateBacked = $true
             IsOobe             = $false
