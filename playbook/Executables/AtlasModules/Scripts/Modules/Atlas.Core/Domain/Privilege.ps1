@@ -141,10 +141,14 @@ function Invoke-AtlasTrustedInstaller {
     Assert-AtlasPrivilege -Administrator
     $context = Get-AtlasContext
     $powershellPath = Join-Path $context.WinDir 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    # The broker owns the operation deadline. Give it a short, separate window to
+    # terminate and drain its kill-on-close job before the caller treats the broker
+    # itself as unresponsive.
+    $brokerProcessTimeoutSeconds = $TimeoutSeconds + 15
     return Invoke-AtlasHiddenProcess `
         -FilePath $powershellPath `
         -ArgumentList $argumentList.ToArray() `
         -Wait `
         -CaptureOutput `
-        -TimeoutSeconds $TimeoutSeconds
+        -TimeoutSeconds $brokerProcessTimeoutSeconds
 }

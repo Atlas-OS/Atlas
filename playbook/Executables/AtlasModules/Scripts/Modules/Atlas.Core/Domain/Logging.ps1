@@ -34,6 +34,12 @@ function Write-AtlasLogFile {
             $acquired = $true
         }
 
+        # Losing append serialization beats losing the log line, so a lock timeout
+        # degrades to an unserialized append with a warning.
+        if (-not $acquired) {
+            Write-Warning "Timed out acquiring the Atlas install log lock; appending to '$FileName' without serialization." `
+                -WarningAction Continue
+        }
         [System.IO.File]::AppendAllText($logPath, $Line + [Environment]::NewLine, [System.Text.Encoding]::UTF8)
     }
     finally {
@@ -76,7 +82,11 @@ function Write-AtlasLog {
         }
     }
     catch {
-        Write-Warning "Failed to write to the Atlas install log: $($_.Exception.Message)"
+        # Exact-user helpers intentionally run with ErrorActionPreference=Stop and may
+        # lack write access to the shared system log. Diagnostic fallback must never
+        # turn an already-handled best-effort operation into a fatal child exit.
+        Write-Warning "Failed to write to the Atlas install log: $($_.Exception.Message)" `
+            -WarningAction Continue
     }
 
     switch ($Level) {
@@ -111,7 +121,8 @@ function Start-AtlasPhase {
     }
     catch {
         $script:AtlasTranscriptActive = $false
-        Write-Warning "Couldn't start a transcript for phase '$Phase': $($_.Exception.Message)"
+        Write-Warning "Couldn't start a transcript for phase '$Phase': $($_.Exception.Message)" `
+            -WarningAction Continue
     }
 
     $context = Get-AtlasContext
@@ -122,10 +133,18 @@ function Start-AtlasPhase {
 function Stop-AtlasPhase {
     <#
     .SYNOPSIS
-        Ends the current install phase and stops its transcript.
+        Ends the current install phase and stops its transcript. -Failed records the
+        phase outcome in the log.
     #>
+    param([switch]$Failed)
+
     if ($script:AtlasCurrentPhase) {
-        Write-AtlasLog -Message 'Phase finished'
+        if ($Failed) {
+            Write-AtlasLog -Level Warning -Message 'Phase failed'
+        }
+        else {
+            Write-AtlasLog -Message 'Phase finished'
+        }
     }
 
     if ($script:AtlasTranscriptActive) {

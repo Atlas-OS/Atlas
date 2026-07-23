@@ -320,12 +320,299 @@ function Test-AtlasContainedProcessContainmentUnconfirmed {
     return $false
 }
 
+function Initialize-AtlasContainedProcessNative {
+    if ('AtlasContainedProcessNative' -as [type]) { return }
+
+    Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+
+public static class AtlasContainedProcessNative {
+    const UInt32 CREATE_SUSPENDED = 0x00000004;
+    const UInt32 CREATE_NO_WINDOW = 0x08000000;
+    const UInt32 STARTF_USESHOWWINDOW = 0x00000001;
+    const UInt16 SW_HIDE = 0;
+    const UInt32 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000;
+    const int JobObjectBasicAndIoAccountingInformation = 8;
+    const int JobObjectExtendedLimitInformation = 9;
+    const UInt32 WAIT_OBJECT_0 = 0;
+    const UInt32 WAIT_FAILED = 0xFFFFFFFF;
+    const UInt32 STILL_ACTIVE = 259;
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct PROCESS_INFORMATION {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public UInt32 dwProcessId;
+        public UInt32 dwThreadId;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct STARTUPINFO {
+        public Int32 cb;
+        public string lpReserved;
+        public string lpDesktop;
+        public string lpTitle;
+        public UInt32 dwX;
+        public UInt32 dwY;
+        public UInt32 dwXSize;
+        public UInt32 dwYSize;
+        public UInt32 dwXCountChars;
+        public UInt32 dwYCountChars;
+        public UInt32 dwFillAttribute;
+        public UInt32 dwFlags;
+        public UInt16 wShowWindow;
+        public UInt16 cbReserved2;
+        public IntPtr lpReserved2;
+        public IntPtr hStdInput;
+        public IntPtr hStdOutput;
+        public IntPtr hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct IO_COUNTERS {
+        public UInt64 ReadOperationCount;
+        public UInt64 WriteOperationCount;
+        public UInt64 OtherOperationCount;
+        public UInt64 ReadTransferCount;
+        public UInt64 WriteTransferCount;
+        public UInt64 OtherTransferCount;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct JOBOBJECT_BASIC_ACCOUNTING_INFORMATION {
+        public Int64 TotalUserTime;
+        public Int64 TotalKernelTime;
+        public Int64 ThisPeriodTotalUserTime;
+        public Int64 ThisPeriodTotalKernelTime;
+        public UInt32 TotalPageFaultCount;
+        public UInt32 TotalProcesses;
+        public UInt32 ActiveProcesses;
+        public UInt32 TotalTerminatedProcesses;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION {
+        public JOBOBJECT_BASIC_ACCOUNTING_INFORMATION BasicInfo;
+        public IO_COUNTERS IoInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct JOBOBJECT_BASIC_LIMIT_INFORMATION {
+        public Int64 PerProcessUserTimeLimit;
+        public Int64 PerJobUserTimeLimit;
+        public UInt32 LimitFlags;
+        public UIntPtr MinimumWorkingSetSize;
+        public UIntPtr MaximumWorkingSetSize;
+        public UInt32 ActiveProcessLimit;
+        public UIntPtr Affinity;
+        public UInt32 PriorityClass;
+        public UInt32 SchedulingClass;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
+        public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
+        public IO_COUNTERS IoInfo;
+        public UIntPtr ProcessMemoryLimit;
+        public UIntPtr JobMemoryLimit;
+        public UIntPtr PeakProcessMemoryUsed;
+        public UIntPtr PeakJobMemoryUsed;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool CreateProcess(
+        string applicationName, StringBuilder commandLine, IntPtr processAttributes,
+        IntPtr threadAttributes, bool inheritHandles, UInt32 creationFlags,
+        IntPtr environment, string currentDirectory, ref STARTUPINFO startupInfo,
+        out PROCESS_INFORMATION processInformation);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern IntPtr CreateJobObject(IntPtr jobAttributes, string name);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool SetInformationJobObject(
+        IntPtr job, int informationClass, ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION information,
+        int informationLength);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool QueryInformationJobObject(
+        IntPtr job, int informationClass,
+        out JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION information,
+        int informationLength, out int returnLength);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool TerminateJobObject(IntPtr job, UInt32 exitCode);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool TerminateProcess(IntPtr process, UInt32 exitCode);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern UInt32 ResumeThread(IntPtr thread);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern UInt32 WaitForSingleObject(IntPtr handle, UInt32 milliseconds);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool GetExitCodeProcess(IntPtr process, out UInt32 exitCode);
+
+    [DllImport("kernel32.dll")]
+    static extern bool CloseHandle(IntPtr handle);
+
+    static Win32Exception LastError(string operation) {
+        return new Win32Exception(Marshal.GetLastWin32Error(), operation);
+    }
+
+    static UInt32 ActiveProcessCount(IntPtr job) {
+        JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION accounting;
+        int returned;
+        if (!QueryInformationJobObject(job, JobObjectBasicAndIoAccountingInformation,
+                out accounting, Marshal.SizeOf(typeof(JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION)),
+                out returned)) {
+            throw LastError("QueryInformationJobObject failed");
+        }
+        return accounting.BasicInfo.ActiveProcesses;
+    }
+
+    static bool DrainJob(IntPtr job, int milliseconds) {
+        Stopwatch timer = Stopwatch.StartNew();
+        while (timer.ElapsedMilliseconds < milliseconds) {
+            if (ActiveProcessCount(job) == 0) return true;
+            Thread.Sleep(25);
+        }
+        return ActiveProcessCount(job) == 0;
+    }
+
+    static Exception Unconfirmed(Exception inner) {
+        InvalidOperationException failure = new InvalidOperationException(
+            "The process failed and Atlas could not confirm that its process tree terminated.", inner);
+        failure.Data["AtlasProcessMayStillBeRunning"] = true;
+        return failure;
+    }
+
+    public static UInt32 Run(string applicationPath, string commandLine,
+            string workingDirectory, int timeoutMilliseconds, bool hideWindow,
+            bool createNoWindow) {
+        if (timeoutMilliseconds < 1) throw new ArgumentOutOfRangeException("timeoutMilliseconds");
+
+        IntPtr job = IntPtr.Zero;
+        PROCESS_INFORMATION process = new PROCESS_INFORMATION();
+        bool childCreated = false;
+        bool jobAssigned = false;
+        bool jobDrained = false;
+        try {
+            job = CreateJobObject(IntPtr.Zero, null);
+            if (job == IntPtr.Zero) throw LastError("CreateJobObject failed");
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION();
+            limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, ref limits,
+                    Marshal.SizeOf(typeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))) {
+                throw LastError("SetInformationJobObject failed");
+            }
+
+            STARTUPINFO startup = new STARTUPINFO();
+            startup.cb = Marshal.SizeOf(typeof(STARTUPINFO));
+            if (hideWindow) {
+                startup.dwFlags = STARTF_USESHOWWINDOW;
+                startup.wShowWindow = SW_HIDE;
+            }
+            UInt32 flags = CREATE_SUSPENDED | (createNoWindow ? CREATE_NO_WINDOW : 0);
+            if (!CreateProcess(applicationPath, new StringBuilder(commandLine), IntPtr.Zero,
+                    IntPtr.Zero, false, flags, IntPtr.Zero, workingDirectory, ref startup,
+                    out process)) {
+                throw LastError("CreateProcessW failed");
+            }
+            childCreated = true;
+            if (!AssignProcessToJobObject(job, process.hProcess)) {
+                throw LastError("AssignProcessToJobObject failed");
+            }
+            jobAssigned = true;
+            if (ResumeThread(process.hThread) != 1) {
+                throw LastError("ResumeThread failed");
+            }
+
+            Stopwatch timer = Stopwatch.StartNew();
+            bool rootExited = false;
+            UInt32 exitCode = STILL_ACTIVE;
+            while (timer.ElapsedMilliseconds < timeoutMilliseconds) {
+                if (!rootExited) {
+                    UInt32 wait = WaitForSingleObject(process.hProcess, 0);
+                    if (wait == WAIT_OBJECT_0) {
+                        if (!GetExitCodeProcess(process.hProcess, out exitCode)) {
+                            throw LastError("GetExitCodeProcess failed");
+                        }
+                        rootExited = true;
+                    }
+                    else if (wait == WAIT_FAILED) {
+                        throw LastError("WaitForSingleObject failed");
+                    }
+                }
+                if (rootExited && ActiveProcessCount(job) == 0) {
+                    jobDrained = true;
+                    return exitCode;
+                }
+                Thread.Sleep(25);
+            }
+
+            if (!TerminateJobObject(job, 0xC000013A)) {
+                throw LastError("TerminateJobObject failed after timeout");
+            }
+            if (!DrainJob(job, 10000)) {
+                throw new TimeoutException("The timed-out process tree did not drain within 10 seconds.");
+            }
+            jobDrained = true;
+            throw new TimeoutException(String.Format(
+                "The process exceeded its {0}-second timeout and its process tree was terminated.",
+                timeoutMilliseconds / 1000));
+        }
+        catch (Exception failure) {
+            if (childCreated && !jobDrained && job != IntPtr.Zero) {
+                try {
+                    if (jobAssigned) {
+                        if (!TerminateJobObject(job, 0xC000013A) || !DrainJob(job, 10000)) {
+                            throw LastError("Process-tree cleanup failed");
+                        }
+                    }
+                    else {
+                        // Assignment happens while the root is suspended, so it cannot
+                        // have descendants when this fallback is required.
+                        if (!TerminateProcess(process.hProcess, 0xC000013A) ||
+                            WaitForSingleObject(process.hProcess, 10000) != WAIT_OBJECT_0) {
+                            throw LastError("Suspended process cleanup failed");
+                        }
+                    }
+                    jobDrained = true;
+                }
+                catch (Exception cleanupFailure) {
+                    throw Unconfirmed(new AggregateException(failure, cleanupFailure));
+                }
+            }
+            throw;
+        }
+        finally {
+            if (process.hThread != IntPtr.Zero) CloseHandle(process.hThread);
+            if (process.hProcess != IntPtr.Zero) CloseHandle(process.hProcess);
+            if (job != IntPtr.Zero) CloseHandle(job);
+        }
+    }
+}
+'@
+}
+
 function Invoke-AtlasContainedProcess {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
         [AllowEmptyCollection()][string[]]$ArgumentList = @(),
         [Parameter(Mandatory = $true)][string]$WorkingDirectory,
         [Parameter(Mandatory = $true)][ValidateLength(1, 512)][string]$Description,
+        [ValidateRange(1, 86400)][int]$TimeoutSeconds = 1800,
         [switch]$Hidden,
         [switch]$NoWindow
     )
@@ -341,49 +628,29 @@ function Invoke-AtlasContainedProcess {
     if (($executable.Length + $arguments.Length + 3) -gt 32766) {
         throw 'The native command line exceeds 32,766 characters.'
     }
-
-    $startParameters = @{
-        FilePath         = $executable
-        WorkingDirectory = $working
-        Wait             = $true
-        PassThru         = $true
-        ErrorAction      = 'Stop'
-    }
-    if ($ArgumentList.Count -gt 0) {
-        # Windows PowerShell joins ArgumentList arrays without preserving argv
-        # boundaries. Atlas passes one string that it already serialized above.
-        $startParameters['ArgumentList'] = [string[]]@($arguments)
-    }
-    if ($Hidden) {
-        $startParameters['WindowStyle'] = 'Hidden'
-    }
-    elseif ($NoWindow) {
-        $startParameters['NoNewWindow'] = $true
-    }
+    $serializedExecutable = ConvertTo-AtlasDownloadProcessArgument -Argument $executable
+    $commandLine = $serializedExecutable + $(if ($arguments) { ' ' + $arguments } else { '' })
 
     try {
-        $process = Start-Process @startParameters
+        Initialize-AtlasContainedProcessNative
+        $exitCode = [AtlasContainedProcessNative]::Run(
+            $executable,
+            $commandLine,
+            $working,
+            ($TimeoutSeconds * 1000),
+            [bool]$Hidden,
+            [bool]$NoWindow
+        )
     }
     catch {
-        $failure = New-Object InvalidOperationException(
-            "$Description failed before its process tree was confirmed complete.",
+        if (Test-AtlasContainedProcessContainmentUnconfirmed -Exception $_.Exception) { throw }
+        throw [InvalidOperationException]::new(
+            "$Description failed: $($_.Exception.Message)",
             $_.Exception
         )
-        $failure.Data['AtlasProcessMayStillBeRunning'] = $true
-        throw $failure
     }
 
-    try {
-        $exitCode = [BitConverter]::ToUInt32(
-            [BitConverter]::GetBytes([int]$process.ExitCode), 0
-        )
-        return [pscustomobject]@{
-            ExitCodeUInt32 = $exitCode
-        }
-    }
-    finally {
-        $process.Dispose()
-    }
+    return [pscustomobject]@{ ExitCodeUInt32 = [uint32]$exitCode }
 }
 
 function Resolve-AtlasGitHubRepositoryMetadata {

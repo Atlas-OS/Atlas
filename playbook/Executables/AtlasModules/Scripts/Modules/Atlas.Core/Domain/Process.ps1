@@ -135,7 +135,9 @@ function Invoke-AtlasHiddenProcess {
         [ValidateNotNullOrEmpty()]
         [int[]]$AllowedExitCode = @(0),
 
-        [ValidateRange(0, 86400)]
+        # The extra 15 seconds above the public 24-hour operation limit lets a
+        # broker report bounded process-tree cleanup after its own deadline.
+        [ValidateRange(0, 86415)]
         [int]$TimeoutSeconds = 0,
 
         [switch]$CaptureOutput

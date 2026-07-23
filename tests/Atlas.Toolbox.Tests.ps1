@@ -7,6 +7,22 @@ BeforeAll {
 
     . $script:DownloadIntegrityPath
     . $script:PackagePath
+
+    function Wait-ForMarkerFile {
+        param(
+            [Parameter(Mandatory = $true)][string]$Path,
+            [Parameter(Mandatory = $true)][int]$TimeoutSeconds
+        )
+
+        $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+        while ([DateTime]::UtcNow -lt $deadline) {
+            if ([IO.File]::Exists($Path)) {
+                return $true
+            }
+            Start-Sleep -Milliseconds 100
+        }
+        return [IO.File]::Exists($Path)
+    }
 }
 
 Describe 'Atlas Toolbox latest-channel integrity contract' {
@@ -173,6 +189,47 @@ Describe 'Shared download boundary' {
             -Description 'The download-boundary process probe' -Hidden -NoWindow
 
         $result.ExitCodeUInt32 | Should -Be 7
+        # The tree wait must cover the descendant; the short poll only absorbs
+        # file-visibility latency, not descendant runtime.
+        Wait-ForMarkerFile -Path $marker -TimeoutSeconds 5 | Should -BeTrue
         [IO.File]::ReadAllText($marker) | Should -BeExactly 'complete'
+    }
+
+    It 'terminates the complete process tree when its finite timeout expires' {
+        $commandHost = [IO.Path]::Combine(
+            [Environment]::GetFolderPath([Environment+SpecialFolder]::System),
+            'cmd.exe'
+        )
+        $powerShellHost = [IO.Path]::Combine(
+            [Environment]::GetFolderPath([Environment+SpecialFolder]::System),
+            'WindowsPowerShell',
+            'v1.0',
+            'powershell.exe'
+        )
+        $marker = Join-Path $TestDrive 'timed-out-descendant.txt'
+        $probe = Join-Path $TestDrive 'spawn-timed-out-descendant.cmd'
+        $childCommand = "Start-Sleep -Milliseconds 1500; " +
+            "[IO.File]::WriteAllText('$($marker.Replace("'", "''"))', 'escaped')"
+        $probeText = @(
+            '@echo off'
+            ('start "" /b "{0}" -NoLogo -NoProfile -NonInteractive -Command "{1}"' -f
+                $powerShellHost, $childCommand)
+            'exit /b 0'
+            ''
+        ) -join "`r`n"
+        [IO.File]::WriteAllText($probe, $probeText, [Text.Encoding]::ASCII)
+
+        {
+            Invoke-AtlasContainedProcess -FilePath $commandHost `
+                -ArgumentList ([string[]]@('/d', '/s', '/c', 'call', $probe)) `
+                -WorkingDirectory $TestDrive `
+                -Description 'The timeout process probe' `
+                -TimeoutSeconds 1 -Hidden -NoWindow
+        } | Should -Throw -ExpectedMessage '*1-second timeout*process tree was terminated*'
+
+        # An escaped descendant was spawned before the timeout throw and would write
+        # its marker about 1500ms later. Poll well past that point and require that
+        # the marker never appears; the poll returns early on escape.
+        Wait-ForMarkerFile -Path $marker -TimeoutSeconds 4 | Should -BeFalse
     }
 }

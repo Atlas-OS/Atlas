@@ -117,7 +117,12 @@ $ErrorActionPreference = 'Stop'
 $manifest = Import-PowerShellDataFile -LiteralPath $ManifestPath
 $expectedExports = @($manifest.FunctionsToExport)
 $moduleName = [IO.Path]::GetFileNameWithoutExtension($ManifestPath)
-$env:PSModulePath = "$ModulesRoot$([IO.Path]::PathSeparator)$env:PSModulePath"
+# Resolve modules only from this host's own inbox modules and the payload root, so
+# per-user or cross-edition PSModulePath entries cannot shadow the inbox modules.
+$env:PSModulePath = @(
+    [IO.Path]::Combine($PSHOME, 'Modules')
+    $ModulesRoot
+) -join [IO.Path]::PathSeparator
 
 Import-Module Microsoft.PowerShell.Management -ErrorAction Stop
 Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop

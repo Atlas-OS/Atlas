@@ -96,6 +96,19 @@ Describe 'Get-AtlasContext install state' {
     }
 }
 
+Describe 'Write-AtlasLog fallback' {
+    It 'does not turn a log access failure into a terminating error under strict callers' {
+        Mock Write-AtlasLogFile { throw 'simulated log access denial' } -ModuleName Atlas.Core
+
+        {
+            $ErrorActionPreference = 'Stop'
+            Write-AtlasLog -Message 'best-effort diagnostic'
+        } | Should -Not -Throw
+
+        Should -Invoke Write-AtlasLogFile -ModuleName Atlas.Core -Times 1
+    }
+}
+
 Describe 'Get-AtlasUserProcessCommandLine' {
     It 'quotes a path with spaces and adds nothing else when there are no arguments' {
         Get-AtlasUserProcessCommandLine -FilePath 'C:\Program Files\x.exe' |
@@ -197,7 +210,7 @@ Describe 'Invoke-AtlasTrustedInstaller' {
                 $ArgumentList -contains 'TestToggle' -and
                 $ArgumentList -contains 'Enable' -and
                 $ArgumentList -contains '-JustContext' -and
-                $TimeoutSeconds -eq 42 -and
+                $TimeoutSeconds -eq 57 -and
                 $Wait -and $CaptureOutput
             }
     }
