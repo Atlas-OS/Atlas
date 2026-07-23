@@ -84,9 +84,10 @@ ZIP, records their hashes and attestations, then creates a draft GitHub release 
 pwsh tools/build/Set-AtlasVersion.ps1 -Version 0.7.0
 ```
 
-This updates `<Version>`, rewrites `<Title>` to `Atlas v0.7.0`, and moves the previous
-version into `<UpgradableFrom>` — one edit, one commit. Tagging `v0.7.0` then triggers the
-release workflow described above.
+This updates `<Version>`, rewrites `<Title>` to `Atlas v0.7.0`, moves the previous
+version into `<UpgradableFrom>`, and rewrites every `onUpgradeVersions` entry in
+`playbook/Configuration/custom.yml` to the new version — one command, one commit.
+Tagging `v0.7.0` then triggers the release workflow described above.
 
 ## Optional developer setup
 

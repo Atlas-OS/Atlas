@@ -622,3 +622,69 @@ exit 37
     }
 
 }
+
+Describe 'Playbook version coherence' {
+    BeforeAll {
+        $script:repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
+        $script:setVersionScript = Join-Path $script:repoRoot 'tools\build\Set-AtlasVersion.ps1'
+
+        function Get-ConfVersion {
+            param([Parameter(Mandatory = $true)][string]$Path)
+            $match = [regex]::Match([IO.File]::ReadAllText($Path), '<Version>\s*([^<]+?)\s*</Version>')
+            if (-not $match.Success) { throw "No <Version> in '$Path'." }
+            $match.Groups[1].Value
+        }
+
+        function Get-OnUpgradeVersion {
+            param([Parameter(Mandatory = $true)][string]$Path)
+            $entries = foreach ($listMatch in [regex]::Matches(
+                    [IO.File]::ReadAllText($Path), 'onUpgradeVersions:\s*\[([^\]]*)\]')) {
+                foreach ($entry in $listMatch.Groups[1].Value -split ',') {
+                    $entry.Trim().Trim("'").Trim('"')
+                }
+            }
+            @($entries)
+        }
+    }
+
+    It 'keeps every custom.yml onUpgradeVersions entry equal to the playbook.conf version' {
+        $confVersion = Get-ConfVersion -Path (Join-Path $script:repoRoot 'playbook\playbook.conf')
+        $entries = Get-OnUpgradeVersion -Path `
+            (Join-Path $script:repoRoot 'playbook\Configuration\custom.yml')
+
+        $entries.Count | Should -BeGreaterThan 0
+        foreach ($entry in $entries) {
+            $entry | Should -Be $confVersion `
+                -Because 'Set-AtlasVersion.ps1 must keep custom.yml upgrade actions bound to the shipped version'
+        }
+    }
+
+    It 'round-trips playbook.conf and custom.yml through Set-AtlasVersion' {
+        $fixture = Join-Path $TestDrive 'version-fixture'
+        New-Item -Path (Join-Path $fixture 'Configuration') -ItemType Directory -Force | Out-Null
+        $conf = Join-Path $fixture 'playbook.conf'
+        $customYml = Join-Path $fixture 'Configuration\custom.yml'
+        Copy-Item -LiteralPath (Join-Path $script:repoRoot 'playbook\playbook.conf') `
+            -Destination $conf
+        Copy-Item -LiteralPath (Join-Path $script:repoRoot 'playbook\Configuration\custom.yml') `
+            -Destination $customYml
+
+        $originalVersion = Get-ConfVersion -Path $conf
+        $bumpVersion = '9.9.9'
+
+        & $script:setVersionScript -Version $bumpVersion -PlaybookConfPath $conf | Out-Null
+        Get-ConfVersion -Path $conf | Should -Be $bumpVersion
+        [IO.File]::ReadAllText($conf) | Should -Match ([regex]::Escape("Atlas v$bumpVersion"))
+        [IO.File]::ReadAllText($conf) | Should -Match `
+        ([regex]::Escape("<UpgradableFrom>$originalVersion</UpgradableFrom>"))
+        $bumpedEntries = Get-OnUpgradeVersion -Path $customYml
+        $bumpedEntries.Count | Should -BeGreaterThan 0
+        foreach ($entry in $bumpedEntries) { $entry | Should -Be $bumpVersion }
+
+        & $script:setVersionScript -Version $originalVersion -PlaybookConfPath $conf | Out-Null
+        Get-ConfVersion -Path $conf | Should -Be $originalVersion
+        foreach ($entry in (Get-OnUpgradeVersion -Path $customYml)) {
+            $entry | Should -Be $originalVersion
+        }
+    }
+}
