@@ -19,11 +19,14 @@ Describe 'Atlas install plan' {
         }
         @{
             Mode = 'Fresh'; IsOobe = $true; Expected = @(
-                'Checkpoint/PayloadReplacement', 'Checkpoint/NotificationDisable', 'PreInstall',
-                'Environment', 'Checkpoint/HiddenSettingsPages', 'Checkpoint/InitializePath',
+                'Checkpoint/DefaultHiveLoad', 'Checkpoint/PayloadReplacement',
+                'Checkpoint/NotificationDisable', 'PreInstall', 'Environment',
+                'Checkpoint/HiddenSettingsPages', 'Checkpoint/InitializePath',
                 'Features', 'Software', 'Services', 'Components', 'AppxSupport', 'Defaults',
-                'Checkpoint/DefaultRegistrySeed', 'Checkpoint/PowerSettings',
-                'Checkpoint/NotificationRestore'
+                'Checkpoint/DefaultRegistrySeed', 'Tweaks/networking', 'Tweaks/performance',
+                'Tweaks/privacy', 'Tweaks/qol', 'Tweaks/security', 'Tweaks/debloat',
+                'Tweaks/scripts', 'Tweaks/misc', 'Checkpoint/PowerSettings',
+                'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
             )
         }
         @{
@@ -37,9 +40,11 @@ Describe 'Atlas install plan' {
         }
         @{
             Mode = 'Upgrade'; IsOobe = $true; Expected = @(
-                'Checkpoint/PayloadReplacement', 'Checkpoint/NotificationDisable', 'PreInstall',
-                'Environment', 'Checkpoint/InitializePath', 'Features', 'Software', 'Defaults',
-                'Revert', 'Checkpoint/OemBranding', 'Checkpoint/NotificationRestore'
+                'Checkpoint/DefaultHiveLoad', 'Checkpoint/PayloadReplacement',
+                'Checkpoint/NotificationDisable', 'PreInstall', 'Environment',
+                'Checkpoint/InitializePath', 'Features', 'Software', 'Defaults',
+                'Revert', 'Checkpoint/OemBranding', 'Checkpoint/NotificationRestore',
+                'Checkpoint/DefaultHiveUnload'
             )
         }
         @{
@@ -52,9 +57,10 @@ Describe 'Atlas install plan' {
         }
         @{
             Mode = 'Reapply'; IsOobe = $true; Expected = @(
-                'Checkpoint/PayloadReplacement', 'Checkpoint/NotificationDisable', 'PreInstall',
-                'Environment', 'Checkpoint/InitializePath', 'Features', 'Software', 'Defaults',
-                'Checkpoint/NotificationRestore'
+                'Checkpoint/DefaultHiveLoad', 'Checkpoint/PayloadReplacement',
+                'Checkpoint/NotificationDisable', 'PreInstall', 'Environment',
+                'Checkpoint/InitializePath', 'Features', 'Software', 'Defaults',
+                'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
             )
         }
     ) {
@@ -62,11 +68,14 @@ Describe 'Atlas install plan' {
             Should -Be $Expected
     }
 
-    It 'marks only lifecycle cleanup checkpoints for replay' {
+    It 'replays lifecycle checkpoints and payload synchronization' {
         $steps = @(
             Get-AtlasInstallPlan -Mode Fresh -IsOobe $false
+            Get-AtlasInstallPlan -Mode Fresh -IsOobe $true
             Get-AtlasInstallPlan -Mode Upgrade -IsOobe $false
+            Get-AtlasInstallPlan -Mode Upgrade -IsOobe $true
             Get-AtlasInstallPlan -Mode Reapply -IsOobe $false
+            Get-AtlasInstallPlan -Mode Reapply -IsOobe $true
         ) | Sort-Object Key -Unique
 
         @($steps | Where-Object Replay -eq Always | ForEach-Object Key) |
@@ -74,7 +83,8 @@ Describe 'Atlas install plan' {
                 'Checkpoint/DefaultHiveLoad',
                 'Checkpoint/DefaultHiveUnload',
                 'Checkpoint/NotificationDisable',
-                'Checkpoint/NotificationRestore'
+                'Checkpoint/NotificationRestore',
+                'Checkpoint/PayloadReplacement'
             )
     }
 }

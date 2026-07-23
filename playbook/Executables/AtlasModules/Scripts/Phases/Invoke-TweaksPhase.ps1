@@ -1,5 +1,6 @@
-# Applies one declarative tweak category in three ordered scopes: machine work as
-# TrustedInstaller, live HKCU work as the exact installing user, then the default hive.
+# Applies one declarative tweak category in four ordered scopes: machine work and the
+# narrowly allowed live-user policy roots as TrustedInstaller, ordinary HKCU work as
+# the exact installing user, then the default hive.
 param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('networking', 'performance', 'privacy', 'qol', 'security', 'debloat', 'scripts', 'misc')]
@@ -60,6 +61,20 @@ if (-not $context.IsOobe) {
     $optionSnapshot = [string[]]@($context.Options)
     $optionsJson = ConvertTo-Json -Compress -InputObject $optionSnapshot
     $optionsBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($optionsJson))
+
+    $policyArguments = [string[]]@(
+        '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+        '-File', (Join-Path $scriptsRoot 'Tasks\Invoke-AtlasInstallingUserPolicyRegistry.ps1'),
+        '-Category', $Category,
+        '-ExpectedUserSid', [string]$context.InteractiveUserSid,
+        '-TransactionId', [string]$context.TransactionId,
+        '-OptionsBase64', $optionsBase64,
+        '-WindowsBuild', [string]$context.WindowsBuild
+    )
+    if ($context.IsUpgrade) { $policyArguments += '-IsUpgrade' }
+    if ($context.IsArm64) { $policyArguments += '-IsArm64' }
+    Invoke-AtlasHiddenProcess -FilePath $powerShellPath -ArgumentList $policyArguments `
+        -Wait | Out-Null
 
     $registryArguments = @(
         '-Category', $Category,

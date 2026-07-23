@@ -5,7 +5,7 @@
     Without -Run this file only defines its small dispatch surface. That keeps the
     behavior testable without changing the host. custom.yml invokes it with -Run.
 
-    Exit codes: 0 success, 1 install failure, 2 wrong privilege, 3 unsupported host.
+    Exit codes: 0 success, 1 install failure, 2 wrong privilege.
 #>
 [CmdletBinding()]
 param([switch]$Run)
@@ -120,12 +120,14 @@ function Invoke-AtlasInstallAction {
         $arguments = @{}
     }
 
+    $phaseFailed = $true
     try {
         & $PhaseStarter $phase $category
         & $ScriptRunner $path $arguments
+        $phaseFailed = $false
     }
     finally {
-        & $PhaseStopper
+        & $PhaseStopper $phaseFailed
     }
 }
 
@@ -158,28 +160,81 @@ function Invoke-AtlasInstallPlanCore {
     $runner = $ScriptRunner
     $startPhase = $PhaseStarter
     $stopPhase = $PhaseStopper
+    # A mutable holder lets the action closure record that this invocation, rather
+    # than a prior interrupted run, successfully created the fixed hive mount.
+    $defaultHive = @{ MountedByThisInvocation = $false }
+    $planCompleted = $false
 
-    foreach ($step in $Plan) {
-        $key = [string]$step.Key
-        $replay = [string]$step.Replay
-        $action = {
-            & $actionInvoker -Step $step -ScriptsRoot $scriptsRoot `
-                -SourceScriptsRoot $SourceScriptsRoot `
-                -ScriptRunner $runner -PhaseStarter $startPhase `
-                -PhaseStopper $stopPhase
-        }.GetNewClosure()
+    try {
+        foreach ($step in $Plan) {
+            $key = [string]$step.Key
+            $replay = [string]$step.Replay
+            $action = {
+                & $actionInvoker -Step $step -ScriptsRoot $scriptsRoot `
+                    -SourceScriptsRoot $SourceScriptsRoot `
+                    -ScriptRunner $runner -PhaseStarter $startPhase `
+                    -PhaseStopper $stopPhase
 
-        $null = & $StepInvoker $key $replay $action
-        $requiredSteps.Add($key)
+                if ($key -ceq 'Checkpoint/DefaultHiveLoad') {
+                    $defaultHive.MountedByThisInvocation = $true
+                }
+                elseif ($key -ceq 'Checkpoint/DefaultHiveUnload') {
+                    $defaultHive.MountedByThisInvocation = $false
+                }
+            }.GetNewClosure()
 
-        if ($key -ceq 'Checkpoint/PayloadReplacement') {
-            # A completed Once step also switches roots when resuming: its installed
-            # payload is the durable postcondition of having completed that step.
-            $scriptsRoot = $installedRoot
+            $null = & $StepInvoker $key $replay $action
+            $requiredSteps.Add($key)
+
+            if ($key -ceq 'Checkpoint/PayloadReplacement') {
+                # A completed Once step also switches roots when resuming: its installed
+                # payload is the durable postcondition of having completed that step.
+                $scriptsRoot = $installedRoot
+            }
+        }
+
+        $null = & $CompleteInvoker $requiredSteps.ToArray()
+        $planCompleted = $true
+    }
+    finally {
+        if (-not $planCompleted) {
+            # Best-effort: the restore checkpoint no-ops without a recorded snapshot,
+            # and the install failure already in flight stays authoritative.
+            try {
+                $restoreStep = [pscustomobject]@{
+                    Key = 'Checkpoint/NotificationRestore'; Replay = 'Always'
+                }
+                $null = & $actionInvoker -Step $restoreStep -ScriptsRoot $scriptsRoot `
+                    -SourceScriptsRoot $SourceScriptsRoot `
+                    -ScriptRunner $runner -PhaseStarter $startPhase `
+                    -PhaseStopper $stopPhase
+            }
+            catch {
+                Write-Warning `
+                    "Failed to restore the notification policy during install cleanup: $($_.Exception.Message)" `
+                    -WarningAction Continue
+            }
+        }
+        if ([bool]$defaultHive.MountedByThisInvocation) {
+            try {
+                $cleanupStep = [pscustomobject]@{
+                    Key = 'Checkpoint/DefaultHiveUnload'; Replay = 'Always'
+                }
+                $null = & $actionInvoker -Step $cleanupStep -ScriptsRoot $scriptsRoot `
+                    -SourceScriptsRoot $SourceScriptsRoot `
+                    -ScriptRunner $runner -PhaseStarter $startPhase `
+                    -PhaseStopper $stopPhase
+                $defaultHive.MountedByThisInvocation = $false
+            }
+            catch {
+                # Preserve the install failure already in flight. The next run's
+                # Always load checkpoint will reconcile the fixed Atlas mount again.
+                Write-Warning `
+                    "Failed to unload the Atlas default-user hive during install cleanup: $($_.Exception.Message)" `
+                    -WarningAction Continue
+            }
         }
     }
-
-    $null = & $CompleteInvoker $requiredSteps.ToArray()
 }
 
 function Write-AtlasInstallMessage {
@@ -250,10 +305,20 @@ try {
 
     $stepInvoker = {
         param($Name, $Mode, $Action)
-        Write-AtlasInstallMessage -Message "Running install step '$Name'."
-        $result = Invoke-AtlasInstallStep -Name $Name -Mode $Mode -Action $Action
-        Write-AtlasInstallMessage -Message "Finished install step '$Name'."
-        return $result
+        # The running announcement lives inside the action so a skipped step logs
+        # only its skip decision.
+        $announcedAction = {
+            Write-AtlasInstallMessage -Message "Running install step '$Name'."
+            & $Action
+        }.GetNewClosure()
+        $step = Invoke-AtlasInstallStep -Name $Name -Mode $Mode -Action $announcedAction
+        if ($step.Skipped) {
+            Write-AtlasInstallMessage -Message "Skipped already-completed install step '$Name'."
+        }
+        else {
+            Write-AtlasInstallMessage -Message "Finished install step '$Name'."
+        }
+        return $step
     }
     $completeInvoker = {
         param($RequiredSteps)
@@ -274,8 +339,9 @@ try {
         }
     }
     $phaseStopper = {
+        param($Failed)
         if ($null -ne (Get-Command -Name Stop-AtlasPhase -ErrorAction Ignore)) {
-            Stop-AtlasPhase
+            Stop-AtlasPhase -Failed:([bool]$Failed)
         }
     }
 
@@ -290,12 +356,7 @@ try {
 }
 catch {
     $failure = $_
-    $exitCode = if ($failure.Exception.Data.Contains('AtlasInstallExitCode')) {
-        [int]$failure.Exception.Data['AtlasInstallExitCode']
-    }
-    elseif ($failure.Exception.Message -like '[[]privilege[]]*') { 2 }
-    elseif ($failure.Exception.Message -like '[[]unsupported[]]*') { 3 }
-    else { 1 }
+    $exitCode = if ($failure.Exception.Message -like '[[]privilege[]]*') { 2 } else { 1 }
 
     Write-AtlasInstallMessage -Level Error -Message $failure.Exception.Message `
         -ErrorRecord $failure

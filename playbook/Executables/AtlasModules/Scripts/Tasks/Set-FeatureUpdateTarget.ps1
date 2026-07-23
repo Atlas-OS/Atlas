@@ -8,12 +8,10 @@ if (-not (Test-Path -LiteralPath $windowsUpdatePath)) {
 }
 
 $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
-if ($os.Caption -match 'Windows 11') {
-    $productVersion = 'Windows 11'
+if ($os.Caption -notmatch 'Windows 11') {
+    throw "Refusing to pin the feature-update target: OS caption '$($os.Caption)' is not Windows 11."
 }
-else {
-    $productVersion = 'Windows 10'
-}
+$productVersion = 'Windows 11'
 
 $currentVersion = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction Stop
 if ([string]::IsNullOrWhiteSpace($currentVersion.DisplayVersion)) {

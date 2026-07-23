@@ -73,6 +73,56 @@ Describe 'Atlas.InstallState lifecycle' {
         } | Should -Throw -ExpectedMessage '*does not match the requested Fresh mode and OOBE scope*'
     }
 
+    It 'resumes the original plan when AME reclassifies a recorded failed run' {
+        $path = New-TestInstallStatePath
+        $first = Start-TestInstallState -Path $path -Status Running
+        $workRoot = Join-Path (Split-Path $path -Parent) 'work'
+        [IO.File]::WriteAllText((Join-Path $workRoot 'partial.txt'), 'partial')
+        Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { } | Out-Null
+
+        {
+            Invoke-AtlasInstallStep -StatePath $path -Name 'Tweaks/qol' `
+                -Action { throw 'install failed' }
+        } | Should -Throw -ExpectedMessage '*install failed*'
+
+        $retry = Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' `
+            -Mode Reapply -CaptureNonce 'retry-capture'
+
+        $retry.transactionId | Should -BeExactly $first.transactionId
+        $retry.status | Should -BeExactly 'Capturing'
+        $retry.mode | Should -BeExactly 'Fresh'
+        $retry.captureNonce | Should -BeExactly 'retry-capture'
+        @($retry.options).Count | Should -Be 0
+        @($retry.completedSteps) | Should -Contain 'Features'
+        Test-Path -LiteralPath (Join-Path $workRoot 'partial.txt') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path (Split-Path $path -Parent) 'abandoned.json') | Should -BeFalse
+    }
+
+    It 'recovers an older RC abandoned Fresh transaction on a Reapply retry' {
+        $path = New-TestInstallStatePath
+        $first = Start-TestInstallState -Path $path -Status Running
+        Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { } | Out-Null
+        {
+            Invoke-AtlasInstallStep -StatePath $path -Name 'Tweaks/privacy' `
+                -Action { throw 'older RC failure' }
+        } | Should -Throw '*older RC failure*'
+
+        $directory = Split-Path $path -Parent
+        Move-Item -LiteralPath $path -Destination (Join-Path $directory 'abandoned.json')
+        Remove-Item -LiteralPath (Join-Path $directory 'work') -Recurse -Force
+
+        $retry = Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' `
+            -Mode Reapply -CaptureNonce 'recovered-capture'
+
+        $retry.transactionId | Should -BeExactly $first.transactionId
+        $retry.status | Should -BeExactly 'Capturing'
+        $retry.mode | Should -BeExactly 'Fresh'
+        $retry.captureNonce | Should -BeExactly 'recovered-capture'
+        @($retry.completedSteps) | Should -Contain 'Features'
+        Test-Path -LiteralPath (Join-Path $directory 'abandoned.json') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $directory 'work') -PathType Container | Should -BeTrue
+    }
+
     It 'records each selected option once only during capture' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
@@ -118,17 +168,19 @@ Describe 'Atlas.InstallState lifecycle' {
 }
 
 Describe 'Atlas.InstallState step execution' {
-    It 'runs a Once step once and records it after success' {
+    It 'runs a Once step once and reports the resumed skip' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path -Status Running | Out-Null
         $script:calls = 0
 
-        Invoke-AtlasInstallStep -StatePath $path -Name 'Install/Browser' -Mode Once `
-            -Action { $script:calls++ } | Out-Null
-        Invoke-AtlasInstallStep -StatePath $path -Name 'Install/Browser' -Mode Once `
-            -Action { $script:calls++ } | Out-Null
+        $first = Invoke-AtlasInstallStep -StatePath $path -Name 'Install/Browser' -Mode Once `
+            -Action { $script:calls++ }
+        $second = Invoke-AtlasInstallStep -StatePath $path -Name 'Install/Browser' -Mode Once `
+            -Action { $script:calls++ }
 
         $script:calls | Should -Be 1
+        $first.Skipped | Should -BeFalse
+        $second.Skipped | Should -BeTrue
         (Get-AtlasInstallState -StatePath $path).completedSteps | Should -Contain 'Install/Browser'
     }
 
@@ -159,6 +211,24 @@ Describe 'Atlas.InstallState step execution' {
         $state = Get-AtlasInstallState -StatePath $path
         $state.completedSteps | Should -Not -Contain 'Install/Failing'
         $state.lastError | Should -BeExactly 'installer failed'
+    }
+
+    It 'rethrows the action failure when the state changes mid-step' {
+        $path = New-TestInstallStatePath
+        Start-TestInstallState -Path $path -Status Running | Out-Null
+
+        $action = {
+            [IO.File]::Delete($path)
+            if ([IO.File]::Exists("$path.bak")) {
+                [IO.File]::Delete("$path.bak")
+            }
+            throw 'installer failed'
+        }.GetNewClosure()
+
+        {
+            Invoke-AtlasInstallStep -StatePath $path -Name 'Install/Vanishing' `
+                -Action $action -WarningAction SilentlyContinue
+        } | Should -Throw -ExpectedMessage '*installer failed*'
     }
 
     It 'requires a committed state before running steps' {

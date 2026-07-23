@@ -7,8 +7,6 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet(
         'qol/set-hidden-settings-pages',
-        'misc/config-oem-information',
-        'misc/enable-notifications',
         'scripts/set-power-settings'
     )]
     [string]$Slug

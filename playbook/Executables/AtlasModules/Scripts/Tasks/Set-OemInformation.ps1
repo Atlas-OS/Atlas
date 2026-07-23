@@ -1,8 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $version = 'AtlasVersionUndefined'
-$windowsMajor = if ([Environment]::OSVersion.Version.Build -ge 22000) { '11' } else { '10' }
-$bootDescription = "AtlasOS $windowsMajor $version"
+$bootDescription = "AtlasOS 11 $version"
 $bcdEditPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'bcdedit.exe')
 
 if (-not [IO.File]::Exists($bcdEditPath)) {

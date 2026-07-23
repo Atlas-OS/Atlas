@@ -18,12 +18,14 @@ function Get-AtlasInstallPlan {
     $allModes = @('Fresh', 'Upgrade', 'Reapply')
     $steps = @(
         [pscustomobject][ordered]@{
-            Key = 'Checkpoint/DefaultHiveLoad'; Modes = $allModes; Oobe = 'NonOobe'
+            Key = 'Checkpoint/DefaultHiveLoad'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Always'
         }
         [pscustomobject][ordered]@{
             Key = 'Checkpoint/PayloadReplacement'; Modes = $allModes; Oobe = 'Any'
-            Replay = 'Once'
+            # Always sync the extracted payload before resuming completed steps. RC
+            # rebuilds can keep the same playbook version while fixing a failed run.
+            Replay = 'Always'
         }
         [pscustomobject][ordered]@{
             Key = 'Checkpoint/NotificationDisable'; Modes = $allModes; Oobe = 'Any'
@@ -82,35 +84,35 @@ function Get-AtlasInstallPlan {
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/networking'; Modes = @('Fresh'); Oobe = 'NonOobe'
+            Key = 'Tweaks/networking'; Modes = @('Fresh'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/performance'; Modes = @('Fresh'); Oobe = 'NonOobe'
+            Key = 'Tweaks/performance'; Modes = @('Fresh'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/privacy'; Modes = @('Fresh'); Oobe = 'NonOobe'
+            Key = 'Tweaks/privacy'; Modes = @('Fresh'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/qol'; Modes = @('Fresh'); Oobe = 'NonOobe'
+            Key = 'Tweaks/qol'; Modes = @('Fresh'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/security'; Modes = @('Fresh'); Oobe = 'NonOobe'
+            Key = 'Tweaks/security'; Modes = @('Fresh'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/debloat'; Modes = @('Fresh'); Oobe = 'NonOobe'
+            Key = 'Tweaks/debloat'; Modes = @('Fresh'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/scripts'; Modes = @('Fresh'); Oobe = 'NonOobe'
+            Key = 'Tweaks/scripts'; Modes = @('Fresh'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/misc'; Modes = @('Fresh'); Oobe = 'NonOobe'
+            Key = 'Tweaks/misc'; Modes = @('Fresh'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
@@ -130,7 +132,7 @@ function Get-AtlasInstallPlan {
             Replay = 'Always'
         }
         [pscustomobject][ordered]@{
-            Key = 'Checkpoint/DefaultHiveUnload'; Modes = $allModes; Oobe = 'NonOobe'
+            Key = 'Checkpoint/DefaultHiveUnload'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Always'
         }
     )

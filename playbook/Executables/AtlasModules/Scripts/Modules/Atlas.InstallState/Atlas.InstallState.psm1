@@ -315,6 +315,37 @@ function Start-AtlasInstallState {
     $oobeValue = $IsOobe
     $resolvedPath = Resolve-AtlasInstallStatePath -StatePath $StatePath
     return Invoke-AtlasInstallStateLocked {
+        $directory = [IO.Path]::GetDirectoryName($resolvedPath)
+        $abandonedPath = Join-Path -Path $directory -ChildPath 'abandoned.json'
+        $existing = $null
+
+        # Completion removes transient work. Any later retry or older-RC recovery must
+        # restore this invariant before option capture or Always checkpoints use it.
+        [void][IO.Directory]::CreateDirectory((Join-Path -Path $directory -ChildPath 'work'))
+
+        # A failed Fresh transaction may have been archived by an older RC when AME
+        # reclassified the partially modified machine as Reapply. Recover that exact
+        # Fresh step boundary so the remaining Fresh-only phases are not silently lost.
+        if (-not [IO.File]::Exists($resolvedPath) -and
+            $installMode -ceq 'Reapply' -and
+            [IO.File]::Exists($abandonedPath)) {
+            $abandoned = Read-AtlasInstallStateFile -Path $abandonedPath
+            if ($abandoned.targetVersion -ceq $TargetVersion -and
+                $abandoned.status -ceq 'Running' -and
+                $abandoned.mode -ceq 'Fresh' -and
+                -not [string]::IsNullOrWhiteSpace([string]$abandoned.lastError)) {
+                $existing = $abandoned
+                $existing.status = 'Capturing'
+                $existing.options = @()
+                $existing.userSid = $null
+                $existing.userSessionId = $null
+                $existing.captureNonce = $CaptureNonce
+                $existing.lastError = $null
+                Write-AtlasInstallStateFile -Path $resolvedPath -State $existing
+                [IO.File]::Delete($abandonedPath)
+                return $existing
+            }
+        }
         $existing = Get-AtlasInstallStateUnlocked -StatePath $resolvedPath
         if ($null -ne $existing) {
             if (-not [string]::Equals(
@@ -326,16 +357,34 @@ function Start-AtlasInstallState {
             }
             if ($existing.mode -cne $installMode -or
                 [bool]$existing.isOobe -ne $oobeValue) {
-                throw "An active $($existing.mode) install state does not match the requested $installMode mode and OOBE scope."
-            }
-            if (@('Capturing', 'Running') -contains $existing.status) {
-                return $existing
-            }
-            throw "Install state '$resolvedPath' is not active."
-        }
+                $canRecoverFailedRun = (
+                    $existing.status -ceq 'Running' -and
+                    -not [string]::IsNullOrWhiteSpace([string]$existing.lastError)
+                )
+                if (-not $canRecoverFailedRun) {
+                    throw "An active $($existing.mode) install state does not match the requested $installMode mode and OOBE scope."
+                }
 
-        $directory = [IO.Path]::GetDirectoryName($resolvedPath)
-        [void][IO.Directory]::CreateDirectory((Join-Path -Path $directory -ChildPath 'work'))
+                # AME can classify a retry differently after a partial install has
+                # changed product state (for example Fresh -> Reapply). Resume the
+                # original plan and completed-step boundary, but return to capture so
+                # the retry records the user's current option choices.
+                $existing.status = 'Capturing'
+                $existing.options = @()
+                $existing.userSid = $null
+                $existing.userSessionId = $null
+                $existing.captureNonce = $CaptureNonce
+                $existing.lastError = $null
+                Write-AtlasInstallStateFile -Path $resolvedPath -State $existing `
+                    -CreateBackup
+            }
+            if ($null -ne $existing) {
+                if (@('Capturing', 'Running') -contains $existing.status) {
+                    return $existing
+                }
+                throw "Install state '$resolvedPath' is not active."
+            }
+        }
 
         $state = [pscustomobject][ordered]@{
             schemaVersion  = $script:AtlasInstallStateSchemaVersion
@@ -482,7 +531,7 @@ function Invoke-AtlasInstallStep {
         }
     }
     if (-not $decision.shouldRun) {
-        return
+        return [pscustomobject]@{ Skipped = $true; Result = $null }
     }
 
     # Actions can launch a user process that reads this state. Keep the named
@@ -496,20 +545,27 @@ function Invoke-AtlasInstallStep {
         if ($message.Length -gt 4096) {
             $message = $message.Substring(0, 4096)
         }
-        Invoke-AtlasInstallStateLocked {
-            $state = Get-AtlasInstallStateUnlocked -StatePath $resolvedPath
-            if ($null -eq $state -or
-                $state.status -ne 'Running' -or
-                -not [string]::Equals(
-                    $state.transactionId,
-                    $decision.transactionId,
-                    [StringComparison]::Ordinal
-                )) {
-                throw "Install state changed while step '$Name' was running."
-            }
-            $state.lastError = $message
-            Write-AtlasInstallStateFile -Path $resolvedPath -State $state -CreateBackup
-        } | Out-Null
+        # The action failure is the authoritative diagnostic; recording lastError is
+        # best-effort once the state or its transaction has moved on.
+        try {
+            Invoke-AtlasInstallStateLocked {
+                $state = Get-AtlasInstallStateUnlocked -StatePath $resolvedPath
+                if ($null -eq $state -or
+                    $state.status -ne 'Running' -or
+                    -not [string]::Equals(
+                        $state.transactionId,
+                        $decision.transactionId,
+                        [StringComparison]::Ordinal
+                    )) {
+                    throw "Install state changed while step '$Name' was running."
+                }
+                $state.lastError = $message
+                Write-AtlasInstallStateFile -Path $resolvedPath -State $state -CreateBackup
+            } | Out-Null
+        } catch {
+            Write-Warning ("Install step '$Name' failed and its lastError could not " +
+                "be recorded: $($_.Exception.Message)")
+        }
         throw $actionFailure
     }
 
@@ -530,7 +586,7 @@ function Invoke-AtlasInstallStep {
         $state.lastError = $null
         Write-AtlasInstallStateFile -Path $resolvedPath -State $state -CreateBackup
     } | Out-Null
-    return $result
+    return [pscustomobject]@{ Skipped = $false; Result = $result }
 }
 
 function Publish-AtlasInstallFlagSet {

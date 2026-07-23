@@ -133,6 +133,9 @@ switch ($Operation) {
         }
 
         $state = Get-AtlasInstallState
+        if ($null -eq $state) {
+            throw 'No active Atlas install state exists to commit.'
+        }
         $installUser = $null
         if (-not [bool]$state.isOobe) {
             $installUser = Find-AtlasInstallUserMarker `

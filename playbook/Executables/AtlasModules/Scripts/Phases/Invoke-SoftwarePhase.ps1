@@ -1,7 +1,6 @@
 # Software phase.
 # Installs machine-wide initial utilities and the selected browser/toolbox. Runs as
-# TrustedInstaller; downloads happen here at install time, which is why
-# custom.yml keeps the phase call inside the NO LOCAL BUILD marker block.
+# TrustedInstaller; downloads happen here at install time.
 # Every selected component is attempted. Any failures are reported together
 # after the remaining selections have had their installation attempt.
 

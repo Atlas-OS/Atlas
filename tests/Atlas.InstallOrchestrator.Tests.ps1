@@ -51,7 +51,7 @@ Describe 'Atlas install orchestrator' {
         $steps = New-Object Collections.Generic.List[string]
         $plan = @(
             [pscustomobject]@{ Key = 'Environment'; Replay = 'Once' }
-            [pscustomobject]@{ Key = 'Checkpoint/PayloadReplacement'; Replay = 'Once' }
+            [pscustomobject]@{ Key = 'Checkpoint/PayloadReplacement'; Replay = 'Always' }
             [pscustomobject]@{ Key = 'Features'; Replay = 'Once' }
         )
         $state = [pscustomobject]@{
@@ -92,7 +92,7 @@ Describe 'Atlas install orchestrator' {
                 ))
             $steps.ToArray() | Should -Be @(
                 'Environment|Once',
-                'Checkpoint/PayloadReplacement|Once',
+                'Checkpoint/PayloadReplacement|Always',
                 'Features|Once'
             )
             $script:completedForTest | Should -Be @(
@@ -104,6 +104,109 @@ Describe 'Atlas install orchestrator' {
         finally {
             Remove-Variable -Scope Script -Name completedForTest -ErrorAction Ignore
         }
+    }
+
+    It 'unloads a default hive created by this invocation when a later step fails' {
+        $calls = New-Object Collections.Generic.List[string]
+        $state = [pscustomobject]@{
+            status = 'Running'; isOobe = $false; userSid = 'S-1-5-21-1-2-3-1001'
+        }
+        $plan = @(
+            [pscustomobject]@{ Key = 'Checkpoint/DefaultHiveLoad'; Replay = 'Always' }
+            [pscustomobject]@{ Key = 'Environment'; Replay = 'Once' }
+            [pscustomobject]@{ Key = 'Checkpoint/DefaultHiveUnload'; Replay = 'Always' }
+        )
+        $stepInvoker = {
+            param($Name, $Mode, $Action)
+            [void]$Name
+            [void]$Mode
+            & $Action
+        }
+        $runner = {
+            param($Path, $Parameters)
+            $calls.Add("$(Split-Path -Leaf $Path)|$($Parameters.Values -join ',')")
+            if ((Split-Path -Leaf $Path) -eq 'Invoke-EnvironmentPhase.ps1') {
+                throw 'phase failed'
+            }
+        }.GetNewClosure()
+
+        {
+            Invoke-AtlasInstallPlanCore -State $state -Plan $plan `
+                -SourceScriptsRoot $TestDrive -InstalledScriptsRoot $TestDrive `
+                -StepInvoker $stepInvoker -CompleteInvoker {} -ScriptRunner $runner `
+                -PhaseStarter {} -PhaseStopper {}
+        } | Should -Throw 'phase failed'
+
+        $calls.ToArray() | Should -Be @(
+            'Set-AtlasDefaultUserHive.ps1|Loaded',
+            'Invoke-EnvironmentPhase.ps1|',
+            'Set-NotificationState.ps1|Enable',
+            'Set-AtlasDefaultUserHive.ps1|Unloaded'
+        )
+    }
+
+    It 'does not unload a default hive when this invocation did not load it' {
+        $calls = New-Object Collections.Generic.List[string]
+        $state = [pscustomobject]@{
+            status = 'Running'; isOobe = $false; userSid = 'S-1-5-21-1-2-3-1001'
+        }
+        $plan = @(
+            [pscustomobject]@{ Key = 'Checkpoint/DefaultHiveLoad'; Replay = 'Always' }
+        )
+        $runner = {
+            param($Path, $Parameters)
+            $calls.Add("$(Split-Path -Leaf $Path)|$([string]$Parameters['State'])")
+            throw 'load failed'
+        }.GetNewClosure()
+
+        {
+            Invoke-AtlasInstallPlanCore -State $state -Plan $plan `
+                -SourceScriptsRoot $TestDrive -InstalledScriptsRoot $TestDrive `
+                -StepInvoker { param($Name, $Mode, $Action) [void]$Name; [void]$Mode; & $Action } `
+                -CompleteInvoker {} -ScriptRunner $runner `
+                -PhaseStarter {} -PhaseStopper {}
+        } | Should -Throw 'load failed'
+
+        $calls.ToArray() | Should -Be @(
+            'Set-AtlasDefaultUserHive.ps1|Loaded',
+            'Set-NotificationState.ps1|'
+        )
+    }
+
+    It 'retries a planned default hive unload once as best-effort cleanup' {
+        $calls = New-Object Collections.Generic.List[string]
+        $unloadState = @{ Calls = 0 }
+        $state = [pscustomobject]@{
+            status = 'Running'; isOobe = $true; userSid = $null
+        }
+        $plan = @(
+            [pscustomobject]@{ Key = 'Checkpoint/DefaultHiveLoad'; Replay = 'Always' }
+            [pscustomobject]@{ Key = 'Checkpoint/DefaultHiveUnload'; Replay = 'Always' }
+        )
+        $runner = {
+            param($Path, $Parameters)
+            $stepState = [string]$Parameters['State']
+            $calls.Add("$(Split-Path -Leaf $Path)|$stepState")
+            if ($stepState -eq 'Unloaded') {
+                $unloadState.Calls++
+                if ($unloadState.Calls -eq 1) { throw 'first unload failed' }
+            }
+        }.GetNewClosure()
+
+        {
+            Invoke-AtlasInstallPlanCore -State $state -Plan $plan `
+                -SourceScriptsRoot $TestDrive -InstalledScriptsRoot $TestDrive `
+                -StepInvoker { param($Name, $Mode, $Action) [void]$Name; [void]$Mode; & $Action } `
+                -CompleteInvoker {} -ScriptRunner $runner `
+                -PhaseStarter {} -PhaseStopper {}
+        } | Should -Throw 'first unload failed'
+
+        $calls.ToArray() | Should -Be @(
+            'Set-AtlasDefaultUserHive.ps1|Loaded',
+            'Set-AtlasDefaultUserHive.ps1|Unloaded',
+            'Set-NotificationState.ps1|',
+            'Set-AtlasDefaultUserHive.ps1|Unloaded'
+        )
     }
 
     It 'pairs phase lifecycle calls even when a phase script fails' {
