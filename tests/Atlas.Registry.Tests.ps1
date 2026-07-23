@@ -39,7 +39,7 @@ Describe 'Resolve-AtlasRegistryTarget identity boundary' {
         }
 
         $result.Primary | Should -Be 'Registry::HKEY_CURRENT_USER\Software\X'
-        $result.Mirror | Should -BeNullOrEmpty
+        $result.PSObject.Properties.Match('Mirror').Count | Should -Be 0
         $result.HkcuSubPath | Should -BeNullOrEmpty
         Should -Invoke -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -Times 1 -Exactly
         Should -Invoke -CommandName Get-AtlasRegistryCurrentTokenSid -ModuleName Atlas.Registry -Times 1 -Exactly
@@ -86,10 +86,71 @@ Describe 'Resolve-AtlasRegistryTarget identity boundary' {
         }
 
         $result.Primary | Should -Be 'Registry::HKEY_USERS\Atlas_DefaultUser\Software\X'
-        $result.Mirror | Should -BeNullOrEmpty
+        $result.PSObject.Properties.Match('Mirror').Count | Should -Be 0
         $result.HkcuSubPath | Should -Be 'Software\X'
         Should -Invoke -CommandName Get-AtlasContext `
             -ModuleName Atlas.Registry -Times 1 -Exactly
+    }
+
+    It 'binds the protected policy writer to the active transaction and exact installing user' {
+        Mock -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -MockWith { $true }
+        Mock -CommandName Test-AtlasTrustedInstaller -ModuleName Atlas.Registry -MockWith { $true }
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Registry -MockWith {
+            [pscustomobject]@{
+                IsInstallStateBacked = $true
+                TransactionId        = '11111111-2222-3333-4444-555555555555'
+                InteractiveUserSid   = 'S-1-5-21-1-2-3-1001'
+            }
+        }
+
+        Initialize-AtlasRegistryIdentityContext -InstallingUserPoliciesOnly `
+            -InstallingUserSid 'S-1-5-21-1-2-3-1001' `
+            -TransactionId '11111111-2222-3333-4444-555555555555' | Out-Null
+        $result = InModuleScope Atlas.Registry {
+            Resolve-AtlasRegistryTarget `
+                -Path 'HKCU:\Software\Policies\Microsoft\Windows\Explorer'
+        }
+
+        $result.Primary | Should -Be 'Registry::HKEY_USERS\S-1-5-21-1-2-3-1001\Software\Policies\Microsoft\Windows\Explorer'
+    }
+
+    It 'refuses arbitrary HKCU paths from the protected policy writer' {
+        Mock -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -MockWith { $true }
+        Mock -CommandName Test-AtlasTrustedInstaller -ModuleName Atlas.Registry -MockWith { $true }
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Registry -MockWith {
+            [pscustomobject]@{
+                IsInstallStateBacked = $true
+                TransactionId        = '11111111-2222-3333-4444-555555555555'
+                InteractiveUserSid   = 'S-1-5-21-1-2-3-1001'
+            }
+        }
+
+        Initialize-AtlasRegistryIdentityContext -InstallingUserPoliciesOnly `
+            -InstallingUserSid 'S-1-5-21-1-2-3-1001' `
+            -TransactionId '11111111-2222-3333-4444-555555555555' | Out-Null
+
+        {
+            InModuleScope Atlas.Registry {
+                Resolve-AtlasRegistryTarget -Path 'HKCU:\Software\Atlas\Arbitrary'
+            }
+        } | Should -Throw '*cannot target HKCU path*'
+    }
+
+    It 'rejects a protected policy writer whose SID differs from install state' {
+        Mock -CommandName Test-AtlasTrustedInstaller -ModuleName Atlas.Registry -MockWith { $true }
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Registry -MockWith {
+            [pscustomobject]@{
+                IsInstallStateBacked = $true
+                TransactionId        = '11111111-2222-3333-4444-555555555555'
+                InteractiveUserSid   = 'S-1-5-21-1-2-3-2002'
+            }
+        }
+
+        {
+            Initialize-AtlasRegistryIdentityContext -InstallingUserPoliciesOnly `
+                -InstallingUserSid 'S-1-5-21-1-2-3-1001' `
+                -TransactionId '11111111-2222-3333-4444-555555555555'
+        } | Should -Throw '*does not match expected SID*'
     }
 
     It 'rejects every privileged explicit live-user HKEY_USERS target' {
@@ -113,7 +174,7 @@ Describe 'Resolve-AtlasRegistryPath' {
         ) {
             $result = Resolve-AtlasRegistryPath -Path $Path
             $result.Primary | Should -Be 'Registry::HKEY_CURRENT_USER\Software\X'
-            $result.Mirror | Should -BeNullOrEmpty
+            $result.PSObject.Properties.Match('Mirror').Count | Should -Be 0
             $result.HkcuSubPath | Should -BeNullOrEmpty
             $result.IsHkcu | Should -BeTrue
         }
@@ -123,7 +184,7 @@ Describe 'Resolve-AtlasRegistryPath' {
         It 'passes HKLM through untouched even when redirecting' {
             $result = Resolve-AtlasRegistryPath -Path 'HKLM:\SOFTWARE\Test'
             $result.Primary | Should -Be 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Test'
-            $result.Mirror | Should -BeNullOrEmpty
+            $result.PSObject.Properties.Match('Mirror').Count | Should -Be 0
             $result.HkcuSubPath | Should -BeNullOrEmpty
             $result.IsHkcu | Should -BeFalse
         }
@@ -141,6 +202,30 @@ Describe 'Resolve-AtlasRegistryPath' {
         It 'throws on an unsupported root' {
             { Resolve-AtlasRegistryPath -Path 'HKXX:\Software' } | Should -Throw '*Unsupported registry root*'
         }
+    }
+}
+
+Describe 'Get-AtlasRegistryEntryTargetScope' {
+    It 'classifies machine, current-user, protected, default-user and explicit hive paths' {
+        Get-AtlasRegistryEntryTargetScope -Path 'HKLM\SOFTWARE\X' | Should -Be 'Machine'
+        Get-AtlasRegistryEntryTargetScope -Path 'HKCU:\Software\X' | Should -Be 'CurrentUser'
+        Get-AtlasRegistryEntryTargetScope -Path 'HKCU\Software\Policies\X' |
+            Should -Be 'ProtectedCurrentUser'
+        Get-AtlasRegistryEntryTargetScope -Path 'HKU\Atlas_DefaultUser\Software\X' |
+            Should -Be 'DefaultUser'
+        Get-AtlasRegistryEntryTargetScope -Path 'HKU\S-1-5-21-1-2-3-1001\Software\X' |
+            Should -Be 'ExplicitUserHive'
+    }
+}
+
+Describe 'Test-AtlasArchMatch' {
+    It 'matches optional architecture gates against the machine architecture' {
+        Test-AtlasArchMatch -Arch '' -IsArm64 $false | Should -BeTrue
+        Test-AtlasArchMatch -Arch 'X64' -IsArm64 $false | Should -BeTrue
+        Test-AtlasArchMatch -Arch 'X64' -IsArm64 $true | Should -BeFalse
+        Test-AtlasArchMatch -Arch 'ARM64' -IsArm64 $true | Should -BeTrue
+        { Test-AtlasArchMatch -Arch 'X86' -IsArm64 $false } |
+            Should -Throw '*Unknown architecture gate*'
     }
 }
 
@@ -286,6 +371,23 @@ Describe 'Invoke-AtlasRegistryEntries' {
         $key.GetValue('Ungated') | Should -Be 1
         $key.GetValue('X64Only') | Should -Be 2
         $key.GetValue('Arm64Only', $null) | Should -BeNullOrEmpty
+    }
+
+    It 'separates protected policy entries from ordinary current-user entries' {
+        Mock -CommandName Set-AtlasRegistryValue -ModuleName Atlas.Registry
+        $entries = @(
+            @{ Path = 'HKCU:\Software\Atlas\Preference'; Name = 'Value'; Type = 'DWord'; Data = 1 }
+            @{ Path = 'HKCU:\Software\Policies\Atlas\Policy'; Name = 'Value'; Type = 'DWord'; Data = 1 }
+            @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'; Name = 'Value'; Type = 'DWord'; Data = 1 }
+        )
+
+        Invoke-AtlasRegistryEntries -Entries $entries -Scope CurrentUser -IsArm64:$false
+        Should -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Registry -Times 1 -Exactly `
+            -ParameterFilter { $Path -eq 'HKCU:\Software\Atlas\Preference' }
+
+        Invoke-AtlasRegistryEntries -Entries $entries -Scope ProtectedCurrentUser -IsArm64:$false
+        Should -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Registry -Times 2 -Exactly `
+            -ParameterFilter { $Path -like 'HKCU:*Policies*' }
     }
 
     It 'applies arm64-gated entries on arm64 machines' {

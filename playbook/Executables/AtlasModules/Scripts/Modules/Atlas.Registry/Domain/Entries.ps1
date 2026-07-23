@@ -33,6 +33,9 @@ function Get-AtlasRegistryEntryTargetScope {
 
     $pathInfo = ConvertTo-AtlasRegistryPathInfo -Path $Path
     if ($pathInfo.Root -eq 'HKEY_CURRENT_USER') {
+        if (Test-AtlasProtectedCurrentUserPolicyPath -SubPath $pathInfo.SubPath) {
+            return 'ProtectedCurrentUser'
+        }
         return 'CurrentUser'
     }
     if ($pathInfo.Root -eq 'HKEY_USERS') {
@@ -61,7 +64,7 @@ function Invoke-AtlasRegistryEntries {
         [AllowEmptyCollection()]
         [hashtable[]]$Entries,
 
-        [ValidateSet('All', 'Machine', 'CurrentUser', 'DefaultUser')]
+        [ValidateSet('All', 'Machine', 'ProtectedCurrentUser', 'CurrentUser', 'DefaultUser')]
         [string]$Scope = 'All',
 
         [bool]$IsArm64
@@ -91,8 +94,9 @@ function Invoke-AtlasRegistryEntries {
             $appliesToScope = switch ($Scope) {
                 'All' { $true }
                 'Machine' { $targetScope -ceq 'Machine' }
+                'ProtectedCurrentUser' { $targetScope -ceq 'ProtectedCurrentUser' }
                 'CurrentUser' { $targetScope -ceq 'CurrentUser' }
-                'DefaultUser' { $targetScope -in @('CurrentUser', 'DefaultUser') }
+                'DefaultUser' { $targetScope -in @('CurrentUser', 'ProtectedCurrentUser', 'DefaultUser') }
             }
             if (-not $appliesToScope) {
                 continue

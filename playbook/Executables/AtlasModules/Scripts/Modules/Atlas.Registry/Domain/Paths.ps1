@@ -1,11 +1,12 @@
 # Atlas.Registry domain: registry path parsing and explicit HKCU scope binding.
 #
-# A privileged process must never redirect HKCU to a live user's HKEY_USERS path. A
-# user can create registry links inside their own hive, so an otherwise exact SID still
-# leaves TrustedInstaller acting as a deputy over user-controlled traversal. Live-user
-# mutations therefore run in that user's own medium-token process and use ambient HKCU.
-# The privileged install process may target only the fixed, separately loaded Atlas
-# default-user hive after binding to the active install state.
+# A privileged process must never generally redirect HKCU to a live user's HKEY_USERS
+# path. A user can create registry links inside their own hive, so an otherwise exact
+# SID still leaves TrustedInstaller acting as a deputy over user-controlled traversal.
+# Live-user mutations therefore run in that user's own medium-token process and use
+# ambient HKCU. The sole live-user exception is an install-state-bound writer restricted
+# to the two Windows-owned policy roots whose ACLs reject the medium-token user. It runs
+# in a short-lived process and cannot resolve any other HKCU path.
 
 $script:AtlasRegistryIdentityContext = $null
 $script:AtlasDefaultUserHiveRoot = 'Registry::HKEY_USERS\Atlas_DefaultUser'
@@ -19,6 +20,20 @@ function Test-AtlasDefaultUserHiveLoaded {
     }
     $hiveKey.Dispose()
     return $true
+}
+
+function Test-AtlasProtectedCurrentUserPolicyPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SubPath
+    )
+
+    $normalized = $SubPath.Trim('\')
+    return (
+        $normalized -imatch '^Software\\Policies(?:\\|$)' -or
+        $normalized -imatch '^Software\\Microsoft\\Windows\\CurrentVersion\\Policies(?:\\|$)'
+    )
 }
 
 function ConvertTo-AtlasCanonicalRegistrySid {
@@ -64,8 +79,9 @@ function Initialize-AtlasRegistryIdentityContext {
     .DESCRIPTION
         CurrentToken is used by an exact user process and never redirects through HKU.
         DefaultUserOnly is accepted only from strict TrustedInstaller and is bound to
-        the active install state. There is deliberately no live-user
-        SID redirection mode.
+        the active install state. InstallingUserPoliciesOnly is also strict
+        TrustedInstaller and transaction-bound, but may resolve only the fixed Windows
+        policy roots beneath the exact installing-user SID.
     #>
     [CmdletBinding(DefaultParameterSetName = 'CurrentToken')]
     param(
@@ -81,7 +97,15 @@ function Initialize-AtlasRegistryIdentityContext {
 
         [Parameter(Mandatory = $true, ParameterSetName = 'DefaultUserOnly')]
         [ValidateNotNullOrEmpty()]
-        [string]$TransactionId
+        [Parameter(Mandatory = $true, ParameterSetName = 'InstallingUserPoliciesOnly')]
+        [string]$TransactionId,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'InstallingUserPoliciesOnly')]
+        [switch]$InstallingUserPoliciesOnly,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'InstallingUserPoliciesOnly')]
+        [ValidateNotNullOrEmpty()]
+        [string]$InstallingUserSid
     )
 
     $newContext = $null
@@ -130,6 +154,42 @@ function Initialize-AtlasRegistryIdentityContext {
             $newContext = [pscustomobject]@{
                 Mode          = 'DefaultUserOnly'
                 UserSid       = $null
+                TransactionId = [string]$transaction.TransactionId
+            }
+        }
+        'InstallingUserPoliciesOnly' {
+            if (-not $InstallingUserPoliciesOnly) {
+                throw 'InstallingUserPoliciesOnly registry identity context requires -InstallingUserPoliciesOnly:$true.'
+            }
+            if (-not (Test-AtlasTrustedInstaller)) {
+                throw 'InstallingUserPoliciesOnly registry identity context requires strict TrustedInstaller token evidence.'
+            }
+
+            $expectedSid = ConvertTo-AtlasCanonicalRegistrySid -Sid $InstallingUserSid `
+                -Label 'Expected installing-user SID'
+            $transaction = Get-AtlasContext -Refresh
+            if (-not [bool]$transaction.IsInstallStateBacked) {
+                throw 'InstallingUserPoliciesOnly registry identity requires an active Atlas install state.'
+            }
+            if (-not [string]::Equals(
+                    [string]$transaction.TransactionId,
+                    $TransactionId,
+                    [StringComparison]::Ordinal
+                )) {
+                throw "The active Atlas transaction '$($transaction.TransactionId)' does not match expected transaction '$TransactionId'."
+            }
+            if ([string]::IsNullOrWhiteSpace([string]$transaction.InteractiveUserSid)) {
+                throw 'The active Atlas install state has no installing-user SID.'
+            }
+            $activeSid = ConvertTo-AtlasCanonicalRegistrySid `
+                -Sid ([string]$transaction.InteractiveUserSid) -Label 'Active installing-user SID'
+            if (-not [string]::Equals($activeSid, $expectedSid, [StringComparison]::Ordinal)) {
+                throw "The active installing-user SID '$activeSid' does not match expected SID '$expectedSid'."
+            }
+
+            $newContext = [pscustomobject]@{
+                Mode          = 'InstallingUserPoliciesOnly'
+                UserSid       = $activeSid
                 TransactionId = [string]$transaction.TransactionId
             }
         }
@@ -220,7 +280,6 @@ function Resolve-AtlasRegistryPath {
 
     return [pscustomobject]@{
         Primary     = $primary
-        Mirror      = $null
         HkcuSubPath = $null
         IsHkcu      = $isHkcu
     }
@@ -296,7 +355,24 @@ function Resolve-AtlasRegistryTarget {
             }
             return [pscustomobject]@{
                 Primary     = $primary
-                Mirror      = $null
+                HkcuSubPath = $pathInfo.SubPath
+                IsHkcu      = $true
+            }
+        }
+        'InstallingUserPoliciesOnly' {
+            if (-not $isSystem -or -not (Test-AtlasTrustedInstaller)) {
+                throw 'The InstallingUserPoliciesOnly registry identity context lost strict TrustedInstaller identity.'
+            }
+            if (-not (Test-AtlasProtectedCurrentUserPolicyPath -SubPath $pathInfo.SubPath)) {
+                throw "The installing-user policy writer cannot target HKCU path '$Path'."
+            }
+
+            $primary = "Registry::HKEY_USERS\$($script:AtlasRegistryIdentityContext.UserSid)"
+            if ($pathInfo.SubPath) {
+                $primary = "$primary\$($pathInfo.SubPath)"
+            }
+            return [pscustomobject]@{
+                Primary     = $primary
                 HkcuSubPath = $pathInfo.SubPath
                 IsHkcu      = $true
             }

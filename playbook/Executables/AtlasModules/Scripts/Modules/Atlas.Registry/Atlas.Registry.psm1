@@ -1,6 +1,15 @@
 # Atlas.Registry - registry engine module.
 Set-StrictMode -Version 3.0
 
+# Atlas.Core supplies logging, install context and token evidence for path binding.
+$coreManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1'
+if (-not (Test-Path -LiteralPath $coreManifest -PathType Leaf)) {
+    throw "Required Atlas.Core manifest '$coreManifest' is missing."
+}
+# Reuse the orchestrator's Core instance; forcing it from nested module scope
+# removes global Core commands from the caller in Windows PowerShell 5.1.
+Import-Module -Name $coreManifest -ErrorAction Stop
+
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(
@@ -23,5 +32,6 @@ Export-ModuleMember -Function @(
     'Resolve-AtlasRegistryPath', 'Initialize-AtlasRegistryIdentityContext',
     'Set-AtlasRegistryValue', 'Remove-AtlasRegistryValue', 'New-AtlasRegistryKey', 'Remove-AtlasRegistryKey',
     'Import-AtlasRegFile', 'Invoke-AtlasRegistryEntries',
-    'Get-UserPath', 'Get-SystemDrive'
+    'Test-AtlasArchMatch', 'Get-AtlasRegistryEntryTargetScope',
+    'Get-UserPath'
 )

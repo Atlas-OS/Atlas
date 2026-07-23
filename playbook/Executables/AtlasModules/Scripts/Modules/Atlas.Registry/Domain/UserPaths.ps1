@@ -1,6 +1,6 @@
-# Atlas.Registry domain: known-folder and system-drive helpers.
-# The unprefixed function names are an internal contract for the scripts that resolve
-# them through PSModulePath auto-loading - do not rename them.
+# Atlas.Registry domain: known-folder helper.
+# The unprefixed function name is an internal contract for the scripts that resolve
+# it through PSModulePath auto-loading - do not rename it.
 
 function Get-UserPath {
     <#
@@ -52,31 +52,5 @@ public class KnownFolder
     }
     else {
         throw "Failed to retrieve $guid. Error code: $result"
-    }
-}
-
-function Get-SystemDrive {
-    <#
-    .SYNOPSIS
-        Returns the system drive letter (e.g. 'C:'), preferring the environment and
-        falling back to CIM, then 'C:'.
-    #>
-    $drive = $null
-    foreach ($letter in @(
-        $env:SystemDrive,
-        (Get-CimInstance -ClassName Win32_OperatingSystem).SystemDrive,
-        'C:'
-    )) {
-        if ($letter -and ($letter.Length -eq 2) -and (Test-Path -LiteralPath $letter -PathType Container)) {
-            $drive = $letter
-            break
-        }
-    }
-
-    if ($drive) {
-        return $drive
-    }
-    else {
-        throw 'Failed to find the system drive!'
     }
 }
