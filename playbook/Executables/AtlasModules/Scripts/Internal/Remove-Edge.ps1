@@ -51,8 +51,6 @@ $version = '1.9.5'
 
 $ProgressPreference = 'SilentlyContinue'
 $sys32 = [Environment]::GetFolderPath('System')
-$windir = [Environment]::GetFolderPath('Windows')
-$env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
 $msedgeExePaths = @(
     "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application\msedge.exe",
     "$([Environment]::GetFolderPath('ProgramFiles'))\Microsoft\Edge\Application\msedge.exe"
@@ -299,11 +297,11 @@ function Remove-EdgePath {
         return
     }
 
-    & takeown.exe /F "$Path" /R /D Y *> $null
-    & icacls.exe "$Path" /grant '*S-1-5-32-544:(F)' /T /C *> $null
+    & "$sys32\takeown.exe" /F "$Path" /R /D Y *> $null
+    & "$sys32\icacls.exe" "$Path" /grant '*S-1-5-32-544:(F)' /T /C *> $null
     Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
     if (Test-Path -LiteralPath $Path) {
-        & cmd.exe /c rd /s /q "$Path" *> $null
+        & "$sys32\cmd.exe" /c rd /s /q "$Path" *> $null
     }
 }
 
@@ -349,6 +347,81 @@ function KillEdgeProcesses {
         Stop-Process -Id $process -Force
     }
     $ErrorActionPreference = 'Continue'
+}
+
+function Wait-EdgeUninstallerProcesses {
+    <#
+        Give Edge's detached uninstallers a short opportunity to complete, then
+        stop and verify any that remain. Waiting for the uninstallers without a
+        bound can reach RestartManager and sign out the live user on 24H2/25H2.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [object[]]$Process,
+
+        [ValidateRange(0, 30)]
+        [int]$LaunchWindowSeconds = 3,
+
+        [ValidateRange(0, 30)]
+        [int]$TerminationSeconds = 5
+    )
+
+    $trackedIds = @(
+        $Process |
+            Where-Object { $null -ne $_ -and $null -ne $_.Id } |
+            ForEach-Object { [int]$_.Id } |
+            Sort-Object -Unique
+    )
+    if ($trackedIds.Count -eq 0) {
+        return
+    }
+
+    $launchDeadline = [DateTime]::UtcNow.AddSeconds($LaunchWindowSeconds)
+    do {
+        $runningIds = @(
+            foreach ($processId in $trackedIds) {
+                if ($null -ne (Get-Process -Id $processId -ErrorAction SilentlyContinue)) {
+                    $processId
+                }
+            }
+        )
+        if ($runningIds.Count -eq 0) {
+            Write-Status 'Edge uninstallers completed inside the bounded launch window.'
+            return
+        }
+        if ([DateTime]::UtcNow -ge $launchDeadline) {
+            break
+        }
+        Start-Sleep -Milliseconds 100
+    } while ($true)
+
+    Write-Status "Stopping $($runningIds.Count) Edge uninstaller process(es) before direct removal." -Level Warning
+    foreach ($processId in $runningIds) {
+        Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+    }
+
+    $terminationDeadline = [DateTime]::UtcNow.AddSeconds($TerminationSeconds)
+    do {
+        $remainingIds = @(
+            foreach ($processId in $runningIds) {
+                if ($null -ne (Get-Process -Id $processId -ErrorAction SilentlyContinue)) {
+                    $processId
+                }
+            }
+        )
+        if ($remainingIds.Count -eq 0) {
+            Write-Status 'Confirmed that the detached Edge uninstallers stopped.'
+            return
+        }
+        if ([DateTime]::UtcNow -ge $terminationDeadline) {
+            break
+        }
+        Start-Sleep -Milliseconds 100
+    } while ($true)
+
+    throw "Could not confirm termination of detached Edge uninstaller process(es): $($remainingIds -join ', ')."
 }
 
 function DisableEdgeUpdateInfrastructure {
@@ -429,7 +502,7 @@ function Remove-EdgeRegistration {
     }
     foreach ($edgeKey in $edgeKeys) {
         foreach ($view in @('/reg:64', '/reg:32')) {
-            & reg.exe delete "$edgeKey" /f $view *> $null
+            & "$sys32\reg.exe" delete "$edgeKey" /f $view *> $null
         }
     }
 }
@@ -732,7 +805,9 @@ else {
     }
     if (!([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
         if ($PSBoundParameters.Count -le 0 -and !$args) {
-            Start-Process cmd "/c PowerShell -NoP -EP RemoteSigned -File `"$PSCommandPath`"" -Verb RunAs -WindowStyle Hidden
+            # cmd /c strips the first and last quote of a multi-quote command line, so the
+            # whole command is wrapped in one extra outer pair.
+            Start-Process "$sys32\cmd.exe" "/c `"`"$sys32\WindowsPowerShell\v1.0\powershell.exe`" -NoP -EP RemoteSigned -File `"$PSCommandPath`"`"" -Verb RunAs -WindowStyle Hidden
             exit
         }
         else {
@@ -804,10 +879,11 @@ if ($UninstallEdge) {
     KillEdgeProcesses
     DisableEdgeUpdateInfrastructure
 
-    # Kick off Edge's own uninstaller detached and DO NOT wait for it. A synchronous
-    # system-level --force-uninstall runs its RestartManager phase in the live session and
-    # signs the user out on 24H2/25H2; launching it detached lets the direct file deletion
-    # below finish the removal first.
+    # Kick off Edge's own uninstaller detached. A synchronous system-level
+    # --force-uninstall can reach RestartManager and sign out the live user on 24H2/25H2.
+    # Track the detached processes so they receive only a bounded launch window and are
+    # confirmed stopped before direct file deletion begins.
+    $edgeUninstallers = New-Object Collections.Generic.List[object]
     foreach ($root in @(
             "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application",
             "$([Environment]::GetFolderPath('ProgramFiles'))\Microsoft\Edge\Application"
@@ -817,11 +893,21 @@ if ($UninstallEdge) {
         }
         foreach ($setup in @(Get-ChildItem -Path $root -Filter 'setup.exe' -Recurse -ErrorAction SilentlyContinue | Sort-Object -Property FullName -Unique)) {
             Write-Status "Launching uninstaller at '$($setup.FullName)'..."
-            Start-Process -FilePath $setup.FullName -ArgumentList '--uninstall --system-level --force-uninstall' -WindowStyle Hidden -ErrorAction SilentlyContinue
+            try {
+                $edgeUninstaller = Start-Process -FilePath $setup.FullName `
+                    -ArgumentList '--uninstall --system-level --force-uninstall' `
+                    -WindowStyle Hidden -PassThru -ErrorAction Stop
+                if ($null -ne $edgeUninstaller) {
+                    $edgeUninstallers.Add($edgeUninstaller)
+                }
+            }
+            catch {
+                Write-Status "Could not launch Edge uninstaller '$($setup.FullName)': $($_.Exception.Message)" -Level Warning
+            }
         }
     }
 
-    Start-Sleep -Seconds 3
+    Wait-EdgeUninstallerProcesses -Process @($edgeUninstallers)
     KillEdgeProcesses
 
     # Remove the Edge browser install directly. Only the browser and its update
@@ -832,8 +918,8 @@ if ($UninstallEdge) {
         }
     }
     Get-ChildItem -LiteralPath ([Environment]::GetFolderPath('System')) -Filter 'MicrosoftEdge*.exe' -ErrorAction SilentlyContinue | ForEach-Object {
-        & takeown.exe /F "$($_.FullName)" *> $null
-        & icacls.exe "$($_.FullName)" /grant '*S-1-5-32-544:(F)' /C *> $null
+        & "$sys32\takeown.exe" /F "$($_.FullName)" *> $null
+        & "$sys32\icacls.exe" "$($_.FullName)" /grant '*S-1-5-32-544:(F)' /C *> $null
         Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
     }
 

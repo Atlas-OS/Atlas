@@ -105,6 +105,165 @@ function Remove-AtlasUserFileSystemEntry {
     [IO.File]::Delete($Entry.FullName)
 }
 
+function Get-AtlasEdgeExecutablePaths {
+    $paths = [Collections.Generic.List[string]]::new()
+    foreach ($folderName in @('ProgramFilesX86', 'ProgramFiles')) {
+        $programFilesPath = [Environment]::GetFolderPath($folderName)
+        if ([string]::IsNullOrWhiteSpace($programFilesPath)) {
+            continue
+        }
+
+        $edgeExecutablePath = [IO.Path]::GetFullPath([IO.Path]::Combine(
+                $programFilesPath,
+                'Microsoft',
+                'Edge',
+                'Application',
+                'msedge.exe'
+            ))
+        if (-not $paths.Contains($edgeExecutablePath)) {
+            $paths.Add($edgeExecutablePath)
+        }
+    }
+
+    return $paths.ToArray()
+}
+
+function Remove-AtlasOrphanedEdgeAutoLaunch {
+    [CmdletBinding()]
+    param(
+        [string]$RunSubKey = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Run',
+        [string[]]$StartupApprovedSubKeys = @(
+            'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
+            'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run32'
+        ),
+        [string[]]$KnownEdgeExecutablePaths
+    )
+
+    if ($null -eq $KnownEdgeExecutablePaths -or $KnownEdgeExecutablePaths.Count -eq 0) {
+        $KnownEdgeExecutablePaths = @(Get-AtlasEdgeExecutablePaths)
+    }
+
+    $canonicalEdgePaths = [Collections.Generic.List[string]]::new()
+    foreach ($knownPath in @($KnownEdgeExecutablePaths)) {
+        if ([string]::IsNullOrWhiteSpace($knownPath)) {
+            continue
+        }
+        $canonicalPath = [IO.Path]::GetFullPath($knownPath)
+        if (-not $canonicalEdgePaths.Contains($canonicalPath)) {
+            $canonicalEdgePaths.Add($canonicalPath)
+        }
+    }
+    if ($canonicalEdgePaths.Count -eq 0) {
+        throw 'No canonical Microsoft Edge executable paths are available.'
+    }
+
+    $runValueNames = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::OrdinalIgnoreCase
+    )
+    $removedValueNames = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::OrdinalIgnoreCase
+    )
+    $runKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($RunSubKey, $true)
+    if ($null -ne $runKey) {
+        try {
+            foreach ($valueName in @($runKey.GetValueNames())) {
+                $null = $runValueNames.Add($valueName)
+                if ($valueName -notmatch '^MicrosoftEdgeAutoLaunch_[0-9A-F]{32}$') {
+                    continue
+                }
+
+                $valueKind = $runKey.GetValueKind($valueName)
+                if ($valueKind -notin @(
+                        [Microsoft.Win32.RegistryValueKind]::String,
+                        [Microsoft.Win32.RegistryValueKind]::ExpandString
+                    )) {
+                    continue
+                }
+
+                $command = [string]$runKey.GetValue(
+                    $valueName,
+                    $null,
+                    [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
+                )
+                if ($valueKind -eq [Microsoft.Win32.RegistryValueKind]::ExpandString) {
+                    $command = [Environment]::ExpandEnvironmentVariables($command)
+                }
+
+                $match = [regex]::Match(
+                    $command,
+                    '^\s*"(?<Executable>[^"]+)"\s+--no-startup-window\s+--win-session-start\s*$',
+                    [Text.RegularExpressions.RegexOptions]::IgnoreCase
+                )
+                if (-not $match.Success) {
+                    continue
+                }
+
+                try {
+                    $commandExecutablePath = [IO.Path]::GetFullPath(
+                        $match.Groups['Executable'].Value
+                    )
+                }
+                catch {
+                    continue
+                }
+
+                $isKnownEdgePath = $false
+                foreach ($canonicalEdgePath in $canonicalEdgePaths) {
+                    if ([string]::Equals(
+                            $commandExecutablePath,
+                            $canonicalEdgePath,
+                            [StringComparison]::OrdinalIgnoreCase
+                        )) {
+                        $isKnownEdgePath = $true
+                        break
+                    }
+                }
+                if (-not $isKnownEdgePath -or [IO.File]::Exists($commandExecutablePath)) {
+                    continue
+                }
+
+                $runKey.DeleteValue($valueName, $false)
+                $null = $runValueNames.Remove($valueName)
+                $null = $removedValueNames.Add($valueName)
+            }
+        }
+        finally {
+            $runKey.Dispose()
+        }
+    }
+
+    foreach ($approvedSubKey in $StartupApprovedSubKeys) {
+        $approvedKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey(
+            $approvedSubKey,
+            $true
+        )
+        if ($null -eq $approvedKey) {
+            continue
+        }
+
+        try {
+            foreach ($approvedValueName in @($approvedKey.GetValueNames())) {
+                $isRemovedRunValue = $removedValueNames.Contains($approvedValueName)
+                $isOrphanedEdgeValue = (
+                    $approvedValueName -match '^MicrosoftEdgeAutoLaunch_[0-9A-F]{32}$' -and
+                    -not $runValueNames.Contains($approvedValueName)
+                )
+                if (-not $isRemovedRunValue -and -not $isOrphanedEdgeValue) {
+                    continue
+                }
+
+                $approvedKey.DeleteValue($approvedValueName, $false)
+                $null = $removedValueNames.Add($approvedValueName)
+            }
+        }
+        finally {
+            $approvedKey.Dispose()
+        }
+    }
+
+    return @($removedValueNames)
+}
+
 $expectedSid = try {
     (New-Object Security.Principal.SecurityIdentifier($ExpectedUserSid)).Value
 }
@@ -188,6 +347,11 @@ foreach ($registryPath in @(
     if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $registryPath) {
         Microsoft.PowerShell.Management\Remove-Item -LiteralPath $registryPath -Recurse -Force
     }
+}
+
+$removedAutoLaunchValues = @(Remove-AtlasOrphanedEdgeAutoLaunch)
+foreach ($removedAutoLaunchValue in $removedAutoLaunchValues) {
+    Write-Verbose "Removed orphaned Edge startup registration '$removedAutoLaunchValue'."
 }
 
 if ([IO.Directory]::Exists($edgeDataPath)) {

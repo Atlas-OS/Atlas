@@ -78,19 +78,9 @@ function Remove-AtlasOneDrive {
         Write-AtlasLog -Level Warning -Message 'Protected OneDriveSetup.exe was not found; skipping executable uninstall and continuing declarative cleanup.'
     }
 
-    # Do not mutate user-owned HKEY_USERS trees from this elevated process.
-    # Registry symbolic links can redirect provider recursion/writes, and a
-    # medium user can race any path precheck. Per-user OneDrive state is left to
-    # the protected vendor uninstaller or a future medium-token reconciliation.
-    Write-AtlasLog -Message 'Skipped elevated cleanup of user-owned OneDrive registry state.'
-
-    # Do not recursively traverse user-writable filesystem paths from this
-    # elevated process. A profile owner can replace an ancestor with a junction
-    # between validation and deletion, redirecting a privileged Remove-Item into
-    # another profile or machine location. The protected OneDriveSetup binary is
-    # the supported filesystem-removal authority; harmless leftovers are safer
-    # than privileged traversal of untrusted profile trees.
-    Write-AtlasLog -Message 'Skipped elevated deletion of user-owned OneDrive filesystem leftovers.'
+    # User-owned HKCU and profile leftovers are removed separately by
+    # Remove-OneDriveCurrentUserData.ps1 in the exact install-state user token.
+    # Never enumerate HKEY_USERS or profile directories from this privileged phase.
 
     foreach ($taskPattern in @('OneDrive Reporting Task*', 'OneDrive Standalone Update Task*')) {
         foreach ($task in @(Get-ScheduledTask -TaskName $taskPattern -ErrorAction SilentlyContinue)) {

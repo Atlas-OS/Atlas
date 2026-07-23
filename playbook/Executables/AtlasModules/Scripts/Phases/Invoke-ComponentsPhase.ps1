@@ -15,17 +15,18 @@ Import-Module -Name (Join-Path $modulesRoot 'Atlas.Services\Atlas.Services.psd1'
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force -ErrorAction Stop
 
+$powerShellExe = [IO.Path]::Combine(
+    [Environment]::SystemDirectory,
+    'WindowsPowerShell',
+    'v1.0',
+    'powershell.exe'
+)
+
 # Preserve the former components.yml ordering without an elevated-user identity split.
 # Machine removal runs in a fixed child contract under this TI token; user-owned HKCU and
 # LocalAppData cleanup is a separate exact-user process and is omitted during OOBE.
 if (Test-AtlasOption -Name 'uninstall-edge') {
     $context = Get-AtlasContext
-    $powerShellExe = [IO.Path]::Combine(
-        [Environment]::SystemDirectory,
-        'WindowsPowerShell',
-        'v1.0',
-        'powershell.exe'
-    )
     $removeEdgeScript = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'Internal\Remove-Edge.ps1'
     Invoke-AtlasHiddenProcess -FilePath $powerShellExe -ArgumentList @(
         '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
@@ -90,12 +91,49 @@ if (Test-AtlasOption -Name 'uninstall-edge') {
 }
 
 # OneDrive
-# The actual OneDrive setup in Windows is stripped at a component-level in the miscellaneous package
+# The actual OneDrive setup in Windows is stripped at a component-level in the miscellaneous package.
+# Keep vendor uninstall and machine cleanup in this TI phase, then reconcile HKCU/profile
+# leftovers only inside the install-state-bound user's own token.
 try {
     Remove-AtlasOneDrive
 }
 catch {
+    $containmentUnconfirmed = $false
+    for ($exception = $_.Exception; $null -ne $exception; $exception = $exception.InnerException) {
+        if ($exception.Data.Contains('AtlasProcessMayStillBeRunning') -and
+            [bool]$exception.Data['AtlasProcessMayStillBeRunning']) {
+            $containmentUnconfirmed = $true
+            break
+        }
+    }
+    if ($containmentUnconfirmed) {
+        throw
+    }
     Write-AtlasLog -Level Warning -Message "Removing OneDrive failed: $($_.Exception.Message)"
+}
+
+$oneDriveContext = Get-AtlasContext
+if (-not $oneDriveContext.IsOobe) {
+    $interactiveUserSid = [string]$oneDriveContext.InteractiveUserSid
+    if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {
+        throw 'OneDrive current-user cleanup requires the install-state user SID.'
+    }
+    $oneDriveUserScript = Join-Path -Path (Split-Path -Parent $PSScriptRoot) `
+        -ChildPath 'Internal\Remove-OneDriveCurrentUserData.ps1'
+    $oneDriveUserArguments = ConvertTo-AtlasWindowsArgumentString -ArgumentList ([string[]]@(
+        '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+        '-File', $oneDriveUserScript,
+        '-ExpectedUserSid', $interactiveUserSid
+    ))
+    $oneDriveUserExitCode = Invoke-AtlasAsUser -FilePath $powerShellExe `
+        -Arguments $oneDriveUserArguments
+    if ($oneDriveUserExitCode -ne 0) {
+        # OneDrive can leave locked cache files or profile-specific state that its
+        # own uninstaller cannot remove. Machine removal is already complete here;
+        # optional user-owned leftovers must not make the Atlas install fail.
+        Write-AtlasLog -Level Warning -Message `
+            "Exact-user OneDrive leftover cleanup exited with code $oneDriveUserExitCode; continuing because only user-owned cleanup remains."
+    }
 }
 
 # Windows components and Telemetry (CBS packages)
@@ -114,8 +152,9 @@ if (Test-AtlasOption -Name 'defender-disable') {
     # Defer it to a one-shot startup task that runs after the install reboot, once Defender
     # is fully gone and the write succeeds.
     $mdCoreTaskName = 'AtlasDisableMDCoreSvc'
-    $mdCoreArgs = "/c schtasks /delete /tn `"$mdCoreTaskName`" /f > nul & " `
-        + "reg add `"HKLM\SYSTEM\CurrentControlSet\Services\MDCoreSvc`" /v Start /t REG_DWORD /d 4 /f > nul"
+    $mdCoreArgs = "/c reg add `"HKLM\SYSTEM\CurrentControlSet\Services\MDCoreSvc`" " `
+        + "/v Start /t REG_DWORD /d 4 /f > nul && " `
+        + "schtasks /delete /tn `"$mdCoreTaskName`" /f > nul"
     $mdCoreTask = @{
         'TaskName'  = $mdCoreTaskName
         'Settings'  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
