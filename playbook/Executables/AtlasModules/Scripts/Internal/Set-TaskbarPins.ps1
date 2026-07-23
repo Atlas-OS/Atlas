@@ -50,103 +50,147 @@ $shortcuts = @{
     }
 }
 
-
-
-if ($Browser) {
-    if ($Browser -notin $shortcuts.Keys) {
-        Write-Error "Browser '$Browser' not listed!"
-        $Browser = $null
-    }
-    elseif (!(Test-Path $shortcuts.$Browser.Path)) {
-        Write-Error "Browser '$Browser' path not found!"
-        $Browser = $null
-    }
-}
-
-# Init shortcuts
-$tmp = New-Item (Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $([System.Guid]::NewGuid())) -ItemType Directory -Force
-New-AtlasShortcut -Source $($shortcuts.$explorer.Path) -Destination "$tmp\$explorer.lnk"
-
-# Decide Registry Favorites
-if ([string]::IsNullOrEmpty($Browser)) {
-    # If Edge exists, pin it, otherwise, pin only File Explorer
-    $edgePath = $shortcuts.$edge.Path
-    if (Test-Path $edgePath) {
-        New-AtlasShortcut -Source $edgePath -Destination "$tmp\$edge.lnk"
-        $Browser = $edge
-        $regTaskbar = $shortcuts.$edge
-    }
-    else {
-        Write-Warning "Edge isn't installed."
-        $Browser = $explorer
-        $regTaskbar = $shortcuts.$explorer
-    }
-}
-else {
-    # Browser options
-    New-AtlasShortcut -Source $($shortcuts.$Browser.Path) -Destination "$tmp\$Browser.lnk"
-    $regTaskbar = $shortcuts.$Browser
-}
-
-# Set Registry changes
-$reg = @{}
-foreach ($entry in $regTaskbar.GetEnumerator()) {
-    if ($entry.Name -like 'Reg*') {
-        $reg.Add($entry.Name -replace 'Reg', $entry.Value)
-    }
-}
-
-# Paths
-$taskBarLocation = 'Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar'
-$rootKey = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
-
-function Set-AtlasTaskbarPinsForProfile {
+function Resolve-AtlasTaskbarBrowser {
     param(
-        [Parameter(Mandatory = $true)][string]$Sid,
-        [Parameter(Mandatory = $true)][string]$AppData,
-        [Parameter(Mandatory = $true)][string]$RegistryKey
+        [AllowEmptyString()][string]$RequestedBrowser,
+        [Parameter(Mandatory = $true)][hashtable]$ShortcutTable,
+        [Parameter(Mandatory = $true)][string]$EdgeName,
+        [Parameter(Mandatory = $true)][string]$ExplorerName
     )
 
-    if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData -PathType Container)) {
-        Write-Warning "Couldn't find AppData path for $Sid; skipping taskbar pin cleanup."
-        return
+    if (-not [string]::IsNullOrWhiteSpace($RequestedBrowser)) {
+        if (-not $ShortcutTable.ContainsKey($RequestedBrowser)) {
+            Write-Warning "Browser '$RequestedBrowser' is not a supported taskbar pin; using the fallback."
+        }
+        elseif (Test-Path -LiteralPath ([string]$ShortcutTable[$RequestedBrowser].Path) -PathType Leaf) {
+            return $RequestedBrowser
+        }
+        else {
+            Write-Warning "Browser '$RequestedBrowser' is not installed; using the fallback."
+        }
     }
 
-    Write-Title "Setting '$Browser' taskbar shortcut for '$Sid'..."
-
-    Write-Output "Clearing current shortcuts..."
-    $taskBarAppData = "$AppData\$taskBarLocation"
-    if (Test-Path $taskBarAppData -PathType Leaf) {
-        Write-Output "Deleting corrupted TaskBar file..."
-        Remove-Item -Path $taskBarAppData -Force
-    }
-    if (!(Test-Path $taskBarAppData -PathType Container)) {
-        Write-Output "Creating TaskBar folder..."
-        New-Item -Path $taskBarAppData -ItemType Directory -Force | Out-Null
-    } else {
-        Get-ChildItem $taskBarAppData | Remove-Item -Force -Recurse
+    if (Test-Path -LiteralPath ([string]$ShortcutTable[$EdgeName].Path) -PathType Leaf) {
+        return $EdgeName
     }
 
-    Write-Output "Adding new shortcuts..."
-    # make sure its a folder with a backslash
-    Copy-Item -Path "$tmp\*" -Destination "$taskBarAppData\" -Force
+    Write-Warning "Microsoft Edge is not installed; pinning only '$ExplorerName'."
+    return $ExplorerName
+}
 
-    Write-Output "Changing in Registry..."
-    foreach ($entry in $reg.GetEnumerator()) {
-        reg add `"$RegistryKey`" /v $($entry.Name) /t REG_BINARY /d `"$($entry.Value)`" /f | Out-Null
+function Invoke-AtlasTaskbarRegistryWrite {
+    param(
+        [Parameter(Mandatory = $true)][string]$RegExe,
+        [Parameter(Mandatory = $true)][string]$RegistryKey,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Data
+    )
+
+    & $RegExe 'add' $RegistryKey '/v' $Name '/t' 'REG_BINARY' '/d' $Data '/f' | Out-Null
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        throw "reg.exe failed to write '$RegistryKey\\$Name' (exit code $exitCode)."
     }
 }
 
-if (!$NoExplorerStop) {
-    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Milliseconds 500
+$regExe = Join-Path -Path $windir -ChildPath 'System32\reg.exe'
+if (-not (Test-Path -LiteralPath $regExe -PathType Leaf)) {
+    throw "The protected registry executable is missing at '$regExe'."
 }
 
-Set-AtlasTaskbarPinsForProfile `
-    -Sid ([System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value) `
-    -AppData ([Environment]::GetFolderPath('ApplicationData')) `
-    -RegistryKey "HKCU\$rootKey"
+$Browser = Resolve-AtlasTaskbarBrowser -RequestedBrowser $Browser -ShortcutTable $shortcuts `
+    -EdgeName $edge -ExplorerName $explorer
+Write-Output "Using '$Browser' for the taskbar browser pin."
+$tmp = $null
+try {
+    # Init shortcuts
+    $tmp = New-Item (Join-Path -Path ([System.IO.Path]::GetTempPath()) `
+            -ChildPath ([System.Guid]::NewGuid())) -ItemType Directory -Force
+    New-AtlasShortcut -Source $shortcuts[$explorer].Path `
+        -Destination "$tmp\$explorer.lnk" `
+        -AppUserModelId 'Microsoft.Windows.Explorer'
 
-if (!$NoExplorerStop) {
-    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+    # Decide Registry Favorites
+    if ($Browser -eq $edge) {
+        $edgePath = $shortcuts[$edge].Path
+        New-AtlasShortcut -Source $edgePath -Destination "$tmp\$edge.lnk"
+        $regTaskbar = $shortcuts[$edge]
+    }
+    elseif ($Browser -eq $explorer) {
+        $regTaskbar = $shortcuts[$explorer]
+    }
+    else {
+        New-AtlasShortcut -Source $shortcuts[$Browser].Path -Destination "$tmp\$Browser.lnk"
+        $regTaskbar = $shortcuts[$Browser]
+    }
+
+    # Set Registry changes
+    $reg = @{}
+    foreach ($entry in $regTaskbar.GetEnumerator()) {
+        if ($entry.Name -like 'Reg*') {
+            $reg.Add($entry.Name -replace 'Reg', $entry.Value)
+        }
+    }
+
+    # Paths
+    $taskBarLocation = 'Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar'
+    $rootKey = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+
+    function Set-AtlasTaskbarPinsForProfile {
+        param(
+            [Parameter(Mandatory = $true)][string]$Sid,
+            [Parameter(Mandatory = $true)][string]$AppData,
+            [Parameter(Mandatory = $true)][string]$RegistryKey
+        )
+
+        if ([string]::IsNullOrEmpty($appData) -or !(Test-Path $appData -PathType Container)) {
+            Write-Warning "Couldn't find AppData path for $Sid; skipping taskbar pin cleanup."
+            return
+        }
+
+        Write-Title "Setting '$Browser' taskbar shortcut for '$Sid'..."
+
+        Write-Output 'Clearing current shortcuts...'
+        $taskBarAppData = "$AppData\$taskBarLocation"
+        if (Test-Path $taskBarAppData -PathType Leaf) {
+            Write-Output 'Deleting corrupted TaskBar file...'
+            Remove-Item -Path $taskBarAppData -Force
+        }
+        if (!(Test-Path $taskBarAppData -PathType Container)) {
+            Write-Output 'Creating TaskBar folder...'
+            New-Item -Path $taskBarAppData -ItemType Directory -Force | Out-Null
+        }
+        else {
+            Get-ChildItem $taskBarAppData | Remove-Item -Force -Recurse
+        }
+
+        Write-Output 'Adding new shortcuts...'
+        # Make sure it is a folder with a backslash.
+        Copy-Item -Path "$tmp\*" -Destination "$taskBarAppData\" -Force
+
+        Write-Output 'Changing in Registry...'
+        foreach ($entry in $reg.GetEnumerator()) {
+            Invoke-AtlasTaskbarRegistryWrite -RegExe $regExe -RegistryKey $RegistryKey `
+                -Name ([string]$entry.Name) -Data ([string]$entry.Value)
+        }
+    }
+
+    if (!$NoExplorerStop) {
+        Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 500
+    }
+
+    Set-AtlasTaskbarPinsForProfile `
+        -Sid ([System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value) `
+        -AppData ([Environment]::GetFolderPath('ApplicationData')) `
+        -RegistryKey "HKCU\$rootKey"
+
+    if (!$NoExplorerStop) {
+        Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+    }
+}
+finally {
+    if ($null -ne $tmp -and (Test-Path -LiteralPath $tmp.FullName)) {
+        Remove-Item -LiteralPath $tmp.FullName -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }

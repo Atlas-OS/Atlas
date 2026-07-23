@@ -46,7 +46,9 @@ foreach ($requiredFile in @($userSetupScript, $powerShellPath)) {
 
 $arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -FromInstall -ExpectedUserSid "{1}"' -f `
     $userSetupScript, $userSid
-$exitCode = Invoke-AtlasAsUser -FilePath $powerShellPath -Arguments $arguments
+# Initialize-NewUser is the heaviest user-scope step of the install; give it a
+# deliberate 1800-second bound instead of the launcher default.
+$exitCode = Invoke-AtlasAsUser -FilePath $powerShellPath -Arguments $arguments -TimeoutSeconds 1800
 if ($exitCode -ne 0) {
     throw "Installing-user setup exited with code $exitCode."
 }

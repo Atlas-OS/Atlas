@@ -7,17 +7,30 @@ BeforeAll {
 
         $shell = $null
         $shortcut = $null
+        $shellApplication = $null
+        $shellFolder = $null
+        $shellItem = $null
         try {
             $shell = New-Object -ComObject WScript.Shell
             $shortcut = $shell.CreateShortcut($Path)
+            $shellApplication = New-Object -ComObject Shell.Application
+            $shellFolder = $shellApplication.Namespace((Split-Path $Path))
+            $shellItem = $shellFolder.ParseName((Split-Path $Path -Leaf))
             return [pscustomobject]@{
                 TargetPath       = $shortcut.TargetPath
                 WorkingDirectory = $shortcut.WorkingDirectory
                 Arguments        = $shortcut.Arguments
                 IconLocation     = $shortcut.IconLocation
+                AppUserModelId   = $shellItem.ExtendedProperty('System.AppUserModel.ID')
             }
         }
         finally {
+            foreach ($comObject in @($shellItem, $shellFolder, $shellApplication)) {
+                if ($null -ne $comObject -and
+                    [System.Runtime.InteropServices.Marshal]::IsComObject($comObject)) {
+                    [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($comObject)
+                }
+            }
             if ($null -ne $shortcut) {
                 [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut)
             }
@@ -60,6 +73,14 @@ Describe 'New-AtlasShortcut' {
         $shortcut.WorkingDirectory | Should -Be $workingDir
         $shortcut.Arguments | Should -Be '--flag value'
         $shortcut.IconLocation | Should -BeLike '*tool.exe,0'
+    }
+
+    It 'writes an explicit AppUserModelID into the shortcut property store' {
+        New-AtlasShortcut -Source $script:source -Destination $script:destination `
+            -AppUserModelId 'Microsoft.Windows.Explorer'
+
+        (Read-AtlasTestShortcut -Path $script:destination).AppUserModelId |
+            Should -BeExactly 'Microsoft.Windows.Explorer'
     }
 
     It 'updates an existing link' {

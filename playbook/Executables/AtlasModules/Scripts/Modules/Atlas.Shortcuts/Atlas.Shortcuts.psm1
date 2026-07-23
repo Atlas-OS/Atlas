@@ -1,3 +1,109 @@
+function Set-AtlasShortcutAppUserModelId {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$AppUserModelId
+    )
+
+    if (-not ('Atlas.Shortcuts.Native.ShortcutPropertyStore' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+namespace Atlas.Shortcuts.Native
+{
+    [ComImport]
+    [Guid("00021401-0000-0000-C000-000000000046")]
+    internal class ShellLink
+    {
+    }
+
+    [ComImport]
+    [Guid("0000010B-0000-0000-C000-000000000046")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IPersistFile
+    {
+        void GetClassID(out Guid classId);
+        [PreserveSig] int IsDirty();
+        void Load([MarshalAs(UnmanagedType.LPWStr)] string fileName, uint mode);
+        void Save([MarshalAs(UnmanagedType.LPWStr)] string fileName, [MarshalAs(UnmanagedType.Bool)] bool remember);
+        void SaveCompleted([MarshalAs(UnmanagedType.LPWStr)] string fileName);
+        void GetCurFile([MarshalAs(UnmanagedType.LPWStr)] out string fileName);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    internal struct PropertyKey
+    {
+        internal Guid FormatId;
+        internal uint PropertyId;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct PropVariant
+    {
+        [FieldOffset(0)] internal ushort VariantType;
+        [FieldOffset(8)] internal IntPtr PointerValue;
+    }
+
+    [ComImport]
+    [Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IPropertyStore
+    {
+        uint GetCount();
+        void GetAt(uint propertyIndex, out PropertyKey key);
+        void GetValue(ref PropertyKey key, out PropVariant value);
+        void SetValue(ref PropertyKey key, ref PropVariant value);
+        void Commit();
+    }
+
+    public static class ShortcutPropertyStore
+    {
+        [DllImport("ole32.dll")]
+        private static extern int PropVariantClear(ref PropVariant value);
+
+        public static void SetAppUserModelId(string path, string appUserModelId)
+        {
+            object link = new ShellLink();
+            PropVariant value = new PropVariant();
+            try
+            {
+                IPersistFile file = (IPersistFile)link;
+                file.Load(path, 2); // STGM_READWRITE
+
+                PropertyKey key = new PropertyKey
+                {
+                    FormatId = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"),
+                    PropertyId = 5
+                };
+                value.VariantType = 31; // VT_LPWSTR
+                value.PointerValue = Marshal.StringToCoTaskMemUni(appUserModelId);
+
+                IPropertyStore store = (IPropertyStore)link;
+                store.SetValue(ref key, ref value);
+                store.Commit();
+                file.Save(path, true);
+            }
+            finally
+            {
+                PropVariantClear(ref value);
+                if (link != null && Marshal.IsComObject(link))
+                {
+                    Marshal.FinalReleaseComObject(link);
+                }
+            }
+        }
+    }
+}
+'@
+    }
+
+    [Atlas.Shortcuts.Native.ShortcutPropertyStore]::SetAppUserModelId(
+        $Path,
+        $AppUserModelId
+    )
+}
+
 function Resolve-AtlasShortcutPath {
     [CmdletBinding()]
     param(
@@ -67,6 +173,10 @@ function New-AtlasShortcut {
         [ValidateNotNullOrEmpty()]
         [string]$Icon,
 
+        [ValidateLength(1, 128)]
+        [ValidatePattern('^\S+$')]
+        [string]$AppUserModelId,
+
         [switch]$IfExist
     )
 
@@ -118,6 +228,7 @@ function New-AtlasShortcut {
             $shortcut.IconLocation = $Icon
         }
         $shortcut.Save()
+
     }
     finally {
         if ($null -ne $shortcut -and
@@ -128,6 +239,13 @@ function New-AtlasShortcut {
             [System.Runtime.InteropServices.Marshal]::IsComObject($shell)) {
             [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)
         }
+    }
+
+    # WScript.Shell keeps the link open until its COM objects are released.
+    # Reopen it through IShellLink only after that lifecycle is complete.
+    if (-not [string]::IsNullOrWhiteSpace($AppUserModelId)) {
+        Set-AtlasShortcutAppUserModelId -Path $destinationPath `
+            -AppUserModelId $AppUserModelId
     }
 
     if (-not [System.IO.File]::Exists($destinationPath)) {

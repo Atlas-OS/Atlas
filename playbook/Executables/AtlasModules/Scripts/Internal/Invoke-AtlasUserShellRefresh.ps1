@@ -93,7 +93,7 @@ $processNames = switch -CaseSensitive ($Operation) {
     'ExplorerRefresh' { @('explorer') }
     'SearchShellRefresh' { @('SearchHost', 'SearchApp', 'explorer') }
     'StartMenuRefresh' { @('StartMenuExperienceHost') }
-    'ExplorerAndSettingsRefresh' { @('SettingsApp', 'explorer') }
+    'ExplorerAndSettingsRefresh' { @('SystemSettings', 'explorer') }
     'AppxQuiesce' { @('msteams*', 'ms-teams*', 'SearchHost*', 'SearchApp*') }
     default { throw "Unsupported user-session process operation '$Operation'." }
 }

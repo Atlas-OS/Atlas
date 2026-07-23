@@ -11,4 +11,4 @@ For i = 0 To WScript.Arguments.Count - 1
     strArgs = strArgs & " " & WScript.Arguments(i)
 Next
 
-CreateObject("WScript.Shell").Run """" & strPowerShell & """ -ExecutionPolicy RemoteSigned -NoProfile -File """ & strScript & """" & strArgs, 0, False
+CreateObject("WScript.Shell").Run """" & strPowerShell & """ -ExecutionPolicy Bypass -NoProfile -File """ & strScript & """" & strArgs, 0, False

@@ -156,7 +156,24 @@ function Set-AtlasDefaultUserHiveState {
 
     $mounted = [bool](& $MountTester $MountName)
     if ($mounted) {
-        & $invokeRegistry -NativeArguments @('unload', $target) -Operation 'unload'
+        # A finalizer-pending RegistryKey handle into the mount fails the unload, so
+        # collect managed handles first and retry briefly before treating it as fatal.
+        $unloadAttempt = 0
+        while ($true) {
+            $unloadAttempt++
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            try {
+                & $invokeRegistry -NativeArguments @('unload', $target) -Operation 'unload'
+                break
+            }
+            catch {
+                if ($unloadAttempt -ge 3) {
+                    throw
+                }
+                Start-Sleep -Milliseconds 500
+            }
+        }
         if ([bool](& $MountTester $MountName)) {
             throw "Registry unload reported success but '$target' remains mounted."
         }

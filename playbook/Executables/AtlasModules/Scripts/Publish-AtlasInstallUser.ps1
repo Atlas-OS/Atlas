@@ -9,6 +9,9 @@ $stateManifest = Join-Path -Path $PSScriptRoot `
 Import-Module -Name $stateManifest -Force -DisableNameChecking -ErrorAction Stop
 
 $state = Get-AtlasInstallState
+if ($null -eq $state) {
+    throw 'No active Atlas install state is available to publish the install user.'
+}
 if ([bool]$state.isOobe) {
     throw 'OOBE installs do not publish an interactive-user marker.'
 }

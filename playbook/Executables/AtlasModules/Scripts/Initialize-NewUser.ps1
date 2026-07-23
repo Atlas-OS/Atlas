@@ -73,14 +73,18 @@ function Set-SetupMarker {
 }
 
 # First-logon windows close with the session, so retain warnings in a per-user log.
-try {
-    $transcriptDir = Join-Path $env:LOCALAPPDATA 'AtlasOS\Logs'
-    $null = New-Item -Path $transcriptDir -ItemType Directory -Force
-    $transcriptName = '{0:yyyyMMdd-HHmmss}-new-user-setup-{1}.log' -f (Get-Date), $PID
-    Start-Transcript -Path (Join-Path $transcriptDir $transcriptName) | Out-Null
-}
-catch {
-    $null = $_
+# The delayed search finalizer is intentionally silent and does not need a second
+# transcript containing only its process header.
+if (-not $FinalizeSearch) {
+    try {
+        $transcriptDir = Join-Path $env:LOCALAPPDATA 'AtlasOS\Logs'
+        $null = New-Item -Path $transcriptDir -ItemType Directory -Force
+        $transcriptName = '{0:yyyyMMdd-HHmmss}-new-user-setup-{1}.log' -f (Get-Date), $PID
+        Start-Transcript -Path (Join-Path $transcriptDir $transcriptName) | Out-Null
+    }
+    catch {
+        $null = $_
+    }
 }
 
 function Set-SearchTaskbarMode {
@@ -129,6 +133,14 @@ if ($FinalizeSearch) {
     Invoke-CurrentSessionExplorerRefresh
     Start-Sleep -Seconds 5
     Set-SearchTaskbarMode
+    try {
+        & (Join-Path ([Environment]::GetFolderPath('Windows')) `
+                'AtlasModules\Scripts\Internal\Show-AtlasToast.ps1') `
+            -Title Atlas -Message 'Your account is ready to use.'
+    }
+    catch {
+        Write-Warning "Failed to show the completion toast: $($_.Exception.Message)"
+    }
     return
 }
 
@@ -159,6 +171,27 @@ if (-not (Test-Path -LiteralPath $atlasModules -PathType Container) -or
     throw 'Atlas user-setup files are missing from the Windows directory.'
 }
 & $initializer
+$modulesRoot = Join-Path $atlasModules 'Scripts\Modules'
+foreach ($moduleName in @('Atlas.Shortcuts', 'Atlas.Themes', 'Atlas.Toggles')) {
+    $moduleManifest = Join-Path $modulesRoot "$moduleName\$moduleName.psd1"
+    if (-not (Test-Path -LiteralPath $moduleManifest -PathType Leaf)) {
+        throw "The required user-setup module '$moduleName' is missing at '$moduleManifest'."
+    }
+    Import-Module -Name $moduleManifest -Force -ErrorAction Stop
+}
+
+$desktopPath = [Environment]::GetFolderPath('DesktopDirectory')
+if ([string]::IsNullOrWhiteSpace($desktopPath) -or
+    -not (Test-Path -LiteralPath $desktopPath -PathType Container)) {
+    throw "The current user's Desktop directory is unavailable."
+}
+$atlasFolderIcon = Join-Path $atlasModules 'Other\atlas-folder.ico'
+if (-not (Test-Path -LiteralPath $atlasFolderIcon -PathType Leaf)) {
+    throw "The Atlas folder icon is missing at '$atlasFolderIcon'."
+}
+New-AtlasShortcut -Source $atlasDesktop `
+    -Destination (Join-Path $desktopPath 'Atlas.lnk') `
+    -Icon "$atlasFolderIcon,0"
 
 function Invoke-AtlasDesktopCommand {
     param([Parameter(Mandatory)][string]$RelativePath)
@@ -176,6 +209,23 @@ function Invoke-AtlasDesktopCommand {
 
 if (-not $FromInstall) {
     try {
+        & (Join-Path $atlasModules 'Scripts\Internal\Remove-OneDriveCurrentUserData.ps1') `
+            -ExpectedUserSid $sid
+    }
+    catch {
+        Write-Warning "Failed to remove current-user OneDrive leftovers: $($_.Exception.Message)"
+    }
+    $uninstallEdgeFlag = Join-Path $atlasModules 'Flags\option-uninstall-edge.flag'
+    if (Test-Path -LiteralPath $uninstallEdgeFlag -PathType Leaf) {
+        try {
+            & (Join-Path $atlasModules 'Scripts\Internal\Remove-EdgeCurrentUserData.ps1') `
+                -ExpectedUserSid $sid
+        }
+        catch {
+            Write-Warning "Failed to remove current-user Edge leftovers: $($_.Exception.Message)"
+        }
+    }
+    try {
         & (Join-Path $atlasModules 'Scripts\Internal\Initialize-AtlasLibreWolfUser.ps1') `
             -ExpectedUserSid $sid
     }
@@ -185,6 +235,9 @@ if (-not $FromInstall) {
 
     & (Join-Path $atlasModules 'Scripts\Internal\Set-FileAssociations.ps1') `
         -AssociationProfile Base -ExpectedUserSid $sid
+
+    & (Join-Path $atlasModules 'Scripts\Internal\Set-SendToContextMenu.ps1') `
+        -DebloatDefaults -ExpectedUserSid $sid
 }
 
 if ($setupMarker -lt 1) {
@@ -293,6 +346,11 @@ Set-SearchTaskbarMode
 
 if ($FromInstall) {
     Set-SetupMarker -Value 2
+    # Set-TaskbarPins keeps Explorer alive while it atomically replaces the pin
+    # files and Taskband values. Refresh this user's shell only after every
+    # install-time user action is complete so the running Explorer window adopts
+    # the canonical File Explorer pin instead of appearing as a duplicate icon.
+    Invoke-CurrentSessionExplorerRefresh
     return
 }
 
@@ -306,22 +364,12 @@ if ($setupMarker -lt 1) {
     return
 }
 
+Set-SetupMarker -Value 2
+# RunOnce deletes a value before starting it, and this script requeues the value
+# while setup is incomplete. Remove that retry before restarting Explorer; otherwise
+# the new shell can launch a concurrent copy before this process reaches cleanup.
+Remove-ItemProperty -Path $runOncePath -Name RunScript -ErrorAction SilentlyContinue
 Invoke-CurrentSessionExplorerRefresh
 Start-Sleep -Seconds 3
 Set-SearchTaskbarMode
-Set-SetupMarker -Value 2
-try {
-    Remove-ItemProperty -Path $runOncePath -Name RunScript
-}
-catch {
-    Write-Warning "Failed to remove the completed setup RunOnce value: $($_.Exception.Message)"
-}
 Start-DelayedSearchFinalizer
-
-try {
-    & (Join-Path $atlasModules 'Scripts\Internal\Show-AtlasToast.ps1') `
-        -Title Atlas -Message 'Your account is ready to use.'
-}
-catch {
-    Write-Warning "Failed to show the completion toast: $($_.Exception.Message)"
-}
