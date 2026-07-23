@@ -31,7 +31,7 @@ if not "%~2"=="" goto unsupportedArguments
 
 :argumentsValidated
 set "AtlasProgramFilesX86="
-for /f "tokens=2,*" %%A in ('"%__APPDIR__%reg.exe" query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion" /v "ProgramFilesDir ^(x86^)" 2^>nul') do (
+for /f "tokens=3,*" %%A in ('"%__APPDIR__%reg.exe" query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion" /v "ProgramFilesDir ^(x86^)" 2^>nul') do (
     if /i "%%A"=="REG_SZ" set "AtlasProgramFilesX86=%%B"
 )
 if not defined AtlasProgramFilesX86 (
