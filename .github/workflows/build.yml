@@ -218,12 +218,6 @@ jobs:
                       Write-Host "Processing $($_.Name)"
                       Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $sxsc 'cfg.yaml') -Force
 
-                      $folderName = $_.Name -replace '-Arm', ''
-                      $folderDir = Join-Path $env:GITHUB_WORKSPACE "tools\sxsc\$folderName"
-                      if (Test-Path -LiteralPath $folderDir -PathType Container) {
-                          Copy-Item -Path (Join-Path $folderDir '*') -Destination $sxsc -Recurse -Force
-                      }
-
                       python .\sxsc.py
                       if ($LASTEXITCODE -ne 0) { throw "sxsc.py failed for '$($_.Name)'." }
 
@@ -245,6 +239,31 @@ jobs:
           }
           "ATLAS_CAB_STAGE=$candidateStage" |
               Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Regenerate the CBS package hash manifest
+        if: steps.sxsc-configs.outputs.run-sxsc == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Atlas-CbsHashes.psd1 gates every CAB at install time (Assert-AtlasCbsHash), so
+          # a workspace with freshly built CABs must carry matching hashes before the CI
+          # playbook is packaged from it.
+          $pkgDir = Join-Path $env:GITHUB_WORKSPACE `
+              'playbook\Executables\AtlasModules\Packages'
+          $manifestPath = Join-Path $pkgDir 'Atlas-CbsHashes.psd1'
+          $header = foreach ($line in [IO.File]::ReadAllLines($manifestPath)) {
+              if ($line -match '^@\{') { break }
+              $line
+          }
+          if (-not $header) { throw 'The hash manifest header comment was not found.' }
+          $entries = @(Get-ChildItem -LiteralPath $pkgDir -Filter '*.cab' -File |
+              Sort-Object Name | ForEach-Object {
+                  $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
+                  "    '$($_.Name)' = '$hash'"
+              })
+          if ($entries.Count -eq 0) { throw 'No CABs are available to record in the manifest.' }
+          [IO.File]::WriteAllLines($manifestPath, @($header) + '@{' + $entries + '}')
+          Write-Host "Recorded $($entries.Count) CAB hashes in Atlas-CbsHashes.psd1."
 
       - name: Stage CAB candidates with hashes
         if: steps.sxsc-configs.outputs.run-sxsc == 'true'

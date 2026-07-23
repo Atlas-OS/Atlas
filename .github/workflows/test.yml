@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: windows-2025-vs2026
+    runs-on: windows-latest
     timeout-minutes: 60
 
     steps:
