@@ -288,4 +288,20 @@ Describe 'Root-scoped cleanup helpers live in Atlas.TasksProcs' {
         Should -Invoke Invoke-AtlasProcessStop -ModuleName Atlas.TasksProcs -Times 0 -Exactly `
             -ParameterFilter { $Process.Id -eq 101 }
     }
+
+    It 'tolerates a named fallback task disappearing before schtasks can end it' {
+        $fakeSchtasks = Join-Path $TestDrive 'schtasks-race.cmd'
+        Set-Content -LiteralPath $fakeSchtasks -Encoding Ascii -Value @(
+            '@echo ERROR: The system cannot find the file specified. 1>&2'
+            '@exit /b 1'
+        )
+        Mock Get-ScheduledTask -ModuleName Atlas.TasksProcs -MockWith { @() }
+        Mock Get-AtlasSchtasksPath -ModuleName Atlas.TasksProcs `
+            -MockWith { $fakeSchtasks }
+
+        {
+            Stop-AtlasScheduledTaskUnderRoot -RootsLower @('c:\windows\atlasmodules\') `
+                -EndTaskName 'Force Timer Resolution'
+        } | Should -Not -Throw
+    }
 }

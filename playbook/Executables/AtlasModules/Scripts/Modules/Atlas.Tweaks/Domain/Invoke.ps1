@@ -22,26 +22,6 @@ function Get-AtlasTweakEntryValue {
     return $Default
 }
 
-function Test-AtlasArchMatch {
-    # Private twin of the Atlas.Registry architecture gate.
-    param(
-        [string]$Arch,
-
-        [Parameter(Mandatory = $true)]
-        [bool]$IsArm64
-    )
-
-    if ([string]::IsNullOrEmpty($Arch)) {
-        return $true
-    }
-
-    switch ($Arch.ToUpperInvariant()) {
-        'ARM64' { return $IsArm64 }
-        'X64' { return -not $IsArm64 }
-        default { throw "Unknown architecture gate '$Arch' (expected 'X64' or 'ARM64')." }
-    }
-}
-
 function Get-AtlasTweakUserSid {
     param([Parameter(Mandatory = $true)][object]$Context)
 
@@ -77,16 +57,15 @@ function Invoke-AtlasTweakServiceEntries {
             $operation = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Operation' -Default 'Change')
             switch ($operation) {
                 'Change' {
-                    # Written straight to the service key because Set-Service cannot
-                    # touch protected/driver services even as TrustedInstaller.
+                    # Set-AtlasServiceStartup writes the service key directly (Set-Service
+                    # cannot touch protected/driver services) and verifies retention,
+                    # because tamper-protected services silently discard Start writes.
                     $startupType = Get-AtlasTweakEntryValue -Entry $entry -Key 'StartupType'
                     if ($null -eq $startupType -or [int]$startupType -lt 0 -or [int]$startupType -gt 4) {
                         throw "Service entry has no valid StartupType (expected 0-4, got '$startupType')."
                     }
 
-                    $serviceKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName"
-                    Set-ItemProperty -LiteralPath $serviceKey -Name 'Start' `
-                        -Value ([int]$startupType) -Type DWord -Force -ErrorAction Stop
+                    Set-AtlasServiceStartup -Name $serviceName -StartupType ([int]$startupType)
                 }
                 'Stop' {
                     Stop-Service -Name $serviceName -Force -ErrorAction Stop
@@ -114,14 +93,9 @@ function Invoke-AtlasTweakScheduledTaskEntries {
     param(
         [Parameter(Mandatory = $true)]
         [AllowEmptyCollection()]
-        [hashtable[]]$Entries,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$WinDir
+        [hashtable[]]$Entries
     )
 
-    $schtasksPath = Join-Path -Path $WinDir -ChildPath 'System32\schtasks.exe'
     foreach ($entry in $Entries) {
         $ignoreErrors = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'IgnoreErrors' -Default $false)
         try {
@@ -130,15 +104,14 @@ function Invoke-AtlasTweakScheduledTaskEntries {
                 throw 'Scheduled task entry has no Path.'
             }
 
+            # The Atlas.TasksProcs helpers tolerate a missing task (a warning), which is
+            # expected because many stock tasks vary by Windows edition and build.
             $operation = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Operation' -Default 'Disable')
-            $stateArgument = switch ($operation) {
-                'Disable' { '/DISABLE' }
-                'Enable' { '/ENABLE' }
+            switch ($operation) {
+                'Disable' { Disable-AtlasScheduledTask -Path $taskPath }
+                'Enable' { Enable-AtlasScheduledTask -Path $taskPath }
                 default { throw "Unknown scheduled task operation '$operation'." }
             }
-
-            Invoke-AtlasHiddenProcess -FilePath $schtasksPath `
-                -ArgumentList @('/Change', '/TN', $taskPath, $stateArgument) -Wait | Out-Null
         }
         catch {
             $entryPath = Get-AtlasTweakEntryValue -Entry $entry -Key 'Path' -Default '<no path>'
@@ -299,7 +272,7 @@ function Invoke-AtlasTweak {
         [ValidateNotNullOrEmpty()]
         [string]$Path,
 
-        [ValidateSet('All', 'Machine', 'CurrentUser', 'DefaultUser')]
+        [ValidateSet('All', 'Machine', 'ProtectedCurrentUser', 'CurrentUser', 'DefaultUser')]
         [string]$RegistryScope = 'All',
 
         [switch]$RegistryOnly,
@@ -342,8 +315,7 @@ function Invoke-AtlasTweak {
     }
 
     if ($tweak.ContainsKey('ScheduledTasks') -and $tweak['ScheduledTasks']) {
-        Invoke-AtlasTweakScheduledTaskEntries -Entries $tweak['ScheduledTasks'] `
-            -WinDir ([string]$Context.WinDir)
+        Invoke-AtlasTweakScheduledTaskEntries -Entries $tweak['ScheduledTasks']
     }
 
     if ($tweak.ContainsKey('Run') -and $tweak['Run']) {
@@ -402,7 +374,7 @@ function Invoke-AtlasTweakCategory {
 
         [string]$TweaksRoot,
 
-        [ValidateSet('All', 'Machine', 'CurrentUser', 'DefaultUser')]
+        [ValidateSet('All', 'Machine', 'ProtectedCurrentUser', 'CurrentUser', 'DefaultUser')]
         [string]$RegistryScope = 'All',
 
         [switch]$RegistryOnly,

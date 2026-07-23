@@ -17,6 +17,14 @@ $script:AtlasKnownOptions = @(
 
 $script:AtlasRegistryValueTypes = @('String', 'ExpandString', 'Binary', 'DWord', 'MultiString', 'QWord', 'None')
 
+$script:AtlasTweakEntryKeys = @{
+    Registry       = @('Path', 'Name', 'Type', 'Data', 'Operation', 'Arch', 'IgnoreErrors')
+    Services       = @('Name', 'Operation', 'StartupType', 'IgnoreErrors')
+    ScheduledTasks = @('Path', 'Operation', 'IgnoreErrors')
+    Run            = @('Exe', 'Args', 'Arch', 'IgnoreErrors', 'Wait', 'RunAs', 'AllowedExitCodes')
+    RemovePaths    = @('Path', 'Arch', 'IgnoreErrors')
+}
+
 function Test-AtlasTweakEntryList {
     <#
     .SYNOPSIS
@@ -63,6 +71,18 @@ function Test-AtlasTweakFileSchema {
     function Add-Problem {
         param([string]$Problem)
         $Problems.Add([pscustomobject]@{ Path = $FilePath; Problem = $Problem })
+    }
+
+    function Add-UnknownEntryKeyProblem {
+        param(
+            [string]$Key,
+            [hashtable]$Entry
+        )
+        foreach ($entryKey in @($Entry.Keys)) {
+            if ($entryKey -notin $script:AtlasTweakEntryKeys[$Key]) {
+                Add-Problem -Problem "$Key entry has an unknown key '$entryKey'."
+            }
+        }
     }
 
     $tweak = $null
@@ -129,6 +149,8 @@ function Test-AtlasTweakFileSchema {
     if ($tweak.ContainsKey('Registry')) {
         $entries = Test-AtlasTweakEntryList -FilePath $FilePath -Key 'Registry' -Value $tweak['Registry'] -Problems $Problems
         foreach ($entry in $entries) {
+            Add-UnknownEntryKeyProblem -Key 'Registry' -Entry $entry
+
             $operation = 'Set'
             if ($entry.ContainsKey('Operation') -and $entry['Operation']) {
                 $operation = [string]$entry['Operation']
@@ -141,6 +163,19 @@ function Test-AtlasTweakFileSchema {
 
             if (-not $entry.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace([string]$entry['Path'])) {
                 Add-Problem -Problem 'Registry entry is missing its Path.'
+            }
+            else {
+                # The engine binds user identity itself; an explicit HKU user hive in a
+                # definition would bypass that binding, so it fails validation here.
+                try {
+                    $targetScope = Get-AtlasRegistryEntryTargetScope -Path ([string]$entry['Path'])
+                    if ($targetScope -ceq 'ExplicitUserHive') {
+                        Add-Problem -Problem "Registry entry path '$($entry['Path'])' targets an explicit user hive; use ambient HKCU instead."
+                    }
+                }
+                catch {
+                    Add-Problem -Problem "Registry entry path '$($entry['Path'])' does not resolve: $($_.Exception.Message)"
+                }
             }
 
             # An empty value name denotes the registry key's default value and is a
@@ -174,10 +209,6 @@ function Test-AtlasTweakFileSchema {
             $script:AtlasTweakPostUserRegistryRefreshOperations -cnotcontains $refreshOperation) {
             Add-Problem -Problem "'PostUserRegistryRefresh' must be exactly one of: $($script:AtlasTweakPostUserRegistryRefreshOperations -join ', ')."
         }
-        if (-not $tweak.ContainsKey('Oobe') -or $tweak['Oobe'] -ne $false) {
-            Add-Problem -Problem "'PostUserRegistryRefresh' requires 'Oobe = `$false' because no live-user registry pass exists during OOBE."
-        }
-
         $hasCurrentUserRegistryEntry = $false
         if ($tweak.ContainsKey('Registry')) {
             foreach ($entry in @($tweak['Registry'])) {
@@ -199,6 +230,8 @@ function Test-AtlasTweakFileSchema {
     if ($tweak.ContainsKey('Services')) {
         $entries = Test-AtlasTweakEntryList -FilePath $FilePath -Key 'Services' -Value $tweak['Services'] -Problems $Problems
         foreach ($entry in $entries) {
+            Add-UnknownEntryKeyProblem -Key 'Services' -Entry $entry
+
             if (-not $entry.ContainsKey('Name') -or [string]::IsNullOrWhiteSpace([string]$entry['Name'])) {
                 Add-Problem -Problem 'Service entry is missing its Name.'
             }
@@ -226,6 +259,8 @@ function Test-AtlasTweakFileSchema {
     if ($tweak.ContainsKey('ScheduledTasks')) {
         $entries = Test-AtlasTweakEntryList -FilePath $FilePath -Key 'ScheduledTasks' -Value $tweak['ScheduledTasks'] -Problems $Problems
         foreach ($entry in $entries) {
+            Add-UnknownEntryKeyProblem -Key 'ScheduledTasks' -Entry $entry
+
             if (-not $entry.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace([string]$entry['Path'])) {
                 Add-Problem -Problem 'ScheduledTasks entry is missing its Path.'
             }
@@ -243,6 +278,8 @@ function Test-AtlasTweakFileSchema {
     if ($tweak.ContainsKey('Run')) {
         $entries = Test-AtlasTweakEntryList -FilePath $FilePath -Key 'Run' -Value $tweak['Run'] -Problems $Problems
         foreach ($entry in $entries) {
+            Add-UnknownEntryKeyProblem -Key 'Run' -Entry $entry
+
             if (-not $entry.ContainsKey('Exe') -or [string]::IsNullOrWhiteSpace([string]$entry['Exe'])) {
                 Add-Problem -Problem 'Run entry is missing its Exe.'
             }
@@ -320,6 +357,8 @@ function Test-AtlasTweakFileSchema {
     if ($tweak.ContainsKey('RemovePaths')) {
         $entries = Test-AtlasTweakEntryList -FilePath $FilePath -Key 'RemovePaths' -Value $tweak['RemovePaths'] -Problems $Problems
         foreach ($entry in $entries) {
+            Add-UnknownEntryKeyProblem -Key 'RemovePaths' -Entry $entry
+
             if (-not $entry.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace([string]$entry['Path'])) {
                 Add-Problem -Problem 'RemovePaths entry is missing its Path.'
             }

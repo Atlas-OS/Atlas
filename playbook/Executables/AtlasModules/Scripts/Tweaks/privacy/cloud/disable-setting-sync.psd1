@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Settings Sync'
-    Description = 'Disables Settings Sync (labeled as ''Windows Backup'' in Windows 10) for QoL and privacy'
+    Description = 'Disables the ''Windows Backup'' settings synchronization for QoL and privacy'
     Registry    = @(
         # Policies don't disable the toggles in the UI, doesn't seem like much can be done about it
         # Whole Settings page is hidden anyways

@@ -25,8 +25,9 @@ companion `Script` shares its definition's basename. Do not rename them to Pasca
     Categories = @(
         @{
             Name        = 'networking'
-            # Modes allowed by the parent AME/YAML route which invokes this PowerShell
-            # category. The validator composes these with each tweak's OnUpgrade gate.
+            # Install-plan modes under which this category's `Tweaks/<name>` step runs
+            # (`Install-Plan.ps1`, executed by `Invoke-TweaksPhase.ps1`). The validator
+            # composes these with each tweak's OnUpgrade gate.
             ParentModes = @('Fresh')
             # Paths are relative to the category folder, without the .psd1 extension.
             Tweaks      = @(
@@ -35,8 +36,9 @@ companion `Script` shares its definition's basename. Do not rename them to Pasca
             )
         }
     )
-    # Full slugs for definitions invoked directly from another PowerShell phase or a
-    # deliberately small YAML shim rather than as part of a category.
+    # Full slugs for definitions invoked directly from a PowerShell phase rather than as
+    # part of a category (`Invoke-RevertPhase.ps1` invokes atlas-theme-upgrade via
+    # `Invoke-AtlasTweak`).
     Standalone = @(
         @{ Slug = 'qol/appearance/atlas-theme-upgrade'; ParentModes = @('Upgrade') }
     )
@@ -47,7 +49,7 @@ companion `Script` shares its definition's basename. Do not rename them to Pasca
 }
 ```
 
-`ParentModes` describes outer-route reachability: `Fresh`, `Upgrade`, or both. It does
+`ParentModes` describes install-plan reachability: `Fresh`, `Upgrade`, or both. It does
 not replace `OnUpgrade`. For example, an `OnUpgrade = 'Only'` definition under a
 fresh-only category is unreachable and fails validation. A definition file must appear
 exactly once across `Categories`, `Standalone`, and `Disabled`; missing files, duplicate
@@ -70,9 +72,9 @@ post-live-HKCU boundary.
 | `Oobe` | bool | When `$false`, the tweak is skipped during OOBE installs. |
 | `RunAs` | `'User'` | Runs the companion `Script` as the exact install-state-bound, non-elevated user via `Invoke-AtlasAsUser`; other keys keep their own execution context. Requires `Oobe = $false`, a first-login path for the eventual user, and a successful `-ExpectedUserSid` token check. Elevated user companions are unsupported; shell work must use the session-filtered refresh helper. |
 | `Registry` | array of hashtables | Registry operations, see below. |
-| `PostUserRegistryRefresh` | `'ShellRefresh'`, `'ExplorerRefresh'`, `'SearchShellRefresh'`, `'StartMenuRefresh'`, or `'ExplorerAndSettingsRefresh'` | After the exact install-state-bound user's live-HKCU pass succeeds, runs the selected session-filtered refresh and requires exit code 0. Requires `Oobe = $false` and an ambient HKCU entry; duplicate operations are collapsed in manifest order. Do not duplicate the refresh in `Run` or `Script`. |
+| `PostUserRegistryRefresh` | `'ShellRefresh'`, `'ExplorerRefresh'`, `'SearchShellRefresh'`, `'StartMenuRefresh'`, or `'ExplorerAndSettingsRefresh'` | After the exact install-state-bound user's live-HKCU pass succeeds, runs the selected session-filtered refresh and requires exit code 0. Requires an ambient HKCU entry; duplicate operations are collapsed in manifest order. During OOBE, default-profile registry data is still applied but the live-session refresh is deferred to first logon. Do not duplicate the refresh in `Run` or `Script`. |
 | `Services` | array of hashtables | `@{ Name; StartupType (int 0-4); Operation; IgnoreErrors }`. `Operation` is `'Change'` (default; writes the service key's `Start` value directly so protected services work), `'Stop'` or `'Start'`. `StartupType` is required for `Change`: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled. Missing services and failed mutations are errors unless the entry explicitly declares `IgnoreErrors = $true`. |
-| `ScheduledTasks` | array of hashtables | `@{ Path; Operation; IgnoreErrors }` with `Operation` = `'Disable'` (default) or `'Enable'`, applied through one waited, checked call to the exact System32 `schtasks.exe`. Any nonzero result fails by default; edition/build-optional tasks must explicitly declare `IgnoreErrors = $true`. |
+| `ScheduledTasks` | array of hashtables | `@{ Path; Operation; IgnoreErrors }` with `Operation` = `'Disable'` (default) or `'Enable'`, applied through the Atlas.TasksProcs helpers and the exact System32 `schtasks.exe`. A missing task or a failed change is logged as a warning; `IgnoreErrors = $true` additionally tolerates a malformed entry (missing `Path`, unknown `Operation`). |
 | `Run` | array of hashtables | `@{ Exe; Args; Arch; IgnoreErrors; Wait; RunAs; AllowedExitCodes }`. `Exe` must be absolute or start with `{windir}`; `Args` is an array of exact strings. Runs are always waited and checked, accepting only 0 unless exact System32 DISM declares `@(0, 3010)`. `IgnoreErrors = $true` turns a machine-run failure into a warning. `RunAs = 'User'` runs as the exact install-state-bound user, requires `Wait = $true`, passes `-ExpectedUserSid`, and cannot ignore failure. |
 | `RemovePaths` | array of hashtables | `@{ Path; Arch; IgnoreErrors }`; paths must resolve beneath `{windir}`, are removed recursively, and an already-missing path is success. A failed removal is fatal by default unless the entry explicitly declares `IgnoreErrors = $true`. |
 | `Script` | string | Relative path to a companion `.ps1` next to the tweak file, invoked after all other keys for genuinely imperative work. |

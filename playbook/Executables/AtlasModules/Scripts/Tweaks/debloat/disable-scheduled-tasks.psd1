@@ -7,15 +7,15 @@
     )
     ScheduledTasks = @(
         # Updates compatibility database
-        @{ Path = '\Microsoft\Windows\Application Experience\PcaPatchDbTask'; IgnoreErrors = $true }
+        @{ Path = '\Microsoft\Windows\Application Experience\PcaPatchDbTask' }
         # Data collection
-        @{ Path = '\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector'; IgnoreErrors = $true }
+        @{ Path = '\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector' }
         # CEIP - safety measure
-        @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\Consolidator'; IgnoreErrors = $true }
-        @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip'; IgnoreErrors = $true }
+        @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\Consolidator' }
+        @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip' }
         # A/B testing usage reports
-        @{ Path = '\Microsoft\Windows\Flighting\FeatureConfig\UsageDataReporting'; IgnoreErrors = $true }
+        @{ Path = '\Microsoft\Windows\Flighting\FeatureConfig\UsageDataReporting' }
         # SQM/CEIP proxy that stays Ready after the other CEIP tasks are disabled
-        @{ Path = '\Microsoft\Windows\Autochk\Proxy'; IgnoreErrors = $true }
+        @{ Path = '\Microsoft\Windows\Autochk\Proxy' }
     )
 }

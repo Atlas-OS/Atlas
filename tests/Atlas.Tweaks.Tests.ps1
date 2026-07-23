@@ -80,6 +80,22 @@ Describe 'Test-AtlasTweakSchema' {
         $problems | Should -BeNullOrEmpty
     }
 
+    It 'allows an OOBE tweak to defer its live-user refresh' {
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'oobe-refresh.psd1'
+        @'
+@{
+    Name = 'OOBE default-profile setting'
+    Oobe = $true
+    Registry = @(
+        @{ Path = 'HKCU\Software\Test'; Name = 'Value'; Type = 'DWord'; Data = 1 }
+    )
+    PostUserRegistryRefresh = 'ExplorerRefresh'
+}
+'@ | Set-Content -Path $tweakFile
+
+        @(Test-AtlasTweakSchema -Path $tweakFile) | Should -BeNullOrEmpty
+    }
+
     It 'reports problems for an invalid tweak' {
         $tweakFile = Join-Path -Path $TestDrive -ChildPath 'invalid.psd1'
         @'
@@ -97,6 +113,9 @@ Describe 'Test-AtlasTweakSchema' {
         @{ Name = 'MissingPath'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKLM:\SOFTWARE\Test'; Name = 'BadType'; Type = 'SuperString' }
         @{ Path = 'HKLM:\SOFTWARE\Test'; Name = 'NoData'; Type = 'DWord' }
+        @{ Path = 'HKU\S-1-5-21-1-2-3-1001\Software\X'; Name = 'Value'; Type = 'DWord'; Data = 1 }
+        @{ Path = 'HKXX\Software\X'; Operation = 'AddKey' }
+        @{ Path = 'HKLM:\SOFTWARE\Test'; Name = 'Value'; Type = 'DWord'; Data = 1; Sneaky = $true }
     )
     Services    = @(
         @{ StartupType = 9; IgnoreErrors = 'yes' }
@@ -126,9 +145,11 @@ Describe 'Test-AtlasTweakSchema' {
         $problemText | Should -Match "'MinBuild' must be an integer"
         $problemText | Should -Match "'RunAs' must be 'User'"
         $problemText | Should -Match "'PostUserRegistryRefresh' must be exactly one of"
-        $problemText | Should -Match "requires 'Oobe = \`$false'"
         $problemText | Should -Match 'requires at least one ambient HKCU Registry entry'
         $problemText | Should -Match 'Registry entry is missing its Path'
+        $problemText | Should -Match 'targets an explicit user hive'
+        $problemText | Should -Match "Registry entry path 'HKXX\\Software\\X' does not resolve"
+        $problemText | Should -Match "Registry entry has an unknown key 'Sneaky'"
         $problemText | Should -Match "needs a Type"
         $problemText | Should -Match "is missing its Data"
         $problemText | Should -Match 'Service entry is missing its Name'
@@ -550,27 +571,55 @@ Describe 'Invoke-AtlasTweak' {
             }
     }
 
-    It 'uses exact System32 schtasks and propagates its checked failure' {
-        Mock -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -MockWith {
-            throw "'C:\Windows\System32\schtasks.exe' exited with disallowed code 5."
-        }
-        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'failed-scheduled-task.psd1'
+    It 'routes scheduled task entries through the missing-task-tolerant Atlas.TasksProcs helpers' {
+        Mock -CommandName Disable-AtlasScheduledTask -ModuleName Atlas.Tweaks
+        Mock -CommandName Enable-AtlasScheduledTask -ModuleName Atlas.Tweaks
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'scheduled-task-routing.psd1'
         @'
 @{
-    Name = 'Failed Scheduled Task'
+    Name = 'Scheduled Task Routing'
     ScheduledTasks = @(
-        @{ Path = '\Microsoft\Windows\Test\RequiredTask' }
+        @{ Path = '\Microsoft\Windows\Test\UnwantedTask' }
+        @{ Path = '\Microsoft\Windows\Test\WantedTask'; Operation = 'Enable' }
     )
 }
 '@ | Set-Content -Path $tweakFile
 
-        { Invoke-AtlasTweak -Path $tweakFile } |
-            Should -Throw '*schtasks.exe*disallowed code 5*'
-        Should -Invoke -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks `
+        Invoke-AtlasTweak -Path $tweakFile
+
+        Should -Invoke -CommandName Disable-AtlasScheduledTask -ModuleName Atlas.Tweaks `
             -Times 1 -Exactly -ParameterFilter {
-                $FilePath -eq 'C:\Windows\System32\schtasks.exe' -and
-                $ArgumentList[0] -eq '/Change'
+                $Path -eq '\Microsoft\Windows\Test\UnwantedTask'
             }
+        Should -Invoke -CommandName Enable-AtlasScheduledTask -ModuleName Atlas.Tweaks `
+            -Times 1 -Exactly -ParameterFilter {
+                $Path -eq '\Microsoft\Windows\Test\WantedTask'
+            }
+    }
+
+    It 'routes service startup changes through the checked Atlas.Services helper' {
+        Mock -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Tweaks
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'service-startup.psd1'
+        @'
+@{
+    Name = 'Service Startup'
+    Services = @(
+        @{ Name = 'TestSvc'; StartupType = 4 }
+    )
+}
+'@ | Set-Content -Path $tweakFile
+
+        Invoke-AtlasTweak -Path $tweakFile
+
+        Should -Invoke -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Tweaks `
+            -Times 1 -Exactly -ParameterFilter {
+                $Name -eq 'TestSvc' -and $StartupType -eq 4
+            }
+
+        Mock -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Tweaks -MockWith {
+            throw "Service or driver 'TestSvc' did not retain startup type '4'."
+        }
+        { Invoke-AtlasTweak -Path $tweakFile } | Should -Throw '*did not retain startup type*'
     }
 
     It 'bounds RemovePaths to the Windows directory and propagates required removal failures' {
@@ -735,6 +784,21 @@ Describe 'Get-AtlasTweakManifest and Invoke-AtlasTweakCategory' {
         { Invoke-AtlasTweakCategory -Name 'nope' -TweaksRoot $script:tweaksRoot } | Should -Throw '*not defined*'
     }
 
+}
+
+Describe 'Shipped QoL advisory shell state' {
+    It 'keeps the TaskbarDa UI synchronization best-effort' {
+        $definitionPath = Join-Path $PSScriptRoot `
+            '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\taskbar\disable-news-and-interests.psd1'
+        $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
+        $entry = @($definition.Registry | Where-Object {
+                $_.Path -ceq 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -and
+                $_.Name -ceq 'TaskbarDa'
+            })
+
+        $entry | Should -HaveCount 1
+        $entry[0].IgnoreErrors | Should -BeTrue
+    }
 }
 
 Describe 'Invoke-RevertPhase optional theme refresh' {

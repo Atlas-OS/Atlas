@@ -10,9 +10,8 @@ $windir = [Environment]::GetFolderPath('Windows')
 $settingsExtensions = (Get-ChildItem "$windir\SystemApps" -Recurse).FullName | Where-Object { $_ -like '*wsxpacks\Account\SettingsExtensions.json*' }
 $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
 if ($settingsExtensions.Count -eq 0) {
-    Write-Output "Settings extensions ($settingsExtensions) not found."
-    Write-Output "User is likely on Windows 10, nothing to do. Exiting..."
-    exit
+    Write-Error "No Account wsxpack SettingsExtensions.json was found under '$windir\SystemApps'; the Accounts-page ads cannot be disabled."
+    exit 1
 }
 
 # Finds velocity IDs listed in 'Accounts' wsxpack

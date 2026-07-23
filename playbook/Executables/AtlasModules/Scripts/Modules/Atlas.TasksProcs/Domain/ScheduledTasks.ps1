@@ -5,6 +5,12 @@
 # 1 means the task does not exist, which is expected on many Windows editions/builds
 # and therefore only logged as a warning (or silenced with -IgnoreMissing).
 
+function Get-AtlasSchtasksPath {
+    # Fixed System32 location so PATH resolution can never select another binary.
+    return Join-Path -Path ([Environment]::GetFolderPath('Windows')) `
+        -ChildPath 'System32\schtasks.exe'
+}
+
 function Invoke-AtlasScheduledTaskCommand {
     param(
         [Parameter(Mandatory = $true)]
@@ -21,10 +27,11 @@ function Invoke-AtlasScheduledTaskCommand {
         [switch]$IgnoreMissing
     )
 
+    $schtasksPath = Get-AtlasSchtasksPath
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $output = & schtasks.exe @Arguments 2>&1
+        $output = & $schtasksPath @Arguments 2>&1
     }
     finally {
         $ErrorActionPreference = $previousErrorActionPreference
@@ -94,8 +101,39 @@ function Remove-AtlasScheduledTask {
         -Arguments @('/Delete', '/TN', $Path, '/F')
 }
 
+function Invoke-AtlasBestEffortScheduledTaskEnd {
+    param(
+        [Parameter(Mandatory = $true)][string]$SchtasksPath,
+        [Parameter(Mandatory = $true)][string]$TaskName
+    )
+
+    # /End is only a fallback after the CIM stop above. The task may disappear
+    # between enumeration and this call, and Windows PowerShell promotes native
+    # stderr to an ErrorRecord before redirection when ErrorActionPreference=Stop.
+    # Keep every outcome best-effort; payload replacement verifies the actual
+    # executable/process postconditions separately.
+    $previousErrorPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $SchtasksPath /End /TN $TaskName 1>$null 2>$null
+    }
+    catch {
+        $null = $_
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorPreference
+    }
+}
+
 function Stop-AtlasScheduledTaskUnderRoot {
-    param([string[]]$RootsLower)
+    param(
+        [string[]]$RootsLower,
+
+        # Named tasks additionally ended via schtasks /End, because the CIM-based stop
+        # can fail under TrustedInstaller in session 0. Defaults to the Atlas timer
+        # resolution task, whose running executable blocks payload replacement.
+        [string[]]$EndTaskName = @('Force Timer Resolution', '\Force Timer Resolution')
+    )
 
     try {
         Import-Module ScheduledTasks -ErrorAction SilentlyContinue | Out-Null
@@ -157,7 +195,9 @@ function Stop-AtlasScheduledTaskUnderRoot {
         }
     }
 
-    foreach ($candidate in @('Force Timer Resolution', '\Force Timer Resolution')) {
-        & schtasks.exe /End /TN $candidate 1>$null 2>$null
+    $schtasksPath = Get-AtlasSchtasksPath
+    foreach ($candidate in @($EndTaskName)) {
+        Invoke-AtlasBestEffortScheduledTaskEnd `
+            -SchtasksPath $schtasksPath -TaskName $candidate
     }
 }
