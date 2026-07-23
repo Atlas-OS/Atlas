@@ -54,15 +54,17 @@ Atlas applies many modifications and default settings to make Windows easier to 
 
 ### 🔍 Open Source and Transparent
 
-Unlike custom Windows ISOs, Atlas is more straightforward to audit due to the use of [AME Wizard](https://amelabs.net). AME Wizard is controlled by Playbooks, a customizable script-esque system that can perform various tasks.
+Unlike custom Windows ISOs, Atlas is more straightforward to audit because it is distributed as an [AME Wizard](https://amelabs.net) Playbook whose payload can be inspected before it runs.
 
 Playbooks are renamed **.zip** archives, with the password [`malte`](https://docs.amelabs.net/developers/getting-started/creation.html). As they primarily consist of plain text, Playbooks enable transparency, unlike custom Windows ISOs, which have many entry points for malicious activity. 
 
-Atlas keeps AME Wizard as a thin runner: the YAML layer is a small shim, and almost all logic lives in an auditable PowerShell framework. See [`docs/architecture.md`](docs/architecture.md) for how an install runs, and [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for the build/test quick start.
+Atlas keeps AME Wizard as a thin packaging and application host. The YAML layer captures install facts and invokes fixed entry points; it does not use AME task includes as Atlas's workflow engine. Live installation, retry, and feature logic live in the auditable PowerShell framework shipped with the Playbook. The target payload uses the inbox Windows PowerShell 5.1 host, while repository build tooling uses PowerShell 7. See [`docs/architecture.md`](docs/architecture.md) for how an install runs, and [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for the build/test quick start.
+
+Optional Atlas Toolbox installation resolves the latest stable Toolbox release at install time. Toolbox is intentionally not pinned to an Atlas Playbook version, so a Toolbox update does not require a new Playbook release.
 
 The few binaries in the Playbook are open source in our [`utilities` repository](https://github.com/Atlas-OS/utilities), with the [hashes listed here](https://github.com/Atlas-OS/Atlas/blob/main/playbook/Executables/AtlasModules/README.md).
 
-Although the GUI is not open source for AME Wizard, AME Wizard's entire backend (called [TrustedUninstaller](https://github.com/Ameliorated-LLC/trusted-uninstaller-cli)) is open source under MIT, which contains each action used to run Atlas. The Atlas Playbook is open source under the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE).
+Although the AME Wizard GUI is not open source, its [TrustedUninstaller backend](https://github.com/Ameliorated-LLC/trusted-uninstaller-cli) is available under MIT. Atlas uses that host to apply the package and establish the initial execution identities; Atlas feature logic does not depend on a separate AME task implementation. The Atlas Playbook itself is open source under the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE).
 
 ### 🔒 Legal Compliance
 As Atlas doesn't redistribute a modified Windows ISO, it complies with the [Microsoft Windows Usage Terms](https://www.microsoft.com/content/dam/microsoft/usetm/documents/windows/11/oem-(pre-installed)/UseTerms_OEM_Windows_11_English.pdf). In addition, Atlas does not alter activation in Windows.

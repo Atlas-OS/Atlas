@@ -3,7 +3,9 @@
 Atlas is a Windows optimization playbook packaged as an APBX and applied by AME
 Wizard. AME supplies the package runtime, FeaturePage selections, OOBE/ISO
 applicability, and the initial execution identities. Atlas owns the installation
-workflow in PowerShell.
+workflow in PowerShell. AME tasks are not an Atlas execution framework: the YAML
+handoff invokes fixed PowerShell entry points and does not contain the feature
+workflow.
 
 The current design is intentionally small:
 
@@ -128,7 +130,7 @@ Reapply and by normal or OOBE execution.
 
 | Ordered work | Modes | OOBE | Replay |
 | --- | --- | --- | --- |
-| DefaultHiveLoad | All | Excluded | Always |
+| DefaultHiveLoad | All | Included | Always |
 | PayloadReplacement | All | Included | Once |
 | NotificationDisable | All | Included | Always |
 | PreInstall | All | Included | Once |
@@ -144,15 +146,22 @@ Reapply and by normal or OOBE execution.
 | Defaults | All | Included | Once |
 | DefaultRegistrySeed | Fresh | Included | Once |
 | Revert | Upgrade | Included | Once |
-| Tweaks: networking, performance, privacy, qol, security, debloat, scripts, misc | Fresh | Excluded | Once |
+| Tweaks: networking, performance, privacy, qol, security, debloat, scripts, misc | Fresh | Included | Once |
 | PowerSettings | Fresh | Included | Once |
 | InstallingUserSetup | Fresh | Excluded | Once |
 | OemBranding | Upgrade | Included | Once |
 | NotificationRestore | All | Included | Always |
-| DefaultHiveUnload | All | Excluded | Always |
+| DefaultHiveUnload | All | Included | Always |
 
 All means Fresh, Upgrade, and Reapply. Reapply receives only the common work; it
 does not inherit fresh-only or upgrade-only actions.
+
+Fresh OOBE applies the machine and default-user parts of every tweak category.
+It intentionally has no installing-user identity, so live-user registry work,
+ShellRefresh, and InstallingUserSetup remain excluded. The default profile is
+seeded with the Atlas first-logon RunOnce entry; Initialize-NewUser later performs
+the session-bound work under the exact user at that user's first sign-in. This
+keeps OOBE useful without pretending that an interactive user token exists.
 
 [Invoke-AtlasInstall.ps1](../playbook/Executables/AtlasModules/Scripts/Invoke-AtlasInstall.ps1)
 reads the committed state, obtains this plan, and dispatches only three closed
@@ -172,9 +181,8 @@ no InstallJournal, separate finalization phase, or proof framework; the active
 state and completed plan keys are the resume record.
 
 Install actions return to the orchestrator rather than terminating its process.
-The outer exit code remains 0 for success, 1 for an install failure, 2 for the
-wrong privilege, and 3 for an unsupported host. custom.yml halts on any nonzero
-result.
+The outer exit code remains 0 for success, 1 for an install failure, and 2 for
+the wrong privilege. custom.yml halts on any nonzero result.
 
 ### Phase responsibilities
 
@@ -233,8 +241,11 @@ install-state transaction, and the fixed hive mount. Other live-user HKEY_USERS
 targets are rejected. The writes occur during the owning tweak category instead
 of being queued for a later registry pass.
 
-DefaultHiveLoad and DefaultHiveUnload bracket non-OOBE plans. At successful
-completion Atlas replaces the installed flag set with the applicable
+DefaultHiveLoad and DefaultHiveUnload bracket every plan. The orchestrator records
+mount ownership only after Atlas successfully loads the hive. A best-effort
+finally cleanup unloads an Atlas-owned mount after a later failure; it never
+unloads a mount this invocation did not create. At successful completion Atlas
+replaces the installed flag set with the applicable
 Upgrade.flag, Interactive.flag, and option-*.flag files. These flags preserve the
 post-install compatibility contract after active state is archived; they do not
 drive the current install plan, which requires install state.
@@ -260,10 +271,12 @@ handoff. User-facing post-install tools use Atlas's native TrustedInstaller
 broker instead of an arbitrary RunAsTI launcher.
 
 The public broker accepts only typed Toggle and ResetServices operations and maps
-them to fixed installed entry points. It returns a structured result while the
-feature implementation remains in the shared PowerShell modules and toggle
-definitions. RunAsTI.cmd remains only as a deny-only compatibility stub for
-obsolete shortcuts.
+them to fixed installed entry points. Its process contract is deliberately small:
+the target's exit code is returned to the caller, and validation or execution
+diagnostics are written to standard error. Internal native launch evidence is not
+part of the public protocol. Feature implementation remains in the shared
+PowerShell modules and toggle definitions. RunAsTI.cmd remains only as a deny-only
+compatibility stub for obsolete shortcuts.
 
 ## Safe Mode and CBS retry
 
@@ -320,6 +333,36 @@ calls Invoke-Toggle.ps1. The Atlas.Toggles module validates the definition,
 dispatches the requested state, and records declarative state in
 HKLM\SOFTWARE\AtlasOS\Services. It does not persist executable paths as replay
 instructions.
+
+### Start and taskbar pins
+
+Atlas deliberately configures Start and taskbar pins as part of its user setup.
+The exact-user setup also creates the user's `Atlas.lnk` desktop shortcut with
+the Atlas folder icon, then refreshes that user's Explorer session after the
+taskbar pin database is committed so the running File Explorer window groups
+under its canonical pin. The generated File Explorer shortcut carries the
+`Microsoft.Windows.Explorer` AppUserModelID in its Shell property store; the
+taskbar uses that identity to associate Explorer windows with the pin.
+For later accounts, the two-stage RunOnce setup removes its retry before the
+stage-two Explorer refresh, preventing the restarted shell from launching a
+concurrent initializer. Its delayed search finalizer runs without a redundant
+transcript and shows the ready notification only after the final shell refresh.
+The same exact-user path also performs safe OneDrive registration and leftover
+cleanup for each new account without deleting a sync root that contains files.
+Start uses the Windows policy surface. Atlas checks the servicing level that
+introduced the local policy and emits a clear warning when the current system is
+too old; the validated layout and default-profile cleanup still run so a later
+cumulative update can consume the configuration.
+
+Windows exposes no equivalent stable API for Atlas's taskbar layout, so the
+taskbar binary values are an intentional compatibility payload rather than a
+general data model. Atlas keeps the payload within the playbook's supported-build
+boundary, checks every native registry write, and fails the user-setup checkpoint
+rather than recording false success when a value cannot be applied. An unavailable
+selected browser falls back to Edge and then to an Explorer-only layout. Temporary
+shortcut staging is always removed. Captured values are reviewed and
+compatibility-tested when supported Windows builds change; they are not silently
+assumed portable across every shell version or user profile.
 
 ## Packaging
 
