@@ -11,7 +11,7 @@ $kernelShadowStacks = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenar
 $credentialGuard = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\CredentialGuard"
 
 if ($DisableAllVBS) {
-	Write-Warning "Disabling VBS features..."
+	Write-Warning "Disabling VBS features. This may prevent WSL2 and Docker Desktop from starting."
 
 	# Memory Integrity
 	New-ItemProperty -Path $memIntegrity -Name "Enabled" -Value 0 -PropertyType DWORD -Force # Need to be forced since Windows 11 24H2

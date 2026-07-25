@@ -16,6 +16,12 @@ fltmc > nul 2>&1 || (
     exit /b
 )
 
+if /i not "%~1"=="/silent" (
+    echo WARNING: Disabling VBS may prevent WSL2 and Docker Desktop from starting.
+    choice /c:yn /n /m "Continue? [Y/N] "
+    if errorlevel 2 exit /b
+)
+
 :: Update Registry (State and Path)
 reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
 reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
