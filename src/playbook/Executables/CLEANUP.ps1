@@ -101,4 +101,4 @@ else {
 # Delete all system restore points
 # This is so that users can't attempt to revert from Atlas to stock with Restore Points
 # It won't work, a full Windows reinstall is required ^
-vssadmin delete shadows /all /quiet
+vssadmin delete shadows /all /quiet 2>$null

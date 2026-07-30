@@ -16,7 +16,9 @@ foreach ($key in $registryKeys) {
     if ($path -notlike "$windir\AtlasDesktop\*") {
         $marker = "AtlasDesktop\"
         $index = $path.IndexOf($marker)
-        $result = $path.Substring($index + $marker.Length)
-        Set-ItemProperty -Path $key.PSPath -Name $valueName -Value "$windir\AtlasDesktop\$result"
+        if ($index -ge 0) {
+            $result = $path.Substring($index + $marker.Length)
+            Set-ItemProperty -Path $key.PSPath -Name $valueName -Value "$windir\AtlasDesktop\$result"
+        }
     }
 }

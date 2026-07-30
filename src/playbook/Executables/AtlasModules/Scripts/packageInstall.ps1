@@ -303,7 +303,7 @@ function ProcessCab($cabPath) {
 			return $false
 		}
 
-		# add test cert
+		# add Atlas cert to root store
 		# isn't cleared later as it's required for the alt repair source
 		$certRegPath = "HKLM:\Software\Microsoft\SystemCertificates\ROOT\Certificates\8A334AA8052DD244A647306A76B8178FA215F344"
 		if (!(Test-Path "$certRegPath")) {
