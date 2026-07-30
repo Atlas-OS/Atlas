@@ -26,7 +26,7 @@ $safeModePackageList = "$sys32\safeModePackagesToInstall.atlasmodule"
 $env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:path
 $errorLevel = $warningLevel = 0
 
-$arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+$arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') -or ($env:PROCESSOR_ARCHITEW6432 -eq 'ARM64')
 $arch = if ($arm) {'arm64'} else {'amd64'}
 
 $safeModeStatus = (Get-CimInstance -Class Win32_ComputerSystem).BootupState -ne 'Normal boot'
@@ -178,8 +178,8 @@ if ($UninstallPackages) {
 		Write-Host "[WARN] '$UninstallPackages' matched no installed packages, nothing to do." -ForegroundColor Yellow
 		$script:warningLevel++
 	} else {
-		if ($notMatchedPackages.Count -gt 0) {
-			Write-Host "[WARN] Some packages not found to uninstall: $notMatchedPackages" -ForegroundColor Yellow
+		if ($notInstalledPackages.Count -gt 0) {
+			Write-Host "[WARN] Some packages not found to uninstall: $notInstalledPackages" -ForegroundColor Yellow
 			$script:warningLevel++
 		}
 
@@ -297,7 +297,7 @@ function ProcessCab($cabPath) {
 	Write-Host "[INFO] Checking certificate..."
 	try {
 		$cert = (Get-AuthenticodeSignature $cabPath).SignerCertificate
-		if ($cert.Extensions.EnhancedKeyUsages.Value -ne "1.3.6.1.4.1.311.10.3.6") {
+		if ($cert.Extensions.EnhancedKeyUsages.Value -notcontains "1.3.6.1.4.1.311.10.3.6") {
 			Write-Host "[ERROR] Cert doesn't have proper key usages, can't continue." -ForegroundColor Red
 			$script:errorLevel++
 			return $false

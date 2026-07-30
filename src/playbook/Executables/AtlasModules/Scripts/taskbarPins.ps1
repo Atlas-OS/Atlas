@@ -107,11 +107,9 @@ foreach ($userKey in (Get-RegUserPaths -NoDefault).PsPath) {
 
         Write-Output "Clearing current shortcuts..."
         $taskBarAppData = "$appData\$taskBarLocation"
-        if (Test-Path $taskBarAppData -PathType Leaf) {
-            Write-Output "Deleting TaskBar file..."
-            Remove-Item -Path $taskBarAppData -Force
+        if (Test-Path $taskBarAppData) {
+            Remove-Item -Path "$taskBarAppData\*" -Force -Recurse
         }
-        Get-ChildItem $taskBarAppData | Remove-Item -Force -Recurse
 
         Write-Output "Adding new shortcuts..."
         Copy-Item -Path "$tmp\*" -Destination $taskBarAppData -Force

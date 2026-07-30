@@ -13,7 +13,7 @@ foreach ($yamlFile in $yamlFiles) {
     $parsedYaml = ConvertFrom-Yaml $yamlContent
     foreach ($entry in $parsedYaml) {
         foreach ($value in $entry.actions.path) {
-            if ($value -like 'HKCU') {
+            if ($value -like 'HKCU*') {
                 if (!$RegistryPaths.Contains($value.Substring(4))) { $RegistryPaths += $value.Substring(4) }
             }
         }
