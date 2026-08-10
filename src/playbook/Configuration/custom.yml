@@ -100,6 +100,13 @@ actions:
     oobe: false
     wait: true
 
+  # enable back notifications
+  - !cmd:
+    command: "ENABLENOTIFS.cmd"
+    exeDir: true
+    wait: true
+    runas: currentUserElevated
+
   # Set PowerShell execution policy to RemoteSigned from the previous "Unrestricted"
   # This allows Atlas folder scripts (local) to run while requiring signatures for downloaded scripts
   - !writeStatus: { status: "Securing PowerShell execution policy" }
