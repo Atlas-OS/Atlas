@@ -1,4 +1,7 @@
 @echo off
+set "settingName=TimerResolution"
+set "stateValue=0"
+set "scriptPath=%~f0"
 
 set "___args="%~f0" %*"
 fltmc > nul 2>&1 || (
@@ -12,6 +15,9 @@ fltmc > nul 2>&1 || (
 )
 
 if not "%~1"=="/silent" call "%windir%\AtlasModules\Scripts\serviceWarning.cmd" %*
+
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v "GlobalTimerResolutionRequests" /f > nul 2>&1
 taskkill /f /im SetTimerResolution.exe > nul 2>&1

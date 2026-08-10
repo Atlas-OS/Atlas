@@ -39,6 +39,9 @@ del /f /q "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Process Explorer.
 
 :: Check if Task Manager is still broken
 
+:: Close Task Manager before the validation check so it doesn't stay open while upgrading/installing.
+taskkill /F /IM taskmgr.exe > nul 2>&1
+
 taskmgr.exe > nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo Warning: Task Manager is still not working, applying fallback fix...
@@ -52,7 +55,7 @@ if %ERRORLEVEL% NEQ 0 (
     if /i not "%~1"=="/silent" pause
 )
 if "%~1"=="/silent" (
-    taskkill /IM taskmgr.exe
+    taskkill /F /IM taskmgr.exe > nul 2>&1
     exit /b
 )
 echo Finished, changes have been applied.
