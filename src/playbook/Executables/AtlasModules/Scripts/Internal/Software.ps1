@@ -2,7 +2,8 @@ param (
     [switch]$Chrome,
     [switch]$Brave,
     [switch]$Firefox,
-    [switch]$Toolbox
+    [switch]$Toolbox,
+    [switch]$Eclean
 )
 
 $ErrorActionPreference = 'Stop'
@@ -80,6 +81,19 @@ function Install-AtlasToolbox {
     }
     catch {
         Write-Warning "Atlas Toolbox could not be installed. Setup will continue $($_.Exception.Message)"
+    }
+}
+
+function Install-Eclean {
+    if ($env:PATH -like '*eclean*') { return }
+    $ecleanPath = Join-Path -Path $script:TempDir -ChildPath 'eclean.nsis.exe'
+    Write-Host $ecleanPath;
+    try {
+        Invoke-AtlasDownload -Uri 'https://update.eclean.gg/windows/latest/eclean-latest_x64-setup.nsis.exe' -Destination $ecleanPath -Description 'eclean'
+        Start-AtlasInstaller -FilePath $ecleanPath -ArgumentList '/S' -Description 'eclean'
+    }
+    catch {
+        Write-Warning "eclean could not be installed. Setup will continue $($_.Exception.Message)"
     }
 }
 
@@ -232,6 +246,7 @@ function Install-DirectXRuntime {
 New-Item -ItemType Directory -Path $script:TempDir -Force | Out-Null
 try {
     if ($Toolbox) { Install-AtlasToolbox; return }
+    if ($Eclean) { Install-Eclean; return }
     if ($Brave) { Install-BraveBrowser; return }
     if ($Firefox) { Install-FirefoxBrowser; return }
     if ($Chrome) { Install-ChromeBrowser; return }

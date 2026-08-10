@@ -2,7 +2,8 @@ param (
     [switch]$Chrome,
     [switch]$Brave,
     [switch]$Firefox,
-    [switch]$Toolbox
+    [switch]$Toolbox,
+    [switch]$Eclean
 )
 
 $internalScript = Join-Path -Path $PSScriptRoot -ChildPath 'AtlasModules\Scripts\Internal\Software.ps1'
