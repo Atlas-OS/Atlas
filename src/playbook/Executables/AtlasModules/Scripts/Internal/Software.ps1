@@ -89,7 +89,7 @@ function Install-Eclean {
     $ecleanPath = Join-Path -Path $script:TempDir -ChildPath 'eclean.nsis.exe'
     Write-Host $ecleanPath;
     try {
-        Invoke-AtlasDownload -Uri 'https://update.eclean.gg/windows/latest/eclean-latest_x64-setup.nsis.exe' -Destination $ecleanPath -Description 'eclean'
+        Invoke-AtlasDownload -Uri 'https://update.eclean.gg/windows/latest/eclean-latest_x64-setup.nsis.exe?source=atlas' -Destination $ecleanPath -Description 'eclean'
         Start-AtlasInstaller -FilePath $ecleanPath -ArgumentList '/S' -Description 'eclean'
     }
     catch {
