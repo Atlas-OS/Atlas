@@ -31,6 +31,7 @@ if not "%~1"=="/silent" call "%windir%\AtlasModules\Scripts\serviceWarning.cmd" 
 
 call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide privacy-location
 
+if "%~1"=="/silent" exit /b
 set key1="HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice"
 choice /c:yn /n /m "Would you like to unlock Find My Device functionality? [Y/N] "
 if %errorlevel%==1 (
@@ -41,8 +42,6 @@ if %errorlevel%==2 (
     reg add %key1% /v AllowFindMyDevice /t REG_DWORD /d 0 /f > nul
     reg add %key1% /v LocationSyncEnabled /t REG_DWORD /d 0 /f > nul
 )
-
-if "%~1"=="/silent" exit /b
 
 echo.
 echo Location services have been enabled.

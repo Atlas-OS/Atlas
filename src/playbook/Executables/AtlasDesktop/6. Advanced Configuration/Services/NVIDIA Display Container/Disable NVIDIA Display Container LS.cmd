@@ -16,9 +16,6 @@ fltmc > nul 2>&1 || (
     exit /b
 )
 
-:: Update Registry (State and Path)
-reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
-reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 if not "%~1"=="/silent" call "%windir%\AtlasModules\Scripts\serviceWarning.cmd" %*
 
@@ -30,6 +27,10 @@ reg query "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem
     if /i not "%~1"=="/silent" pause
     exit /b 1
 )
+
+:: Update Registry (State and Path)
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
 
 echo Disabling the 'NVIDIA Display Container LS' service will stop the NVIDIA Control Panel from working.
 echo It will most likely break other NVIDIA driver features as well.

@@ -33,6 +33,10 @@ reg query "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem
     exit /b
 )
 
+:: Update Registry (State and Path)
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v state /t REG_DWORD /d %stateValue% /f > nul
+reg add "HKLM\SOFTWARE\AtlasOS\Services\%settingName%" /v path /t REG_SZ /d "%scriptPath%" /f > nul
+
 call setSvc.cmd NVDisplay.ContainerLocalSystem 2
 sc start NVDisplay.ContainerLocalSystem > nul 2>&1
 
