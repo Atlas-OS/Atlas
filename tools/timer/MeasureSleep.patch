@@ -1,0 +1,27 @@
+--- a/MeasureSleep.cpp
++++ b/MeasureSleep.cpp
+@@ -57,8 +57,13 @@
+         sleep_duration = args::get(sleep_n);
+     }
+ 
+-    if (samples && args::get(samples) < 2) {
+-        std::cerr << "--samples must be larger than 1\n";
++    if (sleep_duration < 0) {
++        std::cerr << "--sleep_n must not be negative\n";
++        return 1;
++    }
++
++    if (samples && args::get(samples) < 3) {
++        std::cerr << "--samples must be at least 3 (the first sample is discarded)\n";
+         return 1;
+     }
+ 
+@@ -87,7 +92,7 @@
+ 
+         double delta_s = (double)(end.QuadPart - start.QuadPart) / freq.QuadPart;
+         double delta_ms = delta_s * 1000;
+-        double delta_from_sleep = delta_ms - 1;
++        double delta_from_sleep = delta_ms - sleep_duration;
+ 
+         std::cout << std::fixed << std::setprecision(4) << "Resolution: " << (current_resolution / 10000.0) << "ms, Sleep(n=" << sleep_duration << ") slept " << delta_ms << "ms (delta: " << delta_from_sleep << ")\n";
+ 

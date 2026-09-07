@@ -1,0 +1,3 @@
+# These exact bytes are part of the accepted corresponding-source manifest.
+*.json -text
+*.patch -text

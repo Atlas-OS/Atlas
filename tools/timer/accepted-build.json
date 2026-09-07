@@ -1,0 +1,82 @@
+{
+  "compilerVersion": "19.44.35228.0",
+  "compilerSha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "toolset": "14.44.35207",
+  "windowsSdk": "10.0.26100.0",
+  "flags": "/std:c++20 /O2 /MT /EHsc /DUNICODE /D_UNICODE /DNDEBUG /Brepro /link /Brepro ntdll.lib advapi32.lib",
+  "inputs": [
+    {
+      "name": "SetTimerResolution.cpp",
+      "url": "https://raw.githubusercontent.com/valleyofdoom/TimerResolution/edf6102dbe9cd84fd973f00b0add44d3e9d62801/SetTimerResolution/SetTimerResolution.cpp",
+      "sha256": "3AAE625C470D4BC1C62B3E0D249A4F2A1E41B40FA7EB3376A4350A49DD08CDDF"
+    },
+    {
+      "name": "MeasureSleep.cpp",
+      "url": "https://raw.githubusercontent.com/valleyofdoom/TimerResolution/79b5c6a8b2015cd1376b60753cd2c9bd5fe1326f/MeasureSleep/MeasureSleep.cpp",
+      "sha256": "B55445DB27464A833482A4011931A0456533EE1FC4B336AB974B2B7BC793BA68"
+    },
+    {
+      "name": "args.hxx",
+      "url": "https://raw.githubusercontent.com/Taywee/args/e3e6e46699f1ce487a42fd64838f53daeb5aa89b/args.hxx",
+      "sha256": "C23C54AD2420512AE363A7F770E0EB510F83B8E3C40AB2B96DC8D9E6991A4874"
+    },
+    {
+      "name": "args-LICENSE",
+      "url": "https://raw.githubusercontent.com/Taywee/args/e3e6e46699f1ce487a42fd64838f53daeb5aa89b/LICENSE",
+      "sha256": "E0C9F11D6DFEC641F099A0A153358B8B9954A86A61C64C89DB3A75D5D282852A"
+    },
+    {
+      "name": "TimerResolution-LICENSE",
+      "url": "https://raw.githubusercontent.com/valleyofdoom/TimerResolution/79b5c6a8b2015cd1376b60753cd2c9bd5fe1326f/LICENSE",
+      "sha256": "3972DC9744F6499F0F9B2DBF76696F2AE7AD8AF9B23DDE66D6AF86C9DFB36986"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "name": "args-LICENSE",
+      "sha256": "E0C9F11D6DFEC641F099A0A153358B8B9954A86A61C64C89DB3A75D5D282852A"
+    },
+    {
+      "name": "args.hxx",
+      "sha256": "C23C54AD2420512AE363A7F770E0EB510F83B8E3C40AB2B96DC8D9E6991A4874"
+    },
+    {
+      "name": "Build-TimerTools.ps1",
+      "sha256": "F6E85E548A6140008B959311656B04AF90F3BBC3200B3D190039C66BE5A31988"
+    },
+    {
+      "name": "inputs.json",
+      "sha256": "42B82630091B06AFCB3AED4714C4FA186927BB203E861394B796270195ACA968"
+    },
+    {
+      "name": "MeasureSleep.cpp",
+      "sha256": "64E0BEA534194021E85B142B7F74C9A7D0A21DD598BAC31FE8DCFCDA036F6C17"
+    },
+    {
+      "name": "MeasureSleep.patch",
+      "sha256": "50535E50B0B62D8B8B290195FD6C73061C22B9485E9AC18584610F8960F30DE7"
+    },
+    {
+      "name": "SetTimerResolution.cpp",
+      "sha256": "9434159670BB74C0C4644026CC696C59EF2AD74493F5712D91CB1B95785C873C"
+    },
+    {
+      "name": "SetTimerResolution.patch",
+      "sha256": "47535DEF82FEE28D7DA4DE0AD503F2A426443C3694537A314FFC88F9636B85A5"
+    },
+    {
+      "name": "TimerResolution-LICENSE",
+      "sha256": "3972DC9744F6499F0F9B2DBF76696F2AE7AD8AF9B23DDE66D6AF86C9DFB36986"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "MeasureSleep.exe",
+      "sha256": "952C19EA42CC8733BCCC07624E952266054FFB6AB50A80090B60A76C3A71E7E4"
+    },
+    {
+      "name": "SetTimerResolution.exe",
+      "sha256": "67592C7DA1728E2084A5F1E17AA4312E49F3D48DF21ADB0844E66259D4489EBD"
+    }
+  ]
+}

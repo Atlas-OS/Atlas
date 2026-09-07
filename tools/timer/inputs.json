@@ -1,0 +1,27 @@
+[
+  {
+    "name": "SetTimerResolution.cpp",
+    "url": "https://raw.githubusercontent.com/valleyofdoom/TimerResolution/edf6102dbe9cd84fd973f00b0add44d3e9d62801/SetTimerResolution/SetTimerResolution.cpp",
+    "sha256": "3AAE625C470D4BC1C62B3E0D249A4F2A1E41B40FA7EB3376A4350A49DD08CDDF"
+  },
+  {
+    "name": "MeasureSleep.cpp",
+    "url": "https://raw.githubusercontent.com/valleyofdoom/TimerResolution/79b5c6a8b2015cd1376b60753cd2c9bd5fe1326f/MeasureSleep/MeasureSleep.cpp",
+    "sha256": "B55445DB27464A833482A4011931A0456533EE1FC4B336AB974B2B7BC793BA68"
+  },
+  {
+    "name": "args.hxx",
+    "url": "https://raw.githubusercontent.com/Taywee/args/e3e6e46699f1ce487a42fd64838f53daeb5aa89b/args.hxx",
+    "sha256": "C23C54AD2420512AE363A7F770E0EB510F83B8E3C40AB2B96DC8D9E6991A4874"
+  },
+  {
+    "name": "args-LICENSE",
+    "url": "https://raw.githubusercontent.com/Taywee/args/e3e6e46699f1ce487a42fd64838f53daeb5aa89b/LICENSE",
+    "sha256": "E0C9F11D6DFEC641F099A0A153358B8B9954A86A61C64C89DB3A75D5D282852A"
+  },
+  {
+    "name": "TimerResolution-LICENSE",
+    "url": "https://raw.githubusercontent.com/valleyofdoom/TimerResolution/79b5c6a8b2015cd1376b60753cd2c9bd5fe1326f/LICENSE",
+    "sha256": "3972DC9744F6499F0F9B2DBF76696F2AE7AD8AF9B23DDE66D6AF86C9DFB36986"
+  }
+]

@@ -1,0 +1,14 @@
+--- a/SetTimerResolution.cpp
++++ b/SetTimerResolution.cpp
+@@ -59,6 +59,11 @@
+         return 1;
+     }
+ 
++    if (args::get(resolution) <= 0) {
++        std::cerr << "--resolution must be positive\n";
++        return 1;
++    }
++
+     if (CountProcessInstances(L"SetTimerResolution.exe") > 1) {
+         std::cerr << "Another instance of SetTimerResolution is already running. Close all instances and try again\n";
+         return 1;
