@@ -33,7 +33,7 @@ impl Redactor {
                 r"(?i)\b(?:Bearer|Basic)\s+[A-Za-z0-9_+/=.-]+",
                 r"(?i)\b[A-Z0-9]{5}(?:-[A-Z0-9]{5}){4}\b",
             ].into_iter().map(|pattern| Regex::new(pattern).unwrap()).collect(),
-            assignment: Regex::new(r#"(?i)(\b(?:password|passwd|pwd|access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|authorization|proxy-authorization|cookie|set-cookie|sig|signature|x-amz-signature|x-goog-signature)\b[\"']?\s*[:=]\s*)(?:\"(?:\\.|[^\"\\])*\"|'[^']*'|[^\s&;,}\"<>]+)"#).unwrap(),
+            assignment: Regex::new(r#"(?i)(\b(?:password|passwd|pwd|access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|authorization|proxy-authorization|cookie|set-cookie|sig|signature|x-amz-signature|x-goog-signature)\b[\"']?\s*[:=]\s*)(?:\[credential removed\]|\"(?:\\.|[^\"\\])*\"|'[^']*'|[^\s&;,}\"<>]+)"#).unwrap(),
             sensitive_key: Regex::new(r"(?i)^(?:password|passwd|pwd|access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|authorization|proxy-authorization|cookie|set-cookie|private[_-]?key)$").unwrap(),
         };
         for name in ["USERNAME", "COMPUTERNAME", "USERDOMAIN", "USERDNSDOMAIN"] {
@@ -59,7 +59,7 @@ impl Redactor {
         });
         text = HEADERS.replace_all(&text, "${1}[credential removed]").into_owned();
         static ARGUMENTS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-            Regex::new(r#"(?i)((?:--?|/)(?:password|passwd|pwd|access-token|api-key|client-secret)\s+)(?:\"[^\"]*\"|'[^']*'|\S+)"#).unwrap()
+            Regex::new(r#"(?i)((?:--?|/)(?:password|passwd|pwd|access-token|api-key|client-secret)\s+)(?:\[credential removed\]|\"[^\"]*\"|'[^']*'|\S+)"#).unwrap()
         });
         text = ARGUMENTS.replace_all(&text, "${1}[credential removed]").into_owned();
         static XML: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
@@ -156,6 +156,11 @@ impl Redactor {
 }
 
 fn alias(aliases: &mut HashMap<String, String>, value: &str) -> String {
+    // Manifest strings may already have been redacted while recording an
+    // unreadable file. Preserve the same label on that second pass.
+    if aliases.values().any(|label| label.eq_ignore_ascii_case(value)) {
+        return value.to_owned();
+    }
     let next = aliases.len() + 1;
     aliases.entry(value.to_lowercase()).or_insert_with(|| format!("anonymous-{next}")).clone()
 }
@@ -217,5 +222,13 @@ mod tests {
         assert!(
             result.contains("-Mode Repair") && result.contains("ERROR exit=5 module=Atlas.Install line=42")
         );
+    }
+
+    #[test]
+    fn repeated_redaction_keeps_aliases_and_credential_markers_stable() {
+        let source = "C:\\Users\\Sample Person\\AppData\\Local\\AtlasOS\\install.log\npassword='secret'\nsetup.exe -Password 'secret' -Mode Repair\n";
+        let mut redactor = Redactor::new();
+        let once = redactor.text(source);
+        assert_eq!(redactor.text(&once), once);
     }
 }
