@@ -478,44 +478,62 @@ mod tests {
 
     #[test]
     fn a_reopened_monitor_can_stop_a_real_harmless_worker_without_owning_its_stdout() {
+        // Stop and reap the fixture before TempDir is dropped, including on panic.
+        struct Worker(std::process::Child);
+        impl Drop for Worker {
+            fn drop(&mut self) {
+                let _ = self.0.kill();
+                let _ = self.0.wait();
+            }
+        }
+
         let temp = super::super::test_support::TempDir::new("preparation-orphan");
         let job = temp.path().join("Preparation/123-456");
         fs::create_dir_all(&job).unwrap();
         fs::write(job.join("cancel"), "").unwrap();
         let script = job.join("fixture.ps1");
         fs::write(&script, r#"
+$ErrorActionPreference = 'Stop'
 $record = @{schema=1;status='running';stage='verify';completed=0;total=0;pid=$PID;processStart=[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().ToFileTimeUtc()}
 $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'state.json')
 [Console]::WriteLine('started')
-$deadline = [DateTime]::UtcNow.AddSeconds(10)
+$deadline = [DateTime]::UtcNow.AddSeconds(60)
 while ((Get-Content -LiteralPath (Join-Path $PSScriptRoot 'cancel') -Raw) -cne 'cancel' -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 25 }
 $record.status = 'cancelled'
 $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'state.json')
 [Console]::WriteLine('stopped')
 "#).unwrap();
         let output = fs::File::create(job.join("worker.log")).unwrap();
+        let errors = fs::File::create(job.join("worker-errors.log")).unwrap();
         let mut command = Command::new(super::super::system::powershell_path());
         command
             .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File"])
             .arg(script)
-            .stdout(Stdio::from(output));
+            .stdout(Stdio::from(output))
+            .stderr(Stdio::from(errors));
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
             command.creation_flags(0x08000000);
         }
-        let mut child = command.spawn().unwrap();
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        let mut child = Worker(command.spawn().unwrap());
+        // Shared Windows runners can take several seconds to start PowerShell.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
         let recovered = loop {
             if let Some(job) = recover_running(&temp.path().join("settings.json")).unwrap() {
                 break job;
             }
-            assert!(std::time::Instant::now() < deadline, "worker did not publish its identity");
+            let exited = child.0.try_wait().unwrap();
+            assert!(
+                exited.is_none() && std::time::Instant::now() < deadline,
+                "worker did not publish its identity (exit: {exited:?}): {}",
+                fs::read_to_string(job.join("worker-errors.log")).unwrap_or_default()
+            );
             std::thread::sleep(std::time::Duration::from_millis(25));
         };
         let state = monitor(recovered, Arc::new(AtomicBool::new(true)), |_| {}).unwrap();
         assert_eq!(state, State::Cancelled);
-        assert!(child.wait().unwrap().success());
+        assert!(child.0.wait().unwrap().success());
         let log = fs::read_to_string(job.join("worker.log")).unwrap();
         assert!(log.contains("started") && log.contains("stopped"));
     }
