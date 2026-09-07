@@ -675,3 +675,7 @@ detail-windows-preview = Build Insider tidak didukung. Gunakan rilis publik Wind
 detail-windows-release-unknown = Atlas tidak dapat memastikan bahwa build Windows ini merupakan rilis publik. Sambungkan ke internet dan periksa lagi.
 iso-release-unknown = Tidak dapat dipastikan bahwa ISO ini berisi rilis publik Windows 11 25H2. Sambungkan ke internet dan coba lagi, atau pilih media instalasi resmi.
 prepare-previous-worker = Proses pembaruan sebelumnya masih berjalan. Atlas akan menunggu hingga selesai sebelum Anda dapat mencoba lagi.
+
+ready-used-windows-title = Instal ulang Windows sebelum melanjutkan
+ready-used-windows-description = Windows ini menunjukkan tanda penggunaan sebelumnya. Menginstal Atlas di sini tidak didukung dan sangat tidak disarankan. Lanjutkan hanya jika Anda memahami risikonya.
+ready-used-windows-dismiss = Saya memahami risikonya

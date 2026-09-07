@@ -656,3 +656,7 @@ detail-windows-preview = 不支援 Insider 預覽組建。請使用 Windows 11 �
 detail-windows-release-unknown = Atlas 無法確認此 Windows 組建是否已正式發行。請連線至網際網路後重新檢查。
 iso-release-unknown = 無法確認此 ISO 是否包含正式發行的 Windows 11 25H2。請連線至網際網路後重試，或選擇官方安裝媒體。
 prepare-previous-worker = 先前的更新作業仍在執行。Atlas 會等待作業完成，之後您就可以重試。
+
+ready-used-windows-title = 請先重新安裝 Windows 再繼續
+ready-used-windows-description = 此 Windows 系統存在已使用的跡象。在此系統上安裝 Atlas 不受支援，我們強烈建議不要這樣做。僅在你了解風險的情況下繼續。
+ready-used-windows-dismiss = 我了解風險

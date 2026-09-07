@@ -20,4 +20,5 @@ pub mod recovery_app;
 #[cfg(test)]
 pub mod test_support;
 pub mod usb;
+pub mod windows_installation;
 pub mod windows_release;

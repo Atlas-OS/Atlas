@@ -668,3 +668,7 @@ detail-windows-preview = Insider ビルドには対応していません。Windo
 detail-windows-release-unknown = この Windows ビルドが一般公開版かどうかを確認できませんでした。インターネットに接続して、もう一度確認してください。
 iso-release-unknown = この ISO に Windows 11 25H2 の一般公開版が含まれているか確認できませんでした。インターネットに接続して再試行するか、公式のインストールメディアを選択してください。
 prepare-previous-worker = 前の更新処理がまだ実行中です。処理が完了するまでお待ちください。完了後に再試行できます。
+
+ready-used-windows-title = 続行する前に Windows を再インストールしてください
+ready-used-windows-description = この Windows 環境には使用済みの兆候があります。ここへの Atlas のインストールはサポート対象外で、強く非推奨です。リスクを理解している場合のみ続行してください。
+ready-used-windows-dismiss = リスクを理解しました

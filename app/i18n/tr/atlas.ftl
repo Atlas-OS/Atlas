@@ -690,3 +690,7 @@ detail-windows-preview = Insider derlemeleri desteklenmiyor. Windows 11’in gen
 detail-windows-release-unknown = Atlas, bu Windows derlemesinin genel kullanıma sunulduğunu doğrulayamadı. İnternete bağlanıp yeniden kontrol edin.
 iso-release-unknown = Bu ISO’nun genel kullanıma sunulan bir Windows 11 25H2 sürümü içerdiği doğrulanamadı. İnternete bağlanıp yeniden deneyin veya resmî bir yükleme medyası seçin.
 prepare-previous-worker = Önceki bir güncelleme işlemi hâlâ sürüyor. Atlas, yeniden deneyebilmeniz için işlemin bitmesini bekleyecek.
+
+ready-used-windows-title = Devam etmeden önce Windows’u yeniden yükleyin
+ready-used-windows-description = Bu Windows kurulumunda önceki kullanım belirtileri var. Buraya Atlas yüklemek desteklenmez ve kesinlikle önerilmez. Yalnızca riskleri anlıyorsanız devam edin.
+ready-used-windows-dismiss = Riskleri anlıyorum

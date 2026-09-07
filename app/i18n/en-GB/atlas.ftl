@@ -700,3 +700,7 @@ detail-windows-preview = Insider builds aren’t supported. Use a public release
 detail-windows-release-unknown = Atlas couldn’t verify this Windows build as a public release. Connect to the internet and check again.
 iso-release-unknown = This ISO couldn’t be verified as a public Windows 11 25H2 release. Connect to the internet and try again, or choose official release media.
 prepare-previous-worker = An earlier update operation is still running. Atlas will wait for it to finish before you can try again.
+
+ready-used-windows-title = Reinstall Windows before continuing
+ready-used-windows-description = This Windows setup shows signs of prior use. Installing Atlas here is unsupported and strongly discouraged. Continue only if you understand the risks.
+ready-used-windows-dismiss = I understand the risks

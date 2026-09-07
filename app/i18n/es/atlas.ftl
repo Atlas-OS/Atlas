@@ -686,3 +686,7 @@ detail-windows-preview = Las compilaciones Insider no son compatibles. Usa una v
 detail-windows-release-unknown = Atlas no pudo confirmar que esta compilación de Windows sea una versión pública. Conéctate a internet y vuelve a comprobarlo.
 iso-release-unknown = No se pudo confirmar que esta ISO contenga una versión pública de Windows 11 25H2. Conéctate a internet e inténtalo de nuevo, o elige un medio de instalación oficial.
 prepare-previous-worker = Una actualización anterior sigue en curso. Atlas esperará a que termine para que puedas volver a intentarlo.
+
+ready-used-windows-title = Reinstala Windows antes de continuar
+ready-used-windows-description = Esta instalación de Windows muestra signos de uso previo. Instalar Atlas aquí no tiene soporte y se desaconseja encarecidamente. Continúa solo si comprendes los riesgos.
+ready-used-windows-dismiss = Comprendo los riesgos

@@ -40,6 +40,8 @@ pub struct InstallPage {
     log: LogView,
     scrollbar: ScrollbarState,
     show_command: bool,
+    windows_installation: crate::services::windows_installation::Evidence,
+    used_windows_warning_dismissed: bool,
     /// The step drawn last frame, to reset scrolling and focus on a change.
     shown_step: Option<(Step, usize)>,
     shown_run: Option<RunState>,
@@ -49,12 +51,26 @@ pub struct InstallPage {
 impl InstallPage {
     pub fn new(model: Entity<AppModel>, cx: &mut Context<Self>) -> Self {
         cx.observe(&model, |_, _, cx| cx.notify()).detach();
+        cx.spawn(async move |this, cx| {
+            let evidence = cx
+                .background_executor()
+                .spawn(async { crate::services::windows_installation::Evidence::read() })
+                .await;
+            this.update(cx, |this, cx| {
+                this.windows_installation = evidence;
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
         Self {
             model,
             scroll: ScrollHandle::new(),
             log: LogView::default(),
             scrollbar: ScrollbarState::new(),
             show_command: false,
+            windows_installation: Default::default(),
+            used_windows_warning_dismissed: false,
             shown_step: None,
             shown_run: None,
             focus: FocusHandles::default(),
@@ -425,9 +441,11 @@ impl InstallPage {
             );
         }
 
+        let show_used_windows_warning =
+            matches!(state.install_identity, Ok(crate::services::atlas_state::InstallIdentity::Fresh))
+                && self.windows_installation.suggests_prior_use()
+                && !self.used_windows_warning_dismissed;
         let mut cards = vec![
-            InfoBar::new(Severity::Warning, t!("ready-fresh-title"), t!("ready-fresh-description"))
-                .into_any_element(),
             drivers,
             self.preparation_card(cx),
             self.package_card(cx),
@@ -451,6 +469,13 @@ impl InstallPage {
                 .child(list)
                 .into_any_element(),
         ];
+        if !show_used_windows_warning {
+            cards.insert(
+                0,
+                InfoBar::new(Severity::Warning, t!("ready-fresh-title"), t!("ready-fresh-description"))
+                    .into_any_element(),
+            );
+        }
         if let Some(problem) = state.install_eligibility_problem() {
             cards.insert(
                 0,
@@ -459,6 +484,24 @@ impl InstallPage {
         }
         if state.preparation.ready() {
             cards.insert(0, banner.into_any_element());
+        }
+        if show_used_windows_warning {
+            cards.insert(
+                0,
+                InfoBar::new(
+                    Severity::Warning,
+                    t!("ready-used-windows-title"),
+                    t!("ready-used-windows-description"),
+                )
+                .id("ready-used-windows-warning")
+                .action(Button::new("ready-used-windows-dismiss", t!("ready-used-windows-dismiss")).on_click(
+                    cx.listener(|this, _, _, cx| {
+                        this.used_windows_warning_dismissed = true;
+                        cx.notify();
+                    }),
+                ))
+                .into_any_element(),
+            );
         }
         cards
     }
