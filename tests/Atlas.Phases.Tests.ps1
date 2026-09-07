@@ -265,6 +265,44 @@ Describe 'Software phase outcome aggregation' {
         $script:userIntegrationState = [pscustomobject]@{ Count = 0 }
     }
 
+    It 'continues after optional app failures on fresh and upgrade installs' -ForEach @(
+        @{ IsUpgrade = $false; ThrowFailures = $false }
+        @{ IsUpgrade = $false; ThrowFailures = $true }
+        @{ IsUpgrade = $true; ThrowFailures = $false }
+        @{ IsUpgrade = $true; ThrowFailures = $true }
+    ) {
+        $context = [pscustomobject]@{
+            IsUpgrade = $IsUpgrade
+            IsOobe = $true
+            InteractiveUserSid = $null
+        }
+        $outcome = if ($ThrowFailures) {
+            [InvalidOperationException]::new('simulated optional app failure')
+        } else { $false }
+
+        {
+            Invoke-AtlasSoftwarePhaseForTest `
+                -Path $script:softwarePhasePath `
+                -Context $context `
+                -Options @{ 'install-toolbox' = $true; 'install-eclean' = $true; 'browser-chrome' = $true } `
+                -ComponentOutcomes @{ Toolbox = $outcome; Eclean = $outcome } `
+                -Attempts $script:softwareAttempts `
+                -Logs $script:softwareLogs `
+                -UserIntegrationState $script:userIntegrationState
+        } | Should -Not -Throw
+
+        $expected = if ($IsUpgrade) { @('Toolbox', 'Eclean', 'Chrome') } else {
+            @('VCRedist', 'SevenZip', 'DirectX', 'Toolbox', 'Eclean', 'Chrome')
+        }
+        @($script:softwareAttempts) | Should -Be $expected
+        $script:softwareLogs.Count | Should -Be 2
+        foreach ($entry in $script:softwareLogs) {
+            $entry.Level | Should -Be 'Warning'
+            $entry.Message | Should -Match 'Atlas setup will continue'
+            $entry.Message | Should -Match 'You can install it later from https://'
+        }
+    }
+
     It 'attempts every selected component before throwing one aggregate for false and thrown outcomes' {
         $context = [pscustomobject]@{
             IsUpgrade = $false
@@ -282,6 +320,8 @@ Describe 'Software phase outcome aggregation' {
         $outcomes = @{
             SevenZip = $false
             DirectX = $false
+            Toolbox = $false
+            Eclean = [InvalidOperationException]::new('simulated eclean failure')
             Firefox = [InvalidOperationException]::new('simulated Firefox failure')
         }
 
@@ -307,7 +347,7 @@ Describe 'Software phase outcome aggregation' {
             'VCRedist', 'SevenZip', 'DirectX', 'Toolbox', 'Eclean',
             'Brave', 'Firefox', 'LibreWolf', 'Chrome'
         )
-        $script:softwareLogs.Count | Should -Be 3
+        $script:softwareLogs.Count | Should -Be 5
         @($script:softwareLogs | Where-Object {
                 $_.Message -match 'Optional legacy DirectX runtime was not installed; continuing'
             }).Count | Should -Be 1

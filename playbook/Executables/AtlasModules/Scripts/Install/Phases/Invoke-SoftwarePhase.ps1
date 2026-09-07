@@ -1,8 +1,8 @@
 # Software phase.
-# Installs machine-wide initial utilities and the selected browser/toolbox. Runs as
+# Installs machine-wide initial utilities and the selected browser and apps. Runs as
 # TrustedInstaller; downloads happen here at install time.
-# Every selected component is attempted. Any failures are reported together
-# after the remaining selections have had their installation attempt.
+# Every selected component is attempted. Optional app failures are warnings;
+# other failures are reported together after the remaining installation attempts.
 
 Assert-AtlasPrivilege -TrustedInstaller
 
@@ -79,6 +79,17 @@ foreach ($component in $requestedComponents) {
         }
     }
     catch {
+        if ($component -in @('Toolbox', 'Eclean')) {
+            $appName = if ($component -ceq 'Toolbox') { 'Atlas Toolbox' } else { 'eclean' }
+            $downloadUrl = if ($component -ceq 'Toolbox') {
+                'https://github.com/Atlas-OS/atlas-toolbox/releases/latest'
+            } else {
+                'https://eclean.gg/atlasos/'
+            }
+            Write-AtlasLog -Level Warning -Message `
+                "Optional app '$appName' could not be installed; Atlas setup will continue. You can install it later from $downloadUrl. Details: $($_.Exception.Message)"
+            continue
+        }
         if ($component -ceq 'DirectX') {
             Write-AtlasLog -Level Warning -Message `
                 "Optional legacy DirectX runtime was not installed; continuing: $($_.Exception.Message)"
