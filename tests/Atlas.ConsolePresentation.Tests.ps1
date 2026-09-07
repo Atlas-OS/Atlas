@@ -249,8 +249,18 @@ Describe 'Log console styles' {
         Should -Invoke Write-Host -ModuleName Atlas.Core -Times 0 -Exactly -ParameterFilter { $Object -like '*already shown*' }
     }
 
-    It 'points the failure block at the shared install log' {
-        Get-AtlasInstallLogPath | Should -BeLike '*\AtlasOS\Logs\install\atlas-install.log'
+    It 'points elevated failures at the machine install log' {
+        Mock Test-AtlasAdmin -ModuleName Atlas.Core { $true }
+        Mock Get-AtlasContext -ModuleName Atlas.Core {
+            [pscustomobject]@{ LogsPath = (Join-Path $TestDrive 'MachineLogs') }
+        }
+        Get-AtlasInstallLogPath | Should -Be (Join-Path $TestDrive 'MachineLogs\install\atlas-install.log')
+    }
+
+    It 'points unelevated failures at the user install log' {
+        Mock Test-AtlasAdmin -ModuleName Atlas.Core { $false }
+        Get-AtlasInstallLogPath | Should -Be (Join-Path `
+            ([Environment]::GetFolderPath('LocalApplicationData')) 'AtlasOS\Logs\install\atlas-install.log')
     }
 }
 

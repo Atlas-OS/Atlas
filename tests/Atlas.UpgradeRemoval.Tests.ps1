@@ -50,7 +50,10 @@ BeforeAll {
         param([Parameter(Mandatory = $true)][string]$WindowsRoot)
 
         $env:ATLAS_TEST_WINDIR = $WindowsRoot
+        $savedPreference = $ErrorActionPreference
         try {
+            # Capture expected native failures under CI's Stop preference.
+            $ErrorActionPreference = 'Continue'
             $output = & $script:PowerShell51 -NoProfile -NoLogo -NonInteractive `
                 -ExecutionPolicy Bypass -File $script:RehostedPreviousInstall 2>&1
             return [pscustomobject]@{
@@ -59,6 +62,7 @@ BeforeAll {
             }
         }
         finally {
+            $ErrorActionPreference = $savedPreference
             Remove-Item Env:\ATLAS_TEST_WINDIR -ErrorAction SilentlyContinue
         }
     }

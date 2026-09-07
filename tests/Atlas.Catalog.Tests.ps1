@@ -61,7 +61,16 @@ Describe 'Tweak catalog routes' {
 
     It 'rejects a missing standalone definition before publishing any catalog output' {
         Remove-Item -LiteralPath (Join-Path $script:fixtureTweaks 'example\standalone.psd1')
-        $output = & $script:ToolsHost -NoProfile -File $script:CatalogTool -RepoRoot $script:fixtureRoot 2>&1
+        # Windows PowerShell turns redirected native stderr into error records.
+        # Capture the expected failure even when CI uses ErrorActionPreference=Stop.
+        $savedPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $output = & $script:ToolsHost -NoProfile -File $script:CatalogTool -RepoRoot $script:fixtureRoot 2>&1
+        }
+        finally {
+            $ErrorActionPreference = $savedPreference
+        }
         $LASTEXITCODE | Should -Be 1
         ($output -join "`n") | Should -Match "Manifest entry 'example/standalone' has no definition"
         $script:fixtureDoc | Should -Not -Exist

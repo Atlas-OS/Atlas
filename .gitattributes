@@ -14,6 +14,9 @@
 # corrupt their two-byte code units, so preserve registry payload bytes exactly.
 *.reg  -text
 *.sh   eol=lf
+# Generated catalogs are validated against deterministic LF output.
+playbook/Executables/AtlasModules/Toggles/catalog.json text eol=lf
+docs/catalog/*.md text eol=lf
 
 # Binary files
 *.apbx binary
