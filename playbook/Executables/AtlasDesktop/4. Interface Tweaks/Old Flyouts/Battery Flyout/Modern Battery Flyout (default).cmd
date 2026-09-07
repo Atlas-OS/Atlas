@@ -1,2 +1,2 @@
 @echo off
-call "%__APPDIR__%..\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd" ModernBatteryFlyout Modern "%~f0" %*
+call "%__APPDIR__%..\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd" ModernBatteryFlyout Enable "%~f0" %*

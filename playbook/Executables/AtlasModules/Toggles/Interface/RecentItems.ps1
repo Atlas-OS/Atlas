@@ -6,7 +6,7 @@ function Set-AtlasRecentItemsSettingsPage {
         'Disable' {
             Set-AtlasSettingsPageVisibility -Operation hide -Page privacy-general -NoProcessCleanup
         }
-        'Unlock' {
+        'Enable' {
             Set-AtlasSettingsPageVisibility -Operation unhide -Page privacy-general -NoProcessCleanup
         }
         default { throw "RecentItems: unsupported state '$($Toggle.State)'." }
@@ -24,7 +24,7 @@ function Show-AtlasRecentItemsMessage {
         'Disable' {
             Write-AtlasNote -Text 'App and document tracking features are disabled and their settings page is hidden.'
         }
-        'Unlock' {
+        'Enable' {
             Write-AtlasNextStep -Text 'Configure app and document tracking in File Explorer options and in the Start and General privacy settings pages.'
         }
         default { throw "RecentItems: unsupported state '$($Toggle.State)'." }

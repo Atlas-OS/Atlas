@@ -2,7 +2,7 @@ function Set-AtlasNetworkDefaultState {
     param($Toggle)
 
     Import-AtlasModule -Name Atlas.Network
-    $mode = if ($Toggle.State -ceq 'AtlasDefault') { 'Atlas' } else { 'Windows' }
+    $mode = if ($Toggle.State -ceq 'Enable') { 'Atlas' } else { 'Windows' }
     if (-not $Toggle.Silent) {
         if ($mode -ceq 'Atlas') {
             Write-AtlasStep -Text 'Applying the Atlas network adapter defaults...'

@@ -371,16 +371,16 @@ Describe 'Hardware toggle companions' {
         Mock Set-AtlasPowerSavingState -ModuleName Atlas.Toggles
 
         $definition = $script:PowerSaving
-        foreach ($stateName in @('Disable', 'Default')) {
+        foreach ($stateName in @('Disable', 'Enable')) {
             $definition.States[$stateName]['MachineAction'] | Should -BeExactly 'Invoke-AtlasPowerSavingToggle'
         }
         $definition.States['Disable']['StateValue'] | Should -Be 0
-        $definition.States['Default']['StateValue'] | Should -Be 1
+        $definition.States['Enable']['StateValue'] | Should -Be 1
 
         Invoke-CompanionFunction -Definition $definition -FunctionName 'Invoke-AtlasPowerSavingToggle' `
             -Toggle (New-ToggleContext -Name 'PowerSaving' -State 'Disable' -Silent $true)
         Invoke-CompanionFunction -Definition $definition -FunctionName 'Invoke-AtlasPowerSavingToggle' `
-            -Toggle (New-ToggleContext -Name 'PowerSaving' -State 'Default' -Silent $false)
+            -Toggle (New-ToggleContext -Name 'PowerSaving' -State 'Enable' -Silent $false)
 
         Should -Invoke Set-AtlasPowerSavingState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
             $Mode -ceq 'Atlas' -and $Silent

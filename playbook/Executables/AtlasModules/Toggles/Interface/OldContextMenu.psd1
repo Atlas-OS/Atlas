@@ -4,7 +4,7 @@
     Elevation   = 'Admin'
     States      = @(
         @{
-            Name       = 'Old'
+            Name       = 'Enable'
             StateValue = 1
             Launcher   = '4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd'
             Reboot     = 'RestartExplorer'
@@ -15,7 +15,7 @@
             )
         }
         @{
-            Name       = 'New'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '4. Interface Tweaks\Context Menus\Windows 11\New Context Menu.cmd'
             Reboot     = 'RestartExplorer'

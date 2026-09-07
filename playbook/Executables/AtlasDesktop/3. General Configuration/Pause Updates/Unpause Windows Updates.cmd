@@ -1,2 +1,2 @@
 @echo off
-call "%__APPDIR__%..\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd" PauseUpdates Unpause "%~f0" %*
+call "%__APPDIR__%..\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd" PauseUpdates Disable "%~f0" %*

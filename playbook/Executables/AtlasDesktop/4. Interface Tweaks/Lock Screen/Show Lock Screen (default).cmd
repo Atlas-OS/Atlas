@@ -1,2 +1,2 @@
 @echo off
-call "%__APPDIR__%..\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd" LockScreen Show "%~f0" %*
+call "%__APPDIR__%..\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd" LockScreen Enable "%~f0" %*

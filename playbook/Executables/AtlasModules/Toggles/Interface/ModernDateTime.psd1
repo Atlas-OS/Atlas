@@ -4,7 +4,7 @@
     Elevation   = 'Admin'
     States      = @(
         @{
-            Name       = 'Modern'
+            Name       = 'Enable'
             StateValue = 1
             Launcher   = '4. Interface Tweaks\Old Flyouts\Date and Time Flyout\Modern Date and Time Flyout (default).cmd'
             Reboot     = 'None'
@@ -13,7 +13,7 @@
             )
         }
         @{
-            Name       = 'Old'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '4. Interface Tweaks\Old Flyouts\Date and Time Flyout\Old Date and Time Flyout.cmd'
             Reboot     = 'None'

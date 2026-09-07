@@ -13,7 +13,7 @@ $script:AtlasServiceDefaultResetStates = [ordered]@{
     LanmanWorkstation                = 'Enable'
     NetworkDiscovery                 = 'Enable'
     NVidiaDisplayContainer           = 'Enable'
-    NVidiaDisplayContainerContextMenu = 'Remove'
+    NVidiaDisplayContainerContextMenu = 'Disable'
     Printing                         = 'Enable'
     SuperFetch                       = 'Enable'
 }

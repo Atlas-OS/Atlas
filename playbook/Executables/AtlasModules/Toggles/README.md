@@ -29,6 +29,16 @@ shared `Scripts\Entry\Invoke-AtlasToggleLauncher.cmd`.
 
 ## Definition schema
 
+Two-state public toggles use `Disable` and `Enable` as their state identifiers (shown
+as Disabled and Enabled in a UI), with recorded values `0` and `1` respectively.
+Keep the feature being controlled clear in the description: enabling PauseUpdates
+pauses updates, while enabling RecentItems removes restrictions without overwriting
+the user's tracking preferences. Multi-choice states retain descriptive identifiers.
+Launcher filenames may remain descriptive for compatibility with existing callers;
+consumers should read the state identifier from `catalog.json`, not infer it from a
+filename. State records store numeric values, so renaming identifiers does not change
+existing recorded choices. Direct callers using old state identifiers must update.
+
 ```powershell
 @{
     Name            = 'Bluetooth'            # required; must equal the file name

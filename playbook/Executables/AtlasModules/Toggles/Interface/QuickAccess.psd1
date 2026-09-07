@@ -4,7 +4,7 @@
     Elevation   = 'Admin'
     States      = @(
         @{
-            Name       = 'Remove'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '4. Interface Tweaks\File Explorer Customization\Quick Access\Remove Quick Access.cmd'
             Reboot     = 'None'
@@ -13,7 +13,7 @@
             )
         }
         @{
-            Name       = 'Show'
+            Name       = 'Enable'
             StateValue = 1
             Launcher   = '4. Interface Tweaks\File Explorer Customization\Quick Access\Show Quick Access (default).cmd'
             Reboot     = 'None'

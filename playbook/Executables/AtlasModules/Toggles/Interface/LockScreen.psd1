@@ -1,11 +1,11 @@
 @{
     Name        = 'LockScreen'
-    Description = 'Windows lock screen (policy show or hide). Show verifies the policy values are really gone after removal.'
+    Description = 'Windows lock screen. Enable shows it and verifies the blocking policy values are gone; Disable hides it.'
     Elevation   = 'Admin'
     Script      = 'LockScreen.ps1'
     States      = @(
         @{
-            Name          = 'Show'
+            Name          = 'Enable'
             StateValue    = 1
             Launcher      = '4. Interface Tweaks\Lock Screen\Show Lock Screen (default).cmd'
             Reboot        = 'None'
@@ -16,7 +16,7 @@
             MachineAction = 'Assert-AtlasLockScreenPolicyRemoved'
         }
         @{
-            Name       = 'Hide'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '4. Interface Tweaks\Lock Screen\Hide Lock Screen.cmd'
             Reboot     = 'None'

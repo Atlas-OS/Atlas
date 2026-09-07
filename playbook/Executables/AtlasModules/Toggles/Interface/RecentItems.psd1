@@ -1,6 +1,6 @@
 @{
     Name        = 'RecentItems'
-    Description = 'Recent Items and app or document usage tracking. Both states also hide or unhide the general privacy settings page and refresh Explorer and Settings.'
+    Description = 'Recent Items and app or document usage tracking. Enable removes restrictions so users can configure tracking; it preserves their tracking preferences rather than turning them on. Disable turns tracking off. Both states also hide or unhide the general privacy settings page and refresh Explorer and Settings.'
     Elevation   = 'Admin'
     Script      = 'RecentItems.ps1'
     States      = @(
@@ -25,7 +25,7 @@
             UserAction            = 'Show-AtlasRecentItemsMessage'
         }
         @{
-            Name                  = 'Unlock'
+            Name                  = 'Enable'
             StateValue            = 1
             Launcher              = '4. Interface Tweaks\Unlock Recent Items\Unlock Recent Items.cmd'
             Reboot                = 'RestartExplorer'

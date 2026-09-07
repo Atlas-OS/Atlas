@@ -13,7 +13,7 @@
             )
         }
         @{
-            Name       = 'Restore'
+            Name       = 'Enable'
             StateValue = 1
             Launcher   = '4. Interface Tweaks\Shortcut Text\Restore Shortcut Text.cmd'
             Reboot     = 'None'

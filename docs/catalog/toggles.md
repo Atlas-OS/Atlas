@@ -28,8 +28,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Install | 1 | `6. Advanced Configuration\Process Explorer\Install Process Explorer.cmd` | None | machineAction `Install-AtlasProcessExplorer`, userAction `Set-AtlasProcessExplorerUserPreference` |
-| Uninstall | 0 | `6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd` | None | machineAction `Uninstall-AtlasProcessExplorer` |
+| Enable | 1 | `6. Advanced Configuration\Process Explorer\Install Process Explorer.cmd` | None | machineAction `Install-AtlasProcessExplorer`, userAction `Set-AtlasProcessExplorerUserPreference` |
+| Disable | 0 | `6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd` | None | machineAction `Uninstall-AtlasProcessExplorer` |
 
 ### ToggleWindowsUpdates (menu)
 
@@ -215,8 +215,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Add | 1 | `3. General Configuration\CPU Idle\Desktop Context Menu\Add Idle Toggle in Desktop Context Menu.cmd` | None | registry 10 |
-| Remove | 0 | `3. General Configuration\CPU Idle\Desktop Context Menu\Remove Idle Toggle in Desktop Context Menu (default).cmd` | None | registry 1 |
+| Enable | 1 | `3. General Configuration\CPU Idle\Desktop Context Menu\Add Idle Toggle in Desktop Context Menu.cmd` | None | registry 10 |
+| Disable | 0 | `3. General Configuration\CPU Idle\Desktop Context Menu\Remove Idle Toggle in Desktop Context Menu (default).cmd` | None | registry 1 |
 
 ### DeliveryOptimisation
 
@@ -311,7 +311,7 @@ Elevation: Admin
 
 ### PauseUpdates
 
-Pause Windows Updates through the WindowsUpdate UX and UpdatePolicy pause dates. Pause also records a days value under the AtlasOS\Services key, which some UI reads.
+Pause Windows Updates through the WindowsUpdate UX and UpdatePolicy pause dates. Enable pauses updates; Disable unpauses them. Enable also records a days value under the AtlasOS\Services key, which some UI reads.
 
 Elevation: Admin
 
@@ -319,8 +319,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Pause | 1 | `3. General Configuration\Pause Updates\Pause Windows Updates.cmd` | None | registry 13 |
-| Unpause | 0 | `3. General Configuration\Pause Updates\Unpause Windows Updates.cmd` | None | registry 15 |
+| Enable | 1 | `3. General Configuration\Pause Updates\Pause Windows Updates.cmd` | None | registry 13 |
+| Disable | 0 | `3. General Configuration\Pause Updates\Unpause Windows Updates.cmd` | None | registry 15 |
 
 ### PhoneLink
 
@@ -335,14 +335,14 @@ Elevation: Admin
 
 ### PowerSaving
 
-Power-saving: the documented Atlas AC power policy versus the prior power plan. Both states use the same helper.
+Power-saving. Disable applies the documented Atlas AC power policy; Enable restores the prior power plan, or Balanced when none was saved. Both states use the same helper.
 
 Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
 | Disable | 0 | `3. General Configuration\Power-saving\Disable Power-saving.cmd` | None | machineAction `Invoke-AtlasPowerSavingToggle` |
-| Default | 1 | `3. General Configuration\Power-saving\Default Power-saving (default).cmd` | None | machineAction `Invoke-AtlasPowerSavingToggle` |
+| Enable | 1 | `3. General Configuration\Power-saving\Default Power-saving (default).cmd` | None | machineAction `Invoke-AtlasPowerSavingToggle` |
 
 ### Recall
 
@@ -472,14 +472,14 @@ Elevation: Admin
 
 ### Animation
 
-Visual effects and animations: the Atlas minimal set or the Windows defaults. Both states offer a sign-out afterwards so the changes apply.
+Visual effects and animations. Disable applies the Atlas minimal set; Enable restores the Windows defaults. Both states offer a sign-out afterwards so the changes apply.
 
 Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Atlas | 0 | `4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd` | None | registry 11, userAction `Invoke-AtlasAnimationLogoffPrompt` |
-| Default | 1 | `4. Interface Tweaks\Visual Effects (Animations)\Default Windows Visual Effects.cmd` | None | registry 11, userAction `Invoke-AtlasAnimationLogoffPrompt` |
+| Disable | 0 | `4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd` | None | registry 11, userAction `Invoke-AtlasAnimationLogoffPrompt` |
+| Enable | 1 | `4. Interface Tweaks\Visual Effects (Animations)\Default Windows Visual Effects.cmd` | None | registry 11, userAction `Invoke-AtlasAnimationLogoffPrompt` |
 
 ### AppIconThumbnail
 
@@ -534,8 +534,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Allow | 1 | `4. Interface Tweaks\Edge Swipe\Allow Edge Swipe (default).cmd` | None | registry 1 |
-| Disallow | 0 | `4. Interface Tweaks\Edge Swipe\Disallow Edge Swipe.cmd` | None | registry 1 |
+| Enable | 1 | `4. Interface Tweaks\Edge Swipe\Allow Edge Swipe (default).cmd` | None | registry 1 |
+| Disable | 0 | `4. Interface Tweaks\Edge Swipe\Disallow Edge Swipe.cmd` | None | registry 1 |
 
 ### ExtractContextMenu
 
@@ -545,8 +545,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Add | 1 | `4. Interface Tweaks\Context Menus\Extract\Add Extract.cmd` | None | registry 4 |
-| Remove | 0 | `4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).cmd` | None | registry 4 |
+| Enable | 1 | `4. Interface Tweaks\Context Menus\Extract\Add Extract.cmd` | None | registry 4 |
+| Disable | 0 | `4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).cmd` | None | registry 4 |
 
 ### Gallery
 
@@ -572,14 +572,14 @@ Elevation: Admin
 
 ### LockScreen
 
-Windows lock screen (policy show or hide). Show verifies the policy values are really gone after removal.
+Windows lock screen. Enable shows it and verifies the blocking policy values are gone; Disable hides it.
 
 Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Show | 1 | `4. Interface Tweaks\Lock Screen\Show Lock Screen (default).cmd` | None | registry 2, machineAction `Assert-AtlasLockScreenPolicyRemoved` |
-| Hide | 0 | `4. Interface Tweaks\Lock Screen\Hide Lock Screen.cmd` | None | registry 2 |
+| Enable | 1 | `4. Interface Tweaks\Lock Screen\Show Lock Screen (default).cmd` | None | registry 2, machineAction `Assert-AtlasLockScreenPolicyRemoved` |
+| Disable | 0 | `4. Interface Tweaks\Lock Screen\Hide Lock Screen.cmd` | None | registry 2 |
 
 ### ModernBatteryFlyout
 
@@ -589,8 +589,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Modern | 1 | `4. Interface Tweaks\Old Flyouts\Battery Flyout\Modern Battery Flyout (default).cmd` | None | registry 1 |
-| Old | 0 | `4. Interface Tweaks\Old Flyouts\Battery Flyout\Old Battery Flyout.cmd` | None | registry 1 |
+| Enable | 1 | `4. Interface Tweaks\Old Flyouts\Battery Flyout\Modern Battery Flyout (default).cmd` | None | registry 1 |
+| Disable | 0 | `4. Interface Tweaks\Old Flyouts\Battery Flyout\Old Battery Flyout.cmd` | None | registry 1 |
 
 ### ModernDateTime
 
@@ -600,8 +600,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Modern | 1 | `4. Interface Tweaks\Old Flyouts\Date and Time Flyout\Modern Date and Time Flyout (default).cmd` | None | registry 1 |
-| Old | 0 | `4. Interface Tweaks\Old Flyouts\Date and Time Flyout\Old Date and Time Flyout.cmd` | None | registry 1 |
+| Enable | 1 | `4. Interface Tweaks\Old Flyouts\Date and Time Flyout\Modern Date and Time Flyout (default).cmd` | None | registry 1 |
+| Disable | 0 | `4. Interface Tweaks\Old Flyouts\Date and Time Flyout\Old Date and Time Flyout.cmd` | None | registry 1 |
 
 ### ModernVolumeFlyout
 
@@ -611,8 +611,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Modern | 1 | `4. Interface Tweaks\Old Flyouts\Volume Flyout\Modern Volume Flyout (default).cmd` | None | registry 1 |
-| Old | 0 | `4. Interface Tweaks\Old Flyouts\Volume Flyout\Old Volume Flyout.cmd` | None | registry 1 |
+| Enable | 1 | `4. Interface Tweaks\Old Flyouts\Volume Flyout\Modern Volume Flyout (default).cmd` | None | registry 1 |
+| Disable | 0 | `4. Interface Tweaks\Old Flyouts\Volume Flyout\Old Volume Flyout.cmd` | None | registry 1 |
 
 ### OldContextMenu
 
@@ -622,8 +622,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Old | 1 | `4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd` | RestartExplorer | registry 1 |
-| New | 0 | `4. Interface Tweaks\Context Menus\Windows 11\New Context Menu.cmd` | RestartExplorer | registry 1 |
+| Enable | 1 | `4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd` | RestartExplorer | registry 1 |
+| Disable | 0 | `4. Interface Tweaks\Context Menus\Windows 11\New Context Menu.cmd` | RestartExplorer | registry 1 |
 
 ### QuickAccess
 
@@ -633,19 +633,19 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Remove | 0 | `4. Interface Tweaks\File Explorer Customization\Quick Access\Remove Quick Access.cmd` | None | registry 1 |
-| Show | 1 | `4. Interface Tweaks\File Explorer Customization\Quick Access\Show Quick Access (default).cmd` | None | registry 1 |
+| Disable | 0 | `4. Interface Tweaks\File Explorer Customization\Quick Access\Remove Quick Access.cmd` | None | registry 1 |
+| Enable | 1 | `4. Interface Tweaks\File Explorer Customization\Quick Access\Show Quick Access (default).cmd` | None | registry 1 |
 
 ### RecentItems
 
-Recent Items and app or document usage tracking. Both states also hide or unhide the general privacy settings page and refresh Explorer and Settings.
+Recent Items and app or document usage tracking. Enable removes restrictions so users can configure tracking; it preserves their tracking preferences rather than turning them on. Disable turns tracking off. Both states also hide or unhide the general privacy settings page and refresh Explorer and Settings.
 
 Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
 | Disable | 0 | `4. Interface Tweaks\Unlock Recent Items\Disable Recent Items (default).cmd` | RestartExplorer | registry 9, machineAction `Set-AtlasRecentItemsSettingsPage`, userAction `Show-AtlasRecentItemsMessage` |
-| Unlock | 1 | `4. Interface Tweaks\Unlock Recent Items\Unlock Recent Items.cmd` | RestartExplorer | registry 7, machineAction `Set-AtlasRecentItemsSettingsPage`, userAction `Show-AtlasRecentItemsMessage` |
+| Enable | 1 | `4. Interface Tweaks\Unlock Recent Items\Unlock Recent Items.cmd` | RestartExplorer | registry 7, machineAction `Set-AtlasRecentItemsSettingsPage`, userAction `Show-AtlasRecentItemsMessage` |
 
 ### RemovableDrivesInSidebar
 
@@ -676,8 +676,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Add | 1 | `4. Interface Tweaks\Context Menus\Run With Priority\Add Run With Priority In Context Menu.cmd` | None | machineAction `Add-AtlasRunWithPriorityContextMenu` |
-| Remove | 0 | `4. Interface Tweaks\Context Menus\Run With Priority\Remove Run With Priority In Context Menu (default).cmd` | None | registry 1 |
+| Enable | 1 | `4. Interface Tweaks\Context Menus\Run With Priority\Add Run With Priority In Context Menu.cmd` | None | machineAction `Add-AtlasRunWithPriorityContextMenu` |
+| Disable | 0 | `4. Interface Tweaks\Context Menus\Run With Priority\Remove Run With Priority In Context Menu (default).cmd` | None | registry 1 |
 
 ### SendToContextMenu (no state record)
 
@@ -710,7 +710,7 @@ Elevation: Admin
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
 | Disable | 0 | `4. Interface Tweaks\Shortcut Text\Disable Shortcut Text (default).cmd` | None | registry 1 |
-| Restore | 1 | `4. Interface Tweaks\Shortcut Text\Restore Shortcut Text.cmd` | None | registry 1 |
+| Enable | 1 | `4. Interface Tweaks\Shortcut Text\Restore Shortcut Text.cmd` | None | registry 1 |
 
 ### SnapLayouts
 
@@ -770,14 +770,14 @@ Elevation: Admin
 
 ### HideAppBrowserControl
 
-Hides or shows the App and Browser Control page in Windows Security.
+Visibility of the App and Browser Control page in Windows Security. Disable hides the page; Enable shows it.
 
 Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Hide | 0 | `7. Security\Defender\Hide App and Browser Control\Hide App and Browser Control (default).cmd` | None | registry 1 |
-| Show | 1 | `7. Security\Defender\Hide App and Browser Control\Show App and Browser Control.cmd` | None | registry 1 |
+| Disable | 0 | `7. Security\Defender\Hide App and Browser Control\Hide App and Browser Control (default).cmd` | None | registry 1 |
+| Enable | 1 | `7. Security\Defender\Hide App and Browser Control\Show App and Browser Control.cmd` | None | registry 1 |
 
 ### Mitigations
 
@@ -887,8 +887,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Add | 1 | `6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\Add Container Context Menu.cmd` | RestartExplorer | machineAction `Add-AtlasNVidiaContainerContextMenu` |
-| Remove | 0 | `6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\Remove Container Context Menu (default).cmd` | RestartExplorer | registry 1 |
+| Enable | 1 | `6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\Add Container Context Menu.cmd` | RestartExplorer | machineAction `Add-AtlasNVidiaContainerContextMenu` |
+| Disable | 0 | `6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\Remove Container Context Menu (default).cmd` | RestartExplorer | registry 1 |
 
 ### Printing
 
@@ -962,14 +962,14 @@ Elevation: Admin
 
 ### DefaultAtlasNetwork (no state record)
 
-Network adapter reset to Atlas defaults or Windows defaults. Both states share the Atlas.Network Set-AtlasNetworkDefaults implementation with the Toolbox.
+Network adapter reset. Enable applies Atlas defaults; Disable restores Windows defaults. Both states share the Atlas.Network Set-AtlasNetworkDefaults implementation with the Toolbox.
 
 Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| AtlasDefault | 1 | `9. Troubleshooting\Network\Reset Network to Atlas Default.cmd` | Recommend | machineAction `Set-AtlasNetworkDefaultState` |
-| WindowsDefault | 0 | `9. Troubleshooting\Network\Reset Network to Windows Default.cmd` | Recommend | machineAction `Set-AtlasNetworkDefaultState` |
+| Enable | 1 | `9. Troubleshooting\Network\Reset Network to Atlas Default.cmd` | Recommend | machineAction `Set-AtlasNetworkDefaultState` |
+| Disable | 0 | `9. Troubleshooting\Network\Reset Network to Windows Default.cmd` | Recommend | machineAction `Set-AtlasNetworkDefaultState` |
 
 ### FixErrors2502and2503 (no state record)
 

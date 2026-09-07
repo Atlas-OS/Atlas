@@ -4,7 +4,7 @@
     Elevation   = 'Admin'
     States      = @(
         @{
-            Name       = 'Allow'
+            Name       = 'Enable'
             StateValue = 1
             Launcher   = '4. Interface Tweaks\Edge Swipe\Allow Edge Swipe (default).cmd'
             Reboot     = 'None'
@@ -13,7 +13,7 @@
             )
         }
         @{
-            Name       = 'Disallow'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '4. Interface Tweaks\Edge Swipe\Disallow Edge Swipe.cmd'
             Reboot     = 'None'

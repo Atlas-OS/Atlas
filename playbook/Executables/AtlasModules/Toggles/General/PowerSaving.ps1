@@ -6,7 +6,7 @@ function Invoke-AtlasPowerSavingToggle {
             $mode = 'Atlas'
             $message = 'The Atlas AC power policy is active.'
         }
-        'Default' {
+        'Enable' {
             $mode = 'Default'
             $message = 'The previous power plan, or Balanced when none was saved, is active and the Atlas plan was removed.'
         }

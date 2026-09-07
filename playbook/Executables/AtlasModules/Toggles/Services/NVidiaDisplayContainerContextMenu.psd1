@@ -6,14 +6,14 @@
     Script      = 'NVidiaDisplayContainerContextMenu.ps1'
     States      = @(
         @{
-            Name          = 'Add'
+            Name          = 'Enable'
             StateValue    = 1
             Launcher      = '6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\Add Container Context Menu.cmd'
             Reboot        = 'RestartExplorer'
             MachineAction = 'Add-AtlasNVidiaContainerContextMenu'
         }
         @{
-            Name          = 'Remove'
+            Name          = 'Disable'
             StateValue    = 0
             Launcher      = '6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\Remove Container Context Menu (default).cmd'
             Reboot        = 'RestartExplorer'

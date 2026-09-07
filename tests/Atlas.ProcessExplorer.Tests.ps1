@@ -322,7 +322,7 @@ function Write-AtlasProcessExplorerUserPreference {
 '@
         $script:ToggleContext = [pscustomobject]@{
             Name              = 'ProcessExplorer'
-            State             = 'Install'
+            State             = 'Enable'
             StateValue        = 1
             Silent            = $true
             JustContext       = $false
@@ -352,9 +352,9 @@ function Write-AtlasProcessExplorerUserPreference {
         Remove-Item -LiteralPath $script:CallRecord -Force -ErrorAction SilentlyContinue
     }
 
-    It 'declares Install as split machine and user work and Uninstall as machine work' {
-        $install = $script:Definition.States['Install']
-        $uninstall = $script:Definition.States['Uninstall']
+    It 'declares Enable as split machine and user work and Disable as machine work' {
+        $install = $script:Definition.States['Enable']
+        $uninstall = $script:Definition.States['Disable']
 
         $install['MachineAction'] | Should -BeExactly 'Install-AtlasProcessExplorer'
         $install['UserAction'] | Should -BeExactly 'Set-AtlasProcessExplorerUserPreference'
@@ -372,12 +372,12 @@ function Write-AtlasProcessExplorerUserPreference {
     }
 
     It 'does not invent consent to disable pcw during silent replay' {
-        Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Install']['MachineAction']
+        Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Enable']['MachineAction']
         Get-Content -LiteralPath $script:CallRecord | Should -Be 'Install:False'
     }
 
     It 'sets OneInstance in the initiating user action' {
-        Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Install']['UserAction']
+        Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Enable']['UserAction']
         Get-Content -LiteralPath $script:CallRecord | Should -Be 'UserPreference'
     }
 
@@ -385,7 +385,7 @@ function Write-AtlasProcessExplorerUserPreference {
         Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { throw 'No driver prompt expected.' }
         $script:ToggleContext.Silent = $false
         try {
-            Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Install']['MachineAction']
+            Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Enable']['MachineAction']
             Get-Content -LiteralPath $script:CallRecord | Should -Be 'Install:False'
             Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 0 -Exactly
         }
@@ -393,14 +393,14 @@ function Write-AtlasProcessExplorerUserPreference {
     }
 
     It 'delegates uninstall to the machine package operation' {
-        Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Uninstall']['MachineAction']
+        Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Disable']['MachineAction']
         Get-Content -LiteralPath $script:CallRecord | Should -Be 'Uninstall'
     }
 
     It 'fails clearly when the package helper is missing from the Operations folder' {
         $missing = [pscustomobject]@{
             Name           = 'ProcessExplorer'
-            State          = 'Install'
+            State          = 'Enable'
             Silent         = $true
             OperationsPath = (Join-Path $TestDrive 'no-operations')
         }

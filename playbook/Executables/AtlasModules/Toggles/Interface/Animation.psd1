@@ -1,11 +1,11 @@
 @{
     Name        = 'Animation'
-    Description = 'Visual effects and animations: the Atlas minimal set or the Windows defaults. Both states offer a sign-out afterwards so the changes apply.'
+    Description = 'Visual effects and animations. Disable applies the Atlas minimal set; Enable restores the Windows defaults. Both states offer a sign-out afterwards so the changes apply.'
     Elevation   = 'Admin'
     Script      = 'Animation.ps1'
     States      = @(
         @{
-            Name       = 'Atlas'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd'
             Reboot     = 'None'
@@ -25,7 +25,7 @@
             UserAction = 'Invoke-AtlasAnimationLogoffPrompt'
         }
         @{
-            Name       = 'Default'
+            Name       = 'Enable'
             StateValue = 1
             Launcher   = '4. Interface Tweaks\Visual Effects (Animations)\Default Windows Visual Effects.cmd'
             Reboot     = 'None'

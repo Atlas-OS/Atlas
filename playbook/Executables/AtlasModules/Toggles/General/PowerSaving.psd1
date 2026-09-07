@@ -1,6 +1,6 @@
 @{
     Name        = 'PowerSaving'
-    Description = 'Power-saving: the documented Atlas AC power policy versus the prior power plan. Both states use the same helper.'
+    Description = 'Power-saving. Disable applies the documented Atlas AC power policy; Enable restores the prior power plan, or Balanced when none was saved. Both states use the same helper.'
     Elevation   = 'Admin'
     Script      = 'PowerSaving.ps1'
     States      = @(
@@ -12,7 +12,7 @@
             MachineAction = 'Invoke-AtlasPowerSavingToggle'
         }
         @{
-            Name          = 'Default'
+            Name          = 'Enable'
             StateValue    = 1
             Launcher      = '3. General Configuration\Power-saving\Default Power-saving (default).cmd'
             Reboot        = 'None'

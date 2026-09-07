@@ -4,7 +4,7 @@
     Elevation   = 'Admin'
     States      = @(
         @{
-            Name       = 'Add'
+            Name       = 'Enable'
             StateValue = 1
             Launcher   = '4. Interface Tweaks\Context Menus\Extract\Add Extract.cmd'
             Reboot     = 'None'
@@ -16,7 +16,7 @@
             )
         }
         @{
-            Name       = 'Remove'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '4. Interface Tweaks\Context Menus\Extract\Remove Extract (default).cmd'
             Reboot     = 'None'

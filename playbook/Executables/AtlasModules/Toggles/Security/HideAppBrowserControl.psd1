@@ -1,10 +1,10 @@
 @{
     Name        = 'HideAppBrowserControl'
-    Description = 'Hides or shows the App and Browser Control page in Windows Security.'
+    Description = 'Visibility of the App and Browser Control page in Windows Security. Disable hides the page; Enable shows it.'
     Elevation   = 'Admin'
     States      = @(
         @{
-            Name       = 'Hide'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '7. Security\Defender\Hide App and Browser Control\Hide App and Browser Control (default).cmd'
             Reboot     = 'None'
@@ -13,7 +13,7 @@
             )
         }
         @{
-            Name       = 'Show'
+            Name       = 'Enable'
             StateValue = 1
             Launcher   = '7. Security\Defender\Hide App and Browser Control\Show App and Browser Control.cmd'
             Reboot     = 'None'

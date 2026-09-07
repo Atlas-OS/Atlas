@@ -64,7 +64,7 @@ public static class AtlasPriorityTestCommandLine
         $script:priorityRemovals = [Collections.Generic.List[string]]::new()
         $toggle = [pscustomobject]@{
             Name           = 'RunWithPriority'
-            State          = 'Add'
+            State          = 'Enable'
             StateValue     = 1
             Silent         = $true
             OperationsPath = 'C:\AtlasModules\Scripts\Operations'
@@ -157,7 +157,7 @@ Describe 'Run with priority' {
     }
 
     It 'writes one machine cascade with the six visible menu entries' {
-        $add = $script:definition.States['Add']
+        $add = $script:definition.States['Enable']
         $add['MachineAction'] | Should -BeExactly 'Add-AtlasRunWithPriorityContextMenu'
         $add['StateValue'] | Should -Be 1
         $result = Invoke-PriorityToggleAction -FunctionName $add['MachineAction']
@@ -187,7 +187,7 @@ Describe 'Run with priority' {
 
     It 'keeps every selected executable as one argument to the fixed internal script' {
         $result = Invoke-PriorityToggleAction `
-            -FunctionName $script:definition.States['Add']['MachineAction']
+            -FunctionName $script:definition.States['Enable']['MachineAction']
         $commands = @($result.Writes | Where-Object {
                 $_.Name -eq '' -and $_.Type -eq 'ExpandString'
             })
@@ -211,7 +211,7 @@ Describe 'Run with priority' {
 
     It 'removes only the machine cascade root' {
         # The Remove state is declarative: one DeleteKey entry, no companion function.
-        $remove = $script:definition.States['Remove']
+        $remove = $script:definition.States['Disable']
         $registry = @($remove['Registry'])
 
         $registry | Should -HaveCount 1

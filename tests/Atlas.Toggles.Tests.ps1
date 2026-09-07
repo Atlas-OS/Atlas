@@ -88,6 +88,23 @@ AfterAll {
     Remove-Item -Path 'HKCU:\Software\AtlasRewriteTest\Services' -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Describe 'Shipped binary toggle state contract' {
+    It 'exposes Disable and Enable for every two-state public toggle' {
+        foreach ($file in Get-ChildItem -LiteralPath $script:ShippedTogglesRoot -Recurse -Filter '*.psd1') {
+            $definition = Import-PowerShellDataFile -LiteralPath $file.FullName
+            $states = @($definition.States | Where-Object { -not $_.Internal })
+            if ($states.Count -ne 2) { continue }
+
+            @($states.Name | Sort-Object) | Should -Be @('Disable', 'Enable') -Because $definition.Name
+            foreach ($state in $states) {
+                if (-not $state.ContainsKey('StateValue')) { continue }
+                $expectedValue = if ($state.Name -eq 'Disable') { 0 } else { 1 }
+                $state.StateValue | Should -Be $expectedValue -Because $definition.Name
+            }
+        }
+    }
+}
+
 Describe 'Toggle definition loading and validation' {
     BeforeAll {
         $script:TogglesRoot = Join-Path $TestDrive 'Toggles'

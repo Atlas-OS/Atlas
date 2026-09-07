@@ -83,14 +83,14 @@ Describe 'Independent choices survive toggle replay' {
 
     It 'retains user tracking preferences when recent items are unlocked' {
         $definition = Get-AtlasToggleDefinition -Name RecentItems -TogglesRoot $script:choiceRoot
-        @($definition.States.Unlock.Registry | Where-Object {
+        @($definition.States.Enable.Registry | Where-Object {
             $_.Name -in @('Start_TrackProgs', 'Start_TrackDocs')
         }) | Should -HaveCount 0
     }
 
     It 'leaves administrator update policies outside the unpause operation' {
         $definition = Get-AtlasToggleDefinition -Name PauseUpdates -TogglesRoot $script:choiceRoot
-        @($definition.States.Unpause.Registry | Where-Object {
+        @($definition.States.Disable.Registry | Where-Object {
             $_.Path -like '*\Policies\Microsoft\Windows\WindowsUpdate'
         }) | Should -HaveCount 0
     }

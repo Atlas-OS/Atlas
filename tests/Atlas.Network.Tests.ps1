@@ -32,8 +32,8 @@ Describe 'Network-default toggle' {
     }
 
     It 'declares both states as recorded machine work with the same companion function' {
-        $atlas = $script:networkDefinition.States['AtlasDefault']
-        $windows = $script:networkDefinition.States['WindowsDefault']
+        $atlas = $script:networkDefinition.States['Enable']
+        $windows = $script:networkDefinition.States['Disable']
 
         $atlas['MachineAction'] | Should -BeExactly 'Set-AtlasNetworkDefaultState'
         $windows['MachineAction'] | Should -BeExactly 'Set-AtlasNetworkDefaultState'
@@ -57,7 +57,7 @@ Describe 'Network-default toggle' {
             [pscustomobject]@{ AdapterClassKeyCount = 0; ChangedValueCount = 0 }
         }
 
-        foreach ($stateName in @('AtlasDefault', 'WindowsDefault')) {
+        foreach ($stateName in @('Enable', 'Disable')) {
             $toggle = [pscustomobject]@{
                 Name       = 'DefaultAtlasNetwork'
                 State      = $stateName

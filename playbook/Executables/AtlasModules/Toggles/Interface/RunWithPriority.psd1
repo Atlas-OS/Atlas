@@ -5,14 +5,14 @@
     Script      = 'RunWithPriority.ps1'
     States      = @(
         @{
-            Name          = 'Add'
+            Name          = 'Enable'
             StateValue    = 1
             Launcher      = '4. Interface Tweaks\Context Menus\Run With Priority\Add Run With Priority In Context Menu.cmd'
             Reboot        = 'None'
             MachineAction = 'Add-AtlasRunWithPriorityContextMenu'
         }
         @{
-            Name       = 'Remove'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '4. Interface Tweaks\Context Menus\Run With Priority\Remove Run With Priority In Context Menu (default).cmd'
             Reboot     = 'None'

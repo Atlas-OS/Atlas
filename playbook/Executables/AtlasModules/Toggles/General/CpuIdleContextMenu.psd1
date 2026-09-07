@@ -4,7 +4,7 @@
     Elevation   = 'Admin'
     States      = @(
         @{
-            Name       = 'Add'
+            Name       = 'Enable'
             StateValue = 1
             Launcher   = '3. General Configuration\CPU Idle\Desktop Context Menu\Add Idle Toggle in Desktop Context Menu.cmd'
             Reboot     = 'None'
@@ -22,7 +22,7 @@
             )
         }
         @{
-            Name       = 'Remove'
+            Name       = 'Disable'
             StateValue = 0
             Launcher   = '3. General Configuration\CPU Idle\Desktop Context Menu\Remove Idle Toggle in Desktop Context Menu (default).cmd'
             Reboot     = 'None'
