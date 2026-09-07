@@ -1,7 +1,7 @@
 # Capture read-only debug fixtures with isolated preferences. Never builds an ISO.
 param(
     [string]$Language = 'en-GB',
-    [ValidateSet('home','files','choices','before','before-desktop','review','progress','failed','release-unknown','complete','prepare-idle','prepare-busy','prepare-complete','prepare-failed','prepare-reboot','prepare-network','prepare-previous-worker','network-drivers','usb-select','usb-empty','usb-review','usb-progress','usb-failed','usb-complete')][string]$State = 'choices',
+    [ValidateSet('home','files','choices','before','before-desktop','review','review-before','progress','failed','release-unknown','complete','prepare-idle','prepare-busy','prepare-complete','prepare-failed','prepare-reboot','prepare-network','prepare-previous-worker','network-drivers','usb-select','usb-empty','usb-review','usb-progress','usb-failed','usb-complete')][string]$State = 'choices',
     [int]$Width = 900, [int]$Height = 680,
     [int]$Scroll = 0,
     [switch]$Desktop,

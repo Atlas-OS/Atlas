@@ -1,5 +1,7 @@
 //! ISO creation is independent of the live-install flow and its host checks.
-use super::{card_body, detail_text, heading, page_frame};
+use super::{
+    card_body, card_header, card_header_with_icon, chip_list, detail_row, detail_text, heading, page_frame,
+};
 use crate::i18n::describe;
 use crate::model::{AppModel, Page};
 use crate::services::{
@@ -8,14 +10,15 @@ use crate::services::{
     settings, system,
 };
 use crate::t;
+use crate::theme::ActiveTheme;
 use crate::ui::{
     Button, CheckBox, FocusHandles, Icon, InfoBar, ProgressBar, RadioGroup, RadioItem, ScrollbarState,
-    Severity, Typography, card,
+    Severity, Typography, a11y_text, card,
 };
 use futures::StreamExt;
 use gpui::{
-    AnyElement, Context, Entity, IntoElement, ParentElement, PathPromptOptions, Render, ScrollHandle, Task,
-    Window, div, prelude::*, px,
+    AnyElement, Context, ElementId, Entity, IntoElement, ParentElement, PathPromptOptions, Render,
+    ScrollHandle, Task, Window, div, prelude::*, px,
 };
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
@@ -96,20 +99,21 @@ impl IsoPage {
             page.source = Some(PathBuf::from(r"C:\Downloads\Windows11_25H2_English_x64.iso"));
             page.archive = Some(PathBuf::from(r"C:\Downloads\Atlas.apbx"));
             page.output = Some(PathBuf::from(r"C:\Users\Atlas\Downloads\Atlas-Windows.iso"));
+            page.username.update(cx, |input, cx| input.set_value("Atlas", cx));
             page.image = Some(ImageInfo { editions: vec!["Windows 11 Pro".into()], bytes: 6_500_000_000 });
             page.manifest = playbook::parse(include_str!("../../../playbook/playbook.conf")).ok();
             page.options = page.manifest.as_ref().map(iso::default_options).unwrap_or_default();
             page.step = match state.as_str() {
                 "choices" | "before" | "before-desktop" | "network-drivers" => 1,
-                "review" => 2,
+                "review" | "review-before" => 2,
                 _ => 0,
             };
             page.mode = match state.as_str() {
-                "before" => Mode::Configured,
+                "before" | "review-before" => Mode::Configured,
                 "before-desktop" => Mode::BeforeDesktop,
                 _ => Mode::Interactive,
             };
-            page.setup_available = matches!(state.as_str(), "before" | "before-desktop");
+            page.setup_available = matches!(state.as_str(), "before" | "before-desktop" | "review-before");
             page.reinstall_this_pc = state == "network-drivers";
             page.update_network_drivers = state == "network-drivers";
             page.complete = state == "complete";
@@ -638,6 +642,195 @@ impl IsoPage {
             }
         }
     }
+    /// Step 3: everything the ISO will be built from, as labelled rows in two
+    /// cards, each with a Change link back to the step that set it.
+    fn review(&self, cx: &mut Context<Self>) -> Vec<AnyElement> {
+        let secondary = cx.theme().text_secondary;
+        let caption = move |text: gpui::Text| div().type_caption().text_color(secondary).child(text);
+        let stacked = || div().flex().flex_col().gap(px(2.)).min_w_0();
+        let file_value = |key: &str, path: &PathBuf| {
+            let name = path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| path.display().to_string());
+            let folder = path
+                .parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .map(|parent| parent.display().to_string());
+            stacked().child(detail_text(key, name)).when_some(folder, |this, folder| {
+                this.child(caption(a11y_text(ElementId::Name(format!("detail-{key}-folder").into()), folder)))
+            })
+        };
+        let change = |id: &'static str, title: String, step: usize| {
+            Button::new(id, t!("common-change"))
+                .hyperlink()
+                .compact()
+                .aria_label(t!("summary-change-a11y", title = title.as_str()))
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.step = step;
+                    this.scroll.set_offset(gpui::point(px(0.), px(0.)));
+                    cx.notify();
+                }))
+                .into_any_element()
+        };
+        let change_files = change("iso-change-files", t!("iso-review-files"), 0);
+        let change_choices = change("iso-change-choices", t!("iso-mode-title"), 1);
+
+        let mut files = card_body(cx).gap(px(4.));
+        if let Some(path) = &self.source {
+            files = files.child(detail_row(
+                cx,
+                "iso-source",
+                t!("iso-source"),
+                file_value("iso-review-source", path),
+            ));
+        }
+        if let Some(image) = &self.image {
+            files = files
+                .child(detail_row(
+                    cx,
+                    "iso-editions",
+                    t!("iso-review-editions"),
+                    div()
+                        .flex()
+                        .flex_col()
+                        .gap(px(6.))
+                        .min_w_0()
+                        .child(chip_list(
+                            cx,
+                            "iso-editions",
+                            &t!("iso-review-editions"),
+                            image.editions.clone(),
+                        ))
+                        .child(caption(detail_text("iso-edition-selection", t!("iso-edition-selection")))),
+                ))
+                .child(detail_row(
+                    cx,
+                    "iso-size",
+                    t!("iso-review-size"),
+                    detail_text(
+                        "iso-size",
+                        t!("iso-review-size-value", size = crate::i18n::fmt::megabytes_value(image.bytes)),
+                    ),
+                ));
+        }
+        if let Some(path) = &self.archive {
+            files = files.child(detail_row(
+                cx,
+                "iso-package",
+                t!("iso-review-package"),
+                file_value("iso-review-package", path),
+            ));
+        }
+        if let Some(path) = &self.output {
+            files = files.child(detail_row(
+                cx,
+                "iso-output",
+                t!("iso-review-output"),
+                file_value("iso-review-output", path),
+            ));
+        }
+
+        let network = (self.reinstall_this_pc && self.copy_network_drivers).then(|| {
+            if self.update_network_drivers {
+                t!("iso-network-updated-detail")
+            } else {
+                t!("iso-network-detail")
+            }
+        });
+        let (mode_title, mode_detail) = match self.mode {
+            Mode::Interactive => (t!("iso-mode-interactive"), t!("iso-mode-interactive-description")),
+            Mode::BeforeDesktop => (t!("iso-mode-desktop"), t!("iso-mode-desktop-description")),
+            _ => (t!("iso-mode-before"), t!("iso-mode-before-description")),
+        };
+        let mut choices = card_body(cx)
+            .gap(px(4.))
+            .child(detail_row(
+                cx,
+                "iso-account",
+                t!("iso-review-account"),
+                detail_text("iso-review-account", self.username.read(cx).value().to_string()),
+            ))
+            .child(detail_row(
+                cx,
+                "iso-target",
+                t!("iso-review-target"),
+                stacked()
+                    .child(detail_text(
+                        "iso-review-target",
+                        if self.reinstall_this_pc { t!("iso-target-this") } else { t!("iso-target-other") },
+                    ))
+                    .when_some(network, |this, network| {
+                        this.child(caption(detail_text("iso-review-network", network)))
+                    }),
+            ))
+            .child(detail_row(
+                cx,
+                "iso-drivers",
+                t!("iso-review-drivers"),
+                detail_text(
+                    "iso-review-drivers",
+                    if self.drivers == crate::services::preparation::Drivers::Manual {
+                        t!("prepare-drivers-manual")
+                    } else {
+                        t!("prepare-drivers-auto")
+                    },
+                ),
+            ))
+            .child(detail_row(
+                cx,
+                "iso-mode",
+                t!("iso-atlas-options"),
+                stacked()
+                    .child(detail_text("iso-review-mode", mode_title))
+                    .child(caption(detail_text("iso-review-mode-detail", mode_detail))),
+            ));
+        if self.mode != Mode::Interactive {
+            let labels: Vec<String> = self
+                .manifest
+                .as_ref()
+                .map(|manifest| {
+                    self.options
+                        .iter()
+                        .filter_map(|name| {
+                            manifest.option_label(name).map(|text| describe::option_label(name, text))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            let value: AnyElement = if labels.is_empty() {
+                div()
+                    .text_color(secondary)
+                    .child(detail_text("iso-review-options", t!("common-none")))
+                    .into_any_element()
+            } else {
+                chip_list(cx, "iso-review-options", &t!("common-options"), labels).into_any_element()
+            };
+            choices = choices.child(detail_row(cx, "iso-options", t!("common-options"), value));
+        }
+
+        vec![
+            card(cx)
+                .child(card_header_with_icon(
+                    cx,
+                    "iso-review-files",
+                    t!("iso-review-files"),
+                    Some(Icon::Disc),
+                    Some(change_files),
+                ))
+                .child(files)
+                .into_any_element(),
+            card(cx)
+                .child(card_header(cx, "iso-review-choices", t!("iso-mode-title"), Some(change_choices)))
+                .child(choices)
+                .into_any_element(),
+            div()
+                .type_body()
+                .text_color(secondary)
+                .child(detail_text("iso-review-description", t!("iso-review-description")))
+                .into_any_element(),
+        ]
+    }
 }
 
 impl Render for IsoPage {
@@ -803,105 +996,7 @@ impl Render for IsoPage {
                             })),
                     );
             } else {
-                let mut summary = card_body(cx).gap(px(12.)).child(heading(
-                    "iso-review-title",
-                    2,
-                    t!("iso-review-title"),
-                    cx,
-                ));
-                for (id, label, path) in [
-                    ("iso-review-source", t!("iso-source"), &self.source),
-                    ("iso-review-package", t!("iso-package"), &self.archive),
-                ] {
-                    if let Some(path) = path {
-                        summary = summary.child(
-                            div()
-                                .flex()
-                                .flex_col()
-                                .gap(px(4.))
-                                .child(div().type_body_strong().child(label))
-                                .child(
-                                    div()
-                                        .flex()
-                                        .items_center()
-                                        .gap(px(12.))
-                                        .when(id == "iso-review-source", |this| {
-                                            this.child(
-                                                crate::ui::TextMark::new(crate::ui::icon(Icon::Disc), false)
-                                                    .natural_text(),
-                                            )
-                                        })
-                                        .child(detail_text(id, path.display().to_string())),
-                                ),
-                        );
-                    }
-                }
-                summary = summary
-                    .child(detail_text("iso-review-account", self.username.read(cx).value().to_string()));
-                summary = summary.child(detail_text(
-                    "iso-review-target",
-                    if self.reinstall_this_pc { t!("iso-target-this") } else { t!("iso-target-other") },
-                ));
-                if self.reinstall_this_pc && self.copy_network_drivers {
-                    summary = summary.child(detail_text(
-                        "iso-review-network",
-                        if self.update_network_drivers {
-                            t!("iso-network-updated-detail")
-                        } else {
-                            t!("iso-copy-network")
-                        },
-                    ));
-                }
-                summary = summary.child(detail_text(
-                    "iso-review-drivers",
-                    if self.drivers == crate::services::preparation::Drivers::Manual {
-                        t!("prepare-drivers-manual")
-                    } else {
-                        t!("prepare-drivers-auto")
-                    },
-                ));
-                summary = summary.child(detail_text(
-                    "iso-review-mode",
-                    if self.mode == Mode::Interactive {
-                        t!("iso-mode-interactive-description")
-                    } else if self.mode == Mode::BeforeDesktop {
-                        t!("iso-mode-desktop-description")
-                    } else {
-                        t!("iso-mode-before-description")
-                    },
-                ));
-                if let Some(image) = &self.image {
-                    summary = summary.child(detail_text(
-                        "iso-editions",
-                        t!("iso-editions", editions = image.editions.join(", ")),
-                    ));
-                    summary =
-                        summary.child(detail_text("iso-edition-selection", t!("iso-edition-selection")));
-                    summary = summary.child(detail_text(
-                        "iso-size",
-                        t!("iso-source-size", size = crate::i18n::fmt::megabytes_value(image.bytes)),
-                    ));
-                }
-                if let Some(path) = &self.output {
-                    summary = summary.child(detail_text("iso-review-output", path.display().to_string()));
-                }
-                if self.mode != Mode::Interactive {
-                    summary = summary.child(heading("iso-summary-options", 2, t!("iso-atlas-options"), cx));
-                    if let Some(manifest) = &self.manifest {
-                        for (index, name) in self.options.iter().enumerate() {
-                            if let Some(text) = manifest.option_label(name) {
-                                summary = summary.child(detail_text(
-                                    &format!("iso-summary-option-{index}"),
-                                    describe::option_label(name, text),
-                                ));
-                            }
-                        }
-                    }
-                }
-                body.push(card(cx).child(summary).into_any_element());
-                body.push(
-                    detail_text("iso-review-description", t!("iso-review-description")).into_any_element(),
-                );
+                body.extend(self.review(cx));
                 footer = footer
                     .child(Button::new("iso-back-choices", t!("common-back")).on_click(cx.listener(
                         |this, _, _, cx| {
