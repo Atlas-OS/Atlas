@@ -497,7 +497,7 @@ installing-checking-line = Atlas is checking your PC before making changes. This
 installing-title = Installing Atlas
 installing-phase-preflight = Checking your PC and preparing the installation files.
 installing-phase-staging = Getting the installation files ready. Keep your PC on.
-installing-phase-applying = Setting up Windows with your choices. Keep your PC on and plugged in.
+installing-phase-applying = Keep your PC on and plugged in while Atlas sets up Windows.
 installing-phase-done = Finishing the installation. Keep your PC on.
 installing-installed-title = Atlas is installed
 # $time is a formatted clock time.

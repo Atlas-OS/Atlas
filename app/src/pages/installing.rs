@@ -116,14 +116,14 @@ impl Render for InstallingPage {
             .flex_col()
             .items_center()
             .w_full()
-            .max_w(px(600.))
-            .gap(px(16.))
+            .max_w(px(560.))
+            .gap(px(12.))
             .flex_shrink_0()
             .my_auto()
             .child(if succeeded {
-                icon_sized(Icon::Completed, 56.).text_color(theme.success).into_any_element()
+                icon_sized(Icon::Completed, 48.).text_color(theme.success).into_any_element()
             } else {
-                svg().path("brand/atlas-mark.svg").size(px(56.)).text_color(theme.brand).into_any_element()
+                svg().path("brand/atlas-mark.svg").size(px(48.)).text_color(theme.brand).into_any_element()
             })
             .child(
                 div()
@@ -139,7 +139,7 @@ impl Render for InstallingPage {
             )
             .child(
                 div()
-                    .type_body_large()
+                    .type_body()
                     .text_color(theme.text_secondary)
                     .text_center()
                     .child(a11y_text("installing-line", line)),
@@ -150,20 +150,18 @@ impl Render for InstallingPage {
                 column = column.child(div().pt(px(8.)).child(ProgressRing::new().size(28.)));
             }
             RunState::Running => {
-                column = column
-                    .child(div().w_full().pt(px(8.)).child(ProgressBar::new(
+                let mut progress_group =
+                    div().w_full().flex().flex_col().gap(px(8.)).pt(px(12.)).child(ProgressBar::new(
                         "installing-progress",
                         t!("install-progress"),
-                        Some(plan_progress.map_or(0., |p| p.fraction()).min(0.99)),
-                    )))
-                    .when_some(plan_progress, |this, p| {
-                        this.child(
-                            div()
-                                .type_caption()
-                                .text_color(theme.text_secondary)
-                                .child(format!("{}%", (p.fraction() * 100.).floor().min(99.) as u32)),
-                        )
-                    })
+                        plan_progress.map(|p| p.fraction().min(0.99)),
+                    ));
+                let metadata = div()
+                    .flex()
+                    .flex_wrap()
+                    .items_center()
+                    .justify_between()
+                    .gap(px(8.))
                     .when_some(started, |this, text| {
                         this.child(
                             div()
@@ -171,7 +169,17 @@ impl Render for InstallingPage {
                                 .text_color(theme.text_tertiary)
                                 .child(a11y_text("installing-started", text)),
                         )
+                    })
+                    .when_some(plan_progress, |this, p| {
+                        this.child(
+                            div()
+                                .type_caption()
+                                .text_color(theme.text_secondary)
+                                .child(format!("{}%", (p.fraction() * 100.).floor().min(99.) as u32)),
+                        )
                     });
+                progress_group = progress_group.child(metadata);
+                column = column.child(progress_group);
             }
             RunState::Finished(_) if succeeded => {
                 if let Some(progress) = progress {
@@ -230,7 +238,7 @@ impl Render for InstallingPage {
         // The log stays a click away, never in the way.
         let show_details = self.show_details;
         column = column.child(
-            div().pt(px(16.)).child(
+            div().pt(px(8.)).child(
                 Button::new(
                     "installing-details",
                     if show_details { t!("common-hide-details") } else { t!("common-show-details") },
@@ -278,7 +286,8 @@ impl Render for InstallingPage {
                         t!("common-install-log"),
                         Some(actions.into_any_element()),
                     ))
-                    .child(self.log_view(cx)),
+                    .child(self.log_view(cx))
+                    .child(div().p(px(16.)).child(super::diagnostics_content(&self.model, cx))),
             );
         }
 
@@ -296,7 +305,7 @@ impl Render for InstallingPage {
                     .items_center()
                     .px(px(40.))
                     .py(px(40.))
-                    .child(column.child(super::diagnostics_panel(&self.model, cx))),
+                    .child(column),
             )
             .child(scrollbar(&self.scroll, &self.scrollbar))
     }

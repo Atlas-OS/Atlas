@@ -167,8 +167,8 @@ right-to-left text (see `docs/i18n.md`).
   and the window can only be closed knowingly; the install keeps going in the
   background, and reopening the app picks the session up again and shows its
   result. While it runs (and after it succeeds) the window shows one
-  dedicated installing view: phase, progress, when it started, and the log
-  behind "Show details". After a successful install the front door restarts
+  dedicated installing view: phase, progress and when it started. The log
+  and diagnostic export controls are grouped behind "Show details". After a successful install the front door restarts
   Windows in ten seconds; the view counts down with a "Don't restart now"
   button (and "Restart now" once stopped). After the restart, the payload's
   first-logon setup opens this app again with `--just-installed` (it finds the

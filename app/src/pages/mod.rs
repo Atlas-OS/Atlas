@@ -33,10 +33,16 @@ pub const PAGE_PADDING: f32 = 40.;
 pub const CONTENT_MAX_WIDTH: f32 = 1000.;
 
 pub fn diagnostics_panel(model: &Entity<AppModel>, cx: &App) -> Div {
+    crate::ui::card(cx).p(px(16.)).child(diagnostics_content(model, cx))
+}
+
+/// The export controls can also sit within an existing details surface.
+pub fn diagnostics_content(model: &Entity<AppModel>, cx: &App) -> Div {
     let state = model.read(cx);
     let model = model.clone();
-    crate::ui::card(cx)
-        .p(px(16.))
+    div()
+        .flex()
+        .flex_col()
         .gap(px(8.))
         .child(
             div()
