@@ -708,5 +708,5 @@ prepare-restart-failed = Windows n’a pas pu redémarrer. Réessayez ou redéma
 diagnostics-export = Exporter le diagnostic
 diagnostics-exporting = Collecte du diagnostic…
 diagnostics-show = Afficher le ZIP de diagnostic
-diagnostics-privacy = Les journaux contiennent des noms de comptes, des chemins de fichiers et des informations sur les appareils. Vérifiez le ZIP et partagez-le en privé avec l’assistance Atlas. Aucun envoi automatique.
+diagnostics-privacy = Créez un ZIP aux données sensibles masquées pour signaler un bug publiquement.
 diagnostics-error = Impossible d’exporter le diagnostic : { $error }

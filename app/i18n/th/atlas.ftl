@@ -698,5 +698,5 @@ prepare-restart-failed = Windows เริ่มระบบใหม่ไม�
 diagnostics-export = ส่งออกข้อมูลวินิจฉัย
 diagnostics-exporting = กำลังรวบรวมข้อมูลวินิจฉัย…
 diagnostics-show = แสดงไฟล์ ZIP วินิจฉัย
-diagnostics-privacy = บันทึกมีชื่อบัญชี เส้นทางไฟล์ และรายละเอียดอุปกรณ์ ตรวจสอบ ZIP แล้วส่งให้ฝ่ายสนับสนุน Atlas เป็นการส่วนตัว ไม่มีการอัปโหลดอัตโนมัติ
+diagnostics-privacy = สร้าง ZIP ที่ปกปิดข้อมูลละเอียดอ่อนเพื่อแนบรายงานบั๊กสาธารณะ
 diagnostics-error = ส่งออกข้อมูลวินิจฉัยไม่ได้: { $error }

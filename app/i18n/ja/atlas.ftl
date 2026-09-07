@@ -690,5 +690,5 @@ prepare-restart-failed = Windows を再起動できませんでした。もう�
 diagnostics-export = 診断情報をエクスポート
 diagnostics-exporting = 診断情報を収集中…
 diagnostics-show = 診断 ZIP を表示
-diagnostics-privacy = ログにはアカウント名、ファイルパス、デバイス情報が含まれます。ZIP を確認し、Atlas サポートに非公開で共有してください。自動送信は行いません。
+diagnostics-privacy = 機密情報を除去した ZIP を作成し、公開のバグ報告で共有できます。
 diagnostics-error = 診断情報をエクスポートできませんでした: { $error }

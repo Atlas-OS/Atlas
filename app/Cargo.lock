@@ -241,6 +241,7 @@ dependencies = [
  "intl_pluralrules",
  "log",
  "proc-macro2",
+ "regex",
  "ring",
  "roxmltree 0.21.1",
  "serde",

@@ -1,8 +1,8 @@
 # Reporting app and playbook problems
 
 In Atlas Manager, choose **Export diagnostics** in Settings or on the install,
-ISO or USB page. Wait for **Show diagnostic ZIP**, then review the archive and
-send it privately to Atlas support. Nothing is uploaded automatically. Include
+ISO or USB page. Use **Show diagnostic ZIP** to find the redacted archive and
+share it in a public community or development channel. Nothing is uploaded automatically. Include
 what you were doing, the expected and actual result, approximate time/timezone,
 and whether the problem repeats. A template is included in the archive.
 
@@ -17,13 +17,25 @@ not required to export the files that are readable.
 The ZIP contains app and playbook logs, preparation and media-worker diagnostics,
 saved settings/session state, the installing account's user logs, ISO setup and
 desktop recovery logs, and the read-only install report. It excludes executable
-payloads, scripts, ISO/WIM media and memory dumps. Logs and reports can contain
-account names, SIDs, file paths, installed applications and device identifiers.
-They are not automatically anonymized: review before sharing.
+payloads, scripts, ISO/WIM media and memory dumps. Exported text is redacted;
+original local logs are unchanged. Account profile names, the collecting user's
+account/computer/domain names, email addresses and account SID prefixes become
+consistent anonymous labels within the ZIP. Account RIDs and well-known Windows
+SIDs stay available for diagnosing permissions. Password fields, API credentials,
+HTTP authorization/cookies, signed URL credentials, common access-token formats,
+product keys and private keys are removed.
+
+Error messages, stack traces, timestamps, build/version numbers, selected options,
+operation IDs, hardware models, device identifiers, installed applications and
+the useful remainder of file paths are retained. Redaction is deliberately
+targeted: arbitrary personal text or an unrecognised secret format in third-party
+output cannot be reliably detected. The UI describes the ZIP as redacted, rather
+than promising that every possible input is anonymous. UTF-8 and BOM-marked
+UTF-16 logs are supported; unknown/binary encodings are explicitly omitted.
 
 `manifest.json` records the running executable's SHA-256, app version, selected
 package identity when available, Windows build/edition, elevation, and the hash
-of each included file. Unavailable, unreadable and size-limited evidence is listed
+of each redacted file, plus the redaction policy version. Unavailable, unreadable and size-limited evidence is listed
 explicitly. Missing files are normal before installation. The machine collector
 has a 60-second deadline; a failed collector does not discard other logs. Files
 captured during a running operation are snapshots, not a consistent transaction.
@@ -38,9 +50,9 @@ native crashes, forced termination and disk-write failures may leave no final
 message. No automatic crash upload or full dump collection is installed.
 
 Exports retain complete eligible files up to 32 MiB each, 256 MiB total and 2,048
-visited entries. The manifest identifies omitted evidence so support can request
+visited entries. The manifest identifies omitted evidence so contributors can request
 specific files separately. Symbolic links/junctions are skipped. Existing exports
-are not automatically deleted; users may remove ZIPs after support no longer
+are not automatically deleted; users may remove ZIPs after the investigation no longer
 needs them.
 
 For triage, read `manifest.json`, correlate timestamps in app logs with the

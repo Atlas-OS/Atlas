@@ -722,5 +722,5 @@ prepare-restart-failed = Windows could not restart. Try again, or restart throug
 diagnostics-export = Export diagnostics
 diagnostics-exporting = Collecting diagnostics…
 diagnostics-show = Show diagnostic ZIP
-diagnostics-privacy = Logs include account names, file paths and device details. Review the ZIP and share it privately with Atlas support. Nothing is uploaded automatically.
+diagnostics-privacy = Create a redacted ZIP to share with a public bug report.
 diagnostics-error = Could not export diagnostics: { $error }

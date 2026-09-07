@@ -729,5 +729,5 @@ prepare-restart-failed = Nie udało się uruchomić ponownie Windows. Spróbuj p
 diagnostics-export = Eksportuj diagnostykę
 diagnostics-exporting = Zbieranie danych diagnostycznych…
 diagnostics-show = Pokaż ZIP z diagnostyką
-diagnostics-privacy = Dzienniki zawierają nazwy kont, ścieżki plików i dane urządzeń. Sprawdź ZIP i udostępnij go prywatnie pomocy Atlas. Nic nie jest wysyłane automatycznie.
+diagnostics-privacy = Utwórz ZIP z ukrytymi danymi wrażliwymi do publicznego zgłoszenia błędu.
 diagnostics-error = Nie można wyeksportować diagnostyki: { $error }

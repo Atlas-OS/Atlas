@@ -686,5 +686,5 @@ prepare-restart-failed = Windows 无法重新启动。请重试，或通过 Wind
 diagnostics-export = 导出诊断信息
 diagnostics-exporting = 正在收集诊断信息…
 diagnostics-show = 显示诊断 ZIP
-diagnostics-privacy = 日志包含账户名称、文件路径和设备详情。请检查 ZIP 并私下分享给 Atlas 支持团队。不会自动上传任何内容。
+diagnostics-privacy = 创建已隐去敏感信息的 ZIP，用于公开报告问题。
 diagnostics-error = 无法导出诊断信息：{ $error }

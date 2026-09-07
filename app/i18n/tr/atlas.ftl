@@ -712,5 +712,5 @@ prepare-restart-failed = Windows yeniden başlatılamadı. Tekrar deneyin veya W
 diagnostics-export = Tanı bilgilerini dışa aktar
 diagnostics-exporting = Tanı bilgileri toplanıyor…
 diagnostics-show = Tanı ZIP dosyasını göster
-diagnostics-privacy = Günlükler hesap adları, dosya yolları ve cihaz ayrıntıları içerir. ZIP dosyasını inceleyip Atlas desteğiyle özel olarak paylaşın. Hiçbir şey otomatik yüklenmez.
+diagnostics-privacy = Herkese açık hata bildirimi için hassas verileri gizlenmiş bir ZIP oluşturun.
 diagnostics-error = Tanı bilgileri dışa aktarılamadı: { $error }

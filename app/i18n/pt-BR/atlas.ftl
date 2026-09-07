@@ -716,5 +716,5 @@ prepare-restart-failed = Não foi possível reiniciar o Windows. Tente novamente
 diagnostics-export = Exportar diagnóstico
 diagnostics-exporting = Coletando diagnóstico…
 diagnostics-show = Mostrar ZIP de diagnóstico
-diagnostics-privacy = Os logs incluem nomes de contas, caminhos de arquivos e detalhes do dispositivo. Revise o ZIP e compartilhe-o em particular com o suporte Atlas. Nada é enviado automaticamente.
+diagnostics-privacy = Crie um ZIP com dados sensíveis ocultos para relatar um bug publicamente.
 diagnostics-error = Não foi possível exportar o diagnóstico: { $error }

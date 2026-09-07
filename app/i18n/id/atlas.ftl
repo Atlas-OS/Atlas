@@ -697,5 +697,5 @@ prepare-restart-failed = Windows tidak dapat dimulai ulang. Coba lagi, atau mula
 diagnostics-export = Ekspor diagnostik
 diagnostics-exporting = Mengumpulkan diagnostik…
 diagnostics-show = Tampilkan ZIP diagnostik
-diagnostics-privacy = Log berisi nama akun, jalur berkas, dan detail perangkat. Tinjau ZIP dan bagikan secara pribadi dengan dukungan Atlas. Tidak ada unggahan otomatis.
+diagnostics-privacy = Buat ZIP dengan data sensitif disamarkan untuk laporan bug publik.
 diagnostics-error = Tidak dapat mengekspor diagnostik: { $error }

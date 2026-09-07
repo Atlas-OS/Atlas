@@ -33,6 +33,7 @@ zip = { version = "8.6", default-features = false, features = ["deflate-flate2-z
 image = { version = "0.25", default-features = false, features = ["png"] }
 roxmltree = "0.21"
 ring = "0.17"
+regex = "1.13"
 fluent-bundle = "0.16"
 fluent-langneg = { version = "0.14.2", features = ["cldr"] }
 unic-langid = { version = "0.9", features = ["likelysubtags"] }

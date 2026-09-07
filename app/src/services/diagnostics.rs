@@ -138,13 +138,14 @@ pub fn init_logging() {
     );
 }
 
-pub const PRIVACY: &str = "This archive contains local diagnostic logs, Windows and Atlas state, paths, account names/SIDs, application names and device identifiers. Review it before sharing privately with Atlas support. Nothing is uploaded automatically. Files may reflect a running operation. See manifest.json for missing, unreadable or omitted files.\n";
+pub const PRIVACY: &str = "Atlas diagnostics\n\nPrepared for sharing in public community or development channels when reporting a bug. Known credential formats and personal account details are automatically redacted; consistent anonymous labels keep related evidence connected.\n\nError details, timestamps, versions, hardware models, application names and operation IDs are kept to help investigate. Nothing is uploaded automatically. See BUG-REPORT.txt for what to include with your report and manifest.json for collection details.\n";
 
 struct Bundle {
     zip: ZipWriter<File>,
     entries: Vec<Value>,
     bytes: u64,
     files: usize,
+    redactor: super::diagnostics_redaction::Redactor,
 }
 
 fn reparse(metadata: &fs::Metadata) -> bool {
@@ -154,15 +155,19 @@ fn reparse(metadata: &fs::Metadata) -> bool {
 
 impl Bundle {
     fn note(&mut self, name: &str, status: impl ToString) {
-        self.entries.push(json!({"path": name, "status": status.to_string()}));
+        self.entries.push(
+            json!({"path": self.redactor.text(name), "status": self.redactor.text(&status.to_string())}),
+        );
     }
 
     fn text(&mut self, name: &str, bytes: &[u8]) -> Result<()> {
+        let name = self.redactor.text(name);
+        let bytes = self.redactor.file(bytes).context("diagnostic text encoding is unsupported")?;
         self.zip.start_file(
-            name,
+            &name,
             SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated),
         )?;
-        self.zip.write_all(bytes)?;
+        self.zip.write_all(&bytes)?;
         Ok(())
     }
 
@@ -235,7 +240,22 @@ impl Bundle {
                 return Ok(());
             }
         }
-        self.text(name, &bytes)?;
+        let Some(bytes) = self.redactor.file(&bytes) else {
+            self.note(name, "omitted: unsupported text encoding");
+            return Ok(());
+        };
+        if bytes.len() as u64 > FILE_LIMIT || self.bytes + bytes.len() as u64 > TOTAL_LIMIT {
+            self.note(name, "omitted: redacted text exceeds size limit");
+            return Ok(());
+        }
+        let name = self.redactor.text(name);
+        // Write the already-redacted bytes once; their digest must describe
+        // exactly the contents reviewers receive.
+        self.zip.start_file(
+            &name,
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated),
+        )?;
+        self.zip.write_all(&bytes)?;
         self.bytes += bytes.len() as u64;
         let hash = ring::digest::digest(&ring::digest::SHA256, &bytes);
         let hash: String = hash.as_ref().iter().map(|byte| format!("{byte:02x}")).collect();
@@ -315,13 +335,19 @@ pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
         let temporary = exports.join(format!("Atlas-diagnostics-{id}.partial"));
         let destination = temporary.with_extension("zip");
         let output = OpenOptions::new().create_new(true).write(true).open(&temporary)?;
-        let mut bundle = Bundle { zip: ZipWriter::new(output), entries: Vec::new(), bytes: 0, files: 0 };
+        let mut bundle = Bundle {
+            zip: ZipWriter::new(output),
+            entries: Vec::new(),
+            bytes: 0,
+            files: 0,
+            redactor: super::diagnostics_redaction::Redactor::new(),
+        };
         let packed = (|| -> Result<()> {
             bundle.text("READ-ME.txt", PRIVACY.as_bytes())?;
             if let Some(path) = &package_directory {
                 bundle.collect(&path.join("Executables/AtlasModules/Logs"), "playbook/staged-logs", 0)?;
             }
-            bundle.text("BUG-REPORT.txt", b"What were you doing?\nWhat did you expect?\nWhat happened (include exact message)?\nApproximate time and timezone:\nDoes it happen again?\nPlease share this archive privately after reviewing its contents.\n")?;
+            bundle.text("BUG-REPORT.txt", b"What were you doing?\nWhat did you expect?\nWhat happened (include exact message)?\nApproximate time and timezone:\nDoes it happen again?\nAttach this ZIP when reporting the issue in a public community or development channel.\n")?;
             for name in
                 ["Logs", "ISO", "Preparation", "settings.json", "settings.json.invalid", "session.json"]
             {
@@ -354,7 +380,7 @@ pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
             let executable = std::env::current_exe().ok();
             let hash = executable.as_ref().and_then(|path| super::releases::sha256_file(path).ok());
             let info = super::system::SystemInfo::read();
-            let manifest = json!({"schema":1,"createdAt":chrono::Utc::now().to_rfc3339(),"appVersion":env!("CARGO_PKG_VERSION"),"executable":executable,"appSha256":hash,"package":package,"windows":{"build":info.build_label(),"edition":info.edition_id,"release":info.display_version},"elevated":super::system::is_elevated(),"collectorError":collector,"loggingPath":LOG_LOCATION.get(),"limits":{"fileBytes":FILE_LIMIT,"totalBytes":TOTAL_LIMIT,"entries":2048},"files":bundle.entries});
+            let manifest = json!({"schema":2,"redaction":"public-v1","createdAt":chrono::Utc::now().to_rfc3339(),"appVersion":env!("CARGO_PKG_VERSION"),"executable":executable,"appSha256":hash,"package":package,"windows":{"build":info.build_label(),"edition":info.edition_id,"release":info.display_version},"elevated":super::system::is_elevated(),"collectorError":collector,"loggingPath":LOG_LOCATION.get(),"limits":{"fileBytes":FILE_LIMIT,"totalBytes":TOTAL_LIMIT,"entries":2048},"files":bundle.entries});
             bundle.text("manifest.json", &serde_json::to_vec_pretty(&manifest)?)?;
             Ok(())
         })();
@@ -415,6 +441,7 @@ mod tests {
             entries: vec![],
             bytes: 0,
             files: 0,
+            redactor: super::super::diagnostics_redaction::Redactor::new(),
         };
         bundle.collect(&locked, "locked.log", 0).unwrap();
         bundle.collect(&readable, "readable.log", 0).unwrap();
@@ -433,6 +460,40 @@ mod tests {
     }
 
     #[test]
+    fn archive_redacts_copies_and_metadata_and_hashes_the_exported_bytes() {
+        let temp = TempDir::new("diagnostic-redacted-archive");
+        let source = temp.path().join("install.log");
+        let original = "ERROR 0x80070005 C:\\Users\\Test Person\\AppData\\Local\\AtlasOS\\install.log\npassword='test credential'\ntransaction=job-42\n";
+        fs::write(&source, original).unwrap();
+        let target = temp.path().join("test.zip");
+        let mut bundle = Bundle {
+            zip: ZipWriter::new(File::create(&target).unwrap()),
+            entries: Vec::new(),
+            bytes: 0,
+            files: 0,
+            redactor: super::super::diagnostics_redaction::Redactor::new(),
+        };
+        bundle.collect(&source, "logs/install.log", 0).unwrap();
+        bundle.note("missing.log", "unreadable C:\\Users\\Test Person\\missing.log");
+        bundle.text("manifest.json", &serde_json::to_vec(&json!({"files":bundle.entries})).unwrap()).unwrap();
+        bundle.zip.finish().unwrap();
+        assert_eq!(fs::read_to_string(source).unwrap(), original, "local evidence must stay unchanged");
+        let mut zip = zip::ZipArchive::new(File::open(target).unwrap()).unwrap();
+        let mut log = String::new();
+        zip.by_name("logs/install.log").unwrap().read_to_string(&mut log).unwrap();
+        let mut manifest = String::new();
+        zip.by_name("manifest.json").unwrap().read_to_string(&mut manifest).unwrap();
+        for text in [&log, &manifest] {
+            assert!(!text.contains("Test Person") && !text.contains("test credential"));
+        }
+        assert!(log.contains("0x80070005") && log.contains("transaction=job-42"));
+        let manifest: Value = serde_json::from_str(&manifest).unwrap();
+        let digest = ring::digest::digest(&ring::digest::SHA256, log.as_bytes());
+        let digest: String = digest.as_ref().iter().map(|byte| format!("{byte:02x}")).collect();
+        assert_eq!(manifest["files"][0]["sha256"], digest);
+    }
+
+    #[test]
     fn bundle_keeps_full_logs_and_records_missing_and_oversized_files() {
         let temp = TempDir::new("diagnostic-export");
         let source = temp.path().join("source");
@@ -447,6 +508,7 @@ mod tests {
             entries: Vec::new(),
             bytes: 0,
             files: 0,
+            redactor: super::super::diagnostics_redaction::Redactor::new(),
         };
         bundle.collect(&source, "logs", 0).unwrap();
         bundle.collect(&source.join("absent.log"), "absent.log", 0).unwrap();

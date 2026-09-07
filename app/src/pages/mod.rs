@@ -35,40 +35,56 @@ pub const CONTENT_MAX_WIDTH: f32 = 1000.;
 pub fn diagnostics_panel(model: &Entity<AppModel>, cx: &App) -> Div {
     let state = model.read(cx);
     let model = model.clone();
-    div()
-        .flex()
-        .flex_col()
+    crate::ui::card(cx)
+        .p(px(16.))
         .gap(px(8.))
         .child(
             div()
-                .type_caption()
-                .text_color(cx.theme().text_secondary)
-                .child(a11y_text("diagnostics-privacy", t!("diagnostics-privacy"))),
-        )
-        .child(
-            div().flex().child(
-                Button::new(
-                    "export-diagnostics",
-                    if state.diagnostics_busy {
-                        t!("diagnostics-exporting")
-                    } else {
-                        t!("diagnostics-export")
-                    },
+                .flex()
+                .flex_wrap()
+                .items_center()
+                .gap(px(12.))
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w(px(180.))
+                        .type_caption()
+                        .text_color(cx.theme().text_secondary)
+                        .child(a11y_text("diagnostics-privacy", t!("diagnostics-privacy"))),
                 )
-                .disabled(state.diagnostics_busy)
-                .on_click(move |_, _, cx| model.update(cx, |m, cx| m.export_diagnostics(cx))),
-            ),
+                .child(
+                    div()
+                        .flex()
+                        .flex_wrap()
+                        .gap(px(8.))
+                        .child(
+                            Button::new(
+                                "export-diagnostics",
+                                if state.diagnostics_busy {
+                                    t!("diagnostics-exporting")
+                                } else {
+                                    t!("diagnostics-export")
+                                },
+                            )
+                            .icon(Icon::Diagnostic)
+                            .disabled(state.diagnostics_busy)
+                            .on_click(move |_, _, cx| model.update(cx, |m, cx| m.export_diagnostics(cx))),
+                        )
+                        .when_some(
+                            state.diagnostics_result.as_ref().and_then(|result| result.as_ref().ok()),
+                            |this, path| {
+                                let path = path.clone();
+                                this.child(
+                                    Button::new("diagnostics-show", t!("diagnostics-show"))
+                                        .icon(Icon::Folder)
+                                        .on_click(move |_, _, cx| cx.reveal_path(&path)),
+                                )
+                            },
+                        ),
+                ),
         )
         .when_some(state.diagnostics_result.as_ref(), |this, result| match result {
-            Ok(path) => {
-                let path = path.clone();
-                this.child(
-                    div().flex().child(
-                        Button::new("diagnostics-show", t!("diagnostics-show"))
-                            .on_click(move |_, _, cx| cx.reveal_path(&path)),
-                    ),
-                )
-            }
+            Ok(_) => this,
             Err(error) => this.child(
                 div()
                     .type_caption()

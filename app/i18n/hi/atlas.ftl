@@ -700,5 +700,5 @@ prepare-restart-failed = Windows पुनः आरंभ नहीं हो �
 diagnostics-export = निदान निर्यात करें
 diagnostics-exporting = निदान इकट्ठा किया जा रहा है…
 diagnostics-show = निदान ZIP दिखाएँ
-diagnostics-privacy = लॉग में खाता नाम, फ़ाइल पथ और डिवाइस विवरण शामिल हैं। ZIP की समीक्षा करें और इसे Atlas सहायता के साथ निजी रूप से साझा करें। कुछ भी अपने आप अपलोड नहीं होता।
+diagnostics-privacy = सार्वजनिक बग रिपोर्ट के लिए संवेदनशील जानकारी हटाकर ZIP बनाएँ।
 diagnostics-error = निदान निर्यात नहीं हो सका: { $error }

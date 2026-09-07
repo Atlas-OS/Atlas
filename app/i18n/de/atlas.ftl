@@ -711,5 +711,5 @@ prepare-restart-failed = Windows konnte nicht neu gestartet werden. Versuche es 
 diagnostics-export = Diagnose exportieren
 diagnostics-exporting = Diagnosedaten werden gesammelt…
 diagnostics-show = Diagnose-ZIP anzeigen
-diagnostics-privacy = Protokolle enthalten Kontonamen, Dateipfade und Gerätedaten. Prüfe die ZIP-Datei und teile sie privat mit dem Atlas-Support. Es wird nichts automatisch hochgeladen.
+diagnostics-privacy = Eine bereinigte ZIP-Datei für einen öffentlichen Fehlerbericht erstellen.
 diagnostics-error = Diagnose konnte nicht exportiert werden: { $error }
