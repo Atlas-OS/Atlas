@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:repositoryRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..')).Path
     $script:modulesRoot = Join-Path -Path $script:repositoryRoot -ChildPath 'playbook\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $script:modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
@@ -175,38 +176,43 @@ Describe 'Shipped tweak manifest execution graph' {
 
     }
 
-    It 'keeps category parent modes aligned with the fresh install plan' {
+    It 'keeps category parent modes aligned with fresh and upgrade plans' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
         . (Join-Path $script:repositoryRoot `
-            'playbook\Executables\AtlasModules\Scripts\Internal\Install-Plan.ps1')
+            'playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
         $freshKeys = @((Get-AtlasInstallPlan -Mode Fresh -IsOobe $false).Key)
+        $upgradeKeys = @((Get-AtlasInstallPlan -Mode Upgrade -IsOobe $false).Key)
 
         foreach ($category in @($manifest.Categories)) {
-            @($category.ParentModes) | Should -Be @('Fresh')
+            @($category.ParentModes) | Should -Be @('Fresh', 'Upgrade')
             $freshKeys | Should -Contain "Tweaks/$($category.Name)"
+            $upgradeKeys | Should -Contain "Tweaks/$($category.Name)"
         }
     }
 
-    It 'routes the upgrade-only theme through the upgrade-only PowerShell Revert phase' {
+    It 'routes the upgrade-only theme as its own plan step directly after the Defaults phase' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
         $qol = @($manifest.Categories | Where-Object { $_.Name -eq 'qol' })[0]
         $themeRoute = @($manifest.Standalone | Where-Object { $_.Slug -eq 'qol/appearance/atlas-theme-upgrade' })
         $planScript = Join-Path $script:repositoryRoot `
-            'playbook\Executables\AtlasModules\Scripts\Internal\Install-Plan.ps1'
+            'playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1'
         . $planScript
-        $revertAction = @(Get-AtlasInstallPlan -Mode Upgrade -IsOobe $false |
-                Where-Object Key -CEQ 'Revert')
+        $upgradeKeys = @((Get-AtlasInstallPlan -Mode Upgrade -IsOobe $false).Key)
+        $defaultsIndex = [Array]::IndexOf($upgradeKeys, 'Defaults')
 
         @($qol.Tweaks) | Should -Not -Contain 'appearance/atlas-theme-upgrade'
         @($themeRoute).Count | Should -Be 1
         @($themeRoute[0].ParentModes) | Should -Be @('Upgrade')
-        @($revertAction).Count | Should -Be 1
+        $defaultsIndex | Should -BeGreaterOrEqual 0
+        $upgradeKeys[$defaultsIndex + 1] | Should -BeExactly 'Tweak/qol/appearance/atlas-theme-upgrade'
+        @((Get-AtlasInstallPlan -Mode Fresh -IsOobe $false).Key) |
+            Should -Not -Contain 'Tweak/qol/appearance/atlas-theme-upgrade'
     }
 
     It 'keeps every standalone classification aligned with its PowerShell route' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
         $orchestrator = Join-Path $script:repositoryRoot `
-            'playbook\Executables\AtlasModules\Scripts\Invoke-AtlasInstall.ps1'
+            'playbook\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasInstall.ps1'
         . $orchestrator
 
         $expectedModes = @{
@@ -220,34 +226,69 @@ Describe 'Shipped tweak manifest execution graph' {
         }
         @($manifest.Standalone).Count | Should -Be $expectedModes.Count
 
-        $hidden = Get-AtlasInstallCheckpointAction -Target HiddenSettingsPages `
-            -ScriptsRoot $TestDrive -SourceScriptsRoot $TestDrive
-        $power = Get-AtlasInstallCheckpointAction -Target PowerSettings `
-            -ScriptsRoot $TestDrive -SourceScriptsRoot $TestDrive
-        $hidden.Arguments.Slug | Should -BeExactly 'qol/set-hidden-settings-pages'
-        $power.Arguments.Slug | Should -BeExactly 'scripts/set-power-settings'
+        # Every standalone slug is a 'Tweak/<slug>' plan step in exactly the modes its
+        # manifest route declares, and the orchestrator dispatches it to the Tweaks phase.
+        . (Join-Path $script:repositoryRoot `
+                'playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
+        foreach ($entry in @($manifest.Standalone)) {
+            $slug = [string]$entry.Slug
+            foreach ($mode in @('Fresh', 'Upgrade', 'Reapply')) {
+                $keys = @((Get-AtlasInstallPlan -Mode $mode -IsOobe $false).Key)
+                $expected = if (@($entry.ParentModes) -ccontains $mode) { 1 } else { 0 }
+                @($keys | Where-Object { $_ -ceq "Tweak/$slug" }).Count |
+                    Should -Be $expected -Because "'$slug' routes through modes $(@($entry.ParentModes) -join ',')"
+            }
+
+            $dispatched = New-Object Collections.Generic.List[object]
+            $runner = {
+                param($Path, $Parameters)
+                $dispatched.Add([pscustomobject]@{ Path = $Path; Parameters = $Parameters })
+            }.GetNewClosure()
+            Invoke-AtlasInstallAction -Step ([pscustomobject]@{ Key = "Tweak/$slug"; Replay = 'Once' }) `
+                -ScriptsRoot $TestDrive -SourceScriptsRoot $TestDrive -ScriptRunner $runner `
+                -PhaseStarter {} -PhaseStopper {}
+            $dispatched.Count | Should -Be 1
+            $dispatched[0].Path | Should -Be ([IO.Path]::Combine(
+                    [IO.Path]::GetFullPath($TestDrive), 'Install\Phases\Invoke-TweaksPhase.ps1'))
+            $dispatched[0].Parameters.Slug | Should -BeExactly $slug
+        }
+
+        # The former lifecycle checkpoints for these tweaks no longer exist.
+        foreach ($removed in @('HiddenSettingsPages', 'PowerSettings')) {
+            {
+                Get-AtlasInstallCheckpointAction -Target $removed `
+                    -ScriptsRoot $TestDrive -SourceScriptsRoot $TestDrive
+            } | Should -Throw "*Unsupported install checkpoint '$removed'*"
+        }
     }
 }
 
 Describe 'Send-To install-time execution boundary' {
-    It 'calls the fixed internal helper directly as the current user' {
+    It 'runs the Atlas.Shell companion directly as the current user' {
         $definitionPath = Join-Path -Path $script:shippedTweaksRoot `
             -ChildPath 'qol\explorer\debloat-send-to.psd1'
         $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
-        $run = @($definition.Run)
 
-        $run.Count | Should -Be 1
-        $run[0].Exe | Should -BeExactly `
-            '{windir}\System32\WindowsPowerShell\v1.0\powershell.exe'
-        @($run[0].Args) | Should -Be @(
-            '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-            '-File', '{windir}\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1',
-            '-DebloatDefaults'
-        )
-        $run[0].Wait | Should -BeTrue
-        $run[0].RunAs | Should -BeExactly 'User'
+        $definition.Script | Should -BeExactly 'debloat-send-to.ps1'
+        $definition.RunAs | Should -BeExactly 'User'
         $definition.Oobe | Should -BeFalse
-        $run[0].Exe | Should -Not -Match 'AtlasDesktop|\.cmd$'
-        ($run[0].Args -is [array]) | Should -BeTrue
+        $definition.ContainsKey('Run') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path -Path (Split-Path -Path $definitionPath -Parent) `
+                -ChildPath $definition.Script) -PathType Leaf | Should -BeTrue
+    }
+}
+
+Describe 'News and Interests install-time execution boundary' {
+    It 'applies and records the Widgets toggle instead of duplicating its policy writes' {
+        $definitionPath = Join-Path -Path $script:shippedTweaksRoot `
+            -ChildPath 'qol\taskbar\disable-news-and-interests.psd1'
+        $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
+
+        @($definition.Toggle).Count | Should -Be 1
+        $definition.Toggle[0].Name | Should -BeExactly 'Widgets'
+        $definition.Toggle[0].State | Should -BeExactly 'Disable'
+
+        # The device policy covers the taskbar as well as the Widgets board.
+        $definition.ContainsKey('Registry') | Should -BeFalse
     }
 }

@@ -1,0 +1,133 @@
+<#
+.SYNOPSIS
+    Refreshes only the current medium user's shell in the current Windows session.
+#>
+[CmdletBinding(DefaultParameterSetName = 'InstallBound')]
+param(
+    [Parameter(Mandatory = $true, ParameterSetName = 'InstallBound')]
+    [ValidateNotNullOrEmpty()]
+    [string]$ExpectedUserSid,
+
+    [Parameter(Mandatory = $true, ParameterSetName = 'CurrentSession')]
+    [switch]$CurrentSession,
+
+    [ValidateSet(
+        'ShellRefresh',
+        'ExplorerRefresh',
+        'SearchShellRefresh',
+        'StartMenuRefresh',
+        'ExplorerAndSettingsRefresh',
+        'AppxQuiesce'
+    )]
+    [string]$Operation = 'ShellRefresh'
+)
+
+$trustBootstrap = Join-Path (Split-Path -Parent $PSScriptRoot) 'Initialize-AtlasPowerShell.ps1'
+. $trustBootstrap
+
+Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
+[void]$CurrentSession
+
+function Restore-AtlasUserExplorer {
+    param([Parameter(Mandatory = $true)][int]$SessionId)
+
+    # Windows normally restarts its shell itself. A second explorer.exe launch
+    # opens a folder window instead, interrupting the installation UI.
+    try {
+        $null = Wait-AtlasExplorerShellRecovery -SessionId $SessionId -TimeoutSeconds 5
+        return
+    }
+    catch {
+        # Recover explicitly only when Windows has not restored the shell.
+        Write-Verbose 'Windows has not restored Explorer; starting the shell.'
+    }
+    $explorerPath = Join-Path ([Environment]::GetFolderPath('Windows')) 'explorer.exe'
+    Start-Process -FilePath $explorerPath -WindowStyle Hidden -ErrorAction Stop
+    $null = Wait-AtlasExplorerShellRecovery -SessionId $SessionId -TimeoutSeconds 15
+}
+
+$failureStage = 'Bootstrap'
+trap {
+    $exitCode = switch -CaseSensitive ($failureStage) {
+        'CurrentSessionIdentity' { 11 }
+        'ProcessStop' { 12 }
+        'ExplorerStart' { 13 }
+        'ExplorerRecovery' { 14 }
+        'UserSid' { 15 }
+        'WindowsSession' { 16 }
+        'Operation' { 17 }
+        default { 10 }
+    }
+    exit $exitCode
+}
+
+$modulesRoot = Join-Path $PSScriptRoot '..\Modules'
+Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force -ErrorAction Stop
+Import-Module (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
+
+$failureStage = 'CurrentSessionIdentity'
+if ($PSCmdlet.ParameterSetName -ceq 'CurrentSession' -and
+    ((Test-AtlasSystem) -or (Test-AtlasAdmin))) {
+    throw 'User-shell refresh requires a non-elevated interactive user token; Administrator, SYSTEM, and TrustedInstaller tokens are never accepted.'
+}
+
+$failureStage = 'UserSid'
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+try {
+    $actualSid = $identity.User.Value
+}
+finally {
+    $identity.Dispose()
+}
+
+if ($PSCmdlet.ParameterSetName -ceq 'InstallBound') {
+    $canonicalExpectedSid = try {
+        (New-Object Security.Principal.SecurityIdentifier($ExpectedUserSid)).Value
+    }
+    catch {
+        throw "Expected user-shell refresh SID '$ExpectedUserSid' is invalid."
+    }
+    if (-not [string]::Equals($actualSid, $canonicalExpectedSid, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "User-shell refresh token SID '$actualSid' does not match '$ExpectedUserSid'."
+    }
+}
+
+$failureStage = 'WindowsSession'
+$currentProcess = [Diagnostics.Process]::GetCurrentProcess()
+try {
+    $sessionId = [int]$currentProcess.SessionId
+}
+finally {
+    $currentProcess.Dispose()
+}
+if ($sessionId -lt 1) {
+    throw 'User-shell refresh requires a nonzero interactive Windows session.'
+}
+
+$failureStage = 'Operation'
+$processNames = switch -CaseSensitive ($Operation) {
+    'ShellRefresh' { @('ShellExperienceHost', 'explorer') }
+    'ExplorerRefresh' { @('explorer') }
+    'SearchShellRefresh' { @('SearchHost', 'SearchApp', 'explorer') }
+    'StartMenuRefresh' { @('StartMenuExperienceHost') }
+    'ExplorerAndSettingsRefresh' { @('SystemSettings', 'explorer') }
+    'AppxQuiesce' { @('msteams*', 'ms-teams*', 'SearchHost*', 'SearchApp*') }
+    default { throw "Unsupported user-session process operation '$Operation'." }
+}
+
+# Even if the same account has another disconnected or RDP logon, only this
+# helper's Windows session is refreshed.
+$failureStage = 'ProcessStop'
+Stop-AtlasProcess -Name $processNames -SessionId $sessionId `
+    -StopOnError -WaitTimeoutMilliseconds 5000
+
+if ($Operation -in @(
+        'ShellRefresh',
+        'ExplorerRefresh',
+        'SearchShellRefresh',
+        'ExplorerAndSettingsRefresh'
+    )) {
+    $failureStage = 'ExplorerRecovery'
+    Restore-AtlasUserExplorer -SessionId $sessionId
+}

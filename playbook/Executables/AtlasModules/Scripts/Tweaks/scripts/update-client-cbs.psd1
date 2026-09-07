@@ -7,6 +7,6 @@
     # failing the tweak: the wsxpack layout varies by servicing state and the change
     # is cosmetic (Settings-page ads), so it must never block an install.
     Run         = @(
-        @{ Exe = '{windir}\System32\WindowsPowerShell\v1.0\powershell.exe'; Args = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', '{windir}\AtlasModules\Scripts\Internal\Update-ClientCbs.ps1'); IgnoreErrors = $true }
+        @{ Exe = '{windir}\System32\WindowsPowerShell\v1.0\powershell.exe'; Args = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', '{windir}\AtlasModules\Scripts\Operations\Update-ClientCbs.ps1'); IgnoreErrors = $true }
     )
 }

@@ -1,11 +1,12 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     $script:PackagePath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Internal\Toolbox-Package.ps1'
-    $script:DownloadIntegrityPath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Internal\Download-Integrity.ps1'
+        'playbook\Executables\AtlasModules\Scripts\Operations\Toolbox-Package.ps1'
+    $script:DownloadModulePath = Join-Path $script:RepoRoot `
+        'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Download\Atlas.Download.psd1'
 
-    . $script:DownloadIntegrityPath
+    Import-Module -Name $script:DownloadModulePath -Force
     . $script:PackagePath
 
     function Wait-ForMarkerFile {
@@ -43,9 +44,12 @@ Describe 'Atlas Toolbox latest-channel integrity contract' {
         Mock Test-AtlasToolboxInstallation { $true } -ParameterFilter {
             $ExpectedVersion -ceq '1.2.3'
         }
+        Mock Write-AtlasNote
 
-        Install-AtlasToolboxPackage | Should -BeExactly `
-            'AtlasOS Toolbox 1.2.3 is already installed.'
+        Install-AtlasToolboxPackage | Should -BeNullOrEmpty
+        Should -Invoke Write-AtlasNote -Times 1 -Exactly -ParameterFilter {
+            $Text -ceq 'AtlasOS Toolbox 1.2.3 is already installed.'
+        }
         Should -Invoke Get-AtlasLatestGitHubReleaseAsset -Times 1 -Exactly `
             -ParameterFilter {
                 $Owner -ceq 'Atlas-OS' -and
@@ -73,30 +77,35 @@ Describe 'Atlas Toolbox latest-channel integrity contract' {
             )
         }
 
-        $asset = Resolve-AtlasGitHubReleaseAssetMetadata `
-            -Release $release `
-            -Owner 'Atlas-OS' `
-            -Repository 'atlas-toolbox' `
-            -AssetName 'AtlasToolbox-Setup.exe'
-        $asset.Version | Should -BeExactly '1.2.3'
-        $asset.AssetId | Should -Be 42
-        $asset.Size | Should -Be 123456
-        $asset.Sha256 | Should -BeExactly ('a' * 64)
+        # The resolver is private to Atlas.Download; reach it through the module scope.
+        InModuleScope Atlas.Download -Parameters @{ Release = $release } {
+            param($Release)
 
-        $release.assets[0].digest = $null
-        {
-            Resolve-AtlasGitHubReleaseAssetMetadata `
-                -Release $release -Owner Atlas-OS -Repository atlas-toolbox `
-                -AssetName AtlasToolbox-Setup.exe
-        } | Should -Throw '*complete upload*'
+            $asset = Resolve-AtlasGitHubReleaseAssetMetadata `
+                -Release $Release `
+                -Owner 'Atlas-OS' `
+                -Repository 'atlas-toolbox' `
+                -AssetName 'AtlasToolbox-Setup.exe'
+            $asset.Version | Should -BeExactly '1.2.3'
+            $asset.AssetId | Should -Be 42
+            $asset.Size | Should -Be 123456
+            $asset.Sha256 | Should -BeExactly ('a' * 64)
 
-        $release.assets[0].digest = 'sha256:' + ('a' * 64)
-        $release.assets[0].browser_download_url = 'https://example.test/AtlasToolbox-Setup.exe'
-        {
-            Resolve-AtlasGitHubReleaseAssetMetadata `
-                -Release $release -Owner Atlas-OS -Repository atlas-toolbox `
-                -AssetName AtlasToolbox-Setup.exe
-        } | Should -Throw '*canonical repository and tag*'
+            $Release.assets[0].digest = $null
+            {
+                Resolve-AtlasGitHubReleaseAssetMetadata `
+                    -Release $Release -Owner Atlas-OS -Repository atlas-toolbox `
+                    -AssetName AtlasToolbox-Setup.exe
+            } | Should -Throw '*complete upload*'
+
+            $Release.assets[0].digest = 'sha256:' + ('a' * 64)
+            $Release.assets[0].browser_download_url = 'https://example.test/AtlasToolbox-Setup.exe'
+            {
+                Resolve-AtlasGitHubReleaseAssetMetadata `
+                    -Release $Release -Owner Atlas-OS -Repository atlas-toolbox `
+                    -AssetName AtlasToolbox-Setup.exe
+            } | Should -Throw '*canonical repository and tag*'
+        }
     }
 
     It 'accepts only the expected installed version at a normal non-empty path' {
@@ -140,23 +149,31 @@ Describe 'Shared download boundary' {
         $source = Join-Path $TestDrive 'expected-payload.bin'
         $destination = Join-Path $TestDrive 'verified-payload.bin'
         [IO.File]::WriteAllBytes($source, [Text.Encoding]::UTF8.GetBytes('atlas payload'))
-        $script:DownloadBoundaryBytes = [IO.File]::ReadAllBytes($source)
+        $expectedBytes = [IO.File]::ReadAllBytes($source)
         $hash = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
-        Mock Invoke-AtlasBoundedHttpGet {
-            $OutputStream.Write(
-                $script:DownloadBoundaryBytes,
-                0,
-                $script:DownloadBoundaryBytes.Length
-            )
-            return $script:DownloadBoundaryBytes.Length
+        # Invoke-AtlasPinnedDownload calls the HTTP helper inside Atlas.Download, so the
+        # mock must live in the module; its body runs there too and reads the source file
+        # from a fixed environment hook instead of this test's scope.
+        $env:ATLAS_TEST_DOWNLOAD_SOURCE = $source
+        try {
+            Mock Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -MockWith {
+                $bytes = [IO.File]::ReadAllBytes($env:ATLAS_TEST_DOWNLOAD_SOURCE)
+                $OutputStream.Write($bytes, 0, $bytes.Length)
+                return $bytes.Length
+            }
+
+            $result = Invoke-AtlasPinnedDownload -Uri 'https://example.test/payload.bin' `
+                -Destination $destination -Sha256 $hash `
+                -ExpectedBytes $expectedBytes.Length
+        }
+        finally {
+            Remove-Item Env:\ATLAS_TEST_DOWNLOAD_SOURCE -ErrorAction SilentlyContinue
         }
 
-        $result = Invoke-AtlasPinnedDownload -Uri 'https://example.test/payload.bin' `
-            -Destination $destination -Sha256 $hash `
-            -ExpectedBytes $script:DownloadBoundaryBytes.Length
-
+        Should -Invoke Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -Times 1 -Exactly `
+            -ParameterFilter { [string]$Uri -eq 'https://example.test/payload.bin' }
         $result | Should -BeExactly $destination
-        [IO.File]::ReadAllBytes($destination) | Should -Be $script:DownloadBoundaryBytes
+        [IO.File]::ReadAllBytes($destination) | Should -Be $expectedBytes
     }
 
     It 'waits for an exact native executable and its longer-lived descendant' {

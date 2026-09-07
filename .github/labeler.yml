@@ -1,40 +1,55 @@
 readme:
-- '**/README.md'
+- changed-files:
+  - any-glob-to-any-file: '**/README.md'
 
 actions:
-- .github/workflows/**/*
-- .github/requirements-ci.txt
-- .github/labeler.yml
+- changed-files:
+  - any-glob-to-any-file:
+    - .github/workflows/**/*
+    - .github/requirements-ci.txt
+    - .github/labeler.yml
 
 # Playbook
 
 playbook:
-- playbook/**/*
+- changed-files:
+  - any-glob-to-any-file: playbook/**/*
 
 appx:
-- playbook/Executables/AtlasModules/Scripts/Phases/Invoke-AppxSupportPhase.ps1
-- playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/**/*
+- changed-files:
+  - any-glob-to-any-file:
+    - playbook/Executables/AtlasModules/Scripts/Install/Phases/Invoke-AppxSupportPhase.ps1
+    - playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/**/*
 
 components:
-- playbook/Executables/AtlasModules/Scripts/Phases/Invoke-ComponentsPhase.ps1
+- changed-files:
+  - any-glob-to-any-file: playbook/Executables/AtlasModules/Scripts/Install/Phases/Invoke-ComponentsPhase.ps1
 
 services:
-- playbook/Executables/AtlasModules/Scripts/Phases/Invoke-ServicesPhase.ps1
-- playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Services/**/*
+- changed-files:
+  - any-glob-to-any-file:
+    - playbook/Executables/AtlasModules/Scripts/Install/Phases/Invoke-ServicesPhase.ps1
+    - playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Services/**/*
 
 tweaks:
-- playbook/Configuration/custom.yml
-- playbook/Executables/AtlasModules/Scripts/Phases/Invoke-TweaksPhase.ps1
-- playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Tweaks/**/*
-- playbook/Executables/AtlasModules/Scripts/Tweaks/**/*
+- changed-files:
+  - any-glob-to-any-file:
+    - playbook/Configuration/custom.yml
+    - playbook/Executables/AtlasModules/Scripts/Install/Phases/Invoke-TweaksPhase.ps1
+    - playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Tweaks/**/*
+    - playbook/Executables/AtlasModules/Scripts/Tweaks/**/*
 
 desktop folder:
-- playbook/Executables/AtlasDesktop/**/*
+- changed-files:
+  - any-glob-to-any-file: playbook/Executables/AtlasDesktop/**/*
 
 build tooling:
-- tools/**/*
-- build.cmd
-- build.sh
+- changed-files:
+  - any-glob-to-any-file:
+    - tools/**/*
+    - build.cmd
+    - build.sh
 
 tests:
-- tests/**/*
+- changed-files:
+  - any-glob-to-any-file: tests/**/*

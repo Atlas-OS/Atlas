@@ -608,7 +608,7 @@ function Install-AtlasToolbox {
     $scriptsRoot = $modulesRoot.Parent
     $packageHelper = [IO.Path]::Combine(
         $scriptsRoot.FullName,
-        'Internal',
+        'Operations',
         'Toolbox-Package.ps1'
     )
     if (-not [IO.File]::Exists($packageHelper) -or

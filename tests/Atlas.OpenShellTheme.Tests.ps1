@@ -1,8 +1,11 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:repoRoot = Split-Path -Parent $PSScriptRoot
-    $script:helperPath = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Scripts\Internal\OpenShell-ThemeTransaction.ps1'
-    $script:downloadIntegrityPath = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Scripts\Internal\Download-Integrity.ps1'
-    . $script:downloadIntegrityPath
+    $script:helperPath = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Scripts\Operations\OpenShell-ThemeTransaction.ps1'
+    $script:downloadModulePath = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Download\Atlas.Download.psd1'
+    # Install-OpenShellTheme.ps1 imports Atlas.Download and then dot-sources the
+    # transaction helper into its own scope; the test loads both the same way.
+    Import-Module -Name $script:downloadModulePath -Force
     . $script:helperPath
 }
 

@@ -9,7 +9,7 @@ $defaultValues = @(
     @{
         SubKey = 'powerscheme\Shell\open\command'
         Type = [Microsoft.Win32.RegistryValueKind]::ExpandString
-        Data = '"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SystemRoot%\AtlasModules\Scripts\Internal\Import-PowerPlanFile.ps1" -PowerPlanPath "%1"'
+        Data = '"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SystemRoot%\AtlasModules\Scripts\Entry\Import-PowerPlanFile.ps1" -PowerPlanPath "%1"'
     }
     @{ SubKey = '.pow'; Data = 'powerscheme' }
 )

@@ -4,6 +4,9 @@
 # declarative data: the subkey identifies the toggle and 'state' is its REG_DWORD value.
 # Executable paths are deliberately not persisted. Upgrade replay resolves the current
 # installed definition by name so writable registry data can never become code.
+# Records represent applied choices, including their user work queued for first sign-in.
+# Launcher defaults are definition metadata and do not seed records. Legacy records are
+# retained because they cannot be distinguished from choices made by the user.
 
 $script:AtlasToggleDefaultStateRoot = 'HKLM:\SOFTWARE\AtlasOS\Services'
 
@@ -174,6 +177,7 @@ function Initialize-AtlasToggleStateStore {
     foreach ($child in @(Get-ChildItem -LiteralPath $StateRoot -ErrorAction Stop)) {
         Remove-AtlasToggleLegacyPath -KeyPath $child.PSPath
     }
+    Sync-AtlasToggleStateDocument -StateRoot $StateRoot
 }
 
 function Get-AtlasToggleState {
@@ -258,4 +262,49 @@ function Set-AtlasToggleState {
 
     Remove-AtlasToggleLegacyPath -KeyPath $keyPath
     New-ItemProperty -LiteralPath $keyPath -Name 'state' -Value $State -PropertyType DWord -Force | Out-Null
+
+    # The registry tree is the write store the Toolbox app still reads; the machine
+    # state document mirrors it for every other reader.
+    if ($productionStateRoot) {
+        $null = Set-AtlasStateToggle -Name $Name -State $State
+    }
+}
+
+function Get-AtlasToggleStateRecords {
+    <#
+    .SYNOPSIS
+        Returns every recorded toggle state under a state root as a name-to-value table.
+    #>
+    param(
+        [ValidateNotNullOrEmpty()]
+        [string]$StateRoot = $script:AtlasToggleDefaultStateRoot
+    )
+
+    $records = @{}
+    if (-not (Test-Path -LiteralPath $StateRoot)) {
+        return $records
+    }
+    foreach ($child in @(Get-ChildItem -LiteralPath $StateRoot -ErrorAction Stop)) {
+        $recorded = Get-AtlasToggleState -Name ([string]$child.PSChildName) -StateRoot $StateRoot
+        if ($null -ne $recorded -and $null -ne $recorded.State) {
+            $records[[string]$child.PSChildName] = [int]$recorded.State
+        }
+    }
+    return $records
+}
+
+function Sync-AtlasToggleStateDocument {
+    <#
+    .SYNOPSIS
+        Rebuilds the state document's toggle view from the production state store.
+    #>
+    param(
+        [ValidateNotNullOrEmpty()]
+        [string]$StateRoot = $script:AtlasToggleDefaultStateRoot
+    )
+
+    if (-not (Test-AtlasToggleProductionStateRoot -StateRoot $StateRoot)) {
+        return
+    }
+    $null = Sync-AtlasStateToggles -Records (Get-AtlasToggleStateRecords -StateRoot $StateRoot)
 }

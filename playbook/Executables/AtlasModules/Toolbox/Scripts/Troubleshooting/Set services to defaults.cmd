@@ -5,7 +5,7 @@ if errorlevel 1 exit /b 1
 cd /d "%__APPDIR__%"
 if errorlevel 1 exit /b 1
 for %%I in ("%__APPDIR__%..") do set "AtlasWindowsRoot=%%~fI"
-set "launcherEnvironment=%AtlasWindowsRoot%\AtlasModules\Scripts\Internal\Initialize-PowerShellLauncherEnvironment.cmd"
+set "launcherEnvironment=%AtlasWindowsRoot%\AtlasModules\Scripts\Entry\Initialize-PowerShellLauncherEnvironment.cmd"
 if not exist "%launcherEnvironment%" (
     echo PowerShell launcher environment helper not found: "%launcherEnvironment%"
     exit /b 1
@@ -23,7 +23,7 @@ if /i "%~1"=="/silent" (
 exit /b 87
 
 :AtlasResetRun
-"%AtlasNativePowerShell%" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%AtlasWindowsRoot%\AtlasModules\Scripts\Invoke-AtlasResetServices.ps1" %AtlasResetSilent%
+"%AtlasNativePowerShell%" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%AtlasWindowsRoot%\AtlasModules\Scripts\Entry\Invoke-AtlasResetServices.ps1" %AtlasResetSilent%
 if errorlevel 0 (
     if errorlevel 1 exit /b
 ) else (

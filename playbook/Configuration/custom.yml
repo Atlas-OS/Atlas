@@ -8,7 +8,7 @@ actions:
   # target-version reapply selectors intentionally retain the existing AME gates.
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
-    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Fresh'
+    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Fresh'
     runas: trustedInstaller
     showOutput: true
     showError: true
@@ -20,7 +20,7 @@ actions:
     handleExitCodes: { "!0": halt }
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
-    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Upgrade'
+    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Upgrade'
     runas: trustedInstaller
     showOutput: true
     showError: true
@@ -32,7 +32,7 @@ actions:
     handleExitCodes: { "!0": halt }
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
-    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Reapply'
+    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Reapply'
     runas: trustedInstaller
     showOutput: true
     showError: true
@@ -45,7 +45,7 @@ actions:
     handleExitCodes: { "!0": halt }
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
-    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Fresh -Oobe'
+    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Fresh -Oobe'
     runas: trustedInstaller
     showOutput: true
     showError: true
@@ -57,7 +57,7 @@ actions:
     handleExitCodes: { "!0": halt }
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
-    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Upgrade -Oobe'
+    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Upgrade -Oobe'
     runas: trustedInstaller
     showOutput: true
     showError: true
@@ -69,7 +69,7 @@ actions:
     handleExitCodes: { "!0": halt }
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
-    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Reapply -Oobe'
+    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation Begin -Mode Reapply -Oobe'
     runas: trustedInstaller
     showOutput: true
     showError: true
@@ -85,7 +85,7 @@ actions:
   # and commits that marker with the captured mode and selected options below.
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
-    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Publish-AtlasInstallUser.ps1"'
+    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Publish-AtlasInstallUser.ps1"'
     runas: currentUser
     showOutput: true
     showError: true
@@ -95,27 +95,27 @@ actions:
     oobe: false
     handleExitCodes: { "!0": halt }
 
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option auto-updates-default', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'auto-updates-default', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option auto-updates-disable', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'auto-updates-disable', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option browser-brave', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'browser-brave', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option browser-chrome', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'browser-chrome', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option browser-firefox', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'browser-firefox', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option browser-librewolf', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'browser-librewolf', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option defender-disable', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'defender-disable', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option defender-enable', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'defender-enable', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option disable-core-isolation', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'disable-core-isolation', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option disable-hibernation', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'disable-hibernation', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option disable-power-saving', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'disable-power-saving', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option install-another-browser', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'install-another-browser', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option install-toolbox', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'install-toolbox', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option mitigations-default', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'mitigations-default', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option mitigations-disable', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'mitigations-disable', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option remove-snipping-tool', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'remove-snipping-tool', handleExitCodes: { "!0": halt } }
-  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option uninstall-edge', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'uninstall-edge', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option auto-updates-default', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'auto-updates-default', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option auto-updates-disable', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'auto-updates-disable', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option browser-brave', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'browser-brave', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option browser-chrome', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'browser-chrome', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option browser-firefox', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'browser-firefox', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option browser-librewolf', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'browser-librewolf', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option defender-disable', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'defender-disable', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option defender-enable', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'defender-enable', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option disable-core-isolation', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'disable-core-isolation', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option disable-hibernation', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'disable-hibernation', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option disable-power-saving', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'disable-power-saving', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option install-another-browser', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'install-another-browser', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option install-toolbox', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'install-toolbox', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option mitigations-default', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'mitigations-default', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option mitigations-disable', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'mitigations-disable', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option remove-snipping-tool', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'remove-snipping-tool', handleExitCodes: { "!0": halt } }
+  - !run: { exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe', args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation RecordOption -Option uninstall-edge', runas: trustedInstaller, showOutput: true, showError: true, exeDir: true, wait: true, weight: 1, option: 'uninstall-edge', handleExitCodes: { "!0": halt } }
 
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
-    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1" -Operation Commit'
+    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1" -Operation Commit'
     runas: trustedInstaller
     showOutput: true
     showError: true
@@ -135,7 +135,7 @@ actions:
   - !writeStatus: { status: 'Installing AtlasOS' }
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
-    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Invoke-AtlasInstall.ps1" -Run'
+    args: '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\AtlasModules\Scripts\Entry\Invoke-AtlasInstall.ps1" -Run'
     runas: trustedInstaller
     showOutput: true
     showError: true

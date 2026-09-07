@@ -1,4 +1,6 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
     $script:executablesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables'
 }
 

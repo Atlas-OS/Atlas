@@ -11,10 +11,15 @@
         'Get-AtlasInstallWorkRoot'
         'Start-AtlasInstallState'
         'Add-AtlasInstallOption'
+        'Set-AtlasInstallOptions'
         'Set-AtlasInstallUser'
         'Commit-AtlasInstallState'
         'Invoke-AtlasInstallStep'
         'Complete-AtlasInstallState'
+        'Get-AtlasPlaybookVersion'
+        'Get-AtlasPlaybookOption'
+        'Get-AtlasPlaybookSupportedBuild'
+        'Resolve-AtlasInstallMode'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

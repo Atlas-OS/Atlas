@@ -11,15 +11,20 @@
         'Initialize-AtlasRegistryIdentityContext'
         # Values and keys
         'Set-AtlasRegistryValue'
+        'Set-AtlasMachineDwordPolicy'
         'Remove-AtlasRegistryValue'
         'New-AtlasRegistryKey'
         'Remove-AtlasRegistryKey'
         # .reg import and declarative entries
         'Import-AtlasRegFile'
         'Invoke-AtlasRegistryEntries'
+        'Test-AtlasRegistryEntries'
+        'Get-AtlasRegistryValueState'
         # Entry gates shared with the tweak engine and its schema validation
         'Test-AtlasArchMatch'
         'Get-AtlasRegistryEntryTargetScope'
+        # Windows PowerShell execution policy
+        'Set-AtlasWindowsPowerShellExecutionPolicy'
         # Known-folder helper
         'Get-UserPath'
     )

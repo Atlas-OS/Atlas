@@ -1,85 +1,64 @@
-# Toggle: Windows Search Indexing (disabled / minimal / full).
-#
-# Each state delegates the machine work to the installed indexing helper. Manual
-# invocation and upgrade replay use the same TrustedInstaller action.
+function Disable-AtlasSearchIndexing {
+    param($Toggle)
 
-@{
-    Name      = 'Indexing'
-    Elevation = 'TrustedInstaller'
-    States    = [ordered]@{
-        Disable = @{
-            StateValue = 0
-            ReplayScope = 'Machine'
-            Launcher   = '3. General Configuration\Search Indexing\Disable Search Indexing.cmd'
-            Reboot     = 'None'
-            Action     = {
-                param($Toggle)
+    Import-AtlasModule -Name Atlas.Search
 
-                $machineStateHelper = Join-Path $Toggle.ScriptsPath `
-                    'Internal\Set-AtlasIndexingMachineState.ps1'
-
-                Write-Host ''
-                Write-Host 'Disabling search indexing...'
-                & $machineStateHelper -State Disable
-
-                if (-not $Toggle.Silent) {
-                    Write-Host ''
-                    Write-Host 'Search Indexing has been disabled.'
-                }
-            }
-        }
-        Minimal = @{
-            StateValue = 1
-            Launcher   = '3. General Configuration\Search Indexing\Minimal Search Indexing (default).cmd'
-            Reboot     = 'None'
-            ReplayScope = 'Machine'
-            Action     = {
-                param($Toggle)
-
-                $machineStateHelper = Join-Path $Toggle.ScriptsPath `
-                    'Internal\Set-AtlasIndexingMachineState.ps1'
-
-                if (-not $Toggle.Silent) {
-                    Write-Host ''
-                    Write-Host 'Configuring minimal search indexing...'
-                }
-                & $machineStateHelper -State Minimal
-
-                if (-not $Toggle.Silent) {
-                    Write-Host ''
-                    Write-Host 'Minimal Search Indexing has been configured.'
-                }
-            }
-        }
-        Enable  = @{
-            StateValue = 2
-            Launcher   = '3. General Configuration\Search Indexing\Enable Search Indexing.cmd'
-            Reboot     = 'None'
-            ReplayScope = 'Machine'
-            Action     = {
-                param($Toggle)
-
-                Write-Host ''
-                Write-Host 'Enabling full search indexing...'
-                $machineStateHelper = Join-Path $Toggle.ScriptsPath `
-                    'Internal\Set-AtlasIndexingMachineState.ps1'
-                $respectPowerModes = 0
-                if (-not $Toggle.Silent) {
-                    Write-Host ''
-                    $answer = Read-Host 'Would you like to have indexing disable itself when on battery or gaming? [Y/N]'
-                    if ($answer -match '^(y|yes)$') {
-                        $respectPowerModes = 1
-                    }
-                }
-                & $machineStateHelper `
-                    -State Full `
-                    -RespectPowerModes $respectPowerModes
-
-                if (-not $Toggle.Silent) {
-                    Write-Host ''
-                    Write-Host 'Full Search Indexing has been enabled.'
-                }
-            }
-        }
+    if (-not $Toggle.Silent) {
+        Write-AtlasStep -Text 'Disabling search indexing...'
     }
+    Set-AtlasIndexingMachineState -State Disable
+}
+
+function Set-AtlasMinimalSearchIndexing {
+    param($Toggle)
+
+    Import-AtlasModule -Name Atlas.Search
+
+    if (-not $Toggle.Silent) {
+        Write-AtlasStep -Text 'Configuring minimal search indexing (the Start menu and the Atlas folder only)...'
+    }
+    Set-AtlasIndexingMachineState -State Minimal
+}
+
+function Enable-AtlasSearchIndexing {
+    param($Toggle)
+
+    Import-AtlasModule -Name Atlas.Search
+
+    if ($Toggle.Silent) {
+        Set-AtlasIndexingMachineState -State Full -PreservePowerModes
+        return
+    }
+
+    $respectPowerModes = 0
+    if (Read-AtlasYesNo -Question 'Pause indexing while on battery power or gaming?') {
+        $respectPowerModes = 1
+    }
+    Write-AtlasStep -Text 'Enabling full search indexing...'
+    Set-AtlasIndexingMachineState -State Full -RespectPowerModes $respectPowerModes
+}
+
+function Select-AtlasFullIndexingState {
+    param($Toggle)
+
+    if ($Toggle.Silent) { throw 'Interactive indexing selection cannot run silently.' }
+    if (Read-AtlasYesNo -Question 'Pause indexing while on battery power or gaming?') {
+        return 'EnableRespectPowerModes'
+    }
+    return 'EnableIgnorePowerModes'
+}
+
+function Set-AtlasSelectedFullIndexing {
+    param($Toggle)
+
+    $value = switch -CaseSensitive ($Toggle.State) {
+        'EnableRespectPowerModes' { 1 }
+        'EnableIgnorePowerModes' { 0 }
+        default { throw "Unexpected full indexing choice '$($Toggle.State)'." }
+    }
+    Import-AtlasModule -Name Atlas.Search
+    Set-AtlasIndexingMachineState -State Full -RespectPowerModes $value
+    # Both interactive variants become the existing replayable Full choice. Only
+    # record after the preset and its selected power-mode setting both succeed.
+    Set-AtlasToggleState -Name Indexing -State 2 -StateRoot $Toggle.StateRoot
 }

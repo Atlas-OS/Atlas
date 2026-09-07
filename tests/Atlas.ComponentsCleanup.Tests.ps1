@@ -11,14 +11,15 @@
 param()
 
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:atlasScriptsRoot = Join-Path -Path $PSScriptRoot `
         -ChildPath '..\playbook\Executables\AtlasModules\Scripts'
     $script:componentsPhase = Join-Path -Path $script:atlasScriptsRoot `
-        -ChildPath 'Phases\Invoke-ComponentsPhase.ps1'
+        -ChildPath 'Install\Phases\Invoke-ComponentsPhase.ps1'
     $script:oneDriveUserCleanup = Join-Path -Path $script:atlasScriptsRoot `
-        -ChildPath 'Internal\Remove-OneDriveCurrentUserData.ps1'
+        -ChildPath 'Operations\Remove-OneDriveCurrentUserData.ps1'
     $script:edgeUserCleanup = Join-Path -Path $script:atlasScriptsRoot `
-        -ChildPath 'Internal\Remove-EdgeCurrentUserData.ps1'
+        -ChildPath 'Operations\Remove-EdgeCurrentUserData.ps1'
 
     $tokens = $null
     $errors = $null
@@ -36,6 +37,8 @@ BeforeAll {
             'Resolve-AtlasOneDriveUserDirectory'
             'Remove-AtlasOneDriveUserEntry'
             'Remove-AtlasOneDriveUserTree'
+            'Get-AtlasOneDriveBootUtcTicks'
+            'Register-AtlasOneDrivePostBootCleanup'
         )) {
         $functionAst = @($script:oneDriveAst.FindAll({
                     param($node)
@@ -281,6 +284,7 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
         $oneDriveCalls[0].FilePath | Should -Match 'powershell\.exe$'
         $oneDriveCalls[0].Arguments | Should -Match `
         ('-ExpectedUserSid ' + [regex]::Escape($script:PhaseContext.InteractiveUserSid))
+        $oneDriveCalls[0].Arguments | Should -Match '-DeferFileCleanup'
     }
 
     It 'warns and continues when the exact-user OneDrive cleanup exits nonzero' {
@@ -329,6 +333,76 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
 }
 
 Describe 'OneDrive exact-user cleanup boundary' {
+    It 'schedules locked file removal after reboot and preserves unsynced data' {
+        $expectedSid = 'S-1-5-21-1000-2000-3000-1001'
+        Mock Get-AtlasOneDriveBootUtcTicks { 638925000000000000L }
+        Mock Register-AtlasOneDrivePostBootCleanup {}
+        $oneDriveCache = Join-Path $TestDrive 'OneDriveCache'
+        $oneDriveFolder = Join-Path $TestDrive 'OneDriveSync'
+        $oneDriveShortcut = Join-Path $TestDrive 'OneDrive.lnk'
+        [void][IO.Directory]::CreateDirectory($oneDriveCache)
+        [void][IO.Directory]::CreateDirectory($oneDriveFolder)
+        $lockedDll = Join-Path $oneDriveCache 'FileSyncShell64.dll'
+        $userFile = Join-Path $oneDriveFolder 'unsynced.txt'
+        [IO.File]::WriteAllText($lockedDll, 'shell fixture')
+        [IO.File]::WriteAllText($userFile, 'keep this user data')
+        [IO.File]::WriteAllText($oneDriveShortcut, 'shortcut fixture')
+        $deferGate = $script:oneDriveAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.IfStatementAst] -and
+                $node.Clauses[0].Item1.Extent.Text -eq '$DeferFileCleanup'
+            }, $true)
+        $deferGate | Should -Not -BeNullOrEmpty
+        # Execute only the file stage with TestDrive paths, never profile/registry setup.
+        $fileStage = [scriptblock]::Create(
+            'param([bool]$DeferFileCleanup, [string]$expectedSid)' + "`n" +
+            $script:oneDriveAst.Extent.Text.Substring($deferGate.Extent.StartOffset))
+        $handle = [IO.File]::Open($lockedDll, 'Open', 'Read', 'None')
+        try {
+            { & $fileStage $true $expectedSid } | Should -Not -Throw
+            [IO.File]::Exists($lockedDll) | Should -BeTrue
+            [IO.File]::Exists($oneDriveShortcut) | Should -BeTrue
+        }
+        finally {
+            $handle.Dispose()
+        }
+        & $fileStage $false $expectedSid
+        Should -Invoke Register-AtlasOneDrivePostBootCleanup -Times 1 -Exactly -ParameterFilter {
+            $UserSid -eq 'S-1-5-21-1000-2000-3000-1001' -and
+                $BootUtcTicks -eq 638925000000000000L
+        }
+        [IO.Directory]::Exists($oneDriveCache) | Should -BeFalse
+        [IO.File]::Exists($oneDriveShortcut) | Should -BeFalse
+        [IO.File]::ReadAllText($userFile) | Should -BeExactly 'keep this user data'
+    }
+
+    It 'waits through shell restarts and consumes only its own startup entry after reboot' {
+        $bootGate = $script:oneDriveAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.IfStatementAst] -and
+                $node.Clauses[0].Item1.Extent.Text -eq '$AfterBootUtcTicks -ne 0'
+            }, $true)
+        $bootGate | Should -Not -BeNullOrEmpty
+        $gate = [scriptblock]::Create('param([long]$AfterBootUtcTicks)' + "`n" +
+            $bootGate.Extent.Text + "`n'file cleanup reached'")
+        Mock Get-AtlasOneDriveBootUtcTicks { 638925000000000000L }
+        Mock Remove-ItemProperty {}
+
+        & $gate 638925000000000000L | Should -BeExactly `
+            'OneDrive file cleanup is waiting for the installation reboot.'
+        Should -Invoke Remove-ItemProperty -Times 0 -Exactly
+        & $gate 638924000000000000L | Should -BeExactly 'file cleanup reached'
+        Should -Invoke Remove-ItemProperty -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -and
+                $Name -eq 'AtlasOneDriveCleanup'
+        }
+    }
+
+    It 'requires a valid Windows boot time before deferring cleanup' {
+        Mock Get-CimInstance { [pscustomobject]@{ LastBootUpTime = $null } }
+        { Get-AtlasOneDriveBootUtcTicks } | Should -Throw '*valid last boot time*'
+    }
+
     It 'refuses to run for a token that does not match the install-state SID' {
         # A structurally valid account SID that cannot match the current test token.
         $foreignSid = 'S-1-5-21-1-2-3-500'
@@ -413,6 +487,31 @@ Describe 'OneDrive exact-user cleanup boundary' {
 
         [IO.Directory]::Exists($tree) | Should -BeFalse
         [IO.File]::Exists($sentinel) | Should -BeTrue
+    }
+
+    It 'removes independent siblings while reporting a locked cache file' {
+        $tree = Join-Path $TestDrive 'LockedCache'
+        [void][IO.Directory]::CreateDirectory((Join-Path $tree 'Version'))
+        $lockedPath = Join-Path $tree 'Version\FileSyncShell64.dll'
+        $siblingPath = Join-Path $tree 'Version\other.dat'
+        $laterPath = Join-Path $tree 'unrelated.dat'
+        foreach ($file in @($lockedPath, $siblingPath, $laterPath)) {
+            [IO.File]::WriteAllText($file, 'test')
+        }
+        $stream = [IO.File]::Open($lockedPath, 'Open', 'Read', 'None')
+        try {
+            $failures = New-Object 'System.Collections.Generic.List[string]'
+            Remove-AtlasOneDriveUserTree -Path $tree -Failures $failures
+            $failures.Count | Should -Be 1
+            $failures[0] | Should -BeLike '*FileSyncShell64.dll*'
+            [IO.File]::Exists($lockedPath) | Should -BeTrue
+            [IO.File]::Exists($siblingPath) | Should -BeFalse
+            [IO.File]::Exists($laterPath) | Should -BeFalse
+            { Remove-AtlasOneDriveUserTree -Path $tree } | Should -Throw '*retained 1 item*'
+        }
+        finally { $stream.Dispose() }
+        Remove-AtlasOneDriveUserTree -Path $tree
+        [IO.Directory]::Exists($tree) | Should -BeFalse
     }
 
     It 'treats a missing cleanup tree as already removed' {

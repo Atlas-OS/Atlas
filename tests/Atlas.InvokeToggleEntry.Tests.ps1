@@ -1,7 +1,6 @@
 BeforeAll {
-    $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
-    $script:ScriptsRoot = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts'
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    $script:ScriptsRoot = $script:AtlasTestScriptsRoot
     $script:PowerShell51 = [IO.Path]::Combine(
         [Environment]::SystemDirectory,
         'WindowsPowerShell',
@@ -11,19 +10,45 @@ BeforeAll {
 
     # Rehost the real entry script next to a stub toggle engine so the process
     # boundary (arguments, logging, exit code) is exercised without touching any
-    # real toggle definition.
+    # real toggle definition. Invoke-Toggle.ps1 lives in Scripts\Entry and resolves
+    # the trust bootstrap at ..\Initialize-AtlasPowerShell.ps1 and the engine at
+    # ..\Modules\Atlas.Toggles\Atlas.Toggles.psd1 relative to its own folder.
     $harnessRoot = Join-Path $TestDrive 'Harness'
     $harnessScripts = Join-Path $harnessRoot 'Scripts'
-    $null = New-Item -Path (Join-Path $harnessScripts 'Internal') -ItemType Directory -Force
+    $null = New-Item -Path (Join-Path $harnessScripts 'Entry') -ItemType Directory -Force
     $null = New-Item -Path (Join-Path $harnessScripts 'Modules\Atlas.Toggles') `
         -ItemType Directory -Force
-    Copy-Item -LiteralPath (Join-Path $script:ScriptsRoot 'Invoke-Toggle.ps1') `
-        -Destination (Join-Path $harnessScripts 'Invoke-Toggle.ps1')
-    Copy-Item -LiteralPath (Join-Path $script:ScriptsRoot 'Internal\Initialize-PowerShellTrust.ps1') `
-        -Destination (Join-Path $harnessScripts 'Internal\Initialize-PowerShellTrust.ps1')
-    Set-Content -LiteralPath (Join-Path $harnessRoot 'initPowerShell.ps1') `
-        -Value '# Harness stand-in for the payload PowerShell initializer.' -Encoding Ascii
+    $null = New-Item -Path (Join-Path $harnessScripts 'Modules\Atlas.Core') `
+        -ItemType Directory -Force
+    Copy-Item -LiteralPath (Join-Path $script:ScriptsRoot 'Entry\Invoke-Toggle.ps1') `
+        -Destination (Join-Path $harnessScripts 'Entry\Invoke-Toggle.ps1')
+    Copy-Item -LiteralPath (Join-Path $script:ScriptsRoot 'Initialize-AtlasPowerShell.ps1') `
+        -Destination (Join-Path $harnessScripts 'Initialize-AtlasPowerShell.ps1')
 
+    # The entry script imports the core presentation before the engine. The stub keeps
+    # the same command surface so the process boundary under test stays the only
+    # real code.
+    Set-Content -LiteralPath (Join-Path $harnessScripts 'Modules\Atlas.Core\Atlas.Core.psd1') `
+        -Encoding Ascii -Value @'
+@{
+    RootModule        = 'Atlas.Core.psm1'
+    ModuleVersion     = '1.0.0'
+    GUID              = '6f2f2d1a-2b1c-4d7e-9c2a-0d1e7f3b5a90'
+    PowerShellVersion = '5.1'
+    FunctionsToExport = @('Set-AtlasLogConsoleStyle', 'Write-AtlasLog', 'Get-AtlasInstallLogPath', 'Write-AtlasNotApplied', 'Wait-AtlasExit')
+}
+'@
+    Set-Content -LiteralPath (Join-Path $harnessScripts 'Modules\Atlas.Core\Atlas.Core.psm1') `
+        -Encoding Ascii -Value @'
+function Set-AtlasLogConsoleStyle { param([string]$Style) }
+function Write-AtlasLog {
+    param([string]$Message, [string]$Level = 'Info', $ErrorRecord, [switch]$NoConsole)
+    Write-Output "[$($Level.ToUpperInvariant())] $Message"
+}
+function Get-AtlasInstallLogPath { 'C:\harness\atlas-install.log' }
+function Write-AtlasNotApplied { param([string]$Title, [string]$Reason, [string]$DetailsPath) Write-Output "Not applied: $Title. $Reason" }
+function Wait-AtlasExit { param([string]$Message) }
+'@
     Set-Content -LiteralPath (Join-Path $harnessScripts 'Modules\Atlas.Toggles\Atlas.Toggles.psd1') `
         -Encoding Ascii -Value @'
 @{
@@ -49,7 +74,7 @@ function Invoke-AtlasToggle {
 
     switch ($Name) {
         'HarnessSuccess' {
-            Write-Output "harness applied '$Name' state '$State'"
+            Write-Output "harness applied '$Name' state '$State' silent=$Silent machineOnly=$MachineOnly"
             return
         }
         'HarnessFailure' {
@@ -67,7 +92,7 @@ function Invoke-AtlasToggle {
 }
 '@
 
-    $script:EntryScript = Join-Path $harnessScripts 'Invoke-Toggle.ps1'
+    $script:EntryScript = Join-Path $harnessScripts 'Entry\Invoke-Toggle.ps1'
     function Invoke-ToggleEntry {
         param([Parameter(Mandatory = $true)][string[]]$Arguments)
 
@@ -87,7 +112,16 @@ Describe 'Toggle CLI entry point exit and logging contract' {
         )
 
         $result.ExitCode | Should -Be 0 -Because $result.Output
-        $result.Output | Should -Match "harness applied 'HarnessSuccess' state 'On'"
+        $result.Output | Should -Match "harness applied 'HarnessSuccess' state 'On' silent=True machineOnly=False"
+    }
+
+    It 'forwards -MachineOnly to the engine for the privileged child of a split state' {
+        $result = Invoke-ToggleEntry -Arguments @(
+            '-Name', 'HarnessSuccess', '-State', 'On', '-MachineOnly', '/silent'
+        )
+
+        $result.ExitCode | Should -Be 0 -Because $result.Output
+        $result.Output | Should -Match "harness applied 'HarnessSuccess' state 'On' silent=True machineOnly=True"
     }
 
     It 'exits nonzero and still emits the failure when the toggle throws silently' {

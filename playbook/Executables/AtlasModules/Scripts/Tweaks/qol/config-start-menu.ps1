@@ -1,6 +1,5 @@
 # Companion of config-start-menu.psd1.
 $ErrorActionPreference = 'Stop'
-$windir = [Environment]::GetFolderPath('Windows')
 $scriptsRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\..')).ProviderPath
 
 function Set-AtlasStartPinnedFolderPolicy {
@@ -57,7 +56,9 @@ function Set-AtlasStartPinnedFolderPolicy {
 }
 
 # Set the Start Menu layout for every user.
-& (Join-Path -Path $windir -ChildPath 'AtlasModules\Scripts\Internal\Set-StartLayout.ps1')
+Import-Module -Name (Join-Path $scriptsRoot 'Modules\Atlas.Shell\Atlas.Shell.psd1') `
+    -Force -ErrorAction Stop
+Set-AtlasStartLayout
 
 # Keep every optional folder beside the Start power button hidden.
 Set-AtlasStartPinnedFolderPolicy

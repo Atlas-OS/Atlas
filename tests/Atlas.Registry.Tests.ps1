@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Registry\Atlas.Registry.psd1') -Force
@@ -349,6 +350,64 @@ Describe 'New-AtlasRegistryKey and Remove-AtlasRegistryKey' {
     }
 }
 
+Describe 'Local machine Group Policy application' {
+    BeforeEach {
+        Mock Test-AtlasAdmin -ModuleName Atlas.Registry { $true }
+        Mock Set-AtlasMachineDwordPolicyNative -ModuleName Atlas.Registry
+        Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Registry
+        Mock Test-AtlasRegistryEntries -ModuleName Atlas.Registry { @() }
+        Mock Write-AtlasLog -ModuleName Atlas.Registry
+        Mock Set-AtlasRegistryValue -ModuleName Atlas.Registry
+    }
+
+    It 'persists, refreshes, and verifies a declared machine policy without a direct write' {
+        Invoke-AtlasRegistryEntries -IsArm64 $false -Entries @(
+            @{ Path = 'HKLM:\Software\Policies\Test'; Name = 'Policy'; Type = 'DWord'; Data = 0; UseGroupPolicy = $true }
+        )
+        Should -Invoke Set-AtlasMachineDwordPolicyNative -ModuleName Atlas.Registry -Times 1 -Exactly -ParameterFilter {
+            $SubKey -eq 'Software\Policies\Test' -and $Name -eq 'Policy' -and $Data -eq 0
+        }
+        Should -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Registry -Times 1 -Exactly -ParameterFilter {
+            $FilePath -like '*\gpupdate.exe' -and $ArgumentList -contains '/target:computer' -and $Wait
+        }
+        Should -Invoke Test-AtlasRegistryEntries -ModuleName Atlas.Registry -Times 1 -Exactly -ParameterFilter {
+            $Scope -eq 'Machine' -and $Entries[0].Data -eq 0
+        }
+        Should -Not -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Registry
+    }
+
+    It 'reports drift even after successful policy save and refresh' {
+        Mock Test-AtlasRegistryEntries -ModuleName Atlas.Registry { [pscustomobject]@{ Reason = 'value missing' } }
+        { Set-AtlasMachineDwordPolicy -Path 'HKLM:\Software\Policies\Test' -Name Policy -Data 0 } |
+            Should -Throw '*Group Policy did not apply*value missing*'
+    }
+
+    It 'does not report success when policy refresh fails' {
+        Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Registry { throw 'gpupdate failed' }
+        { Set-AtlasMachineDwordPolicy -Path 'HKLM:\Software\Policies\Test' -Name Policy -Data 0 } |
+            Should -Throw '*gpupdate failed*'
+        Should -Not -Invoke Test-AtlasRegistryEntries -ModuleName Atlas.Registry
+    }
+
+    It 'rejects user and non-policy paths before calling the native editor' {
+        foreach ($path in @('HKCU:\Software\Policies\Test', 'HKLM:\Software\Test')) {
+            { Set-AtlasMachineDwordPolicy -Path $path -Name Policy -Data 0 } | Should -Throw '*HKLM Software*Policies*'
+        }
+        Should -Not -Invoke Set-AtlasMachineDwordPolicyNative -ModuleName Atlas.Registry
+    }
+
+    It 'rejects malformed declarations before any mutation' {
+        foreach ($entry in @(
+                @{ Path = 'HKLM:\Software\Policies\Test'; Name = 'Policy'; Type = 'DWord'; Data = 0; UseGroupPolicy = 'false' }
+                @{ Path = 'HKLM:\Software\Policies\Test'; Name = 'Policy'; Operation = 'Delete'; UseGroupPolicy = $true }
+            )) {
+            { Invoke-AtlasRegistryEntries -IsArm64 $false -Entries @($entry) } | Should -Throw '*UseGroupPolicy*'
+        }
+        Should -Not -Invoke Set-AtlasMachineDwordPolicyNative -ModuleName Atlas.Registry
+        Should -Not -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Registry
+    }
+}
+
 Describe 'Invoke-AtlasRegistryEntries' {
     BeforeEach {
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Registry -MockWith {
@@ -470,5 +529,129 @@ Windows Registry Editor Version 5.00
         { Import-AtlasRegFile -Path $regFile } | Should -Throw '*cannot select an interactive user*'
         Test-Path -Path "$script:testRoot\UnsafeImport" | Should -BeFalse
         Should -Invoke -CommandName Test-AtlasSystem -ModuleName Atlas.Registry -Times 1 -Exactly
+    }
+}
+
+Describe 'Values Windows itself refuses' {
+    BeforeAll {
+        $script:RefusedRecord = InModuleScope Atlas.Registry {
+            New-AtlasRegistryValueRefusedRecord -ProviderPath 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\X' `
+                -Name 'Policy' -Cause (New-Object System.UnauthorizedAccessException('refused'))
+        }
+    }
+
+    It 'marks a refused value write so callers can tell it apart from an Atlas defect' {
+        $record = InModuleScope Atlas.Registry {
+            New-AtlasRegistryValueRefusedRecord -ProviderPath 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\X' `
+                -Name 'Protected' -Cause (New-Object System.UnauthorizedAccessException('kernel said no'))
+        }
+        $record.FullyQualifiedErrorId | Should -Be 'AtlasRegistryValueWriteRefused'
+        $record.Exception | Should -BeOfType [System.UnauthorizedAccessException]
+        $record.Exception.Message | Should -Match "value 'Protected'"
+        $record.Exception.Message | Should -Match 'protected by the operating system'
+        $record.Exception.InnerException.Message | Should -Be 'kernel said no'
+        InModuleScope Atlas.Registry -Parameters @{ record = $record } {
+            Test-AtlasRegistryValueRefused -ErrorRecord $record
+        } | Should -BeTrue
+    }
+
+    It 'names the default value when the entry writes it' {
+        $record = InModuleScope Atlas.Registry {
+            New-AtlasRegistryValueRefusedRecord -ProviderPath 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\X' `
+                -Name '' -Cause (New-Object System.UnauthorizedAccessException('no'))
+        }
+        $record.Exception.Message | Should -Match '\(default\)'
+    }
+
+    It 'does not mark an ordinary failure as a refusal' {
+        $ordinary = try { throw 'something else' } catch { $_ }
+        InModuleScope Atlas.Registry -Parameters @{ ordinary = $ordinary } {
+            Test-AtlasRegistryValueRefused -ErrorRecord $ordinary
+        } | Should -BeFalse
+    }
+
+    It 'continues past a refused write only when the caller allows it' {
+        Mock -CommandName Set-AtlasRegistryValueCore -ModuleName Atlas.Registry -MockWith {
+            throw $script:RefusedRecord
+        }
+        Mock -CommandName Write-AtlasLog -ModuleName Atlas.Registry -MockWith { }
+
+        { Set-AtlasRegistryValue -Path "$script:testRoot\Refused" -Name 'Policy' -Type DWord -Data 1 } |
+            Should -Throw '*protected by the operating system*'
+
+        { Set-AtlasRegistryValue -Path "$script:testRoot\Refused" -Name 'Policy' -Type DWord -Data 1 -AllowOsProtected } |
+            Should -Not -Throw
+        Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly `
+            -ParameterFilter { $Level -eq 'Warning' -and $Message -match 'Continuing without it' }
+    }
+
+    It 'still fails on an ordinary error when the caller allows refusals' {
+        Mock -CommandName Set-AtlasRegistryValueCore -ModuleName Atlas.Registry -MockWith { throw 'disk is on fire' }
+
+        { Set-AtlasRegistryValue -Path "$script:testRoot\Refused" -Name 'Policy' -Type DWord -Data 1 -AllowOsProtected } |
+            Should -Throw '*disk is on fire*'
+    }
+
+    It 'continues past a refused delete only when the caller allows it' {
+        Mock -CommandName Write-AtlasLog -ModuleName Atlas.Registry -MockWith { }
+        Mock -CommandName Invoke-AtlasRegistryTargetOperation -ModuleName Atlas.Registry -MockWith {
+            throw $script:RefusedRecord
+        }
+
+        { Remove-AtlasRegistryValue -Path "$script:testRoot\Delete" -Name 'Policy' } |
+            Should -Throw '*protected by the operating system*'
+        { Remove-AtlasRegistryValue -Path "$script:testRoot\Delete" -Name 'Policy' -AllowOsProtected } |
+            Should -Not -Throw
+        Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly `
+            -ParameterFilter { $Level -eq 'Warning' -and $Message -match 'Continuing without removing it' }
+    }
+
+    It 'reports a refused value as drift so nothing is lost silently' {
+        New-Item -Path "$script:testRoot\Drift" -Force | Out-Null
+        $entries = @(
+            @{ Path = "$script:testRoot\Drift"; Name = 'Policy'; Type = 'DWord'; Data = 1; AllowOsProtected = $true }
+        )
+        @(Test-AtlasRegistryEntries -Entries $entries -IsArm64 $false).Reason | Should -Be 'value is missing'
+    }
+}
+
+Describe 'Registry entry failure reporting' {
+    It 'names the entry that failed instead of only the registry error' {
+        Mock -CommandName Set-AtlasRegistryValue -ModuleName Atlas.Registry -MockWith { throw 'raw registry error' }
+
+        {
+            Invoke-AtlasRegistryEntries -IsArm64 $false -Entries @(
+                @{ Path = "$script:testRoot\Entry"; Name = 'Broken'; Type = 'DWord'; Data = 1 }
+            )
+        } | Should -Throw "*registry Set of 'HKCU:\Software\AtlasRewriteTest\Entry\Broken'*raw registry error*"
+    }
+
+    It 'describes key operations and default values' {
+        InModuleScope Atlas.Registry {
+            Get-AtlasRegistryEntryDescription -Entry @{ Path = 'HKLM:\X'; Operation = 'DeleteKey' } |
+                Should -Be "registry DeleteKey of key 'HKLM:\X'"
+            Get-AtlasRegistryEntryDescription -Entry @{ Path = 'HKLM:\X'; Name = ''; Type = 'String'; Data = 'v' } |
+                Should -Be "registry Set of the default value at 'HKLM:\X'"
+            Get-AtlasRegistryEntryDescription -Entry @{ Path = 'HKLM:\X'; Name = 'V'; Operation = 'Delete' } |
+                Should -Be "registry Delete of 'HKLM:\X\V'"
+        }
+    }
+
+    It 'passes an entry AllowOsProtected declaration to the value writer' {
+        Mock -CommandName Set-AtlasRegistryValue -ModuleName Atlas.Registry -MockWith { }
+        Mock -CommandName Remove-AtlasRegistryValue -ModuleName Atlas.Registry -MockWith { }
+
+        Invoke-AtlasRegistryEntries -IsArm64 $false -Entries @(
+            @{ Path = "$script:testRoot\Entry"; Name = 'Policy'; Type = 'DWord'; Data = 1; AllowOsProtected = $true }
+            @{ Path = "$script:testRoot\Entry"; Name = 'Plain'; Type = 'DWord'; Data = 1 }
+            @{ Path = "$script:testRoot\Entry"; Name = 'Gone'; Operation = 'Delete'; AllowOsProtected = $true }
+        )
+
+        Should -Invoke -CommandName Set-AtlasRegistryValue -ModuleName Atlas.Registry -Times 1 -Exactly `
+            -ParameterFilter { $Name -eq 'Policy' -and $AllowOsProtected }
+        Should -Invoke -CommandName Set-AtlasRegistryValue -ModuleName Atlas.Registry -Times 1 -Exactly `
+            -ParameterFilter { $Name -eq 'Plain' -and -not $AllowOsProtected }
+        Should -Invoke -CommandName Remove-AtlasRegistryValue -ModuleName Atlas.Registry -Times 1 -Exactly `
+            -ParameterFilter { $Name -eq 'Gone' -and $AllowOsProtected }
     }
 }

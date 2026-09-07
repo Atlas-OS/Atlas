@@ -1,5 +1,6 @@
 @{
     Name          = 'Configure Start Menu'
+    OnUpgrade     = 'Skip'
     Description    = 'Configures the Start Menu pins and removes the frequent, recently-added and recommended lists.'
     Registry      = @(
         # Windows 11 24H2+ StartMenu.admx uses an enable value plus an expandable

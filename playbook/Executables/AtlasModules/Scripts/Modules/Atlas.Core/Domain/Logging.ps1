@@ -5,15 +5,49 @@
 
 $script:AtlasCurrentPhase = $null
 $script:AtlasTranscriptActive = $false
+# Diagnostic echoes every log line to the console as written to the file, which silent
+# runs, replay, installation and the TrustedInstaller broker rely on for captured
+# output. Interactive entry points switch to Interactive: Info stays in the file,
+# Warning and Error appear in the presentation vocabulary.
+$script:AtlasLogConsoleStyle = 'Diagnostic'
+
+function Set-AtlasLogConsoleStyle {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Diagnostic', 'Interactive')]
+        [string]$Style
+    )
+
+    $script:AtlasLogConsoleStyle = $Style
+}
+
+function Get-AtlasLogConsoleStyle {
+    return $script:AtlasLogConsoleStyle
+}
 
 function Get-AtlasInstallLogDirectory {
-    $logsPath = (Get-AtlasContext).LogsPath
+    # Medium-integrity desktop actions cannot append to the protected machine log.
+    # Keep their diagnostics in their own profile; elevated callers never follow it.
+    $logsPath = if (Test-AtlasAdmin) {
+        (Get-AtlasContext).LogsPath
+    }
+    else {
+        Join-Path -Path ([Environment]::GetFolderPath('LocalApplicationData')) -ChildPath 'AtlasOS\Logs'
+    }
     $installLogPath = Join-Path -Path $logsPath -ChildPath 'install'
     if (-not (Test-Path -LiteralPath $installLogPath -PathType Container)) {
         New-Item -Path $installLogPath -ItemType Directory -Force | Out-Null
     }
 
     return $installLogPath
+}
+
+function Get-AtlasInstallLogPath {
+    <#
+    .SYNOPSIS
+        The shared install log this process appends to, for pointing a user at details.
+    #>
+    return Join-Path -Path (Get-AtlasInstallLogDirectory) -ChildPath 'atlas-install.log'
 }
 
 function Write-AtlasLogFile {
@@ -24,7 +58,13 @@ function Write-AtlasLogFile {
 
     $logPath = Join-Path -Path (Get-AtlasInstallLogDirectory) -ChildPath $FileName
 
-    $mutex = New-Object System.Threading.Mutex($false, 'Global\AtlasInstallLog')
+    $mutexName = if (Test-AtlasAdmin) {
+        'Global\AtlasInstallLog'
+    }
+    else {
+        'Local\AtlasUserLog-' + (Get-AtlasCurrentUserSid)
+    }
+    $mutex = New-Object System.Threading.Mutex($false, $mutexName)
     $acquired = $false
     try {
         try {
@@ -64,7 +104,11 @@ function Write-AtlasLog {
         [ValidateSet('Info', 'Warning', 'Error')]
         [string]$Level = 'Info',
 
-        [System.Management.Automation.ErrorRecord]$ErrorRecord
+        [System.Management.Automation.ErrorRecord]$ErrorRecord,
+
+        # The interactive presentation already shows this text; keep it out of the
+        # console in Interactive style. Diagnostic style ignores the switch.
+        [switch]$NoConsole
     )
 
     $phaseLabel = if ($script:AtlasCurrentPhase) { $script:AtlasCurrentPhase } else { '-' }
@@ -87,6 +131,16 @@ function Write-AtlasLog {
         # turn an already-handled best-effort operation into a fatal child exit.
         Write-Warning "Failed to write to the Atlas install log: $($_.Exception.Message)" `
             -WarningAction Continue
+    }
+
+    if ($script:AtlasLogConsoleStyle -ceq 'Interactive') {
+        if (-not $NoConsole) {
+            switch ($Level) {
+                'Warning' { Write-AtlasWarning -Text $Message }
+                'Error' { Write-AtlasFailure -Text $Message }
+            }
+        }
+        return
     }
 
     switch ($Level) {

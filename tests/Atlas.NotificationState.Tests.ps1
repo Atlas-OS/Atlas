@@ -1,7 +1,8 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepositoryRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..')).ProviderPath
     $script:NotificationScriptPath = Join-Path -Path $script:RepositoryRoot -ChildPath `
-        'playbook\Executables\AtlasModules\Scripts\Internal\Set-NotificationState.ps1'
+        'playbook\Executables\AtlasModules\Scripts\Install\Tasks\Set-NotificationState.ps1'
     $script:NotificationPolicyPath =
         'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications'
 

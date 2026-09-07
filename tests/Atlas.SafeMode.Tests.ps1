@@ -1,9 +1,10 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     $script:SafeModePath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Internal\SafeMode.ps1'
+        'playbook\Executables\AtlasModules\Scripts\Operations\SafeMode.ps1'
     $script:CbsRetryPath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Internal\CbsRetry.ps1'
+        'playbook\Executables\AtlasModules\Scripts\Operations\CbsRetry.ps1'
     . $script:SafeModePath -LibraryOnly
     . $script:CbsRetryPath -LibraryOnly
 }

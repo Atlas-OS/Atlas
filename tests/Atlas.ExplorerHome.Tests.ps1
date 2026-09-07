@@ -1,9 +1,12 @@
 Describe 'File Explorer Home configuration' {
     BeforeAll {
+        . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+        Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
         $script:tweakPath = Join-Path $PSScriptRoot `
             '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\explorer\disable-home.psd1'
-        $script:togglePath = Join-Path $PSScriptRoot `
-            '..\playbook\Executables\AtlasModules\Toggles\Interface\Home.ps1'
+        Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Toggles\Atlas.Toggles.psd1') -Force
+        $script:homeToggle = Get-AtlasToggleDefinition -Name Home `
+            -TogglesRoot (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Toggles')
     }
 
     It 'disables both Home namespace discovery paths during installation' {
@@ -25,12 +28,31 @@ Describe 'File Explorer Home configuration' {
     }
 
     It 'round-trips the per-user navigation-tree override in the Home toggle' {
-        $definition = & $script:togglePath
-        $disable = $definition.States.Disable.UserAction.ToString()
-        $enable = $definition.States.Enable.UserAction.ToString()
+        $pinPath = 'HKCU:\Software\Classes\CLSID\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}'
+        $disable = $script:homeToggle.States['Disable']
+        $enable = $script:homeToggle.States['Enable']
 
-        $disable | Should -Match 'System\.IsPinnedToNameSpaceTree'
-        $disable | Should -Match 'Set-AtlasRegistryValue[\s\S]*-Data 0'
-        $enable | Should -Match 'Remove-AtlasRegistryValue[\s\S]*System\.IsPinnedToNameSpaceTree'
+        $disablePin = @($disable['Registry'] | Where-Object {
+                $_.Path -ceq $pinPath -and $_.Name -ceq 'System.IsPinnedToNameSpaceTree'
+            })
+        $disablePin | Should -HaveCount 1
+        $disablePin[0].Type | Should -BeExactly 'DWord'
+        $disablePin[0].Data | Should -Be 0
+
+        $enablePin = @($enable['Registry'] | Where-Object {
+                $_.Path -ceq $pinPath -and $_.Name -ceq 'System.IsPinnedToNameSpaceTree'
+            })
+        $enablePin | Should -HaveCount 1
+        $enablePin[0].Operation | Should -BeExactly 'Delete'
+
+        # The pin is per-user work beside the machine namespace key, so the engine runs
+        # it in the launching user's own process and replays it at first sign-in.
+        foreach ($state in @($disable, $enable)) {
+            $work = Get-AtlasToggleStateWork -Definition $script:homeToggle -StateEntry $state
+            $work.Machine | Should -BeTrue
+            $work.User | Should -BeTrue
+        }
+        $disable['StateValue'] | Should -Be 0
+        $enable['StateValue'] | Should -Be 1
     }
 }

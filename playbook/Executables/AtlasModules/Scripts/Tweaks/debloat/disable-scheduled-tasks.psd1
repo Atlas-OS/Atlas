@@ -6,8 +6,7 @@
         @{ Path = 'HKLM\System\CurrentControlSet\Control\Ubpm'; Name = 'CriticalMaintenance_UsageDataReporting'; Operation = 'Delete' }
     )
     ScheduledTasks = @(
-        # Updates compatibility database
-        @{ Path = '\Microsoft\Windows\Application Experience\PcaPatchDbTask' }
+        # PCA's task is handled with its service by privacy/disable-pca.psd1.
         # Data collection
         @{ Path = '\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector' }
         # CEIP - safety measure

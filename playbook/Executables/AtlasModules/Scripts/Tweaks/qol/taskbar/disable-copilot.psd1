@@ -6,6 +6,6 @@
         # taskbar/config-pins. RemoveMicrosoftCopilotApp (25H2+) additionally uninstalls
         # the Copilot app where supported; only honored on Enterprise/Education, inert
         # elsewhere.
-        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'; Name = 'RemoveMicrosoftCopilotApp'; Type = 'DWord'; Data = 1 }
+        @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'; Name = 'RemoveMicrosoftCopilotApp'; Type = 'DWord'; Data = 1; VerifyWithToggle = @{ Name = 'Copilot'; State = 1; Operation = 'Delete' } }
     )
 }

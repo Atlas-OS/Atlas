@@ -19,6 +19,8 @@ foreach ($domainModule in @(
     'RegFile.ps1'
     'Entries.ps1'
     'UserPaths.ps1'
+    'ExecutionPolicy.ps1'
+    'Verify.ps1'
 )) {
     $domainPath = Join-Path -Path $domainRoot -ChildPath $domainModule
     if (-not (Test-Path -LiteralPath $domainPath -PathType Leaf)) {
@@ -30,8 +32,9 @@ foreach ($domainModule in @(
 
 Export-ModuleMember -Function @(
     'Resolve-AtlasRegistryPath', 'Initialize-AtlasRegistryIdentityContext',
-    'Set-AtlasRegistryValue', 'Remove-AtlasRegistryValue', 'New-AtlasRegistryKey', 'Remove-AtlasRegistryKey',
-    'Import-AtlasRegFile', 'Invoke-AtlasRegistryEntries',
+    'Set-AtlasRegistryValue', 'Set-AtlasMachineDwordPolicy', 'Remove-AtlasRegistryValue', 'New-AtlasRegistryKey', 'Remove-AtlasRegistryKey',
+    'Import-AtlasRegFile', 'Invoke-AtlasRegistryEntries', 'Test-AtlasRegistryEntries', 'Get-AtlasRegistryValueState',
     'Test-AtlasArchMatch', 'Get-AtlasRegistryEntryTargetScope',
-    'Get-UserPath'
+    'Get-UserPath',
+    'Set-AtlasWindowsPowerShellExecutionPolicy'
 )

@@ -2,19 +2,16 @@
     # Category order and per-tweak run order for the Tweaks install phase.
     # - Categories run in the order the one-shot install plan dispatches them.
     # - ParentModes records the modes allowed by that plan route. Category steps are
-    #   fresh-only, so every category has ParentModes = @('Fresh'). The manifest validator composes this
+    #   available on fresh installs and upgrades. The manifest validator composes this
     #   with each tweak's OnUpgrade gate and rejects unreachable enabled entries.
     # - Tweaks run top to bottom within a category; paths are relative to the
     #   category folder, without the .psd1 extension.
-    # - Disable a tweak by commenting out its line (keep a short reason).
+    # - To disable a tweak, remove its enabled entry and add its slug and reason to Disabled.
     Categories = @(
         @{
             Name        = 'networking'
-            ParentModes = @('Fresh')
+            ParentModes = @('Fresh', 'Upgrade')
             Tweaks      = @(
-                # 'disable-llmnr'  # disabled deliberately: LLMNR resolves single-label \\PCNAME on home LANs
-                #                  # (mDNS only covers .local; router DNS rarely registers client names).
-                #                  # Userbase is mostly trusted home networks, so the poisoning risk doesn't outweigh that.
                 'atlas-network-settings'
                 'shares/restrict-anonymous-access'
                 'shares/restrict-anonymous-enumeration'
@@ -23,12 +20,10 @@
         }
         @{
             Name        = 'performance'
-            ParentModes = @('Fresh')
+            ParentModes = @('Fresh', 'Upgrade')
             Tweaks      = @(
                 'config-mmcss'
                 'disable-auto-folder-discovery'
-                # 'disable-game-bar'  # disabled: users want Game Bar capture/overlays, and the Xbox app depends on it;
-                #                     # the FSOGameBar toggle covers enthusiasts who want it gone
                 'config-automatic-maintenance'
                 'disable-background-apps'
                 'disable-fth'
@@ -41,7 +36,7 @@
         }
         @{
             Name        = 'privacy'
-            ParentModes = @('Fresh')
+            ParentModes = @('Fresh', 'Upgrade')
             Tweaks      = @(
                 'config-app-permissions'
                 'config-windows-media-player'
@@ -69,6 +64,7 @@
                 'disallow-ms-accounts'
                 'disallow-user-activity-upload'
                 'search-settings'
+                'apply-privacy-toggle-defaults'
                 'apps/disable-nvidia-telemetry'
                 'apps/disable-office-telemetry'
                 'apps/disable-paint-ai'
@@ -90,7 +86,7 @@
         }
         @{
             Name        = 'qol'
-            ParentModes = @('Fresh')
+            ParentModes = @('Fresh', 'Upgrade')
             Tweaks      = @(
                 'bcdedit-tweaks'
                 'best-wallpaper-quality'
@@ -140,7 +136,6 @@
                 'explorer/always-more-details-transfer'
                 'explorer/disable-invalid-shortcuts-search'
                 'explorer/disable-check-boxes'
-                # 'explorer/disable-folders-this-pc'  # disabled: no reason recorded
                 'explorer/disable-network-navigation-pane'
                 'explorer/full-context-on-more-than-15-items'
                 'explorer/hide-frequently-used-items'
@@ -187,8 +182,6 @@
                 'shell/config-autorun'
                 'startup-shutdown/decrease-shutdown-time'
                 'startup-shutdown/disable-startup-delay'
-                # 'startup-shutdown/force-end-shutdown-apps'  # disabled: it confused people
-                # 'startup-shutdown/enable-verbose-messages'  # disabled: no reason recorded
                 'system/crash-control-qol'
                 'system/disable-wpbt'
                 # Applied last: these restart shell components (Start Menu / Explorer).
@@ -198,7 +191,7 @@
         }
         @{
             Name        = 'security'
-            ParentModes = @('Fresh')
+            ParentModes = @('Fresh', 'Upgrade')
             Tweaks      = @(
                 'block-anonymous-enum-sam'
                 'disable-automatic-restart-signon'
@@ -207,19 +200,18 @@
         }
         @{
             Name        = 'debloat'
-            ParentModes = @('Fresh')
+            ParentModes = @('Fresh', 'Upgrade')
             Tweaks      = @(
                 'config-content-delivery'
                 'disable-reserved-storage'
                 'disable-scheduled-tasks'
-                'block-razer-installs'
                 'hide-unused-security-pages'
                 'config-storage-sense'
             )
         }
         @{
             Name        = 'scripts'
-            ParentModes = @('Fresh')
+            ParentModes = @('Fresh', 'Upgrade')
             Tweaks      = @(
                 'set-file-associations'
                 'disable-core-isolation'
@@ -233,13 +225,14 @@
         }
         @{
             Name        = 'misc'
-            ParentModes = @('Fresh')
+            ParentModes = @('Fresh', 'Upgrade')
             Tweaks      = @(
                 'config-time'
                 'delete-windows-specific-files'
                 'rebuild-perf-counters'
                 'make-measuresleep-admin'
                 'add-newUser-script'
+                'register-user-upgrade'
                 'config-oem-information'
                 'create-shortcuts'
             )
@@ -249,18 +242,22 @@
     # Definitions invoked outside a category route. ParentModes is the outer
     # orchestration reachability, not a replacement for the definition's OnUpgrade.
     Standalone = @(
-        # The install plan invokes this only for fresh installs.
+        # The fresh-only install plan applies this before the Features phase so later
+        # tweaks cannot overwrite SettingsPageVisibility.
         @{ Slug = 'qol/set-hidden-settings-pages'; ParentModes = @('Fresh') }
-        # The fresh-only install plan runs this after all category tweaks.
+        # The fresh-only install plan applies this after every category.
         @{ Slug = 'scripts/set-power-settings'; ParentModes = @('Fresh') }
-        # Invoke-RevertPhase.ps1 is explicitly upgrade-only and applies this while the
-        # default-user hive is still loaded.
+        # The upgrade-only install plan applies this as its own step right after the
+        # Defaults phase, while the default-user hive is still loaded.
         @{ Slug = 'qol/appearance/atlas-theme-upgrade'; ParentModes = @('Upgrade') }
     )
 
     # Every shipped definition must be enabled exactly once above or classified here.
     Disabled = @(
+        # LLMNR handles single-label \\PCNAME lookups where router DNS has no record;
+        # mDNS's .local names do not replace that behavior.
         @{ Slug = 'networking/disable-llmnr'; Reason = 'Preserves single-label home-LAN name resolution where router DNS does not register clients.' }
+        # Users who want Game Bar removed can use the FSOGameBar toggle.
         @{ Slug = 'performance/disable-game-bar'; Reason = 'Game Bar capture and overlays remain supported, including Xbox app dependencies.' }
         @{ Slug = 'qol/explorer/disable-folders-this-pc'; Reason = 'Intentionally disabled; the original rationale was not recorded.' }
         @{ Slug = 'qol/startup-shutdown/enable-verbose-messages'; Reason = 'Intentionally disabled; the original rationale was not recorded.' }

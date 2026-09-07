@@ -100,22 +100,21 @@ the affected hardware from its OEM/driver package or validation in a disposable
 VM representative of that installation. There is no compatibility switch that
 reenables the unsafe legacy mutation path.
 
-## Reviewed primary-source snapshots
+## Reference sources
 
-The policy was reviewed against clean, official repositories in the managed local
-source workspace. Each local `HEAD` matched the commit below on 2026-07-11.
+The following pinned sources document the policy's Windows API and device boundaries.
 
-| Official repository | Local snapshot under `D:\git\docs` | Reviewed commit | Review role |
-| --- | --- | --- | --- |
-| [MicrosoftDocs/win32](https://github.com/MicrosoftDocs/win32/tree/8e75e578b68b316f488d3a6961dcbecfa5fbee61) | `sources\github\MicrosoftDocs\win32` | `8e75e578b68b316f488d3a6961dcbecfa5fbee61` | Win32 power-policy concepts and identifiers |
-| [MicrosoftDocs/sdk-api](https://github.com/MicrosoftDocs/sdk-api/tree/8dfcd02a4ac3225474f3180609eacb0f349e6770) | `sources\github\MicrosoftDocs\sdk-api` | `8dfcd02a4ac3225474f3180609eacb0f349e6770` | Native API contracts for power and device-state boundaries |
-| [MicrosoftDocs/windows-driver-docs](https://github.com/MicrosoftDocs/windows-driver-docs/tree/fd4411dc8b020d92d2da58f2371f20415f0911cb) | `sources\github\MicrosoftDocs\windows-driver-docs` | `fd4411dc8b020d92d2da58f2371f20415f0911cb` | PnP registry access rules, WDF idle-value ownership, ACPI000C thermal behavior, and platform power guidance |
-| [MicrosoftDocs/windowsserverdocs](https://github.com/MicrosoftDocs/windowsserverdocs/tree/2fb17db01783a5266bde9aeeb7741cb6411fbdf6) | `sources\github\MicrosoftDocs\windowsserverdocs` | `2fb17db01783a5266bde9aeeb7741cb6411fbdf6` | Windows power-configuration and Modern Standby product guidance |
-| [microsoft/windows-docs-rs](https://github.com/microsoft/windows-docs-rs/tree/c882d801b7cefbb3e02d8b3c265341441a2207c0) | `sources\github\microsoft\windows-docs-rs` | `c882d801b7cefbb3e02d8b3c265341441a2207c0` | Generated Windows metadata documentation used to cross-check symbols |
-| [microsoft/windows-rs](https://github.com/microsoft/windows-rs/tree/07f344c019b8fdae4d398d4c2591596044cb416a) | `sources\github\microsoft\windows-rs` | `07f344c019b8fdae4d398d4c2591596044cb416a` | Generated Windows bindings used as a source-level cross-check |
+| Official repository | Reference role |
+| --- | --- |
+| [MicrosoftDocs/win32](https://github.com/MicrosoftDocs/win32/tree/8e75e578b68b316f488d3a6961dcbecfa5fbee61) | Win32 power-policy concepts and identifiers |
+| [MicrosoftDocs/sdk-api](https://github.com/MicrosoftDocs/sdk-api/tree/8dfcd02a4ac3225474f3180609eacb0f349e6770) | Native API contracts for power and device-state boundaries |
+| [MicrosoftDocs/windows-driver-docs](https://github.com/MicrosoftDocs/windows-driver-docs/tree/fd4411dc8b020d92d2da58f2371f20415f0911cb) | PnP registry access rules, WDF idle-value ownership, ACPI000C thermal behavior, and platform power guidance |
+| [MicrosoftDocs/windowsserverdocs](https://github.com/MicrosoftDocs/windowsserverdocs/tree/2fb17db01783a5266bde9aeeb7741cb6411fbdf6) | Windows power-configuration and Modern Standby product guidance |
+| [microsoft/windows-docs-rs](https://github.com/microsoft/windows-docs-rs/tree/c882d801b7cefbb3e02d8b3c265341441a2207c0) | Generated Windows metadata documentation used to cross-check symbols |
+| [microsoft/windows-rs](https://github.com/microsoft/windows-rs/tree/07f344c019b8fdae4d398d4c2591596044cb416a) | Generated Windows bindings used as a source-level cross-check |
 
 Setting names, enumerations, and ranges were additionally cross-checked against
 the Windows SDK 10.0.26100 policy definitions, the inbox Power ADMX/ADML files,
-and read-only `powercfg.exe /qh` output. Generated bindings and local host output
+and read-only `powercfg.exe /qh` output. Generated bindings and command output
 were corroborating evidence; they were not treated as permission for undocumented
 registry or device mutations.

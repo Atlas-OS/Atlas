@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force
@@ -55,6 +56,38 @@ Describe 'Remove-AtlasScheduledTask' {
         { Remove-AtlasScheduledTask -Path $script:missingTask -IgnoreMissing } | Should -Not -Throw
 
         Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 0 -Exactly
+    }
+}
+
+Describe 'Scheduled-task command failure and postcondition checks' {
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.TasksProcs
+        Mock Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs { 'Enabled' }
+        $fake = Join-Path $TestDrive 'schtasks.cmd'
+        Mock Get-AtlasSchtasksPath -ModuleName Atlas.TasksProcs { $fake }
+    }
+
+    It 'does not treat exit code 1 for a present task as missing, even with IgnoreMissing' {
+        Set-Content -LiteralPath $fake -Value "@echo off`r`necho Access is denied.`r`nexit /b 1"
+        { Disable-AtlasScheduledTask -Path '\Atlas\Task' -IgnoreMissing } |
+            Should -Throw '*exited with code 1*Access is denied*'
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 0
+    }
+
+    It 'rejects a successful native exit when the requested state did not take effect' {
+        Set-Content -LiteralPath $fake -Value "@echo off`r`nexit /b 0"
+        { Disable-AtlasScheduledTask -Path '\Atlas\Task' } |
+            Should -Throw "*remained 'Enabled'*expected 'Disabled'*"
+    }
+
+    It 'logs the verified state after a successful change' {
+        Mock Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs { 'Disabled' }
+        Set-Content -LiteralPath $fake -Value "@echo off`r`nexit /b 0"
+        Disable-AtlasScheduledTask -Path '\Atlas\Task'
+        Should -Invoke Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs -Times 2 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Message -like '*Verified scheduled task*Disabled -> Disabled*'
+        }
     }
 }
 
@@ -249,8 +282,94 @@ Describe 'Scheduled-task wrappers build the correct schtasks command' {
     }
 }
 
-# Root-scoped process/task cleanup helpers moved here from Atlas.Core (plan 019). These assert
-# the module now owns the renamed functions and that the old Core names are gone, not aliased.
+Describe 'Invoke-AtlasScheduledTaskEntries' {
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.TasksProcs
+        Mock Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs
+        Mock Enable-AtlasScheduledTask -ModuleName Atlas.TasksProcs
+    }
+
+    It 'disables by default and enables on request, in declaration order' {
+        Invoke-AtlasScheduledTaskEntries -Entries @(
+            @{ Path = '\Microsoft\Windows\Test\First' }
+            @{ Path = '\Microsoft\Windows\Test\Second'; Operation = 'Enable' }
+            @{ Path = '\Microsoft\Windows\Test\Third'; Operation = 'Disable' }
+        )
+
+        Should -Invoke Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 2 -Exactly
+        Should -Invoke Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Path -ceq '\Microsoft\Windows\Test\First' -and -not $IgnoreMissing
+        }
+        Should -Invoke Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Path -ceq '\Microsoft\Windows\Test\Third'
+        }
+        Should -Invoke Enable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Path -ceq '\Microsoft\Windows\Test\Second' -and -not $IgnoreMissing
+        }
+    }
+
+    It 'rejects malformed entries before changing any task' -TestCases @(
+        @{ Entry = @{ Operation = 'Disable' }; Message = '*has no Path*' }
+        @{ Entry = @{ Path = ' ' }; Message = '*has no Path*' }
+        @{ Entry = @{ Path = '\Some\Task'; Operation = 'Delete' }; Message = "*Unknown scheduled task operation 'Delete'*" }
+    ) {
+        { Invoke-AtlasScheduledTaskEntries -Entries @($Entry) } | Should -Throw $Message
+
+        Should -Invoke Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 0 -Exactly
+        Should -Invoke Enable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 0 -Exactly
+    }
+
+    It 'propagates a required change failure and stops at the failing entry' {
+        Mock Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -ParameterFilter {
+            $Path -ceq '\Microsoft\Windows\Test\Second'
+        } -MockWith { throw 'schtasks failed for Second' }
+
+        {
+            Invoke-AtlasScheduledTaskEntries -Entries @(
+                @{ Path = '\Microsoft\Windows\Test\First' }
+                @{ Path = '\Microsoft\Windows\Test\Second' }
+                @{ Path = '\Microsoft\Windows\Test\Third' }
+            )
+        } | Should -Throw '*schtasks failed for Second*'
+
+        Should -Invoke Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Path -ceq '\Microsoft\Windows\Test\First'
+        }
+        Should -Invoke Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 0 -Exactly -ParameterFilter {
+            $Path -ceq '\Microsoft\Windows\Test\Third'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 0 -Exactly
+    }
+
+    It 'turns a failure into a warning and continues when the entry ignores errors' {
+        Mock Enable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -MockWith { throw 'cannot enable' }
+
+        Invoke-AtlasScheduledTaskEntries -Entries @(
+            @{ Path = '\Microsoft\Windows\Test\First'; Operation = 'Enable'; IgnoreErrors = $true }
+            @{ Operation = 'Disable'; IgnoreErrors = $true }
+            @{ Path = '\Microsoft\Windows\Test\Third' }
+        )
+
+        Should -Invoke Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Path -ceq '\Microsoft\Windows\Test\Third'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 2 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like 'Ignored scheduled task entry failure*'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Message -like "*(task: '\Microsoft\Windows\Test\First')*cannot enable*"
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Message -like "*(task: '<no path>')*has no Path*"
+        }
+    }
+
+    It 'accepts an empty entry list' {
+        { Invoke-AtlasScheduledTaskEntries -Entries @() } | Should -Not -Throw
+        Should -Invoke Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs -Times 0 -Exactly
+    }
+}
+
 Describe 'Root-scoped cleanup helpers live in Atlas.TasksProcs' {
     It 'exports Stop-AtlasProcessUnderRoot and Stop-AtlasScheduledTaskUnderRoot' {
         $exported = (Get-Command -Module Atlas.TasksProcs).Name

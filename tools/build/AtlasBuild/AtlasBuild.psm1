@@ -708,7 +708,7 @@ function New-Apbx {
             -RemoveWinverRequirement:$RemoveWinverRequirement `
             -RemoveVerification:$RemoveVerification
 
-        $oemScriptRelativePath = 'Executables\AtlasModules\Scripts\Tasks\Set-OemInformation.ps1'
+        $oemScriptRelativePath = 'Executables\AtlasModules\Scripts\Install\Tasks\Set-OemInformation.ps1'
         $stagedOemScript = $false
         try {
             $versionInfo = Get-PlaybookVersion -PlaybookConfPath (Join-Path -Path $PlaybookPath -ChildPath 'playbook.conf')

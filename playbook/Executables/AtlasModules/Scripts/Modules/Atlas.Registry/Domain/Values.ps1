@@ -1,8 +1,15 @@
 # Atlas.Registry domain: registry value writes and deletes.
 #
+# Windows protects a small number of policy values against every caller, including
+# TrustedInstaller: the key opens for writing and the kernel then refuses the value.
+# That refusal carries this error id so callers can tell it apart from an Atlas defect
+# such as a mistyped path, and treat it as best effort where a definition says so.
+#
 # Values are written through the Microsoft.Win32.Registry API instead of the provider
 # cmdlets so the value kind is always explicit (including REG_NONE, which the provider
 # cannot round-trip) and so redirected HKEY_USERS paths behave identically to drives.
+
+$script:AtlasRegistryValueRefusedErrorId = 'AtlasRegistryValueWriteRefused'
 
 function ConvertTo-AtlasDwordData {
     param(
@@ -32,6 +39,47 @@ function ConvertTo-AtlasQwordData {
 
     $unsigned = [uint64]$Data
     return [System.BitConverter]::ToInt64([System.BitConverter]::GetBytes($unsigned), 0)
+}
+
+function New-AtlasRegistryValueRefusedRecord {
+    <#
+    .SYNOPSIS
+        Builds the error record that marks a value write Windows itself refused, so
+        callers can tell an operating-system protection apart from an Atlas defect.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ProviderPath,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [Exception]$Cause
+    )
+
+    $displayName = if ([string]::IsNullOrEmpty($Name)) { '(default)' } else { $Name }
+    $message = "Windows refused the value '$displayName' at '$ProviderPath'. The key itself opened for writing, so this value is protected by the operating system."
+    return (New-Object System.Management.Automation.ErrorRecord(
+            (New-Object System.UnauthorizedAccessException($message, $Cause)),
+            $script:AtlasRegistryValueRefusedErrorId,
+            [System.Management.Automation.ErrorCategory]::PermissionDenied,
+            $ProviderPath))
+}
+
+function Test-AtlasRegistryValueRefused {
+    <#
+    .SYNOPSIS
+        Returns $true when an error record is a refusal of a value write by Windows.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.ErrorRecord]$ErrorRecord
+    )
+
+    return ([string]$ErrorRecord.FullyQualifiedErrorId -ceq $script:AtlasRegistryValueRefusedErrorId)
 }
 
 function Set-AtlasRegistryValueCore {
@@ -81,6 +129,11 @@ function Set-AtlasRegistryValueCore {
     try {
         $key.SetValue($Name, $value, [Microsoft.Win32.RegistryValueKind]$Type)
     }
+    catch [System.UnauthorizedAccessException] {
+        # CreateSubKey above already proved write access to the key, so a denial here is
+        # Windows refusing this particular value. No right Atlas can hold changes that.
+        throw (New-AtlasRegistryValueRefusedRecord -ProviderPath $ProviderPath -Name $Name -Cause $_.Exception)
+    }
     finally {
         $key.Close()
     }
@@ -106,17 +159,31 @@ function Set-AtlasRegistryValue {
         [ValidateSet('String', 'ExpandString', 'Binary', 'DWord', 'MultiString', 'QWord', 'None')]
         [string]$Type,
 
-        [object]$Data
+        [object]$Data,
+
+        # Windows protects a small number of policy values against every caller. Where
+        # that is expected, a refusal is a logged warning instead of a failure; the
+        # Atlas health check still reports the value as drift.
+        [switch]$AllowOsProtected
     )
 
     if ($null -eq $Data -and $Type -notin @('None', 'String', 'ExpandString')) {
         throw "Registry value '$Name' at '$Path' has type '$Type' but no data."
     }
 
-    # The scriptblock resolves $Name/$Type/$Data dynamically from this function's scope.
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
-        param($providerPath)
-        Set-AtlasRegistryValueCore -ProviderPath $providerPath -Name $Name -Type $Type -Data $Data
+    try {
+        # The scriptblock resolves $Name/$Type/$Data dynamically from this function's scope.
+        Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
+            param($providerPath)
+            Set-AtlasRegistryValueCore -ProviderPath $providerPath -Name $Name -Type $Type -Data $Data
+        }
+    }
+    catch {
+        if ($AllowOsProtected -and (Test-AtlasRegistryValueRefused -ErrorRecord $_)) {
+            Write-AtlasLog -Level Warning -Message "$($_.Exception.Message) Continuing without it." -ErrorRecord $_
+            return
+        }
+        throw
     }
 }
 
@@ -134,24 +201,40 @@ function Remove-AtlasRegistryValue {
 
         [Parameter(Mandatory = $true)]
         [AllowEmptyString()]
-        [string]$Name
+        [string]$Name,
+
+        # See Set-AtlasRegistryValue: a value Windows protects is a warning, not a failure.
+        [switch]$AllowOsProtected
     )
 
-    Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
-        param($providerPath)
+    try {
+        Invoke-AtlasRegistryTargetOperation -Path $Path -Action {
+            param($providerPath)
 
-        $split = Split-AtlasRegistryProviderPath -ProviderPath $providerPath
-        $key = $split.BaseKey.OpenSubKey($split.SubPath, $true)
-        if ($null -eq $key) {
+            $split = Split-AtlasRegistryProviderPath -ProviderPath $providerPath
+            $key = $split.BaseKey.OpenSubKey($split.SubPath, $true)
+            if ($null -eq $key) {
+                return
+            }
+
+            try {
+                # The second argument suppresses the missing-value exception.
+                $key.DeleteValue($Name, $false)
+            }
+            catch [System.UnauthorizedAccessException] {
+                # The key opened for writing, so Windows is protecting this value.
+                throw (New-AtlasRegistryValueRefusedRecord -ProviderPath $providerPath -Name $Name -Cause $_.Exception)
+            }
+            finally {
+                $key.Close()
+            }
+        }
+    }
+    catch {
+        if ($AllowOsProtected -and (Test-AtlasRegistryValueRefused -ErrorRecord $_)) {
+            Write-AtlasLog -Level Warning -Message "$($_.Exception.Message) Continuing without removing it." -ErrorRecord $_
             return
         }
-
-        try {
-            # The second argument suppresses the missing-value exception.
-            $key.DeleteValue($Name, $false)
-        }
-        finally {
-            $key.Close()
-        }
+        throw
     }
 }

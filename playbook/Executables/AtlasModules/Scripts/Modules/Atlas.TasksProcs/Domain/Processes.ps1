@@ -102,21 +102,13 @@ function Stop-AtlasProcess {
 }
 
 function Get-AtlasShellWindowProcessId {
-    if ($null -eq ('Atlas.TasksProcs.ShellWindow' -as [type])) {
-        Add-Type -Namespace Atlas.TasksProcs -Name ShellWindow -MemberDefinition @'
-[System.Runtime.InteropServices.DllImport("user32.dll")]
-public static extern System.IntPtr GetShellWindow();
+    Initialize-AtlasNativeType
 
-[System.Runtime.InteropServices.DllImport("user32.dll")]
-public static extern uint GetWindowThreadProcessId(System.IntPtr window, out uint processId);
-'@ -ErrorAction Stop
-    }
-
-    $window = [Atlas.TasksProcs.ShellWindow]::GetShellWindow()
+    $window = [Atlas.Native.ShellWindow]::GetShellWindow()
     if ($window -eq [IntPtr]::Zero) { return 0 }
 
     [uint32]$processId = 0
-    if ([Atlas.TasksProcs.ShellWindow]::GetWindowThreadProcessId(
+    if ([Atlas.Native.ShellWindow]::GetWindowThreadProcessId(
             $window, [ref]$processId) -eq 0 -or $processId -gt [int]::MaxValue) {
         return 0
     }

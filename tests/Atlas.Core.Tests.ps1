@@ -1,8 +1,9 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     $coreModule = Get-Module -Name Atlas.Core
-    & $coreModule { Initialize-AtlasRunAsUserType }
+    & $coreModule { Initialize-AtlasNativeType }
 }
 
 Describe 'Get-AtlasContext install state' {
@@ -97,6 +98,25 @@ Describe 'Get-AtlasContext install state' {
 }
 
 Describe 'Write-AtlasLog fallback' {
+    It 'routes unelevated diagnostics away from the protected machine log' {
+        Mock Test-AtlasAdmin { $false } -ModuleName Atlas.Core
+        Mock Get-AtlasContext { throw 'Unelevated logging must not resolve the machine log' } -ModuleName Atlas.Core
+        Mock Test-Path { $true } -ModuleName Atlas.Core
+
+        $actual = & $coreModule { Get-AtlasInstallLogDirectory }
+        $expected = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'AtlasOS\Logs\install'
+        $actual | Should -BeExactly $expected
+    }
+
+    It 'keeps elevated diagnostics in the protected machine log' {
+        Mock Test-AtlasAdmin { $true } -ModuleName Atlas.Core
+        Mock Get-AtlasContext { [pscustomobject]@{ LogsPath = 'C:\Windows\AtlasModules\Logs' } } -ModuleName Atlas.Core
+        Mock Test-Path { $true } -ModuleName Atlas.Core
+
+        (& $coreModule { Get-AtlasInstallLogDirectory }) |
+            Should -BeExactly 'C:\Windows\AtlasModules\Logs\install'
+    }
+
     It 'does not turn a log access failure into a terminating error under strict callers' {
         Mock Write-AtlasLogFile { throw 'simulated log access denial' } -ModuleName Atlas.Core
 
@@ -172,7 +192,7 @@ Describe 'Invoke-AtlasTrustedInstaller' {
             Sort-Object)
         $expectedParameters = @(
             'Operation', 'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly',
-            'RestoreSource', 'TimeoutSeconds'
+            'RestoreSource', 'InstallPhase', 'PayloadRoot', 'TimeoutSeconds'
         ) | Sort-Object
         $operationParameters | Should -Be $expectedParameters
     }
@@ -205,7 +225,7 @@ Describe 'Invoke-AtlasTrustedInstaller' {
             -ParameterFilter {
                 $FilePath -like '*\System32\WindowsPowerShell\v1.0\powershell.exe' -and
                 @($ArgumentList | Where-Object {
-                        $_ -like '*\Scripts\Internal\Invoke-AtlasTrustedInstallerBroker.ps1'
+                        $_ -like '*\Scripts\Entry\Invoke-AtlasTrustedInstallerBroker.ps1'
                     }).Count -eq 1 -and
                 $ArgumentList -contains 'TestToggle' -and
                 $ArgumentList -contains 'Enable' -and
@@ -213,6 +233,26 @@ Describe 'Invoke-AtlasTrustedInstaller' {
                 $TimeoutSeconds -eq 57 -and
                 $Wait -and $CaptureOutput
             }
+    }
+
+    It 'uses the candidate broker for fresh install capture and run' {
+        $payload = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\candidate\Executables'
+        foreach ($phase in @('Capture', 'Run')) {
+            Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $phase -PayloadRoot $payload | Out-Null
+        }
+        Should -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Core -Times 2 -Exactly `
+            -ParameterFilter {
+                $ArgumentList -contains (Join-Path ([Environment]::GetFolderPath('Windows')) `
+                    'AtlasOS\Staging\candidate\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasTrustedInstallerBroker.ps1')
+            }
+    }
+
+    It 'rejects install roots outside staging before starting a broker' {
+        foreach ($payload in @('relative', 'C:\Users\Public\payload',
+                'C:\Windows\AtlasOS\Staging-other\payload', 'C:\Windows\AtlasOS\Staging\..\payload')) {
+            { Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase Capture -PayloadRoot $payload } | Should -Throw
+        }
+        Should -Not -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Core
     }
 
     It 'propagates a checked broker failure' {
@@ -242,5 +282,79 @@ Describe 'Atlas privilege identity split' {
 
         Test-AtlasSystem | Should -BeFalse
         Test-AtlasTrustedInstaller | Should -BeFalse
+    }
+}
+
+Describe 'Import-AtlasModule' {
+    It 'imports a sibling module from inside another module scope so its commands reach the caller' {
+        # Companion functions run inside Atlas.Toggles and import Atlas.Appx or
+        # Atlas.Download this way; the import must land in the caller-visible session.
+        Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
+        Remove-Module -Name Atlas.Download -Force -ErrorAction SilentlyContinue
+
+        & (Get-Module -Name Atlas.Toggles) { Import-AtlasModule -Name Atlas.Download }
+
+        Get-Command -Name Get-AtlasTrustedWingetPath -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+    }
+
+    It 'rejects a name outside the Atlas module family and a missing manifest' {
+        { Import-AtlasModule -Name 'Pester' } | Should -Throw
+        { Import-AtlasModule -Name 'Atlas.DoesNotExist' } | Should -Throw '*manifest*is missing*'
+    }
+}
+
+Describe 'Get-AtlasContext machine state document' {
+    BeforeEach {
+        & $coreModule { $script:AtlasContext = $null }
+    }
+
+    It 'reads installed version, mode and options from the state document after an install' {
+        $windowsPath = Join-Path -Path $TestDrive -ChildPath 'Windows'
+        [void][IO.Directory]::CreateDirectory($windowsPath)
+        $document = [pscustomobject]@{
+            installedVersion = '0.6.0'; mode = 'Upgrade'; isOobe = $false; isInteractive = $true
+            options = @('defender-enable')
+        }
+
+        $context = Get-AtlasContext -WindowsPath $windowsPath -StateReader { $null } `
+            -DocumentReader { $document } -WindowsBuildReader { 26100 }
+
+        $context.IsInstallStateBacked | Should -BeFalse
+        $context.IsStateDocumentBacked | Should -BeTrue
+        $context.InstalledVersion | Should -Be '0.6.0'
+        $context.IsUpgrade | Should -BeTrue
+        $context.IsOobe | Should -BeFalse
+        @($context.Options) | Should -Be @('defender-enable')
+        $context.StateDocumentPath | Should -Be (Join-Path $windowsPath 'AtlasOS\state.json')
+    }
+
+    It 'falls back to the published flags when no document exists' {
+        $windowsPath = Join-Path -Path $TestDrive -ChildPath 'Windows'
+        $flags = Join-Path $windowsPath 'AtlasModules\Flags'
+        [void][IO.Directory]::CreateDirectory($flags)
+        foreach ($flag in 'Upgrade.flag', 'Interactive.flag', 'option-browser-brave.flag') {
+            [IO.File]::WriteAllText((Join-Path $flags $flag), '')
+        }
+
+        $context = Get-AtlasContext -WindowsPath $windowsPath -StateReader { $null } `
+            -DocumentReader { $null } -WindowsBuildReader { 26100 }
+
+        $context.IsStateDocumentBacked | Should -BeFalse
+        $context.IsUpgrade | Should -BeTrue
+        $context.IsOobe | Should -BeFalse
+        Test-Path (Join-Path $flags 'option-browser-brave.flag') | Should -BeTrue
+    }
+}
+
+Describe 'Native assembly loader seam' {
+    It 'only accepts a signed regular Atlas.Native.dll and otherwise compiles the source' {
+        InModuleScope Atlas.Core {
+            Test-AtlasNativeAssembly -Path (Join-Path $TestDrive 'absent.dll') | Should -BeFalse
+            $unsigned = Join-Path $TestDrive 'Atlas.Native.dll'
+            [IO.File]::WriteAllBytes($unsigned, [byte[]](0x4D, 0x5A, 0, 0))
+            Test-AtlasNativeAssembly -Path $unsigned | Should -BeFalse
+        }
+        Initialize-AtlasNativeType
+        ('Atlas.Native.TrustedInstallerProcess' -as [type]) | Should -Not -BeNullOrEmpty
     }
 }

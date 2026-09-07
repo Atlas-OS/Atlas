@@ -6,6 +6,7 @@
 $script:isWin11 = [System.Environment]::OSVersion.Version.Build -ge 22000
 
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Themes\Atlas.Themes.psd1') -Force
@@ -41,7 +42,7 @@ Describe 'Set-AtlasThemeMru' {
 }
 
 Describe 'Set-AtlasTheme' {
-    # The apply path drives a static [ThemeManagerAPI]::ApplyTheme COM call (with an
+    # The apply path drives a static [Atlas.Native.ThemeManager]::ApplyTheme COM call (with an
     # explorer-launch fallback nested inside the function) that is neither mockable nor
     # safe to run in a test, so only the input-validation guard is exercised here.
     It 'throws when the path is not a .theme file' {

@@ -10,7 +10,7 @@ set "windir=%AtlasWindowsRoot%"
 set "ComSpec=%__APPDIR__%cmd.exe"
 set "PATHEXT=.COM;.EXE;.BAT;.CMD"
 set "PATH=%__APPDIR__%;%AtlasWindowsRoot%;%__APPDIR__%Wbem;%__APPDIR__%WindowsPowerShell\v1.0"
-set "script=%AtlasWindowsRoot%\AtlasModules\Scripts\Install-OpenShell.ps1"
+set "script=%AtlasWindowsRoot%\AtlasModules\Scripts\Entry\Install-OpenShell.ps1"
 if not exist "%script%" (
 	echo Script not found.
 	echo "%script%"
@@ -66,7 +66,14 @@ set "PSModulePath="
 "%__APPDIR__%fltmc.exe" > nul 2>&1
 if not errorlevel 1 goto alreadyElevated
 
-"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -Command "$a=$env:AtlasLauncherArgument;if($a -and $a -notin @('/silent','-silent')){exit 2};$s=[IO.Path]::Combine([Environment]::GetFolderPath('Windows'),'AtlasModules','Scripts','Install-OpenShell.ps1');$p=[Activator]::CreateInstance([Diagnostics.ProcessStartInfo]);$p.FileName=[IO.Path]::Combine([Environment]::GetFolderPath('System'),'WindowsPowerShell','v1.0','powershell.exe');$p.WorkingDirectory=[Environment]::GetFolderPath('System');$q=[char]34;$p.Arguments='-NoLogo -NoProfile -ExecutionPolicy Bypass -File '+$q+$s+$q+$(if($a){' -Silent'});$p.UseShellExecute=$true;$p.Verb='runas';try{$c=[Diagnostics.Process]::Start($p);if($null -eq $c){exit 1};$c.WaitForExit();exit $c.ExitCode}catch{if($_.Exception -is [ComponentModel.Win32Exception] -and $_.Exception.NativeErrorCode -eq 1223){exit 1223};exit 1}"
+:: This window only waits for the elevated one, which prints the rest of the run.
+if not defined AtlasLauncherArgument (
+	echo AtlasOS - Install Open-Shell
+	echo ----------------------------
+	echo.
+	echo Asking for administrator permission...
+)
+"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -Command "$a=$env:AtlasLauncherArgument;if($a -and $a -notin @('/silent','-silent')){exit 2};$s=[IO.Path]::Combine([Environment]::GetFolderPath('Windows'),'AtlasModules','Scripts','Entry','Install-OpenShell.ps1');$p=[Activator]::CreateInstance([Diagnostics.ProcessStartInfo]);$p.FileName=[IO.Path]::Combine([Environment]::GetFolderPath('System'),'WindowsPowerShell','v1.0','powershell.exe');$p.WorkingDirectory=[Environment]::GetFolderPath('System');$q=[char]34;$p.Arguments='-NoLogo -NoProfile -ExecutionPolicy Bypass -File '+$q+$s+$q+' -ShellRefreshByCaller'+$(if($a){' -Silent'});$p.UseShellExecute=$true;$p.Verb='runas';try{$c=[Diagnostics.Process]::Start($p);if($null -eq $c){exit 1};$c.WaitForExit();exit $c.ExitCode}catch{if($_.Exception -is [ComponentModel.Win32Exception] -and $_.Exception.NativeErrorCode -eq 1223){exit 1223};exit 1}"
 if errorlevel 0 (
     if errorlevel 1 exit /b
 ) else (
@@ -75,14 +82,16 @@ if errorlevel 0 (
 
 :: The UAC child is complete, but this launcher is still medium integrity. Refresh
 :: and restart Explorer only in this caller's Windows session.
-set "shellRefreshScript=%AtlasWindowsRoot%\AtlasModules\Scripts\Internal\Invoke-AtlasUserShellRefresh.ps1"
+set "shellRefreshScript=%AtlasWindowsRoot%\AtlasModules\Scripts\Operations\Invoke-AtlasUserShellRefresh.ps1"
 if not exist "%shellRefreshScript%" exit /b 1
+if not defined AtlasLauncherArgument echo Restarting File Explorer...
 "%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%shellRefreshScript%" -CurrentSession
 if errorlevel 0 (
     if errorlevel 1 exit /b 1
 ) else (
     exit /b 1
 )
+if not defined AtlasLauncherArgument echo File Explorer was restarted to apply this change.
 exit /b 0
 
 :alreadyElevated
@@ -92,5 +101,4 @@ if errorlevel 0 (
 ) else (
     exit /b 1
 )
-echo Open-Shell was installed. Restart Explorer or sign out to refresh the shell.
 exit /b 0

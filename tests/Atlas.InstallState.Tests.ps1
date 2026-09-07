@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot `
         -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     $script:installStateModulePath = Join-Path -Path $modulesRoot `
@@ -26,6 +27,32 @@ BeforeAll {
 }
 
 Describe 'Atlas.InstallState lifecycle' {
+    It 'replaces an interrupted option capture instead of merging incompatible choices' {
+        $path = New-TestInstallStatePath
+        Start-TestInstallState -Path $path | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-disable') | Out-Null
+        Start-TestInstallState -Path $path | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
+        @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
+    }
+
+    It 'rejects changed resume options without changing durable choices or completed steps' {
+        $path = New-TestInstallStatePath
+        Start-TestInstallState -Path $path | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
+        Commit-AtlasInstallState -StatePath $path | Out-Null
+        Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action {} | Out-Null
+        { Invoke-AtlasInstallStep -StatePath $path -Name 'Software' -Action { throw 'failure' } } | Should -Throw '*failure*'
+        Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' -Mode Reapply | Out-Null
+        { Set-AtlasInstallOptions -StatePath $path -Options @('defender-disable') } | Should -Throw '*original install options*'
+        { Add-AtlasInstallOption -StatePath $path -Name 'defender-disable' } | Should -Throw '*original install options*'
+        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
+        $state = Get-AtlasInstallState -StatePath $path
+        @($state.options) | Should -Be @('defender-enable')
+        @($state.completedSteps) | Should -Be @('Features')
+    }
+
     It 'uses the compact Windows install paths by default' {
         $root = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasOS\Install'
         Get-AtlasInstallStatePath | Should -BeExactly (Join-Path $root 'active.json')
@@ -134,7 +161,7 @@ Describe 'Atlas.InstallState lifecycle' {
         $state.options[0] | Should -BeExactly 'browser-brave'
 
         Commit-AtlasInstallState -StatePath $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'install-toolbox' | Out-Null
+        { Add-AtlasInstallOption -StatePath $path -Name 'install-toolbox' } | Should -Throw '*original install options*'
         (Get-AtlasInstallState -StatePath $path).options | Should -Not -Contain 'install-toolbox'
     }
 

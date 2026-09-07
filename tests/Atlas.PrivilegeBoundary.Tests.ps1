@@ -6,6 +6,7 @@
 param()
 
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:ModulesRoot = Join-Path -Path $PSScriptRoot `
         -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path $script:ModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
@@ -13,7 +14,7 @@ BeforeAll {
 
     $script:CoreModule = Get-Module Atlas.Core
     $script:TogglesModule = Get-Module Atlas.Toggles
-    & $script:CoreModule { Initialize-AtlasTrustedInstallerNativeType }
+    & $script:CoreModule { Initialize-AtlasNativeType }
 
     $script:ToggleRoot = Join-Path $TestDrive 'Toggles'
     $definitionRoot = Join-Path $script:ToggleRoot 'Privilege'
@@ -22,61 +23,56 @@ BeforeAll {
     $script:EventPath = Join-Path $TestDrive 'privilege-events.txt'
     $env:ATLAS_PRIVILEGE_TEST_EVENTS = $script:EventPath
 
+    $companion = @'
+function Invoke-AtlasPrivilegeNoop {
+    param($Toggle)
+}
+
+function Write-AtlasPrivilegeMachineEvent {
+    param($Toggle)
+    [IO.File]::AppendAllText($env:ATLAS_PRIVILEGE_TEST_EVENTS, "machine`n")
+}
+
+function Write-AtlasPrivilegeUserEvent {
+    param($Toggle)
+    [IO.File]::AppendAllText($env:ATLAS_PRIVILEGE_TEST_EVENTS, "user`n")
+}
+'@
     $plainTemplate = @'
 @{
     Name          = '__NAME__'
     Elevation     = '__ELEVATION__'
     NoStateRecord = $true
-    States        = [ordered]@{
-        Enable = @{
-            StateValue = 1
-            Reboot     = 'None'
-            Action     = { param($Toggle) }
-        }
-    }
+    Script        = '__NAME__.ps1'
+    States        = @(
+        @{ Name = 'Enable'; Launcher = 'Privilege\__NAME__.cmd'; Reboot = 'None'; MachineAction = 'Invoke-AtlasPrivilegeNoop' }
+    )
 }
 '@
-    foreach ($definition in @(
-            @{ Name = 'AdminOnly'; Elevation = 'Admin' }
-            @{ Name = 'TrustedOnly'; Elevation = 'TrustedInstaller' }
-        )) {
-        $content = $plainTemplate.Replace('__NAME__', $definition.Name).
-            Replace('__ELEVATION__', $definition.Elevation)
-        Set-Content -LiteralPath (Join-Path $definitionRoot "$($definition.Name).ps1") `
-            -Value $content -Encoding Ascii
-    }
-
     $splitTemplate = @'
 @{
     Name          = '__NAME__'
     Elevation     = '__ELEVATION__'
     Warning       = 'Confirm split action.'
     NoStateRecord = $true
-    States        = [ordered]@{
-        Enable = @{
-            StateValue       = 1
-            Reboot           = 'None'
-            StateRecordScope = 'Machine'
-            MachineAction    = {
-                param($Toggle)
-                [IO.File]::AppendAllText($env:ATLAS_PRIVILEGE_TEST_EVENTS, "machine`n")
-            }
-            UserAction       = {
-                param($Toggle)
-                [IO.File]::AppendAllText($env:ATLAS_PRIVILEGE_TEST_EVENTS, "user`n")
-            }
-        }
-    }
+    Script        = '__NAME__.ps1'
+    States        = @(
+        @{ Name = 'Enable'; Launcher = 'Privilege\__NAME__.cmd'; Reboot = 'None'; MachineAction = 'Write-AtlasPrivilegeMachineEvent'; UserAction = 'Write-AtlasPrivilegeUserEvent' }
+    )
 }
 '@
     foreach ($definition in @(
-            @{ Name = 'SplitAdmin'; Elevation = 'Admin' }
-            @{ Name = 'SplitTrusted'; Elevation = 'TrustedInstaller' }
+            @{ Name = 'AdminOnly'; Elevation = 'Admin'; Template = $plainTemplate }
+            @{ Name = 'TrustedOnly'; Elevation = 'TrustedInstaller'; Template = $plainTemplate }
+            @{ Name = 'SplitAdmin'; Elevation = 'Admin'; Template = $splitTemplate }
+            @{ Name = 'SplitTrusted'; Elevation = 'TrustedInstaller'; Template = $splitTemplate }
         )) {
-        $content = $splitTemplate.Replace('__NAME__', $definition.Name).
+        $content = $definition.Template.Replace('__NAME__', $definition.Name).
             Replace('__ELEVATION__', $definition.Elevation)
-        Set-Content -LiteralPath (Join-Path $definitionRoot "$($definition.Name).ps1") `
+        Set-Content -LiteralPath (Join-Path $definitionRoot "$($definition.Name).psd1") `
             -Value $content -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path $definitionRoot "$($definition.Name).ps1") `
+            -Value $companion -Encoding Ascii
     }
 }
 
@@ -85,6 +81,44 @@ AfterAll {
 }
 
 Describe 'Atlas process privilege decisions' {
+    It 'reads enabled and deny-only groups without duplicating the token' {
+        $nativeType = [Atlas.Native.TrustedInstallerProcess]
+        $openToken = $nativeType.GetMethod('OpenProcessToken', [Reflection.BindingFlags]'Static,NonPublic')
+        $hasGroup = $nativeType.GetMethod('HasEnabledGroup', [Reflection.BindingFlags]'Static,NonPublic')
+        $closeHandle = $nativeType.GetMethod('CloseHandle', [Reflection.BindingFlags]'Static,NonPublic')
+        $openArguments = [object[]]@([Diagnostics.Process]::GetCurrentProcess().Handle, [uint32]8, [IntPtr]::Zero)
+        $openToken.Invoke($null, $openArguments) | Should -BeTrue
+        $token = $openArguments[2]
+        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+        try {
+            $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+            foreach ($sid in @('S-1-5-32-545', 'S-1-5-32-544', 'S-1-5-32-9999')) {
+                $expected = $principal.IsInRole([Security.Principal.SecurityIdentifier]::new($sid))
+                $hasGroup.Invoke($null, @($token, $sid)) | Should -Be $expected
+            }
+        }
+        finally {
+            $identity.Dispose()
+            [void]$closeHandle.Invoke($null, @($token))
+        }
+    }
+
+    It 'reads fixed-size elevation and session values from the real current token' {
+        $nativeType = [Atlas.Native.TrustedInstallerProcess]
+        $informationClass = $nativeType.GetNestedType('TOKEN_INFORMATION_CLASS', [Reflection.BindingFlags]'NonPublic')
+        $readScalar = $nativeType.GetMethod('ReadTokenInt32', [Reflection.BindingFlags]'Static,NonPublic')
+        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+        try {
+            $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+            $expectedElevation = [int]$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            $readScalar.Invoke($null, @($identity.Token, [Enum]::Parse($informationClass, 'TokenElevation'))) |
+                Should -Be $expectedElevation
+            $readScalar.Invoke($null, @($identity.Token, [Enum]::Parse($informationClass, 'TokenSessionId'))) |
+                Should -Be ([Diagnostics.Process]::GetCurrentProcess().SessionId)
+        }
+        finally { $identity.Dispose() }
+    }
+
     It 'classifies the real current token without treating Administrator or SYSTEM as TrustedInstaller' {
         $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
         try {
@@ -97,7 +131,7 @@ Describe 'Atlas process privilege decisions' {
         finally {
             $identity.Dispose()
         }
-        $tokenEvidence = [Atlas.TrustedInstallerProcessNative]::GetCurrentTokenEvidence()
+        $tokenEvidence = [Atlas.Native.TrustedInstallerProcess]::GetCurrentTokenEvidence()
 
         Test-AtlasAdmin | Should -Be $expectedAdmin
         Test-AtlasSystem | Should -Be $expectedSystem
@@ -126,7 +160,7 @@ Describe 'Atlas process privilege decisions' {
     ) {
         param($Sid, $Present, $Attributes, $Integrity, $Expected)
 
-        [Atlas.TrustedInstallerProcessNative]::IsStrictTrustedInstallerEvidence(
+        [Atlas.Native.TrustedInstallerProcess]::IsStrictTrustedInstallerEvidence(
             $Sid,
             [bool]$Present,
             [uint32]$Attributes,
@@ -142,8 +176,10 @@ Describe 'Atlas toggle privilege routing' {
         Mock -CommandName Test-AtlasAdmin -ModuleName Atlas.Toggles -MockWith { $false }
         Mock -CommandName Test-AtlasSystem -ModuleName Atlas.Toggles -MockWith { $false }
         Mock -CommandName Test-AtlasTrustedInstaller -ModuleName Atlas.Toggles -MockWith { $false }
-        Mock -CommandName Read-Pause -ModuleName Atlas.Toggles
-        Mock -CommandName Write-Title -ModuleName Atlas.Toggles
+        Mock -CommandName Wait-AtlasContinue -ModuleName Atlas.Toggles
+        Mock -CommandName Wait-AtlasExit -ModuleName Atlas.Toggles
+        Mock -CommandName Write-AtlasTitle -ModuleName Atlas.Toggles
+        Mock -CommandName Write-AtlasCompletion -ModuleName Atlas.Toggles
         Mock -CommandName Write-AtlasLog -ModuleName Atlas.Toggles
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Toggles -MockWith {
             [pscustomobject]@{
@@ -194,10 +230,7 @@ Describe 'Atlas toggle privilege routing' {
         Should -Invoke -CommandName Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles `
             -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains '-MachineOnly' }
         Should -Not -Invoke -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles
-        Should -Invoke -CommandName Read-Pause -ModuleName Atlas.Toggles `
-            -Times 1 -Exactly -ParameterFilter {
-                $Message -ceq 'Press Enter to continue or Ctrl+C to cancel'
-            }
+        Should -Invoke -CommandName Wait-AtlasContinue -ModuleName Atlas.Toggles -Times 1 -Exactly
     }
 
     It 'routes a normal split TrustedInstaller caller through Administrator and the TI broker before the bound user action' {
@@ -251,18 +284,13 @@ Describe 'Atlas toggle privilege routing' {
                     $NoExplorerRestart -and
                     $MachineOnly
             }
-        Should -Invoke -CommandName Read-Pause -ModuleName Atlas.Toggles `
-            -Times 1 -Exactly -ParameterFilter {
-                $Message -ceq 'Press Enter to continue or Ctrl+C to cancel'
-            }
+        Should -Invoke -CommandName Wait-AtlasContinue -ModuleName Atlas.Toggles -Times 1 -Exactly
     }
 
     It 'rejects an already-elevated top-level split toggle before either scope runs' -TestCases @(
         @{ Name = 'SplitAdmin' }
         @{ Name = 'SplitTrusted' }
     ) {
-        param($Name)
-
         Mock -CommandName Test-AtlasAdmin -ModuleName Atlas.Toggles -MockWith { $true }
 
         {
@@ -273,7 +301,7 @@ Describe 'Atlas toggle privilege routing' {
         $script:EventPath | Should -Not -Exist
         Should -Not -Invoke -CommandName Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles
         Should -Not -Invoke -CommandName Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles
-        Should -Not -Invoke -CommandName Read-Pause -ModuleName Atlas.Toggles
+        Should -Not -Invoke -CommandName Wait-AtlasContinue -ModuleName Atlas.Toggles
     }
 
     It 'blocks the user action when the caller SID or session changes' -TestCases @(
@@ -337,20 +365,16 @@ Describe 'Atlas trusted replay scope' {
         Mock -CommandName Write-AtlasLog -ModuleName Atlas.Toggles
     }
 
-    It 'replays only MachineAction from a split privileged state' {
+    It 'replays only the machine part of a split privileged state' {
         $definition = Get-AtlasToggleDefinition -Name SplitTrusted `
             -TogglesRoot $script:ToggleRoot
 
         & $script:TogglesModule {
             param($Definition, $StateRoot)
-            Invoke-AtlasToggleTrustedReapplyState `
-                -Definition $Definition `
-                -StateName Enable `
-                -StateRoot $StateRoot
-        } $definition $TestDrive
+            Invoke-AtlasToggleInProcess -Definition $Definition -StateName Enable -Scope Machine `
+                -Silent -NoExplorerRestart -SkipPreamble -StateRoot $StateRoot
+        } $definition 'HKCU:\Software\AtlasRewriteTest\PrivilegeReplay'
 
         Get-Content -LiteralPath $script:EventPath | Should -Be @('machine')
-        Should -Invoke -CommandName Assert-AtlasPrivilege -ModuleName Atlas.Toggles `
-            -Times 1 -Exactly -ParameterFilter { $TrustedInstaller }
     }
 }

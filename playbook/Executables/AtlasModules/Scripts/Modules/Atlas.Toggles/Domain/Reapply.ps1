@@ -1,9 +1,9 @@
-# Atlas.Toggles domain: upgrade and same-version reapply.
+# Atlas.Toggles domain: upgrade and same-version replay.
 #
 # Recorded choices are declarative machine state. Under strict TrustedInstaller, replay
-# resolves each record against the installed definition and runs only its explicitly
-# classified machine action. Split per-user actions are replayed separately in the
-# affected user's non-elevated first-logon context.
+# resolves each record against the installed definition and re-applies only that
+# state's machine work. User work is replayed separately in each account's own
+# non-elevated first sign-in process.
 
 function New-AtlasToggleStaleReplayRecordException {
     param(
@@ -26,27 +26,21 @@ function Get-AtlasToggleReplayDefinition {
         [string]$TogglesRoot
     )
 
-    $root = Get-AtlasToggleRoot -TogglesRoot $TogglesRoot
-    if (-not (Test-Path -LiteralPath $root -PathType Container)) {
-        throw "Toggle definitions root '$root' does not exist."
+    try {
+        $path = Find-AtlasToggleDefinitionFile -Name $Name -TogglesRoot $TogglesRoot
     }
-
-    $files = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter "$Name.ps1" `
-        -ErrorAction Stop | Where-Object { $_.BaseName -ceq $Name })
-    if ($files.Count -eq 0) {
-        throw (New-AtlasToggleStaleReplayRecordException `
-                -Message "has no installed toggle definition named '$Name'.")
-    }
-    if ($files.Count -gt 1) {
-        throw "Multiple toggle definitions named '$Name' were found under '$root': $(($files | ForEach-Object { $_.FullName }) -join ', ')."
+    catch {
+        # A record whose definition no longer ships is stale. Any other lookup failure
+        # (a missing root, an ambiguous name) is operational and must preserve the record.
+        if ($_.Exception.Message -like 'No toggle definition named*') {
+            throw (New-AtlasToggleStaleReplayRecordException -Message "has no installed toggle definition named '$Name'.")
+        }
+        throw
     }
 
     # Loading or validating an installed definition is operational work. Those failures
     # must preserve the user's record so a corrected payload can replay it later.
-    $definition = & $files[0].FullName
-    Assert-AtlasToggleDefinition -Definition $definition -ExpectedName $Name `
-        -SourcePath $files[0].FullName
-    return $definition
+    return Import-AtlasToggleDefinitionFile -Path $path
 }
 
 function Resolve-AtlasToggleReplayRecord {
@@ -59,34 +53,33 @@ function Resolve-AtlasToggleReplayRecord {
     )
 
     $properties = Get-ItemProperty -LiteralPath $Subkey.PSPath -ErrorAction Stop
-    if ($null -eq $properties -or
-        -not $properties.PSObject.Properties['state'] -or
-        $Subkey.GetValueKind('state') -ne [Microsoft.Win32.RegistryValueKind]::DWord) {
+    # This tree also holds product metadata, such as the previous power-scheme GUID.
+    # A key without a state value is not a recorded toggle choice.
+    if ($null -eq $properties -or -not $properties.PSObject.Properties['state']) {
+        return $null
+    }
+    if ($Subkey.GetValueKind('state') -ne [Microsoft.Win32.RegistryValueKind]::DWord) {
         throw (New-AtlasToggleStaleReplayRecordException -Message 'has no REG_DWORD state.')
     }
     $recordedState = [int]$properties.state
 
-    $definition = Get-AtlasToggleReplayDefinition -Name ([string]$Subkey.PSChildName) `
-        -TogglesRoot $TogglesRoot
-    if ($definition.Contains('NoStateRecord') -and $definition.NoStateRecord) {
-        throw (New-AtlasToggleStaleReplayRecordException `
-                -Message 'belongs to a definition that no longer records state.')
+    $definition = Get-AtlasToggleReplayDefinition -Name ([string]$Subkey.PSChildName) -TogglesRoot $TogglesRoot
+    if ($definition.Contains('NoStateRecord') -and [bool]$definition['NoStateRecord']) {
+        throw (New-AtlasToggleStaleReplayRecordException -Message 'belongs to a definition that no longer records state.')
     }
 
-    $matchingStates = @($definition.States.Keys | Where-Object {
-            $entry = $definition.States[$_]
-            $entry.Contains('StateValue') -and [int]$entry.StateValue -eq $recordedState
+    $matchingStates = @($definition['States'].Keys | Where-Object {
+            $entry = $definition['States'][$_]
+            $entry.Contains('StateValue') -and [int]$entry['StateValue'] -eq $recordedState
         })
     if ($matchingStates.Count -ne 1) {
-        throw (New-AtlasToggleStaleReplayRecordException `
-                -Message "state '$recordedState' does not map to exactly one installed state.")
+        throw (New-AtlasToggleStaleReplayRecordException -Message "state '$recordedState' does not map to exactly one installed state.")
     }
 
     $stateName = [string]$matchingStates[0]
-    $stateEntry = $definition.States[$stateName]
-    if ($stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord) {
-        throw (New-AtlasToggleStaleReplayRecordException `
-                -Message "state '$stateName' no longer records state.")
+    $stateEntry = $definition['States'][$stateName]
+    if (-not (Test-AtlasToggleRecordsState -Definition $definition -StateEntry $stateEntry)) {
+        throw (New-AtlasToggleStaleReplayRecordException -Message "state '$stateName' no longer records state.")
     }
 
     return [pscustomobject]@{
@@ -94,73 +87,8 @@ function Resolve-AtlasToggleReplayRecord {
         RecordedState = $recordedState
         StateName     = $stateName
         StateEntry    = $stateEntry
+        Work          = Get-AtlasToggleStateWork -Definition $definition -StateEntry $stateEntry
     }
-}
-
-function Invoke-AtlasToggleTrustedReapplyState {
-    <#
-    .SYNOPSIS
-        Executes one resolved machine state inside the strict-TI replay phase.
-    #>
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        $Definition,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$StateName,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$StateRoot
-    )
-
-    Assert-AtlasPrivilege -TrustedInstaller
-
-    $exactStates = @($Definition.States.Keys | Where-Object {
-            [string]::Equals([string]$_, $StateName, [StringComparison]::Ordinal)
-        })
-    if ($exactStates.Count -ne 1) {
-        throw "Trusted replay state '$StateName' does not resolve exactly once for toggle '$($Definition.Name)'."
-    }
-
-    $stateEntry = $Definition.States[$exactStates[0]]
-    $elevation = if ($Definition.Contains('Elevation')) {
-        [string]$Definition.Elevation
-    }
-    else {
-        'None'
-    }
-    if ($elevation -notin @('Admin', 'TrustedInstaller')) {
-        throw "Trusted replay toggle '$($Definition.Name)' is not classified as privileged machine state."
-    }
-
-    if (Test-AtlasToggleSplitMachineState -StateEntry $stateEntry) {
-        Invoke-AtlasToggleInProcess `
-            -Definition $Definition `
-            -StateName $StateName `
-            -Silent `
-            -NoExplorerRestart `
-            -StateRoot $StateRoot `
-            -ActionScope Machine
-        return
-    }
-
-    if (-not $stateEntry.Contains('Action') -or
-        $stateEntry.Action -isnot [scriptblock] -or
-        -not $stateEntry.Contains('ReplayScope') -or
-        [string]$stateEntry.ReplayScope -cne 'Machine') {
-        throw "Trusted replay toggle '$($Definition.Name)' state '$StateName' is not classified as machine state."
-    }
-
-    Invoke-AtlasToggleInProcess `
-        -Definition $Definition `
-        -StateName $StateName `
-        -Silent `
-        -NoExplorerRestart `
-        -StateRoot $StateRoot `
-        -ActionScope Automatic
 }
 
 function Remove-AtlasToggleReplayRecord {
@@ -184,13 +112,52 @@ function Remove-AtlasToggleReplayRecord {
     )
 
     Write-AtlasLog -Level Warning -Message "Toggle '$Name' $Reason Removing stale registry record."
-    Remove-Item -LiteralPath $KeyPath -Recurse -Force -ErrorAction Stop
+    $key = Get-Item -LiteralPath $KeyPath -ErrorAction Stop
+    foreach ($valueName in @('state', 'path')) {
+        if (@($key.GetValueNames()) -contains $valueName) {
+            Remove-ItemProperty -LiteralPath $KeyPath -Name $valueName -Force -ErrorAction Stop
+        }
+    }
+    # The replay engine owns only its state and legacy executable-path values.
+    # Keep other values and child keys so stale choices cannot erase restore metadata.
+    if (@($key.GetValueNames()).Count -eq 0 -and @($key.GetSubKeyNames()).Count -eq 0) {
+        Remove-Item -LiteralPath $KeyPath -Force -ErrorAction Stop
+    }
+}
+
+function Test-AtlasToggleReplayApplicable {
+    <#
+    .SYNOPSIS
+        Evaluates a state's optional ReplayApplicable companion function. Returns $true
+        when the state declares none.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Collections.IDictionary]$Definition,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$StateName,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$StateRoot
+    )
+
+    $stateEntry = $Definition['States'][$StateName]
+    if (-not (Test-AtlasToggleStateHasKey -StateEntry $stateEntry -Key 'ReplayApplicable')) {
+        return $true
+    }
+
+    $toggle = New-AtlasToggleContext -Definition $Definition -StateName $StateName -Silent -NoExplorerRestart -StateRoot $StateRoot
+    return [bool](Invoke-AtlasToggleFunction -Definition $Definition -FunctionName ([string]$stateEntry['ReplayApplicable']) `
+            -Toggle $toggle -Label 'replay applicability check')
 }
 
 function Invoke-AtlasToggleReapply {
     <#
     .SYNOPSIS
-        Replays recorded machine state from the currently installed toggle definitions.
+        Replays the machine work of every recorded state from the installed definitions.
     #>
     param(
         [ValidateNotNullOrEmpty()]
@@ -217,21 +184,19 @@ function Invoke-AtlasToggleReapply {
         }
         catch {
             if ($_.Exception.Data['AtlasToggleReplayRecordDisposition'] -ceq 'Stale') {
-                Remove-AtlasToggleReplayRecord `
-                    -Name $name `
-                    -KeyPath $subkey.PSPath `
-                    -Reason $_.Exception.Message
+                Remove-AtlasToggleReplayRecord -Name $name -KeyPath $subkey.PSPath -Reason $_.Exception.Message
             }
             else {
                 $failureMessage = $_.Exception.Message
                 Write-AtlasLog -Level Warning -Message `
-                    "Resolving toggle '$name' for re-apply failed; preserving its record: $failureMessage" `
-                    -ErrorRecord $_
-                $failures += [pscustomobject]@{
-                    Name    = $name
-                    Message = [string]$failureMessage
-                }
+                    "Resolving toggle '$name' for re-apply failed; preserving its record: $failureMessage" -ErrorRecord $_
+                $failures += [pscustomobject]@{ Name = $name; Message = [string]$failureMessage }
             }
+            continue
+        }
+
+        if ($null -eq $replay) {
+            Remove-AtlasToggleLegacyPath -KeyPath $subkey.PSPath
             continue
         }
 
@@ -239,64 +204,50 @@ function Invoke-AtlasToggleReapply {
 
         $definition = $replay.Definition
         $stateName = $replay.StateName
-        $stateEntry = $replay.StateEntry
-        $isSplitMachine = Test-AtlasToggleSplitMachineState -StateEntry $stateEntry
-        $isExplicitMachine = $stateEntry.Contains('Action') -and
-            $stateEntry.Action -is [scriptblock] -and
-            $stateEntry.Contains('ReplayScope') -and
-            [string]$stateEntry.ReplayScope -ceq 'Machine'
-        if (-not $isSplitMachine -and -not $isExplicitMachine) {
+        if ((Get-AtlasToggleElevation -Definition $definition) -cnotin @('Admin', 'TrustedInstaller')) {
             Write-AtlasLog -Level Warning -Message `
-                "Toggle '$name' state '$stateName' is not classified for machine replay; leaving its record unchanged."
+                "Toggle '$name' state '$stateName' is not an elevated toggle; leaving its record unchanged."
+            continue
+        }
+        if (-not $replay.Work.Machine) {
+            # A record with only user work exists to drive first sign-in replay.
+            Write-AtlasLog -Message "Toggle '$name' state '$stateName' has no machine work to re-apply."
             continue
         }
 
-        if ($stateEntry.Contains('ReplayApplicable')) {
-            try {
-                $isReplayApplicable = & $stateEntry.ReplayApplicable
-            }
-            catch {
-                $failureMessage = $_.Exception.Message
-                Write-AtlasLog -Level Warning -Message `
-                    "Checking replay applicability for toggle '$name' failed; preserving its record: $failureMessage" `
-                    -ErrorRecord $_
-                $failures += [pscustomobject]@{
-                    Name    = $name
-                    Message = [string]$failureMessage
-                }
-                continue
-            }
-            if (-not $isReplayApplicable) {
-                Remove-AtlasToggleReplayRecord `
-                    -Name $name `
-                    -KeyPath $subkey.PSPath `
-                    -Reason "state '$stateName' is no longer applicable."
-                continue
-            }
-        }
-
-        Write-AtlasLog -Message "Re-applying toggle '$name' machine state '$stateName'."
         try {
-            Invoke-AtlasToggleTrustedReapplyState `
-                -Definition $definition `
-                -StateName $stateName `
-                -StateRoot $StateRoot
+            $isReplayApplicable = Test-AtlasToggleReplayApplicable -Definition $definition -StateName $stateName -StateRoot $StateRoot
         }
         catch {
             $failureMessage = $_.Exception.Message
             Write-AtlasLog -Level Warning -Message `
-                "Re-applying toggle '$name' failed: $failureMessage" -ErrorRecord $_
-            $failures += [pscustomobject]@{
-                Name    = $name
-                Message = [string]$failureMessage
-            }
+                "Checking replay applicability for toggle '$name' failed; preserving its record: $failureMessage" -ErrorRecord $_
+            $failures += [pscustomobject]@{ Name = $name; Message = [string]$failureMessage }
+            continue
+        }
+        if (-not $isReplayApplicable) {
+            Remove-AtlasToggleReplayRecord -Name $name -KeyPath $subkey.PSPath `
+                -Reason "state '$stateName' is no longer applicable."
+            continue
+        }
+
+        Write-AtlasLog -Message "Re-applying toggle '$name' machine state '$stateName'."
+        try {
+            Invoke-AtlasToggleInProcess -Definition $definition -StateName $stateName -Scope Machine `
+                -Silent -NoExplorerRestart -SkipPreamble -StateRoot $StateRoot
+        }
+        catch {
+            $failureMessage = $_.Exception.Message
+            Write-AtlasLog -Level Warning -Message "Re-applying toggle '$name' failed: $failureMessage" -ErrorRecord $_
+            $failures += [pscustomobject]@{ Name = $name; Message = [string]$failureMessage }
         }
     }
 
+    # Stale records were removed above; the document must reflect the surviving set.
+    Sync-AtlasToggleStateDocument -StateRoot $StateRoot
+
     if ($failures.Count -gt 0) {
-        $failureDetails = @($failures | ForEach-Object {
-                "'$($_.Name)': $($_.Message)"
-            }) -join '; '
+        $failureDetails = @($failures | ForEach-Object { "'$($_.Name)': $($_.Message)" }) -join '; '
         throw "Upgrade toggle re-apply failed for $($failures.Count) toggle(s): $failureDetails"
     }
 }
@@ -304,7 +255,7 @@ function Invoke-AtlasToggleReapply {
 function Invoke-AtlasToggleUserReapply {
     <#
     .SYNOPSIS
-        Replays recorded split-toggle state for the current non-elevated user.
+        Replays the user work of every recorded state for the current non-elevated user.
     #>
     param(
         [ValidateNotNullOrEmpty()]
@@ -334,40 +285,24 @@ function Invoke-AtlasToggleUserReapply {
                 "Skipping per-user replay for toggle '$name': $($_.Exception.Message)" -ErrorRecord $_
             continue
         }
-
-        $definition = $replay.Definition
-        $stateName = $replay.StateName
-        $stateEntry = $replay.StateEntry
-        if (-not (Test-AtlasToggleSplitMachineState -StateEntry $stateEntry)) {
+        if ($null -eq $replay -or -not $replay.Work.User) {
             continue
         }
 
-        Write-AtlasLog -Message "Re-applying toggle '$name' user state '$stateName'."
+        Write-AtlasLog -Message "Re-applying toggle '$name' user state '$($replay.StateName)'."
         try {
-            Invoke-AtlasToggleInProcess `
-                -Definition $definition `
-                -StateName $stateName `
-                -Silent `
-                -NoExplorerRestart `
-                -StateRoot $StateRoot `
-                -UserContext `
-                -ActionScope User
+            Invoke-AtlasToggleInProcess -Definition $replay.Definition -StateName $replay.StateName -Scope User `
+                -Silent -NoExplorerRestart -SkipPreamble -StateRoot $StateRoot
         }
         catch {
             $failureMessage = $_.Exception.Message
-            Write-AtlasLog -Level Warning -Message `
-                "Re-applying toggle '$name' user state failed: $failureMessage" -ErrorRecord $_
-            $failures += [pscustomobject]@{
-                Name    = $name
-                Message = [string]$failureMessage
-            }
+            Write-AtlasLog -Level Warning -Message "Re-applying toggle '$name' user state failed: $failureMessage" -ErrorRecord $_
+            $failures += [pscustomobject]@{ Name = $name; Message = [string]$failureMessage }
         }
     }
 
     if ($failures.Count -gt 0) {
-        $failureDetails = @($failures | ForEach-Object {
-                "'$($_.Name)': $($_.Message)"
-            }) -join '; '
+        $failureDetails = @($failures | ForEach-Object { "'$($_.Name)': $($_.Message)" }) -join '; '
         throw "User toggle re-apply failed for $($failures.Count) toggle(s): $failureDetails"
     }
 }

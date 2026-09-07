@@ -2,7 +2,7 @@
 
 $script:AtlasTweakTopLevelKeys = @(
     'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'Oobe', 'RunAs', 'MinBuild', 'MaxBuild',
-    'Registry', 'PostUserRegistryRefresh', 'Services', 'ScheduledTasks', 'Run', 'RemovePaths', 'Script'
+    'Registry', 'PostUserRegistryRefresh', 'Services', 'ScheduledTasks', 'Toggle', 'Run', 'RemovePaths', 'Script'
 )
 
 $script:AtlasKnownOptions = @(
@@ -18,9 +18,10 @@ $script:AtlasKnownOptions = @(
 $script:AtlasRegistryValueTypes = @('String', 'ExpandString', 'Binary', 'DWord', 'MultiString', 'QWord', 'None')
 
 $script:AtlasTweakEntryKeys = @{
-    Registry       = @('Path', 'Name', 'Type', 'Data', 'Operation', 'Arch', 'IgnoreErrors')
-    Services       = @('Name', 'Operation', 'StartupType', 'IgnoreErrors')
+    Registry       = @('Path', 'Name', 'Type', 'Data', 'Operation', 'Arch', 'IgnoreErrors', 'AllowOsProtected', 'SkipVerification', 'UseGroupPolicy', 'Mask', 'MigrateDwordToString', 'VerifyWithToggle')
+    Services       = @('Name', 'Operation', 'StartupType', 'AllowMissing', 'IgnoreErrors')
     ScheduledTasks = @('Path', 'Operation', 'IgnoreErrors')
+    Toggle         = @('Name', 'State')
     Run            = @('Exe', 'Args', 'Arch', 'IgnoreErrors', 'Wait', 'RunAs', 'AllowedExitCodes')
     RemovePaths    = @('Path', 'Arch', 'IgnoreErrors')
 }
@@ -151,6 +152,40 @@ function Test-AtlasTweakFileSchema {
         foreach ($entry in $entries) {
             Add-UnknownEntryKeyProblem -Key 'Registry' -Entry $entry
 
+            if ($entry.ContainsKey('MigrateDwordToString') -and
+                ($entry.MigrateDwordToString -isnot [bool] -or -not $entry.ContainsKey('Mask') -or
+                 $entry['Type'] -cne 'String' -or ($entry.ContainsKey('Operation') -and $entry.Operation -cne 'Set'))) {
+                Add-Problem -Problem 'MigrateDwordToString requires a boolean and a masked String Set entry.'
+            }
+            if ($entry.ContainsKey('VerifyWithToggle')) {
+                $override = $entry['VerifyWithToggle']
+                if ($override -isnot [hashtable]) {
+                    Add-Problem -Problem 'VerifyWithToggle must be a hashtable.'
+                }
+                else {
+                    foreach ($key in $override.Keys) {
+                        if ($key -notin @('Name', 'State', 'Operation', 'Type', 'Data')) {
+                            Add-Problem -Problem "VerifyWithToggle has an unknown key '$key'."
+                        }
+                    }
+                    if ($override['Name'] -isnot [string] -or [string]::IsNullOrWhiteSpace($override['Name']) -or
+                        $override['State'] -isnot [int]) {
+                        Add-Problem -Problem 'VerifyWithToggle requires a non-empty toggle Name and integer State.'
+                    }
+                    $overrideOperation = if ($override.ContainsKey('Operation')) { $override['Operation'] } else { 'Set' }
+                    if ($overrideOperation -notin @('Set', 'Delete') -or
+                        ($overrideOperation -eq 'Set' -and ($override['Type'] -notin $script:AtlasRegistryValueTypes -or -not $override.ContainsKey('Data')))) {
+                        Add-Problem -Problem 'VerifyWithToggle requires a Delete operation or a Set expectation with Type and Data.'
+                    }
+                }
+                if ($entry.ContainsKey('SkipVerification') -or $entry.ContainsKey('Mask') -or
+                    $entry['Path'] -notmatch '^(HKLM:?|HKEY_LOCAL_MACHINE|Registry::HKEY_LOCAL_MACHINE|HKCU:?|HKEY_CURRENT_USER|Registry::HKEY_CURRENT_USER)\\' -or
+                    ($entry.ContainsKey('Operation') -and $entry['Operation'] -notin @('Set', 'Delete')) -or
+                    -not $entry.ContainsKey('Name')) {
+                    Add-Problem -Problem 'VerifyWithToggle requires a fully verified, unmasked machine or current-user registry value.'
+                }
+            }
+
             $operation = 'Set'
             if ($entry.ContainsKey('Operation') -and $entry['Operation']) {
                 $operation = [string]$entry['Operation']
@@ -199,6 +234,29 @@ function Test-AtlasTweakFileSchema {
 
             if ($entry.ContainsKey('IgnoreErrors') -and -not ($entry['IgnoreErrors'] -is [bool])) {
                 Add-Problem -Problem "Registry entry 'IgnoreErrors' must be a boolean."
+            }
+
+            if ($entry.ContainsKey('UseGroupPolicy')) {
+                if ($entry['UseGroupPolicy'] -isnot [bool]) {
+                    Add-Problem -Problem "Registry entry 'UseGroupPolicy' must be a boolean."
+                }
+                elseif ($entry['UseGroupPolicy'] -and ($operation -ine 'Set' -or $entry['Type'] -ine 'DWord' -or
+                        $entry['Path'] -notmatch '^(HKLM:?|HKEY_LOCAL_MACHINE|Registry::HKEY_LOCAL_MACHINE)\\SOFTWARE\\Policies\\')) {
+                    Add-Problem -Problem 'UseGroupPolicy requires an HKLM Software\Policies DWord Set entry.'
+                }
+            }
+            if ($entry.ContainsKey('SkipVerification') -and
+                ($entry['SkipVerification'] -isnot [string] -or [string]::IsNullOrWhiteSpace($entry['SkipVerification']))) {
+                Add-Problem -Problem "Registry entry 'SkipVerification' must be a non-empty reason string."
+            }
+
+            if ($entry.ContainsKey('AllowOsProtected')) {
+                if (-not ($entry['AllowOsProtected'] -is [bool])) {
+                    Add-Problem -Problem "Registry entry 'AllowOsProtected' must be a boolean."
+                }
+                if ($operation -notin @('Set', 'Delete')) {
+                    Add-Problem -Problem "Registry entry 'AllowOsProtected' applies only to 'Set' and 'Delete' operations."
+                }
             }
         }
     }
@@ -253,6 +311,9 @@ function Test-AtlasTweakFileSchema {
             if ($entry.ContainsKey('IgnoreErrors') -and -not ($entry['IgnoreErrors'] -is [bool])) {
                 Add-Problem -Problem "Service entry 'IgnoreErrors' must be a boolean."
             }
+            if ($entry.ContainsKey('AllowMissing') -and -not ($entry['AllowMissing'] -is [bool])) {
+                Add-Problem -Problem "Service entry 'AllowMissing' must be a boolean."
+            }
         }
     }
 
@@ -271,6 +332,19 @@ function Test-AtlasTweakFileSchema {
 
             if ($entry.ContainsKey('IgnoreErrors') -and -not ($entry['IgnoreErrors'] -is [bool])) {
                 Add-Problem -Problem "ScheduledTasks entry 'IgnoreErrors' must be a boolean."
+            }
+        }
+    }
+
+    if ($tweak.ContainsKey('Toggle')) {
+        $entries = Test-AtlasTweakEntryList -FilePath $FilePath -Key 'Toggle' -Value $tweak['Toggle'] -Problems $Problems
+        foreach ($entry in $entries) {
+            Add-UnknownEntryKeyProblem -Key 'Toggle' -Entry $entry
+            foreach ($key in @('Name', 'State')) {
+                if (-not $entry.ContainsKey($key) -or $entry[$key] -isnot [string] -or
+                    [string]$entry[$key] -cnotmatch '\A[A-Za-z][A-Za-z0-9]*\z') {
+                    Add-Problem -Problem "Toggle entry '$key' must be an identifier naming an installed toggle definition and one of its states."
+                }
             }
         }
     }

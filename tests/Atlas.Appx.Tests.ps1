@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Appx\Atlas.Appx.psd1') -Force
@@ -366,7 +367,7 @@ Describe 'Install-state-bound AppX cache launcher' {
         $script:testPowerShell = Join-Path -Path $script:testWindows `
             -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
         $script:testCacheScript = Join-Path -Path $script:testModules `
-            -ChildPath 'Scripts\Internal\Clear-AtlasUserAppxCache.ps1'
+            -ChildPath 'Scripts\Operations\Clear-AtlasUserAppxCache.ps1'
         New-Item -Path (Split-Path -Parent $script:testPowerShell) -ItemType Directory -Force | Out-Null
         New-Item -Path (Split-Path -Parent $script:testCacheScript) -ItemType Directory -Force | Out-Null
         Set-Content -LiteralPath $script:testPowerShell -Value 'test executable'
@@ -484,16 +485,16 @@ Describe 'Install-state-bound AppX cache launcher' {
             -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
         $junctionModules = Join-Path -Path $junctionWindows -ChildPath 'AtlasModules'
         $scriptsPath = Join-Path -Path $junctionModules -ChildPath 'Scripts'
-        $outsideInternal = Join-Path -Path $TestDrive -ChildPath 'OutsideInternal'
+        $outsideOperations = Join-Path -Path $TestDrive -ChildPath 'OutsideOperations'
         New-Item -Path (Split-Path -Parent $junctionPowerShell) -ItemType Directory -Force | Out-Null
         New-Item -Path $scriptsPath -ItemType Directory -Force | Out-Null
-        New-Item -Path $outsideInternal -ItemType Directory -Force | Out-Null
+        New-Item -Path $outsideOperations -ItemType Directory -Force | Out-Null
         Set-Content -LiteralPath $junctionPowerShell -Value 'test executable'
-        Set-Content -LiteralPath (Join-Path $outsideInternal 'Clear-AtlasUserAppxCache.ps1') `
+        Set-Content -LiteralPath (Join-Path $outsideOperations 'Clear-AtlasUserAppxCache.ps1') `
             -Value 'redirected script'
         try {
-            New-Item -Path (Join-Path $scriptsPath 'Internal') -ItemType Junction `
-                -Target $outsideInternal -ErrorAction Stop | Out-Null
+            New-Item -Path (Join-Path $scriptsPath 'Operations') -ItemType Junction `
+                -Target $outsideOperations -ErrorAction Stop | Out-Null
         }
         catch {
             Set-ItResult -Skipped -Because "Directory junctions are unavailable: $($_.Exception.Message)"
@@ -862,5 +863,48 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
 
         { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } |
             Should -Throw -ExpectedMessage '*Stubborn.App*: 1 installed package(s) remain registered*'
+    }
+}
+
+Describe 'Install-AtlasGameBar' {
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Appx
+        Mock Assert-AtlasTrustedWingetSource -ModuleName Atlas.Appx
+        $script:wingetLog = Join-Path $TestDrive 'winget-args.txt'
+        $script:fakeWinget = Join-Path $TestDrive 'winget.cmd'
+        Mock Get-AtlasTrustedWingetPath -ModuleName Atlas.Appx { $script:fakeWinget }
+    }
+
+    It 'installs the Store package through the trusted client with exact arguments' {
+        Set-Content -LiteralPath $script:fakeWinget -Encoding Ascii -Value @(
+            "@echo %*> `"$script:wingetLog`""
+            '@exit /b 0'
+        )
+
+        Install-AtlasGameBar
+
+        (Get-Content -LiteralPath $script:wingetLog -Raw).Trim() | Should -BeExactly (
+            'install --exact --id 9NZKPSTSNW4P --source msstore ' +
+            '--accept-package-agreements --accept-source-agreements --disable-interactivity --silent'
+        )
+        Should -Invoke Assert-AtlasTrustedWingetSource -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $WingetPath -eq $script:fakeWinget -and $Name -eq 'msstore'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 0
+    }
+
+    It 'treats the no-applicable-upgrade result as already installed' {
+        Set-Content -LiteralPath $script:fakeWinget -Encoding Ascii -Value '@exit /b -1978335189'
+
+        { Install-AtlasGameBar } | Should -Not -Throw
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Message -like '*already installed*'
+        }
+    }
+
+    It 'fails on any other WinGet exit code' {
+        Set-Content -LiteralPath $script:fakeWinget -Encoding Ascii -Value '@exit /b 3'
+
+        { Install-AtlasGameBar } | Should -Throw '*exit code 3*'
     }
 }

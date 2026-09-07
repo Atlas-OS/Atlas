@@ -1,11 +1,12 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
     $script:ConfigurationRoot = Join-Path $script:RepoRoot 'playbook\Configuration'
     $script:CustomYamlPath = Join-Path $script:ConfigurationRoot 'custom.yml'
     $script:CustomYaml = [IO.File]::ReadAllText($script:CustomYamlPath)
     $script:PowerShellExe = '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
     $script:PowerShellPrefix = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass'
-    $script:StateScript = '.\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1'
+    $script:StateScript = '.\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1'
     $script:ApplicabilityProperties = @(
         'iso', 'oobe', 'option', 'options', 'builds', 'cpuArch',
         'onUpgrade', 'onUpgradeVersions', 'previousOption'
@@ -110,7 +111,7 @@ Describe 'Compact AME runner boundary' {
 
     It 'publishes the installing user exactly once outside OOBE' {
         $expectedArguments = New-AtlasFileArgument `
-            -Path '.\AtlasModules\Scripts\Publish-AtlasInstallUser.ps1'
+            -Path '.\AtlasModules\Scripts\Entry\Publish-AtlasInstallUser.ps1'
         $publishers = @($script:Actions | Where-Object {
                 $_.Type -ceq 'run' -and $_.Properties.runas -ceq 'currentUser'
             })
@@ -152,7 +153,7 @@ Describe 'Compact AME runner boundary' {
         $commitArguments = New-AtlasFileArgument -Path $script:StateScript `
             -Tail '-Operation Commit'
         $runArguments = New-AtlasFileArgument `
-            -Path '.\AtlasModules\Scripts\Invoke-AtlasInstall.ps1' -Tail '-Run'
+            -Path '.\AtlasModules\Scripts\Entry\Invoke-AtlasInstall.ps1' -Tail '-Run'
         $commit = @($script:Actions | Where-Object {
                 $_.Type -ceq 'run' -and
                 [string]$_.Properties.args -ceq $commitArguments

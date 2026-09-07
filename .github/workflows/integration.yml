@@ -1,0 +1,82 @@
+name: Integration (lab VM)
+
+# Installs the built playbook on a Hyper-V lab VM and verifies the result with the
+# health check and a before/after state diff. This needs a self-hosted Windows runner
+# with Hyper-V, a prepared VM checkpoint and a guest credential; hosted runners cannot
+# run it. Register a runner with the labels below and set the repository variables and
+# secret to enable the job. Until then the workflow is manual-only and reports why.
+#
+# Runner labels: self-hosted, windows, hyperv
+# Variables: ATLAS_LAB_VM (VM name), ATLAS_LAB_CHECKPOINT (clean checkpoint name)
+# Secrets: ATLAS_LAB_PASSWORD (guest local administrator password)
+# Variable (optional): ATLAS_LAB_USER (defaults to Administrator)
+
+on:
+  workflow_dispatch:
+    inputs:
+      options:
+        description: "Comma-separated FeaturePage options for the install"
+        required: false
+        default: "defender-enable,mitigations-default,auto-updates-default"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-lab
+  cancel-in-progress: false
+
+jobs:
+  lab:
+    # The job is skipped, not failed, when no lab runner has been configured.
+    if: vars.ATLAS_LAB_VM != ''
+    runs-on: [self-hosted, windows, hyperv]
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout code
+        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Build the playbook
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $output = Join-Path $env:RUNNER_TEMP ('atlas-lab-' + [guid]::NewGuid().ToString('N'))
+          New-Item -Path $output -ItemType Directory -ErrorAction Stop | Out-Null
+          & tools/build/Build-Playbook.ps1 -FileName 'Atlas Lab' `
+              -OutputPath $output -DontOpenPbLocation
+          $apbx = Get-Item -LiteralPath (Join-Path $output 'Atlas Lab.apbx') -ErrorAction Stop
+          "ATLAS_LAB_PLAYBOOK=$($apbx.FullName)" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install on the lab VM and verify
+        shell: pwsh
+        env:
+          ATLAS_LAB_USER: ${{ vars.ATLAS_LAB_USER }}
+          ATLAS_LAB_PASSWORD: ${{ secrets.ATLAS_LAB_PASSWORD }}
+          ATLAS_LAB_VM: ${{ vars.ATLAS_LAB_VM }}
+          ATLAS_LAB_CHECKPOINT: ${{ vars.ATLAS_LAB_CHECKPOINT }}
+          LAB_OPTIONS: ${{ github.event.inputs.options }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $user = if ($env:ATLAS_LAB_USER) { $env:ATLAS_LAB_USER } else { 'Administrator' }
+          $secure = ConvertTo-SecureString -String $env:ATLAS_LAB_PASSWORD -AsPlainText -Force
+          $credential = New-Object System.Management.Automation.PSCredential($user, $secure)
+          $apbx = Get-Item -LiteralPath $env:ATLAS_LAB_PLAYBOOK -ErrorAction Stop
+          & tools/lab/Invoke-AtlasLabRun.ps1 -VMName $env:ATLAS_LAB_VM -CheckpointName $env:ATLAS_LAB_CHECKPOINT `
+              -Credential $credential -PlaybookPath $apbx.FullName -Option ($env:LAB_OPTIONS -split ',') `
+              -OutputPath 'lab-output/run'
+          if ($LASTEXITCODE -ne 0) { throw "Lab run failed with exit code $LASTEXITCODE." }
+
+      - name: Upload lab output
+        if: always()
+        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lab-output
+          path: lab-output/run
+          if-no-files-found: ignore

@@ -10,7 +10,7 @@ set "windir=%AtlasWindowsRoot%"
 set "ComSpec=%__APPDIR__%cmd.exe"
 set "PATHEXT=.COM;.EXE;.BAT;.CMD"
 set "PATH=%__APPDIR__%;%AtlasWindowsRoot%;%__APPDIR__%Wbem;%__APPDIR__%WindowsPowerShell\v1.0"
-set "script=%AtlasWindowsRoot%\AtlasModules\Scripts\Install-Toolbox.ps1"
+set "script=%AtlasWindowsRoot%\AtlasModules\Scripts\Entry\Install-Toolbox.ps1"
 if not exist "%script%" (
 	echo Script not found.
 	echo "%script%"
@@ -64,7 +64,14 @@ set "COMPLUS_ALTJITPATH="
 set "PSModulePath="
 
 "%__APPDIR__%fltmc.exe" > nul 2>&1 || (
-    "%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -Command "$a=$env:AtlasLauncherArgument;if($a -and $a -notin @('/silent','-silent')){exit 2};$s=[IO.Path]::Combine([Environment]::GetFolderPath('Windows'),'AtlasModules','Scripts','Install-Toolbox.ps1');$p=[Activator]::CreateInstance([Diagnostics.ProcessStartInfo]);$p.FileName=[IO.Path]::Combine([Environment]::GetFolderPath('System'),'WindowsPowerShell','v1.0','powershell.exe');$p.WorkingDirectory=[Environment]::GetFolderPath('System');$q=[char]34;$p.Arguments='-NoLogo -NoProfile -ExecutionPolicy Bypass -File '+$q+$s+$q+$(if($a){' -Silent'});$p.UseShellExecute=$true;$p.Verb='runas';try{$c=[Diagnostics.Process]::Start($p);if($null -eq $c){exit 1};$c.WaitForExit();exit $c.ExitCode}catch{if($_.Exception -is [ComponentModel.Win32Exception] -and $_.Exception.NativeErrorCode -eq 1223){exit 1223};exit 1}"
+    rem This window only waits for the elevated one, which prints the rest of the run.
+    if not defined AtlasLauncherArgument (
+        echo AtlasOS - Install AtlasOS Toolbox
+        echo ---------------------------------
+        echo.
+        echo Asking for administrator permission...
+    )
+    "%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -Command "$a=$env:AtlasLauncherArgument;if($a -and $a -notin @('/silent','-silent')){exit 2};$s=[IO.Path]::Combine([Environment]::GetFolderPath('Windows'),'AtlasModules','Scripts','Entry','Install-Toolbox.ps1');$p=[Activator]::CreateInstance([Diagnostics.ProcessStartInfo]);$p.FileName=[IO.Path]::Combine([Environment]::GetFolderPath('System'),'WindowsPowerShell','v1.0','powershell.exe');$p.WorkingDirectory=[Environment]::GetFolderPath('System');$q=[char]34;$p.Arguments='-NoLogo -NoProfile -ExecutionPolicy Bypass -File '+$q+$s+$q+$(if($a){' -Silent'});$p.UseShellExecute=$true;$p.Verb='runas';try{$c=[Diagnostics.Process]::Start($p);if($null -eq $c){exit 1};$c.WaitForExit();exit $c.ExitCode}catch{if($_.Exception -is [ComponentModel.Win32Exception] -and $_.Exception.NativeErrorCode -eq 1223){exit 1223};exit 1}"
     if errorlevel 0 (
         if errorlevel 1 exit /b
     ) else (

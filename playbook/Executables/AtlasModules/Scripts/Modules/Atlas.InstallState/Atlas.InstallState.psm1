@@ -12,6 +12,13 @@ param()
 
 Set-StrictMode -Version 3.0
 
+# Completion publishes the install facts into the machine state document.
+$stateDocumentManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.State\Atlas.State.psd1'
+if (-not (Test-Path -LiteralPath $stateDocumentManifest -PathType Leaf)) {
+    throw "Required Atlas.State manifest '$stateDocumentManifest' is missing."
+}
+Import-Module -Name $stateDocumentManifest -ErrorAction Stop
+
 $script:AtlasInstallStateSchemaVersion = 1
 $script:AtlasInstallStateMutexName = 'Global\AtlasOS.InstallState.v1'
 $script:AtlasInstallStateMutexTimeoutMilliseconds = 30000
@@ -336,7 +343,6 @@ function Start-AtlasInstallState {
                 -not [string]::IsNullOrWhiteSpace([string]$abandoned.lastError)) {
                 $existing = $abandoned
                 $existing.status = 'Capturing'
-                $existing.options = @()
                 $existing.userSid = $null
                 $existing.userSessionId = $null
                 $existing.captureNonce = $CaptureNonce
@@ -367,10 +373,9 @@ function Start-AtlasInstallState {
 
                 # AME can classify a retry differently after a partial install has
                 # changed product state (for example Fresh -> Reapply). Resume the
-                # original plan and completed-step boundary, but return to capture so
-                # the retry records the user's current option choices.
+                # original plan, options and completed-step boundary; only refresh
+                # the interactive identity before resuming.
                 $existing.status = 'Capturing'
-                $existing.options = @()
                 $existing.userSid = $null
                 $existing.userSessionId = $null
                 $existing.captureNonce = $CaptureNonce
@@ -405,6 +410,28 @@ function Start-AtlasInstallState {
     }
 }
 
+function Set-AtlasInstallOptions {
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Options, [string]$StatePath)
+
+    foreach ($option in $Options) { Assert-AtlasInstallName -Value $option -Label 'option name' }
+    $resolvedPath = Resolve-AtlasInstallStatePath -StatePath $StatePath
+    return Invoke-AtlasInstallStateLocked {
+        $state = Get-AtlasInstallStateUnlocked -StatePath $resolvedPath
+        if ($null -eq $state) { throw 'No Atlas install state is active.' }
+        if ($state.status -ceq 'Running' -or @($state.completedSteps).Count -gt 0) {
+            if ((@($state.options | Sort-Object) -join "`n") -cne (@($Options | Sort-Object) -join "`n")) {
+                throw 'Resume requires the original install options because completed steps will not be reapplied.'
+            }
+            return $state
+        }
+        if ($state.status -cne 'Capturing') { throw "Options cannot be set while install state is '$($state.status)'." }
+        $state.options = @($Options)
+        Write-AtlasInstallStateFile -Path $resolvedPath -State $state -CreateBackup
+        return $state
+    }
+}
+
 function Add-AtlasInstallOption {
     [CmdletBinding()]
     param(
@@ -419,7 +446,10 @@ function Add-AtlasInstallOption {
         if ($null -eq $state) {
             throw 'No Atlas install state is active.'
         }
-        if ($state.status -eq 'Running') {
+        if ($state.status -eq 'Running' -or @($state.completedSteps).Count -gt 0) {
+            if (@($state.options) -inotcontains $Name) {
+                throw 'Resume requires the original install options because completed steps will not be reapplied.'
+            }
             return $state
         }
         if ($state.status -ne 'Capturing') {
@@ -625,7 +655,8 @@ function Complete-AtlasInstallState {
     param(
         [AllowEmptyCollection()][string[]]$RequiredSteps = @(),
         [Parameter(Mandatory = $true)][string]$FlagsPath,
-        [string]$StatePath
+        [string]$StatePath,
+        [string]$StateDocumentPath
     )
 
     foreach ($requiredStep in $RequiredSteps) {
@@ -653,7 +684,15 @@ function Complete-AtlasInstallState {
             throw "Install state is missing required steps: $($missingSteps -join ', ')."
         }
 
+        # The state document is what post-install tools read; the flag set remains
+        # only for machines and tools that predate it.
         Publish-AtlasInstallFlagSet -State $state -FlagsPath $installFlagsPath
+        $documentPath = $StateDocumentPath
+        if ([string]::IsNullOrWhiteSpace($documentPath)) {
+            # AtlasOS\Installctive.json sits beside AtlasOS\state.json.
+            $documentPath = Join-Path -Path (Split-Path -Path (Split-Path -Path $resolvedPath -Parent) -Parent) -ChildPath 'state.json'
+        }
+        $null = Set-AtlasStateInstall -InstallState $state -Path $documentPath
         $state.status = 'Completed'
         $state.lastError = $null
         $directory = [IO.Path]::GetDirectoryName($resolvedPath)
@@ -674,14 +713,146 @@ function Complete-AtlasInstallState {
     }
 }
 
+function Get-AtlasPlaybookDocument {
+    <#
+    .SYNOPSIS
+        Loads playbook.conf from an explicit path or from the payload this module ships in.
+    #>
+    param([string]$PlaybookPath)
+
+    if ([string]::IsNullOrWhiteSpace($PlaybookPath)) {
+        # Modules\Atlas.InstallState -> Modules -> Scripts -> AtlasModules -> Executables -> playbook
+        $PlaybookPath = [IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot -ChildPath '..\..\..\..\..\playbook.conf'))
+    }
+    if (-not [IO.File]::Exists($PlaybookPath)) {
+        throw "Atlas playbook.conf was not found at '$PlaybookPath'."
+    }
+    [xml]$playbook = [IO.File]::ReadAllText($PlaybookPath)
+    return $playbook.Playbook
+}
+
+function Get-AtlasPlaybookVersion {
+    <#
+    .SYNOPSIS
+        Returns the playbook's own version, validated as a semantic version string.
+    #>
+    param([string]$PlaybookPath)
+
+    $version = [string](Get-AtlasPlaybookDocument -PlaybookPath $PlaybookPath).Version
+    if ($version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+        throw "Atlas target version '$version' is invalid."
+    }
+    return $version
+}
+
+function Get-AtlasPlaybookOption {
+    <#
+    .SYNOPSIS
+        Returns the FeaturePage option groups declared by playbook.conf: each group's
+        option names, whether exactly one must be chosen, and the default.
+    #>
+    param([string]$PlaybookPath)
+
+    $document = Get-AtlasPlaybookDocument -PlaybookPath $PlaybookPath
+    $groups = @()
+    foreach ($page in @($document.FeaturePages.ChildNodes | Where-Object { $_.NodeType -eq 'Element' })) {
+        $names = @($page.SelectNodes('Options/*/Name') | ForEach-Object { [string]$_.InnerText })
+        $isRadio = $page.LocalName -like 'Radio*'
+        $default = if ($null -ne $page.Attributes['DefaultOption']) { [string]$page.Attributes['DefaultOption'].Value } else { $null }
+        $dependsOn = if ($null -ne $page.Attributes['DependsOn']) { [string]$page.Attributes['DependsOn'].Value } else { $null }
+        $groups += [pscustomobject][ordered]@{
+            Page       = [string]$page.LocalName
+            Options    = $names
+            ExactlyOne = $isRadio
+            Default    = $default
+            DependsOn  = $dependsOn
+        }
+    }
+    return $groups
+}
+
+function Get-AtlasPlaybookSupportedBuild {
+    <#
+    .SYNOPSIS
+        Returns the Windows build numbers playbook.conf declares as supported.
+    #>
+    param([string]$PlaybookPath)
+
+    $document = Get-AtlasPlaybookDocument -PlaybookPath $PlaybookPath
+    return @($document.SupportedBuilds.string | ForEach-Object { [int]$_ })
+}
+
+function Resolve-AtlasInstallMode {
+    <#
+    .SYNOPSIS
+        Decides whether an install of the target version is Fresh, an Upgrade, or a
+        Reapply of the same version, from active install state, the machine state
+        document or legacy OEM version markers. Upgrades must be declared by the playbook.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$TargetVersion,
+        [string]$WindowsPath,
+        [string]$PlaybookPath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($WindowsPath)) {
+        $WindowsPath = [Environment]::GetFolderPath('Windows')
+    }
+    $active = Get-AtlasInstallState -StatePath (Join-Path $WindowsPath 'AtlasOS\Install\active.json')
+    if ($null -ne $active) {
+        if ([string]$active.targetVersion -cne $TargetVersion) {
+            throw "An install state for target '$($active.targetVersion)' is already active."
+        }
+        # An interrupted Fresh run can already have copied the payload without
+        # publishing a version. Its durable transaction retains the original mode.
+        return [string]$active.mode
+    }
+    $document = Get-AtlasState -Path (Join-Path -Path $WindowsPath -ChildPath 'AtlasOS\state.json')
+    $installedVersion = if ($null -ne $document) { [string]$document.installedVersion } else { '' }
+    if ([string]::IsNullOrWhiteSpace($installedVersion)) {
+        $legacyVersions = @(foreach ($marker in @(
+                @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'; Name = 'Model' }
+                @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'; Name = 'RegisteredOrganization' }
+            )) {
+            $value = Get-ItemProperty -LiteralPath $marker.Path -Name $marker.Name -ErrorAction SilentlyContinue
+            if ($null -ne $value -and [string]$value.($marker.Name) -match '^Atlas Playbook v?(\d+\.\d+\.\d+)$') {
+                $Matches[1]
+            }
+        }) | Sort-Object -Unique
+        if (@($legacyVersions).Count -gt 1) { throw 'Installed Atlas version markers disagree.' }
+        if (@($legacyVersions).Count -eq 1) { $installedVersion = [string]@($legacyVersions)[0] }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($installedVersion)) {
+        if ($installedVersion -ceq $TargetVersion) {
+            return 'Reapply'
+        }
+        $playbook = Get-AtlasPlaybookDocument -PlaybookPath $PlaybookPath
+        if (@($playbook.UpgradableFrom.string) -cnotcontains $installedVersion) {
+            throw "Atlas $installedVersion is not a declared upgrade source for $TargetVersion. A fresh Windows installation is required."
+        }
+        return 'Upgrade'
+    }
+
+    # An unversioned payload is not evidence of a supported upgrade source.
+    if ([IO.Directory]::Exists((Join-Path -Path $WindowsPath -ChildPath 'AtlasModules\Scripts'))) {
+        throw 'An Atlas payload exists but its installed version could not be established. A supported upgrade source is required.'
+    }
+    return 'Fresh'
+}
+
 Export-ModuleMember -Function @(
     'Get-AtlasInstallStatePath'
     'Get-AtlasInstallState'
     'Get-AtlasInstallWorkRoot'
     'Start-AtlasInstallState'
     'Add-AtlasInstallOption'
+    'Set-AtlasInstallOptions'
     'Set-AtlasInstallUser'
     'Commit-AtlasInstallState'
     'Invoke-AtlasInstallStep'
     'Complete-AtlasInstallState'
+    'Get-AtlasPlaybookVersion'
+    'Get-AtlasPlaybookOption'
+    'Get-AtlasPlaybookSupportedBuild'
+    'Resolve-AtlasInstallMode'
 )

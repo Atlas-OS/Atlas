@@ -1,21 +1,7 @@
-# Toggle: Restart Windows Explorer (plain action, no state recording).
-# The engine performs the explorer restart via Reboot='RestartExplorer' (which /noAction
-# suppresses), so the action only prints status.
-@{
-    Name          = 'RestartExplorer'
-    Elevation     = 'None'
-    NoStateRecord = $true
-    States        = [ordered]@{
-        Run = @{
-            Launcher = '4. Interface Tweaks\Restart Explorer.cmd'
-            Reboot   = 'RestartExplorer'
-            Action   = {
-                param($Toggle)
+function Show-AtlasRestartExplorerMessage {
+    param($Toggle)
 
-                if (-not $Toggle.Silent) {
-                    Write-Host 'Restarting Explorer...' -ForegroundColor Yellow
-                }
-            }
-        }
-    }
+    # The engine performs and announces the Explorer restart through Reboot =
+    # RestartExplorer; this action has nothing to add.
+    [void]$Toggle
 }

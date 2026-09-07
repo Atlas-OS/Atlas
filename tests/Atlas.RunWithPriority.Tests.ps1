@@ -1,14 +1,14 @@
 BeforeAll {
-    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
-    $togglePath = Join-Path $repoRoot `
-        'playbook\Executables\AtlasModules\Toggles\Interface\RunWithPriority.ps1'
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    $repoRoot = $script:AtlasTestRepoRoot
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
     $handlerPath = Join-Path $repoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Internal\Invoke-AtlasPriorityLaunch.ps1'
-    $shellSupportPath = Join-Path $repoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Internal\Shell-ContextMenuSupport.ps1'
+        'playbook\Executables\AtlasModules\Scripts\Operations\Invoke-AtlasPriorityLaunch.ps1'
 
-    $script:definition = & $togglePath
-    . $shellSupportPath
+    $script:definition = Get-AtlasToggleDefinition -Name RunWithPriority `
+        -TogglesRoot (Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles')
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Shell\Atlas.Shell.psd1') -Force
     . $handlerPath -Priority Normal -TargetPath 'C:\not-used.exe'
 
     if (-not ('AtlasPriorityTestCommandLine' -as [type])) {
@@ -51,46 +51,51 @@ public static class AtlasPriorityTestCommandLine
 '@ -ErrorAction Stop
     }
 
+    # Runs one companion function through the engine's own runner (module scope, strict
+    # mode) with the Atlas.Registry writes captured by the module-scoped mocks declared
+    # in the Describe's BeforeEach.
     function Invoke-PriorityToggleAction {
         param(
             [Parameter(Mandatory = $true)]
-            [scriptblock]$Action
+            [string]$FunctionName
         )
 
-        $writes = [Collections.Generic.List[object]]::new()
-        $removals = [Collections.Generic.List[string]]::new()
-        & {
-            param($Action)
-
-            Set-Item -Path Function:\Import-Module -Value { $null = $args }
-            Set-Item -Path Function:\Set-AtlasRegistryValue -Value {
-                param($Path, $Name, $Type, $Data)
-                [void]$writes.Add([pscustomobject]@{
-                        Path = $Path
-                        Name = $Name
-                        Type = $Type
-                        Data = $Data
-                    })
-            }
-            Set-Item -Path Function:\Remove-AtlasRegistryKey -Value {
-                param($Path)
-                [void]$removals.Add($Path)
-            }
-
-            & $Action ([pscustomobject]@{
-                    ScriptsPath = 'C:\AtlasModules\Scripts'
-                    Silent      = $true
-                })
-        } $Action
+        $script:priorityWrites = [Collections.Generic.List[object]]::new()
+        $script:priorityRemovals = [Collections.Generic.List[string]]::new()
+        $toggle = [pscustomobject]@{
+            Name           = 'RunWithPriority'
+            State          = 'Add'
+            StateValue     = 1
+            Silent         = $true
+            OperationsPath = 'C:\AtlasModules\Scripts\Operations'
+        }
+        InModuleScope Atlas.Toggles {
+            Invoke-AtlasToggleFunction -Definition $d -FunctionName $f -Toggle $t -Label 'test'
+        } -Parameters @{ d = $script:definition; f = $FunctionName; t = $toggle }
 
         return [pscustomobject]@{
-            Writes   = @($writes)
-            Removals = @($removals)
+            Writes   = @($script:priorityWrites)
+            Removals = @($script:priorityRemovals)
         }
     }
 }
 
 Describe 'Run with priority' {
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Set-AtlasRegistryValue -ModuleName Atlas.Toggles {
+            $script:priorityWrites.Add([pscustomobject]@{
+                    Path = $Path
+                    Name = $Name
+                    Type = $Type
+                    Data = $Data
+                })
+        }
+        Mock Remove-AtlasRegistryKey -ModuleName Atlas.Toggles {
+            $script:priorityRemovals.Add($Path)
+        }
+    }
+
     It 'maps the six menu labels to the documented Windows priority classes' {
         $expected = [ordered]@{
             Low         = [uint32]0x00000040
@@ -126,7 +131,7 @@ Describe 'Run with priority' {
     }
 
     It 'round-trips the fixed handler and selected target through Realtime UAC arguments' {
-        $handler = 'C:\Windows\AtlasModules\Scripts\Internal\Invoke-AtlasPriorityLaunch.ps1'
+        $handler = 'C:\Windows\AtlasModules\Scripts\Operations\Invoke-AtlasPriorityLaunch.ps1'
         $target = 'C:\Program Files\Atlas & games\Unicode {0} app.exe' -f [char]0x03A9
         $arguments = @(Get-AtlasPriorityRelaunchArgumentList `
                 -HandlerPath $handler -ExecutablePath $target)
@@ -140,10 +145,10 @@ Describe 'Run with priority' {
     }
 
     It 'loads the native launcher and rejects invalid calls before creating a process' {
-        Initialize-AtlasPriorityNative
+        Initialize-AtlasNativeType
 
-        'AtlasPriorityLauncherNative' -as [type] | Should -Not -BeNullOrEmpty
-        { [AtlasPriorityLauncherNative]::Start(
+        'Atlas.Native.PriorityLauncher' -as [type] | Should -Not -BeNullOrEmpty
+        { [Atlas.Native.PriorityLauncher]::Start(
                 $null,
                 '"C:\missing.exe"',
                 'C:\',
@@ -152,8 +157,10 @@ Describe 'Run with priority' {
     }
 
     It 'writes one machine cascade with the six visible menu entries' {
-        $result = Invoke-PriorityToggleAction `
-            -Action $script:definition.States.Add.Action
+        $add = $script:definition.States['Add']
+        $add['MachineAction'] | Should -BeExactly 'Add-AtlasRunWithPriorityContextMenu'
+        $add['StateValue'] | Should -Be 1
+        $result = Invoke-PriorityToggleAction -FunctionName $add['MachineAction']
         $root = 'HKLM:\SOFTWARE\Classes\exefile\Shell\Priority'
 
         $result.Removals | Should -Be @($root)
@@ -173,12 +180,14 @@ Describe 'Run with priority' {
         $labels | Should -Be @(
             'Realtime', 'High', 'Above normal', 'Normal', 'Below normal', 'Low'
         )
-        $script:definition.States.Add.ReplayScope | Should -BeExactly 'Machine'
+        $work = Get-AtlasToggleStateWork -Definition $script:definition -StateEntry $add
+        $work.Machine | Should -BeTrue
+        $work.User | Should -BeFalse
     }
 
     It 'keeps every selected executable as one argument to the fixed internal script' {
         $result = Invoke-PriorityToggleAction `
-            -Action $script:definition.States.Add.Action
+            -FunctionName $script:definition.States['Add']['MachineAction']
         $commands = @($result.Writes | Where-Object {
                 $_.Name -eq '' -and $_.Type -eq 'ExpandString'
             })
@@ -194,20 +203,26 @@ Describe 'Run with priority' {
             $parsed[0] | Should -BeExactly `
                 '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
             $parsed[9] | Should -BeExactly `
-                '%SystemRoot%\AtlasModules\Scripts\Internal\Invoke-AtlasPriorityLaunch.ps1'
+                '%SystemRoot%\AtlasModules\Scripts\Operations\Invoke-AtlasPriorityLaunch.ps1'
             $parsed[11] | Should -BeExactly $priorities[$index]
             $parsed[13] | Should -BeExactly $target
         }
     }
 
     It 'removes only the machine cascade root' {
-        $result = Invoke-PriorityToggleAction `
-            -Action $script:definition.States.Remove.Action
+        # The Remove state is declarative: one DeleteKey entry, no companion function.
+        $remove = $script:definition.States['Remove']
+        $registry = @($remove['Registry'])
 
-        $result.Writes | Should -BeNullOrEmpty
-        $result.Removals | Should -Be @(
-            'HKLM:\SOFTWARE\Classes\exefile\Shell\Priority'
-        )
-        $script:definition.States.Remove.ReplayScope | Should -BeExactly 'Machine'
+        $registry | Should -HaveCount 1
+        $registry[0].Path | Should -BeExactly 'HKLM:\SOFTWARE\Classes\exefile\Shell\Priority'
+        $registry[0].Operation | Should -BeExactly 'DeleteKey'
+        $remove.Contains('MachineAction') | Should -BeFalse
+        $remove.Contains('UserAction') | Should -BeFalse
+        $remove['StateValue'] | Should -Be 0
+
+        $work = Get-AtlasToggleStateWork -Definition $script:definition -StateEntry $remove
+        $work.Machine | Should -BeTrue
+        $work.User | Should -BeFalse
     }
 }

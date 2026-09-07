@@ -1,5 +1,30 @@
-# Companion of disable-service-host-split.psd1: the logic lives in AtlasModules\Scripts\Tasks
-# so it can also be reused outside the tweak engine.
+# Companion of disable-service-host-split.psd1: stamps SvcHostSplitDisable on every
+# svchost-hosted service so they share host processes again.
 $ErrorActionPreference = 'Stop'
 
-& (Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Scripts\Tasks\Disable-ServiceHostSplit.ps1')
+# SvcHostSplitDisable reduces the process count on memory-rich systems. Xbox services are
+# excluded because Game Bar and related services can fail when forced back into shared hosts.
+# Only svchost-hosted services are stamped: drivers also carry a 'Start' value, but the
+# flag is meaningless on them and would litter hundreds of driver keys.
+Get-ChildItem -Path 'HKLM:\SYSTEM\CurrentControlSet\Services' -ErrorAction Stop |
+    Where-Object { $_.PSChildName -notmatch 'Xbl|Xbox' } |
+    ForEach-Object {
+        $servicePath = $_.PSPath
+        $serviceName = $_.PSChildName
+        $service = Get-ItemProperty -Path $servicePath -ErrorAction SilentlyContinue
+        if ($null -ne $service -and $null -ne $service.PSObject.Properties['Start'] -and
+            $null -ne $service.PSObject.Properties['ImagePath'] -and
+            [string]$service.PSObject.Properties['ImagePath'].Value -match 'svchost\.exe') {
+            try {
+                Set-ItemProperty -Path $servicePath -Name 'SvcHostSplitDisable' -Type DWord -Value 1 -Force -ErrorAction Stop
+            }
+            catch {
+                if ($_.FullyQualifiedErrorId -like '*UnauthorizedAccessException*' -or $_.Exception -is [System.UnauthorizedAccessException]) {
+                    Write-Warning "Skipping protected service '$serviceName': $($_.Exception.Message)"
+                }
+                else {
+                    throw
+                }
+            }
+        }
+    }

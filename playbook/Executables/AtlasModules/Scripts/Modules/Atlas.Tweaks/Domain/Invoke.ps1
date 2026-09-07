@@ -39,91 +39,6 @@ function Get-AtlasTweakUserSid {
     }
 }
 
-function Invoke-AtlasTweakServiceEntries {
-    param(
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyCollection()]
-        [hashtable[]]$Entries
-    )
-
-    foreach ($entry in $Entries) {
-        $ignoreErrors = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'IgnoreErrors' -Default $false)
-        try {
-            $serviceName = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Name')
-            if (-not $serviceName) {
-                throw 'Service entry has no Name.'
-            }
-
-            $operation = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Operation' -Default 'Change')
-            switch ($operation) {
-                'Change' {
-                    # Set-AtlasServiceStartup writes the service key directly (Set-Service
-                    # cannot touch protected/driver services) and verifies retention,
-                    # because tamper-protected services silently discard Start writes.
-                    $startupType = Get-AtlasTweakEntryValue -Entry $entry -Key 'StartupType'
-                    if ($null -eq $startupType -or [int]$startupType -lt 0 -or [int]$startupType -gt 4) {
-                        throw "Service entry has no valid StartupType (expected 0-4, got '$startupType')."
-                    }
-
-                    Set-AtlasServiceStartup -Name $serviceName -StartupType ([int]$startupType)
-                }
-                'Stop' {
-                    Stop-Service -Name $serviceName -Force -ErrorAction Stop
-                }
-                'Start' {
-                    Start-Service -Name $serviceName -ErrorAction Stop
-                }
-                default {
-                    throw "Unknown service operation '$operation'."
-                }
-            }
-        }
-        catch {
-            $entryName = Get-AtlasTweakEntryValue -Entry $entry -Key 'Name' -Default '<no name>'
-            if ($ignoreErrors) {
-                Write-AtlasLog -Message "Ignored service entry failure (service: '$entryName'): $($_.Exception.Message)" -Level Warning
-                continue
-            }
-            throw
-        }
-    }
-}
-
-function Invoke-AtlasTweakScheduledTaskEntries {
-    param(
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyCollection()]
-        [hashtable[]]$Entries
-    )
-
-    foreach ($entry in $Entries) {
-        $ignoreErrors = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'IgnoreErrors' -Default $false)
-        try {
-            $taskPath = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Path')
-            if (-not $taskPath) {
-                throw 'Scheduled task entry has no Path.'
-            }
-
-            # The Atlas.TasksProcs helpers tolerate a missing task (a warning), which is
-            # expected because many stock tasks vary by Windows edition and build.
-            $operation = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Operation' -Default 'Disable')
-            switch ($operation) {
-                'Disable' { Disable-AtlasScheduledTask -Path $taskPath }
-                'Enable' { Enable-AtlasScheduledTask -Path $taskPath }
-                default { throw "Unknown scheduled task operation '$operation'." }
-            }
-        }
-        catch {
-            $entryPath = Get-AtlasTweakEntryValue -Entry $entry -Key 'Path' -Default '<no path>'
-            if ($ignoreErrors) {
-                Write-AtlasLog -Message "Ignored scheduled task entry failure (task: '$entryPath'): $($_.Exception.Message)" -Level Warning
-                continue
-            }
-            throw
-        }
-    }
-}
-
 function Invoke-AtlasTweakRunEntries {
     param(
         [Parameter(Mandatory = $true)]
@@ -259,11 +174,78 @@ function Invoke-AtlasTweakRemovePathEntries {
     }
 }
 
+function Get-AtlasUpgradeRegistryEntries {
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][hashtable[]]$Entries,
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$Records,
+        [switch]$IgnoreInvalidDefinitions
+    )
+
+    # Recorded choices are replayed from current definitions by Defaults and the
+    # user migration. Do not overwrite their registry targets with install defaults.
+    $owned = @{}
+    $ownedTrees = @{}
+    foreach ($name in $Records.Keys) {
+        try { $definition = Get-AtlasToggleDefinition -Name $name }
+        catch {
+            # Health reports definition failures separately through toggle drift.
+            # Application must fail rather than overwrite an unresolved choice.
+            if ($IgnoreInvalidDefinitions) { continue }
+            throw
+        }
+        foreach ($state in $definition.States.Values) {
+            # An unlock state may deliberately leave the user's current preference
+            # alone. Protect the targets owned by every state, not just its writes.
+            if (-not $state.Contains('StateValue')) { continue }
+            if (-not $state.Contains('Registry')) { continue }
+            foreach ($entry in @($state.Registry)) {
+                if ($null -eq $entry) { continue }
+                $path = (([string]$entry.Path).Replace(':', '') -replace '\\+', '\').TrimEnd('\').ToUpperInvariant()
+                $owned[$path + '|' + ([string]$entry['Name']).ToUpperInvariant()] = $true
+                if ([string]$entry['Operation'] -ceq 'DeleteKey') { $ownedTrees[$path] = $true }
+            }
+        }
+    }
+    foreach ($entry in $Entries) {
+        $path = (([string]$entry.Path).Replace(':', '') -replace '\\+', '\').TrimEnd('\').ToUpperInvariant()
+        $key = $path + '|' + ([string]$entry['Name']).ToUpperInvariant()
+        if ($owned.ContainsKey($key)) { continue }
+        $overlapsTree = $false
+        foreach ($tree in $ownedTrees.Keys) {
+            if ($path -ceq $tree -or $path.StartsWith($tree + '\', [StringComparison]::Ordinal)) {
+                $overlapsTree = $true
+                break
+            }
+        }
+        if (-not $overlapsTree -and [string]$entry['Operation'] -ceq 'DeleteKey') {
+            foreach ($target in $owned.Keys) {
+                $ownedPath = $target.Substring(0, $target.IndexOf('|'))
+                if ($ownedPath -ceq $path -or $ownedPath.StartsWith($path + '\', [StringComparison]::Ordinal)) {
+                    $overlapsTree = $true
+                    break
+                }
+            }
+        }
+        if ($overlapsTree) { continue }
+        if ($entry.ContainsKey('VerifyWithToggle')) {
+            $choice = $entry.VerifyWithToggle
+            if ($Records.Contains($choice.Name) -and [int]$Records[$choice.Name] -eq [int]$choice.State) {
+                $entry = $entry.Clone()
+                foreach ($field in 'Operation', 'Type', 'Data') { $entry.Remove($field) }
+                foreach ($field in 'Operation', 'Type', 'Data') {
+                    if ($choice.ContainsKey($field)) { $entry[$field] = $choice[$field] }
+                }
+            }
+        }
+        $entry
+    }
+}
+
 function Invoke-AtlasTweak {
     <#
     .SYNOPSIS
         Loads a tweak .psd1, checks its gates and applies its keys in order: Registry,
-        Services, ScheduledTasks, Run, RemovePaths, then the companion Script.
+        Services, ScheduledTasks, Toggle, Run, RemovePaths, then the companion Script.
         Every required sub-step failure is fatal; individual entries may opt into
         reviewed best-effort behavior with IgnoreErrors.
     #>
@@ -302,7 +284,11 @@ function Invoke-AtlasTweak {
     Write-AtlasLog -Message "Applying tweak '$tweakName'."
 
     if ($tweak.ContainsKey('Registry') -and $tweak['Registry']) {
-        Invoke-AtlasRegistryEntries -Entries $tweak['Registry'] `
+        $registryEntries = @($tweak['Registry'])
+        if ($Context.IsUpgrade -and $RegistryScope -cne 'DefaultUser') {
+            $registryEntries = @(Get-AtlasUpgradeRegistryEntries -Entries $registryEntries -Records (Get-AtlasToggleStateRecords))
+        }
+        Invoke-AtlasRegistryEntries -Entries $registryEntries `
             -Scope $RegistryScope -IsArm64 ([bool]$Context.IsArm64)
     }
 
@@ -311,11 +297,31 @@ function Invoke-AtlasTweak {
     }
 
     if ($tweak.ContainsKey('Services') -and $tweak['Services']) {
-        Invoke-AtlasTweakServiceEntries -Entries $tweak['Services']
+        Invoke-AtlasServiceEntries -Entries $tweak['Services']
     }
 
     if ($tweak.ContainsKey('ScheduledTasks') -and $tweak['ScheduledTasks']) {
-        Invoke-AtlasTweakScheduledTaskEntries -Entries $tweak['ScheduledTasks']
+        Invoke-AtlasScheduledTaskEntries -Entries $tweak['ScheduledTasks']
+    }
+
+    if ($tweak.ContainsKey('Toggle') -and $tweak['Toggle']) {
+        # The install shares the toggle's machine implementation and records the
+        # state, so the AtlasDesktop launcher and the install cannot drift apart.
+        foreach ($entry in @($tweak['Toggle'])) {
+            $state = [string]$entry['State']
+            if ($Context.IsUpgrade) {
+                $record = Get-AtlasToggleState -Name ([string]$entry['Name'])
+                if ($null -ne $record -and $null -ne $record.State) {
+                    $definition = Get-AtlasToggleDefinition -Name ([string]$entry['Name'])
+                    $states = @($definition.States.Values | Where-Object {
+                        $_.Contains('StateValue') -and [int]$_.StateValue -eq [int]$record.State
+                    })
+                    if ($states.Count -ne 1) { throw "Recorded toggle '$($entry['Name'])' has no unique installed state." }
+                    $state = [string]$states[0].Name
+                }
+            }
+            Invoke-AtlasToggleMachineState -Name ([string]$entry['Name']) -State $state
+        }
     }
 
     if ($tweak.ContainsKey('Run') -and $tweak['Run']) {

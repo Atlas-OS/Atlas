@@ -2,7 +2,7 @@
 .SYNOPSIS
     Bumps the Atlas playbook version in playbook.conf: sets <Version>, rewrites <Title>
     to "Atlas v<Version>" (preserving a "(dev)" suffix), and moves the previous version
-    into <UpgradableFrom>. Also rewrites every onUpgradeVersions entry in
+    into <UpgradableFrom>, retaining an explicit list of supported sources. Also rewrites every onUpgradeVersions entry in
     Configuration/custom.yml to the new version so the upgrade-only actions stay bound
     to the shipped version. playbook.conf is the single source of truth for the version.
 .EXAMPLE
@@ -71,6 +71,22 @@ $updated = foreach ($line in $lines) {
     }
 }
 
+# AME accepts both one source version and a string list. Keep the reviewed
+# legacy sources when adding the release being superseded.
+$updatedText = $updated -join [Environment]::NewLine
+$arrayPattern = '(?s)(<UpgradableFrom>)(?=\s*<string>)(.*?)(\s*</UpgradableFrom>)'
+$arrayMatch = [regex]::Match($updatedText, $arrayPattern)
+if ($arrayMatch.Success) {
+    $sourceVersions = @([regex]::Matches($arrayMatch.Groups[2].Value, '<string>\s*([^<]+?)\s*</string>') | ForEach-Object { $_.Groups[1].Value })
+    if ($sourceVersions -cnotcontains $currentVersion) {
+        $indentMatch = [regex]::Match($arrayMatch.Groups[2].Value, '(?:\r?\n)([ \t]*)<string>')
+        $indent = if ($indentMatch.Success) { $indentMatch.Groups[1].Value } else { "`t`t`t" }
+        $replacement = $arrayMatch.Groups[1].Value + $arrayMatch.Groups[2].Value.TrimEnd() +
+            [Environment]::NewLine + $indent + '<string>' + $currentVersion + '</string>' + $arrayMatch.Groups[3].Value
+        $updatedText = $updatedText.Remove($arrayMatch.Index, $arrayMatch.Length).Insert($arrayMatch.Index, $replacement)
+    }
+}
+$updated = $updatedText -split '\r?\n'
 $customYmlText = [IO.File]::ReadAllText($CustomYmlPath)
 $onUpgradePattern = '(onUpgradeVersions:\s*\[)[^\]]*(\])'
 $onUpgradeMatches = [regex]::Matches($customYmlText, $onUpgradePattern)
@@ -81,7 +97,7 @@ $updatedCustomYml = [regex]::Replace($customYmlText, $onUpgradePattern, "`${1}'$
 
 if ($PSCmdlet.ShouldProcess($PlaybookConfPath, "Set version to $Version (was $currentVersion)")) {
     Set-Content -LiteralPath $PlaybookConfPath -Value $updated -Encoding UTF8
-    Write-Host "playbook.conf version: $currentVersion -> $Version (UpgradableFrom set to $currentVersion)." -ForegroundColor Green
+    Write-Host "playbook.conf version: $currentVersion -> $Version (previous version added to upgrade sources)." -ForegroundColor Green
 }
 
 if ($PSCmdlet.ShouldProcess($CustomYmlPath, "Set every onUpgradeVersions entry to $Version")) {

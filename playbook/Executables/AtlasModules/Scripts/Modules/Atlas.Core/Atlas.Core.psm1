@@ -2,8 +2,10 @@
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(
+    'Data.ps1'
     'Context.ps1'
     'Logging.ps1'
+    'Native.ps1'
     'TrustedInstallerProcess.ps1'
     'Privilege.ps1'
     'Process.ps1'
@@ -19,9 +21,17 @@ foreach ($domainModule in @(
 }
 
 Export-ModuleMember -Function @(
+    'Import-AtlasDataFile', 'Import-AtlasModule',
+    'Initialize-AtlasNativeType',
     'Get-AtlasContext', 'Test-AtlasOption',
     'Write-AtlasLog', 'Start-AtlasPhase', 'Stop-AtlasPhase',
+    'Set-AtlasLogConsoleStyle', 'Get-AtlasLogConsoleStyle', 'Get-AtlasInstallLogPath',
     'Test-AtlasAdmin', 'Test-AtlasSystem', 'Test-AtlasTrustedInstaller', 'Assert-AtlasPrivilege', 'Invoke-AtlasTrustedInstaller', 'Invoke-AtlasAsUser', 'Get-AtlasUserProcessCommandLine',
     'ConvertTo-AtlasWindowsArgumentString', 'Invoke-AtlasHiddenProcess',
-    'Write-Title', 'Read-Pause', 'Read-MessageBox'
+    'Write-AtlasTitle', 'Write-AtlasBlankLine', 'Write-AtlasNote', 'Write-AtlasStep', 'Write-AtlasWarning',
+    'Write-AtlasSuccess', 'Write-AtlasFailure', 'Write-AtlasPartial', 'Write-AtlasNextStep',
+    'Write-AtlasManualStep', 'Write-AtlasRestartNotice', 'Write-AtlasNotApplied',
+    'Write-AtlasCompletion', 'Reset-AtlasRunOutcome', 'Get-AtlasRunOutcome', 'Set-AtlasRunOutcome',
+    'Read-AtlasYesNo', 'Read-AtlasChoice', 'Wait-AtlasContinue', 'Wait-AtlasExit',
+    'Read-MessageBox'
 )

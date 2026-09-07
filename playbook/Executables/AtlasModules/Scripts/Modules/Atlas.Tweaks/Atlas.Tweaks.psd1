@@ -13,6 +13,8 @@
         'Invoke-AtlasTweak'
         'Invoke-AtlasTweakCategory'
         'Test-AtlasTweakSchema'
+        'Test-AtlasTweak'
+        'Test-AtlasTweakCategory'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

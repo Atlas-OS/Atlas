@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Registry\Atlas.Registry.psd1') -Force
@@ -52,8 +53,8 @@ Describe 'Test-AtlasTweakSchema' {
     MinBuild       = 22000
     MaxBuild       = 26200
     Registry       = @(
-        @{ Path = 'HKLM:\SOFTWARE\Test'; Name = 'Value'; Type = 'DWord'; Data = 1 }
-        @{ Path = 'HKCU\Software\Test'; Name = 'Old'; Operation = 'Delete'; IgnoreErrors = $true }
+        @{ Path = 'HKLM:\SOFTWARE\Test'; Name = 'Value'; Type = 'DWord'; Data = 1; AllowOsProtected = $true }
+        @{ Path = 'HKCU\Software\Test'; Name = 'Old'; Operation = 'Delete'; IgnoreErrors = $true; AllowOsProtected = $false }
         @{ Path = 'HKLM:\SOFTWARE\TestKey'; Operation = 'AddKey'; Arch = 'ARM64' }
         @{ Path = 'HKLM:\SOFTWARE\Marker'; Name = 'Flag'; Type = 'None' }
     )
@@ -199,9 +200,37 @@ Describe 'Shipped tweak definitions' {
         $report | Should -BeNullOrEmpty
     }
 
+    It 'disables and stops PCA before disabling the task its service re-enables' {
+        $script:pcaOperations = New-Object 'Collections.Generic.List[string]'
+        Mock -ModuleName Atlas.Tweaks Invoke-AtlasRegistryEntries {}
+        Mock -ModuleName Atlas.Tweaks Invoke-AtlasServiceEntries {
+            param($Entries)
+            foreach ($entry in $Entries) {
+                if ($entry.Operation -eq 'Stop') {
+                    $script:pcaOperations.Add("Stop:$($entry.Name)")
+                }
+                else {
+                    $script:pcaOperations.Add("Change:$($entry.Name):$($entry.StartupType)")
+                }
+            }
+        }
+        Mock -ModuleName Atlas.Tweaks Invoke-AtlasScheduledTaskEntries {
+            param($Entries)
+            foreach ($entry in $Entries) { $script:pcaOperations.Add("Task:$($entry.Path)") }
+        }
+        Invoke-AtlasTweak -Path (Join-Path $script:shippedTweaksRoot 'privacy\disable-pca.psd1') `
+            -RegistryScope Machine -Context (New-TestContextMock)
+        @($script:pcaOperations) | Should -Be @(
+            'Change:PcaSvc:4', 'Stop:PcaSvc',
+            'Task:\Microsoft\Windows\Application Experience\PcaPatchDbTask'
+        )
+        $definition = Import-PowerShellDataFile (Join-Path $script:shippedTweaksRoot 'privacy\disable-pca.psd1')
+        ($definition.Registry | Where-Object Name -eq 'DisablePCA').Data | Should -Be 1
+    }
+
     It 'uses the supported editable Windows 11 Start pin policy without promotional pins' {
         $atlasModules = Join-Path -Path $script:shippedTweaksRoot -ChildPath '..\..'
-        $definition = Import-PowerShellDataFile -Path (Join-Path $script:shippedTweaksRoot `
+        $definition = Import-PowerShellDataFile -LiteralPath (Join-Path $script:shippedTweaksRoot `
                 'qol\config-start-menu.psd1')
         $policyEntries = @($definition.Registry | Where-Object {
                 $_.Path -eq 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer' -and
@@ -513,7 +542,7 @@ Describe 'Invoke-AtlasTweak' {
 @{
     Name = 'User Run Tweak'
     Run = @(
-        @{ Exe = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'; Args = @('-File', 'C:\Windows\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1', '-DebloatDefaults'); Wait = $true; RunAs = 'User'; IgnoreErrors = $true }
+        @{ Exe = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'; Args = @('-File', 'C:\Windows\AtlasModules\Scripts\Entry\Invoke-AtlasUserExample.ps1', '-DebloatDefaults'); Wait = $true; RunAs = 'User'; IgnoreErrors = $true }
     )
 }
 '@ | Set-Content -Path $tweakFile
@@ -523,7 +552,7 @@ Describe 'Invoke-AtlasTweak' {
         Should -Invoke -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -Times 1 -Exactly `
             -ParameterFilter {
                 $FilePath -eq 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -and
-                $Arguments -eq '-File C:\Windows\AtlasModules\Scripts\Internal\Set-SendToContextMenu.ps1 -DebloatDefaults -ExpectedUserSid S-1-5-21-1-2-3-1001'
+                $Arguments -eq '-File C:\Windows\AtlasModules\Scripts\Entry\Invoke-AtlasUserExample.ps1 -DebloatDefaults -ExpectedUserSid S-1-5-21-1-2-3-1001'
             }
         Should -Invoke -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -Times 0
 
@@ -572,8 +601,8 @@ Describe 'Invoke-AtlasTweak' {
     }
 
     It 'routes scheduled task entries through the missing-task-tolerant Atlas.TasksProcs helpers' {
-        Mock -CommandName Disable-AtlasScheduledTask -ModuleName Atlas.Tweaks
-        Mock -CommandName Enable-AtlasScheduledTask -ModuleName Atlas.Tweaks
+        Mock -CommandName Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs
+        Mock -CommandName Enable-AtlasScheduledTask -ModuleName Atlas.TasksProcs
         $tweakFile = Join-Path -Path $TestDrive -ChildPath 'scheduled-task-routing.psd1'
         @'
 @{
@@ -587,39 +616,82 @@ Describe 'Invoke-AtlasTweak' {
 
         Invoke-AtlasTweak -Path $tweakFile
 
-        Should -Invoke -CommandName Disable-AtlasScheduledTask -ModuleName Atlas.Tweaks `
+        Should -Invoke -CommandName Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs `
             -Times 1 -Exactly -ParameterFilter {
                 $Path -eq '\Microsoft\Windows\Test\UnwantedTask'
             }
-        Should -Invoke -CommandName Enable-AtlasScheduledTask -ModuleName Atlas.Tweaks `
+        Should -Invoke -CommandName Enable-AtlasScheduledTask -ModuleName Atlas.TasksProcs `
             -Times 1 -Exactly -ParameterFilter {
                 $Path -eq '\Microsoft\Windows\Test\WantedTask'
             }
     }
 
     It 'routes service startup changes through the checked Atlas.Services helper' {
-        Mock -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Tweaks
+        Mock -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Services
         $tweakFile = Join-Path -Path $TestDrive -ChildPath 'service-startup.psd1'
         @'
 @{
     Name = 'Service Startup'
     Services = @(
         @{ Name = 'TestSvc'; StartupType = 4 }
+        @{ Name = 'OptionalDrv'; StartupType = 3; AllowMissing = $true }
     )
 }
 '@ | Set-Content -Path $tweakFile
 
         Invoke-AtlasTweak -Path $tweakFile
 
-        Should -Invoke -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Tweaks `
+        Should -Invoke -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Services `
             -Times 1 -Exactly -ParameterFilter {
-                $Name -eq 'TestSvc' -and $StartupType -eq 4
+                $Name -eq 'TestSvc' -and $StartupType -eq 4 -and -not $AllowMissing
+            }
+        Should -Invoke -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Services `
+            -Times 1 -Exactly -ParameterFilter {
+                $Name -eq 'OptionalDrv' -and $StartupType -eq 3 -and $AllowMissing
             }
 
-        Mock -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Tweaks -MockWith {
+        Mock -CommandName Set-AtlasServiceStartup -ModuleName Atlas.Services -MockWith {
             throw "Service or driver 'TestSvc' did not retain startup type '4'."
         }
         { Invoke-AtlasTweak -Path $tweakFile } | Should -Throw '*did not retain startup type*'
+    }
+
+    It 'applies a Toggle entry through the toggle engine machine state with the declared name and state' {
+        Mock -CommandName Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'toggle-routing.psd1'
+        @'
+@{
+    Name = 'Toggle Routing'
+    Toggle = @(
+        @{ Name = 'FileSharing'; State = 'Disable' }
+        @{ Name = 'Indexing'; State = 'Minimal' }
+    )
+}
+'@ | Set-Content -Path $tweakFile
+
+        Invoke-AtlasTweak -Path $tweakFile
+
+        Should -Invoke -CommandName Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks `
+            -Times 2 -Exactly
+        Should -Invoke -CommandName Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks `
+            -Times 1 -Exactly -ParameterFilter {
+                $Name -ceq 'FileSharing' -and $State -ceq 'Disable'
+            }
+        Should -Invoke -CommandName Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks `
+            -Times 1 -Exactly -ParameterFilter {
+                $Name -ceq 'Indexing' -and $State -ceq 'Minimal'
+            }
+
+        Mock -CommandName Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -MockWith {
+            throw "Toggle 'FileSharing' machine state failed."
+        }
+        { Invoke-AtlasTweak -Path $tweakFile } | Should -Throw '*machine state failed*'
+        # Invocation counts accumulate across both runs: the failing run reached the
+        # first entry again and must not have continued to the second.
+        Should -Invoke -CommandName Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks `
+            -Times 2 -Exactly -ParameterFilter { $Name -ceq 'FileSharing' }
+        Should -Invoke -CommandName Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks `
+            -Times 1 -Exactly -ParameterFilter { $Name -ceq 'Indexing' }
     }
 
     It 'bounds RemovePaths to the Windows directory and propagates required removal failures' {
@@ -787,7 +859,7 @@ Describe 'Get-AtlasTweakManifest and Invoke-AtlasTweakCategory' {
 }
 
 Describe 'Shipped QoL advisory shell state' {
-    It 'keeps the TaskbarDa UI synchronization best-effort' {
+    It 'uses the device Widgets policy without an unreliable TaskbarDa write' {
         $definitionPath = Join-Path $PSScriptRoot `
             '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\taskbar\disable-news-and-interests.psd1'
         $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
@@ -796,33 +868,94 @@ Describe 'Shipped QoL advisory shell state' {
                 $_.Name -ceq 'TaskbarDa'
             })
 
-        $entry | Should -HaveCount 1
-        $entry[0].IgnoreErrors | Should -BeTrue
+        $entry | Should -HaveCount 0
     }
 }
 
-Describe 'Invoke-RevertPhase optional theme refresh' {
-    It 'warns and continues when the upgrade-only theme tweak fails' {
-        Mock -CommandName Assert-AtlasPrivilege
-        Mock -CommandName Import-Module
-        Mock -CommandName Get-AtlasContext -MockWith {
-            [pscustomobject]@{
-                IsUpgrade       = $true
-                AtlasModulesPath = $TestDrive
-            }
-        }
-        Mock -CommandName Test-Path -MockWith { $false }
-        Mock -CommandName Invoke-AtlasTweak -MockWith { throw 'theme failure marker' }
-        Mock -CommandName Write-AtlasLog
+Describe 'Upgrade theme tweak plan step' {
+    BeforeAll {
+        . (Join-Path -Path $PSScriptRoot -ChildPath `
+                '..\playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
+    }
 
-        $phase = Join-Path -Path $PSScriptRoot -ChildPath `
-            '..\playbook\Executables\AtlasModules\Scripts\Phases\Invoke-RevertPhase.ps1'
-        { . $phase } | Should -Not -Throw
+    It 'applies the upgrade-only theme tweak as its own step directly after Defaults' -TestCases @(
+        @{ IsOobe = $false }
+        @{ IsOobe = $true }
+    ) {
+        $keys = @((Get-AtlasInstallPlan -Mode Upgrade -IsOobe $IsOobe).Key)
+        $defaultsIndex = [Array]::IndexOf($keys, 'Defaults')
 
-        Should -Invoke -CommandName Invoke-AtlasTweak -Times 1 -Exactly
-        Should -Invoke -CommandName Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
-            $Level -eq 'Warning' -and
-            $Message -like '*optional upgrade theme policy*theme failure marker*'
+        $defaultsIndex | Should -BeGreaterOrEqual 0
+        $keys[$defaultsIndex + 1] | Should -BeExactly 'Tweak/qol/appearance/atlas-theme-upgrade'
+        @($keys | Where-Object { $_ -ceq 'Tweak/qol/appearance/atlas-theme-upgrade' }).Count | Should -Be 1
+    }
+
+    It 'does not apply the upgrade theme tweak on <Mode> installs' -TestCases @(
+        @{ Mode = 'Fresh' }
+        @{ Mode = 'Reapply' }
+    ) {
+        foreach ($isOobe in @($false, $true)) {
+            @((Get-AtlasInstallPlan -Mode $Mode -IsOobe $isOobe).Key) |
+                Should -Not -Contain 'Tweak/qol/appearance/atlas-theme-upgrade'
         }
+    }
+
+    It 'does not run a blanket Store database repair during upgrades' {
+        $keys = @((Get-AtlasInstallPlan -Mode Upgrade).Key)
+        $keys | Should -Not -Contain 'Revert'
+        $phase = Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Install\Phases\Invoke-RevertPhase.ps1'
+        Test-Path -LiteralPath $phase | Should -BeFalse
+    }
+}
+
+Describe 'Test-AtlasTweakSchema AllowOsProtected' {
+    It 'rejects a non-boolean declaration and key operations' {
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'os-protected.psd1'
+        @'
+@{
+    Name     = 'Protected'
+    Registry = @(
+        @{ Path = 'HKLM:\SOFTWARE\Test'; Name = 'V'; Type = 'DWord'; Data = 1; AllowOsProtected = 'yes' }
+        @{ Path = 'HKLM:\SOFTWARE\TestKey'; Operation = 'AddKey'; AllowOsProtected = $true }
+    )
+}
+'@ | Set-Content -Path $tweakFile
+
+        $problemText = @(Test-AtlasTweakSchema -Path $tweakFile | ForEach-Object { $_.Problem }) -join "`n"
+        $problemText | Should -Match "'AllowOsProtected' must be a boolean"
+        $problemText | Should -Match "applies only to 'Set' and 'Delete'"
+    }
+}
+
+Describe 'Local Group Policy declaration schema' {
+    It 'accepts only explicit machine DWORD policy writes' -TestCases @(
+        @{ Path = 'HKLM\Software\Policies\Test'; Type = 'DWord'; Flag = '$true'; Valid = $true }
+        @{ Path = 'HKCU\Software\Policies\Test'; Type = 'DWord'; Flag = '$true'; Valid = $false }
+        @{ Path = 'HKLM\Software\Test'; Type = 'DWord'; Flag = '$true'; Valid = $false }
+        @{ Path = 'HKLM\Software\Policies\Test'; Type = 'String'; Flag = '$true'; Valid = $false }
+        @{ Path = 'HKLM\Software\Policies\Test'; Type = 'DWord'; Flag = "'false'"; Valid = $false }
+    ) {
+        param($Path, $Type, $Flag, $Valid)
+        $file = Join-Path $TestDrive 'policy.psd1'
+        Set-Content -LiteralPath $file -Value "@{ Name = 'Policy'; Registry = @(@{ Path = '$Path'; Name = 'Policy'; Type = '$Type'; Data = 0; UseGroupPolicy = $Flag }) }"
+        $problems = @(Test-AtlasTweakSchema -Path $file)
+        if ($Valid) { $problems.Count | Should -Be 0 }
+        else { ($problems.Problem -join '; ') | Should -Match 'UseGroupPolicy' }
+    }
+}
+
+Describe 'Registry verification exclusions in tweak schemas' {
+    It 'requires a non-empty reason string' -TestCases @(
+        @{ Value = "'Windows recreates this cache.'"; Valid = $true }
+        @{ Value = '$true'; Valid = $false }
+        @{ Value = "''"; Valid = $false }
+        @{ Value = "' '"; Valid = $false }
+    ) {
+        param($Value, $Valid)
+        $path = Join-Path $TestDrive 'verification.psd1'
+        Set-Content -LiteralPath $path -Value "@{ Name = 'Transient'; Registry = @(@{ Path = 'HKCU\Software\Test'; Operation = 'DeleteKey'; SkipVerification = $Value }) }"
+        $problems = @(Test-AtlasTweakSchema -Path $path)
+        if ($Valid) { $problems.Count | Should -Be 0 }
+        else { ($problems.Problem -join '; ') | Should -Match 'non-empty reason string' }
     }
 }

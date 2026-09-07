@@ -2,6 +2,17 @@ BeforeAll {
     Import-Module (Join-Path $PSScriptRoot '..\tools\build\AtlasBuild\AtlasBuild.psd1') -Force
 }
 
+Describe 'Playbook license distribution' {
+    It 'ships the complete project license in the installed module payload' {
+        $repo = Split-Path $PSScriptRoot -Parent
+        $projectLicense = Join-Path $repo 'LICENSE'
+        $payloadLicense = Join-Path $repo 'playbook\Executables\AtlasModules\LICENSE'
+        [IO.File]::ReadAllText($payloadLicense) | Should -BeExactly ([IO.File]::ReadAllText($projectLicense))
+        @(Get-AtlasPlaybookPayloadPath -PlaybookPath (Join-Path $repo 'playbook')) |
+            Should -Contain 'Executables/AtlasModules/LICENSE'
+    }
+}
+
 Describe 'Get-PlaybookVersion' {
     It 'parses version metadata from a valid playbook.conf' {
         $conf = Join-Path $TestDrive 'playbook.conf'
@@ -564,7 +575,7 @@ exit /b 0
         try {
             $env:PATH = "$fakeBin$([IO.Path]::PathSeparator)$oldPath"
             $env:ATLAS_FAKE_7Z_LOG = $logPath
-            $pwshPath = (Get-Command pwsh -CommandType Application).Source
+            $pwshPath = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
             $output = & $pwshPath -NoLogo -NoProfile -File `
                 (Join-Path $repoRoot 'tools\build\Test-Apbx.ps1') `
                 -Path $archive -PlaybookPath $playbook 2>&1
@@ -603,7 +614,7 @@ exit 37
         try {
             Push-Location -LiteralPath $sandbox
             try {
-                & $env:ComSpec /d /c 'build.cmd automated'
+                & $env:ComSpec /d /c '.\build.cmd automated'
                 $wrapperExitCode = $LASTEXITCODE
             }
             finally {
@@ -675,8 +686,11 @@ Describe 'Playbook version coherence' {
         & $script:setVersionScript -Version $bumpVersion -PlaybookConfPath $conf | Out-Null
         Get-ConfVersion -Path $conf | Should -Be $bumpVersion
         [IO.File]::ReadAllText($conf) | Should -Match ([regex]::Escape("Atlas v$bumpVersion"))
-        [IO.File]::ReadAllText($conf) | Should -Match `
-        ([regex]::Escape("<UpgradableFrom>$originalVersion</UpgradableFrom>"))
+        $bumpedConf = [xml][IO.File]::ReadAllText($conf)
+        @($bumpedConf.Playbook.UpgradableFrom.string) | Should -Contain $originalVersion
+        foreach ($sourceVersion in '0.4.1', '0.5.0', '0.5.1') {
+            @($bumpedConf.Playbook.UpgradableFrom.string) | Should -Contain $sourceVersion
+        }
         $bumpedEntries = Get-OnUpgradeVersion -Path $customYml
         $bumpedEntries.Count | Should -BeGreaterThan 0
         foreach ($entry in $bumpedEntries) { $entry | Should -Be $bumpVersion }
@@ -686,5 +700,29 @@ Describe 'Playbook version coherence' {
         foreach ($entry in (Get-OnUpgradeVersion -Path $customYml)) {
             $entry | Should -Be $originalVersion
         }
+    }
+}
+
+Describe 'Build-AtlasNative' {
+    BeforeAll {
+        $script:NativeTool = Join-Path $PSScriptRoot '..\tools\native\Build-AtlasNative.ps1'
+        $script:LegacyCompiler = Join-Path $env:windir 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+        $script:Pwsh = (Get-Process -Id $PID).Path
+    }
+
+    It 'compiles the native source into an unsigned library and records its hash' -Skip:(-not (Test-Path (Join-Path $env:windir 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'))) {
+        $output = Join-Path $TestDrive 'native'
+        $log = & $script:Pwsh -NoProfile -ExecutionPolicy Bypass -File $script:NativeTool -OutputPath $output -AllowLegacyCompiler 2>&1
+        $LASTEXITCODE | Should -Be 0 -Because ($log -join "`n")
+        $dll = Join-Path $output 'Atlas.Native.dll'
+        $dll | Should -Exist
+        (Get-Content -LiteralPath "$dll.sha256" -Raw) | Should -Match "^$((Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash.ToLowerInvariant()) \*Atlas\.Native\.dll"
+        (Get-AuthenticodeSignature -FilePath $dll).Status | Should -Be 'NotSigned'
+        [Reflection.AssemblyName]::GetAssemblyName($dll).Name | Should -Be 'Atlas.Native'
+    }
+
+    It 'fails closed when no compiler is usable' {
+        $log = & $script:Pwsh -NoProfile -ExecutionPolicy Bypass -File $script:NativeTool -OutputPath (Join-Path $TestDrive 'none') -CompilerPath (Join-Path $TestDrive 'missing-csc.exe') 2>&1
+        $LASTEXITCODE | Should -Be 2 -Because ($log -join "`n")
     }
 }

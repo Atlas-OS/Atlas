@@ -3,12 +3,14 @@ Set-StrictMode -Version 3.0
 
 # Atlas.Core supplies shared runtime helpers; Atlas.Registry applies Registry entries
 # and classifies entry scopes; Atlas.Services applies checked service startup changes;
-# Atlas.TasksProcs applies scheduled-task changes with missing-task tolerance.
+# Atlas.TasksProcs applies scheduled-task changes with missing-task tolerance;
+# Atlas.Toggles applies and records a toggle's machine state for the Toggle key.
 foreach ($dependencyManifest in @(
     '..\Atlas.Core\Atlas.Core.psd1'
     '..\Atlas.Registry\Atlas.Registry.psd1'
     '..\Atlas.Services\Atlas.Services.psd1'
     '..\Atlas.TasksProcs\Atlas.TasksProcs.psd1'
+    '..\Atlas.Toggles\Atlas.Toggles.psd1'
 )) {
     $manifestPath = Join-Path -Path $PSScriptRoot -ChildPath $dependencyManifest
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
@@ -30,11 +32,11 @@ $script:AtlasTweakPostUserRegistryRefreshOperations = @(
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(
-    'DataFile.ps1'
     'Manifest.ps1'
     'Applicability.ps1'
     'Invoke.ps1'
     'Schema.ps1'
+    'Verify.ps1'
 )) {
     $domainPath = Join-Path -Path $domainRoot -ChildPath $domainModule
     if (-not (Test-Path -LiteralPath $domainPath -PathType Leaf)) {
@@ -48,5 +50,6 @@ Export-ModuleMember -Function @(
     'Get-AtlasTweakManifest', 'Test-AtlasTweakManifest', 'Test-AtlasTweakApplicable',
     'Get-AtlasTweakCategoryPostUserRegistryRefresh',
     'Invoke-AtlasTweak', 'Invoke-AtlasTweakCategory',
-    'Test-AtlasTweakSchema'
+    'Test-AtlasTweakSchema',
+    'Test-AtlasTweak', 'Test-AtlasTweakCategory'
 )

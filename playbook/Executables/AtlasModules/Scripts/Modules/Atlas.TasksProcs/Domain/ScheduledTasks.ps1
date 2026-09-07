@@ -1,9 +1,8 @@
 # Atlas.TasksProcs domain: scheduled tasks.
 #
 # schtasks.exe is used instead of the ScheduledTasks CIM cmdlets because it behaves
-# consistently under TrustedInstaller and against protected Microsoft tasks. Exit code
-# 1 means the task does not exist, which is expected on many Windows editions/builds
-# and therefore only logged as a warning (or silenced with -IgnoreMissing).
+# consistently under TrustedInstaller and against protected Microsoft tasks. The
+# scheduler COM API checks existence and enabled state without localized text parsing.
 
 function Get-AtlasSchtasksPath {
     # Fixed System32 location so PATH resolution can never select another binary.
@@ -27,24 +26,38 @@ function Invoke-AtlasScheduledTaskCommand {
         [switch]$IgnoreMissing
     )
 
+    $before = Get-AtlasScheduledTaskState -Path $Path
+    if ($before -ceq 'Missing') {
+        if (-not $IgnoreMissing) {
+            Write-AtlasLog -Level Warning -Message "Scheduled task '$Path' was not found; nothing to $OperationLabel."
+        }
+        return
+    }
     $schtasksPath = Get-AtlasSchtasksPath
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
         $output = & $schtasksPath @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
     }
     finally {
         $ErrorActionPreference = $previousErrorActionPreference
     }
-    if ($LASTEXITCODE -eq 1) {
-        if (-not $IgnoreMissing) {
-            Write-AtlasLog -Level Warning -Message "Scheduled task '$Path' was not found; nothing to $OperationLabel."
-        }
-    }
-    elseif ($LASTEXITCODE -ne 0) {
+    if ($exitCode -ne 0) {
         $details = (@($output) | ForEach-Object { "$_" }) -join ' '
-        Write-AtlasLog -Level Warning -Message "Couldn't $OperationLabel scheduled task '$Path' (schtasks.exe exited with code $LASTEXITCODE): $details"
+        throw "Couldn't $OperationLabel scheduled task '$Path' (schtasks.exe exited with code ${exitCode}): $details"
     }
+    $expected = switch ($OperationLabel) {
+        'disable' { 'Disabled' }
+        'enable' { 'Enabled' }
+        'delete' { 'Missing' }
+        default { throw "Unknown scheduled task operation '$OperationLabel'." }
+    }
+    $after = Get-AtlasScheduledTaskState -Path $Path
+    if ($after -cne $expected) {
+        throw "Scheduled task '$Path' remained '$after' after $OperationLabel; expected '$expected'."
+    }
+    Write-AtlasLog -Message "Verified scheduled task '$Path': $before -> $after."
 }
 
 function Disable-AtlasScheduledTask {
@@ -200,4 +213,129 @@ function Stop-AtlasScheduledTaskUnderRoot {
         Invoke-AtlasBestEffortScheduledTaskEnd `
             -SchtasksPath $schtasksPath -TaskName $candidate
     }
+}
+
+function Invoke-AtlasScheduledTaskEntries {
+    <#
+    .SYNOPSIS
+        Applies a ScheduledTasks entry array. Each entry is a hashtable with Path and an
+        Operation of 'Disable' (default) or 'Enable'. A missing task is tolerated with a
+        warning because stock tasks vary by Windows edition and build; IgnoreErrors
+        additionally turns a malformed entry or a failed change into a logged warning.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [hashtable[]]$Entries
+    )
+
+    foreach ($entry in $Entries) {
+        $ignoreErrors = $entry.ContainsKey('IgnoreErrors') -and [bool]$entry['IgnoreErrors']
+        $entryPath = if ($entry.ContainsKey('Path')) { [string]$entry['Path'] } else { '<no path>' }
+        try {
+            if (-not $entry.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace([string]$entry['Path'])) {
+                throw 'Scheduled task entry has no Path.'
+            }
+            $taskPath = [string]$entry['Path']
+
+            $operation = 'Disable'
+            if ($entry.ContainsKey('Operation') -and $entry['Operation']) {
+                $operation = [string]$entry['Operation']
+            }
+            switch ($operation) {
+                'Disable' { Disable-AtlasScheduledTask -Path $taskPath }
+                'Enable' { Enable-AtlasScheduledTask -Path $taskPath }
+                default { throw "Unknown scheduled task operation '$operation'." }
+            }
+        }
+        catch {
+            if ($ignoreErrors) {
+                Write-AtlasLog -Message "Ignored scheduled task entry failure (task: '$entryPath'): $($_.Exception.Message)" -Level Warning
+                continue
+            }
+            throw
+        }
+    }
+}
+
+function Get-AtlasTaskSchedulerService {
+    $service = New-Object -ComObject 'Schedule.Service'
+    try {
+        $service.Connect()
+        return $service
+    }
+    catch {
+        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($service)
+        throw
+    }
+}
+
+function Get-AtlasScheduledTaskState {
+    <#
+    .SYNOPSIS
+        Returns 'Missing', 'Disabled' or 'Enabled' using the scheduler's Enabled
+        property. Only file/path-not-found HRESULTs mean missing; access and RPC
+        failures must not be mistaken for an absent task.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path
+    )
+
+    $service = $null
+    $folder = $null
+    $task = $null
+    try {
+        $service = Get-AtlasTaskSchedulerService
+        $folder = $service.GetFolder('\')
+        try {
+            $task = $folder.GetTask($Path)
+        }
+        catch {
+            $cause = $_.Exception
+            while ($null -ne $cause.InnerException) { $cause = $cause.InnerException }
+            if ($cause.HResult -in @(-2147024894, -2147024893)) {
+                return 'Missing'
+            }
+            throw
+        }
+        if ($task.Enabled) { return 'Enabled' }
+        return 'Disabled'
+    }
+    finally {
+        foreach ($comObject in @($task, $folder, $service)) {
+            if ($null -ne $comObject -and [Runtime.InteropServices.Marshal]::IsComObject($comObject)) {
+                [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($comObject)
+            }
+        }
+    }
+}
+
+function Test-AtlasScheduledTaskEntries {
+    <#
+    .SYNOPSIS
+        Reports every ScheduledTasks entry whose task is present but not in the declared
+        state. Missing tasks are tolerated, as they are when the entries are applied.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [hashtable[]]$Entries
+    )
+
+    $drift = @()
+    foreach ($entry in $Entries) {
+        if (-not $entry.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace([string]$entry['Path'])) {
+            continue
+        }
+        $operation = if ($entry.ContainsKey('Operation') -and $entry['Operation']) { [string]$entry['Operation'] } else { 'Disable' }
+        $expected = if ($operation -ceq 'Enable') { 'Enabled' } else { 'Disabled' }
+        $actual = Get-AtlasScheduledTaskState -Path ([string]$entry['Path'])
+        if ($actual -ceq 'Missing' -or $actual -ceq $expected) {
+            continue
+        }
+        $drift += [pscustomobject]@{ Task = [string]$entry['Path']; Expected = $expected; Actual = $actual; Reason = 'task state differs' }
+    }
+    return $drift
 }

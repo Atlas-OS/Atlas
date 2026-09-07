@@ -1,6 +1,7 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:featuresPhase = Join-Path $PSScriptRoot `
-        '..\playbook\Executables\AtlasModules\Scripts\Phases\Invoke-FeaturesPhase.ps1'
+        '..\playbook\Executables\AtlasModules\Scripts\Install\Phases\Invoke-FeaturesPhase.ps1'
     $tokens = $null
     $errors = $null
     $script:featuresAst = [Management.Automation.Language.Parser]::ParseFile(

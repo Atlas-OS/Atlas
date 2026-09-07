@@ -1,12 +1,9 @@
-# Toggle: SuperFetch / SysMain and ReadyBoost.
-$action = {
+function Set-AtlasSuperFetchMachineState {
     param($Toggle)
 
-    Import-Module -Name (Join-Path $Toggle.ScriptsPath `
-            'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-        -ErrorAction Stop
-
     $enable = $Toggle.State -ceq 'Enable'
+
+    # ReadyBoost is a volume lower filter; add or remove only its own entry.
     $classKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{71a27cdd-812a-11d0-bec7-08002be2092f}'
     $properties = Get-ItemProperty -LiteralPath $classKey -ErrorAction Stop
     [string[]]$lowerFilters = if ($properties.PSObject.Properties.Name -contains 'LowerFilters') {
@@ -37,10 +34,8 @@ $action = {
         }
     }
 
-    $setServiceStartup = Join-Path -Path $Toggle.ScriptsPath `
-        -ChildPath 'Internal\Set-ServiceStartup.ps1'
     $readyBoostStart = if ($enable) { 0 } else { 4 }
-    & $setServiceStartup -Name 'rdyboost' -Start $readyBoostStart
+    Set-AtlasServiceStartup -Name 'rdyboost' -StartupType $readyBoostStart
 
     $readyBoostTab = 'HKLM:\SOFTWARE\Classes\Drive\shellex\PropertySheetHandlers\{55B3A0BD-4D28-42fe-8CFB-FA3EDFF969B8}'
     if ($enable) {
@@ -51,29 +46,5 @@ $action = {
     }
 
     $sysMainStart = if ($enable) { 2 } else { 4 }
-    & $setServiceStartup -Name 'SysMain' -Start $sysMainStart
-}
-
-@{
-    Name      = 'SuperFetch'
-    Elevation = 'Admin'
-    Warning   = 'WARNING: This script will modify system services. Modifying services can lead to potential breakage of features and bugs. Proceed with caution, and refer to Atlas docs for more information!'
-    States    = [ordered]@{
-        Disable = @{
-            StateValue     = 0
-            ReplayScope    = 'Machine'
-            Launcher       = '6. Advanced Configuration\Services\Superfetch\Disable SuperFetch.cmd'
-            ToolboxLauncher = 'Scripts\SuperFetch\DisableSuperFetch.cmd'
-            Reboot         = 'Recommend'
-            Action         = $action
-        }
-        Enable  = @{
-            StateValue     = 1
-            ReplayScope    = 'Machine'
-            Launcher       = '6. Advanced Configuration\Services\Superfetch\Enable SuperFetch (default).cmd'
-            ToolboxLauncher = 'Scripts\SuperFetch\EnableSuperFetch.cmd'
-            Reboot         = 'Recommend'
-            Action         = $action
-        }
-    }
+    Set-AtlasServiceStartup -Name 'SysMain' -StartupType $sysMainStart
 }

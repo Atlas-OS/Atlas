@@ -6,7 +6,7 @@
 # Install-AtlasPackage.ps1 is the optional interactive shell around these functions;
 # install phases call them directly with -NonInteractive semantics.
 
-$cbsRetryHelper = Join-Path -Path $PSScriptRoot -ChildPath '..\..\..\Internal\CbsRetry.ps1'
+$cbsRetryHelper = Join-Path -Path $PSScriptRoot -ChildPath '..\..\..\Operations\CbsRetry.ps1'
 if (-not [IO.File]::Exists($cbsRetryHelper) -or
     (([IO.File]::GetAttributes($cbsRetryHelper) -band
             [IO.FileAttributes]::ReparsePoint) -ne 0)) {

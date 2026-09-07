@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure Power Settings'
-    Description  = 'Configures power settings for the best performance and lowest latency, based on the user''s options. Done last on purpose.'
+    Description  = 'Disables Fast Startup and applies the selected power and hibernation choices after the category tweaks.'
     Registry    = @(
         # Disable Fast Startup.
         @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power'; Name = 'HiberbootEnabled'; Type = 'DWord'; Data = 0 }

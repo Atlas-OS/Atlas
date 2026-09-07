@@ -8,6 +8,8 @@
     FunctionsToExport = @(
         'Set-AtlasServiceStartup'
         'Stop-AtlasService'
+        'Invoke-AtlasServiceEntries'
+        'Test-AtlasServiceEntries'
         'Restore-AtlasServicesBackup'
         'Export-AtlasServicesBackup'
     )

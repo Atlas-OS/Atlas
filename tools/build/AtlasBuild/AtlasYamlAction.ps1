@@ -251,9 +251,9 @@ function Assert-AtlasConfigurationRunnerBoundary {
     if ($runs.Count -ne 26) { throw "Configuration must contain 26 runs; found $($runs.Count)." }
     $hostPath = '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
     $prefix = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass'
-    $statePrefix = $prefix + ' -File ".\AtlasModules\Scripts\Initialize-AtlasInstallState.ps1"'
-    $publisherArgs = $prefix + ' -File ".\AtlasModules\Scripts\Publish-AtlasInstallUser.ps1"'
-    $installArgs = $prefix + ' -File ".\AtlasModules\Scripts\Invoke-AtlasInstall.ps1" -Run'
+    $statePrefix = $prefix + ' -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1"'
+    $publisherArgs = $prefix + ' -File ".\AtlasModules\Scripts\Entry\Publish-AtlasInstallUser.ps1"'
+    $installArgs = $prefix + ' -File ".\AtlasModules\Scripts\Entry\Invoke-AtlasInstall.ps1" -Run'
     $commonNames = @('exe', 'args', 'runas', 'showOutput', 'showError', 'exeDir',
         'wait', 'weight', 'handleExitCodes')
     $allowedNames = $commonNames + @('onUpgrade', 'onUpgradeVersions', 'oobe', 'option')

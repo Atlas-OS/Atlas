@@ -567,7 +567,7 @@ function Invoke-AtlasUserAppxCacheCleanupCore {
         )) -ContainmentRoot $windowsPath
     $scriptPath = Resolve-AtlasAppxCacheNormalFile `
         -Path ([IO.Path]::Combine(
-            $modulesPath, 'Scripts', 'Internal', 'Clear-AtlasUserAppxCache.ps1'
+            $modulesPath, 'Scripts', 'Operations', 'Clear-AtlasUserAppxCache.ps1'
         )) -ContainmentRoot $modulesPath
     $arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass ' +
         "-File `"$scriptPath`" -Mode $Mode -ExpectedUserSid $expectedSid"

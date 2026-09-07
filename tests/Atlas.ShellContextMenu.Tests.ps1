@@ -1,16 +1,15 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
     $script:executablesRoot = Join-Path $script:repositoryRoot 'playbook\Executables'
     $script:terminalHandler = Join-Path $script:executablesRoot `
-        'AtlasModules\Scripts\Internal\Open-TerminalHere.ps1'
+        'AtlasModules\Scripts\Entry\Open-TerminalHere.ps1'
     $script:takeOwnershipHandler = Join-Path $script:executablesRoot `
-        'AtlasModules\Scripts\Internal\Invoke-TakeOwnership.ps1'
-    $script:shellSupport = Join-Path $script:executablesRoot `
-        'AtlasModules\Scripts\Internal\Shell-ContextMenuSupport.ps1'
+        'AtlasModules\Scripts\Entry\Invoke-TakeOwnership.ps1'
     $script:takeOwnershipPayload = Join-Path $script:executablesRoot `
         'AtlasModules\Scripts\Registry\TakeOwnership\add.reg'
 
-    . $script:shellSupport
+    Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.Shell\Atlas.Shell.psd1') -Force
 
     function Get-ContextMenuCommand {
         param(
@@ -67,7 +66,7 @@ Describe 'Terminal context-menu payloads' {
         $commands.Count | Should -Be ($terminals.Count * 8)
         foreach ($command in $commands) {
             $command | Should -Match '^@="\\"%SystemRoot%\\\\System32\\\\WindowsPowerShell\\\\v1\.0\\\\powershell\.exe\\" '
-            $command | Should -Match ' -File \\"%SystemRoot%\\\\AtlasModules\\\\Scripts\\\\Internal\\\\Open-TerminalHere\.ps1\\" '
+            $command | Should -Match ' -File \\"%SystemRoot%\\\\AtlasModules\\\\Scripts\\\\Entry\\\\Open-TerminalHere\.ps1\\" '
             $command | Should -Match ' -Terminal (?:CommandPrompt|PowerShell|WindowsTerminal) -Verb (?:Open|RunAs) -Path \\"%V\\""$'
         }
 
@@ -87,7 +86,7 @@ Describe 'Take Ownership context-menu payload' {
         $commands.Count | Should -Be 6
         foreach ($command in $commands) {
             $command | Should -Match '^(?:@|"IsolatedCommand")="\\"%SystemRoot%\\\\System32\\\\WindowsPowerShell\\\\v1\.0\\\\powershell\.exe\\" '
-            $command | Should -Match ' -File \\"%SystemRoot%\\\\AtlasModules\\\\Scripts\\\\Internal\\\\Invoke-TakeOwnership\.ps1\\" '
+            $command | Should -Match ' -File \\"%SystemRoot%\\\\AtlasModules\\\\Scripts\\\\Entry\\\\Invoke-TakeOwnership\.ps1\\" '
             $command | Should -Match ' -TargetType (?:File|Directory|Drive) -TargetPath \\"%1\\" -Pause"$'
         }
 
@@ -178,64 +177,5 @@ Describe 'Shell context-menu handlers' {
             Should -Throw '*file does not exist*'
         { & $script:takeOwnershipHandler -TargetType Drive -TargetPath $TestDrive } |
             Should -Throw '*not an existing file-system root*'
-    }
-}
-
-Describe 'Shell context-menu argument helpers' {
-    It 'quotes <Name> using Windows argv rules' -TestCases @(
-        @{ Name = 'an empty value'; Value = ''; Expected = '""' }
-        @{ Name = 'a drive root'; Value = 'C:\'; Expected = '"C:\\"' }
-        @{ Name = 'a UNC root'; Value = '\\server\share\'; Expected = '"\\server\share\\"' }
-        @{
-            Name = 'spaces and a trailing separator'
-            Value = 'C:\folder with spaces\'
-            Expected = '"C:\folder with spaces\\"'
-        }
-        @{
-            Name = 'an embedded quote'
-            Value = 'synthetic\value"with-quote\'
-            Expected = '"synthetic\value\"with-quote\\"'
-        }
-    ) {
-        ConvertTo-AtlasShellWindowsArgument -Value $Value | Should -BeExactly $Expected
-    }
-
-    It 'builds non-recursive and recursive native ownership arguments' {
-        $file = Get-AtlasTakeOwnershipArgumentPlan `
-            -TargetType File `
-            -TargetPath 'C:\file.txt'
-        $directory = Get-AtlasTakeOwnershipArgumentPlan `
-            -TargetType Directory `
-            -TargetPath 'C:\directory' `
-            -YesChoice 'Y'
-        $drive = Get-AtlasTakeOwnershipArgumentPlan `
-            -TargetType Drive `
-            -TargetPath 'C:\' `
-            -YesChoice 'Y'
-
-        $file.TakeOwnArguments | Should -Not -Contain '/r'
-        $file.IcaclsArguments | Should -Contain '/l'
-        foreach ($plan in @($directory, $drive)) {
-            $plan.TakeOwnArguments | Should -Contain '/r'
-            $plan.TakeOwnArguments | Should -Contain '/SKIPSL'
-            $plan.IcaclsArguments | Should -Contain '/l'
-        }
-        $directory.IcaclsArguments | Should -Contain '/q'
-        $drive.IcaclsArguments | Should -Not -Contain '/q'
-    }
-
-    It 'rejects a descendant junction without traversing it' {
-        $root = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'ownership-tree')
-        $target = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'junction-target')
-        $junctionPath = Join-Path $root.FullName 'junction'
-        [void](New-Item -ItemType Junction -Path $junctionPath -Target $target.FullName)
-
-        try {
-            { Assert-AtlasTakeOwnershipTree -RootPath $root.FullName } |
-                Should -Throw '*descendant reparse point*'
-        }
-        finally {
-            Remove-Item -LiteralPath $junctionPath -Force
-        }
     }
 }

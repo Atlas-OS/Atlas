@@ -1,13 +1,14 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
     $script:ScriptsRoot = Join-Path $script:RepoRoot `
         'playbook\Executables\AtlasModules\Scripts'
     $script:PreviousInstallScript = Join-Path $script:ScriptsRoot `
-        'Tasks\Remove-PreviousAtlasInstall.ps1'
+        'Install\Tasks\Remove-PreviousAtlasInstall.ps1'
     $script:VersionSpecificScript = Join-Path $script:ScriptsRoot `
-        'Tasks\Remove-VersionSpecificAtlasFiles.ps1'
+        'Tweaks\misc\delete-windows-specific-files.ps1'
     $script:TrustBootstrap = Join-Path $script:ScriptsRoot `
-        'Internal\Initialize-PowerShellTrust.ps1'
+        'Initialize-AtlasPowerShell.ps1'
     $script:PowerShell51 = [IO.Path]::Combine(
         [Environment]::SystemDirectory,
         'WindowsPowerShell',
@@ -29,16 +30,17 @@ BeforeAll {
     }
 
     $harnessRoot = Join-Path $TestDrive 'Harness'
-    $null = New-Item -Path (Join-Path $harnessRoot 'Tasks') -ItemType Directory -Force
-    $null = New-Item -Path (Join-Path $harnessRoot 'Internal') -ItemType Directory -Force
+    # Remove-PreviousAtlasInstall.ps1 resolves the trust bootstrap two levels above
+    # itself, so the harness mirrors the installed Install\Tasks layout.
+    $null = New-Item -Path (Join-Path $harnessRoot 'Install\Tasks') -ItemType Directory -Force
     $script:RehostedPreviousInstall = Join-Path $harnessRoot `
-        'Tasks\Remove-PreviousAtlasInstall.ps1'
+        'Install\Tasks\Remove-PreviousAtlasInstall.ps1'
     [IO.File]::WriteAllText(
         $script:RehostedPreviousInstall,
         (ConvertTo-RehostedRemovalScript -Path $script:PreviousInstallScript)
     )
     Copy-Item -LiteralPath $script:TrustBootstrap `
-        -Destination (Join-Path $harnessRoot 'Internal\Initialize-PowerShellTrust.ps1')
+        -Destination (Join-Path $harnessRoot 'Initialize-AtlasPowerShell.ps1')
 
     $script:VersionSpecificBlock = [scriptblock]::Create(
         (ConvertTo-RehostedRemovalScript -Path $script:VersionSpecificScript)
@@ -81,6 +83,27 @@ BeforeAll {
 }
 
 Describe 'Previous-install payload removal' {
+    It 'preserves device service backups byte for byte while removing old code' {
+        $windowsRoot = New-UpgradeWindowsFixture -Name 'WinDirBackups'
+        $other = Join-Path $windowsRoot 'AtlasModules\Other'
+        $null = New-Item -Path $other -ItemType Directory
+        foreach ($name in @('winServices.reg', 'atlasServices.reg')) {
+            [IO.File]::WriteAllText((Join-Path $other $name), "original $name")
+        }
+        [IO.File]::WriteAllText((Join-Path $other 'old-helper.cmd'), 'old code')
+
+        $result = Invoke-PreviousInstallRemoval -WindowsRoot $windowsRoot
+
+        $result.ExitCode | Should -Be 0 -Because $result.Output
+        foreach ($name in @('winServices.reg', 'atlasServices.reg')) {
+            [IO.File]::ReadAllText((Join-Path $other $name)) | Should -BeExactly "original $name"
+        }
+        Test-Path (Join-Path $other 'old-helper.cmd') | Should -BeFalse
+        Test-Path (Join-Path $windowsRoot 'AtlasModules\Scripts') | Should -BeFalse
+        Test-Path (Join-Path $windowsRoot 'AtlasDesktop') | Should -BeFalse
+        Test-Path (Join-Path $windowsRoot 'UnrelatedComponent\keep.dat') | Should -BeTrue
+    }
+
     It 'removes both Atlas payload trees and leaves every sibling intact' {
         $windowsRoot = New-UpgradeWindowsFixture -Name 'WinDirFull'
 

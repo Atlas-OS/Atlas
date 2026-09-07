@@ -1,15 +1,19 @@
 param()
 
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    # The public adapter imports Atlas.Core for Test-AtlasAdmin; load the real module
+    # once so the adapter tests can mock that command.
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
     $script:repoRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..')).Path
     $script:scriptsRoot = Join-Path -Path $script:repoRoot `
         -ChildPath 'playbook\Executables\AtlasModules\Scripts'
     $script:phasePath = Join-Path -Path $script:scriptsRoot `
-        -ChildPath 'Phases\Invoke-ServicesPhase.ps1'
+        -ChildPath 'Install\Phases\Invoke-ServicesPhase.ps1'
     $script:internalResetPath = Join-Path -Path $script:scriptsRoot `
-        -ChildPath 'Internal\Invoke-AtlasResetServices.ps1'
+        -ChildPath 'Entry\Restore-AtlasServiceDefaults.ps1'
     $script:publicResetPath = Join-Path -Path $script:scriptsRoot `
-        -ChildPath 'Invoke-AtlasResetServices.ps1'
+        -ChildPath 'Entry\Invoke-AtlasResetServices.ps1'
     $script:hostExecutable = (Get-Process -Id $PID).Path
     $script:wrapperPaths = @(
         (Join-Path -Path $script:repoRoot `
@@ -46,12 +50,13 @@ BeforeAll {
         $atlasModules = Join-Path -Path $Root -ChildPath 'AtlasModules'
         $scripts = Join-Path -Path $atlasModules -ChildPath 'Scripts'
         $modules = Join-Path -Path $scripts -ChildPath 'Modules'
-        $phase = Join-Path -Path $scripts -ChildPath 'Phases\Invoke-ServicesPhase.ps1'
-        $internal = Join-Path -Path $scripts -ChildPath 'Internal\Invoke-AtlasResetServices.ps1'
+        $phase = Join-Path -Path $scripts -ChildPath 'Install\Phases\Invoke-ServicesPhase.ps1'
+        $internal = Join-Path -Path $scripts -ChildPath 'Entry\Restore-AtlasServiceDefaults.ps1'
         $null = New-Item -ItemType Directory -Path (Split-Path -Parent $phase) -Force
         $null = New-Item -ItemType Directory -Path (Split-Path -Parent $internal) -Force
         Copy-Item -LiteralPath $script:phasePath -Destination $phase -Force
         Copy-Item -LiteralPath $script:internalResetPath -Destination $internal -Force
+        Copy-Item -LiteralPath (Join-Path $script:AtlasTestScriptsRoot 'Initialize-AtlasPowerShell.ps1') -Destination $scripts
 
         Write-TestFile -Path (Join-Path $modules 'Atlas.Core\Atlas.Core.psd1') -Content @'
 @{ RootModule = 'Atlas.Core.psm1'; ModuleVersion = '1.0.0'; FunctionsToExport = @('Assert-AtlasPrivilege', 'Get-AtlasContext') }
@@ -82,42 +87,53 @@ function Restore-AtlasServicesBackup {
 }
 Export-ModuleMember -Function Export-AtlasServicesBackup, Restore-AtlasServicesBackup
 '@
+        # Stub engine: the Services phase applies each feature default through
+        # Invoke-AtlasToggleMachineState, then verifies the record against the
+        # definition's StateValue through Get-AtlasToggleDefinition/Get-AtlasToggleState.
         Write-TestFile -Path (Join-Path $modules 'Atlas.Toggles\Atlas.Toggles.psd1') -Content @'
-@{ RootModule = 'Atlas.Toggles.psm1'; ModuleVersion = '1.0.0'; FunctionsToExport = @('Set-AtlasToggleState', 'Get-AtlasToggleState') }
+@{ RootModule = 'Atlas.Toggles.psm1'; ModuleVersion = '1.0.0'; FunctionsToExport = @('Invoke-AtlasToggleMachineState', 'Get-AtlasToggleDefinition', 'Get-AtlasToggleState', 'Set-AtlasToggleState') }
 '@
         Write-TestFile -Path (Join-Path $modules 'Atlas.Toggles\Atlas.Toggles.psm1') -Content @'
 $script:States = @{}
+$script:StateValues = @{
+    FileSharing = @{ Disable = 0; Enable = 1 }
+    Location    = @{ Disable = 0; Enable = 1 }
+    Indexing    = @{ Default = 0; Minimal = 1; Disable = 2 }
+}
 function Write-ResetEvent { param([string]$Message) Add-Content -LiteralPath $env:ATLAS_RESET_TEST_LOG -Value $Message -Encoding UTF8 }
+function Invoke-AtlasToggleMachineState {
+    param([string]$Name, [string]$State, [string]$StateRoot, [string]$TogglesRoot)
+    Write-ResetEvent "MachineState:${Name}:$State"
+    if ($env:ATLAS_RESET_TEST_FAIL -ceq "MachineState:$Name") { throw "simulated $Name failure" }
+    if ($env:ATLAS_RESET_TEST_FAIL -cne "Record:$Name") { $script:States[$Name] = [int]$script:StateValues[$Name][$State] }
+}
+function Get-AtlasToggleDefinition {
+    param([string]$Name, [string]$TogglesRoot)
+    $states = [ordered]@{}
+    foreach ($stateName in $script:StateValues[$Name].Keys) { $states[$stateName] = @{ StateValue = $script:StateValues[$Name][$stateName] } }
+    return [ordered]@{ Name = $Name; States = $states }
+}
+function Get-AtlasToggleState {
+    param([string]$Name, [string]$StateRoot)
+    if ($script:States.ContainsKey($Name)) { return [pscustomobject]@{ State = $script:States[$Name] } }
+    return $null
+}
 function Set-AtlasToggleState {
-    param([string]$Name, [int]$State)
+    param([string]$Name, [int]$State, [string]$StateRoot)
     $script:States[$Name] = $State
     Write-ResetEvent "State:${Name}:$State"
 }
-function Get-AtlasToggleState { param([string]$Name) [pscustomobject]@{ State = $script:States[$Name] } }
 function Invoke-AtlasServiceDefaultsReset {
     Write-ResetEvent 'ResetDefaults'
     if ($env:ATLAS_RESET_TEST_FAIL -ceq 'ResetDefaults') { throw 'simulated service reset failure' }
 }
-Export-ModuleMember -Function Set-AtlasToggleState, Get-AtlasToggleState
-'@
-
-        Write-TestFile -Path (Join-Path $scripts 'Internal\Disable-FileSharing.ps1') -Content @'
-[CmdletBinding()] param([switch]$Silent)
-Add-Content -LiteralPath $env:ATLAS_RESET_TEST_LOG -Value "FileSharing:$([bool]$Silent)" -Encoding UTF8
-'@
-        Write-TestFile -Path (Join-Path $scripts 'Internal\Set-AtlasLocationMachineState.ps1') -Content @'
-param([string]$State)
-Add-Content -LiteralPath $env:ATLAS_RESET_TEST_LOG -Value "Location:$State" -Encoding UTF8
-'@
-        Write-TestFile -Path (Join-Path $scripts 'Internal\Set-AtlasIndexingMachineState.ps1') -Content @'
-param([string]$State)
-Add-Content -LiteralPath $env:ATLAS_RESET_TEST_LOG -Value "Indexing:$State" -Encoding UTF8
+Export-ModuleMember -Function Invoke-AtlasToggleMachineState, Get-AtlasToggleDefinition, Get-AtlasToggleState, Set-AtlasToggleState
 '@
 
         $phaseRunner = Join-Path -Path $Root -ChildPath 'Invoke-ServicesPhase.Test.ps1'
         Write-TestFile -Path $phaseRunner -Content @'
 Import-Module -Name (Join-Path $env:ATLAS_RESET_TEST_ROOT 'Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force -ErrorAction Stop
-& (Join-Path $env:ATLAS_RESET_TEST_ROOT 'Scripts\Phases\Invoke-ServicesPhase.ps1')
+& (Join-Path $env:ATLAS_RESET_TEST_ROOT 'Scripts\Install\Phases\Invoke-ServicesPhase.ps1')
 '@
 
         return [pscustomobject]@{
@@ -185,16 +201,32 @@ Describe 'Reset Services phase and privileged adapter behavior' {
         $expectedBackup = Join-Path -Path $script:fixture.AtlasModules `
             -ChildPath 'Other\winServices.reg'
 
-        $result.ExitCode | Should -Be 0
+        $result.ExitCode | Should -Be 0 -Because ($result.Output -join "`n")
         $result.Events | Should -Be @(
             'Privilege:True'
             "Backup:$expectedBackup"
-            'FileSharing:True'
-            'Location:Disable'
-            'State:Location:0'
-            'Indexing:Minimal'
-            'State:Indexing:1'
+            'MachineState:FileSharing:Disable'
+            'MachineState:Location:Disable'
+            'MachineState:Indexing:Minimal'
         )
+    }
+
+    It 'stops at the first feature default whose machine state fails to apply' {
+        $result = Invoke-AtlasResetFixture -Fixture $script:fixture -Target Phase -FailAt 'MachineState:Location'
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Events.Count | Should -Be 4
+        $result.Events[2] | Should -BeExactly 'MachineState:FileSharing:Disable'
+        $result.Events[3] | Should -BeExactly 'MachineState:Location:Disable'
+        ($result.Output -join "`n") | Should -Match 'simulated Location failure'
+    }
+
+    It 'fails when a feature default did not leave the expected state record' {
+        $result = Invoke-AtlasResetFixture -Fixture $script:fixture -Target Phase -FailAt 'Record:Indexing'
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Events[-1] | Should -BeExactly 'MachineState:Indexing:Minimal'
+        ($result.Output -join "`n") | Should -Match "toggle 'Indexing' did not record state 'Minimal'"
     }
 
     It 'stops the phase before machine changes when its required backup fails' {
@@ -224,7 +256,7 @@ Describe 'Reset Services phase and privileged adapter behavior' {
 
 Describe 'Reset Services public adapter behavior' {
     BeforeEach {
-        Mock -CommandName Import-Module -MockWith {}
+        Mock -CommandName Import-Module -ParameterFilter { $Name -like '*Atlas.Core*' } -MockWith {}
         Mock -CommandName Test-AtlasAdmin -MockWith { $true }
         Mock -CommandName Invoke-AtlasTrustedInstaller
     }

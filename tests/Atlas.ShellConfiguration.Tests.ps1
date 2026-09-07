@@ -11,6 +11,9 @@
 param()
 
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
+    Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Toggles\Atlas.Toggles.psd1') -Force
     function Import-FunctionUnderTest {
         param(
             [Parameter(Mandatory = $true)][string]$Path,
@@ -32,30 +35,18 @@ BeforeAll {
         Set-Item -Path "Function:\global:$Name" -Value $definition.Body.GetScriptBlock()
     }
 
-    $script:taskbarScript = Resolve-Path (Join-Path $PSScriptRoot `
-            '..\playbook\Executables\AtlasModules\Scripts\Internal\Set-TaskbarPins.ps1')
-    $script:startScript = Resolve-Path (Join-Path $PSScriptRoot `
-            '..\playbook\Executables\AtlasModules\Scripts\Internal\Set-StartLayout.ps1')
     $script:newUserScript = Resolve-Path (Join-Path $PSScriptRoot `
-            '..\playbook\Executables\AtlasModules\Scripts\Initialize-NewUser.ps1')
-    Import-FunctionUnderTest -Path $script:taskbarScript -Name Resolve-AtlasTaskbarBrowser
-    Import-FunctionUnderTest -Path $script:taskbarScript -Name Invoke-AtlasTaskbarRegistryWrite
-    Import-FunctionUnderTest -Path $script:startScript -Name Test-AtlasStartPinPolicySupported
+            '..\playbook\Executables\AtlasModules\Scripts\Entry\Initialize-NewUser.ps1')
     Import-FunctionUnderTest -Path $script:newUserScript -Name Get-SetupMarker
     Import-FunctionUnderTest -Path $script:newUserScript -Name Set-SetupMarker
     Import-FunctionUnderTest -Path $script:newUserScript -Name Invoke-AtlasDesktopCommand
     Import-FunctionUnderTest -Path $script:newUserScript -Name Invoke-CurrentSessionExplorerRefresh
+    Import-FunctionUnderTest -Path $script:newUserScript -Name Set-AtlasFirstLogonPreferences
 
     $tokens = $null
     $errors = $null
     $script:newUserAst = [Management.Automation.Language.Parser]::ParseFile(
         $script:newUserScript, [ref]$tokens, [ref]$errors
-    )
-    @($errors).Count | Should -Be 0
-    $tokens = $null
-    $errors = $null
-    $script:startAst = [Management.Automation.Language.Parser]::ParseFile(
-        $script:startScript, [ref]$tokens, [ref]$errors
     )
     @($errors).Count | Should -Be 0
 
@@ -95,16 +86,99 @@ BeforeAll {
         }
         return $null
     }
+
+    # Returns the AST of the argument bound to -Name on one command: either the
+    # attached '-Name:value' argument or the element that follows the parameter.
+    function Get-CommandParameterArgument {
+        param(
+            [Parameter(Mandatory = $true)]$Command,
+            [Parameter(Mandatory = $true)][string]$Name
+        )
+
+        $elements = @($Command.CommandElements)
+        for ($index = 0; $index -lt $elements.Count; $index++) {
+            $element = $elements[$index]
+            if ($element -is [Management.Automation.Language.CommandParameterAst] -and
+                $element.ParameterName -eq $Name) {
+                if ($null -ne $element.Argument) {
+                    return $element.Argument
+                }
+                if ($index + 1 -lt $elements.Count) {
+                    return $elements[$index + 1]
+                }
+                return $null
+            }
+        }
+        return $null
+    }
 }
 
 AfterAll {
-    Remove-Item Function:\Resolve-AtlasTaskbarBrowser -ErrorAction SilentlyContinue
-    Remove-Item Function:\Invoke-AtlasTaskbarRegistryWrite -ErrorAction SilentlyContinue
-    Remove-Item Function:\Test-AtlasStartPinPolicySupported -ErrorAction SilentlyContinue
+    Remove-Item Function:\Set-AtlasFirstLogonPreferences -ErrorAction SilentlyContinue
     Remove-Item Function:\Get-SetupMarker -ErrorAction SilentlyContinue
     Remove-Item Function:\Set-SetupMarker -ErrorAction SilentlyContinue
     Remove-Item Function:\Invoke-AtlasDesktopCommand -ErrorAction SilentlyContinue
     Remove-Item Function:\Invoke-CurrentSessionExplorerRefresh -ErrorAction SilentlyContinue
+}
+
+Describe 'First-logon preferences after Windows profile creation' {
+    BeforeEach {
+        Mock Test-AtlasSystem { $false }
+        Mock Test-AtlasAdmin { $false }
+        Mock Get-AtlasToggleState { $null }
+        Mock Test-Path { $true }
+        Mock New-Item {}
+        Mock Set-ItemProperty {}
+    }
+
+    It 'repairs the three observed user preferences without a machine write' {
+        Set-AtlasFirstLogonPreferences
+
+        Should -Invoke Set-ItemProperty -Times 3 -Exactly
+        Should -Invoke Set-ItemProperty -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications' -and
+            $Name -eq 'GlobalUserDisabled' -and $Value -eq 1
+        }
+        Should -Invoke Set-ItemProperty -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq 'HKCU:\Software\Classes\CLSID\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}' -and
+            $Name -eq 'System.IsPinnedToNameSpaceTree' -and $Value -eq 0
+        }
+        Should -Invoke Set-ItemProperty -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' -and
+            $Name -eq 'ContentDeliveryAllowed' -and $Value -eq 0
+        }
+    }
+
+    It 'leaves recorded state <RecordedState> to the normal toggle replay' -TestCases @(
+        @{ RecordedState = 0 }
+        @{ RecordedState = 1 }
+    ) {
+        param($RecordedState)
+        Mock Get-AtlasToggleState { [pscustomobject]@{ State = $RecordedState } }
+
+        Set-AtlasFirstLogonPreferences
+
+        Should -Invoke Set-ItemProperty -Times 0 -Exactly
+        Should -Invoke New-Item -Times 0 -Exactly
+    }
+
+    It 'rejects elevated execution before reading choices or writing preferences' {
+        Mock Test-AtlasAdmin { $true }
+
+        { Set-AtlasFirstLogonPreferences } | Should -Throw '*non-elevated*'
+
+        Should -Invoke Get-AtlasToggleState -Times 0 -Exactly
+        Should -Invoke Set-ItemProperty -Times 0 -Exactly
+    }
+
+    It 'applies defaults before recorded user choices and only outside installation' {
+        $defaults = @(Find-CommandAst -Ast $script:newUserAst -Name 'Set-AtlasFirstLogonPreferences')
+        $replay = @(Find-CommandAst -Ast $script:newUserAst -Name 'Invoke-AtlasToggleUserReapply')
+        $defaults.Count | Should -Be 1
+        $replay.Count | Should -Be 1
+        Get-AncestorIfCondition -Ast $defaults[0] | Should -Be '-not $FromInstall'
+        $defaults[0].Extent.EndOffset | Should -BeLessThan $replay[0].Extent.StartOffset
+    }
 }
 
 Describe 'Taskbar tweak install resilience' {
@@ -118,74 +192,6 @@ Describe 'Taskbar tweak install resilience' {
             $entry.Path | Should -Match '(?i)\\Explorer\\Taskband(?:\\|$)'
             $entry.IgnoreErrors | Should -BeTrue
         }
-    }
-}
-
-Describe 'Taskbar pin fallback' {
-    BeforeEach {
-        $script:shortcutTable = @{
-            'Selected'       = @{ Path = 'C:\Selected\browser.exe' }
-            'Microsoft Edge' = @{ Path = 'C:\Edge\msedge.exe' }
-            'File Explorer'  = @{ Path = 'C:\Windows\explorer.exe' }
-        }
-    }
-
-    It 'keeps an installed selected browser' {
-        Mock Test-Path { $LiteralPath -eq 'C:\Selected\browser.exe' }
-
-        Resolve-AtlasTaskbarBrowser -RequestedBrowser Selected `
-            -ShortcutTable $script:shortcutTable -EdgeName 'Microsoft Edge' `
-            -ExplorerName 'File Explorer' | Should -BeExactly 'Selected'
-    }
-
-    It 'warns and falls back to Edge when the selected browser is missing' {
-        Mock Test-Path { $LiteralPath -eq 'C:\Edge\msedge.exe' }
-
-        $warnings = @()
-        $result = Resolve-AtlasTaskbarBrowser -RequestedBrowser Selected `
-            -ShortcutTable $script:shortcutTable -EdgeName 'Microsoft Edge' `
-            -ExplorerName 'File Explorer' -WarningVariable warnings
-
-        $result | Should -BeExactly 'Microsoft Edge'
-        @($warnings).Count | Should -Be 1
-        [string]$warnings[0] | Should -Match 'Selected.*not installed'
-    }
-
-    It 'warns and falls back to File Explorer when no browser is installed' {
-        Mock Test-Path { $false }
-
-        $warnings = @()
-        $result = Resolve-AtlasTaskbarBrowser -RequestedBrowser Selected `
-            -ShortcutTable $script:shortcutTable -EdgeName 'Microsoft Edge' `
-            -ExplorerName 'File Explorer' -WarningVariable warnings
-
-        $result | Should -BeExactly 'File Explorer'
-        @($warnings).Count | Should -Be 2
-    }
-}
-
-Describe 'Taskbar registry writes' {
-    It 'turns a native reg.exe failure into a terminating error' {
-        $fakeReg = Join-Path $TestDrive 'reg-failure.cmd'
-        Set-Content -LiteralPath $fakeReg -Value '@exit /b 5'
-
-        {
-            Invoke-AtlasTaskbarRegistryWrite -RegExe $fakeReg -RegistryKey 'HKCU\Test' `
-                -Name Favorites -Data '00'
-        } | Should -Throw '*exit code 5*'
-    }
-
-    It 'uses System32 reg.exe and guarantees temporary-directory cleanup' {
-        $source = Get-Content -LiteralPath $script:taskbarScript -Raw
-        $source | Should -Match "ChildPath 'System32\\reg\.exe'"
-        $source | Should -Match 'finally\s*\{[\s\S]*Remove-Item -LiteralPath \$tmp\.FullName'
-    }
-
-    It 'stamps the canonical Explorer AppUserModelID onto the generated pin' {
-        $source = Get-Content -LiteralPath $script:taskbarScript -Raw
-
-        $source | Should -Match `
-            "-AppUserModelId 'Microsoft\.Windows\.Explorer'"
     }
 }
 
@@ -250,7 +256,7 @@ Describe 'Installing-user desktop command and Explorer refresh' {
             -Encoding Ascii
 
         { Invoke-AtlasDesktopCommand -RelativePath 'probe.cmd' } | Should -Not -Throw
-        (Get-Content -LiteralPath $argumentLog -Raw).Trim() | Should -BeExactly '/silent'
+        (Get-Content -LiteralPath $argumentLog -Raw).Trim() | Should -BeExactly '/silent /noaction'
     }
 
     It 'fails loudly when a desktop command exits nonzero or is missing' {
@@ -313,7 +319,7 @@ Describe 'Installing-user shell completion flow' {
                     param($node)
                     $node -is [Management.Automation.Language.StringConstantExpressionAst]
                 }, $true) | ForEach-Object { $_.Value })
-        $moduleNames | Should -Be @('Atlas.Shortcuts', 'Atlas.Themes', 'Atlas.Toggles')
+        $moduleNames | Should -Be @('Atlas.Core', 'Atlas.Shortcuts', 'Atlas.Themes', 'Atlas.Toggles', 'Atlas.Shell')
 
         $importCommand = @($importLoops[0].Body.FindAll({
                     param($node)
@@ -325,7 +331,8 @@ Describe 'Installing-user shell completion flow' {
             } | ForEach-Object { $_.ParameterName })
         $parameterNames | Should -Contain 'Force'
         $parameterNames | Should -Contain 'ErrorAction'
-        $importCommand.Extent.Text | Should -Match '-ErrorAction Stop'
+        (Get-CommandParameterArgument -Command $importCommand -Name 'ErrorAction').SafeGetValue() |
+            Should -BeExactly 'Stop'
     }
 
     It 'creates the current user Atlas desktop shortcut with the Atlas folder icon' {
@@ -362,9 +369,13 @@ Describe 'Installing-user shell completion flow' {
                 -Name 'Invoke-CurrentSessionExplorerRefresh')
 
         $marker.Count | Should -Be 1
-        $marker[0].Extent.Text | Should -Match '-Value 2'
+        (Get-CommandParameterArgument -Command $marker[0] -Name 'Value').SafeGetValue() |
+            Should -Be 2
         $refresh.Count | Should -Be 1
         $refresh[0].Extent.StartOffset | Should -BeGreaterThan $marker[0].Extent.EndOffset
+        $cleanup = Find-StringConstant -Ast $completionBody `
+            -Value 'Scripts\Operations\Remove-OneDriveCurrentUserData.ps1'
+        $cleanup.Count | Should -Be 0
         @($completionBody.FindAll({
                     param($node)
                     $node -is [Management.Automation.Language.ReturnStatementAst]
@@ -373,7 +384,7 @@ Describe 'Installing-user shell completion flow' {
 
     It 'runs safe exact-user OneDrive cleanup for later non-install accounts' {
         $cleanupStrings = Find-StringConstant -Ast $script:newUserAst `
-            -Value 'Scripts\Internal\Remove-OneDriveCurrentUserData.ps1'
+            -Value 'Scripts\Operations\Remove-OneDriveCurrentUserData.ps1'
         $cleanupStrings.Count | Should -Be 1
 
         # The launch is '& (Join-Path ...) -ExpectedUserSid $sid'; take the outermost
@@ -385,13 +396,14 @@ Describe 'Installing-user shell completion flow' {
             }
         }
         $cleanupCommand | Should -Not -BeNullOrEmpty
-        $cleanupCommand.Extent.Text | Should -Match '-ExpectedUserSid \$sid'
+        (Get-CommandParameterArgument -Command $cleanupCommand -Name 'ExpectedUserSid').VariablePath.UserPath |
+            Should -Be 'sid'
         Get-AncestorIfCondition -Ast $cleanupCommand | Should -Be '-not $FromInstall'
     }
 
     It 'runs option-gated exact-user Edge cleanup for later non-install accounts' {
         $cleanupStrings = Find-StringConstant -Ast $script:newUserAst `
-            -Value 'Scripts\Internal\Remove-EdgeCurrentUserData.ps1'
+            -Value 'Scripts\Operations\Remove-EdgeCurrentUserData.ps1'
         $cleanupStrings.Count | Should -Be 1
 
         $cleanupCommand = $null
@@ -401,7 +413,8 @@ Describe 'Installing-user shell completion flow' {
             }
         }
         $cleanupCommand | Should -Not -BeNullOrEmpty
-        $cleanupCommand.Extent.Text | Should -Match '-ExpectedUserSid \$sid'
+        (Get-CommandParameterArgument -Command $cleanupCommand -Name 'ExpectedUserSid').VariablePath.UserPath |
+            Should -Be 'sid'
 
         $ifConditions = [Collections.Generic.List[string]]::new()
         for ($node = $cleanupCommand.Parent; $null -ne $node; $node = $node.Parent) {
@@ -412,6 +425,19 @@ Describe 'Installing-user shell completion flow' {
         $ifConditions | Should -Contain '-not $FromInstall'
         $ifConditions | Should -Contain `
             'Test-Path -LiteralPath $uninstallEdgeFlag -PathType Leaf'
+    }
+
+    It 'completes a new user in one session without an intermediate sign-out stage' {
+        (Find-StringConstant -Ast $script:newUserAst -Value 'shutdown.exe').Count | Should -Be 0
+        (Find-StringConstant -Ast $script:newUserAst -Value 'logoff.exe').Count | Should -Be 0
+        # Keep reading legacy stage-one markers, but never create a new account
+        # that needs another sign-in before its shell configuration is complete.
+        $stageOne = @(Find-CommandAst -Ast $script:newUserAst -Name 'Set-SetupMarker' |
+                Where-Object { $_.Extent.Text -match '-Value 1' })
+        $stageOne.Count | Should -Be 0
+        (Find-StringConstant -Ast $script:newUserAst `
+                -Value 'Finishing setup. Your desktop may briefly flash.').Count |
+            Should -Be 1
     }
 
     It 'removes the successful RunOnce retry before restarting Explorer' {
@@ -442,7 +468,7 @@ Describe 'Installing-user shell completion flow' {
         Get-AncestorIfCondition -Ast $transcriptStarts[0] | Should -Be '-not $FinalizeSearch'
 
         $readyMessages = Find-StringConstant -Ast $script:newUserAst `
-            -Value 'Your account is ready to use.'
+            -Value 'Atlas is installed and your PC is ready to use.'
         $readyMessages.Count | Should -Be 1
 
         $finalizer = $script:newUserAst.Find({
@@ -462,49 +488,5 @@ Describe 'Installing-user shell completion flow' {
         $finalRefresh.Count | Should -Be 1
         $readyMessages[0].Extent.StartOffset |
             Should -BeGreaterThan $finalRefresh[0].Extent.EndOffset
-    }
-}
-
-Describe 'Start pin policy support' {
-    It 'requires the servicing revision that introduced the 24H2 GPO' {
-        Test-AtlasStartPinPolicySupported -Build 26100 -Revision 4769 | Should -BeFalse
-        Test-AtlasStartPinPolicySupported -Build 26100 -Revision 4770 | Should -BeTrue
-        Test-AtlasStartPinPolicySupported -Build 26100 -Revision 9000 | Should -BeTrue
-    }
-
-    It 'accepts later Windows build families' {
-        Test-AtlasStartPinPolicySupported -Build 26200 -Revision 1 | Should -BeTrue
-    }
-
-    It 'names the exact enforced build boundary in the prerequisite diagnostic' {
-        $supportFunction = $script:startAst.Find({
-                param($node)
-                $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
-                $node.Name -eq 'Test-AtlasStartPinPolicySupported'
-            }, $true)
-        $supportFunction | Should -Not -BeNullOrEmpty
-        $boundaryConstants = @($supportFunction.FindAll({
-                    param($node)
-                    $node -is [Management.Automation.Language.ConstantExpressionAst] -and
-                    $node.Value -is [int]
-                }, $true) | ForEach-Object { $_.Value } | Sort-Object -Unique)
-        $boundaryConstants.Count | Should -Be 2
-        $enforcedBoundary = '{0}.{1}' -f $boundaryConstants[1], $boundaryConstants[0]
-
-        # The boundary the function enforces must round-trip into the user-facing
-        # diagnostic, so the message cannot drift from the check.
-        Test-AtlasStartPinPolicySupported -Build $boundaryConstants[1] `
-            -Revision $boundaryConstants[0] | Should -BeTrue
-        Test-AtlasStartPinPolicySupported -Build $boundaryConstants[1] `
-            -Revision ($boundaryConstants[0] - 1) | Should -BeFalse
-
-        $diagnostics = @($script:startAst.FindAll({
-                    param($node)
-                    $node -is [Management.Automation.Language.StringConstantExpressionAst] -and
-                    $node.Value -match 'KB\d{7}'
-                }, $true))
-        $diagnostics.Count | Should -BeGreaterThan 0
-        @($diagnostics | Where-Object { $_.Value -like "*$enforcedBoundary*" }).Count |
-            Should -BeGreaterThan 0
     }
 }

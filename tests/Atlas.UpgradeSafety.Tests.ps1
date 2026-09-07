@@ -1,11 +1,12 @@
 param()
 
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).ProviderPath
     $script:ReplacementScript = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Tasks\Invoke-AtlasPayloadReplacement.ps1'
+        'playbook\Executables\AtlasModules\Scripts\Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'
     $cbsRetryScript = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Internal\CbsRetry.ps1'
+        'playbook\Executables\AtlasModules\Scripts\Operations\CbsRetry.ps1'
     . $cbsRetryScript -LibraryOnly
     . $script:ReplacementScript -LibraryOnly
 
@@ -126,14 +127,14 @@ Describe 'Installed Atlas payload verification' {
                 -ItemType Directory -Force | Out-Null
         }
         foreach ($directory in @(
-                'AtlasModules',
+                'AtlasModules\Scripts',
                 'AtlasDesktop',
                 'Resources\Themes'
             )) {
             New-Item -Path (Join-Path $script:WindowsRoot $directory) `
                 -ItemType Directory -Force | Out-Null
         }
-        Set-Content -LiteralPath (Join-Path $script:WindowsRoot 'AtlasModules\initPowerShell.ps1') `
+        Set-Content -LiteralPath (Join-Path $script:WindowsRoot 'AtlasModules\Scripts\Initialize-AtlasPowerShell.ps1') `
             -Value '# installed bootstrap'
         Set-Content -LiteralPath (Join-Path $script:ExtractedRoot 'Themes\atlas.theme') `
             -Value 'source theme'
@@ -147,7 +148,7 @@ Describe 'Installed Atlas payload verification' {
     }
 
     It 'fails when the installed bootstrap is missing' {
-        Remove-Item -LiteralPath (Join-Path $script:WindowsRoot 'AtlasModules\initPowerShell.ps1')
+        Remove-Item -LiteralPath (Join-Path $script:WindowsRoot 'AtlasModules\Scripts\Initialize-AtlasPowerShell.ps1')
         { Assert-AtlasPayloadInstalled -ExtractedExecutablesRoot $script:ExtractedRoot `
                 -WindowsPath $script:WindowsRoot } |
             Should -Throw -ExpectedMessage '*payload bootstrap*is missing*'

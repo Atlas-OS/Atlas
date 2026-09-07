@@ -10,8 +10,8 @@
         # pin replacement later, so contention here must not halt the installation.
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'; Operation = 'AddKey'; IgnoreErrors = $true }
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'; Name = 'FavoritesVersion'; Type = 'DWord'; Data = 3; IgnoreErrors = $true }
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Name = 'MailPin'; Type = 'DWord'; Data = 0; IgnoreErrors = $true }
-        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Name = 'CopilotPWAPin'; Type = 'DWord'; Data = 0; IgnoreErrors = $true }
+        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Name = 'MailPin'; Type = 'DWord'; Data = 0; IgnoreErrors = $true; SkipVerification = 'Explorer rewrites Taskband pin bookkeeping after applying the initial pin configuration.' }
+        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Name = 'CopilotPWAPin'; Type = 'DWord'; Data = 0; IgnoreErrors = $true; SkipVerification = 'Explorer rewrites Taskband pin bookkeeping after applying the initial pin configuration.' }
     )
     # The chosen browser and the oobe-only pin application need per-option logic that a
     # single Option gate cannot express.

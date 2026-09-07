@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:ModulesRoot = Join-Path -Path $PSScriptRoot `
         -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $script:ModulesRoot `
@@ -13,7 +14,7 @@ BeforeAll {
         'powershell.exe'
     )
 
-    & $script:CoreModule { Initialize-AtlasRunAsUserType }
+    & $script:CoreModule { Initialize-AtlasNativeType }
 
     function New-TestUserContext {
         param(
@@ -139,35 +140,35 @@ Describe 'Atlas installing-user process boundary' {
 
     It 'accepts matching token evidence and rejects SID or session changes' {
         {
-            [Atlas.UserProcess]::ValidateIdentity(
+            [Atlas.Native.UserProcess]::ValidateIdentity(
                 'S-1-5-21-111-222-333-1001', 7,
                 'S-1-5-21-111-222-333-1001', 7, 1)
         } | Should -Not -Throw
 
         {
-            [Atlas.UserProcess]::ValidateIdentity(
+            [Atlas.Native.UserProcess]::ValidateIdentity(
                 'S-1-5-21-111-222-333-1001', 7,
                 'S-1-5-21-111-222-333-1002', 7, 1)
         } | Should -Throw
 
         {
-            [Atlas.UserProcess]::ValidateIdentity(
+            [Atlas.Native.UserProcess]::ValidateIdentity(
                 'S-1-5-21-111-222-333-1001', 7,
                 'S-1-5-21-111-222-333-1001', 8, 1)
         } | Should -Throw
     }
 
     It 'accepts only limited or unlinked medium non-admin user tokens' {
-        { [Atlas.UserProcess]::ValidateMediumIdentity(3, 0x2000, $false) } |
+        { [Atlas.Native.UserProcess]::ValidateMediumIdentity(3, 0x2000, $false) } |
             Should -Not -Throw
-        { [Atlas.UserProcess]::ValidateMediumIdentity(1, 0x2100, $false) } |
+        { [Atlas.Native.UserProcess]::ValidateMediumIdentity(1, 0x2100, $false) } |
             Should -Not -Throw
 
-        { [Atlas.UserProcess]::ValidateMediumIdentity(2, 0x3000, $true) } |
+        { [Atlas.Native.UserProcess]::ValidateMediumIdentity(2, 0x3000, $true) } |
             Should -Throw -ExpectedMessage '*elevated*'
-        { [Atlas.UserProcess]::ValidateMediumIdentity(3, 0x1000, $false) } |
+        { [Atlas.Native.UserProcess]::ValidateMediumIdentity(3, 0x1000, $false) } |
             Should -Throw -ExpectedMessage '*medium integrity*'
-        { [Atlas.UserProcess]::ValidateMediumIdentity(3, 0x2000, $true) } |
+        { [Atlas.Native.UserProcess]::ValidateMediumIdentity(3, 0x2000, $true) } |
             Should -Throw -ExpectedMessage '*Administrators role*'
     }
 }

@@ -1,17 +1,18 @@
 <#
 .SYNOPSIS
-    Generates the AtlasDesktop .cmd launchers from the toggle definitions under
-    playbook\Executables\AtlasModules\Toggles.
+    Generates the AtlasDesktop and Toolbox .cmd launcher stubs from the data-only toggle
+    definitions (*.psd1) under playbook\Executables\AtlasModules\Toggles.
 .DESCRIPTION
     Every toggle state that declares a 'Launcher' (AtlasDesktop-relative path) gets a
-    CRLF .cmd launcher that forwards to Invoke-Toggle.ps1. The launcher accepts only
-    the supported /silent, /quiet, /justcontext, and /noaction flag grammar, then
-    forwards canonical literal flags instead of reparsing an arbitrary command tail.
-    Menu definitions declare a single top-level 'Launcher' and omit -State.
+    two-line CRLF .cmd stub that calls the shared launcher body
+    Scripts\Entry\Invoke-AtlasToggleLauncher.cmd with the toggle name, the state, the
+    stub's own path and the user's flags. The shared body validates the flag grammar
+    (/silent, /quiet, /justcontext, /noaction) before Windows PowerShell starts.
+    Menu definitions declare a single top-level 'Launcher' and pass '-' as the state.
 
     With -Validate, no files are written: the expected launchers are regenerated in
     memory and diffed against the files on disk. Drifted, missing and orphaned launchers
-    (Invoke-Toggle-style .cmd files with no matching definition) are reported and the
+    (stubs calling the shared launcher body with no matching definition) are reported and the
     script exits 1 on any problem.
 .EXAMPLE
     .\New-ToggleLaunchers.ps1            # (re)generate all launchers
@@ -138,68 +139,24 @@ function New-LauncherContent {
     )
 
     $validatedName = Assert-LauncherIdentifier -Value $Name -Kind Name -Source $Source
-    $stateArgument = ''
+    # Menu toggles pass '-' so the shared launcher body omits -State.
+    $stateToken = '-'
     if ($PSBoundParameters.ContainsKey('State')) {
-        $validatedState = Assert-LauncherIdentifier -Value $State -Kind State -Source $Source
-        $stateArgument = ' -State "{0}"' -f $validatedState
+        $stateToken = Assert-LauncherIdentifier -Value $State -Kind State -Source $Source
     }
 
+    # A stub is deliberately two lines with no exit statement: cmd.exe returns the
+    # errorlevel left by the call as the process exit code, including negative values,
+    # whereas a trailing 'exit /b' would reset it to zero.
     $lines = @(
         '@echo off'
-        'verify other 2>nul'
-        'setlocal EnableExtensions DisableDelayedExpansion'
-        'if errorlevel 1 exit /b 1'
-        'cd /d "%__APPDIR__%"'
-        'if errorlevel 1 exit /b 1'
-        'for %%I in ("%__APPDIR__%..") do set "AtlasWindowsRoot=%%~fI"'
-        'set "launcherEnvironment=%AtlasWindowsRoot%\AtlasModules\Scripts\Internal\Initialize-PowerShellLauncherEnvironment.cmd"'
-        'if not exist "%launcherEnvironment%" ('
-        '    echo PowerShell launcher environment helper not found: "%launcherEnvironment%"'
-        '    exit /b 1'
-        ')'
-        'call "%launcherEnvironment%"'
-        'if errorlevel 1 exit /b 1'
-        'set "AtlasLauncherSilent="'
-        'set "AtlasLauncherJustContext="'
-        'set "AtlasLauncherNoAction="'
-        ':AtlasLauncherParseArguments'
-        'if "%~1"=="" goto AtlasLauncherRun'
-        'if /i "%~1"=="/silent" goto AtlasLauncherFlagSilent'
-        'if /i "%~1"=="-silent" goto AtlasLauncherFlagSilent'
-        'if /i "%~1"=="/quiet" goto AtlasLauncherFlagSilent'
-        'if /i "%~1"=="-quiet" goto AtlasLauncherFlagSilent'
-        'if /i "%~1"=="/justcontext" goto AtlasLauncherFlagJustContext'
-        'if /i "%~1"=="-justcontext" goto AtlasLauncherFlagJustContext'
-        'if /i "%~1"=="/noaction" goto AtlasLauncherFlagNoAction'
-        'if /i "%~1"=="-noaction" goto AtlasLauncherFlagNoAction'
-        'exit /b 87'
-        ':AtlasLauncherFlagSilent'
-        'set "AtlasLauncherSilent=/silent"'
-        'shift /1'
-        'goto AtlasLauncherParseArguments'
-        ':AtlasLauncherFlagJustContext'
-        'set "AtlasLauncherJustContext=/justcontext"'
-        'shift /1'
-        'goto AtlasLauncherParseArguments'
-        ':AtlasLauncherFlagNoAction'
-        'set "AtlasLauncherNoAction=/noaction"'
-        'shift /1'
-        'goto AtlasLauncherParseArguments'
-        ':AtlasLauncherRun'
-        "`"%AtlasNativePowerShell%`" -NoProfile -NoLogo -ExecutionPolicy Bypass -File `"%AtlasWindowsRoot%\AtlasModules\Scripts\Invoke-Toggle.ps1`" -Name `"$validatedName`"$stateArgument -LauncherPath `"%~f0`" %AtlasLauncherSilent% %AtlasLauncherJustContext% %AtlasLauncherNoAction%"
-        'if errorlevel 0 ('
-        '    if errorlevel 1 exit /b'
-        ') else ('
-        '    exit /b 1'
-        ')'
-        'exit /b 0'
+        ('call "%__APPDIR__%..\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd" {0} {1} "%~f0" %*' -f $validatedName, $stateToken)
     )
 
     # Launchers are .cmd files and must be CRLF regardless of the environment.
     return ($lines -join "`r`n") + "`r`n"
 }
 
-# ---- Collect the expected launcher set from the definitions -----------------------------
 $problems = New-Object System.Collections.Generic.List[string]
 # Key: launcher full path (lowercase). Value: @{ Path; Content; Source }
 $expected = @{}
@@ -261,9 +218,10 @@ function Add-ExpectedLauncher {
     }
 }
 
-foreach ($definitionFile in @(Get-ChildItem -LiteralPath $togglesRoot -Recurse -File -Filter '*.ps1')) {
+foreach ($definitionFile in @(Get-ChildItem -LiteralPath $togglesRoot -Recurse -File -Filter '*.psd1')) {
     try {
-        $definition = & $definitionFile.FullName
+        # Definitions are data files; nothing in them executes.
+        $definition = Import-PowerShellDataFile -LiteralPath $definitionFile.FullName -ErrorAction Stop
     }
     catch {
         $problems.Add("Failed to load toggle definition '$($definitionFile.FullName)': $($_.Exception.Message)")
@@ -273,8 +231,8 @@ foreach ($definitionFile in @(Get-ChildItem -LiteralPath $togglesRoot -Recurse -
     if ($definition -isnot [System.Collections.IDictionary] -or
         -not $definition.Contains('Name') -or $definition.Name -isnot [string] -or
         [string]::IsNullOrWhiteSpace([string]$definition.Name) -or
-        -not $definition.Contains('States') -or $definition.States -isnot [System.Collections.IDictionary]) {
-        $problems.Add("Toggle definition '$($definitionFile.FullName)' does not return a hashtable with 'Name' and 'States'.")
+        -not $definition.Contains('States')) {
+        $problems.Add("Toggle definition '$($definitionFile.FullName)' is not a hashtable with 'Name' and 'States'.")
         continue
     }
 
@@ -293,21 +251,20 @@ foreach ($definitionFile in @(Get-ChildItem -LiteralPath $togglesRoot -Recurse -
         continue
     }
 
-    # Menu toggles: one top-level launcher without -State.
+    # Menu toggles: one top-level launcher; the stub passes '-' as the state.
     if ($definition.Contains('Launcher') -and $definition.Launcher) {
         Add-ExpectedLauncher -LauncherRelative $definition.Launcher -ToggleName $toggleName -Source $definitionFile.FullName
     }
-    # Definition-level Toolbox launcher (single-launcher / Menu toggles surfaced in the Toolbox).
     if ($definition.Contains('ToolboxLauncher') -and $definition.ToolboxLauncher) {
         Add-ExpectedLauncher -LauncherRelative $definition.ToolboxLauncher -ToggleName $toggleName -Source $definitionFile.FullName -RootPath $toolboxRoot
     }
 
-    foreach ($stateName in @($definition.States.Keys)) {
-        $stateEntry = $definition.States[$stateName]
-        if ($stateEntry -isnot [System.Collections.IDictionary]) {
-            $problems.Add("Toggle definition '$($definitionFile.FullName)' state '$stateName' is not a hashtable.")
+    foreach ($stateEntry in @($definition.States)) {
+        if ($stateEntry -isnot [System.Collections.IDictionary] -or -not $stateEntry.Contains('Name')) {
+            $problems.Add("Toggle definition '$($definitionFile.FullName)' has a state without a Name.")
             continue
         }
+        $stateName = [string]$stateEntry.Name
         if ($stateEntry.Contains('Launcher') -and $stateEntry.Launcher) {
             Add-ExpectedLauncher -LauncherRelative $stateEntry.Launcher -ToggleName $toggleName -StateName $stateName -Source $definitionFile.FullName
         }
@@ -317,7 +274,6 @@ foreach ($definitionFile in @(Get-ChildItem -LiteralPath $togglesRoot -Recurse -
     }
 }
 
-# ---- Validate or generate ----------------------------------------------------------------
 if ($Validate) {
     foreach ($entry in $expected.Values) {
         if (-not (Test-Path -LiteralPath $entry.Path -PathType Leaf)) {
@@ -331,13 +287,12 @@ if ($Validate) {
         }
     }
 
-    # Orphans: launcher-style .cmd files pointing at Invoke-Toggle.ps1 with no definition
-    # (checked across both the AtlasDesktop and Toolbox trees).
+    # Check both launcher trees for stubs no longer declared by a definition.
     foreach ($orphanRoot in @($desktopRoot, $toolboxRoot)) {
         foreach ($cmdFile in @(Get-ChildItem -LiteralPath $orphanRoot -Recurse -File -Filter '*.cmd')) {
             $content = [System.IO.File]::ReadAllText($cmdFile.FullName)
-            if ($content -match 'Invoke-Toggle\.ps1' -and -not $expected.ContainsKey($cmdFile.FullName.ToLowerInvariant())) {
-                $problems.Add("Orphan launcher: '$($cmdFile.FullName)' calls Invoke-Toggle.ps1 but no toggle definition declares it.")
+            if ($content -match 'Invoke-AtlasToggleLauncher\.cmd' -and -not $expected.ContainsKey($cmdFile.FullName.ToLowerInvariant())) {
+                $problems.Add("Orphan launcher: '$($cmdFile.FullName)' calls Invoke-AtlasToggleLauncher.cmd but no toggle definition declares it.")
             }
         }
     }

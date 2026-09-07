@@ -2,9 +2,12 @@
 
 Some of the Playbook contains binary executables. This file lists their SHA256 hashes and sources so the shipped files can be verified reproducibly. Hashes are uppercase SHA256, as produced by `Get-FileHash` in PowerShell or `sha256sum` (uppercased) on Linux.
 
-**Completeness contract**: every binary file shipped under `playbook\Executables` (`.exe`, `.dll`, `.cab`, `.zip`) is listed here. Completeness and all hashes last cross-checked against disk on 7/10/2026.
+**Completeness contract**: every binary file shipped under `playbook\Executables` (`.exe`, `.dll`, `.cab`, `.zip`) is listed here. Compare the inventory with the shipped files when replacing a binary.
 
 The root of the file paths listed here starts in `playbook\Executables`.
+
+The installed `AtlasModules\LICENSE` contains the Atlas project license.
+Third-party components retain their separately documented terms.
 
 ## Multi-Choice
 
@@ -19,16 +22,17 @@ The root of the file paths listed here starts in `playbook\Executables`.
 ## SetTimerResolution & MeasureSleep
 
 - Path: `\AtlasModules\Tools\SetTimerResolution.exe`
-    - SHA256 Hash: `0515C2428E8960C751AD697ACA1C8D03BD43E2F0F1A0C0D2B4D998361C35EB57`
-    - Original source: `https://github.com/deaglebullet/TimerResolution/releases/download/SetTimerResolution-v1.0.0/SetTimerResolution.exe` (defunct — see note)
-    - Version: v1.0.0
+    - SHA256 Hash: `67592C7DA1728E2084A5F1E17AA4312E49F3D48DF21ADB0844E66259D4489EBD`
+    - Base source: [v1.0.0 commit edf6102](https://github.com/valleyofdoom/TimerResolution/tree/edf6102dbe9cd84fd973f00b0add44d3e9d62801), with the reviewed Atlas input-validation patch.
 - Path: `\AtlasDesktop\3. General Configuration\Timer Resolution\! MeasureSleep.exe`
-    - SHA256 Hash: `377AC4DAF2590AE6AC4703E8B9B532CB1D2041EB0AFE7AD4F62546AF32BE1B11`
-    - Original source: `https://github.com/deaglebullet/TimerResolution/releases/download/MeasureSleep-v1.0.0/MeasureSleep.exe` (defunct — see note)
-    - Version: v1.0.0
-- Repository: https://github.com/valleyofdoom/TimerResolution (current upstream project)
-- License: [GNU General Public License v3.0](https://github.com/valleyofdoom/TimerResolution/blob/main/LICENSE)
-- Note: as of 7/5/2026 the `deaglebullet/TimerResolution` repository these exact assets were downloaded from no longer exists on GitHub. The upstream project (also credited as "amitxv" in `\AtlasModules\Acknowledgements`) publishes releases with the same tags at `valleyofdoom/TimerResolution`, but its current `SetTimerResolution-v1.0.0`/`MeasureSleep-v1.0.0` assets do not hash-match the shipped files (likely rebuilt binaries of the same source). The shipped files therefore currently have no retrievable public download; source code is available in the upstream repository.
+    - SHA256 Hash: `952C19EA42CC8733BCCC07624E952266054FFB6AB50A80090B60A76C3A71E7E4`
+    - Base source: [v1.0.0 commit 79b5c6a](https://github.com/valleyofdoom/TimerResolution/tree/79b5c6a8b2015cd1376b60753cd2c9bd5fe1326f), with reviewed Atlas sample-count, duration-validation and delta-calculation patches.
+- Path: `\AtlasModules\Sources\TimerResolution-source.zip`
+    - SHA256 Hash: `0C546BC247E6D66AA94048DFB161F45837E0DDB9CD591BC1C28F0536234B2306`
+    - Corresponding source for both shipped executables: exact patched C++, args header, original licenses, patches, pinned inputs and build recipe. This is an intentional payload source archive, not temporary build output.
+- Rebuild using `tools/timer/Build-TimerTools.ps1`; `tools/timer/accepted-build.json` records the accepted source/compiler/output hashes. MSVC 14.44.35207, Windows SDK 10.0.26100.0, x64 static CRT. Two output directories produced byte-identical executables. The utilities were not executed during provenance review; runtime validation remains required before release.
+- Timer source license: GNU GPL v3; header-only [args 6.4.6](https://github.com/Taywee/args/tree/e3e6e46699f1ce487a42fd64838f53daeb5aa89b) uses MIT. Both full license texts accompany the exact source in the payload archive.
+- These source-built files replace legacy assets from the defunct `deaglebullet/TimerResolution` repository. Their old hashes could not be tied to corresponding source; no equivalence to those old binaries is claimed.
 
 ## ViVeTool
 
@@ -51,7 +55,7 @@ The root of the file paths listed here starts in `playbook\Executables`.
 - Repository: https://github.com/TheyCreeper/StoreFixer
 - Version: 0.0.4
 - License: [CC0 1.0 Universal](https://github.com/TheyCreeper/StoreFixer/blob/main/LICENSE)
-- Used by the Revert phase (`\AtlasModules\Scripts\Phases\Invoke-RevertPhase.ps1`) and the "Fix Microsoft Store Issues" troubleshooting toggle.
+- Used by the "Fix Microsoft Store Issues" troubleshooting toggle.
 
 ## CBS component packages
 

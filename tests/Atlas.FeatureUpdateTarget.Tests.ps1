@@ -11,8 +11,9 @@
 param()
 
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:targetScript = Join-Path -Path $PSScriptRoot -ChildPath `
-        '..\playbook\Executables\AtlasModules\Scripts\Tasks\Set-FeatureUpdateTarget.ps1'
+        '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\windows-update\disable-feature-updates.ps1'
     $script:policyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
 
     # Execution doubles: the script targets live HKLM policy state, which the tests

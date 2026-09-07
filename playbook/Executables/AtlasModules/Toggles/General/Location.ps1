@@ -1,85 +1,35 @@
-# Toggle: Location services (lfsvc / MapsBroker) and Find My Device.
-#
-# The Enable path's "Unlock Find My Device" prompt is interactive-only so silent/upgrade
-# re-apply never hangs; in silent mode Find My Device is left disabled.
-@{
-    Name      = 'Location'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        Disable = @{
-            StateValue = 0
-            Launcher   = '3. General Configuration\Location\Disable Location (default).cmd'
-            Reboot     = 'None'
-            StateRecordScope = 'Machine'
-            MachineAction = {
-                param($Toggle)
+function Disable-AtlasLocation {
+    param($Toggle)
 
-                $machineStateHelper = [IO.Path]::Combine(
-                    $Toggle.ScriptsPath,
-                    'Internal',
-                    'Set-AtlasLocationMachineState.ps1'
-                )
-                & $machineStateHelper -State Disable
+    Import-AtlasModule -Name Atlas.Privacy
+    Set-AtlasLocationMachineState -State Disable
+}
+
+function Enable-AtlasLocation {
+    param($Toggle)
+
+    Import-AtlasModule -Name Atlas.Privacy
+    Set-AtlasLocationMachineState -State Enable
+
+    # The "Unlock Find My Device" prompt is interactive-only so silent/upgrade
+    # re-apply never hangs; in silent mode Find My Device is preserved.
+    if (-not $Toggle.Silent) {
+        Import-AtlasModule -Name Atlas.Shell
+        $findMyDevice = 'HKLM:\SOFTWARE\Policies\Microsoft\FindMyDevice'
+        if (Read-AtlasYesNo -Question 'Also allow Find My Device, which lets your Microsoft account locate this PC?') {
+            foreach ($name in @('AllowFindMyDevice', 'LocationSyncEnabled')) {
+                Remove-AtlasRegistryValue -Path $findMyDevice -Name $name
             }
-            UserAction = {
-                param($Toggle)
-
-                Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
-                        -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-                    -ErrorAction Stop
-
-                $consent = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'
-                Set-AtlasRegistryValue -Path $consent -Name 'ShowGlobalPrompts' `
-                    -Type DWord -Data 0
-
-                if (-not $Toggle.Silent) {
-                    Write-Host ''
-                    Write-Host 'Location services have been disabled.'
-                }
-            }
+            Set-AtlasSettingsPageVisibility -Operation unhide -Page findmydevice
         }
-        Enable  = @{
-            StateValue = 1
-            ReplayScope = 'Machine'
-            Launcher   = '3. General Configuration\Location\Enable Location.cmd'
-            Reboot     = 'None'
-            Action     = {
-                param($Toggle)
+    }
+}
 
-                $machineStateHelper = [IO.Path]::Combine(
-                    $Toggle.ScriptsPath,
-                    'Internal',
-                    'Set-AtlasLocationMachineState.ps1'
-                )
-                & $machineStateHelper -State Enable
-
-                if (-not $Toggle.Silent) {
-                    Import-Module -Name (Join-Path -Path $Toggle.ScriptsPath `
-                            -ChildPath 'Modules\Atlas.Registry\Atlas.Registry.psd1') `
-                        -ErrorAction Stop
-                    $settingsPages = [IO.Path]::Combine(
-                        $Toggle.ScriptsPath,
-                        'Internal',
-                        'Set-SettingsPageVisibility.ps1'
-                    )
-                    $findMyDevice = 'HKLM:\SOFTWARE\Policies\Microsoft\FindMyDevice'
-                    $answer = Read-Host 'Would you like to unlock Find My Device functionality? [Y/N]'
-                    if ($answer -match '^(y|yes)$') {
-                        Remove-AtlasRegistryKey -Path $findMyDevice
-                        & $settingsPages unhide findmydevice -Silent
-                    }
-                    else {
-                        Set-AtlasRegistryValue -Path $findMyDevice -Name 'AllowFindMyDevice' `
-                            -Type DWord -Data 0
-                        Set-AtlasRegistryValue -Path $findMyDevice -Name 'LocationSyncEnabled' `
-                            -Type DWord -Data 0
-                    }
-
-                    Write-Host ''
-                    Write-Host 'Location services have been enabled.'
-                    Start-Process 'ms-settings:privacy-location' -ErrorAction Stop
-                }
-            }
-        }
+function Show-AtlasLocationSettings {
+    param($Toggle)
+    if (-not $Toggle.Silent) {
+        Write-AtlasStep -Text 'Opening Settings > Privacy & security > Location...'
+        Start-Process 'ms-settings:privacy-location' -ErrorAction Stop
+        Write-AtlasManualStep -Text 'In Settings, turn on Location services, then choose which apps may use your location.'
     }
 }

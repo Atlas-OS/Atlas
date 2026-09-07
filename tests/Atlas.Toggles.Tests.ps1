@@ -1,25 +1,86 @@
 BeforeAll {
-    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-    $modulesRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Scripts\Modules'
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    $script:repoRoot = $script:AtlasTestRepoRoot
+    $modulesRoot = $script:AtlasTestModulesRoot
 
     Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
+    $script:ToolsHost = $script:AtlasTestToolsHost
 
     $script:StateRoot = 'HKCU:\Software\AtlasRewriteTest\Services'
+    $script:ShippedTogglesRoot = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Toggles'
 
-    function New-TestToggleDefinition {
+    # Writes a definition (and optional companion) into a scratch toggles tree.
+    function New-TestToggle {
         param(
             [Parameter(Mandatory = $true)][string]$Root,
-            [Parameter(Mandatory = $true)][string]$Group,
-            [Parameter(Mandatory = $true)][string]$FileName,
-            [Parameter(Mandatory = $true)][string]$Content
+            [Parameter(Mandatory = $true)][string]$Name,
+            [Parameter(Mandatory = $true)][string]$Definition,
+            [string]$Companion,
+            [string]$Group = 'TestGroup'
         )
 
         $groupDirectory = Join-Path $Root $Group
         New-Item -Path $groupDirectory -ItemType Directory -Force | Out-Null
-        Set-Content -Path (Join-Path $groupDirectory $FileName) -Value $Content -Encoding Ascii
+        [IO.File]::WriteAllText((Join-Path $groupDirectory "$Name.psd1"), $Definition, [Text.UTF8Encoding]::new($false))
+        if ($PSBoundParameters.ContainsKey('Companion')) {
+            [IO.File]::WriteAllText((Join-Path $groupDirectory "$Name.ps1"), $Companion, [Text.UTF8Encoding]::new($false))
+        }
     }
 
+    # Companion functions record what ran through marker files under $env:AtlasToggleTestDir.
+    $script:MarkerCompanion = @'
+function Write-AtlasTestMarker {
+    param([string]$Name, [string]$Value)
+    [IO.File]::WriteAllText((Join-Path $env:AtlasToggleTestDir "$Name.txt"), $Value)
+}
+
+function Invoke-AtlasTestContext {
+    param($Toggle)
+    Write-AtlasTestMarker -Name 'context' -Value $Toggle.State
+}
+
+function Invoke-AtlasTestLocal {
+    param($Toggle)
+    Write-AtlasTestMarker -Name 'local' -Value "$($Toggle.Name):$($Toggle.State):$($Toggle.StateValue)"
+}
+
+function Invoke-AtlasTestMachine {
+    param($Toggle)
+    Write-AtlasTestMarker -Name 'machine' -Value "$($Toggle.Name):$($Toggle.State):$($Toggle.StateValue):silent=$($Toggle.Silent)"
+}
+
+function Invoke-AtlasTestUser {
+    param($Toggle)
+    Write-AtlasTestMarker -Name 'user' -Value "$($Toggle.Name):$($Toggle.State)"
+}
+
+function Invoke-AtlasTestFailure {
+    param($Toggle)
+    throw 'deliberate failure'
+}
+
+function Invoke-AtlasTestPowerShellError {
+    param($Toggle)
+    Write-Error 'ordinary action error'
+}
+
+function Invoke-AtlasTestIgnoredError {
+    param($Toggle)
+    Write-Error 'intentionally ignored' -ErrorAction Ignore
+    Write-AtlasTestMarker -Name 'ignored-error' -Value 'continued'
+}
+
+function Invoke-AtlasTestContextFailure {
+    param($Toggle)
+    throw 'deliberate context failure'
+}
+
+function Test-AtlasTestReplayApplicable {
+    param($Toggle)
+    return [bool]$env:AtlasToggleTestReplayApplicable
+}
+'@
 }
 
 AfterAll {
@@ -27,204 +88,205 @@ AfterAll {
     Remove-Item -Path 'HKCU:\Software\AtlasRewriteTest\Services' -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Describe 'Get-AtlasToggleDefinition' {
+Describe 'Toggle definition loading and validation' {
     BeforeAll {
         $script:TogglesRoot = Join-Path $TestDrive 'Toggles'
 
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'GoodToggle.ps1' -Content @'
+        New-TestToggle -Root $TogglesRoot -Name 'GoodToggle' -Definition @'
 @{
     Name      = 'GoodToggle'
+    Elevation = 'Admin'
+    Script    = 'GoodToggle.ps1'
+    States    = @(
+        @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; MachineAction = 'Invoke-AtlasTestMachine'; UserAction = 'Invoke-AtlasTestUser' }
+        @{ Name = 'Off'; StateValue = 0; Launcher = 'A\Off.cmd'; Registry = @( @{ Path = 'HKLM:\SOFTWARE\AtlasRewriteTest'; Name = 'x'; Type = 'DWord'; Data = 0 } ) }
+    )
+}
+'@ -Companion $script:MarkerCompanion
+
+        New-TestToggle -Root $TogglesRoot -Name 'ScriptBlockToggle' -Definition @'
+@{
+    Name      = 'ScriptBlockToggle'
     Elevation = 'None'
-    States    = [ordered]@{
-        On  = @{ StateValue = 1; Action = { param($Toggle) } }
-        Off = @{ StateValue = 0; Action = { param($Toggle) } }
+    States    = @( @{ Name = 'On'; Launcher = 'A\On.cmd'; Action = { param($Toggle) } } )
+}
+'@
+        New-TestToggle -Root $TogglesRoot -Name 'MissingFunction' -Definition @'
+@{
+    Name      = 'MissingFunction'
+    Elevation = 'Admin'
+    Script    = 'MissingFunction.ps1'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; MachineAction = 'Invoke-AtlasNotDefined' } )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $TogglesRoot -Name 'SideEffectCompanion' -Definition @'
+@{
+    Name      = 'SideEffectCompanion'
+    Elevation = 'Admin'
+    Script    = 'SideEffectCompanion.ps1'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; MachineAction = 'Invoke-AtlasTestMachine' } )
+}
+'@ -Companion ("Set-Content -Path (Join-Path `$env:TEMP 'atlas-side-effect.txt') -Value 'ran'`n" + $script:MarkerCompanion)
+        New-TestToggle -Root $TogglesRoot -Name 'ElevatedAction' -Definition @'
+@{
+    Name      = 'ElevatedAction'
+    Elevation = 'Admin'
+    Script    = 'ElevatedAction.ps1'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Action = 'Invoke-AtlasTestLocal' } )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $TogglesRoot -Name 'UnelevatedMachine' -Definition @'
+@{
+    Name          = 'UnelevatedMachine'
+    Elevation     = 'None'
+    NoStateRecord = $true
+    States        = @( @{ Name = 'On'; Launcher = 'A\On.cmd'; Registry = @( @{ Path = 'HKLM:\SOFTWARE\X'; Name = 'y'; Type = 'DWord'; Data = 1 } ) } )
+}
+'@
+        New-TestToggle -Root $TogglesRoot -Name 'UnelevatedRecord' -Definition @'
+@{
+    Name      = 'UnelevatedRecord'
+    Elevation = 'None'
+    Script    = 'UnelevatedRecord.ps1'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Action = 'Invoke-AtlasTestLocal' } )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $TogglesRoot -Name 'UserPolicy' -Definition @'
+@{
+    Name      = 'UserPolicy'
+    Elevation = 'Admin'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Registry = @( @{ Path = 'HKCU:\Software\Policies\Microsoft\Windows\X'; Name = 'y'; Type = 'DWord'; Data = 1 } ) } )
+}
+'@
+        New-TestToggle -Root $TogglesRoot -Name 'DuplicateValue' -Definition @'
+@{
+    Name      = 'DuplicateValue'
+    Elevation = 'Admin'
+    States    = @(
+        @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Registry = @( @{ Path = 'HKLM:\SOFTWARE\X'; Name = 'y'; Type = 'DWord'; Data = 1 } ) }
+        @{ Name = 'Off'; StateValue = 1; Launcher = 'A\Off.cmd'; Registry = @( @{ Path = 'HKLM:\SOFTWARE\X'; Name = 'y'; Type = 'DWord'; Data = 0 } ) }
+    )
+}
+'@
+        New-TestToggle -Root $TogglesRoot -Name 'WrongName' -Definition @'
+@{
+    Name      = 'SomethingElse'
+    Elevation = 'Admin'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Registry = @( @{ Path = 'HKLM:\SOFTWARE\X'; Name = 'y'; Type = 'DWord'; Data = 1 } ) } )
+}
+'@
+        New-TestToggle -Root $TogglesRoot -Name 'UnknownKey' -Definition @'
+@{
+    Name      = 'UnknownKey'
+    Elevation = 'Admin'
+    Sideload  = $true
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Registry = @( @{ Path = 'HKLM:\SOFTWARE\X'; Name = 'y'; Type = 'DWord'; Data = 1 } ) } )
+}
+'@
     }
-}
-'@
 
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'NoName.ps1' -Content @'
-@{
-    States = [ordered]@{ On = @{ StateValue = 1; Action = { param($Toggle) } } }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'NoStates.ps1' -Content @'
-@{
-    Name = 'NoStates'
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'NoAction.ps1' -Content @'
-@{
-    Name   = 'NoAction'
-    States = [ordered]@{ On = @{ StateValue = 1 } }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'NoStateValue.ps1' -Content @'
-@{
-    Name   = 'NoStateValue'
-    States = [ordered]@{ On = @{ Action = { param($Toggle) } } }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'WrongName.ps1' -Content @'
-@{
-    Name   = 'SomethingElse'
-    States = [ordered]@{ On = @{ StateValue = 1; Action = { param($Toggle) } } }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'UnknownKey.ps1' -Content @'
-@{
-    Name       = 'UnknownKey'
-    Elevation  = 'None'
-    Sideload   = $true
-    States     = [ordered]@{ On = @{ StateValue = 1; Action = { param($Toggle) } } }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'UnorderedStates.ps1' -Content @'
-@{
-    Name   = 'UnorderedStates'
-    States = @{ On = @{ StateValue = 1; Action = { param($Toggle) } } }
-}
-'@
-    }
-
-    It 'loads and validates a well-formed definition' {
+    It 'loads a well-formed definition as an ordered state dictionary with its companion functions' {
         $definition = Get-AtlasToggleDefinition -Name 'GoodToggle' -TogglesRoot $TogglesRoot
+
         $definition.Name | Should -Be 'GoodToggle'
         @($definition.States.Keys) | Should -Be @('On', 'Off')
-        $definition.States['On'].Action | Should -BeOfType [scriptblock]
+        $definition.States['On']['StateValue'] | Should -Be 1
+        $definition.ScriptPath | Should -Be (Join-Path $TogglesRoot 'TestGroup\GoodToggle.ps1')
+        $definition.Functions | Should -Contain 'Invoke-AtlasTestMachine'
+    }
+
+    It 'classifies machine and user work from the declarations' {
+        $definition = Get-AtlasToggleDefinition -Name 'GoodToggle' -TogglesRoot $TogglesRoot
+
+        $on = Get-AtlasToggleStateWork -Definition $definition -StateEntry $definition.States['On']
+        $on.Machine | Should -BeTrue
+        $on.User | Should -BeTrue
+        $on.Local | Should -BeFalse
+
+        $off = Get-AtlasToggleStateWork -Definition $definition -StateEntry $definition.States['Off']
+        $off.Machine | Should -BeTrue
+        $off.User | Should -BeFalse
+    }
+
+    It 'never executes definition code: a scriptblock in a data file is rejected' {
+        { Get-AtlasToggleDefinition -Name 'ScriptBlockToggle' -TogglesRoot $TogglesRoot } | Should -Throw
+    }
+
+    It 'rejects a definition that names a function its companion does not define' {
+        { Get-AtlasToggleDefinition -Name 'MissingFunction' -TogglesRoot $TogglesRoot } |
+            Should -Throw "*Invoke-AtlasNotDefined*does not define*"
+    }
+
+    It 'rejects a companion with top-level statements without running them' {
+        Remove-Item -LiteralPath (Join-Path $env:TEMP 'atlas-side-effect.txt') -Force -ErrorAction SilentlyContinue
+
+        { Get-AtlasToggleDefinition -Name 'SideEffectCompanion' -TogglesRoot $TogglesRoot } |
+            Should -Throw '*must contain only function definitions*'
+        Join-Path $env:TEMP 'atlas-side-effect.txt' | Should -Not -Exist
+    }
+
+    It 'rejects the shape problems the schema forbids' -TestCases @(
+        @{ Name = 'ElevatedAction'; Message = "*declares 'Action'; elevated toggles*" }
+        @{ Name = 'UnelevatedMachine'; Message = '*machine registry paths without elevation*' }
+        @{ Name = 'UnelevatedRecord'; Message = '*declare NoStateRecord*' }
+        @{ Name = 'UserPolicy'; Message = '*protected HKCU policy path*' }
+        @{ Name = 'DuplicateValue'; Message = '*reuses StateValue*' }
+        @{ Name = 'WrongName'; Message = "*declares Name 'SomethingElse'*" }
+        @{ Name = 'UnknownKey'; Message = "*unknown top-level key 'Sideload'*" }
+    ) {
+        { Get-AtlasToggleDefinition -Name $Name -TogglesRoot $TogglesRoot } | Should -Throw $Message
     }
 
     It 'throws when no definition with the given name exists' {
-        { Get-AtlasToggleDefinition -Name 'DoesNotExist' -TogglesRoot $TogglesRoot } |
-            Should -Throw "*No toggle definition named 'DoesNotExist'*"
+        { Get-AtlasToggleDefinition -Name 'Missing' -TogglesRoot $TogglesRoot } |
+            Should -Throw "*No toggle definition named 'Missing'*"
     }
 
-    It 'throws when the definition is missing Name' {
-        { Get-AtlasToggleDefinition -Name 'NoName' -TogglesRoot $TogglesRoot } |
-            Should -Throw "*missing the required 'Name' key*"
-    }
+    It 'reports every problem of a tree through Test-AtlasToggleDefinition' {
+        $problems = @(Test-AtlasToggleDefinition -Path $TogglesRoot)
 
-    It 'throws when the definition is missing States' {
-        { Get-AtlasToggleDefinition -Name 'NoStates' -TogglesRoot $TogglesRoot } |
-            Should -Throw "*'States' dictionary*"
-    }
-
-    It 'throws when States is not an ordered dictionary' {
-        { Get-AtlasToggleDefinition -Name 'UnorderedStates' -TogglesRoot $TogglesRoot } |
-            Should -Throw "*'States' dictionary*"
-    }
-
-    It 'throws on an unknown top-level key' {
-        { Get-AtlasToggleDefinition -Name 'UnknownKey' -TogglesRoot $TogglesRoot } |
-            Should -Throw "*unknown top-level key 'Sideload'*"
-    }
-
-    It 'throws when a state has neither a legacy action nor a privileged split' {
-        { Get-AtlasToggleDefinition -Name 'NoAction' -TogglesRoot $TogglesRoot } |
-            Should -Throw '*missing an Action or exact MachineAction/UserAction split*'
-    }
-
-    It 'throws when a state has no StateValue and no NoStateRecord' {
-        { Get-AtlasToggleDefinition -Name 'NoStateValue' -TogglesRoot $TogglesRoot } |
-            Should -Throw "*missing 'StateValue'*"
-    }
-
-    It 'throws when the declared Name does not match the file name' {
-        { Get-AtlasToggleDefinition -Name 'WrongName' -TogglesRoot $TogglesRoot } |
-            Should -Throw "*declares Name 'SomethingElse'*"
+        @($problems | Where-Object { $_.Path -like '*GoodToggle.psd1' }).Count | Should -Be 0
+        @($problems | Where-Object { $_.Path -like '*UnknownKey.psd1' }).Count | Should -Be 1
+        @($problems | Where-Object { $_.Path -like '*DuplicateValue.psd1' }).Count | Should -Be 1
     }
 }
 
-Describe 'Shipped toggle replay classification' {
-    It 'classifies every recordable persistent action for replay' {
-        $togglesRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles'
-        $unclassified = @()
+Describe 'Shipped toggle definitions' {
+    It 'all validate without running any toggle code' {
+        $problems = @(Test-AtlasToggleDefinition -Path $script:ShippedTogglesRoot)
+        ($problems | ForEach-Object { "$($_.Path): $($_.Problem)" }) -join "`n" | Should -BeNullOrEmpty
+    }
 
-        foreach ($file in Get-ChildItem -LiteralPath $togglesRoot -Recurse -File -Filter '*.ps1') {
-            $definition = & $file.FullName
-            foreach ($stateName in $definition.States.Keys) {
-                $stateEntry = $definition.States[$stateName]
-                $noStateRecord = ($definition.Contains('NoStateRecord') -and $definition.NoStateRecord) -or
-                    ($stateEntry.Contains('NoStateRecord') -and $stateEntry.NoStateRecord)
-                if ($noStateRecord) {
+    It 'contain no scriptblocks and no HKCU policy writes' {
+        foreach ($file in Get-ChildItem -LiteralPath $script:ShippedTogglesRoot -Recurse -File -Filter '*.psd1') {
+            $data = Import-AtlasDataFile -LiteralPath $file.FullName
+            foreach ($state in @($data.States)) {
+                if (-not $state.ContainsKey('Registry')) {
                     continue
                 }
-
-                $isSplit = $stateEntry.Contains('MachineAction') -and
-                    $stateEntry.MachineAction -is [scriptblock] -and
-                    $stateEntry.Contains('UserAction') -and
-                    $stateEntry.UserAction -is [scriptblock]
-                $isMachine = $stateEntry.Contains('Action') -and
-                    $stateEntry.Action -is [scriptblock] -and
-                    $stateEntry.Contains('ReplayScope') -and
-                    [string]$stateEntry.ReplayScope -ceq 'Machine'
-                if (-not $isSplit -and -not $isMachine) {
-                    $unclassified += "$($definition.Name):$stateName"
+                foreach ($entry in @($state['Registry'])) {
+                    [string]$entry['Path'] | Should -Not -Match '(?i)^HKCU.*\\Policies' -Because $file.Name
                 }
             }
         }
-
-        $unclassified | Should -BeNullOrEmpty
     }
 
-    It 'keeps protected HKCU policy paths out of medium-token UserAction blocks' {
-        $togglesRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles'
-        $violations = @()
+    It 'declare exactly the closed service-defaults set with one (default) state each' {
+        InModuleScope Atlas.Toggles {
+            $servicesRoot = Join-Path $ShippedTogglesRoot 'Services'
+            $expected = @($script:AtlasServiceDefaultResetStates.Keys | ForEach-Object { [string]$_ })
+            @(Get-ChildItem -LiteralPath $servicesRoot -File -Filter '*.psd1' | Sort-Object Name | ForEach-Object { $_.BaseName }) |
+                Should -Be @($expected | Sort-Object)
 
-        foreach ($file in Get-ChildItem -LiteralPath $togglesRoot -Recurse -File -Filter '*.ps1') {
-            $definition = & $file.FullName
-            foreach ($stateName in $definition.States.Keys) {
-                $stateEntry = $definition.States[$stateName]
-                if (-not $stateEntry.Contains('UserAction') -or
-                    -not ($stateEntry.UserAction -is [scriptblock])) {
-                    continue
-                }
-                $source = $stateEntry.UserAction.ToString()
-                if ($source -match '(?i)HKCU:?[\\].*(?:CurrentVersion[\\]Policies|[\\]Policies)') {
-                    $violations += "$($definition.Name):$stateName"
-                }
+            foreach ($name in $expected) {
+                $definition = Get-AtlasToggleDefinition -Name $name -TogglesRoot $servicesRoot
+                (Get-AtlasToggleElevation -Definition $definition) | Should -Be 'Admin'
+                $defaults = @($definition.States.Keys | Where-Object {
+                        [string]$definition.States[$_]['Launcher'] -like '*(default)*'
+                    })
+                $defaults | Should -Be @([string]$script:AtlasServiceDefaultResetStates[$name])
             }
-        }
-
-        $violations | Should -BeNullOrEmpty
-    }
-
-    It 'treats the WinGet no-applicable-upgrade result as an idempotent Game Bar success' {
-        $installer = Join-Path $repoRoot `
-            'playbook\Executables\AtlasModules\Scripts\Internal\Install-GameBar.ps1'
-        $installerRoot = Join-Path $TestDrive 'gamebar-installer'
-        New-Item -ItemType Directory -Path $installerRoot -Force | Out-Null
-
-        $installerUnderTest = Join-Path $installerRoot 'Install-GameBar.ps1'
-        Copy-Item -LiteralPath $installer -Destination $installerUnderTest
-
-        $fakeWinget = Join-Path $installerRoot 'winget.cmd'
-        [IO.File]::WriteAllText(
-            $fakeWinget,
-            "@echo off`r`nexit /b -1978335189`r`n",
-            [Text.Encoding]::ASCII
-        )
-
-        $escapedWinget = $fakeWinget.Replace("'", "''")
-        $integrityHelper = Join-Path $installerRoot 'Download-Integrity.ps1'
-        [IO.File]::WriteAllText(
-            $integrityHelper,
-            @"
-function Get-AtlasTrustedWingetPath { '$escapedWinget' }
-function Assert-AtlasTrustedWingetSource { param([string]`$WingetPath, [string]`$Name) }
-"@,
-            [Text.UTF8Encoding]::new($false)
-        )
-
-        $output = & $installerUnderTest
-
-        $output | Should -Contain `
-            'Xbox Game Bar is already installed and no applicable upgrade is available.'
+        } -Parameters @{ ShippedTogglesRoot = $script:ShippedTogglesRoot }
     }
 }
 
@@ -279,390 +341,6 @@ Describe 'Initialize-AtlasToggleStateStore' {
         (Get-ItemProperty -LiteralPath $keyPath -Name 'days').days | Should -Be 356000
     }
 
-    It 'ships a default state seed with no executable path values' {
-        $seedPath = Join-Path $repoRoot 'playbook\Executables\DEFAULT.reg'
-        $seedBytes = [IO.File]::ReadAllBytes($seedPath)
-        $seedBytes[0..1] | Should -Be @(0xFF, 0xFE)
-        $seedText = [Text.Encoding]::Unicode.GetString($seedBytes, 2, $seedBytes.Length - 2)
-
-        $seedText | Should -Not -Match '(?m)^"path"='
-    }
-
-}
-
-Describe 'Invoke-AtlasToggleReapply' {
-    BeforeEach {
-        # Reapply routes its operational output through Write-AtlasLog; mock it so the
-        # tests never touch the real install-log directory.
-        Mock Write-AtlasLog -ModuleName Atlas.Toggles
-        Mock Assert-AtlasPrivilege -ModuleName Atlas.Toggles
-        Mock Invoke-AtlasToggle -ModuleName Atlas.Toggles
-
-        Remove-Item -Path $StateRoot -Recurse -Force -ErrorAction SilentlyContinue
-
-        $script:ReapplyTogglesRoot = Join-Path $TestDrive 'ReapplyToggles'
-        Remove-Item -Path $script:ReapplyTogglesRoot -Recurse -Force -ErrorAction SilentlyContinue
-        New-Item -Path $script:ReapplyTogglesRoot -ItemType Directory -Force | Out-Null
-
-        # The installed definition records that it ran. A separate launcher records any
-        # unsafe replay of the legacy attacker-controlled registry path.
-        $script:ReapplyMarker = Join-Path $TestDrive 'reapply-marker.txt'
-        Remove-Item -Path $script:ReapplyMarker -Force -ErrorAction SilentlyContinue
-        $env:AtlasToggleReplayMarker = $script:ReapplyMarker
-
-        $script:UntrustedMarker = Join-Path $TestDrive 'untrusted-replay-marker.txt'
-        Remove-Item -Path $script:UntrustedMarker -Force -ErrorAction SilentlyContinue
-        $script:UntrustedLauncher = Join-Path $TestDrive 'UntrustedLauncher.ps1'
-        Set-Content -Path $script:UntrustedLauncher -Value "param([switch]`$Silent)`nSet-Content -Path '$script:UntrustedMarker' -Value 'unsafe'" -Encoding Ascii
-
-        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'ReplayToggle.ps1' -Content @'
-@{
-    Name      = 'ReplayToggle'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            ReplayScope = 'Machine'
-            Action = {
-                param($Toggle)
-                Set-Content -Path $env:AtlasToggleReplayMarker -Value 'trusted-definition'
-            }
-        }
-        Off = @{
-            StateValue = 0
-            ReplayScope = 'Machine'
-            Action = {
-                param($Toggle)
-                Set-Content -Path $env:AtlasToggleReplayMarker -Value 'unexpected-zero-replay'
-            }
-        }
-    }
-}
-'@
-    }
-
-    AfterAll {
-        Remove-Item Env:\AtlasToggleReplayMarker -ErrorAction SilentlyContinue
-        Remove-Item Env:\AtlasSplitReplayMarker -ErrorAction SilentlyContinue
-    }
-
-    It 'replays a known non-zero state exclusively through its installed definition' {
-        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -StateRoot $StateRoot
-        $recordPath = Join-Path $StateRoot 'ReplayToggle'
-        New-ItemProperty -LiteralPath $recordPath -Name 'path' -Value $script:UntrustedLauncher -PropertyType String -Force | Out-Null
-
-        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
-
-        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeTrue
-        Get-Content -LiteralPath $script:ReapplyMarker | Should -Be 'trusted-definition'
-        Test-Path -LiteralPath $script:UntrustedMarker | Should -BeFalse
-        @((Get-Item -LiteralPath $recordPath).GetValueNames()) | Should -Not -Contain 'path'
-        Test-Path -LiteralPath (Join-Path $StateRoot 'ReplayToggle') | Should -BeTrue
-        Should -Not -Invoke Invoke-AtlasToggle -ModuleName Atlas.Toggles
-    }
-
-    It 'replays only MachineAction for a split state' {
-        $script:splitReplayMarker = Join-Path $TestDrive 'split-machine-replay.txt'
-        $env:AtlasSplitReplayMarker = $script:splitReplayMarker
-        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
-            -FileName 'SplitReplay.ps1' -Content @'
-@{
-    Name      = 'SplitReplay'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            StateRecordScope = 'Machine'
-            MachineAction = {
-                param($Toggle)
-                [IO.File]::AppendAllText(
-                    $env:AtlasSplitReplayMarker,
-                    'machine' + [Environment]::NewLine
-                )
-            }
-            UserAction = {
-                param($Toggle)
-                [IO.File]::AppendAllText(
-                    $env:AtlasSplitReplayMarker,
-                    'user' + [Environment]::NewLine
-                )
-            }
-        }
-    }
-}
-'@
-        Set-AtlasToggleState -Name 'SplitReplay' -State 1 -StateRoot $StateRoot
-
-        Invoke-AtlasToggleReapply `
-            -StateRoot $StateRoot `
-            -TogglesRoot $script:ReapplyTogglesRoot
-
-        Get-Content -LiteralPath $script:splitReplayMarker | Should -Be @('machine')
-    }
-
-    It 'replays only UserAction for a recorded split state, including state 0' {
-        $script:userReplayMarker = Join-Path $TestDrive 'split-user-replay.txt'
-        $env:AtlasSplitReplayMarker = $script:userReplayMarker
-        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
-            -FileName 'SplitUserReplay.ps1' -Content @'
-@{
-    Name      = 'SplitUserReplay'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        Off = @{
-            StateValue = 0
-            StateRecordScope = 'Machine'
-            MachineAction = {
-                param($Toggle)
-                [IO.File]::AppendAllText(
-                    $env:AtlasSplitReplayMarker,
-                    'machine-off' + [Environment]::NewLine
-                )
-            }
-            UserAction = {
-                param($Toggle)
-                [IO.File]::AppendAllText(
-                    $env:AtlasSplitReplayMarker,
-                    'user-off' + [Environment]::NewLine
-                )
-            }
-        }
-    }
-}
-'@
-        Set-AtlasToggleState -Name 'SplitUserReplay' -State 0 -StateRoot $StateRoot
-        Mock Test-AtlasSystem { $false } -ModuleName Atlas.Toggles
-        Mock Test-AtlasAdmin { $false } -ModuleName Atlas.Toggles
-
-        Invoke-AtlasToggleUserReapply `
-            -StateRoot $StateRoot `
-            -TogglesRoot $script:ReapplyTogglesRoot
-
-        Get-Content -LiteralPath $script:userReplayMarker | Should -Be @('user-off')
-        (Get-AtlasToggleState -Name 'SplitUserReplay' -StateRoot $StateRoot).State | Should -Be 0
-    }
-
-    It 'classifies the shipped Bluetooth default as machine-only replay' {
-        $productionTogglesRoot = Join-Path $repoRoot `
-            'playbook\Executables\AtlasModules\Toggles'
-        Set-AtlasToggleState -Name 'Bluetooth' -State 1 -StateRoot $StateRoot
-        Mock Invoke-AtlasToggleInProcess -ModuleName Atlas.Toggles
-
-        Invoke-AtlasToggleReapply `
-            -StateRoot $StateRoot `
-            -TogglesRoot $productionTogglesRoot
-
-        Should -Invoke Invoke-AtlasToggleInProcess -ModuleName Atlas.Toggles `
-            -Times 1 -Exactly -ParameterFilter {
-                $Definition.Name -ceq 'Bluetooth' -and
-                    $StateName -ceq 'Enable' -and
-                    $ActionScope -ceq 'Machine'
-            }
-    }
-
-    It 'replays an explicitly classified state 0' {
-        Set-AtlasToggleState -Name 'ReplayToggle' -State 0 -StateRoot $StateRoot
-
-        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
-
-        Get-Content -LiteralPath $script:ReapplyMarker | Should -Be 'unexpected-zero-replay'
-    }
-
-    It 'scrubs a recorded machine state that is no longer applicable' {
-        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
-            -FileName 'UnavailableHardware.ps1' -Content @'
-@{
-    Name      = 'UnavailableHardware'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            ReplayScope = 'Machine'
-            ReplayApplicable = { $false }
-            Action = { throw 'inapplicable action must not run' }
-        }
-    }
-}
-'@
-        Set-AtlasToggleState -Name 'UnavailableHardware' -State 1 -StateRoot $StateRoot
-
-        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
-
-        Test-Path -LiteralPath (Join-Path $StateRoot 'UnavailableHardware') | Should -BeFalse
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -ParameterFilter {
-            $Message -like "*UnavailableHardware*no longer applicable*Removing stale registry record*"
-        }
-    }
-
-    It 'preserves and reports a replay applicability check failure' {
-        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
-            -FileName 'BrokenApplicability.ps1' -Content @'
-@{
-    Name      = 'BrokenApplicability'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            ReplayScope = 'Machine'
-            ReplayApplicable = { throw 'applicability probe failed' }
-            Action = { throw 'action must not run after probe failure' }
-        }
-    }
-}
-'@
-        Set-AtlasToggleState -Name 'BrokenApplicability' -State 1 -StateRoot $StateRoot
-
-        {
-            Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
-        } | Should -Throw "*'BrokenApplicability': applicability probe failed*"
-
-        Test-Path -LiteralPath (Join-Path $StateRoot 'BrokenApplicability') | Should -BeTrue
-    }
-
-    It 'scrubs an unknown record without executing its legacy raw path' {
-        Set-AtlasToggleState -Name 'GhostToggle' -State 1 -StateRoot $StateRoot
-        $recordPath = Join-Path $StateRoot 'GhostToggle'
-        New-ItemProperty -LiteralPath $recordPath -Name 'path' -Value $script:UntrustedLauncher -PropertyType String -Force | Out-Null
-
-        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
-
-        Test-Path -LiteralPath $script:UntrustedMarker | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path $StateRoot 'GhostToggle') | Should -BeFalse
-    }
-
-    It 'preserves a record when its installed definition fails to load' {
-        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' `
-            -FileName 'BrokenDefinition.ps1' -Content @'
-throw 'simulated installed definition load failure'
-'@
-        Set-AtlasToggleState -Name 'BrokenDefinition' -State 1 -StateRoot $StateRoot
-
-        {
-            Invoke-AtlasToggleReapply -StateRoot $StateRoot `
-                -TogglesRoot $script:ReapplyTogglesRoot
-        } | Should -Throw '*simulated installed definition load failure*'
-
-        Test-Path -LiteralPath (Join-Path $StateRoot 'BrokenDefinition') | Should -BeTrue
-    }
-
-    It 'scrubs a known record whose numeric state is not defined' {
-        Set-AtlasToggleState -Name 'ReplayToggle' -State 99 -StateRoot $StateRoot
-
-        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
-
-        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path $StateRoot 'ReplayToggle') | Should -BeFalse
-    }
-
-    It 'scrubs a numeric state stored with the wrong registry type without executing its legacy raw path' {
-        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -StateRoot $StateRoot
-        $recordPath = Join-Path $StateRoot 'ReplayToggle'
-        New-ItemProperty -LiteralPath $recordPath -Name 'state' -Value '1' -PropertyType String -Force | Out-Null
-        New-ItemProperty -LiteralPath $recordPath -Name 'path' -Value $script:UntrustedLauncher -PropertyType String -Force | Out-Null
-
-        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
-
-        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
-        Test-Path -LiteralPath $script:UntrustedMarker | Should -BeFalse
-        Test-Path -LiteralPath $recordPath | Should -BeFalse
-    }
-
-    It 'cleans up and never replays a record for a NoStateRecord toggle (stale SafeMode hazard)' {
-        # Regression: a stale recorded state (e.g. SafeMode = 3 from an older Atlas)
-        # must not be re-applied on upgrade - the machine would boot into safe mode.
-        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'NoRecordToggle.ps1' -Content @'
-@{
-    Name          = 'NoRecordToggle'
-    Elevation     = 'None'
-    NoStateRecord = $true
-    States        = [ordered]@{
-        Enter = @{ StateValue = 3; Action = { param($Toggle) } }
-        Exit  = @{ StateValue = 0; Action = { param($Toggle) } }
-    }
-}
-'@
-
-        Set-AtlasToggleState -Name 'NoRecordToggle' -State 3 -StateRoot $StateRoot
-
-        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
-
-        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path $StateRoot 'NoRecordToggle') | Should -BeFalse
-    }
-
-    It 'continues replaying every record, then throws one aggregate with all failures' {
-        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'AReplayFailure.ps1' -Content @'
-@{
-    Name      = 'AReplayFailure'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            ReplayScope = 'Machine'
-            Action = {
-                param($Toggle)
-                throw 'first replay failure'
-            }
-        }
-    }
-}
-'@
-
-        New-TestToggleDefinition -Root $script:ReapplyTogglesRoot -Group 'TestGroup' -FileName 'ZReplayFailure.ps1' -Content @'
-@{
-    Name      = 'ZReplayFailure'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            ReplayScope = 'Machine'
-            Action = {
-                param($Toggle)
-                throw 'second replay failure'
-            }
-        }
-    }
-}
-'@
-
-        Set-AtlasToggleState -Name 'AReplayFailure' -State 1 -StateRoot $StateRoot
-        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -StateRoot $StateRoot
-        Set-AtlasToggleState -Name 'ZReplayFailure' -State 1 -StateRoot $StateRoot
-
-        $replayError = $null
-        try {
-            Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReapplyTogglesRoot
-        }
-        catch {
-            $replayError = $_
-        }
-
-        $replayError | Should -Not -BeNullOrEmpty
-        $replayError.Exception.Message | Should -Match 'failed for 2 toggle\(s\)'
-        $replayError.Exception.Message | Should -Match "'AReplayFailure': first replay failure"
-        $replayError.Exception.Message | Should -Match "'ZReplayFailure': second replay failure"
-        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeTrue
-        Get-Content -LiteralPath $script:ReapplyMarker | Should -Be 'trusted-definition'
-    }
-
-    It 'asserts strict TrustedInstaller before protecting or mutating the replay tree' {
-        Set-AtlasToggleState -Name 'ReplayToggle' -State 1 -StateRoot $StateRoot
-        Mock Assert-AtlasPrivilege -ModuleName Atlas.Toggles -MockWith {
-            throw '[privilege] simulated non-TI replay caller'
-        }
-        Mock Protect-AtlasToggleStateRoot -ModuleName Atlas.Toggles
-
-        {
-            Invoke-AtlasToggleReapply -StateRoot $StateRoot `
-                -TogglesRoot $script:ReapplyTogglesRoot
-        } | Should -Throw '*simulated non-TI replay caller*'
-
-        Should -Invoke Assert-AtlasPrivilege -ModuleName Atlas.Toggles `
-            -Times 1 -Exactly -ParameterFilter { $TrustedInstaller }
-        Should -Not -Invoke Protect-AtlasToggleStateRoot -ModuleName Atlas.Toggles
-        Test-Path -LiteralPath $script:ReapplyMarker | Should -BeFalse
-    }
-
 }
 
 Describe 'Atlas toggle production state ACL' {
@@ -704,384 +382,704 @@ Describe 'Atlas toggle production state ACL' {
             $script:aclTargets | Should -Be @($productionRoot, $childPath)
         }
     }
+}
 
+Describe 'Replay of recorded states' {
+    BeforeAll {
+        $script:ReplayRoot = Join-Path $TestDrive 'ReplayToggles'
+        $script:ReplayWork = Join-Path $TestDrive 'ReplayWork'
+        New-Item -Path $script:ReplayWork -ItemType Directory -Force | Out-Null
+
+        New-TestToggle -Root $script:ReplayRoot -Name 'SplitToggle' -Definition @'
+@{
+    Name      = 'SplitToggle'
+    Elevation = 'Admin'
+    Script    = 'SplitToggle.ps1'
+    States    = @(
+        @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; MachineAction = 'Invoke-AtlasTestMachine'; UserAction = 'Invoke-AtlasTestUser' }
+        @{ Name = 'Off'; StateValue = 0; Launcher = 'A\Off.cmd'; MachineAction = 'Invoke-AtlasTestMachine'; UserAction = 'Invoke-AtlasTestUser' }
+    )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:ReplayRoot -Name 'UserOnlyToggle' -Definition @'
+@{
+    Name      = 'UserOnlyToggle'
+    Elevation = 'Admin'
+    Script    = 'UserOnlyToggle.ps1'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; UserAction = 'Invoke-AtlasTestUser' } )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:ReplayRoot -Name 'ApplicableToggle' -Definition @'
+@{
+    Name      = 'ApplicableToggle'
+    Elevation = 'Admin'
+    Script    = 'ApplicableToggle.ps1'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; MachineAction = 'Invoke-AtlasTestMachine'; ReplayApplicable = 'Test-AtlasTestReplayApplicable' } )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:ReplayRoot -Name 'NoRecordToggle' -Definition @'
+@{
+    Name          = 'NoRecordToggle'
+    Elevation     = 'Admin'
+    NoStateRecord = $true
+    Script        = 'NoRecordToggle.ps1'
+    States        = @( @{ Name = 'Run'; Launcher = 'A\Run.cmd'; MachineAction = 'Invoke-AtlasTestMachine' } )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:ReplayRoot -Name 'FailingToggle' -Definition @'
+@{
+    Name      = 'FailingToggle'
+    Elevation = 'Admin'
+    Script    = 'FailingToggle.ps1'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; MachineAction = 'Invoke-AtlasTestFailure' } )
+}
+'@ -Companion $script:MarkerCompanion
+    }
+
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Toggles
+        Mock Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles
+        Remove-Item -Path $StateRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Get-ChildItem -Path $script:ReplayWork -Filter '*.txt' | Remove-Item -Force
+        $env:AtlasToggleTestDir = $script:ReplayWork
+        $env:AtlasToggleTestReplayApplicable = '1'
+    }
+
+    AfterAll {
+        Remove-Item Env:\AtlasToggleTestDir -ErrorAction SilentlyContinue
+        Remove-Item Env:\AtlasToggleTestReplayApplicable -ErrorAction SilentlyContinue
+    }
+
+    It 'replays only the machine part of a recorded state, silently, and keeps the record' {
+        Set-AtlasToggleState -Name 'SplitToggle' -State 0 -StateRoot $StateRoot
+        $recordPath = Join-Path $StateRoot 'SplitToggle'
+        New-ItemProperty -LiteralPath $recordPath -Name 'path' -Value 'C:\Attacker\payload.ps1' -PropertyType String -Force | Out-Null
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        Get-Content (Join-Path $script:ReplayWork 'machine.txt') | Should -Be 'SplitToggle:Off:0:silent=True'
+        Join-Path $script:ReplayWork 'user.txt' | Should -Not -Exist
+        @((Get-Item -LiteralPath $recordPath).GetValueNames()) | Should -Not -Contain 'path'
+        (Get-AtlasToggleState -Name 'SplitToggle' -StateRoot $StateRoot).State | Should -Be 0
+    }
+
+    It 'leaves a record that has only user work for first sign-in replay' {
+        Set-AtlasToggleState -Name 'UserOnlyToggle' -State 1 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        Join-Path $script:ReplayWork 'user.txt' | Should -Not -Exist
+        (Get-AtlasToggleState -Name 'UserOnlyToggle' -StateRoot $StateRoot).State | Should -Be 1
+    }
+
+    It 'removes a recorded state whose ReplayApplicable check fails without running it' {
+        Set-AtlasToggleState -Name 'ApplicableToggle' -State 1 -StateRoot $StateRoot
+        $env:AtlasToggleTestReplayApplicable = ''
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        Join-Path $script:ReplayWork 'machine.txt' | Should -Not -Exist
+        Test-Path -LiteralPath (Join-Path $StateRoot 'ApplicableToggle') | Should -BeFalse
+    }
+
+    It 'scrubs stale records: no definition, NoStateRecord, unknown value, wrong value kind' {
+        Set-AtlasToggleState -Name 'Vanished' -State 1 -StateRoot $StateRoot
+        Set-AtlasToggleState -Name 'NoRecordToggle' -State 1 -StateRoot $StateRoot
+        Set-AtlasToggleState -Name 'SplitToggle' -State 9 -StateRoot $StateRoot
+        $wrongKind = Join-Path $StateRoot 'ApplicableToggle'
+        New-Item -Path $wrongKind -Force | Out-Null
+        New-ItemProperty -LiteralPath $wrongKind -Name 'state' -Value '1' -PropertyType String -Force | Out-Null
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        foreach ($name in 'Vanished', 'NoRecordToggle', 'SplitToggle', 'ApplicableToggle') {
+            Test-Path -LiteralPath (Join-Path $StateRoot $name) | Should -BeFalse -Because $name
+        }
+        Join-Path $script:ReplayWork 'machine.txt' | Should -Not -Exist
+    }
+
+    It 'preserves metadata-only keys without warning or replay in either scope' {
+        Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $false }
+        Mock Test-AtlasSystem -ModuleName Atlas.Toggles { $false }
+        $metadataPath = Join-Path $StateRoot 'PowerSaving'
+        $previousScheme = '381b4222-f694-41f0-9685-ff5bb260df2e'
+        New-Item -Path $metadataPath -Force | Out-Null
+        New-ItemProperty -LiteralPath $metadataPath -Name PreviousPowerSchemeGuid `
+            -Value $previousScheme -PropertyType String -Force | Out-Null
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+        Invoke-AtlasToggleUserReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        (Get-ItemProperty -LiteralPath $metadataPath).PreviousPowerSchemeGuid | Should -Be $previousScheme
+        (Get-AtlasToggleState -Name PowerSaving -StateRoot $StateRoot).State | Should -BeNullOrEmpty
+        Join-Path $script:ReplayWork 'machine.txt' | Should -Not -Exist
+        Join-Path $script:ReplayWork 'user.txt' | Should -Not -Exist
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0 -Exactly -ParameterFilter { $Level -eq 'Warning' }
+    }
+
+    It 'removes stale replay values without deleting unrelated metadata or child keys' {
+        Set-AtlasToggleState -Name 'SplitToggle' -State 9 -StateRoot $StateRoot
+        $recordPath = Join-Path $StateRoot 'SplitToggle'
+        New-ItemProperty -LiteralPath $recordPath -Name PreviousPowerSchemeGuid `
+            -Value '381b4222-f694-41f0-9685-ff5bb260df2e' -PropertyType String -Force | Out-Null
+        New-ItemProperty -LiteralPath $recordPath -Name path -Value 'C:\Old\Launcher.cmd' -PropertyType String -Force | Out-Null
+        New-Item -Path (Join-Path $recordPath 'Metadata') -Force | Out-Null
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        $key = Get-Item -LiteralPath $recordPath
+        @($key.GetValueNames()) | Should -Be @('PreviousPowerSchemeGuid')
+        $key.GetValue('PreviousPowerSchemeGuid') | Should -Be '381b4222-f694-41f0-9685-ff5bb260df2e'
+        Test-Path -LiteralPath (Join-Path $recordPath 'Metadata') | Should -BeTrue
+        Join-Path $script:ReplayWork 'machine.txt' | Should -Not -Exist
+    }
+
+    It 'continues past a failing replay, preserves its record, then throws one aggregate' {
+        Set-AtlasToggleState -Name 'FailingToggle' -State 1 -StateRoot $StateRoot
+        Set-AtlasToggleState -Name 'SplitToggle' -State 1 -StateRoot $StateRoot
+
+        { Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot } |
+            Should -Throw '*failed for 1 toggle(s)*FailingToggle*deliberate failure*'
+
+        (Get-AtlasToggleState -Name 'FailingToggle' -StateRoot $StateRoot).State | Should -Be 1
+        Get-Content (Join-Path $script:ReplayWork 'machine.txt') | Should -Be 'SplitToggle:On:1:silent=True'
+    }
+
+    It 'asserts strict TrustedInstaller before touching the replay tree' {
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Toggles { throw '[privilege] TrustedInstaller required' }
+
+        { Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot } |
+            Should -Throw '*TrustedInstaller required*'
+    }
+
+    It 'replays only the user part of recorded states for the non-elevated account' {
+        Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $false }
+        Mock Test-AtlasSystem -ModuleName Atlas.Toggles { $false }
+        Set-AtlasToggleState -Name 'SplitToggle' -State 1 -StateRoot $StateRoot
+        Set-AtlasToggleState -Name 'ApplicableToggle' -State 1 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleUserReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        Get-Content (Join-Path $script:ReplayWork 'user.txt') | Should -Be 'SplitToggle:On'
+        Join-Path $script:ReplayWork 'machine.txt' | Should -Not -Exist
+    }
+
+    It 'refuses per-user replay from an elevated process' {
+        Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
+
+        { Invoke-AtlasToggleUserReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot } |
+            Should -Throw '*non-elevated*'
+    }
 }
 
 Describe 'Invoke-AtlasToggle' {
     BeforeAll {
-        $script:TogglesRoot = Join-Path $TestDrive 'Toggles'
-        $script:WorkDir = Join-Path $TestDrive 'Work'
-        New-Item -Path $WorkDir -ItemType Directory -Force | Out-Null
-        $env:AtlasToggleTestDir = $WorkDir
+        $script:TogglesRoot = Join-Path $TestDrive 'EngineToggles'
+        $script:WorkDir = Join-Path $TestDrive 'EngineWork'
+        New-Item -Path $script:WorkDir -ItemType Directory -Force | Out-Null
+        function script:Get-Marker {
+            param([string]$Name)
+            $path = Join-Path $script:WorkDir "$Name.txt"
+            if (Test-Path -LiteralPath $path) { return [IO.File]::ReadAllText($path) }
+            return $null
+        }
 
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'MarkerToggle.ps1' -Content @'
+        New-TestToggle -Root $script:TogglesRoot -Name 'LocalToggle' -Definition @'
 @{
-    Name      = 'MarkerToggle'
-    Elevation = 'None'
-    States    = [ordered]@{
-        On = @{
-            StateValue    = 1
-            Reboot        = 'None'
-            ContextAction = {
-                param($Toggle)
-                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'context-marker.txt') -Value $Toggle.State
-            }
-            Action        = {
-                param($Toggle)
-                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'action-marker.txt') -Value "$($Toggle.Name):$($Toggle.State):$($Toggle.StateValue)"
-            }
-        }
-        Off = @{
-            StateValue = 0
-            Reboot     = 'None'
-            Action     = {
-                param($Toggle)
-                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'off-marker.txt') -Value $Toggle.State
-            }
-        }
-    }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'MenuToggle.ps1' -Content @'
-@{
-    Name          = 'MenuToggle'
-    Elevation     = 'None'
-    Menu          = $true
-    SilentDefault = 'Enable'
-    States        = [ordered]@{
-        Disable = @{
-            StateValue = 0
-            Action     = {
-                param($Toggle)
-                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'menu-marker.txt') -Value 'Disable'
-            }
-        }
-        Enable  = @{
-            StateValue = 1
-            Action     = {
-                param($Toggle)
-                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'menu-marker.txt') -Value 'Enable'
-            }
-        }
-    }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'NoRecordToggle.ps1' -Content @'
-@{
-    Name          = 'NoRecordToggle'
+    Name          = 'LocalToggle'
     Elevation     = 'None'
     NoStateRecord = $true
-    States        = [ordered]@{
-        Run = @{
-            Action = {
-                param($Toggle)
-                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'norecord-marker.txt') -Value 'ran'
-            }
-        }
-    }
+    Script        = 'LocalToggle.ps1'
+    States        = @(
+        @{ Name = 'On'; Launcher = 'A\On.cmd'; Reboot = 'None'; ContextAction = 'Invoke-AtlasTestContext'; Action = 'Invoke-AtlasTestLocal' }
+        @{ Name = 'Failing'; Launcher = 'A\Failing.cmd'; Reboot = 'None'; Action = 'Invoke-AtlasTestFailure' }
+        @{ Name = 'PowerShellError'; Launcher = 'A\PowerShellError.cmd'; Reboot = 'None'; Action = 'Invoke-AtlasTestPowerShellError' }
+        @{ Name = 'IgnoredError'; Launcher = 'A\IgnoredError.cmd'; Reboot = 'None'; Action = 'Invoke-AtlasTestIgnoredError' }
+        @{ Name = 'ContextFailure'; Launcher = 'A\ContextFailure.cmd'; Reboot = 'None'; ContextAction = 'Invoke-AtlasTestContextFailure'; Action = 'Invoke-AtlasTestLocal' }
+    )
 }
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'FailingToggle.ps1' -Content @'
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:TogglesRoot -Name 'MachineToggle' -Definition @'
 @{
-    Name      = 'FailingToggle'
-    Elevation = 'None'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            Reboot     = 'None'
-            Action     = {
-                param($Toggle)
-                throw 'deliberate failure'
-            }
-        }
-    }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'PowerShellErrorToggle.ps1' -Content @'
-@{
-    Name      = 'PowerShellErrorToggle'
-    Elevation = 'None'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            Reboot     = 'None'
-            Action     = {
-                param($Toggle)
-                Write-Error 'ordinary action error'
-            }
-        }
-    }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'IgnoredErrorToggle.ps1' -Content @'
-@{
-    Name      = 'IgnoredErrorToggle'
-    Elevation = 'None'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            Reboot     = 'None'
-            Action     = {
-                param($Toggle)
-                Write-Error 'intentionally ignored' -ErrorAction Ignore
-                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'ignored-error-marker.txt') -Value 'continued'
-            }
-        }
-    }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'ContextFailingToggle.ps1' -Content @'
-@{
-    Name      = 'ContextFailingToggle'
-    Elevation = 'None'
-    States    = [ordered]@{
-        On = @{
-            StateValue    = 1
-            Reboot        = 'None'
-            ContextAction = {
-                param($Toggle)
-                throw 'deliberate context failure'
-            }
-            Action        = {
-                param($Toggle)
-                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'context-failure-action-marker.txt') -Value 'must-not-run'
-            }
-        }
-    }
-}
-'@
-
-        New-TestToggleDefinition -Root $TogglesRoot -Group 'TestGroup' -FileName 'AdminToggle.ps1' -Content @'
-@{
-    Name      = 'AdminToggle'
+    Name      = 'MachineToggle'
     Elevation = 'Admin'
-    States    = [ordered]@{
-        On = @{
-            StateValue = 1
-            Reboot     = 'None'
-            Action     = {
-                param($Toggle)
-                Set-Content -Path (Join-Path $env:AtlasToggleTestDir 'admin-marker.txt') -Value 'ran'
+    Script    = 'MachineToggle.ps1'
+    States    = @(
+        @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Reboot = 'None'; Registry = @( @{ Path = 'HKLM:\SOFTWARE\AtlasRewriteTest'; Name = 'on'; Type = 'DWord'; Data = 1 } ); Services = @( @{ Name = 'FakeSvc'; StartupType = 4 } ); MachineAction = 'Invoke-AtlasTestMachine' }
+        @{ Name = 'Failing'; StateValue = 2; Launcher = 'A\Failing.cmd'; Reboot = 'None'; MachineAction = 'Invoke-AtlasTestFailure' }
+    )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:TogglesRoot -Name 'SplitToggle' -Definition @'
+@{
+    Name      = 'SplitToggle'
+    Elevation = 'Admin'
+    Script    = 'SplitToggle.ps1'
+    States    = @(
+        @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Reboot = 'None'; Registry = @( @{ Path = 'HKLM:\SOFTWARE\AtlasRewriteTest'; Name = 'm'; Type = 'DWord'; Data = 1 }; @{ Path = 'HKCU:\Software\AtlasRewriteTest\ToggleUser'; Name = 'u'; Type = 'DWord'; Data = 1 } ); MachineAction = 'Invoke-AtlasTestMachine'; UserAction = 'Invoke-AtlasTestUser' }
+    )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:TogglesRoot -Name 'UserOnlyToggle' -Definition @'
+@{
+    Name      = 'UserOnlyToggle'
+    Elevation = 'Admin'
+    Script    = 'UserOnlyToggle.ps1'
+    States    = @(
+        @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Reboot = 'None'; UserAction = 'Invoke-AtlasTestUser' }
+        @{ Name = 'Failing'; StateValue = 2; Launcher = 'A\Failing.cmd'; Reboot = 'None'; UserAction = 'Invoke-AtlasTestFailure' }
+    )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:TogglesRoot -Name 'BrokerToggle' -Definition @'
+@{
+    Name          = 'BrokerToggle'
+    Elevation     = 'TrustedInstaller'
+    Warning       = 'Confirm privileged action.'
+    NoStateRecord = $true
+    Script        = 'BrokerToggle.ps1'
+    States        = @( @{ Name = 'Run'; Launcher = 'A\Run.cmd'; Reboot = 'Recommend'; MachineAction = 'Invoke-AtlasTestMachine' } )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:TogglesRoot -Name 'MenuToggle' -Definition @'
+@{
+    Name          = 'MenuToggle'
+    Elevation     = 'Admin'
+    Menu          = $true
+    Launcher      = 'A\Menu.cmd'
+    SilentDefault = 'Enable'
+    Script        = 'MenuToggle.ps1'
+    States        = @(
+        @{ Name = 'Disable'; StateValue = 0; MenuLabel = 'Disable it'; Reboot = 'None'; MachineAction = 'Invoke-AtlasTestMachine' }
+        @{ Name = 'Enable'; StateValue = 1; MenuLabel = 'Enable it'; Reboot = 'None'; MachineAction = 'Invoke-AtlasTestMachine' }
+    )
+}
+'@ -Companion $script:MarkerCompanion
+    }
+
+    AfterAll {
+        Remove-Item Env:\AtlasToggleTestDir -ErrorAction SilentlyContinue
+        Remove-Item Env:\ATLAS_USER_CONTEXT -ErrorAction SilentlyContinue
+    }
+
+    BeforeEach {
+        $env:AtlasToggleTestDir = $script:WorkDir
+        Remove-Item Env:\ATLAS_USER_CONTEXT -ErrorAction SilentlyContinue
+        Get-ChildItem -Path $script:WorkDir -Filter '*.txt' | Remove-Item -Force
+        Remove-Item -Path $StateRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Write-AtlasTitle -ModuleName Atlas.Toggles
+        Mock Wait-AtlasContinue -ModuleName Atlas.Toggles
+        Mock Wait-AtlasExit -ModuleName Atlas.Toggles
+        Mock Write-AtlasCompletion -ModuleName Atlas.Toggles
+        Mock Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles
+        Mock Invoke-AtlasServiceEntries -ModuleName Atlas.Toggles
+        Mock Test-AtlasTrustedInstaller -ModuleName Atlas.Toggles { $false }
+        Mock Test-AtlasSystem -ModuleName Atlas.Toggles { $false }
+        Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $false }
+        $script:launcher = Join-Path $script:WorkDir 'fake-launcher.cmd'
+    }
+
+    Context 'unelevated (Elevation None) toggles' {
+        It 'runs ContextAction then Action in-process and records nothing' {
+            Invoke-AtlasToggle -Name 'LocalToggle' -State 'On' -Silent -LauncherPath $script:launcher `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Get-Marker 'context' | Should -Be 'On'
+            Get-Marker 'local' | Should -Be 'LocalToggle:On:'
+            Get-AtlasToggleState -Name 'LocalToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
+            Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -ParameterFilter { $Message -like "*LocalToggle*applied local state 'On'*" }
+        }
+
+        It 'stops after ContextAction with -JustContext' {
+            Invoke-AtlasToggle -Name 'LocalToggle' -State 'On' -Silent -JustContext -LauncherPath $script:launcher `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Get-Marker 'context' | Should -Be 'On'
+            Get-Marker 'local' | Should -BeNullOrEmpty
+        }
+
+        It 'propagates failures and logs them' -TestCases @(
+            @{ State = 'Failing'; Message = '*deliberate failure*'; Label = 'action' }
+            @{ State = 'PowerShellError'; Message = '*ordinary action error*'; Label = 'action' }
+            @{ State = 'ContextFailure'; Message = '*deliberate context failure*'; Label = 'context action' }
+        ) {
+            { Invoke-AtlasToggle -Name 'LocalToggle' -State $State -Silent -LauncherPath $script:launcher `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Throw $Message
+
+            Get-Marker 'local' | Should -BeNullOrEmpty
+            Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                $Level -eq 'Warning' -and $Message -like "*Toggle 'LocalToggle' $Label*failed*"
+            }
+        }
+
+        It 'honors an explicit error override inside a companion function' {
+            Invoke-AtlasToggle -Name 'LocalToggle' -State 'IgnoredError' -Silent -LauncherPath $script:launcher `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Get-Marker 'ignored-error' | Should -Be 'continued'
+        }
+
+        It 'throws on an unknown state and on a missing state for a non-menu toggle' {
+            { Invoke-AtlasToggle -Name 'LocalToggle' -State 'Bogus' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } |
+                Should -Throw "*Unknown state 'Bogus'*"
+            { Invoke-AtlasToggle -Name 'LocalToggle' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } |
+                Should -Throw '*without a -State*'
+        }
+    }
+
+    Context 'machine-only elevated toggles' {
+        It 'applies registry, services and the machine function in order, then records the state' {
+            Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
+            $script:order = @()
+            Mock Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles { $script:order += "registry:${Scope}:$($Entries.Count)" }
+            Mock Invoke-AtlasServiceEntries -ModuleName Atlas.Toggles { $script:order += "services:$($Entries[0].Name)" }
+
+            Invoke-AtlasToggle -Name 'MachineToggle' -State 'On' -Silent -LauncherPath $script:launcher `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            $script:order | Should -Be @('registry:Machine:1', 'services:FakeSvc')
+            Get-Marker 'machine' | Should -Be 'MachineToggle:On:1:silent=True'
+            (Get-AtlasToggleState -Name 'MachineToggle' -StateRoot $StateRoot).State | Should -Be 1
+        }
+
+        It 'does not record a state whose machine function failed' {
+            Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
+
+            { Invoke-AtlasToggle -Name 'MachineToggle' -State 'Failing' -Silent -LauncherPath $script:launcher `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Throw '*deliberate failure*'
+
+            Get-AtlasToggleState -Name 'MachineToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
+        }
+
+        It 'refuses to prompt for elevation in silent mode' {
+            { Invoke-AtlasToggle -Name 'MachineToggle' -State 'On' -Silent -LauncherPath $script:launcher `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Throw '*requires Administrator rights*'
+            Get-Marker 'machine' | Should -BeNullOrEmpty
+        }
+
+        It 'relaunches through UAC when interactive and unelevated, without running the work locally' {
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles
+
+            Invoke-AtlasToggle -Name 'MachineToggle' -State 'On' -LauncherPath $script:launcher `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                $Name -eq 'MachineToggle' -and ($ArgumentList -join ' ') -like '*-State "On"*' -and ($ArgumentList -join ' ') -notlike '*-MachineOnly*'
+            }
+            Get-Marker 'machine' | Should -BeNullOrEmpty
+        }
+
+        It 'preserves the elevated child exit code for the CLI boundary' {
+            Mock Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles { [pscustomobject]@{ ExitCode = 5 } }
+
+            $failure = $null
+            try {
+                Invoke-AtlasToggle -Name 'MachineToggle' -State 'On' -LauncherPath $script:launcher `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+            }
+            catch {
+                $failure = $_.Exception
+            }
+
+            $failure | Should -Not -BeNullOrEmpty
+            $failure.Data['Atlas.Toggle.AdminChildExitCode'] | Should -Be 5
+        }
+
+        It 'replays nothing at first sign-in because it has no per-user work' {
+            $env:ATLAS_USER_CONTEXT = '1'
+
+            Invoke-AtlasToggle -Name 'MachineToggle' -State 'On' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Get-Marker 'machine' | Should -BeNullOrEmpty
+            Get-AtlasToggleState -Name 'MachineToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
+        }
+
+        Context 'menu resolution' {
+            BeforeEach { Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true } }
+
+            It 'accepts an explicit -State without showing the menu' {
+                Invoke-AtlasToggle -Name 'MenuToggle' -State 'Disable' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+                Get-Marker 'machine' | Should -Be 'MenuToggle:Disable:0:silent=True'
+            }
+
+            It 'silently re-applies the recorded state when -State is omitted' {
+                Set-AtlasToggleState -Name 'MenuToggle' -State 0 -StateRoot $StateRoot
+                Invoke-AtlasToggle -Name 'MenuToggle' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+                Get-Marker 'machine' | Should -Be 'MenuToggle:Disable:0:silent=True'
+            }
+
+            It 'falls back to SilentDefault when nothing is recorded' {
+                Invoke-AtlasToggle -Name 'MenuToggle' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+                Get-Marker 'machine' | Should -Be 'MenuToggle:Enable:1:silent=True'
             }
         }
     }
+
+    Context 'toggles with machine and user work' {
+        BeforeEach {
+            Mock Get-AtlasToggleUserCallerBinding -ModuleName Atlas.Toggles { [pscustomobject]@{ Sid = 'S-1-5-21-1-2-3-1001'; SessionId = 1 } }
+        }
+
+        It 'does not dispatch a state record when a user-only action fails' {
+            Set-AtlasToggleState -Name 'UserOnlyToggle' -State 0 -StateRoot $StateRoot
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles
+            Mock Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
+
+            { Invoke-AtlasToggle -Name 'UserOnlyToggle' -State 'Failing' -LauncherPath $script:launcher `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Throw '*deliberate failure*'
+
+            Should -Not -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles
+            Should -Not -Invoke Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
+            (Get-AtlasToggleState -Name 'UserOnlyToggle' -StateRoot $StateRoot).State | Should -Be 0
+        }
+
+        It 'finishes user-only work before its existing privileged recording child and final follow-up' {
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles {
+                [IO.File]::ReadAllText((Join-Path $env:AtlasToggleTestDir 'user.txt')) | Should -Be 'UserOnlyToggle:On'
+                [IO.File]::WriteAllText((Join-Path $env:AtlasToggleTestDir 'record-dispatched.txt'), 'yes')
+            }
+            Mock Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles {
+                Test-Path -LiteralPath (Join-Path $env:AtlasToggleTestDir 'record-dispatched.txt') | Should -BeTrue
+            }
+
+            Invoke-AtlasToggle -Name 'UserOnlyToggle' -State 'On' -LauncherPath $script:launcher `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly
+            Should -Invoke Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles -Times 1 -Exactly
+            Get-Marker 'user' | Should -Be 'UserOnlyToggle:On'
+        }
+
+        It 'defers only completion for a nested user choice while retaining its recording child' {
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles {
+                [IO.File]::ReadAllText((Join-Path $env:AtlasToggleTestDir 'user.txt')) | Should -Be 'UserOnlyToggle:On'
+            }
+            Mock Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
+
+            Invoke-AtlasToggle -Name 'UserOnlyToggle' -State 'On' -DeferPostAction `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly
+            Should -Not -Invoke Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
+            Get-Marker 'user' | Should -Be 'UserOnlyToggle:On'
+        }
+
+        It 'does not swallow a nested choice recording failure' {
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles { throw 'recording cancelled' }
+            { Invoke-AtlasToggle -Name 'UserOnlyToggle' -State 'On' -DeferPostAction `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Throw '*recording cancelled*'
+        }
+
+        It 'rejects deferred completion for machine work before dispatching it' {
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles
+            { Invoke-AtlasToggle -Name 'SplitToggle' -State 'On' -DeferPostAction `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Throw '*user-only choice*'
+            Should -Not -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles
+            Get-Marker 'user' | Should -BeNullOrEmpty
+        }
+
+        It 'does not run the final follow-up if recording a successful user-only action fails' {
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles { throw 'recording cancelled' }
+            Mock Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
+
+            { Invoke-AtlasToggle -Name 'UserOnlyToggle' -State 'On' -LauncherPath $script:launcher `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Throw '*recording cancelled*'
+
+            Get-Marker 'user' | Should -Be 'UserOnlyToggle:On'
+            Should -Not -Invoke Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
+        }
+
+        It 'preserves interactive prerequisites in the Administrator child, then runs user work locally' {
+            $script:scopes = @()
+            Mock Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles { $script:scopes += $Scope }
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles
+
+            Invoke-AtlasToggle -Name 'SplitToggle' -State 'On' -LauncherPath $script:launcher `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                ($ArgumentList -join ' ') -like '*-MachineOnly*' -and ($ArgumentList -join ' ') -notlike '*/silent*'
+            }
+            Get-Marker 'machine' | Should -BeNullOrEmpty
+            Get-Marker 'user' | Should -Be 'SplitToggle:On'
+            $script:scopes | Should -Be @('CurrentUser')
+            Get-AtlasToggleState -Name 'SplitToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
+        }
+
+        It 'as the interactive -MachineOnly child applies and records only the machine part without a final pause' {
+            Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
+            $script:scopes = @()
+            Mock Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles { $script:scopes += $Scope }
+
+            Invoke-AtlasToggle -Name 'SplitToggle' -State 'On' -MachineOnly -LauncherPath $script:launcher `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Get-Marker 'machine' | Should -Be 'SplitToggle:On:1:silent=False'
+            Get-Marker 'user' | Should -BeNullOrEmpty
+            $script:scopes | Should -Be @('Machine')
+            (Get-AtlasToggleState -Name 'SplitToggle' -StateRoot $StateRoot).State | Should -Be 1
+            Should -Invoke Wait-AtlasExit -ModuleName Atlas.Toggles -Times 0 -Exactly
+            Should -Invoke Write-AtlasCompletion -ModuleName Atlas.Toggles -Times 0 -Exactly
+        }
+
+        It 'refuses to start from an elevated process so user work cannot inherit the token' {
+            Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
+
+            { Invoke-AtlasToggle -Name 'SplitToggle' -State 'On' -LauncherPath $script:launcher `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Throw '*non-elevated user process*'
+        }
+
+        It 'refuses the caller when its identity changes across the privileged child' {
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles
+            $script:bindingCalls = 0
+            Mock Get-AtlasToggleUserCallerBinding -ModuleName Atlas.Toggles {
+                $script:bindingCalls++
+                [pscustomobject]@{ Sid = "S-1-5-21-1-2-3-100$script:bindingCalls"; SessionId = 1 }
+            }
+
+            { Invoke-AtlasToggle -Name 'SplitToggle' -State 'On' -LauncherPath $script:launcher `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Throw '*identity or Windows session changed*'
+            Get-Marker 'user' | Should -BeNullOrEmpty
+        }
+
+        It 'replays only the user part at first sign-in without recording' {
+            $env:ATLAS_USER_CONTEXT = '1'
+            $script:scopes = @()
+            Mock Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles { $script:scopes += $Scope }
+
+            Invoke-AtlasToggle -Name 'SplitToggle' -State 'On' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Get-Marker 'user' | Should -Be 'SplitToggle:On'
+            Get-Marker 'machine' | Should -BeNullOrEmpty
+            $script:scopes | Should -Be @('CurrentUser')
+            Get-AtlasToggleState -Name 'SplitToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'TrustedInstaller toggles' {
+        BeforeEach {
+            Mock Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles { [pscustomobject]@{ ExitCode = 0 } }
+        }
+
+        It 'routes an Administrator caller through the typed broker only, confirming first' {
+            Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
+
+            Invoke-AtlasToggle -Name 'BrokerToggle' -State 'Run' -NoExplorerRestart -LauncherPath $script:launcher `
+                -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Should -Invoke Wait-AtlasContinue -ModuleName Atlas.Toggles -Times 1 -Exactly
+            Should -Invoke Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                $Operation -eq 'Toggle' -and $Name -eq 'BrokerToggle' -and $State -eq 'Run' -and $Silent -eq $true
+            }
+            Get-Marker 'machine' | Should -BeNullOrEmpty
+        }
+
+        It 'runs in-process only with strict TrustedInstaller evidence' {
+            Mock Test-AtlasTrustedInstaller -ModuleName Atlas.Toggles { $true }
+
+            Invoke-AtlasToggle -Name 'BrokerToggle' -State 'Run' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Get-Marker 'machine' | Should -Be 'BrokerToggle:Run::silent=True'
+            Should -Invoke Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -Times 0
+        }
+
+        It 'rejects LocalSystem without TrustedInstaller evidence' {
+            Mock Test-AtlasSystem -ModuleName Atlas.Toggles { $true }
+
+            { Invoke-AtlasToggle -Name 'BrokerToggle' -State 'Run' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } |
+                Should -Throw '*LocalSystem without strict TrustedInstaller*'
+        }
+
+        It 'rejects a non-TrustedInstaller definition inside a TrustedInstaller process' {
+            Mock Test-AtlasTrustedInstaller -ModuleName Atlas.Toggles { $true }
+
+            { Invoke-AtlasToggle -Name 'MachineToggle' -State 'On' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } |
+                Should -Throw '*does not declare exact TrustedInstaller elevation*'
+        }
+    }
 }
-'@
+
+Describe 'Invoke-AtlasToggleMachineState' {
+    BeforeAll {
+        $script:DependencyRoot = Join-Path $TestDrive 'DependencyToggles'
+        $script:DependencyWork = Join-Path $TestDrive 'DependencyWork'
+        New-Item -Path $script:DependencyWork -ItemType Directory -Force | Out-Null
+        New-TestToggle -Root $script:DependencyRoot -Name 'Dependency' -Definition @'
+@{
+    Name      = 'Dependency'
+    Elevation = 'Admin'
+    Script    = 'Dependency.ps1'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; MachineAction = 'Invoke-AtlasTestMachine'; UserAction = 'Invoke-AtlasTestUser' } )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:DependencyRoot -Name 'Local' -Definition @'
+@{
+    Name          = 'Local'
+    Elevation     = 'None'
+    NoStateRecord = $true
+    Script        = 'Local.ps1'
+    States        = @( @{ Name = 'On'; Launcher = 'A\On.cmd'; Action = 'Invoke-AtlasTestLocal' } )
+}
+'@ -Companion $script:MarkerCompanion
+    }
+
+    BeforeEach {
+        $env:AtlasToggleTestDir = $script:DependencyWork
+        Get-ChildItem -Path $script:DependencyWork -Filter '*.txt' | Remove-Item -Force
+        Remove-Item -Path $StateRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Toggles
     }
 
     AfterAll {
         Remove-Item Env:\AtlasToggleTestDir -ErrorAction SilentlyContinue
     }
 
-    BeforeEach {
-        Get-ChildItem -Path $WorkDir -Filter '*.txt' | Remove-Item -Force
-        Remove-Item -Path 'HKCU:\Software\AtlasRewriteTest\Services' -Recurse -Force -ErrorAction SilentlyContinue
+    It 'applies and records only the machine part from a privileged caller' {
+        Invoke-AtlasToggleMachineState -Name 'Dependency' -State 'On' -StateRoot $StateRoot -TogglesRoot $script:DependencyRoot
+
+        Should -Invoke Assert-AtlasPrivilege -ModuleName Atlas.Toggles -ParameterFilter { $Administrator }
+        [IO.File]::ReadAllText((Join-Path $script:DependencyWork 'machine.txt')) | Should -Be 'Dependency:On:1:silent=True'
+        Join-Path $script:DependencyWork 'user.txt' | Should -Not -Exist
+        (Get-AtlasToggleState -Name 'Dependency' -StateRoot $StateRoot).State | Should -Be 1
     }
 
-    It 'runs the action and records only declarative state (happy path, silent)' {
-        $launcher = Join-Path $WorkDir 'fake-launcher.cmd'
-        Invoke-AtlasToggle -Name 'MarkerToggle' -State 'On' -LauncherPath $launcher -Silent `
-            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-
-        Join-Path $WorkDir 'action-marker.txt' | Should -Exist
-        (Get-Content (Join-Path $WorkDir 'action-marker.txt')) | Should -Be 'MarkerToggle:On:1'
-
-        $recorded = Get-AtlasToggleState -Name 'MarkerToggle' -StateRoot $StateRoot
-        $recorded.State | Should -Be 1
-        $recorded.PSObject.Properties.Name | Should -Not -Contain 'Path'
-    }
-
-    It 'logs the applied state change through Write-AtlasLog even when silent' {
-        # A support bundle must be able to answer "what did this toggle do on this
-        # machine" from the install log, so a silent apply records the state change.
-        Mock Write-AtlasLog -ModuleName Atlas.Toggles
-
-        Invoke-AtlasToggle -Name 'MarkerToggle' -State 'On' -Silent `
-            -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles `
-            -ParameterFilter { $Message -like "*MarkerToggle*applied*state 'On'*" }
-    }
-
-    It 'propagates an action failure and does not record state (upgrade re-apply must not replay a lie)' {
-        # Recording before/despite a failed action would leave a record that
-        # Invoke-AtlasToggleReapply replays on the next upgrade.
-        Mock Write-AtlasLog -ModuleName Atlas.Toggles
-
-        { Invoke-AtlasToggle -Name 'FailingToggle' -State 'On' -Silent `
-                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
-            Should -Throw '*deliberate failure*'
-
-        Get-AtlasToggleState -Name 'FailingToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
-            -ParameterFilter { $Level -eq 'Warning' -and $Message -like "*Toggle 'FailingToggle' action failed*" }
-    }
-
-    It 'turns an ordinary PowerShell error into failure and does not record state' {
-        Mock Write-AtlasLog -ModuleName Atlas.Toggles
-
-        { Invoke-AtlasToggle -Name 'PowerShellErrorToggle' -State 'On' -Silent `
-                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
-            Should -Throw '*ordinary action error*'
-
-        Get-AtlasToggleState -Name 'PowerShellErrorToggle' -StateRoot $StateRoot |
-            Should -BeNullOrEmpty
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
-            -ParameterFilter {
-                $Level -eq 'Warning' -and
-                    $Message -like "*Toggle 'PowerShellErrorToggle' action failed*"
-            }
-    }
-
-    It 'honors an action explicit error override and records its clean completion' {
-        Invoke-AtlasToggle -Name 'IgnoredErrorToggle' -State 'On' -Silent `
-            -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-
-        Get-Content -LiteralPath (Join-Path $WorkDir 'ignored-error-marker.txt') |
-            Should -Be 'continued'
-        (Get-AtlasToggleState -Name 'IgnoredErrorToggle' -StateRoot $StateRoot).State |
-            Should -Be 1
-    }
-
-    It 'propagates a context-action failure without running the action or recording state' {
-        Mock Write-AtlasLog -ModuleName Atlas.Toggles
-
-        { Invoke-AtlasToggle -Name 'ContextFailingToggle' -State 'On' -Silent `
-                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
-            Should -Throw '*deliberate context failure*'
-
-        Join-Path $WorkDir 'context-failure-action-marker.txt' | Should -Not -Exist
-        Get-AtlasToggleState -Name 'ContextFailingToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly `
-            -ParameterFilter { $Level -eq 'Warning' -and $Message -like "*Toggle 'ContextFailingToggle' context action failed*" }
-    }
-
-    It 'refuses an Admin toggle in silent mode when not elevated' {
-        Mock Test-AtlasAdmin { $false } -ModuleName Atlas.Toggles
-
-        { Invoke-AtlasToggle -Name 'AdminToggle' -State 'On' -Silent `
-                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
-            Should -Throw '*requires Administrator rights*'
-        Join-Path $WorkDir 'admin-marker.txt' | Should -Not -Exist
-    }
-
-    It 'runs an Admin toggle unelevated without recording state under ATLAS_USER_CONTEXT (first-logon re-apply)' {
-        # Initialize-NewUser.ps1 re-applies HKCU-only toggles as the new, non-elevated
-        # user; the engine must run the action in-process and skip the HKLM state record.
-        Mock Test-AtlasAdmin { $false } -ModuleName Atlas.Toggles
-
-        $env:ATLAS_USER_CONTEXT = '1'
-        try {
-            Invoke-AtlasToggle -Name 'AdminToggle' -State 'On' -Silent `
-                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-        }
-        finally {
-            Remove-Item Env:\ATLAS_USER_CONTEXT -ErrorAction SilentlyContinue
-        }
-
-        Join-Path $WorkDir 'admin-marker.txt' | Should -Exist
-        Get-AtlasToggleState -Name 'AdminToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
-    }
-
-    It 'runs ContextAction before Action and stops after it with -JustContext' {
-        Invoke-AtlasToggle -Name 'MarkerToggle' -State 'On' -Silent -JustContext `
-            -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-
-        Join-Path $WorkDir 'context-marker.txt' | Should -Exist
-        Join-Path $WorkDir 'action-marker.txt' | Should -Not -Exist
-    }
-
-    It 'does not record state with -JustContext because the state action was not applied' {
-        Invoke-AtlasToggle -Name 'MarkerToggle' -State 'On' -Silent -JustContext `
-            -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-
-        Get-AtlasToggleState -Name 'MarkerToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
-    }
-
-    It 'throws on an unknown state' {
-        { Invoke-AtlasToggle -Name 'MarkerToggle' -State 'Bogus' -Silent `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
-            Should -Throw "*Unknown state 'Bogus'*"
-    }
-
-    It 'throws when -State is omitted for a non-menu toggle' {
-        { Invoke-AtlasToggle -Name 'MarkerToggle' -Silent `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot } |
-            Should -Throw '*without a -State*'
-    }
-
-    It 'does not record state for NoStateRecord definitions' {
-        Invoke-AtlasToggle -Name 'NoRecordToggle' -State 'Run' -Silent `
-            -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-            -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-
-        Join-Path $WorkDir 'norecord-marker.txt' | Should -Exist
-        Get-AtlasToggleState -Name 'NoRecordToggle' -StateRoot $StateRoot | Should -BeNullOrEmpty
-    }
-
-    Context 'Menu definitions (non-interactive resolution)' {
-        It 'accepts an explicit -State without showing the menu' {
-            Invoke-AtlasToggle -Name 'MenuToggle' -State 'Disable' -Silent `
-                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-
-            (Get-Content (Join-Path $WorkDir 'menu-marker.txt')) | Should -Be 'Disable'
-            (Get-AtlasToggleState -Name 'MenuToggle' -StateRoot $StateRoot).State | Should -Be 0
-        }
-
-        It 'silently re-applies the recorded state when -State is omitted' {
-            Set-AtlasToggleState -Name 'MenuToggle' -State 0 -LauncherPath 'C:\Fake\Menu.cmd' -StateRoot $StateRoot
-
-            Invoke-AtlasToggle -Name 'MenuToggle' -Silent `
-                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-
-            (Get-Content (Join-Path $WorkDir 'menu-marker.txt')) | Should -Be 'Disable'
-        }
-
-        It 'falls back to SilentDefault when nothing is recorded' {
-            Invoke-AtlasToggle -Name 'MenuToggle' -Silent `
-                -LauncherPath (Join-Path $WorkDir 'fake-launcher.cmd') `
-                -TogglesRoot $TogglesRoot -StateRoot $StateRoot
-
-            (Get-Content (Join-Path $WorkDir 'menu-marker.txt')) | Should -Be 'Enable'
-        }
+    It 'rejects an unelevated toggle and an unknown state' {
+        { Invoke-AtlasToggleMachineState -Name 'Local' -State 'On' -StateRoot $StateRoot -TogglesRoot $script:DependencyRoot } |
+            Should -Throw '*does not declare Admin or TrustedInstaller*'
+        { Invoke-AtlasToggleMachineState -Name 'Dependency' -State 'Off' -StateRoot $StateRoot -TogglesRoot $script:DependencyRoot } |
+            Should -Throw "*does not define exact state 'Off'*"
     }
 }
 
-Describe 'New-ToggleLaunchers.ps1' {
+Describe 'Generated launchers' {
     BeforeAll {
-        $script:GeneratorRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-        $script:GeneratorScript = Join-Path $script:GeneratorRepoRoot 'tools\dev\New-ToggleLaunchers.ps1'
+        $script:GeneratorScript = Join-Path $script:repoRoot 'tools\dev\New-ToggleLaunchers.ps1'
+        $script:LauncherBody = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd'
     }
 
-    It 'validates cleanly against the committed repo tree' {
-        $output = & $GeneratorScript -Validate 2>&1
+    It 'match their definitions exactly' {
+        # Repository tooling runs under PowerShell 7, like the build.
+        $output = & $script:ToolsHost -NoProfile -File $script:GeneratorScript -Validate 2>&1
         $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
     }
 
+    It 'are two-line stubs that hand the toggle name, state and their own path to the shared body' {
+        $stub = Get-Content -LiteralPath (Join-Path $script:repoRoot 'playbook\Executables\AtlasDesktop\2. Drivers\Run Update Drivers.cmd')
+        $stub.Count | Should -Be 2
+        $stub[0] | Should -Be '@echo off'
+        $stub[1] | Should -Be 'call "%__APPDIR__%..\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd" UpdateDrivers Run "%~f0" %*'
+
+        $menuStub = Get-Content -LiteralPath (Join-Path $script:repoRoot 'playbook\Executables\AtlasDesktop\6. Advanced Configuration\Toggle Windows Updates\Toggle Windows Updates.cmd')
+        $menuStub[1] | Should -Match ' ToggleWindowsUpdates - "%~f0" %\*$'
+    }
+
     It 'canonicalizes only the supported launcher flags before reaching PowerShell' {
-        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-        $driverLauncher = Join-Path -Path $repoRoot `
-            -ChildPath 'playbook\Executables\AtlasDesktop\2. Drivers\Run Update Drivers.cmd'
-        $launcherLines = @(Get-Content -LiteralPath $driverLauncher)
-        $parserStart = [array]::IndexOf($launcherLines, 'set "AtlasLauncherSilent="')
-        $parserEnd = [array]::IndexOf($launcherLines, ':AtlasLauncherRun')
+        $bodyLines = @(Get-Content -LiteralPath $script:LauncherBody)
+        $parserStart = [array]::IndexOf($bodyLines, 'set "AtlasLauncherSilent="')
+        $parserEnd = [array]::IndexOf($bodyLines, ':run')
         $parserStart | Should -BeGreaterThan -1
         $parserEnd | Should -BeGreaterThan $parserStart
 
@@ -1089,32 +1087,34 @@ Describe 'New-ToggleLaunchers.ps1' {
         $probeLines = @(
             '@echo off'
             'setlocal EnableExtensions DisableDelayedExpansion'
-        ) + @($launcherLines[$parserStart..$parserEnd]) + @(
+        ) + @($bodyLines[$parserStart..$parserEnd]) + @(
             'echo SINK silent=%AtlasLauncherSilent% justcontext=%AtlasLauncherJustContext% noaction=%AtlasLauncherNoAction%'
-            'echo LAUNCHER=%~f0'
             'exit /b 0'
         )
-        [IO.File]::WriteAllText(
-            $probePath,
-            (($probeLines -join "`r`n") + "`r`n"),
-            [Text.Encoding]::ASCII
-        )
+        [IO.File]::WriteAllText($probePath, (($probeLines -join "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
 
         $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
-        $allowed = & $commandHost /d /e:on /v:off /c `
-            "call `"$probePath`" /quiet -justcontext /noaction" 2>&1
+        $allowed = & $commandHost /d /e:on /v:off /c "call `"$probePath`" /quiet -justcontext /noaction" 2>&1
         $LASTEXITCODE | Should -Be 0 -Because ($allowed -join "`n")
-        ($allowed -join "`n") | Should -Match `
-            '(?m)^SINK silent=/silent justcontext=/justcontext noaction=/noaction$'
-        ($allowed -join "`n") | Should -Match `
-            ('(?m)^LAUNCHER=' + [regex]::Escape($probePath) + '$')
+        ($allowed -join "`n") | Should -Match '(?m)^SINK silent=/silent justcontext=/justcontext noaction=/noaction$'
 
-        $rejected = & $commandHost /d /e:on /v:off /c `
-            "call `"$probePath`" /silent /unsupported" 2>&1
+        $rejected = & $commandHost /d /e:on /v:off /c "call `"$probePath`" /silent /unsupported" 2>&1
         $LASTEXITCODE | Should -Be 87 -Because ($rejected -join "`n")
         $rejected | Should -Not -Match '^SINK '
     }
 
+    It 'propagate the shared body exit code through the two-line stub, including negative values' {
+        $body = Join-Path $TestDrive 'body.cmd'
+        [IO.File]::WriteAllText($body, "@echo off`r`nexit /b %~1`r`n", [Text.Encoding]::ASCII)
+        $stub = Join-Path $TestDrive 'stub.cmd'
+        [IO.File]::WriteAllText($stub, "@echo off`r`ncall `"%~dp0body.cmd`" %*`r`n", [Text.Encoding]::ASCII)
+
+        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
+        foreach ($code in 0, 37, -1) {
+            & $commandHost /d /c "`"$stub`" $code" | Out-Null
+            $LASTEXITCODE | Should -Be $code
+        }
+    }
 }
 
 Describe 'Get-AtlasToggleRelaunchArgumentList' {
@@ -1129,9 +1129,93 @@ Describe 'Get-AtlasToggleRelaunchArgumentList' {
             $list = Get-AtlasToggleRelaunchArgumentList -Name 'My Toggle' -State 'Enable Now' -LauncherPath 'C:\Program Files\x.cmd'
             $joined = $list -join ' '
 
+            $joined | Should -Match '-File "C:\\Windows\\AtlasModules\\Scripts\\Entry\\Invoke-Toggle.ps1"'
             $joined | Should -Match '-Name "My Toggle"'
             $joined | Should -Match '-State "Enable Now"'
             $joined | Should -Match '-LauncherPath "C:\\Program Files\\x.cmd"'
         }
+    }
+}
+
+Describe 'Operating-system protected toggle values' {
+    It 'accepts AllowOsProtected on a state registry entry' {
+        $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        New-TestToggle -Root $root -Name 'Protected' -Definition @'
+@{
+    Name      = 'Protected'
+    Elevation = 'Admin'
+    States    = @(
+        @{
+            Name       = 'Disable'
+            StateValue = 0
+            Launcher   = 'Group\Disable.cmd'
+            Registry   = @(
+                @{ Path = 'HKLM:\SOFTWARE\Policies\Test'; Name = 'Policy'; Type = 'DWord'; Data = 1; AllowOsProtected = $true }
+            )
+        }
+    )
+}
+'@
+        @(Test-AtlasToggleDefinition -Path $root).Count | Should -Be 0
+    }
+
+    It 'declares the widget policy values Windows can refuse' {
+        $definition = Get-AtlasToggleDefinition -Name 'Widgets' -TogglesRoot $script:ShippedTogglesRoot
+        $entries = @($definition['States']['Disable']['Registry'])
+        @($entries | ForEach-Object { $_['Name'] }) | Should -Be @(
+            'AllowNewsAndInterests', 'DisableWidgetsOnLockScreen', 'DisableWidgetsBoard')
+        @($entries | Where-Object { $_['AllowOsProtected'] }).Count | Should -Be 2
+        @($entries | Where-Object { $_['UseGroupPolicy'] }).Count | Should -Be 1
+    }
+}
+
+Describe 'Local Group Policy declarations in toggle schemas' {
+    It 'rejects user policy and non-boolean declarations' -TestCases @(
+        @{ Path = 'HKLM:\Software\Policies\Test'; Flag = '$true'; Valid = $true }
+        @{ Path = 'HKCU:\Software\Policies\Test'; Flag = '$true'; Valid = $false }
+        @{ Path = 'HKLM:\Software\Policies\Test'; Flag = "'false'"; Valid = $false }
+    ) {
+        param($Path, $Flag, $Valid)
+        $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        New-TestToggle -Root $root -Name 'Policy' -Definition @"
+@{
+    Name = 'Policy'
+    Elevation = 'Admin'
+    States = @(@{
+        Name = 'Disable'; StateValue = 0; Launcher = 'Group\Disable.cmd'
+        Registry = @(@{ Path = '$Path'; Name = 'Policy'; Type = 'DWord'; Data = 0; UseGroupPolicy = $Flag })
+    })
+}
+"@
+        $problems = @(Test-AtlasToggleDefinition -Path $root)
+        if ($Valid) { $problems.Count | Should -Be 0 }
+        else { ($problems.Problem -join '; ') | Should -Match 'UseGroupPolicy' }
+    }
+}
+
+Describe 'Registry verification exclusions in toggle schemas' {
+    It 'requires a non-empty reason string' -TestCases @(
+        @{ Value = "'Windows recreates this cache.'"; Valid = $true }
+        @{ Value = '$true'; Valid = $false }
+        @{ Value = "''"; Valid = $false }
+        @{ Value = "' '"; Valid = $false }
+    ) {
+        param($Value, $Valid)
+        $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        New-TestToggle -Root $root -Name 'Transient' -Definition @"
+@{
+    Name = 'Transient'
+    Elevation = 'Admin'
+    States = @(
+        @{
+            Name = 'Disable'; StateValue = 0; Launcher = 'Group\Disable.cmd'
+            Registry = @(@{ Path = 'HKCU:\Software\Test'; Operation = 'DeleteKey'; SkipVerification = $Value })
+        }
+    )
+}
+"@
+        $problems = @(Test-AtlasToggleDefinition -Path $root)
+        if ($Valid) { $problems.Count | Should -Be 0 }
+        else { ($problems.Problem -join '; ') | Should -Match 'non-empty reason string' }
     }
 }

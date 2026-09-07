@@ -2,13 +2,6 @@
 $ErrorActionPreference = 'Stop'
 $systemDirectory = [Environment]::SystemDirectory
 $powerCfgPath = [IO.Path]::Combine($systemDirectory, 'powercfg.exe')
-$powerSavingScript = [IO.Path]::GetFullPath([IO.Path]::Combine(
-        $PSScriptRoot,
-        '..',
-        '..',
-        'Internal',
-        'Set-PowerSavingState.ps1'
-    ))
 
 function Invoke-AtlasPowerSettingsNative {
     param(
@@ -37,10 +30,8 @@ $disablePowerSaving = [bool](Test-AtlasOption -Name 'disable-power-saving')
 $disableHibernation = [bool](Test-AtlasOption -Name 'disable-hibernation')
 
 if ($disablePowerSaving) {
-    if (-not [IO.File]::Exists($powerSavingScript)) {
-        throw "The fixed power-saving helper is missing at '$powerSavingScript'."
-    }
-    $null = & $powerSavingScript -Mode Atlas -Silent
+    Import-AtlasModule -Name Atlas.Toggles
+    Invoke-AtlasToggleMachineState -Name PowerSaving -State Disable
 }
 
 # Disabling hibernation also makes NTFS accessible outside Windows.

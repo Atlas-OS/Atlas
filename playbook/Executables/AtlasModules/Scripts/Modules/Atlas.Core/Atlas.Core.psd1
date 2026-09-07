@@ -7,12 +7,19 @@
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
         # Context
+        'Import-AtlasDataFile'
+        'Import-AtlasModule'
         'Get-AtlasContext'
         'Test-AtlasOption'
+        # Native
+        'Initialize-AtlasNativeType'
         # Logging
         'Write-AtlasLog'
         'Start-AtlasPhase'
         'Stop-AtlasPhase'
+        'Set-AtlasLogConsoleStyle'
+        'Get-AtlasLogConsoleStyle'
+        'Get-AtlasInstallLogPath'
         # Privilege
         'Test-AtlasAdmin'
         'Test-AtlasSystem'
@@ -24,9 +31,27 @@
         # Process
         'ConvertTo-AtlasWindowsArgumentString'
         'Invoke-AtlasHiddenProcess'
-        # UI (absorbed from the former Utils module)
-        'Write-Title'
-        'Read-Pause'
+        # Console presentation (docs/console-presentation.md)
+        'Write-AtlasTitle'
+        'Write-AtlasBlankLine'
+        'Write-AtlasNote'
+        'Write-AtlasStep'
+        'Write-AtlasWarning'
+        'Write-AtlasSuccess'
+        'Write-AtlasFailure'
+        'Write-AtlasPartial'
+        'Write-AtlasNextStep'
+        'Write-AtlasManualStep'
+        'Write-AtlasRestartNotice'
+        'Write-AtlasNotApplied'
+        'Write-AtlasCompletion'
+        'Reset-AtlasRunOutcome'
+        'Get-AtlasRunOutcome'
+        'Set-AtlasRunOutcome'
+        'Read-AtlasYesNo'
+        'Read-AtlasChoice'
+        'Wait-AtlasContinue'
+        'Wait-AtlasExit'
         'Read-MessageBox'
     )
     CmdletsToExport   = @()

@@ -1,5 +1,4 @@
-# Toggle: Sleep (power-scheme sleep settings + optional hibernation follow-up).
-$sleepAction = {
+function Set-AtlasSleepState {
     param($Toggle)
 
     switch -CaseSensitive ([string]$Toggle.State) {
@@ -55,35 +54,15 @@ $sleepAction = {
         -ArgumentList ([string[]]@('/setactive', 'scheme_current')) `
         -AllowedExitCodes ([int[]]@(0)) | Out-Null
 
-    if ($Toggle.Silent) { return }
-
-    if ($Toggle.State -ceq 'Disable') {
-        $answer = Read-Host 'Would you like to disable hibernation? [Y/N]'
-        $hibernationState = if ($answer -match '^(y|yes)$') { 'Disable' } else { 'Enable' }
-        Invoke-AtlasToggle -Name 'Hibernation' -State $hibernationState -Silent
+    if ($Toggle.Silent) {
+        return
     }
 
-    $status = if ($Toggle.State -ceq 'Enable') { 'enabled' } else { 'disabled' }
-    Write-Host "Sleep has been $status."
-}
-
-@{
-    Name      = 'Sleep'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        Disable = @{
-            StateValue = 0
-            ReplayScope = 'Machine'
-            Launcher   = '3. General Configuration\Sleep\Disable Sleep.cmd'
-            Reboot     = 'None'
-            Action     = $sleepAction
-        }
-        Enable  = @{
-            StateValue  = 1
-            Launcher    = '3. General Configuration\Sleep\Enable Sleep (default).cmd'
-            Reboot      = 'None'
-            ReplayScope = 'Machine'
-            Action      = $sleepAction
+    if ($Toggle.State -ceq 'Disable') {
+        if (Read-AtlasYesNo -Question 'Also disable hibernation?') {
+            # Only an affirmative answer changes this independent recorded choice.
+            Invoke-AtlasToggleMachineState -Name 'Hibernation' -State Disable -StateRoot $Toggle.StateRoot
+            Write-AtlasSuccess -Text 'Hibernation is now disabled.'
         }
     }
 }

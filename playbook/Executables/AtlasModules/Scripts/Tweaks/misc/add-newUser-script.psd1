@@ -11,7 +11,7 @@
         # evaluate PowerShell subexpressions (unlike powershell.exe, which used to expand
         # $(...) itself), so %windir% needs ExpandString/REG_EXPAND_SZ for Windows itself
         # to resolve it when it reads this RunOnce value.
-        @{ Path = 'HKU\Atlas_DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'; Name = 'RunScript'; Type = 'ExpandString'; Data = '"%windir%\System32\wscript.exe" "%windir%\AtlasModules\Scripts\Invoke-InitializeNewUserHidden.vbs"' }
+        @{ Path = 'HKU\Atlas_DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'; Name = 'RunScript'; Type = 'ExpandString'; Data = '"%windir%\System32\wscript.exe" "%windir%\AtlasModules\Scripts\Entry\Invoke-InitializeNewUserHidden.vbs"' }
         @{ Path = 'HKU\Atlas_DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarMode'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKU\Atlas_DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarModeCache'; Type = 'DWord'; Data = 1 }
     )

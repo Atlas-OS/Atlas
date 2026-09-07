@@ -1,45 +1,18 @@
-# Toggle: Workplace (Access work or school) settings page visibility.
-#
-# ms-settings:workplace is opened interactively only.
-@{
-    Name      = 'Workplace'
-    Elevation = 'Admin'
-    Warning   = 'WARNING: This script will modify system services. Modifying services can lead to potential breakage of features and bugs. Proceed with caution, and refer to Atlas docs for more information!'
-    States    = [ordered]@{
-        Disable = @{
-            StateValue = 0
-            ReplayScope = 'Machine'
-            Launcher   = '3. General Configuration\Workplace\Disable Workplace.cmd'
-            Reboot     = 'None'
-            Action     = {
-                param($Toggle)
+function Hide-AtlasWorkplaceSettingsPage {
+    param($Toggle)
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
-                & $settingsPages hide workplace -Silent
+    Import-AtlasModule -Name Atlas.Shell
+    Set-AtlasSettingsPageVisibility -Operation hide -Page workplace
+}
 
-                if (-not $Toggle.Silent) {
-                    Write-Host ''
-                    Write-Host 'Workplace settings page has been hidden.'
-                }
-            }
-        }
-        Enable  = @{
-            StateValue = 1
-            ReplayScope = 'Machine'
-            Launcher   = '3. General Configuration\Workplace\Enable Workplace.cmd'
-            Reboot     = 'None'
-            Action     = {
-                param($Toggle)
+function Show-AtlasWorkplaceSettingsPage {
+    param($Toggle)
 
-                $settingsPages = Join-Path -Path $Toggle.ScriptsPath -ChildPath 'Internal\Set-SettingsPageVisibility.ps1'
-                & $settingsPages unhide workplace -Silent
+    Import-AtlasModule -Name Atlas.Shell
+    Set-AtlasSettingsPageVisibility -Operation unhide -Page workplace
 
-                if (-not $Toggle.Silent) {
-                    Write-Host ''
-                    Write-Host 'Workplace settings page has been restored.'
-                    Start-Process 'ms-settings:workplace'
-                }
-            }
-        }
+    if (-not $Toggle.Silent) {
+        Write-AtlasStep -Text 'Opening Settings > Accounts > Access work or school...'
+        Start-Process 'ms-settings:workplace'
     }
 }

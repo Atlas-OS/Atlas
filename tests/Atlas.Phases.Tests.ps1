@@ -11,8 +11,9 @@
 param()
 
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:atlasModulesRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules')).Path
-    $script:phasesRoot = Join-Path -Path $script:atlasModulesRoot -ChildPath 'Scripts\Phases'
+    $script:phasesRoot = Join-Path -Path $script:atlasModulesRoot -ChildPath 'Scripts\Install\Phases'
 
     function Get-AtlasPhaseAst {
         param([Parameter(Mandatory = $true)][string]$Path)
@@ -201,7 +202,7 @@ BeforeAll {
 
 Describe 'Install phase scripts' {
     BeforeDiscovery {
-        $phasesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Phases'
+        $phasesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Install\Phases'
         $script:phaseFiles = Get-ChildItem -Path $phasesRoot -Filter 'Invoke-*Phase.ps1' -File
 
         # Every install phase is rooted in one strict TrustedInstaller identity. Genuine
@@ -217,14 +218,13 @@ Describe 'Install phase scripts' {
             'Invoke-ServicesPhase.ps1'     = 'TrustedInstaller'
             'Invoke-ComponentsPhase.ps1'   = 'TrustedInstaller'
             'Invoke-TweaksPhase.ps1'       = 'TrustedInstaller'
-            'Invoke-RevertPhase.ps1'       = 'TrustedInstaller'
         }
     }
 
     It 'finds every expected phase script' {
         $names = (Get-ChildItem -Path $script:phasesRoot -Filter 'Invoke-*Phase.ps1' -File).Name
         foreach ($expected in @('PreInstall', 'ShellRefresh', 'Environment', 'Features', 'Software', 'Services',
-                'Components', 'AppxSupport', 'Tweaks', 'Defaults', 'Revert')) {
+                'Components', 'AppxSupport', 'Tweaks', 'Defaults')) {
             $names | Should -Contain "Invoke-${expected}Phase.ps1"
         }
     }
@@ -347,5 +347,120 @@ Describe 'Software phase outcome aggregation' {
         $script:softwareLogs.Count | Should -Be 1
         $script:softwareLogs[0].Message | Should -Match `
             'Exact-user LibreWolf integration failed with exit code 37'
+    }
+}
+
+Describe 'Services phase feature defaults' {
+    BeforeAll {
+        $script:servicesPhasePath = Join-Path -Path $script:phasesRoot `
+            -ChildPath 'Invoke-ServicesPhase.ps1'
+
+        # Runs the phase with the module surface stubbed: the service backup and the
+        # toggle engine record their calls, and the recorded-state table decides what the
+        # verification read-back returns.
+        function Invoke-AtlasServicesPhaseForTest {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory = $true)][string]$Path,
+                [Parameter(Mandatory = $true)]$Calls,
+                [Parameter(Mandatory = $true)][hashtable]$RecordedStates,
+                [Parameter(Mandatory = $true)][hashtable]$Definitions
+            )
+
+            & {
+                function Assert-AtlasPrivilege {
+                    [CmdletBinding()]
+                    param([switch]$TrustedInstaller)
+                    [void]$TrustedInstaller
+                }
+
+                function Import-Module {
+                    [CmdletBinding()]
+                    param([string]$Name, [switch]$Force)
+                    [void]$Force
+                    [void]$Calls.Add("Import-Module:$(Split-Path -Path $Name -Leaf)")
+                }
+
+                function Export-AtlasServicesBackup {
+                    param([Parameter(Mandatory = $true)][string]$FilePath)
+                    [void]$Calls.Add("Backup:$FilePath")
+                }
+
+                function Invoke-AtlasToggleMachineState {
+                    param(
+                        [Parameter(Mandatory = $true)][string]$Name,
+                        [Parameter(Mandatory = $true)][string]$State
+                    )
+                    [void]$Calls.Add("Toggle:$Name=$State")
+                }
+
+                function Get-AtlasToggleDefinition {
+                    param([Parameter(Mandatory = $true)][string]$Name)
+                    [void]$Calls.Add("Definition:$Name")
+                    return $Definitions[$Name]
+                }
+
+                function Get-AtlasToggleState {
+                    param([Parameter(Mandatory = $true)][string]$Name)
+                    [void]$Calls.Add("State:$Name")
+                    if (-not $RecordedStates.ContainsKey($Name)) {
+                        return $null
+                    }
+                    return [pscustomobject]@{ State = $RecordedStates[$Name] }
+                }
+
+                function Write-AtlasLog {
+                    param(
+                        [string]$Level = 'Information',
+                        [Parameter(Mandatory = $true)][string]$Message
+                    )
+                    [void]$Level
+                    [void]$Message
+                }
+
+                . $Path
+            }
+        }
+    }
+
+    BeforeEach {
+        $script:servicesCalls = New-Object 'Collections.Generic.List[string]'
+        $script:toggleDefinitions = @{
+            FileSharing = @{ Name = 'FileSharing'; States = @{ Disable = @{ StateValue = 0 }; Enable = @{ StateValue = 1 } } }
+            Location    = @{ Name = 'Location'; States = @{ Disable = @{ StateValue = 0 }; Enable = @{ StateValue = 1 } } }
+            Indexing    = @{ Name = 'Indexing'; States = @{ Disable = @{ StateValue = 0 }; Minimal = @{ StateValue = 1 }; Full = @{ StateValue = 2 } } }
+        }
+    }
+
+    It 'backs up services, then applies and verifies the three feature defaults in order' {
+        $recorded = @{ FileSharing = 0; Location = 0; Indexing = 1 }
+
+        Invoke-AtlasServicesPhaseForTest -Path $script:servicesPhasePath `
+            -Calls $script:servicesCalls -RecordedStates $recorded `
+            -Definitions $script:toggleDefinitions
+
+        $calls = @($script:servicesCalls)
+        $calls[0] | Should -BeExactly 'Import-Module:Atlas.Services.psd1'
+        $calls[1] | Should -BeExactly 'Import-Module:Atlas.Toggles.psd1'
+        $calls[2] | Should -BeLike 'Backup:*\AtlasModules\Other\winServices.reg'
+        @($calls | Select-Object -Skip 3) | Should -Be @(
+            'Toggle:FileSharing=Disable', 'Definition:FileSharing', 'State:FileSharing',
+            'Toggle:Location=Disable', 'Definition:Location', 'State:Location',
+            'Toggle:Indexing=Minimal', 'Definition:Indexing', 'State:Indexing'
+        )
+    }
+
+    It 'fails when a default does not record its expected state and stops before later defaults' -TestCases @(
+        @{ Recorded = @{ FileSharing = 0; Location = 1; Indexing = 1 }; Failing = 'Location'; State = 'Disable' }
+        @{ Recorded = @{ FileSharing = 0; Location = 0 }; Failing = 'Indexing'; State = 'Minimal' }
+    ) {
+        {
+            Invoke-AtlasServicesPhaseForTest -Path $script:servicesPhasePath `
+                -Calls $script:servicesCalls -RecordedStates $Recorded `
+                -Definitions $script:toggleDefinitions
+        } | Should -Throw "*Services phase toggle '$Failing' did not record state '$State'*"
+
+        $toggleCalls = @($script:servicesCalls | Where-Object { $_ -like 'Toggle:*' })
+        $toggleCalls[-1] | Should -BeExactly "Toggle:$Failing=$State"
     }
 }

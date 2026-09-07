@@ -1,4 +1,5 @@
 @{
+    OnUpgrade   = 'Skip'
     Name        = 'Delete Windows-version Specific Tweaks'
     Description = 'Removes AtlasDesktop tweak scripts that do not apply to this machine (currently: Open-Shell Start Menu items on ARM64). Only touches Atlas''s own desktop folder, never Windows files.'
     # Delete ARM-specific files

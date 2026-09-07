@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "product": "Windows 11",
+  "release": "25H2",
+  "build": 26200,
+  "sourceUrl": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+  "sourceCommit": "3fb6e78ccc56c4957b15ccb4e93c408c2059f376",
+  "sourceSha256": "F4A393750242B1C759ED21186CEC9402D6517634D58BAC00F2CDEBE40B3B7E4B",
+  "updatedAt": "2026-08-28T08:57:00.0000000Z",
+  "asOfDate": "2026-09-07",
+  "releases": [
+    {
+      "version": "10.0.26200.6584",
+      "availableDate": "2025-09-30",
+      "updateType": "",
+      "kb": null
+    },
+    {
+      "version": "10.0.26200.6899",
+      "availableDate": "2025-10-14",
+      "updateType": "2025-10 B",
+      "kb": "KB5066835"
+    },
+    {
+      "version": "10.0.26200.6901",
+      "availableDate": "2025-10-20",
+      "updateType": "2025-10 OOB",
+      "kb": "KB5070773"
+    },
+    {
+      "version": "10.0.26200.7019",
+      "availableDate": "2025-10-28",
+      "updateType": "2025-10 D",
+      "kb": "KB5067036"
+    },
+    {
+      "version": "10.0.26200.7171",
+      "availableDate": "2025-11-11",
+      "updateType": "2025-11 B",
+      "kb": "KB5068861"
+    },
+    {
+      "version": "10.0.26200.7309",
+      "availableDate": "2025-12-01",
+      "updateType": "2025-11 D",
+      "kb": "KB5070311"
+    },
+    {
+      "version": "10.0.26200.7462",
+      "availableDate": "2025-12-09",
+      "updateType": "2025-12 B",
+      "kb": "KB5072033"
+    },
+    {
+      "version": "10.0.26200.7623",
+      "availableDate": "2026-01-13",
+      "updateType": "2026-01 B",
+      "kb": "KB5074109"
+    },
+    {
+      "version": "10.0.26200.7627",
+      "availableDate": "2026-01-17",
+      "updateType": "2026-01 OOB",
+      "kb": "KB5077744"
+    },
+    {
+      "version": "10.0.26200.7628",
+      "availableDate": "2026-01-24",
+      "updateType": "2026-01 OOB",
+      "kb": "KB5078127"
+    },
+    {
+      "version": "10.0.26200.7705",
+      "availableDate": "2026-01-29",
+      "updateType": "2026-01 D",
+      "kb": "KB5074105"
+    },
+    {
+      "version": "10.0.26200.7840",
+      "availableDate": "2026-02-10",
+      "updateType": "2026-02 B",
+      "kb": "KB5077181"
+    },
+    {
+      "version": "10.0.26200.7922",
+      "availableDate": "2026-02-24",
+      "updateType": "2026-02 D",
+      "kb": "KB5077241"
+    },
+    {
+      "version": "10.0.26200.8037",
+      "availableDate": "2026-03-10",
+      "updateType": "2026-03 B",
+      "kb": "KB5079473"
+    },
+    {
+      "version": "10.0.26200.8039",
+      "availableDate": "2026-03-21",
+      "updateType": "2026-03 OOB",
+      "kb": "KB5085516"
+    },
+    {
+      "version": "10.0.26200.8116",
+      "availableDate": "2026-03-26",
+      "updateType": "2026-03 D",
+      "kb": "KB5079391"
+    },
+    {
+      "version": "10.0.26200.8117",
+      "availableDate": "2026-03-31",
+      "updateType": "2026-03 OOB",
+      "kb": "KB5086672"
+    },
+    {
+      "version": "10.0.26200.8246",
+      "availableDate": "2026-04-14",
+      "updateType": "2026-04 B",
+      "kb": "KB5083769"
+    },
+    {
+      "version": "10.0.26200.8328",
+      "availableDate": "2026-04-30",
+      "updateType": "2026-04 D",
+      "kb": "KB5083631"
+    },
+    {
+      "version": "10.0.26200.8457",
+      "availableDate": "2026-05-12",
+      "updateType": "2026-05 B",
+      "kb": "KB5089549"
+    },
+    {
+      "version": "10.0.26200.8524",
+      "availableDate": "2026-05-26",
+      "updateType": "2026-05 D",
+      "kb": "KB5089573"
+    },
+    {
+      "version": "10.0.26200.8655",
+      "availableDate": "2026-06-09",
+      "updateType": "2026-06 B",
+      "kb": "KB5094126"
+    },
+    {
+      "version": "10.0.26200.8737",
+      "availableDate": "2026-06-23",
+      "updateType": "2026-06 D",
+      "kb": "KB5095093"
+    },
+    {
+      "version": "10.0.26200.8875",
+      "availableDate": "2026-07-14",
+      "updateType": "2026-07 B",
+      "kb": "KB5101650"
+    },
+    {
+      "version": "10.0.26200.8894",
+      "availableDate": "2026-07-18",
+      "updateType": "2026-07 OOB",
+      "kb": "KB5121767"
+    },
+    {
+      "version": "10.0.26200.8973",
+      "availableDate": "2026-07-28",
+      "updateType": "2026-07 D",
+      "kb": "KB5101684"
+    },
+    {
+      "version": "10.0.26200.9168",
+      "availableDate": "2026-08-11",
+      "updateType": "2026-08 B",
+      "kb": "KB5121003"
+    },
+    {
+      "version": "10.0.26200.9278",
+      "availableDate": "2026-08-27",
+      "updateType": "2026-08 D",
+      "kb": "KB5120998"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:playbookRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook')).ProviderPath
     $script:executablesRoot = Join-Path -Path $script:playbookRoot -ChildPath 'Executables'
     $script:registryFiles = @(Get-ChildItem -LiteralPath $script:playbookRoot -Filter '*.reg' -File -Recurse)

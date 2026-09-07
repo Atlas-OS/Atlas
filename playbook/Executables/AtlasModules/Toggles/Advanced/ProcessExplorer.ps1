@@ -1,80 +1,54 @@
-# Toggle: replace Task Manager with Sysinternals Process Explorer.
-@{
-    Name      = 'ProcessExplorer'
-    Elevation = 'Admin'
-    States    = [ordered]@{
-        Install = @{
-            StateValue = 1
-            Launcher   = '6. Advanced Configuration\Process Explorer\Install Process Explorer.cmd'
-            Reboot     = 'None'
-            StateRecordScope = 'Machine'
-            MachineAction = {
-                param($Toggle)
+function Get-AtlasProcessExplorerHelperPath {
+    # ProcessExplorer-Package.ps1 is a function library; each action dot-sources it
+    # into its own scope before calling the package operations.
+    param($Toggle)
 
-                $helper = [IO.Path]::Combine(
-                    $Toggle.ScriptsPath,
-                    'Internal',
-                    'ProcessExplorer-Package.ps1'
-                )
-                if (-not [IO.File]::Exists($helper)) {
-                    throw "ProcessExplorer: the package helper is missing at '$helper'."
-                }
-                . $helper
-
-                $disablePcw = $true
-                if (-not $Toggle.Silent) {
-                    Write-Host ''
-                    Write-Host "The 'pcw' service is needed for Task Manager and performance counters."
-                    Write-Host 'Disabling it may cause some performance tools to misbehave.'
-                    $disablePcw = (Read-Host 'Would you like to disable it? [Y/N]') -match '^(y|yes)$'
-                }
-
-                Write-Host 'Installing Process Explorer...'
-                Install-AtlasProcessExplorerPackage -DisablePcw:$disablePcw
-                if (-not $Toggle.Silent) {
-                    Write-Host 'Finished, changes have been applied.'
-                }
-            }
-            UserAction = {
-                param($Toggle)
-
-                $helper = [IO.Path]::Combine(
-                    $Toggle.ScriptsPath,
-                    'Internal',
-                    'ProcessExplorer-Package.ps1'
-                )
-                if (-not [IO.File]::Exists($helper)) {
-                    throw "ProcessExplorer: the package helper is missing at '$helper'."
-                }
-                . $helper
-                Write-AtlasProcessExplorerUserPreference
-            }
-        }
-        Uninstall = @{
-            StateValue = 0
-            Launcher   = '6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd'
-            Reboot     = 'None'
-            StateRecordScope = 'Machine'
-            MachineAction = {
-                param($Toggle)
-
-                $helper = [IO.Path]::Combine(
-                    $Toggle.ScriptsPath,
-                    'Internal',
-                    'ProcessExplorer-Package.ps1'
-                )
-                if (-not [IO.File]::Exists($helper)) {
-                    throw "ProcessExplorer: the package helper is missing at '$helper'."
-                }
-                . $helper
-
-                Write-Host 'Uninstalling Process Explorer...'
-                Uninstall-AtlasProcessExplorerPackage
-                if (-not $Toggle.Silent) {
-                    Write-Host 'Finished, changes have been applied.'
-                }
-            }
-            UserAction = { param($Toggle) }
-        }
+    $helper = Join-Path -Path $Toggle.OperationsPath -ChildPath 'ProcessExplorer-Package.ps1'
+    if (-not [IO.File]::Exists($helper)) {
+        throw "ProcessExplorer: the package helper is missing at '$helper'."
     }
+
+    return $helper
+}
+
+function Install-AtlasProcessExplorer {
+    param($Toggle)
+
+    . (Get-AtlasProcessExplorerHelperPath -Toggle $Toggle)
+
+    # Silent upgrades preserve the current driver state. An earlier explicit disable
+    # already persists; package ownership metadata remains available for uninstall.
+    $disablePcw = $false
+    if (-not $Toggle.Silent) {
+        $layout = Get-AtlasProcessExplorerLayout
+        $pcwStart = Get-AtlasProcessExplorerPcwStart -PcwPath $layout.PcwPath
+        if ($pcwStart -in @(0, 1)) {
+            Write-AtlasNote -Text 'The Windows boot driver pcw stays enabled.'
+        }
+        else {
+            Write-AtlasNote -Text "The 'pcw' service is used by Task Manager and performance counters; disabling it can make some performance tools misbehave."
+            $disablePcw = Read-AtlasYesNo -Question 'Disable the pcw service anyway?'
+        }
+        Write-AtlasStep -Text 'Downloading and installing Process Explorer...'
+    }
+
+    Install-AtlasProcessExplorerPackage -DisablePcw:$disablePcw
+}
+
+function Set-AtlasProcessExplorerUserPreference {
+    param($Toggle)
+
+    . (Get-AtlasProcessExplorerHelperPath -Toggle $Toggle)
+    Write-AtlasProcessExplorerUserPreference
+}
+
+function Uninstall-AtlasProcessExplorer {
+    param($Toggle)
+
+    . (Get-AtlasProcessExplorerHelperPath -Toggle $Toggle)
+
+    if (-not $Toggle.Silent) {
+        Write-AtlasStep -Text 'Uninstalling Process Explorer and restoring Task Manager...'
+    }
+    Uninstall-AtlasProcessExplorerPackage
 }

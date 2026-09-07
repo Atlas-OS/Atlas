@@ -1,52 +1,34 @@
 BeforeAll {
-    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-    $script:seedPath = Join-Path $repoRoot 'playbook\Executables\DEFAULT.reg'
-    $script:togglesRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles'
-
-    # The seed ships as UTF-16LE with a BOM; Import-AtlasDefaultRegistry.ps1 hands it
-    # directly to reg.exe.
-    $seedBytes = [IO.File]::ReadAllBytes($script:seedPath)
-    $seedBytes[0..1] | Should -Be @(0xFF, 0xFE)
-    $seedText = [Text.Encoding]::Unicode.GetString($seedBytes, 2, $seedBytes.Length - 2)
-
-    $script:seedToggleNames = @(
-        foreach ($match in [regex]::Matches($seedText,
-                '(?m)^\[HKEY_LOCAL_MACHINE\\SOFTWARE\\AtlasOS\\Services\\([^\]]+)\]\s*$')) {
-            $match.Groups[1].Value
-        }
-    )
-
-    $script:toggleDefinitionNames = @(
-        Get-ChildItem -LiteralPath $script:togglesRoot -Recurse -Filter '*.ps1' -File |
-            ForEach-Object { $_.BaseName }
-    )
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    $script:repoRoot = $script:AtlasTestRepoRoot
+    $script:scriptsRoot = $script:AtlasTestScriptsRoot
+    . (Join-Path $script:scriptsRoot 'Install\Install-Plan.ps1')
+    foreach ($module in 'Atlas.Core', 'Atlas.Registry', 'Atlas.Toggles', 'Atlas.Tweaks') {
+        Import-Module (Join-Path $script:AtlasTestModulesRoot "$module\$module.psd1") -Force
+    }
 }
 
-Describe 'DEFAULT.reg toggle state seed' {
-    It 'seeds at least one toggle state' {
-        $script:seedToggleNames.Count | Should -BeGreaterThan 0
+Describe 'Applied toggle defaults' {
+    It 'does not seed unapplied toggle choices on fresh installs' {
+        Test-Path (Join-Path $script:repoRoot 'playbook\Executables\DEFAULT.reg') | Should -BeFalse
+        @(Get-AtlasInstallPlan -Mode Fresh).Key | Should -Not -Contain 'Checkpoint/DefaultRegistrySeed'
     }
 
-    It 'seeds only direct child keys of AtlasOS\Services' {
-        foreach ($name in $script:seedToggleNames) {
-            $name | Should -Not -Match '\\'
-        }
-    }
-
-    It 'seeds each toggle state at most once' {
-        $duplicates = @($script:seedToggleNames | Group-Object |
-                Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name })
-        $duplicates | Should -BeNullOrEmpty
-    }
-
-    It 'seeds states only for toggles that have a definition script' {
-        # Not every toggle persists a state (one-shot actions have no seed), so the seed
-        # must be a subset of the definitions; an unmatched seed key is dead state or a
-        # renamed toggle whose seed was not updated.
-        $script:toggleDefinitionNames.Count | Should -BeGreaterThan 0
-        foreach ($name in $script:seedToggleNames) {
-            $script:toggleDefinitionNames | Should -Contain $name `
-                -Because "seed key 'Services\$name' must match a toggle definition under AtlasModules\Toggles"
+    It 'applies and records the three privacy defaults through the toggle engine' {
+        Mock -ModuleName Atlas.Tweaks Invoke-AtlasToggleMachineState {}
+        Mock -ModuleName Atlas.Tweaks Write-AtlasLog {}
+        $context = [pscustomobject]@{ IsUpgrade = $false; IsOobe = $false; IsArm64 = $false; WindowsBuild = 26200 }
+        $root = Join-Path $script:scriptsRoot 'Tweaks'
+        $manifest = Get-AtlasTweakManifest -Path (Join-Path $root 'tweaks.manifest.psd1')
+        @($manifest.Categories | Where-Object Name -eq 'privacy').Tweaks | Should -Contain 'apply-privacy-toggle-defaults'
+        $path = Join-Path $root 'privacy\apply-privacy-toggle-defaults.psd1'
+        @(Test-AtlasTweakSchema -Path $path).Count | Should -Be 0
+        Invoke-AtlasTweak -Path $path -Context $context
+        Should -Invoke -ModuleName Atlas.Tweaks Invoke-AtlasToggleMachineState -Times 3 -Exactly
+        foreach ($toggleName in 'PhoneLink', 'RecentItems', 'WebSearch') {
+            Should -Invoke -ModuleName Atlas.Tweaks Invoke-AtlasToggleMachineState -Times 1 -Exactly -ParameterFilter {
+                $Name -ceq $toggleName -and $State -ceq 'Disable'
+            }
         }
     }
 }

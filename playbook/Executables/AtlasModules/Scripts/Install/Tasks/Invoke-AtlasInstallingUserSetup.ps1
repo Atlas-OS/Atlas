@@ -1,0 +1,60 @@
+<#
+.SYNOPSIS
+    Dispatches install-time account setup from TrustedInstaller to the bound user.
+#>
+[CmdletBinding()]
+param()
+
+Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
+
+$scriptsRoot = [IO.Path]::GetFullPath([IO.Path]::Combine($PSScriptRoot, '..', '..'))
+$coreManifest = [IO.Path]::Combine(
+    $scriptsRoot,
+    'Modules',
+    'Atlas.Core',
+    'Atlas.Core.psd1'
+)
+if (-not [IO.File]::Exists($coreManifest)) {
+    throw "The Atlas.Core manifest is missing at '$coreManifest'."
+}
+Import-Module -Name $coreManifest -Force -ErrorAction Stop
+
+Assert-AtlasPrivilege -TrustedInstaller
+$context = Get-AtlasContext -Refresh
+if (-not $context.IsInstallStateBacked -or $context.IsOobe) {
+    throw 'Installing-user setup requires a non-OOBE active Atlas install state.'
+}
+
+$userSid = [string]$context.InteractiveUserSid
+if ($userSid -notmatch '^S-\d-\d+(?:-\d+)+$') {
+    throw 'Installing-user setup requires a canonical install-state user SID.'
+}
+
+. (Join-Path $PSScriptRoot 'Get-AtlasUserFailureDetail.ps1')
+
+$userEntry = if ($context.IsUpgrade) { 'Update-AtlasUser.ps1' } else { 'Initialize-NewUser.ps1' }
+$userSetupScript = [IO.Path]::Combine($scriptsRoot, 'Entry', $userEntry)
+$powerShellPath = [IO.Path]::Combine(
+    [Environment]::SystemDirectory,
+    'WindowsPowerShell',
+    'v1.0',
+    'powershell.exe'
+)
+foreach ($requiredFile in @($userSetupScript, $powerShellPath)) {
+    if (-not [IO.File]::Exists($requiredFile)) {
+        throw "Required installing-user file '$requiredFile' is missing."
+    }
+}
+
+$arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -FromInstall -ExpectedUserSid "{1}"' -f `
+    $userSetupScript, $userSid
+if ($context.IsUpgrade) { $arguments = $arguments.Replace(' -FromInstall', '') }
+# Initialize-NewUser is the heaviest user-scope step of the install; give it a
+# deliberate 1800-second bound instead of the launcher default.
+$transcriptPattern = if ($context.IsUpgrade) { '*-upgrade-user-*.log' } else { '*-new-user-setup-*.log' }
+$userSetupStarted = [datetime]::UtcNow
+$exitCode = Invoke-AtlasAsUser -FilePath $powerShellPath -Arguments $arguments -TimeoutSeconds 1800
+if ($exitCode -ne 0) {
+    throw "Installing-user setup exited with code $exitCode.$(Get-AtlasUserFailureDetail -UserSid $userSid -TranscriptPattern $transcriptPattern -NotBefore $userSetupStarted)"
+}

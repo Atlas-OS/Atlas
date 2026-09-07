@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
     function New-AtlasTestNanaZipBundle {
         param(
@@ -370,7 +371,7 @@ Describe 'Invoke-AtlasSoftwarePickerPackageBatch' {
                     throw 'fixture install failed'
                 }
             }
-            Mock Write-Warning
+            Mock Write-AtlasWarning
             $catalog = @(
                 [pscustomobject]@{ Package = 'Vendor.First'; Source = 'winget' }
                 [pscustomobject]@{ Package = 'Vendor.Broken'; Source = 'winget' }
@@ -382,7 +383,7 @@ Describe 'Invoke-AtlasSoftwarePickerPackageBatch' {
                     -Catalog $catalog -AtlasContext ([pscustomobject]@{}))
 
             Should -Invoke Invoke-AtlasSoftwarePickerPackageInstall -Times 3 -Exactly
-            Should -Invoke Write-Warning -Times 1 -Exactly
+            Should -Invoke Write-AtlasWarning -Times 1 -Exactly
             $failures.Count | Should -Be 1
             $failures[0].PackageId | Should -BeExactly 'Vendor.Broken'
             $failures[0].Message | Should -BeExactly 'fixture install failed'
@@ -392,7 +393,7 @@ Describe 'Invoke-AtlasSoftwarePickerPackageBatch' {
     It 'reports missing catalog entries without skipping later packages' {
         InModuleScope Atlas.Software {
             Mock Invoke-AtlasSoftwarePickerPackageInstall
-            Mock Write-Warning
+            Mock Write-AtlasWarning
             $catalog = @(
                 [pscustomobject]@{ Package = 'Vendor.Present'; Source = 'winget' }
             )

@@ -17,7 +17,7 @@
     )
 
     Rules = @{
-        # The payload must parse and run on both Windows PowerShell 5.1 and PowerShell 7
+        # Check syntax for 5.1 and 7.4; payload runtime tests target Windows PowerShell 5.1
         PSUseCompatibleSyntax = @{
             Enable         = $true
             TargetVersions = @('5.1', '7.4')

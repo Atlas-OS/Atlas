@@ -1,8 +1,10 @@
-# Atlas.Core domain: active install state and post-install flag context.
+# Atlas.Core domain: active install state and post-install machine state context.
 #
 # While installation is active, mode, identity, and FeaturePage options come from
-# Atlas.InstallState. After successful completion archives that state, the published
-# Upgrade, Interactive, and option flags remain the compatibility contract.
+# Atlas.InstallState. After successful completion archives that state, the machine
+# state document (C:\Windows\AtlasOS\state.json, Atlas.State) carries the installed
+# version, mode and options. The Upgrade, Interactive and option flags remain only as
+# a fallback for machines installed before the document existed.
 
 $script:AtlasContext = $null
 
@@ -30,6 +32,27 @@ function Read-AtlasActiveInstallState {
     return Get-AtlasInstallState -StatePath $statePath
 }
 
+function Read-AtlasStateDocument {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$WindowsPath
+    )
+
+    $documentPath = Join-Path -Path $WindowsPath -ChildPath 'AtlasOS\state.json'
+    if (-not (Test-Path -LiteralPath $documentPath -PathType Leaf -ErrorAction Stop)) {
+        return $null
+    }
+
+    $stateManifest = [IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot `
+        -ChildPath '..\..\Atlas.State\Atlas.State.psd1'))
+    if (-not (Test-Path -LiteralPath $stateManifest -PathType Leaf)) {
+        throw "The Atlas state document exists, but its reader module is missing: '$stateManifest'."
+    }
+
+    Import-Module -Name $stateManifest -ErrorAction Stop
+    return Get-AtlasState -Path $documentPath
+}
+
 function Get-AtlasContext {
     <#
     .SYNOPSIS
@@ -45,12 +68,14 @@ function Get-AtlasContext {
         # the host registry or canonical Windows transaction store.
         [string]$WindowsPath,
         [scriptblock]$StateReader,
+        [scriptblock]$DocumentReader,
         [scriptblock]$WindowsBuildReader,
         [scriptblock]$OobeReader
     )
 
     $usingReadSeam = $PSBoundParameters.ContainsKey('WindowsPath') -or
         $PSBoundParameters.ContainsKey('StateReader') -or
+        $PSBoundParameters.ContainsKey('DocumentReader') -or
         $PSBoundParameters.ContainsKey('WindowsBuildReader') -or
         $PSBoundParameters.ContainsKey('OobeReader')
     if ($script:AtlasContext -and -not $Refresh -and -not $usingReadSeam) {
@@ -90,6 +115,18 @@ function Get-AtlasContext {
     }
 
     $isInstallStateBacked = $null -ne $installState
+    $documentPath = Join-Path -Path $winDir -ChildPath 'AtlasOS\state.json'
+    $document = $null
+    if (-not $isInstallStateBacked) {
+        $document = if ($null -ne $DocumentReader) {
+            & $DocumentReader $documentPath
+        }
+        else {
+            Read-AtlasStateDocument -WindowsPath $winDir
+        }
+    }
+    $isDocumentBacked = $null -ne $document
+    $installedVersion = $null
     $mode = $null
     $targetVersion = $null
     $interactiveUserSid = $null
@@ -114,9 +151,16 @@ function Get-AtlasContext {
         $transactionId = [string]$installState.transactionId
         $options = @($installState.options | ForEach-Object { [string]$_ })
     }
+    elseif ($isDocumentBacked) {
+        $installedVersion = [string]$document.installedVersion
+        $options = @($document.options | ForEach-Object { [string]$_ })
+    }
 
     $isUpgrade = if ($isInstallStateBacked) {
         $mode -cin @('Upgrade', 'Reapply')
+    }
+    elseif ($isDocumentBacked) {
+        [string]$document.mode -ceq 'Upgrade'
     }
     else {
         Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Upgrade.flag') -PathType Leaf
@@ -124,6 +168,9 @@ function Get-AtlasContext {
 
     $isOobe = if ($isInstallStateBacked) {
         [bool]$installState.isOobe
+    }
+    elseif ($isDocumentBacked) {
+        [bool]$document.isOobe
     }
     else {
         # Completion publishes Interactive.flag for normal installs. Its absence can
@@ -158,6 +205,9 @@ function Get-AtlasContext {
         IsUpgrade          = $isUpgrade
         IsOobe             = $isOobe
         IsInstallStateBacked     = $isInstallStateBacked
+        IsStateDocumentBacked    = $isDocumentBacked
+        StateDocumentPath        = $documentPath
+        InstalledVersion         = $installedVersion
         Mode                     = if ($isInstallStateBacked) { $mode } else { 'Legacy' }
         TargetVersion            = $targetVersion
         InteractiveUserSid       = $interactiveUserSid
@@ -173,7 +223,8 @@ function Test-AtlasOption {
     <#
     .SYNOPSIS
         Returns whether the active install state contains an AME Wizard FeaturePage
-        option. After completion, reads the corresponding published option flag.
+        option. After completion, reads the machine state document, or the published
+        option flag on a machine installed before the document existed.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -182,7 +233,7 @@ function Test-AtlasOption {
     )
 
     $context = Get-AtlasContext
-    if ($context.IsInstallStateBacked) {
+    if ($context.IsInstallStateBacked -or $context.IsStateDocumentBacked) {
         return @($context.Options) -ccontains $Name
     }
 

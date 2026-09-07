@@ -1,10 +1,12 @@
 # Atlas.Software - software management module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies shared runtime helpers; Atlas.Shortcuts creates installer links.
+# Atlas.Core supplies shared runtime helpers; Atlas.Shortcuts creates installer links;
+# Atlas.Download owns the download and contained-process helpers.
 foreach ($dependencyManifest in @(
     '..\Atlas.Core\Atlas.Core.psd1'
     '..\Atlas.Shortcuts\Atlas.Shortcuts.psd1'
+    '..\Atlas.Download\Atlas.Download.psd1'
 )) {
     $manifestPath = Join-Path -Path $PSScriptRoot -ChildPath $dependencyManifest
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
@@ -14,13 +16,6 @@ foreach ($dependencyManifest in @(
     # A nested forced import unloads their global command surface in Windows PowerShell.
     Import-Module -Name $manifestPath -ErrorAction Stop
 }
-
-# Download and process helpers are private implementation dependencies.
-$downloadIntegrity = Join-Path -Path $PSScriptRoot -ChildPath '..\..\Internal\Download-Integrity.ps1'
-if (-not (Test-Path -LiteralPath $downloadIntegrity -PathType Leaf)) {
-    throw "Required download helper '$downloadIntegrity' is missing."
-}
-. $downloadIntegrity
 
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 

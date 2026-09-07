@@ -26,16 +26,15 @@ function Remove-AtlasOneDrive {
 
     $atlasSoftwareRoot = [IO.Directory]::GetParent($PSScriptRoot)
     $modulesRoot = $atlasSoftwareRoot.Parent
-    $scriptsRoot = $modulesRoot.Parent
-    $downloadIntegrity = [IO.Path]::Combine(
-        $scriptsRoot.FullName,
-        'Internal',
-        'Download-Integrity.ps1'
+    $downloadModule = [IO.Path]::Combine(
+        $modulesRoot.FullName,
+        'Atlas.Download',
+        'Atlas.Download.psd1'
     )
-    if (-not [IO.File]::Exists($downloadIntegrity)) {
-        throw "The Atlas download-integrity helper is missing at '$downloadIntegrity'."
+    if (-not [IO.File]::Exists($downloadModule)) {
+        throw "The Atlas.Download module manifest is missing at '$downloadModule'."
     }
-    . $downloadIntegrity
+    Import-Module -Name $downloadModule -ErrorAction Stop
 
     $windir = [Environment]::GetFolderPath('Windows')
     $setupPaths = @(

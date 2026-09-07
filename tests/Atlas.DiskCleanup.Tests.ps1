@@ -1,7 +1,8 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     $script:CleanupPath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Internal\Invoke-DiskCleanup.ps1'
+        'playbook\Executables\AtlasModules\Scripts\Install\Tasks\Invoke-DiskCleanup.ps1'
 
     # Load the private cleanup functions without reaching either cleanup path.
     $previousErrorActionPreference = $ErrorActionPreference

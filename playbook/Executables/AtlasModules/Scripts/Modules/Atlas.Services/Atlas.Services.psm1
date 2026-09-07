@@ -15,6 +15,7 @@ $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 foreach ($domainModule in @(
     'Startup.ps1'
     'Backup.ps1'
+    'Entries.ps1'
 )) {
     $domainPath = Join-Path -Path $domainRoot -ChildPath $domainModule
     if (-not (Test-Path -LiteralPath $domainPath -PathType Leaf)) {
@@ -25,6 +26,6 @@ foreach ($domainModule in @(
 }
 
 Export-ModuleMember -Function @(
-    'Set-AtlasServiceStartup', 'Stop-AtlasService',
+    'Set-AtlasServiceStartup', 'Stop-AtlasService', 'Invoke-AtlasServiceEntries', 'Test-AtlasServiceEntries',
     'Restore-AtlasServicesBackup', 'Export-AtlasServicesBackup'
 )

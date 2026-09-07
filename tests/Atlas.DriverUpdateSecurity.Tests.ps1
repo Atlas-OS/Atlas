@@ -1,12 +1,8 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $repoRoot = Split-Path -Parent $PSScriptRoot
     $driverUpdatePath = Join-Path -Path $repoRoot `
-        -ChildPath 'playbook\Executables\AtlasModules\Scripts\Internal\Update-Drivers.ps1'
-    $driverTogglePath = Join-Path -Path $repoRoot `
-        -ChildPath 'playbook\Executables\AtlasModules\Toggles\General\UpdateDrivers.ps1'
-
-    $script:driverToggle = & $driverTogglePath
-
+        -ChildPath 'playbook\Executables\AtlasModules\Scripts\Operations\Update-Drivers.ps1'
     $tokens = $null
     $errors = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseFile(
@@ -50,21 +46,54 @@ BeforeAll {
 }
 
 Describe 'Driver update toggle' {
+    BeforeAll {
+        Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
+        Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
+        $script:driverToggle = Get-AtlasToggleDefinition -Name UpdateDrivers `
+            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles')
+
+        function Invoke-DriverUpdateAction {
+            param([Parameter(Mandatory = $true)]$Toggle)
+
+            InModuleScope Atlas.Toggles {
+                Invoke-AtlasToggleFunction -Definition $d -FunctionName 'Invoke-AtlasDriverUpdate' -Toggle $t -Label 'test'
+            } -Parameters @{ d = $script:driverToggle; t = $Toggle }
+        }
+    }
+
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+    }
+
+    It 'is an elevated one-shot machine action that records no state' {
+        $run = $script:driverToggle.States['Run']
+
+        $script:driverToggle.Elevation | Should -BeExactly 'Admin'
+        $script:driverToggle.NoStateRecord | Should -BeTrue
+        $run['MachineAction'] | Should -BeExactly 'Invoke-AtlasDriverUpdate'
+        $run.Contains('StateValue') | Should -BeFalse
+
+        $work = Get-AtlasToggleStateWork -Definition $script:driverToggle -StateEntry $run
+        $work.Machine | Should -BeTrue
+        $work.User | Should -BeFalse
+    }
+
     It 'rejects a missing adjacent driver script' {
         $context = [pscustomobject]@{
-            ScriptsPath = Join-Path -Path $TestDrive -ChildPath 'missing-scripts'
-            Silent      = $true
+            Name           = 'UpdateDrivers'
+            State          = 'Run'
+            OperationsPath = Join-Path -Path $TestDrive -ChildPath 'missing-operations'
+            Silent         = $true
         }
 
-        { & $script:driverToggle.States.Run.Action $context } |
+        { Invoke-DriverUpdateAction -Toggle $context } |
             Should -Throw '*driver update script is missing*'
     }
 
     It 'forwards the exact silent state to the driver script' {
-        $scriptsPath = Join-Path -Path $TestDrive -ChildPath 'Scripts'
-        $internalPath = Join-Path -Path $scriptsPath -ChildPath 'Internal'
-        $driverPath = Join-Path -Path $internalPath -ChildPath 'Update-Drivers.ps1'
-        [void](New-Item -Path $internalPath -ItemType Directory -Force)
+        $operationsPath = Join-Path -Path $TestDrive -ChildPath 'Operations'
+        $driverPath = Join-Path -Path $operationsPath -ChildPath 'Update-Drivers.ps1'
+        [void](New-Item -Path $operationsPath -ItemType Directory -Force)
         [IO.File]::WriteAllText(
             $driverPath,
             "param ([switch]`$Silent)`r`n[bool]`$Silent`r`n",
@@ -73,11 +102,13 @@ Describe 'Driver update toggle' {
 
         foreach ($silent in @($true, $false)) {
             $context = [pscustomobject]@{
-                ScriptsPath = $scriptsPath
-                Silent      = $silent
+                Name           = 'UpdateDrivers'
+                State          = 'Run'
+                OperationsPath = $operationsPath
+                Silent         = $silent
             }
 
-            (& $script:driverToggle.States.Run.Action $context) | Should -Be $silent
+            (Invoke-DriverUpdateAction -Toggle $context) | Should -Be $silent
         }
     }
 }

@@ -27,6 +27,7 @@ foreach ($domainModule in @(
 
 Export-ModuleMember -Function @(
     'Disable-AtlasScheduledTask', 'Enable-AtlasScheduledTask', 'Remove-AtlasScheduledTask',
+    'Invoke-AtlasScheduledTaskEntries', 'Test-AtlasScheduledTaskEntries', 'Get-AtlasScheduledTaskState',
     'Stop-AtlasProcess', 'Wait-AtlasExplorerShellRecovery',
     'Stop-AtlasProcessUnderRoot', 'Stop-AtlasScheduledTaskUnderRoot'
 )

@@ -128,16 +128,17 @@ function Invoke-AtlasSoftwarePickerPackageInstall {
         $AtlasContext
     )
 
-    $downloadIntegrity = [IO.Path]::Combine(
+    $downloadModule = [IO.Path]::Combine(
         $AtlasContext.AtlasModulesPath,
         'Scripts',
-        'Internal',
-        'Download-Integrity.ps1'
+        'Modules',
+        'Atlas.Download',
+        'Atlas.Download.psd1'
     )
-    if (-not [IO.File]::Exists($downloadIntegrity)) {
-        throw "The Atlas download-integrity helper is missing at '$downloadIntegrity'."
+    if (-not [IO.File]::Exists($downloadModule)) {
+        throw "The Atlas.Download module manifest is missing at '$downloadModule'."
     }
-    . $downloadIntegrity
+    Import-Module -Name $downloadModule -ErrorAction Stop
 
     $wingetPath = Get-AtlasTrustedWingetPath
     Assert-AtlasTrustedWingetSource -WingetPath $wingetPath -Name $Source
@@ -185,7 +186,7 @@ function Invoke-AtlasSoftwarePickerPackageBatch {
         }
         catch {
             $message = $_.Exception.Message
-            Write-Warning "Failed to install '$package': $message"
+            Write-AtlasWarning -Text "'$package' was not installed: $message"
             $failures.Add([pscustomobject]@{
                     PackageId = $package
                     Message   = $message
@@ -200,41 +201,40 @@ function Show-AtlasSoftwarePicker {
     <#
     .SYNOPSIS
         Shows the Atlas software picker and installs the selected packages with WinGet.
-        Returns $false when WinGet is unavailable (Test-Winget.cmd failed), $true
-        otherwise.
+        Returns $false when WinGet is unavailable, $true otherwise. The caller owns
+        the exit pause.
     #>
     $atlasContext = Get-AtlasContext
     $trustBootstrap = [IO.Path]::Combine(
         $atlasContext.AtlasModulesPath,
         'Scripts',
-        'Internal',
-        'Initialize-PowerShellTrust.ps1'
+        'Initialize-AtlasPowerShell.ps1'
     )
     if (-not [IO.File]::Exists($trustBootstrap)) {
         throw "The PowerShell trust bootstrap is missing at '$trustBootstrap'."
     }
     . $trustBootstrap
 
-    $downloadIntegrity = [IO.Path]::Combine(
+    $downloadModule = [IO.Path]::Combine(
         $atlasContext.AtlasModulesPath,
         'Scripts',
-        'Internal',
-        'Download-Integrity.ps1'
+        'Modules',
+        'Atlas.Download',
+        'Atlas.Download.psd1'
     )
-    if (-not [IO.File]::Exists($downloadIntegrity)) {
-        throw "The Atlas download-integrity helper is missing at '$downloadIntegrity'."
+    if (-not [IO.File]::Exists($downloadModule)) {
+        throw "The Atlas.Download module manifest is missing at '$downloadModule'."
     }
-    . $downloadIntegrity
+    Import-Module -Name $downloadModule -ErrorAction Stop
     try {
         $wingetPath = Get-AtlasTrustedWingetPath
         Assert-AtlasTrustedWingetSource -WingetPath $wingetPath -Name winget
     }
     catch {
-        Write-Warning "WinGet is unavailable: $($_.Exception.Message)"
+        Write-AtlasWarning -Text "WinGet is unavailable: $($_.Exception.Message)"
         return $false
     }
 
-    Clear-Host
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
 
@@ -340,22 +340,18 @@ function Show-AtlasSoftwarePicker {
                 Select-Object -ExpandProperty Name)
 
             if ($installPackages.Count -ne 0) {
-                Write-Host 'Installing: ' -ForegroundColor Yellow
-                foreach ($package in $installPackages) {
-                    Write-Host '- ' -NoNewline -ForegroundColor Blue
-                    Write-Host $package
-                }
-                Write-Host ''
-                Start-Sleep 1
+                Write-AtlasStep -Text "Installing $($installPackages.Count) package(s) with WinGet. This can take a while..."
+                Write-AtlasNote -Text ([string[]]@($installPackages | ForEach-Object { "  - $_" }))
                 $failures = @(Invoke-AtlasSoftwarePickerPackageBatch `
                         -PackageId $installPackages -Catalog $items -AtlasContext $atlasContext)
-                Write-Host ''
-                Read-Pause
                 if ($failures.Count -ne 0) {
-                    $summary = @($failures | ForEach-Object { "- $($_.PackageId): $($_.Message)" }) -join [Environment]::NewLine
-                    throw "$($failures.Count) selected software package(s) failed to install:$([Environment]::NewLine)$summary"
+                    throw "$($failures.Count) of $($installPackages.Count) selected package(s) failed to install; see the warnings above."
                 }
+                Write-AtlasSuccess -Text "Installed $($installPackages.Count) package(s)."
             }
+        }
+        else {
+            Write-AtlasNote -Text 'No software was selected, so nothing was installed.'
         }
     }
     finally {

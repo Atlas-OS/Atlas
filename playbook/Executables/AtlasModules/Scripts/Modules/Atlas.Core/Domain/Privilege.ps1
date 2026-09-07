@@ -66,7 +66,7 @@ function Invoke-AtlasTrustedInstaller {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Toggle', 'ResetServices')]
+        [ValidateSet('Toggle', 'ResetServices', 'Install')]
         [string]$Operation,
 
         [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')]
@@ -83,6 +83,11 @@ function Invoke-AtlasTrustedInstaller {
         [ValidateSet('ToggleDefaults', 'WindowsBackup', 'AtlasBackup')]
         [string]$RestoreSource,
 
+        [ValidateSet('Capture', 'Run')]
+        [string]$InstallPhase,
+
+        [string]$PayloadRoot,
+
         [ValidateRange(1, 86400)]
         [int]$TimeoutSeconds = 900
     )
@@ -90,9 +95,11 @@ function Invoke-AtlasTrustedInstaller {
     $operationParameterAllowlist = @{
         Toggle        = @('Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly')
         ResetServices = @('RestoreSource')
+        Install       = @('InstallPhase', 'PayloadRoot')
     }
     foreach ($operationParameter in @(
-            'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource'
+            'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource',
+            'InstallPhase', 'PayloadRoot'
         )) {
         if ($PSBoundParameters.ContainsKey($operationParameter) -and
             $operationParameter -notin $operationParameterAllowlist[$Operation]) {
@@ -100,11 +107,31 @@ function Invoke-AtlasTrustedInstaller {
         }
     }
 
+    $context = Get-AtlasContext
+    $brokerModulesPath = $context.AtlasModulesPath
+    if ($Operation -eq 'Install') {
+        if ([string]::IsNullOrWhiteSpace($InstallPhase) -or [string]::IsNullOrWhiteSpace($PayloadRoot)) {
+            throw 'Install requires typed -InstallPhase and -PayloadRoot values.'
+        }
+        if (-not [IO.Path]::IsPathRooted($PayloadRoot)) {
+            throw 'Install requires an absolute -PayloadRoot.'
+        }
+        $PayloadRoot = [IO.Path]::GetFullPath($PayloadRoot)
+        $stagingRoot = [IO.Path]::GetFullPath((Join-Path $context.WinDir 'AtlasOS\Staging'))
+        if (-not $PayloadRoot.StartsWith($stagingRoot + [IO.Path]::DirectorySeparatorChar,
+                [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Install PayloadRoot must be beneath the protected staging root '$stagingRoot'."
+        }
+        # A fresh installation has no installed broker yet. Use the broker shipped
+        # with this protected candidate, including when upgrading an older payload.
+        $brokerModulesPath = Join-Path $PayloadRoot 'AtlasModules'
+    }
+
     $argumentList = [Collections.Generic.List[string]]::new()
     foreach ($argument in @(
             '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-            '-File', (Join-Path (Get-AtlasContext).AtlasModulesPath `
-                'Scripts\Internal\Invoke-AtlasTrustedInstallerBroker.ps1'),
+            '-File', (Join-Path $brokerModulesPath `
+                'Scripts\Entry\Invoke-AtlasTrustedInstallerBroker.ps1'),
             '-Operation', $Operation,
             '-TimeoutSeconds', [string]$TimeoutSeconds
         )) {
@@ -135,6 +162,18 @@ function Invoke-AtlasTrustedInstaller {
             }
             $argumentList.Add('-RestoreSource')
             $argumentList.Add($RestoreSource)
+        }
+        'Install' {
+            if ([string]::IsNullOrWhiteSpace($InstallPhase) -or [string]::IsNullOrWhiteSpace($PayloadRoot)) {
+                throw 'Install requires typed -InstallPhase and -PayloadRoot values.'
+            }
+            if (-not [IO.Path]::IsPathRooted($PayloadRoot)) {
+                throw 'Install requires an absolute -PayloadRoot.'
+            }
+            $argumentList.Add('-InstallPhase')
+            $argumentList.Add($InstallPhase)
+            $argumentList.Add('-PayloadRoot')
+            $argumentList.Add([IO.Path]::GetFullPath($PayloadRoot))
         }
     }
 
