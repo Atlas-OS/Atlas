@@ -273,6 +273,7 @@ Describe 'Software phase outcome aggregation' {
         }
         $options = @{
             'install-toolbox' = $true
+            'install-eclean' = $true
             'browser-brave' = $true
             'browser-firefox' = $true
             'browser-librewolf' = $true
@@ -303,7 +304,7 @@ Describe 'Software phase outcome aggregation' {
         $failure.Exception.Message | Should -BeExactly `
             'Software phase failed for components: SevenZip, Firefox.'
         @($script:softwareAttempts) | Should -Be @(
-            'VCRedist', 'SevenZip', 'DirectX', 'Toolbox',
+            'VCRedist', 'SevenZip', 'DirectX', 'Toolbox', 'Eclean',
             'Brave', 'Firefox', 'LibreWolf', 'Chrome'
         )
         $script:softwareLogs.Count | Should -Be 3

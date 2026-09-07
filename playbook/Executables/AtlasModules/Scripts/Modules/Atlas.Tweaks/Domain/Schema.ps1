@@ -10,7 +10,7 @@ $script:AtlasKnownOptions = @(
     'browser-brave', 'browser-chrome', 'browser-firefox', 'browser-librewolf',
     'defender-disable', 'defender-enable',
     'disable-core-isolation', 'disable-hibernation', 'disable-power-saving',
-    'install-another-browser', 'install-toolbox',
+    'install-another-browser', 'install-toolbox', 'install-eclean',
     'mitigations-default', 'mitigations-disable',
     'remove-snipping-tool', 'uninstall-edge'
 )

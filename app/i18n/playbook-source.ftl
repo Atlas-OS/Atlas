@@ -22,5 +22,5 @@ playbook-option-browser-chrome = Chrome
 playbook-page-defender-enable-description = Disabling Defender reduces security, and is an option for advanced users only.
 playbook-page-mitigations-default-description = Disabling mitigations reduces security, and could harm performance on modern CPUs.
 playbook-page-auto-updates-disable-description = Updates are important for security, you'll get update notifications regardless.
-playbook-page-install-toolbox-description = Would you like to install AtlasOS Toolbox (BETA)?
 playbook-page-browser-brave-description = Select your preferred browser to install. Browser settings are not modified.
+playbook-option-install-eclean = Install eclean

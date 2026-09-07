@@ -26,6 +26,10 @@ if (Test-AtlasOption -Name 'install-toolbox') {
     $requestedComponents.Add('Toolbox')
 }
 
+if (Test-AtlasOption -Name 'install-eclean') {
+    $requestedComponents.Add('Eclean')
+}
+
 # Browsers ('browser-*' options are only set when 'install-another-browser' was picked;
 # AME Wizard resolves that dependency before the option flags are written)
 if (Test-AtlasOption -Name 'browser-brave') {

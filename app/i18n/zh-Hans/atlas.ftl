@@ -291,7 +291,7 @@ screen-updates-question = Windows 应如何安装更新？
 screen-browser-title = 浏览器
 screen-power-title = 电源和安全
 screen-apps-title = 应用
-screen-toolbox-title = Atlas Toolbox
+screen-optional-apps-title = 可选应用
 screen-choose-one-title = 选择一项
 screen-extras-title = 可选附加项
 screen-extras-question = 按需选择附加项
@@ -303,7 +303,7 @@ learn-more-updates = 详细了解 Windows 更新
 learn-more-browser = 详细了解浏览器
 learn-more-power = 详细了解电源和安全
 learn-more-apps = 详细了解应用
-learn-more-toolbox = 详细了解 Atlas Toolbox
+learn-more-eclean = eclean 如何与 AtlasOS 配合使用
 learn-more-generic = 阅读安装指南
 # 所选答案下方的一行文字：这对电脑意味着什么。
 consequence-defender-enable = 保留 Windows 内置的防病毒软件，帮助保护电脑免受病毒和其他威胁。
@@ -338,7 +338,7 @@ playbook-option-browser-chrome = Chrome
 playbook-page-defender-enable-description = Microsoft Defender 是 Windows 内置的防病毒软件，建议保留。只有在了解风险并打算使用其他防病毒应用时，才应移除它。
 playbook-page-mitigations-default-description = 这些防护也称为安全缓解措施，有助于抵御利用处理器漏洞的攻击。建议保留 Windows 的默认设置。
 playbook-page-auto-updates-disable-description = Windows 更新包含安全修复。你可以让 Windows 自动安装，也可以自行安装。
-playbook-page-install-toolbox-description = 添加 Atlas Toolbox，方便管理 Atlas 设置。Toolbox 目前处于测试阶段，部分功能可能尚未完善。
+consequence-install-toolbox = 添加 Atlas Toolbox，方便管理 Atlas 设置。Toolbox 目前处于测试阶段，部分功能可能尚未完善。
 playbook-page-browser-brave-description = 选择要安装的浏览器。Atlas 不会更改你的浏览器设置。
 
 ## 第 3 步：Windows 安全中心
@@ -668,3 +668,5 @@ prepare-previous-worker = 之前的更新操作仍在运行。Atlas 会等待其
 ready-used-windows-title = 请先重新安装 Windows 再继续
 ready-used-windows-description = 此 Windows 系统存在已使用的迹象。在此系统上安装 Atlas 不受支持，我们强烈建议不要这样做。仅在你了解风险的情况下继续。
 ready-used-windows-dismiss = 我了解风险
+playbook-option-install-eclean = 安装 eclean
+consequence-install-eclean = AtlasOS 团队打造的维护工具，帮助您在设置完成后保持电脑整洁。检查垃圾文件和启动应用。需要账户和互联网连接。

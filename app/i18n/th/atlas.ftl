@@ -301,7 +301,7 @@ screen-updates-question = ต้องการให้ Windows ติดตั
 screen-browser-title = เบราว์เซอร์
 screen-power-title = พลังงานและความปลอดภัย
 screen-apps-title = แอป
-screen-toolbox-title = Atlas Toolbox
+screen-optional-apps-title = แอปเสริม
 screen-choose-one-title = เลือกหนึ่งตัวเลือก
 screen-extras-title = รายการเพิ่มเติม
 screen-extras-question = เลือกรายการเพิ่มเติมที่คุณต้องการ
@@ -313,7 +313,7 @@ learn-more-updates = เรียนรู้เพิ่มเติมเก�
 learn-more-browser = เรียนรู้เพิ่มเติมเกี่ยวกับเบราว์เซอร์
 learn-more-power = เรียนรู้เพิ่มเติมเกี่ยวกับพลังงานและความปลอดภัย
 learn-more-apps = เรียนรู้เพิ่มเติมเกี่ยวกับแอป
-learn-more-toolbox = เรียนรู้เพิ่มเติมเกี่ยวกับ Atlas Toolbox
+learn-more-eclean = eclean ทำงานร่วมกับ AtlasOS อย่างไร
 learn-more-generic = อ่านคู่มือการตั้งค่า
 # One line under the chosen answer: what it means for the PC.
 consequence-defender-enable = เก็บโปรแกรมป้องกันไวรัสที่มาพร้อม Windows ไว้ เพื่อช่วยปกป้องพีซีของคุณจากไวรัสและภัยคุกคามอื่น ๆ
@@ -350,7 +350,7 @@ playbook-option-browser-chrome = Chrome
 playbook-page-defender-enable-description = Microsoft Defender คือโปรแกรมป้องกันไวรัสที่มาพร้อม Windows แนะนำให้เก็บไว้ นำออกเฉพาะเมื่อคุณเข้าใจความเสี่ยงและตั้งใจจะใช้แอปป้องกันไวรัสอื่น
 playbook-page-mitigations-default-description = การป้องกันเหล่านี้ (หรือที่เรียกว่า security mitigations) ช่วยป้องกันการโจมตีผ่านช่องโหว่ของตัวประมวลผล แนะนำให้ใช้ค่าเริ่มต้นของ Windows
 playbook-page-auto-updates-disable-description = การอัปเดต Windows มีการแก้ไขด้านความปลอดภัยรวมอยู่ด้วย คุณจะให้ Windows ติดตั้งโดยอัตโนมัติหรือติดตั้งเองก็ได้
-playbook-page-install-toolbox-description = เพิ่ม Atlas Toolbox เพื่อช่วยจัดการการตั้งค่า Atlas ของคุณ โดย Toolbox ยังอยู่ในรุ่นเบตา บางฟีเจอร์จึงอาจยังไม่สมบูรณ์
+consequence-install-toolbox = เพิ่ม Atlas Toolbox เพื่อช่วยจัดการการตั้งค่า Atlas ของคุณ โดย Toolbox ยังอยู่ในรุ่นเบตา บางฟีเจอร์จึงอาจยังไม่สมบูรณ์
 playbook-page-browser-brave-description = เลือกเบราว์เซอร์ที่ต้องการติดตั้ง โดย Atlas จะไม่เปลี่ยนการตั้งค่าเบราว์เซอร์ของคุณ
 
 ## Step 3: Windows Security
@@ -680,3 +680,5 @@ prepare-previous-worker = การอัปเดตก่อนหน้าน
 ready-used-windows-title = ติดตั้ง Windows ใหม่ก่อนดำเนินการต่อ
 ready-used-windows-description = Windows นี้มีสัญญาณว่าเคยใช้งานมาแล้ว การติดตั้ง Atlas บนระบบนี้ไม่ได้รับการสนับสนุนและไม่แนะนำอย่างยิ่ง ดำเนินการต่อเฉพาะเมื่อคุณเข้าใจความเสี่ยงเท่านั้น
 ready-used-windows-dismiss = ฉันเข้าใจความเสี่ยง
+playbook-option-install-eclean = ติดตั้ง eclean
+consequence-install-eclean = เครื่องมือบำรุงรักษาจากทีมผู้สร้าง AtlasOS เพื่อดูแล PC ให้เป็นระเบียบหลังตั้งค่า ตรวจสอบไฟล์ขยะและแอปเริ่มต้นระบบ ต้องมีบัญชีและการเชื่อมต่ออินเทอร์เน็ต

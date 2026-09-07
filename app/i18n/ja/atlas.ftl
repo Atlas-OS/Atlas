@@ -294,7 +294,7 @@ screen-updates-question = 更新プログラムをどのようにインストー
 screen-browser-title = ブラウザー
 screen-power-title = 電源とセキュリティ
 screen-apps-title = アプリ
-screen-toolbox-title = Atlas Toolbox
+screen-optional-apps-title = 任意のアプリ
 screen-choose-one-title = オプションを選択
 screen-extras-title = 追加オプション
 screen-extras-question = 必要な追加オプションを選んでください
@@ -306,7 +306,7 @@ learn-more-updates = Windows Update の詳細
 learn-more-browser = ブラウザーの詳細
 learn-more-power = 電源とセキュリティの詳細
 learn-more-apps = アプリの詳細
-learn-more-toolbox = Atlas Toolbox の詳細
+learn-more-eclean = eclean と AtlasOS の連携について
 learn-more-generic = セットアップ ガイドを読む
 # One line under the chosen answer: what it means for the PC.
 consequence-defender-enable = Windows 標準のウイルス対策を残し、ウイルスなどの脅威から PC を保護します。
@@ -342,7 +342,7 @@ playbook-option-browser-chrome = Chrome
 playbook-page-defender-enable-description = Microsoft Defender は Windows 標準のウイルス対策です。残しておくことをお勧めします。削除するのは、リスクを理解し、別のウイルス対策アプリを使う予定がある場合だけにしてください。
 playbook-page-mitigations-default-description = これらの保護 (セキュリティ緩和策とも呼ばれます) は、プロセッサの脆弱性を悪用する攻撃を防ぐのに役立ちます。Windows の既定の設定を維持することをお勧めします。
 playbook-page-auto-updates-disable-description = Windows の更新プログラムにはセキュリティ修正が含まれます。Windows に自動でインストールさせるか、ご自身でインストールするかを選べます。
-playbook-page-install-toolbox-description = Atlas Toolbox を追加すると、Atlas の設定を管理しやすくなります。Toolbox はベータ版のため、一部の機能は未完成の場合があります。
+consequence-install-toolbox = Atlas Toolbox を追加すると、Atlas の設定を管理しやすくなります。Toolbox はベータ版のため、一部の機能は未完成の場合があります。
 playbook-page-browser-brave-description = インストールするブラウザーを選んでください。Atlas はブラウザーの設定を変更しません。
 
 ## 手順 3: Windows セキュリティ
@@ -672,3 +672,5 @@ prepare-previous-worker = 前の更新処理がまだ実行中です。処理が
 ready-used-windows-title = 続行する前に Windows を再インストールしてください
 ready-used-windows-description = この Windows 環境には使用済みの兆候があります。ここへの Atlas のインストールはサポート対象外で、強く非推奨です。リスクを理解している場合のみ続行してください。
 ready-used-windows-dismiss = リスクを理解しました
+playbook-option-install-eclean = eclean をインストールする
+consequence-install-eclean = セットアップ後の PC を整える、AtlasOS 開発チームのメンテナンスツールです。不要なファイルやスタートアップアプリを確認できます。アカウントとインターネット接続が必要です。

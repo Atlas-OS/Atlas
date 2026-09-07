@@ -759,6 +759,11 @@ impl InstallPage {
                         let id = gpui::ElementId::Name(format!("option-{page_index}-{}", option.name).into());
                         group = group.child(
                             CheckBox::new(id, describe::option_label(&option.name, &option.text), selected)
+                                .map(|checkbox| match option.name.as_str() {
+                                    "install-toolbox" => checkbox.image("brand/toolbox.png"),
+                                    "install-eclean" => checkbox.image("brand/eclean.png"),
+                                    _ => checkbox,
+                                })
                                 .map(|checkbox| {
                                     if let Some(description) =
                                         describe::known_option_consequence(&option.name, &option.text)

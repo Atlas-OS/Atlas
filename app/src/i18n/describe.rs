@@ -226,7 +226,7 @@ impl ScreenKind {
             ScreenKind::Browser => t!("screen-browser-title"),
             ScreenKind::Power => t!("screen-power-title"),
             ScreenKind::Apps => t!("screen-apps-title"),
-            ScreenKind::Toolbox => t!("screen-toolbox-title"),
+            ScreenKind::OptionalApps => t!("screen-optional-apps-title"),
             ScreenKind::ChooseOne => t!("screen-choose-one-title"),
             ScreenKind::Extras => t!("screen-extras-title"),
         }
@@ -251,7 +251,7 @@ impl ScreenKind {
             ScreenKind::Browser => t!("learn-more-browser"),
             ScreenKind::Power => t!("learn-more-power"),
             ScreenKind::Apps => t!("learn-more-apps"),
-            ScreenKind::Toolbox => t!("learn-more-toolbox"),
+            ScreenKind::OptionalApps => t!("learn-more-eclean"),
             ScreenKind::ChooseOne | ScreenKind::Extras => t!("learn-more-generic"),
         }
     }
@@ -273,6 +273,8 @@ pub fn option_consequence(name: &str) -> Option<String> {
         "remove-snipping-tool" => t!("consequence-remove-snipping-tool"),
         "uninstall-edge" => t!("consequence-uninstall-edge"),
         "install-another-browser" => t!("consequence-install-another-browser"),
+        "install-toolbox" => t!("consequence-install-toolbox"),
+        "install-eclean" => t!("consequence-install-eclean"),
         _ => return None,
     })
 }

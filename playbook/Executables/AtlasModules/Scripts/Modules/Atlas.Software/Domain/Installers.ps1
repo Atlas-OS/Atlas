@@ -12,6 +12,7 @@ function Get-AtlasSoftwareComponentMap {
         LibreWolf = 'Install-AtlasLibreWolfBrowser'
         Chrome    = 'Install-AtlasChromeBrowser'
         Toolbox   = 'Install-AtlasToolbox'
+        Eclean    = 'Install-AtlasEclean'
     }
 }
 
@@ -619,6 +620,15 @@ function Install-AtlasToolbox {
     Install-AtlasToolboxPackage
 }
 
+function Install-AtlasEclean {
+    param([Parameter(Mandatory = $true)][string]$TempDir)
+
+    $installerPath = Join-Path -Path $TempDir -ChildPath 'eclean.nsis.exe'
+    Invoke-AtlasSoftwareDownload -Uri 'https://update.eclean.gg/windows/latest/eclean-latest_x64-setup.exe?source=atlas' -Destination $installerPath -Description 'eclean'
+    Assert-AtlasFileSignature -Path $installerPath -ExpectedSubjectCn 'eclean Labs AB' -Description 'eclean'
+    Start-AtlasSoftwareInstaller -FilePath $installerPath -ArgumentList @('/S') -Description 'eclean'
+}
+
 function Install-AtlasBraveBrowser {
     param([Parameter(Mandatory = $true)][string]$TempDir)
 
@@ -1068,7 +1078,7 @@ function Install-AtlasSoftware {
     #>
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('SevenZip', 'VCRedist', 'DirectX', 'Brave', 'Firefox', 'LibreWolf', 'Chrome', 'Toolbox')]
+        [ValidateSet('SevenZip', 'VCRedist', 'DirectX', 'Brave', 'Firefox', 'LibreWolf', 'Chrome', 'Toolbox', 'Eclean')]
         [string[]]$Component
     )
 

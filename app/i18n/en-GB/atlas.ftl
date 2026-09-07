@@ -305,7 +305,7 @@ screen-updates-question = How should Windows install updates?
 screen-browser-title = Browser
 screen-power-title = Power and security
 screen-apps-title = Apps
-screen-toolbox-title = Atlas Toolbox
+screen-optional-apps-title = Optional apps
 screen-choose-one-title = Choose an option
 screen-extras-title = Optional extras
 screen-extras-question = Choose any extras you'd like
@@ -317,7 +317,7 @@ learn-more-updates = Learn more about Windows Update
 learn-more-browser = Learn more about browsers
 learn-more-power = Learn more about power and security
 learn-more-apps = Learn more about apps
-learn-more-toolbox = Learn more about Atlas Toolbox
+learn-more-eclean = How eclean works with AtlasOS
 learn-more-generic = Read the setup guide
 # One line under the chosen answer: what it means for the PC.
 consequence-defender-enable = Keeps Windows' built-in antivirus to help protect your PC from viruses and other threats.
@@ -353,7 +353,7 @@ playbook-option-browser-chrome = Chrome
 playbook-page-defender-enable-description = Microsoft Defender is Windows' built-in antivirus. Keeping it is recommended. Only remove it if you understand the risks and plan to use another antivirus app.
 playbook-page-mitigations-default-description = These protections, also called security mitigations, help defend against processor vulnerabilities. Keeping the Windows defaults is recommended.
 playbook-page-auto-updates-disable-description = Windows updates include security fixes. You can have Windows install them automatically or install them yourself.
-playbook-page-install-toolbox-description = Add Atlas Toolbox to help manage your Atlas settings. Toolbox is in beta, so some features may be unfinished.
+consequence-install-toolbox = Add Atlas Toolbox to help manage your Atlas settings. Toolbox is in beta, so some features may be unfinished.
 playbook-page-browser-brave-description = Choose a browser to install. Atlas won't change your browser settings.
 
 ## Step 3: Windows Security
@@ -704,3 +704,5 @@ prepare-previous-worker = An earlier update operation is still running. Atlas wi
 ready-used-windows-title = Reinstall Windows before continuing
 ready-used-windows-description = This Windows setup shows signs of prior use. Installing Atlas here is unsupported and strongly discouraged. Continue only if you understand the risks.
 ready-used-windows-dismiss = I understand the risks
+playbook-option-install-eclean = Install eclean
+consequence-install-eclean = A maintenance tool from the team behind AtlasOS, for keeping your PC tidy after setup. Review junk files and startup apps. Requires an account and an internet connection.

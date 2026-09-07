@@ -304,7 +304,7 @@ screen-updates-question = Windows güncelleştirmeleri nasıl yüklesin?
 screen-browser-title = Tarayıcı
 screen-power-title = Güç ve güvenlik
 screen-apps-title = Uygulamalar
-screen-toolbox-title = Atlas Toolbox
+screen-optional-apps-title = İsteğe bağlı uygulamalar
 screen-choose-one-title = Bir seçenek belirleyin
 screen-extras-title = İsteğe bağlı ek özellikler
 screen-extras-question = İstediğiniz ek özellikleri seçin
@@ -316,7 +316,7 @@ learn-more-updates = Windows Update hakkında daha fazla bilgi
 learn-more-browser = Tarayıcılar hakkında daha fazla bilgi
 learn-more-power = Güç ve güvenlik hakkında daha fazla bilgi
 learn-more-apps = Uygulamalar hakkında daha fazla bilgi
-learn-more-toolbox = Atlas Toolbox hakkında daha fazla bilgi
+learn-more-eclean = eclean, AtlasOS ile nasıl çalışır?
 learn-more-generic = Kurulum kılavuzunu oku
 # One line under the chosen answer: what it means for the PC.
 consequence-defender-enable = Bilgisayarınızı virüslerden ve diğer tehditlerden korumaya yardımcı olan yerleşik Windows virüsten koruma yazılımını tutar.
@@ -352,7 +352,7 @@ playbook-option-browser-chrome = Chrome
 playbook-page-defender-enable-description = Microsoft Defender, Windows'un yerleşik virüsten koruma yazılımıdır. Tutulması önerilir. Yalnızca riskleri anlıyor ve başka bir virüsten koruma uygulaması kullanmayı planlıyorsanız kaldırın.
 playbook-page-mitigations-default-description = Azaltma (mitigation) olarak da bilinen bu korumalar, işlemcideki güvenlik açıklarına karşı savunmaya yardımcı olur. Windows varsayılanlarının tutulması önerilir.
 playbook-page-auto-updates-disable-description = Windows güncelleştirmeleri güvenlik düzeltmeleri içerir. Windows'un bunları otomatik olarak yüklemesini sağlayabilir veya kendiniz yükleyebilirsiniz.
-playbook-page-install-toolbox-description = Atlas ayarlarınızı yönetmenize yardımcı olması için Atlas Toolbox'ı ekleyin. Toolbox beta aşamasında olduğu için bazı özellikler henüz tamamlanmamış olabilir.
+consequence-install-toolbox = Atlas ayarlarınızı yönetmenize yardımcı olması için Atlas Toolbox'ı ekleyin. Toolbox beta aşamasında olduğu için bazı özellikler henüz tamamlanmamış olabilir.
 playbook-page-browser-brave-description = Yüklenecek bir tarayıcı seçin. Atlas tarayıcı ayarlarınızı değiştirmez.
 
 ## Step 3: Windows Security
@@ -694,3 +694,5 @@ prepare-previous-worker = Önceki bir güncelleme işlemi hâlâ sürüyor. Atla
 ready-used-windows-title = Devam etmeden önce Windows’u yeniden yükleyin
 ready-used-windows-description = Bu Windows kurulumunda önceki kullanım belirtileri var. Buraya Atlas yüklemek desteklenmez ve kesinlikle önerilmez. Yalnızca riskleri anlıyorsanız devam edin.
 ready-used-windows-dismiss = Riskleri anlıyorum
+playbook-option-install-eclean = eclean yükle
+consequence-install-eclean = Kurulumdan sonra bilgisayarınızı düzenli tutmak için AtlasOS ekibinden bir bakım aracı. Gereksiz dosyaları ve başlangıç uygulamalarını inceleyin. Hesap ve internet bağlantısı gerektirir.

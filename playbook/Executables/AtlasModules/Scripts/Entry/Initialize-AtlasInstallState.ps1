@@ -23,6 +23,7 @@ param(
         'disable-power-saving',
         'install-another-browser',
         'install-toolbox',
+        'install-eclean',
         'mitigations-default',
         'mitigations-disable',
         'remove-snipping-tool',

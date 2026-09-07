@@ -71,7 +71,7 @@ post-live-HKCU boundary.
 | --- | --- | --- |
 | `Name` | string (required) | Display name, used in logs. |
 | `Description` | string | What the tweak does and why. |
-| `Option` | string | Only apply when the user selected this FeaturePage option. Known values: `auto-updates-default`, `auto-updates-disable`, `browser-brave`, `browser-chrome`, `browser-firefox`, `browser-librewolf`, `defender-disable`, `defender-enable`, `disable-core-isolation`, `disable-hibernation`, `disable-power-saving`, `install-another-browser`, `install-toolbox`, `mitigations-default`, `mitigations-disable`, `remove-snipping-tool`, `uninstall-edge`. |
+| `Option` | string | Only apply when the user selected this FeaturePage option. Known values: `auto-updates-default`, `auto-updates-disable`, `browser-brave`, `browser-chrome`, `browser-firefox`, `browser-librewolf`, `defender-disable`, `defender-enable`, `disable-core-isolation`, `disable-hibernation`, `disable-power-saving`, `install-another-browser`, `install-toolbox`, `install-eclean`, `mitigations-default`, `mitigations-disable`, `remove-snipping-tool`, `uninstall-edge`. |
 | `Arch` | `'X64'` or `'ARM64'` | Only apply on this architecture. |
 | `MinBuild` / `MaxBuild` | integer | Only apply on this Windows build range (inclusive). Maps the old YAML `builds: ['>=22000']` (`MinBuild = 22000`) and `builds: ['<22000']` (`MaxBuild = 21999`). Not enforced when the build number can't be read. |
 | `OnUpgrade` | `'Both'` (default), `'Skip'` or `'Only'` | `Skip` = fresh installs only, `Only` = upgrade installs only, `Both` = either mode when the install plan reaches this tweak. `ParentModes` still limits the category or standalone route; this key does not add work to Reapply. |

@@ -237,6 +237,7 @@ pub struct CheckBox {
     id: ElementId,
     label: SharedString,
     description: Option<SharedString>,
+    image: Option<SharedString>,
     checked: bool,
     disabled: bool,
     on_toggle: Option<ClickHandler>,
@@ -248,6 +249,7 @@ impl CheckBox {
             id: id.into(),
             label: label.into(),
             description: None,
+            image: None,
             checked,
             disabled: false,
             on_toggle: None,
@@ -256,6 +258,11 @@ impl CheckBox {
 
     pub fn description(mut self, text: impl Into<SharedString>) -> Self {
         self.description = Some(text.into());
+        self
+    }
+
+    pub fn image(mut self, asset: impl Into<SharedString>) -> Self {
+        self.image = Some(asset.into());
         self
     }
 
@@ -273,6 +280,24 @@ impl CheckBox {
 impl RenderOnce for CheckBox {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
+        let decoration = self.image.map(|asset| {
+            // Decorative artwork; the checkbox supplies the accessible name.
+            div()
+                .relative()
+                .w(px(20.))
+                .h(px(20.))
+                .flex_shrink_0()
+                .child(
+                    gpui::img(asset)
+                        .id(ElementId::Name(format!("logo-{:?}", self.id).into()))
+                        .aria_label("")
+                        .absolute()
+                        .top(px(0.))
+                        .size(px(20.))
+                        .object_fit(gpui::ObjectFit::Contain),
+                )
+                .into_any_element()
+        });
         let glyph = if self.checked {
             div()
                 .size(px(20.))
@@ -298,7 +323,7 @@ impl RenderOnce for CheckBox {
             self.checked,
             None,
             glyph,
-            None,
+            decoration,
             self.label,
             self.description,
             self.disabled,

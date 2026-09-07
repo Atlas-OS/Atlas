@@ -124,11 +124,41 @@ Describe 'Get-AtlasSoftwareComponentMap' {
     It 'maps every Install-AtlasSoftware component to an existing installer function' {
         InModuleScope Atlas.Software {
             $map = Get-AtlasSoftwareComponentMap
-            $expectedComponents = @('SevenZip', 'VCRedist', 'DirectX', 'Brave', 'Firefox', 'LibreWolf', 'Chrome', 'Toolbox')
+            $expectedComponents = @('SevenZip', 'VCRedist', 'DirectX', 'Brave', 'Firefox', 'LibreWolf', 'Chrome', 'Toolbox', 'Eclean')
 
             @($map.Keys) | Sort-Object | Should -Be ($expectedComponents | Sort-Object)
             foreach ($function in $map.Values) {
                 Get-Command -Name $function -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+            }
+        }
+    }
+}
+
+Describe 'Install-AtlasEclean' {
+    It 'does not start the installer when publisher verification fails' {
+        InModuleScope Atlas.Software {
+            Mock Invoke-AtlasSoftwareDownload
+            Mock Assert-AtlasFileSignature { throw 'publisher verification failed' }
+            Mock Start-AtlasSoftwareInstaller
+
+            { Install-AtlasEclean -TempDir $TestDrive } | Should -Throw '*publisher verification failed*'
+            Should -Invoke Start-AtlasSoftwareInstaller -Times 0
+        }
+    }
+
+    It 'verifies the eclean publisher and installs silently' {
+        InModuleScope Atlas.Software {
+            Mock Invoke-AtlasSoftwareDownload
+            Mock Assert-AtlasFileSignature
+            Mock Start-AtlasSoftwareInstaller
+
+            Install-AtlasEclean -TempDir $TestDrive
+
+            Should -Invoke Assert-AtlasFileSignature -Times 1 -Exactly -ParameterFilter {
+                $ExpectedSubjectCn -ceq 'eclean Labs AB'
+            }
+            Should -Invoke Start-AtlasSoftwareInstaller -Times 1 -Exactly -ParameterFilter {
+                $ArgumentList.Count -eq 1 -and $ArgumentList[0] -ceq '/S'
             }
         }
     }

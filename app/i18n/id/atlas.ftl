@@ -299,7 +299,7 @@ screen-updates-question = Bagaimana sebaiknya Windows menginstal pembaruan?
 screen-browser-title = Browser
 screen-power-title = Daya dan keamanan
 screen-apps-title = Aplikasi
-screen-toolbox-title = Atlas Toolbox
+screen-optional-apps-title = Aplikasi opsional
 screen-choose-one-title = Pilih salah satu
 screen-extras-title = Tambahan opsional
 screen-extras-question = Pilih tambahan yang Anda inginkan
@@ -311,7 +311,7 @@ learn-more-updates = Pelajari selengkapnya tentang Windows Update
 learn-more-browser = Pelajari selengkapnya tentang browser
 learn-more-power = Pelajari selengkapnya tentang daya dan keamanan
 learn-more-apps = Pelajari selengkapnya tentang aplikasi
-learn-more-toolbox = Pelajari selengkapnya tentang Atlas Toolbox
+learn-more-eclean = Cara eclean bekerja dengan AtlasOS
 learn-more-generic = Baca panduan penyiapan
 # One line under the chosen answer: what it means for the PC.
 consequence-defender-enable = Mempertahankan antivirus bawaan Windows untuk membantu melindungi PC Anda dari virus dan ancaman lainnya.
@@ -347,7 +347,7 @@ playbook-option-browser-chrome = Chrome
 playbook-page-defender-enable-description = Microsoft Defender adalah antivirus bawaan Windows. Sebaiknya pertahankan antivirus ini. Hapus hanya jika Anda memahami risikonya dan berencana menggunakan aplikasi antivirus lain.
 playbook-page-mitigations-default-description = Perlindungan ini, yang juga disebut mitigasi keamanan, membantu melindungi dari kerentanan prosesor. Sebaiknya pertahankan pengaturan bawaan Windows.
 playbook-page-auto-updates-disable-description = Pembaruan Windows mencakup perbaikan keamanan. Anda dapat membiarkan Windows menginstalnya secara otomatis atau menginstalnya sendiri.
-playbook-page-install-toolbox-description = Tambahkan Atlas Toolbox untuk membantu mengelola pengaturan Atlas Anda. Toolbox masih dalam tahap beta, sehingga beberapa fitur mungkin belum selesai.
+consequence-install-toolbox = Tambahkan Atlas Toolbox untuk membantu mengelola pengaturan Atlas Anda. Toolbox masih dalam tahap beta, sehingga beberapa fitur mungkin belum selesai.
 playbook-page-browser-brave-description = Pilih browser untuk diinstal. Atlas tidak akan mengubah pengaturan browser Anda.
 
 ## Step 3: Windows Security
@@ -679,3 +679,5 @@ prepare-previous-worker = Proses pembaruan sebelumnya masih berjalan. Atlas akan
 ready-used-windows-title = Instal ulang Windows sebelum melanjutkan
 ready-used-windows-description = Windows ini menunjukkan tanda penggunaan sebelumnya. Menginstal Atlas di sini tidak didukung dan sangat tidak disarankan. Lanjutkan hanya jika Anda memahami risikonya.
 ready-used-windows-dismiss = Saya memahami risikonya
+playbook-option-install-eclean = Instal eclean
+consequence-install-eclean = Alat perawatan dari tim di balik AtlasOS untuk menjaga PC tetap rapi setelah penyiapan. Tinjau berkas sampah dan aplikasi startup. Memerlukan akun dan koneksi internet.

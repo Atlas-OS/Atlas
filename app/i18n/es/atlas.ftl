@@ -296,7 +296,7 @@ screen-updates-question = ¿Cómo debe instalar Windows las actualizaciones?
 screen-browser-title = Navegador
 screen-power-title = Energía y seguridad
 screen-apps-title = Aplicaciones
-screen-toolbox-title = Atlas Toolbox
+screen-optional-apps-title = Aplicaciones opcionales
 screen-choose-one-title = Elija una opción
 screen-extras-title = Extras opcionales
 screen-extras-question = Elija los extras que quiera
@@ -308,7 +308,7 @@ learn-more-updates = Más información sobre Windows Update
 learn-more-browser = Más información sobre los navegadores
 learn-more-power = Más información sobre energía y seguridad
 learn-more-apps = Más información sobre las aplicaciones
-learn-more-toolbox = Más información sobre Atlas Toolbox
+learn-more-eclean = Cómo funciona eclean con AtlasOS
 learn-more-generic = Leer la guía de configuración
 # Una línea bajo cada respuesta: qué significa para el equipo.
 consequence-defender-enable = Conserva el antivirus integrado de Windows para ayudar a proteger su PC frente a virus y otras amenazas.
@@ -344,7 +344,7 @@ playbook-option-browser-chrome = Chrome
 playbook-page-defender-enable-description = Microsoft Defender es el antivirus integrado de Windows. Se recomienda conservarlo. Quítelo solo si entiende los riesgos y piensa usar otra aplicación antivirus.
 playbook-page-mitigations-default-description = Estas protecciones, también llamadas mitigaciones de seguridad, ayudan a defenderse de las vulnerabilidades del procesador. Se recomienda mantener los valores predeterminados de Windows.
 playbook-page-auto-updates-disable-description = Las actualizaciones de Windows incluyen correcciones de seguridad. Puede dejar que Windows las instale automáticamente o instalarlas por su cuenta.
-playbook-page-install-toolbox-description = Agregue Atlas Toolbox para administrar la configuración de Atlas con más facilidad. Toolbox está en versión beta, así que algunas funciones pueden estar sin terminar.
+consequence-install-toolbox = Agregue Atlas Toolbox para administrar la configuración de Atlas con más facilidad. Toolbox está en versión beta, así que algunas funciones pueden estar sin terminar.
 playbook-page-browser-brave-description = Elija un navegador para instalar. Atlas no cambiará la configuración de su navegador.
 
 ## Paso 3: Seguridad de Windows
@@ -690,3 +690,5 @@ prepare-previous-worker = Una actualización anterior sigue en curso. Atlas espe
 ready-used-windows-title = Reinstala Windows antes de continuar
 ready-used-windows-description = Esta instalación de Windows muestra signos de uso previo. Instalar Atlas aquí no tiene soporte y se desaconseja encarecidamente. Continúa solo si comprendes los riesgos.
 ready-used-windows-dismiss = Comprendo los riesgos
+playbook-option-install-eclean = Instalar eclean
+consequence-install-eclean = Una herramienta de mantenimiento del equipo de AtlasOS para mantener su PC ordenado después de la instalación. Revise archivos innecesarios y aplicaciones de inicio. Requiere una cuenta y conexión a internet.

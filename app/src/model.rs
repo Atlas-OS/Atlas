@@ -2544,7 +2544,7 @@ pub enum ScreenKind {
     Browser,
     Power,
     Apps,
-    Toolbox,
+    OptionalApps,
     ChooseOne,
     Extras,
 }
@@ -2564,7 +2564,7 @@ impl ScreenKind {
             {
                 ScreenKind::Apps
             }
-            n if n.starts_with("install-toolbox") => ScreenKind::Toolbox,
+            "install-toolbox" | "install-eclean" => ScreenKind::OptionalApps,
             _ => match page.kind {
                 PageKind::Radio => ScreenKind::ChooseOne,
                 PageKind::Checkbox => ScreenKind::Extras,
