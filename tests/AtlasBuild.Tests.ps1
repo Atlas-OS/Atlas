@@ -133,8 +133,8 @@ Describe 'Atlas configuration build boundary' {
         $summary = Assert-AtlasConfigurationRunnerBoundary `
             -ConfigurationRoot $fixture
 
-        $summary.Actions | Should -Be 29
-        $summary.Runs | Should -Be 26
+        $summary.Actions | Should -Be 30
+        $summary.Runs | Should -Be 27
     }
 
     It 'rejects currentUserElevated even when every other run field is canonical' {
@@ -265,7 +265,7 @@ Describe 'Atomic APBX publication' {
         '<Playbook><Title>Atlas v0.6.0</Title><Version>0.6.0</Version></Playbook>' |
             Set-Content -LiteralPath (Join-Path $playbook 'playbook.conf') -Encoding UTF8
         Mock Assert-AtlasConfigurationRunnerBoundary {
-            [pscustomobject]@{ Files = 1; Actions = 29; Runs = 26 }
+            [pscustomobject]@{ Files = 1; Actions = 30; Runs = 27 }
         } -ModuleName AtlasBuild
         Mock Resolve-SevenZip { 'mock-7z.exe' } -ModuleName AtlasBuild
         Mock Invoke-AtlasApbxVerifier { } -ModuleName AtlasBuild

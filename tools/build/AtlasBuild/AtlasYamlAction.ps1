@@ -230,7 +230,7 @@ function Assert-AtlasConfigurationRunnerBoundary {
     if (@($actions | Where-Object Type -notin @('run', 'writeStatus', 'registryKey')).Count) {
         throw 'Configuration contains an unsupported action type.'
     }
-    if ($actions.Count -ne 29) { throw "Configuration must contain 29 actions; found $($actions.Count)." }
+    if ($actions.Count -ne 30) { throw "Configuration must contain 30 actions; found $($actions.Count)." }
     $registry = @($actions | Where-Object Type -eq registryKey)
     $expectedRegistry = ConvertTo-AtlasYamlCanonicalValue ([ordered]@{
             path = 'HKLM\OfflineSys\ControlSet001\Services\WdBoot'; operation = 'delete'
@@ -248,7 +248,7 @@ function Assert-AtlasConfigurationRunnerBoundary {
         throw 'Configuration must contain only the two reviewed coarse status actions.'
     }
     $runs = @($actions | Where-Object Type -eq run)
-    if ($runs.Count -ne 26) { throw "Configuration must contain 26 runs; found $($runs.Count)." }
+    if ($runs.Count -ne 27) { throw "Configuration must contain 27 runs; found $($runs.Count)." }
     $hostPath = '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'
     $prefix = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass'
     $statePrefix = $prefix + ' -File ".\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1"'
@@ -341,7 +341,7 @@ function Assert-AtlasConfigurationRunnerBoundary {
         throw "custom.yml:$($action.Line) targets an unsupported PowerShell operation."
     }
     if ($publisherCount -ne 1 -or $commitCount -ne 1 -or $installCount -ne 1 -or
-        $beginKeys.Count -ne 6 -or $options.Count -ne 17 -or $reapplyVersions.Count -ne 1) {
+        $beginKeys.Count -ne 6 -or $options.Count -ne 18 -or $reapplyVersions.Count -ne 1) {
         throw 'Configuration runner operation counts differ from the compact Atlas contract.'
     }
     return [pscustomobject]@{ Files = 1; Actions = $actions.Count; Runs = $runs.Count

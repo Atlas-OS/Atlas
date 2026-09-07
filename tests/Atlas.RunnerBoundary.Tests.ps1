@@ -40,12 +40,12 @@ Describe 'Compact AME runner boundary' {
         $summary = Assert-AtlasConfigurationRunnerBoundary `
             -ConfigurationRoot $script:ConfigurationRoot
         $summary.Files | Should -Be 1
-        $summary.Actions | Should -Be 29
-        $summary.Runs | Should -Be 26
+        $summary.Actions | Should -Be 30
+        $summary.Runs | Should -Be 27
 
         $typeCounts = @($script:Actions | Group-Object Type | Sort-Object Name)
         @($typeCounts.Name) | Should -Be @('registryKey', 'run', 'writeStatus')
-        @($typeCounts | ForEach-Object Count) | Should -Be @(1, 26, 2)
+        @($typeCounts | ForEach-Object Count) | Should -Be @(1, 27, 2)
         $script:CustomYaml | Should -Not -Match '(?m)^\s*-\s*!(?:task|cmd|powerShell|taskKill|registryValue)\b'
         $script:CustomYaml | Should -Not -Match 'atlas[\\/]components\.yml'
     }
@@ -67,7 +67,7 @@ Describe 'Compact AME runner boundary' {
         }
 
         @($runs | Where-Object { $_.Properties.runas -ceq 'trustedInstaller' }).Count |
-            Should -Be 25
+            Should -Be 26
         @($runs | Where-Object { $_.Properties.runas -ceq 'currentUser' }).Count |
             Should -Be 1
     }
