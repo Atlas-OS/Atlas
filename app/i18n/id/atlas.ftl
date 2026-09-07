@@ -687,3 +687,10 @@ ready-used-windows-description = Windows ini menunjukkan tanda penggunaan sebelu
 ready-used-windows-dismiss = Saya memahami risikonya
 playbook-option-install-eclean = Instal eclean
 consequence-install-eclean = Alat perawatan dari tim di balik AtlasOS untuk menjaga PC tetap rapi setelah penyiapan. Tinjau berkas sampah dan aplikasi startup. Memerlukan akun dan koneksi internet.
+
+prepare-resumed = Windows telah dimulai ulang. Pilihan Atlas Anda telah dipulihkan. Lanjutkan pembaruan sebelum menginstal Atlas.
+prepare-continue = Lanjutkan pembaruan
+prepare-saving-restart = Menyimpan pilihan Anda dan mengatur Atlas agar terbuka kembali setelah Windows dimulai ulang…
+prepare-restart-save-failed = Pilihan Anda tidak dapat disimpan. Coba lagi sebelum memulai ulang.
+prepare-restart-registration-failed = Pilihan Anda tersimpan, tetapi pembukaan ulang otomatis tidak dapat diatur. Coba lagi, atau mulai ulang Windows dan buka Atlas secara manual.
+prepare-restart-failed = Windows tidak dapat dimulai ulang. Coba lagi, atau mulai ulang melalui Windows. Pilihan Anda tersimpan dan Atlas diatur untuk terbuka kembali.

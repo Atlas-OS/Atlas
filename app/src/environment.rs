@@ -26,6 +26,7 @@ pub struct Adapters {
     pub read_install_identity: IdentityReader,
     pub run_check: CheckRunner,
     pub schedule_restart: RestartScheduler,
+    pub register_preparation_resume: Arc<dyn Fn() -> anyhow::Result<()> + Send + Sync>,
 }
 
 impl Adapters {
@@ -37,6 +38,7 @@ impl Adapters {
             read_install_identity: Arc::new(crate::services::atlas_state::read_install_identity),
             run_check: Arc::new(requirements::run),
             schedule_restart: Arc::new(system::schedule_restart),
+            register_preparation_resume: Arc::new(crate::services::preparation::register_resume),
         }
     }
 }

@@ -698,3 +698,10 @@ ready-used-windows-description = Esta instalación de Windows muestra signos de 
 ready-used-windows-dismiss = Comprendo los riesgos
 playbook-option-install-eclean = Instalar eclean
 consequence-install-eclean = Una herramienta de mantenimiento del equipo de AtlasOS para mantener su PC ordenado después de la instalación. Revise archivos innecesarios y aplicaciones de inicio. Requiere una cuenta y conexión a internet.
+
+prepare-resumed = Windows se ha reiniciado. Tus opciones de Atlas se han restaurado. Continúa con las actualizaciones antes de instalar Atlas.
+prepare-continue = Continuar actualizaciones
+prepare-saving-restart = Guardando tus opciones y configurando Atlas para que se abra tras reiniciar Windows…
+prepare-restart-save-failed = No se pudieron guardar tus opciones. Inténtalo de nuevo antes de reiniciar.
+prepare-restart-registration-failed = Tus opciones están guardadas, pero no se pudo configurar la apertura automática. Inténtalo de nuevo o reinicia Windows y abre Atlas manualmente.
+prepare-restart-failed = Windows no pudo reiniciarse. Inténtalo de nuevo o reinicia desde Windows. Tus opciones están guardadas y Atlas está configurado para volver a abrirse.

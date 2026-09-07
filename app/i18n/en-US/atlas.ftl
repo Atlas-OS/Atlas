@@ -138,3 +138,10 @@ detail-windows-preview = Insider builds aren’t supported. Use a public release
 detail-windows-release-unknown = Atlas couldn’t verify this Windows build as a public release. Connect to the internet and check again.
 iso-release-unknown = This ISO couldn’t be verified as a public Windows 11 25H2 release. Connect to the internet and try again, or choose official release media.
 prepare-previous-worker = An earlier update operation is still running. Atlas will wait for it to finish before you can try again.
+
+prepare-resumed = Windows has restarted. Your Atlas choices are restored. Continue updating before installing Atlas.
+prepare-continue = Continue updates
+prepare-saving-restart = Saving your choices and arranging to reopen Atlas after Windows restarts…
+prepare-restart-save-failed = Your choices could not be saved. Try again before restarting.
+prepare-restart-registration-failed = Your choices are saved, but automatic reopening could not be arranged. Try again, or restart Windows and open Atlas manually.
+prepare-restart-failed = Windows could not restart. Try again, or restart through Windows. Your choices are saved and Atlas is set to reopen.

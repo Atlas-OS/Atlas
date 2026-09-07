@@ -311,6 +311,8 @@ pub struct AppModel {
     iso_initial_options: Option<Vec<String>>,
     pub preparation: crate::services::preparation::State,
     pub preparation_job: Option<PathBuf>,
+    preparation_restart_at: Option<String>,
+    pub preparation_problem: Option<crate::services::preparation::RestartProblem>,
     pub preparation_cancel: Arc<std::sync::atomic::AtomicBool>,
     preparation_task: Option<Task<()>>,
     pub iso_busy: bool,
@@ -424,6 +426,8 @@ impl AppModel {
             },
             preparation: Default::default(),
             preparation_job: None,
+            preparation_restart_at: None,
+            preparation_problem: None,
             preparation_cancel: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             preparation_task: None,
             install_identity: (env.adapters.read_install_identity)().map_err(|e| format!("{e:#}")),
@@ -565,6 +569,8 @@ impl AppModel {
     ) {
         use crate::services::preparation::{self, State};
         let drivers = self.driver_preference();
+        self.preparation_restart_at = None;
+        self.preparation_problem = None;
         self.preparation_job = Some(job.clone());
         self.preparation_cancel = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let cancel = self.preparation_cancel.clone();
@@ -599,6 +605,9 @@ impl AppModel {
                     log::error!("Windows preparation: {error:#}");
                     State::Failed
                 });
+                if this.preparation == State::Reboot {
+                    this.save_preparation_restart(false, cx);
+                }
                 this.run_checks(cx);
                 cx.notify();
             })
@@ -620,34 +629,75 @@ impl AppModel {
         if cfg!(debug_assertions) && std::env::var_os("ATLAS_PREPARATION_PREVIEW").is_some() {
             return;
         }
-        use crate::services::preparation::{self, State};
+        use crate::services::preparation::State;
         if self.preparation != State::Reboot {
             return;
         }
-        let Some(draft) = self.current_draft() else { return };
-        let saved = self.store.transact(move |doc| doc.draft = Some(draft));
-        self.preparation = State::Restarting;
+        self.save_preparation_restart(true, cx);
+    }
+
+    /// Save and arm recovery as soon as a worker requires a reboot, including
+    /// when the user will restart from Windows instead of this app.
+    fn save_preparation_restart(&mut self, restart: bool, cx: &mut Context<Self>) {
+        use crate::services::preparation::{RestartProblem, State};
+        self.preparation_cancel.store(false, std::sync::atomic::Ordering::Relaxed);
+        self.preparation_restart_at.get_or_insert_with(|| chrono::Utc::now().to_rfc3339());
+        self.preparation_problem = None;
+        let Some(draft) = self.current_draft() else {
+            self.preparation_problem = Some(RestartProblem::Save);
+            cx.notify();
+            return;
+        };
+        let flow = self.flow_id.clone();
+        let saved = self.store.transact(move |doc| {
+            if !draft_owned_by(&doc.draft, flow.as_deref()) {
+                return false;
+            }
+            doc.draft = Some(draft);
+            true
+        });
+        let register = self.env.adapters.register_preparation_resume.clone();
+        self.preparation = State::SavingRestart;
         cx.spawn(async move |this, cx| {
             let saved = saved.await;
-            let registration = if matches!(saved, Ok(Ok(()))) {
-                cx.background_executor().spawn(async { preparation::register_resume() }).await
+            let result = if matches!(saved, Ok(Ok(true))) {
+                cx.background_executor().spawn(async move { register() }).await.map_err(|error| {
+                    log::error!("preparation recovery registration: {error:#}");
+                    RestartProblem::Registration
+                })
             } else {
-                Err(anyhow::anyhow!("could not save preparation before restarting"))
+                log::error!("could not save preparation before restarting: {saved:?}");
+                Err(RestartProblem::Save)
             };
             this.update(cx, |this, cx| {
-                let result = registration.and_then(|registration| {
-                    let result = (this.env.adapters.schedule_restart)(&t!("shutdown-comment"));
-                    if result.is_err()
-                        && let Some(registration) = registration
-                        && let Err(error) = preparation::undo_resume(&registration)
-                    {
-                        log::warn!("could not roll back preparation restart registration: {error:#}");
+                this.preparation = State::Reboot;
+                if let Err(problem) = result {
+                    this.preparation_problem = Some(problem);
+                } else if restart {
+                    // Keep recovery armed if shutdown fails: restarting through
+                    // Windows should still bring the user back to their draft.
+                    match (this.env.adapters.schedule_restart)(&t!("shutdown-comment")) {
+                        Ok(()) => {
+                            this.preparation = State::Restarting;
+                            let grace = this.env.restart.grace;
+                            cx.spawn(async move |this, cx| {
+                                cx.background_executor().timer(grace).await;
+                                this.update(cx, |this, cx| {
+                                    if this.preparation == State::Restarting {
+                                        this.preparation = State::Reboot;
+                                        this.preparation_problem = Some(RestartProblem::Restart);
+                                        cx.notify();
+                                    }
+                                })
+                                .ok();
+                            })
+                            .detach();
+                        }
+                        Err(error) => {
+                            log::error!("preparation restart: {error:#}");
+                            this.preparation_problem = Some(RestartProblem::Restart);
+                        }
                     }
-                    result
-                });
-                if let Err(error) = result {
-                    log::error!("preparation restart: {error:#}");
-                    this.preparation = State::Reboot;
                 }
                 cx.notify();
             })
@@ -1085,6 +1135,7 @@ impl AppModel {
             return None;
         }
         Some(InstallDraft {
+            preparation_restart_at: self.preparation_restart_at.clone(),
             step: self.flow.step.name().to_owned(),
             options: self.options.iter().cloned().collect(),
             playbook_dir: self.playbook.as_ref().map(|p| p.dir.clone()),
@@ -1163,6 +1214,8 @@ impl AppModel {
     /// this flow's (a newer draft another window saved is not this window's
     /// to remove).
     fn clear_draft(&mut self, cx: &mut Context<Self>) {
+        self.preparation_restart_at = None;
+        self.preparation_problem = None;
         self.settings.draft = None;
         let flow = self.flow_id.clone();
         self.persist(
@@ -1259,6 +1312,11 @@ impl AppModel {
 
     fn resume_draft(&mut self, cx: &mut Context<Self>) {
         let Some(draft) = self.settings.draft.clone() else { return };
+        self.preparation_restart_at = draft.preparation_restart_at.clone();
+        if self.preparation_restart_at.is_some() {
+            self.preparation =
+                crate::services::preparation::state_after_restart(self.preparation_restart_at.as_deref());
+        }
         let Some(step) = Step::parse(&draft.step) else {
             self.flow_id = draft.flow.clone();
             self.clear_draft(cx);

@@ -136,6 +136,129 @@ fn incomplete_preparation_blocks_install_even_when_checks_pass() {
     });
 }
 
+#[test]
+fn preparation_arms_recovery_without_requesting_shutdown_and_restores_choices() {
+    run_model_test(|mut cx| async move {
+        use crate::services::preparation::State;
+        let temp = TempDir::new("preparation-auto-resume");
+        let machine = Machine::new(all_off());
+        let mut env = machine.environment(temp.path());
+        let path = env.paths.settings();
+        let registered = Arc::new(Mutex::new(0));
+        let count = registered.clone();
+        env.adapters.register_preparation_resume = Arc::new(move || {
+            let draft = settings::load_from(&path).settings.draft.unwrap();
+            assert!(draft.preparation_restart_at.is_some(), "save must precede registration");
+            assert!(draft.playbook_dir.is_some());
+            *count.lock().unwrap() += 1;
+            Ok(())
+        });
+        let (package, _) = marking_package(&temp, 0);
+        let model = new_model(&mut cx, env.clone());
+        walk_to_install(&mut cx, &model, &package).await;
+        let choices = read(&cx, &model, |m| m.options.clone());
+        act(&mut cx, &model, |m, cx| {
+            m.preparation = State::Reboot;
+            m.save_preparation_restart(false, cx);
+        });
+        wait_for(&cx, &model, "automatic recovery registration", |m| m.preparation == State::Reboot).await;
+        assert_eq!(*registered.lock().unwrap(), 1);
+        assert_eq!(*machine.scheduled.lock().unwrap(), 0, "detection must not restart Windows");
+        let mut saved = settings::load_from(&env.paths.settings()).settings;
+        act(&mut cx, &model, |m, cx| {
+            m.settings = saved.clone();
+            m.resume_draft(cx);
+        });
+        assert_eq!(read(&cx, &model, |m| m.preparation.clone()), State::Reboot);
+        saved.draft.as_mut().unwrap().preparation_restart_at = Some("2001-01-01T00:00:00Z".into());
+        act(&mut cx, &model, |m, cx| {
+            m.options.clear();
+            m.settings = saved;
+            m.resume_draft(cx);
+        });
+        assert_eq!(read(&cx, &model, |m| m.preparation.clone()), State::Resumed);
+        assert_eq!(read(&cx, &model, |m| m.options.clone()), choices);
+        assert!(!read(&cx, &model, AppModel::can_install));
+    });
+}
+
+#[test]
+fn preparation_restart_failures_are_visible_and_do_not_schedule_shutdown() {
+    run_model_test(|mut cx| async move {
+        use crate::services::preparation::{RestartProblem, State};
+        let temp = TempDir::new("preparation-restart-errors");
+        let machine = Machine::new(all_off());
+        let env = machine.environment(temp.path());
+        let (package, _) = marking_package(&temp, 0);
+        let model = new_model(&mut cx, env.clone());
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| {
+            m.preparation = State::Reboot;
+            m.env.adapters.register_preparation_resume = Arc::new(|| anyhow::bail!("registration denied"));
+            m.restart_preparation(cx);
+        });
+        wait_for(&cx, &model, "registration error", |m| {
+            m.preparation_problem == Some(RestartProblem::Registration)
+        })
+        .await;
+        assert_eq!(*machine.scheduled.lock().unwrap(), 0);
+        act(&mut cx, &model, |m, cx| {
+            m.env.adapters.register_preparation_resume = Arc::new(|| Ok(()));
+            m.env.adapters.schedule_restart = Arc::new(|_| anyhow::bail!("shutdown denied"));
+            m.restart_preparation(cx);
+        });
+        wait_for(&cx, &model, "shutdown error", |m| m.preparation_problem == Some(RestartProblem::Restart))
+            .await;
+        assert_eq!(read(&cx, &model, |m| m.preparation.clone()), State::Reboot);
+        // Another window's newer choices must survive automatic recovery saving.
+        let foreign = InstallDraft { flow: Some("newer-window".into()), ..InstallDraft::default() };
+        settings::modify(&env.paths.settings(), |doc| doc.draft = Some(foreign.clone())).unwrap();
+        act(&mut cx, &model, |m, cx| {
+            m.env.adapters.register_preparation_resume = Arc::new(|| panic!("must own the draft"));
+            m.restart_preparation(cx);
+        });
+        wait_for(&cx, &model, "foreign draft refusal", |m| {
+            m.preparation_problem == Some(RestartProblem::Save)
+        })
+        .await;
+        assert_eq!(settings::load_from(&env.paths.settings()).settings.draft, Some(foreign));
+        // Make the fixture settings path unreadable as a document.
+        std::fs::remove_file(env.paths.settings()).unwrap();
+        std::fs::create_dir(env.paths.settings()).unwrap();
+        act(&mut cx, &model, |m, cx| {
+            m.env.adapters.register_preparation_resume = Arc::new(|| panic!("must save first"));
+            m.restart_preparation(cx);
+        });
+        wait_for(&cx, &model, "draft save error", |m| m.preparation_problem == Some(RestartProblem::Save))
+            .await;
+        assert_eq!(*machine.scheduled.lock().unwrap(), 0);
+    });
+}
+
+#[test]
+fn preparation_restart_returns_to_a_retry_when_windows_does_not_exit() {
+    run_model_test(|mut cx| async move {
+        use crate::services::preparation::{RestartProblem, State};
+        let temp = TempDir::new("preparation-restart-grace");
+        let machine = Machine::new(all_off());
+        let mut env = machine.environment(temp.path());
+        env.restart.grace = Duration::from_millis(50);
+        let (package, _) = marking_package(&temp, 0);
+        let model = new_model(&mut cx, env);
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| {
+            m.preparation = State::Reboot;
+            m.restart_preparation(cx);
+        });
+        wait_for(&cx, &model, "shutdown grace period", |m| {
+            m.preparation_problem == Some(RestartProblem::Restart)
+        })
+        .await;
+        assert_eq!(*machine.scheduled.lock().unwrap(), 1);
+        assert_eq!(read(&cx, &model, |m| m.preparation.clone()), State::Reboot);
+    });
+}
+
 // Controlled machine.
 
 #[test]
@@ -224,6 +347,7 @@ impl Machine {
         let scheduled = self.scheduled.clone();
         let identity = self.identity.clone();
         Adapters {
+            register_preparation_resume: Arc::new(|| Ok(())),
             is_elevated: Arc::new(|| true),
             read_security: Arc::new(move || *security.lock().unwrap()),
             read_install_identity: Arc::new(move || {
@@ -395,6 +519,7 @@ fn a_success_found_on_reopening_shows_its_result_and_clears_its_draft() {
                 option_screen: 0,
                 session: Some(record.id.clone()),
                 flow: Some("launcher".into()),
+                preparation_restart_at: None,
             },
         );
 
@@ -448,6 +573,7 @@ fn a_success_from_before_a_restart_is_closed_out_and_a_foreign_draft_survives() 
                 option_screen: 0,
                 session: None,
                 flow: Some("another-window".into()),
+                preparation_restart_at: None,
             },
         );
 
@@ -532,6 +658,7 @@ fn a_draft_from_before_drafts_named_their_install_is_finished_with_it() {
         record.started_at = "2001-01-01T00:00:00+00:00".into();
         session::save(&env.paths.session(), &record).unwrap();
         let old_shape = InstallDraft {
+            preparation_restart_at: None,
             step: "install".into(),
             options: vec!["defender-enable".into()],
             playbook_dir: Some(record.request.playbook_dir.clone()),
@@ -614,6 +741,7 @@ fn a_foreign_draft_survives_done_after_a_recovered_success_and_is_resumed() {
             option_screen: 0,
             session: None,
             flow: Some("other-window".into()),
+            preparation_restart_at: None,
         };
         save_draft(&env, foreign.clone());
         let model = new_model(&mut cx, env.clone());
@@ -662,6 +790,7 @@ fn a_current_install_step_draft_for_the_same_package_survives_another_flows_succ
                 option_screen: 0,
                 session: None,
                 flow: Some("second-window".into()),
+                preparation_restart_at: None,
             };
             save_draft(&env, second_flow.clone());
             let model = new_model(&mut cx, env.clone());
@@ -758,6 +887,7 @@ fn a_completed_record_outlives_a_failed_draft_cleanup() {
                 option_screen: 0,
                 session: Some(record.id.clone()),
                 flow: Some("launching-flow".into()),
+                preparation_restart_at: None,
             };
             save_draft(&env, launching.clone());
             let lock_path = env.paths.settings().with_extension("json.lock");
@@ -875,6 +1005,7 @@ fn a_failure_found_on_reopening_runs_the_checks_its_retry_needs() {
                 option_screen: 0,
                 session: Some(record.id.clone()),
                 flow: Some("failed-install-launcher".into()),
+                preparation_restart_at: None,
             },
         );
 

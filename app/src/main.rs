@@ -66,6 +66,14 @@ fn main() {
         return;
     }
     let mut start = start_at();
+    if std::env::args().any(|arg| arg == "--after-preparation-restart") {
+        let paths = services::settings::AppPaths::from_process();
+        match services::preparation::resume_after_restart(&paths.settings()) {
+            Ok(false) => return,
+            Ok(true) => {}
+            Err(error) => log::error!("preparation recovery: {error:#}"),
+        }
+    }
     let before_desktop = services::desktop_setup::active();
     if before_desktop {
         start.page = Some(model::Page::Install);

@@ -98,9 +98,14 @@ Microsoft documents first-logon timing in [FirstLogonCommands](https://learn.mic
    preparation worker uses Windows Update Agent and AppInstallManager.
    It verifies provider completion, handles pending restarts, rescans after
    updating Store itself and refuses to proceed on partial or unknown results.
-6. Save the install draft before requesting a restart. Register RunOnce to
-   reopen the Get ready step. Recheck updates after sign-in; a previous
-   preparation scan never becomes a permanently cached permission to install.
+6. As soon as preparation requires a restart, save the install draft and arm
+   a temporary per-user Run entry. It waits for a new Windows boot before
+   reopening the saved flow, so restarting from Windows also resumes Atlas
+   and signing out first does not consume recovery. The entry removes itself
+   after reboot or on its next launch after the draft is abandoned. The custom
+   before-desktop shell continues to own its own relaunch. After sign-in,
+   **Continue updates** reruns preparation; an earlier scan never becomes a
+   permanently cached permission to install.
 7. Keep Atlas blocked until preparation succeeds. Existing security and
    installation checks still apply. Cooperatively stop between servicing
    operations; never kill a Windows servicing provider.

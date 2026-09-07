@@ -129,6 +129,85 @@ Describe 'Live preparation verification without installing updates' {
     }
 }
 
+Describe 'Preparation restart recovery after provider failures' {
+    BeforeEach {
+        Mock Assert-PreparationContinue {}
+        Mock Write-PreparationState {}
+        Mock Invoke-PreparationWindows { 'complete' }
+        Mock Invoke-PreparationStore {}
+        Mock Test-PreparationRestart { $false }
+    }
+    It 'reports a Store failure as restart required when Windows has pending changes' {
+        Mock Invoke-PreparationStore { throw 'Store deployment failed' }
+        Mock Test-PreparationRestart { $true }
+        Invoke-PreparationUpdates | Should -Be 'reboot'
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'Store deployment failed'
+        Should -Invoke Invoke-PreparationWindows -Times 1 -Exactly
+    }
+    It 'preserves a provider failure when no restart is pending' {
+        Mock Invoke-PreparationStore { throw 'Store deployment failed' }
+        { Invoke-PreparationUpdates } | Should -Throw '*Store deployment failed*'
+    }
+    It 'preserves the original error when restart detection itself fails' {
+        Mock Invoke-PreparationWindows { throw 'Windows install failed' }
+        Mock Test-PreparationRestart { throw 'Restart detection failed' }
+        { Invoke-PreparationUpdates } | Should -Throw '*Windows install failed*'
+    }
+    It 'detects a restart after a thrown Windows installer error' {
+        Mock Invoke-PreparationWindows { throw 'Windows install failed' }
+        Mock Test-PreparationRestart { $true }
+        Invoke-PreparationUpdates | Should -Be 'reboot'
+        Should -Invoke Invoke-PreparationStore -Times 0 -Exactly
+    }
+    It 'rechecks Windows after Store completion' {
+        $script:windowsPass = 0
+        Mock Invoke-PreparationWindows { $script:windowsPass++; if ($script:windowsPass -eq 1) { 'complete' } else { 'reboot' } }
+        Invoke-PreparationUpdates | Should -Be 'reboot'
+        Should -Invoke Invoke-PreparationStore -Times 1 -Exactly
+    }
+}
+
+Describe 'Windows installation results requiring restart' {
+    BeforeEach {
+        Mock Assert-PreparationContinue {}
+        Mock Test-PreparationRestart { $false }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState {}
+        $script:offered = [pscustomobject]@{ Title='Fixture update'; EulaAccepted=$true; InstallationBehavior=[pscustomobject]@{CanRequestUserInput=$false} }
+        Mock Find-PreparationWindowsUpdate { $script:offered }
+        $script:collection = [pscustomobject]@{Count=0}
+        $script:collection | Add-Member ScriptMethod Add { param($Update); $script:queuedUpdate = $Update; $this.Count++ }
+        $script:collection | Add-Member ScriptMethod Item { param($Index); if ($Index -ne 0) { throw 'Unexpected update index' }; $script:queuedUpdate }
+        $script:installation = [pscustomobject]@{ResultCode=3; RebootRequired=$true}
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { param($Index); if ($Index -ne 0) { throw 'Unexpected result index' }; [pscustomobject]@{ResultCode=4; HResult=-1} }
+        $script:installer = [pscustomobject]@{Updates=$null; ForceQuiet=$false; AllowSourcePrompts=$true; RebootRequiredBeforeInstallation=$false}
+        $script:installer | Add-Member ScriptMethod Install { $script:installation }
+        $script:downloader = [pscustomobject]@{Updates=$null}
+        $script:downloader | Add-Member ScriptMethod Download { [pscustomobject]@{ResultCode=2} }
+        $script:session = [pscustomobject]@{ClientApplicationID=''}
+        $script:session | Add-Member ScriptMethod CreateUpdateInstaller { $script:installer }
+        $script:session | Add-Member ScriptMethod CreateUpdateDownloader { $script:downloader }
+        Mock New-Object {
+            if ($ComObject -eq 'Microsoft.Update.Session') { return $script:session }
+            if ($ComObject -eq 'Microsoft.Update.UpdateColl') { return $script:collection }
+            throw 'Unexpected provider'
+        }
+    }
+    It 'prioritizes restart over partial failure and keeps per-update diagnostics' {
+        Invoke-PreparationWindows | Should -Be 'reboot'
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'Fixture update: result=4, HRESULT=-1'
+    }
+    It 'still fails a partial installation that does not require restart' {
+        $script:installation.RebootRequired = $false
+        { Invoke-PreparationWindows } | Should -Throw '*could not install every update*'
+    }
+    It 'honours the installer prerequisite before invoking Install' {
+        $script:installer.RebootRequiredBeforeInstallation = $true
+        $script:installer | Add-Member ScriptMethod Install { throw 'Install must not run' } -Force
+        Invoke-PreparationWindows | Should -Be 'reboot'
+    }
+}
+
 Describe 'Windows preparation prerequisites' {
     It 'accepts internet access and rejects metered or roaming profiles regardless of adapter type' {
         $script:networkCost = [pscustomobject]@{ NetworkCostType='Unrestricted'; Roaming=$false; OverDataLimit=$false; BackgroundDataUsageRestricted=$false }

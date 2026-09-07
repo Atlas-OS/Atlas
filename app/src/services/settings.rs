@@ -54,6 +54,8 @@ impl From<LanguagePreference> for String {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct InstallDraft {
+    /// Restart requirement recorded before registering preparation recovery.
+    pub preparation_restart_at: Option<String>,
     /// Step name as `Step::parse` understands it.
     pub step: String,
     pub options: Vec<String>,
@@ -357,6 +359,7 @@ mod tests {
                 option_screen: 2,
                 session: Some("20260905-120000-1234-abc".into()),
                 flow: Some("flow-1".into()),
+                preparation_restart_at: None,
             }),
         };
         save_to(&path, &settings).unwrap();

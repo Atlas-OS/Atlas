@@ -165,13 +165,14 @@ function Invoke-PreparationWindows {
         $installer.Updates = $updates
         $installer.ForceQuiet = $true
         $installer.AllowSourcePrompts = $false
+        if ($installer.RebootRequiredBeforeInstallation) { return 'reboot' }
         $installed = $installer.Install()
         for ($index = 0; $index -lt $updates.Count; $index++) {
             $item = $installed.GetUpdateResult($index)
             "$($updates.Item($index).Title): result=$($item.ResultCode), HRESULT=$($item.HResult)" | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
         }
-        if ([int]$installed.ResultCode -ne 2) { throw "Windows could not install every update: $($installed.ResultCode). See updates.log." }
         if ($installed.RebootRequired -or (Test-PreparationRestart)) { return 'reboot' }
+        if ([int]$installed.ResultCode -ne 2) { throw "Windows could not install every update: $($installed.ResultCode). See updates.log." }
     }
     throw 'Windows still offers updates after eight passes. Resolve the remaining updates in Windows Settings.'
 }
@@ -295,6 +296,27 @@ function Assert-PreparationCurrent {
     if (-not (Test-PreparationNetwork)) { throw 'The internet connection changed during preparation verification.' }
 }
 
+function Invoke-PreparationUpdates {
+    try {
+        if ((Invoke-PreparationWindows | Select-Object -Last 1) -eq 'reboot') { return 'reboot' }
+        Invoke-PreparationStore
+        Assert-PreparationContinue
+        Write-PreparationState running verify
+        return (Invoke-PreparationWindows | Select-Object -Last 1)
+    }
+    catch {
+        # A failed or interrupted provider can still have committed updates.
+        # Keep the original diagnostic even when restarting is the next action.
+        $_ | Out-String | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+        try {
+            if (Test-PreparationRestart) { return 'reboot' }
+        } catch {
+            $_ | Out-String | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+        }
+        throw
+    }
+}
+
 if ($FunctionsOnly) { return }
 $mutex = $null
 $owned = $false
@@ -317,14 +339,7 @@ try {
         exit 0
     }
     Set-PreparationDriver
-    if ((Invoke-PreparationWindows | Select-Object -Last 1) -eq 'reboot') {
-        Write-PreparationState reboot windows-install
-        exit 0
-    }
-    Invoke-PreparationStore
-    Assert-PreparationContinue
-    Write-PreparationState running verify
-    if ((Invoke-PreparationWindows | Select-Object -Last 1) -eq 'reboot') {
+    if ((Invoke-PreparationUpdates | Select-Object -Last 1) -eq 'reboot') {
         Write-PreparationState reboot windows-install
         exit 0
     }

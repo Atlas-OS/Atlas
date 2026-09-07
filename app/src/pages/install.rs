@@ -511,6 +511,8 @@ impl InstallPage {
         let state = self.model.read(cx);
         let message = match &state.preparation {
             State::Idle => t!("prepare-description"),
+            State::Resumed => t!("prepare-resumed"),
+            State::SavingRestart => t!("prepare-saving-restart"),
             State::Ready => t!("prepare-complete"),
             State::Reboot | State::Restarting => t!("prepare-reboot"),
             State::Failed => t!("prepare-failed"),
@@ -534,6 +536,15 @@ impl InstallPage {
                 card_body(cx)
                     .gap(px(12.))
                     .child(div().child(a11y_text("preparation-status", message.clone())))
+                    .when_some(state.preparation_problem, |this, problem| {
+                        use crate::services::preparation::RestartProblem;
+                        let message = match problem {
+                            RestartProblem::Save => t!("prepare-restart-save-failed"),
+                            RestartProblem::Registration => t!("prepare-restart-registration-failed"),
+                            RestartProblem::Restart => t!("prepare-restart-failed"),
+                        };
+                        this.child(a11y_text("preparation-restart-problem", message))
+                    })
                     .when(state.preparation == State::Network, |this| {
                         this.child(
                             Button::new("prepare-network", t!("prepare-network-settings"))
@@ -548,7 +559,10 @@ impl InstallPage {
                             _ => None,
                         };
                         this.child(ProgressBar::new("preparation-progress", message.clone(), value)).when(
-                            state.preparation != State::WaitingExternal,
+                            !matches!(
+                                state.preparation,
+                                State::WaitingExternal | State::SavingRestart | State::Restarting
+                            ),
                             |this| {
                                 this.child(detail_text(
                                     "preparation-stop-detail",
@@ -564,12 +578,19 @@ impl InstallPage {
                                 if busy && state.preparation_cancel.load(std::sync::atomic::Ordering::Relaxed)
                                 {
                                     t!("iso-cancelling")
+                                } else if matches!(
+                                    state.preparation,
+                                    State::SavingRestart | State::Restarting
+                                ) {
+                                    t!("prepare-restart")
                                 } else if busy {
                                     t!("prepare-stop")
                                 } else if reboot {
                                     t!("prepare-restart")
                                 } else if !state.elevated {
                                     t!("common-restart-as-administrator")
+                                } else if state.preparation == State::Resumed {
+                                    t!("prepare-continue")
                                 } else {
                                     t!("prepare-start")
                                 },
@@ -580,6 +601,7 @@ impl InstallPage {
                                     || (!busy && !state.preparation_build_supported())
                                     || (!busy && state.install_eligibility_problem().is_some())
                                     || state.preparation == State::Restarting
+                                    || state.preparation == State::SavingRestart
                                     || (busy
                                         && state
                                             .preparation_cancel

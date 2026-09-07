@@ -680,3 +680,10 @@ ready-used-windows-description = この Windows 環境には使用済みの兆�
 ready-used-windows-dismiss = リスクを理解しました
 playbook-option-install-eclean = eclean をインストールする
 consequence-install-eclean = セットアップ後の PC を整える、AtlasOS 開発チームのメンテナンスツールです。不要なファイルやスタートアップアプリを確認できます。アカウントとインターネット接続が必要です。
+
+prepare-resumed = Windows が再起動しました。Atlas の選択内容を復元しました。Atlas をインストールする前に更新を続けてください。
+prepare-continue = 更新を続ける
+prepare-saving-restart = 選択内容を保存し、Windows の再起動後に Atlas を開くよう設定しています…
+prepare-restart-save-failed = 選択内容を保存できませんでした。再起動する前にもう一度お試しください。
+prepare-restart-registration-failed = 選択内容は保存されましたが、自動で開く設定ができませんでした。もう一度試すか、Windows を再起動して Atlas を手動で開いてください。
+prepare-restart-failed = Windows を再起動できませんでした。もう一度試すか、Windows から再起動してください。選択内容は保存され、Atlas が再び開くよう設定されています。

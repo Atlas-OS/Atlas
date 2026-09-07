@@ -676,3 +676,10 @@ ready-used-windows-description = 此 Windows 系统存在已使用的迹象。�
 ready-used-windows-dismiss = 我了解风险
 playbook-option-install-eclean = 安装 eclean
 consequence-install-eclean = AtlasOS 团队打造的维护工具，帮助您在设置完成后保持电脑整洁。检查垃圾文件和启动应用。需要账户和互联网连接。
+
+prepare-resumed = Windows 已重新启动。你的 Atlas 选项已恢复。请在安装 Atlas 前继续更新。
+prepare-continue = 继续更新
+prepare-saving-restart = 正在保存你的选项，并设置在 Windows 重新启动后打开 Atlas…
+prepare-restart-save-failed = 无法保存你的选项。请在重新启动前重试。
+prepare-restart-registration-failed = 你的选项已保存，但无法设置自动重新打开。请重试，或重新启动 Windows 后手动打开 Atlas。
+prepare-restart-failed = Windows 无法重新启动。请重试，或通过 Windows 重新启动。你的选项已保存，Atlas 已设置为重新打开。

@@ -702,3 +702,10 @@ ready-used-windows-description = Bu Windows kurulumunda önceki kullanım belirt
 ready-used-windows-dismiss = Riskleri anlıyorum
 playbook-option-install-eclean = eclean yükle
 consequence-install-eclean = Kurulumdan sonra bilgisayarınızı düzenli tutmak için AtlasOS ekibinden bir bakım aracı. Gereksiz dosyaları ve başlangıç uygulamalarını inceleyin. Hesap ve internet bağlantısı gerektirir.
+
+prepare-resumed = Windows yeniden başlatıldı. Atlas seçimleriniz geri yüklendi. Atlas’ı yüklemeden önce güncellemelere devam edin.
+prepare-continue = Güncellemelere devam et
+prepare-saving-restart = Seçimleriniz kaydediliyor ve Windows yeniden başlatıldıktan sonra Atlas’ın açılması ayarlanıyor…
+prepare-restart-save-failed = Seçimleriniz kaydedilemedi. Yeniden başlatmadan önce tekrar deneyin.
+prepare-restart-registration-failed = Seçimleriniz kaydedildi ancak otomatik açılma ayarlanamadı. Tekrar deneyin veya Windows’u yeniden başlatıp Atlas’ı elle açın.
+prepare-restart-failed = Windows yeniden başlatılamadı. Tekrar deneyin veya Windows üzerinden yeniden başlatın. Seçimleriniz kaydedildi ve Atlas yeniden açılacak şekilde ayarlandı.

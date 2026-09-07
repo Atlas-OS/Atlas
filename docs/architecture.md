@@ -148,6 +148,26 @@ are rejected: the Store check must belong to the signed-in Windows session owner
 The legacy `-WindowsSetup` direct route is unsupported; ISO setup must reach that
 user's sign-in and use the normal preparation flow.
 
+Preparation prioritizes a required restart over partial Windows installation
+failure and checks for pending restarts when either update provider throws.
+Per-update results and provider errors remain in the diagnostic log. Before
+offering a restart, the app saves the draft with a restart timestamp and stages
+its recovery executable. A temporary HKCU Run entry uses
+`--after-preparation-restart` to reopen only after a new Windows boot; same-boot
+sign-ins leave it armed without opening another window. It removes itself after
+reboot, or silently on its next launch if the draft has been abandoned. This is
+the same approach used for installation completion. The ISO custom shell owns
+its own relaunch instead.
+
+Returning after reboot restores the package and choices and offers **Continue
+updates**, without marking preparation complete. Save, startup registration,
+and shutdown failures have separate translated messages. A shutdown failure
+keeps recovery armed so a restart through Windows can still resume the draft.
+
+This behavior follows the locally cached MicrosoftDocs sources:
+[`Run and RunOnce Registry Keys`](https://github.com/MicrosoftDocs/win32/blob/79eaaa46b30bd0efef0d0f5a65fd7d11fdd8e2de/desktop-src/setupapi/run-and-runonce-registry-keys.md)
+and [`IInstallationResult::RebootRequired`](https://github.com/MicrosoftDocs/sdk-api/blob/f38eb1cccc6080c44fac242e8f6995abf983644d/sdk-api-src/content/wuapi/nf-wuapi-iinstallationresult-get_rebootrequired.md).
+
 `Install\Invoke-AtlasInstallSession.ps1` runs as TrustedInstaller from the staging copy.
 Its Capture phase validates the request against the option groups playbook.conf
 declares, decides Fresh, Upgrade or Reapply from the machine state document, begins the

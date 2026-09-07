@@ -53,6 +53,7 @@ pub struct Progress {
 pub enum State {
     #[default]
     Idle,
+    Resumed,
     Running {
         stage: Stage,
         completed: u32,
@@ -61,6 +62,7 @@ pub enum State {
     WaitingExternal,
     Ready,
     Reboot,
+    SavingRestart,
     Restarting,
     Failed,
     Cancelled,
@@ -109,7 +111,7 @@ pub fn existing_driver_policy() -> Drivers {
 }
 impl State {
     pub fn busy(&self) -> bool {
-        matches!(self, Self::Running { .. } | Self::WaitingExternal | Self::Restarting)
+        matches!(self, Self::Running { .. } | Self::WaitingExternal | Self::SavingRestart | Self::Restarting)
     }
     pub fn ready(&self) -> bool {
         matches!(self, Self::Ready)
@@ -347,53 +349,68 @@ pub fn run(
     result
 }
 
-/// Register immediately before the user-requested restart. The existing
-/// install draft retains the selected package and choices across elevation.
-pub struct ResumeRegistration {
-    command: String,
-    previous: Option<String>,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RestartProblem {
+    Save,
+    Registration,
+    Restart,
 }
 
-const RESUME_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\RunOnce";
-const RESUME_VALUE: &str = "!AtlasWindowsPreparation";
+// A sign-out or Explorer restart must not consume recovery before Windows
+// actually reboots. Like install completion, this temporary Run entry is gated
+// by the saved timestamp and removed after reboot (or an abandoned draft).
+const RESUME_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
+const RESUME_VALUE: &str = "AtlasWindowsPreparation";
 
-pub fn register_resume() -> Result<Option<ResumeRegistration>> {
+pub fn register_resume() -> Result<()> {
     if super::desktop_setup::active() {
-        return Ok(None);
+        return Ok(());
     }
     let exe = super::recovery_app::stage()?;
-    register_at(&windows_registry::CURRENT_USER.create(RESUME_KEY)?, &exe).map(Some)
+    register_at(&windows_registry::CURRENT_USER.create(RESUME_KEY)?, &exe)
 }
 
-fn register_at(key: &windows_registry::Key, exe: &Path) -> Result<ResumeRegistration> {
+fn register_at(key: &windows_registry::Key, exe: &Path) -> Result<()> {
     // Normal startup restores the saved draft. A forced step can start a new
     // flow before asynchronous recovery finishes and replace its saved package.
-    let command = format!("\"{}\"", exe.display());
-    anyhow::ensure!(
-        command.encode_utf16().count() < 260,
-        "Recovery command exceeds the Windows RunOnce limit"
-    );
-    let previous = match key.get_string(RESUME_VALUE) {
-        Ok(previous) => Some(previous),
-        Err(error) if error.code().0 == 0x8007_0002_u32 as i32 => None,
-        Err(error) => return Err(error.into()),
-    };
+    let command = format!("\"{}\" --after-preparation-restart", exe.display());
+    anyhow::ensure!(command.encode_utf16().count() < 260, "Recovery command exceeds the Windows Run limit");
     key.set_string(RESUME_VALUE, &command)?;
-    Ok(ResumeRegistration { command, previous })
-}
-
-pub fn undo_resume(registration: &ResumeRegistration) -> Result<()> {
-    undo_at(&windows_registry::CURRENT_USER.create(RESUME_KEY)?, registration)
-}
-
-fn undo_at(key: &windows_registry::Key, registration: &ResumeRegistration) -> Result<()> {
-    if key.get_string(RESUME_VALUE).ok().as_deref() == Some(&registration.command) {
-        match &registration.previous {
-            Some(previous) => key.set_string(RESUME_VALUE, previous)?,
-            None => key.remove_value(RESUME_VALUE)?,
-        }
-    }
     Ok(())
+}
+
+pub fn state_after_restart(timestamp: Option<&str>) -> State {
+    match timestamp {
+        Some(timestamp) if super::system::booted_since(timestamp) => State::Resumed,
+        Some(_) => State::Reboot,
+        None => State::Idle,
+    }
+}
+
+/// Startup launches stay silent during the same boot. An unreadable draft
+/// leaves recovery armed and opens the app so its settings error is visible.
+pub fn resume_after_restart(settings: &Path) -> Result<bool> {
+    let loaded = super::settings::load_from(settings);
+    if loaded.problem.is_some() {
+        return Ok(true);
+    }
+    let state = state_after_restart(
+        loaded.settings.draft.as_ref().and_then(|draft| draft.preparation_restart_at.as_deref()),
+    );
+    let key = windows_registry::CURRENT_USER.create(RESUME_KEY)?;
+    resume_at(&key, state)
+}
+
+fn resume_at(key: &windows_registry::Key, state: State) -> Result<bool> {
+    if state == State::Reboot {
+        return Ok(false);
+    }
+    match key.remove_value(RESUME_VALUE) {
+        Ok(()) => {}
+        Err(error) if error.code().0 == 0x8007_0002_u32 as i32 => {}
+        Err(error) => return Err(error.into()),
+    }
+    Ok(state == State::Resumed)
 }
 
 #[cfg(test)]
@@ -504,32 +521,38 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
     }
 
     #[test]
-    fn restart_rollback_restores_only_the_registration_it_created() {
+    fn restart_registration_survives_same_boot_and_is_removed_after_recovery() {
         let path = format!(
             r"Software\AtlasOS\AppTests\Resume-{}-{}",
             std::process::id(),
             SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
         );
         let key = windows_registry::CURRENT_USER.create(&path).unwrap();
-        let registration =
-            register_at(&key, Path::new(r"C:\Program Files\Atlas Setup Recovery\hash\AtlasManager.exe"))
-                .unwrap();
-        assert!(key.get_string(RESUME_VALUE).unwrap().starts_with('"'));
-        assert_eq!(
-            key.get_string(RESUME_VALUE).unwrap(),
-            r#""C:\Program Files\Atlas Setup Recovery\hash\AtlasManager.exe""#
-        );
-        undo_at(&key, &registration).unwrap();
+        let exe = Path::new(r"C:\Program Files\Atlas Setup Recovery\hash\AtlasManager.exe");
+        register_at(&key, exe).unwrap();
+        let command = key.get_string(RESUME_VALUE).unwrap();
+        assert_eq!(command, format!("\"{}\" --after-preparation-restart", exe.display()));
+        assert!(!resume_at(&key, State::Reboot).unwrap());
+        assert_eq!(key.get_string(RESUME_VALUE).unwrap(), command);
+        register_at(&key, exe).unwrap();
+        assert!(resume_at(&key, State::Resumed).unwrap());
         assert!(key.get_string(RESUME_VALUE).is_err());
-        key.set_string(RESUME_VALUE, "previous registration").unwrap();
-        let registration = register_at(&key, Path::new(r"C:\recovery\AtlasManager.exe")).unwrap();
-        undo_at(&key, &registration).unwrap();
-        assert_eq!(key.get_string(RESUME_VALUE).unwrap(), "previous registration");
-        key.set_string(RESUME_VALUE, "newer registration").unwrap();
-        undo_at(&key, &registration).unwrap();
-        assert_eq!(key.get_string(RESUME_VALUE).unwrap(), "newer registration");
+        register_at(&key, exe).unwrap();
+        assert!(!resume_at(&key, State::Idle).unwrap(), "abandoned drafts do not reopen");
+        assert!(key.get_string(RESUME_VALUE).is_err());
+        assert!(!resume_at(&key, State::Idle).unwrap(), "cleanup is idempotent");
         drop(key);
         windows_registry::CURRENT_USER.remove_tree(path).unwrap();
+    }
+
+    #[test]
+    fn recovery_requires_a_real_boot_and_never_marks_updates_complete() {
+        assert_eq!(state_after_restart(None), State::Idle);
+        assert_eq!(state_after_restart(Some("invalid")), State::Reboot);
+        assert_eq!(state_after_restart(Some(&chrono::Utc::now().to_rfc3339())), State::Reboot);
+        assert_eq!(state_after_restart(Some("2001-01-01T00:00:00Z")), State::Resumed);
+        assert!(!State::Resumed.ready());
+        assert!(State::SavingRestart.busy());
     }
     #[test]
     fn protocol_requires_a_known_state_and_valid_counts() {
