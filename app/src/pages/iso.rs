@@ -286,6 +286,7 @@ impl IsoPage {
                 };
                 let result = operation();
                 if let Err(error) = &result {
+                    log::error!("ISO operation failed: {error:#}");
                     let _ = std::fs::write(job.join("error.txt"), format!("{error:#}"));
                 }
                 result
@@ -1058,7 +1059,8 @@ impl Render for IsoPage {
             Some(t!("iso-title").into()),
             if busy { None } else { Some(&self.model) },
             (&self.scroll, &self.scrollbar),
-            body,
+            body.into_iter()
+                .chain(std::iter::once(super::diagnostics_panel(&self.model, cx).into_any_element())),
             Some(footer.into_any_element()),
             cx,
         )

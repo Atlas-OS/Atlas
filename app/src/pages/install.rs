@@ -1631,6 +1631,7 @@ impl Render for InstallPage {
             Step::Install => self.install_cards(cx),
         });
         let footer = self.footer(cx);
+        body.push(super::diagnostics_panel(&self.model, cx).into_any_element());
         page_frame(
             "install-scroll",
             Some(t!("install-title").into()),

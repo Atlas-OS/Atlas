@@ -296,7 +296,7 @@ impl Render for InstallingPage {
                     .items_center()
                     .px(px(40.))
                     .py(px(40.))
-                    .child(column),
+                    .child(column.child(super::diagnostics_panel(&self.model, cx))),
             )
             .child(scrollbar(&self.scroll, &self.scrollbar))
     }

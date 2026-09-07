@@ -307,6 +307,8 @@ pub enum ModelEvent {
 }
 
 pub struct AppModel {
+    pub diagnostics_busy: bool,
+    pub diagnostics_result: Option<Result<PathBuf, String>>,
     pub before_desktop: bool,
     iso_initial_options: Option<Vec<String>>,
     pub preparation: crate::services::preparation::State,
@@ -401,6 +403,41 @@ pub fn english_for(windows_languages: &[String]) -> String {
 }
 
 impl AppModel {
+    pub fn export_diagnostics(&mut self, cx: &mut Context<Self>) {
+        if self.diagnostics_busy {
+            return;
+        }
+        self.diagnostics_busy = true;
+        self.diagnostics_result = None;
+        let root = self.env.paths.root.clone();
+        let package = self
+            .playbook
+            .as_ref()
+            .and_then(|book| crate::services::playbook::identity(&book.dir))
+            .and_then(|identity| serde_json::to_value(identity).ok());
+        log::info!("Diagnostic export requested");
+        cx.spawn(async move |this, cx| {
+            let result = cx
+                .background_executor()
+                .spawn(async move {
+                    crate::services::diagnostics::export(&root, package).map_err(|error| format!("{error:#}"))
+                })
+                .await;
+            this.update(cx, |this, cx| {
+                match &result {
+                    Ok(path) => log::info!("Diagnostic export saved: {}", path.display()),
+                    Err(error) => log::error!("Diagnostic export failed: {error}"),
+                }
+                this.diagnostics_busy = false;
+                this.diagnostics_result = Some(result);
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+        cx.notify();
+    }
+
     /// `language_override` comes from `--language` and outranks the setting
     /// (review and testing only).
     pub fn new(language_override: Option<String>, cx: &mut Context<Self>) -> Self {
@@ -417,6 +454,8 @@ impl AppModel {
         let store = settings::Store::new(env.paths.settings());
         let elevated = (env.adapters.is_elevated)();
         let mut model = Self {
+            diagnostics_busy: false,
+            diagnostics_result: None,
             before_desktop: crate::services::desktop_setup::active()
                 || (cfg!(debug_assertions) && std::env::var_os("ATLAS_DESKTOP_PREVIEW").is_some()),
             iso_initial_options: if loaded.settings.draft.is_none() {
@@ -520,6 +559,7 @@ impl AppModel {
     }
 
     pub fn prepare_windows(&mut self, cx: &mut Context<Self>) {
+        log::info!("Windows preparation requested");
         if cfg!(debug_assertions) && std::env::var_os("ATLAS_PREPARATION_PREVIEW").is_some() {
             return;
         }
@@ -1671,6 +1711,7 @@ impl AppModel {
     /// Unpacks an .apbx the user already has (file dialog, `--playbook`, or
     /// "Open with" on the package).
     pub fn load_playbook_file(&mut self, path: PathBuf, cx: &mut Context<Self>) {
+        log::info!("Opening playbook: {}", path.display());
         if self.locked() || self.acquisition.is_busy() || !self.flow.may_edit() {
             return;
         }
@@ -1761,6 +1802,11 @@ impl AppModel {
                         );
                     }
                 }
+                log::info!(
+                    "Playbook ready: version={}; identity={:?}",
+                    manifest.version,
+                    playbook::identity(&dir)
+                );
                 self.playbook = Some(PlaybookSource { dir, manifest, origin });
                 self.acquisition = Acquisition::Idle;
                 // Supported builds may differ between playbooks.
@@ -1773,6 +1819,7 @@ impl AppModel {
                 self.save_draft(cx);
             }
             Err(error) => {
+                log::error!("Playbook acquisition failed: {error:#}");
                 let problem = match error.downcast_ref::<playbook::Unsupported>() {
                     Some(unsupported) => AcquireProblem::Unsupported { version: unsupported.version.clone() },
                     None => AcquireProblem::Other { error: format!("{error:#}") },
@@ -2171,6 +2218,7 @@ impl AppModel {
     /// started here if this window never ran them (an install found after
     /// reopening the app).
     fn finish_install(&mut self, outcome: InstallOutcome, cx: &mut Context<Self>) {
+        log::info!("Installation outcome: {outcome:?}");
         if self.flow.finish(outcome).is_err() {
             return;
         }

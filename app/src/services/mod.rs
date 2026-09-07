@@ -2,6 +2,7 @@
 //! UI runs on GPUI's background executor; nothing in this module touches the UI.
 
 pub mod atlas_state;
+pub mod diagnostics;
 pub mod installer;
 pub mod licenses;
 pub mod locale;

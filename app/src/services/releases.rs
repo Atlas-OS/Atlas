@@ -80,6 +80,7 @@ fn agent(total: Duration) -> ureq::Agent {
 }
 
 pub fn fetch_latest() -> Result<Release> {
+    log::info!("Checking Atlas releases");
     let mut response = agent(METADATA_TIMEOUT)
         .get(LATEST_URL)
         .header("Accept", "application/vnd.github+json")
@@ -169,6 +170,7 @@ fn record_path(destination: &Path) -> PathBuf {
 /// Content-Length header. The file is verified before it replaces any
 /// earlier copy.
 pub fn download_into(dir: &Path, asset: &Asset, mut progress: impl FnMut(u64, u64)) -> Result<PathBuf> {
+    log::info!("Downloading playbook asset {}; bytes={}; digest={:?}", asset.name, asset.size, asset.digest);
     std::fs::create_dir_all(dir).with_context(|| format!("create {}", dir.display()))?;
     let destination = dir.join(&asset.name);
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or_default();

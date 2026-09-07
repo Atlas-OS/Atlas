@@ -232,6 +232,7 @@ pub fn run(
     cancel: Arc<AtomicBool>,
     mut report: impl FnMut(Stage),
 ) -> Result<Option<ImageInfo>> {
+    log::info!("ISO operation started; inspect={inspect}; diagnostics={}", dir.display());
     validate(request)?;
     let script = dir.join("Build-Iso.ps1");
     let input = dir.join("request.json");

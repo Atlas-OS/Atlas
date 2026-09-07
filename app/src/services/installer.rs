@@ -437,6 +437,11 @@ pub fn start_as(
     paths: &SessionPaths,
 ) -> Result<(SessionRecord, Receiver<InstallEvent>)> {
     let script = playbook::front_door(&request.playbook_dir);
+    log::info!(
+        "Installation session {id} requested; package={:?}; options={:?}",
+        playbook::identity(&request.playbook_dir),
+        request.options
+    );
     anyhow::ensure!(script.is_file(), "{} is missing", script.display());
     validate_options(&request.options)?;
 

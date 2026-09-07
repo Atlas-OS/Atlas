@@ -50,7 +50,22 @@ fn start_at() -> StartAt {
 }
 
 fn main() {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
+    services::diagnostics::init_logging();
+    // Headless collection also works when the window cannot initialize.
+    if std::env::args().any(|arg| arg == "--export-diagnostics") {
+        match services::diagnostics::export(&services::settings::app_data_dir(), None) {
+            Ok(path) => {
+                log::info!("Diagnostic export: {}", path.display());
+                println!("{}", path.display());
+            }
+            Err(error) => {
+                log::error!("Diagnostic export failed: {error:#}");
+                eprintln!("{error:#}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
     let mut arguments = std::env::args_os().skip(1);
     if arguments.next().as_deref() == Some(std::ffi::OsStr::new("--licenses")) {
         let result = match arguments.next() {

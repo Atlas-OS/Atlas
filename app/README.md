@@ -102,6 +102,12 @@ AtlasManager.exe --language de                       # a shipped language tag, o
 [Language documentation](docs/i18n.md) covers language selection, catalog readiness
 and adding translations. [Writing guidance](docs/writing.md) describes the app's voice.
 
+For app or installation problems, use **Export diagnostics** in Settings or the
+installation/media pages. It creates a local ZIP of app and playbook evidence;
+review it before sharing privately. If the window cannot open, run
+`AtlasManager.exe --export-diagnostics`. See [support diagnostics](../docs/diagnostics.md)
+for log locations, collection limits and the reporting process.
+
 ## Languages
 
 The app follows the Windows display language by default and offers a manual

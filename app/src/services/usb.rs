@@ -54,6 +54,7 @@ pub fn run(
     cancel: Arc<AtomicBool>,
     mut report: impl FnMut(Progress),
 ) -> Result<Outcome> {
+    log::info!("USB operation {operation} started; diagnostics={}", dir.display());
     anyhow::ensure!(matches!(operation, "List" | "Write" | "Eject"), "Unknown USB operation");
     if operation != "List" {
         anyhow::ensure!(drive.is_some(), "Select a USB drive");

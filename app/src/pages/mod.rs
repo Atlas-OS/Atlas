@@ -32,6 +32,51 @@ pub const PAGE_PADDING: f32 = 40.;
 /// Widest the content column grows before it centres.
 pub const CONTENT_MAX_WIDTH: f32 = 1000.;
 
+pub fn diagnostics_panel(model: &Entity<AppModel>, cx: &App) -> Div {
+    let state = model.read(cx);
+    let model = model.clone();
+    div()
+        .flex()
+        .flex_col()
+        .gap(px(8.))
+        .child(
+            div()
+                .type_caption()
+                .text_color(cx.theme().text_secondary)
+                .child(a11y_text("diagnostics-privacy", t!("diagnostics-privacy"))),
+        )
+        .child(
+            div().flex().child(
+                Button::new(
+                    "export-diagnostics",
+                    if state.diagnostics_busy {
+                        t!("diagnostics-exporting")
+                    } else {
+                        t!("diagnostics-export")
+                    },
+                )
+                .disabled(state.diagnostics_busy)
+                .on_click(move |_, _, cx| model.update(cx, |m, cx| m.export_diagnostics(cx))),
+            ),
+        )
+        .when_some(state.diagnostics_result.as_ref(), |this, result| match result {
+            Ok(path) => {
+                let path = path.clone();
+                this.child(
+                    div().flex().child(
+                        Button::new("diagnostics-show", t!("diagnostics-show"))
+                            .on_click(move |_, _, cx| cx.reveal_path(&path)),
+                    ),
+                )
+            }
+            Err(error) => this.child(
+                div()
+                    .type_caption()
+                    .child(a11y_text("diagnostics-error", t!("diagnostics-error", error = error.as_str()))),
+            ),
+        })
+}
+
 /// A page: optional fixed title row (with a back button when `back` is given), then a
 /// scrolling body. `footer` stays pinned. Everything sits in one centred column.
 pub fn page_frame(

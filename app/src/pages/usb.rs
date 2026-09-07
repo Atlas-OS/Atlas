@@ -188,7 +188,8 @@ impl UsbPage {
                         "Eject" => this.ejected = outcome.ejected,
                         _ => {}
                     },
-                    Err(_) => {
+                    Err(error) => {
+                        log::error!("USB operation {operation} failed: {error:#}");
                         this.error = Some(if operation == "Eject" {
                             "usb-eject-failed"
                         } else if cancelled {
@@ -463,7 +464,8 @@ impl Render for UsbPage {
             Some(t!("usb-title").into()),
             None,
             (&self.scroll, &self.scrollbar),
-            body,
+            body.into_iter()
+                .chain(std::iter::once(super::diagnostics_panel(&self.model, cx).into_any_element())),
             Some(footer.into_any_element()),
             cx,
         )

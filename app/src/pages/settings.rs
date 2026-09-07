@@ -295,6 +295,7 @@ impl Render for SettingsPage {
                 language.into_any_element(),
                 install.into_any_element(),
                 about.into_any_element(),
+                super::diagnostics_panel(&self.model, cx).into_any_element(),
             ],
             None,
             cx,
