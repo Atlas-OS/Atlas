@@ -97,6 +97,16 @@ jobs:
               $env:ATLAS_EVENT_BEFORE -notmatch '^[0-9a-f]{40}$' -or
               $env:ATLAS_EVENT_BEFORE -eq ('0' * 40)
 
+          # A force push can leave the previous tip outside the fetched history.
+          # Rebuild all configs when that comparison base is unavailable.
+          if (-not $regenerateAll) {
+              & git cat-file -e "$($env:ATLAS_EVENT_BEFORE)^{commit}" 2>$null
+              if ($LASTEXITCODE -ne 0) {
+                  Write-Host 'Previous push commit is unavailable; regenerating all SxS configs.'
+                  $regenerateAll = $true
+              }
+          }
+
           if (-not $regenerateAll) {
               $deletedFiles = @(& git diff --name-only --diff-filter=D `
                   $env:ATLAS_EVENT_BEFORE $env:ATLAS_SOURCE_SHA -- 'tools/sxsc/*.yaml')
