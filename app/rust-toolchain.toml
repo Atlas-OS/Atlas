@@ -1,0 +1,6 @@
+# The compiler this app is built and released with. Stable, pinned by version
+# so a build here, in CI and on a contributor's PC compiles the same code the
+# same way. Move it deliberately: run the full test suite on the new release.
+[toolchain]
+channel = "1.98.1"
+components = ["rustfmt", "clippy"]

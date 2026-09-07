@@ -1,0 +1,89 @@
+[package]
+name = "atlas-app"
+version = "0.1.0"
+edition = "2024"
+description = "Atlas Manager: the graphical front door for installing and updating AtlasOS."
+license = "GPL-3.0-only"
+# The oldest compiler the sources are written for; rust-toolchain.toml pins
+# the exact release used for builds.
+rust-version = "1.98"
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "AtlasManager"
+path = "src/main.rs"
+
+[dependencies]
+# Atlas is Windows-only. Keep the Windows manifest and backend without
+# resolving the Linux, macOS and web platform trees or optional font discovery.
+gpui = { package = "gpui-pre", version = "0.3.3", default-features = false, features = ["windows-manifest"] }
+gpui_windows = { package = "gpui-pre-windows", version = "0.3.3", default-features = false }
+
+anyhow = "1"
+futures = "0.3"
+log = "0.4"
+env_logger = "0.11"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+ureq = { version = "3", features = ["json"] }
+# Read encrypted/deflated playbooks without also building the Zopfli encoder.
+zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs", "aes-crypto"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+roxmltree = "0.21"
+ring = "0.17"
+fluent-bundle = "0.16"
+fluent-langneg = { version = "0.14.2", features = ["cldr"] }
+unic-langid = { version = "0.9", features = ["likelysubtags"] }
+unicode-segmentation = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows-registry = "0.100"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Globalization",
+    "Win32_Graphics_Gdi",
+    "Win32_Networking_WinInet",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Com",
+    "Win32_System_Ole",
+    "Win32_System_Power",
+    "Win32_System_Rpc",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_System_UpdateAgent",
+    "Win32_System_Variant",
+    "Win32_System_Wmi",
+    "Win32_UI_Accessibility",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[dev-dependencies]
+icu_segmenter = { version = "2.2.0", default-features = false, features = ["compiled_data"] }
+fluent-syntax = "0.12"
+intl_pluralrules = "7"
+proc-macro2 = "1"
+syn = { version = "3", features = ["full"] }
+
+[build-dependencies]
+embed-resource = "3"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+strip = true
+panic = "abort"
+
+[profile.dev.package."*"]
+opt-level = 2
+# Keep full debugging for Atlas itself without generating large dependency PDBs.
+debug = false
+
+# Pinned GPUI: text shaping and native completion artwork. See each vendor ATLAS-PATCH.md.
+[patch.crates-io]
+gpui-pre = { path = "vendor/gpui-pre" }
+gpui-pre-windows = { path = "vendor/gpui-pre-windows" }

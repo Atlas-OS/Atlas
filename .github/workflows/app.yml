@@ -1,0 +1,96 @@
+name: Desktop app
+
+# Playbook metadata, the front-door contract and driver policies are compiled
+# into the app or its tests. Changes to those inputs must rebuild it.
+on:
+  push:
+    paths:
+      - "app/**"
+      - "playbook/playbook.conf"
+      - "playbook/Executables/AtlasModules/Scripts/Preparation/**"
+      - "playbook/Executables/AtlasModules/Scripts/Compatibility/**"
+      - "playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
+      - "playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
+      - ".github/workflows/app.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - "playbook/playbook.conf"
+      - "playbook/Executables/AtlasModules/Scripts/Preparation/**"
+      - "playbook/Executables/AtlasModules/Scripts/Compatibility/**"
+      - "playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
+      - "playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
+      - ".github/workflows/app.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Build, lint and test (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      # CI restores compiled dependencies; incremental workspace state is
+      # machine-specific and is not retained by rust-cache.
+      CARGO_INCREMENTAL: 0
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout code
+        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install the Rust toolchain
+        # The version comes from app/rust-toolchain.toml, so CI, releases and
+        # local builds compile with the same compiler.
+        # gh api repos/dtolnay/rust-toolchain/commits/stable --jq '.sha'
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          toolchain: 1.98.1
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry and build output
+        # gh api repos/Swatinem/rust-cache/commits/v2 --jq '.sha'
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: app
+          cache-workspace-crates: true
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (warnings are errors)
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Test
+        # The installer tests launch Windows PowerShell 5.1 against harmless
+        # stub scripts in a temporary directory; nothing is installed.
+        run: cargo test --locked -- --nocapture
+
+      - name: Build production executable
+        run: ./tools/Build-Release.ps1
+
+      - name: Save production executable and license notices
+        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: atlas-manager-windows-x64
+          path: |
+            app/target/x86_64-pc-windows-msvc/release/AtlasManager.exe
+            LICENSE
+            app/licenses/
+            app/vendor/gpui-pre/LICENSE-APACHE
+            app/vendor/gpui-pre/ATLAS-PATCH.md
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

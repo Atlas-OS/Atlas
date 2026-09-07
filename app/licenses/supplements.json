@@ -1,0 +1,256 @@
+[
+  {
+    "package": "accesskit",
+    "version": "0.24.1",
+    "file": "supplemental/accesskit-0.24.1/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969/LICENSE-APACHE",
+    "sha256": "62C7A1E35F56406896D7AA7CA52D0CC0D272AC022B5D2796E7D6905DB8A3636A"
+  },
+  {
+    "package": "accesskit",
+    "version": "0.24.1",
+    "file": "supplemental/accesskit-0.24.1/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969/LICENSE-MIT",
+    "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
+  },
+  {
+    "package": "accesskit_consumer",
+    "version": "0.38.0",
+    "file": "supplemental/accesskit_consumer-0.38.0/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-APACHE",
+    "sha256": "62C7A1E35F56406896D7AA7CA52D0CC0D272AC022B5D2796E7D6905DB8A3636A"
+  },
+  {
+    "package": "accesskit_consumer",
+    "version": "0.38.0",
+    "file": "supplemental/accesskit_consumer-0.38.0/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-MIT",
+    "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
+  },
+  {
+    "package": "accesskit_windows",
+    "version": "0.34.0",
+    "file": "supplemental/accesskit_windows-0.34.0/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-APACHE",
+    "sha256": "62C7A1E35F56406896D7AA7CA52D0CC0D272AC022B5D2796E7D6905DB8A3636A"
+  },
+  {
+    "package": "accesskit_windows",
+    "version": "0.34.0",
+    "file": "supplemental/accesskit_windows-0.34.0/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-MIT",
+    "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
+  },
+  {
+    "package": "defmt-parser",
+    "version": "1.0.0",
+    "file": "supplemental/defmt-parser-1.0.0/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/knurling-rs/defmt/4a8cdb44891ed57b8ff5a023b6bec7137c48708f/LICENSE-APACHE",
+    "sha256": "8173D5C29B4F956D532781D2B86E4E30F83E6B7878DCE18C919451D6BA707C90"
+  },
+  {
+    "package": "defmt-parser",
+    "version": "1.0.0",
+    "file": "supplemental/defmt-parser-1.0.0/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/knurling-rs/defmt/4a8cdb44891ed57b8ff5a023b6bec7137c48708f/LICENSE-MIT",
+    "sha256": "2710A622A896BBA67356913D4D0492CAB5465F61B2ECCE6D880AEB483834FB50"
+  },
+  {
+    "package": "fluent-langneg",
+    "version": "0.13.1",
+    "file": "supplemental/fluent-langneg-0.13.1/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/projectfluent/fluent-langneg-rs/7fdc590466ea63ca2367ac10fb1b881fe561f1a8/LICENSE-APACHE",
+    "sha256": "B40930BBCF80744C86C46A12BC9DA056641D722716C378F5659B9E555EF833E1"
+  },
+  {
+    "package": "fluent-langneg",
+    "version": "0.13.1",
+    "file": "supplemental/fluent-langneg-0.13.1/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/projectfluent/fluent-langneg-rs/7fdc590466ea63ca2367ac10fb1b881fe561f1a8/LICENSE-MIT",
+    "sha256": "016FCC02048817D628B04B140C54DB290FD9D29A5E8A55B77871194E810716AC"
+  },
+  {
+    "package": "fluent-langneg",
+    "version": "0.14.2",
+    "file": "supplemental/fluent-langneg-0.14.2/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/projectfluent/fluent-langneg-rs/a161fed4c028436d5584ccadf77c799a65c16232/LICENSE-APACHE",
+    "sha256": "5DB2B182453FF32ED40F7DA63589C9667A3F8BD8B16B1471B152CAAE56F77E45"
+  },
+  {
+    "package": "fluent-langneg",
+    "version": "0.14.2",
+    "file": "supplemental/fluent-langneg-0.14.2/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/projectfluent/fluent-langneg-rs/a161fed4c028436d5584ccadf77c799a65c16232/LICENSE-MIT",
+    "sha256": "016FCC02048817D628B04B140C54DB290FD9D29A5E8A55B77871194E810716AC"
+  },
+  {
+    "package": "intl_pluralrules",
+    "version": "7.0.2",
+    "file": "supplemental/intl_pluralrules-7.0.2/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/zbraniecki/pluralrules/d0715d5b7cca72e228d6e6c4de154bd30dfdd06a/intl_pluralrules/LICENSE-APACHE",
+    "sha256": "62C7A1E35F56406896D7AA7CA52D0CC0D272AC022B5D2796E7D6905DB8A3636A"
+  },
+  {
+    "package": "intl_pluralrules",
+    "version": "7.0.2",
+    "file": "supplemental/intl_pluralrules-7.0.2/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/zbraniecki/pluralrules/d0715d5b7cca72e228d6e6c4de154bd30dfdd06a/intl_pluralrules/LICENSE-MIT",
+    "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
+  },
+  {
+    "package": "lyon",
+    "version": "1.0.19",
+    "file": "supplemental/lyon-1.0.19/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/nical/lyon/56219c95c658d4f39de7b190d98e57d5773ba241/LICENSE-APACHE",
+    "sha256": "216486F29671A4262EFE32AF6D84A75BEF398127F8C5F369B5C8305983887A06"
+  },
+  {
+    "package": "lyon",
+    "version": "1.0.19",
+    "file": "supplemental/lyon-1.0.19/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/nical/lyon/56219c95c658d4f39de7b190d98e57d5773ba241/LICENSE-MIT",
+    "sha256": "80F275E90D799911ED3830A7F242A2EF5A4ADE2092FE0AA07BFB2D2CF2F2B95E"
+  },
+  {
+    "package": "lyon_algorithms",
+    "version": "1.0.21",
+    "file": "supplemental/lyon_algorithms-1.0.21/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/nical/lyon/994526f2766c7e9bc5bb16687232fd7e8999dbdf/LICENSE-APACHE",
+    "sha256": "216486F29671A4262EFE32AF6D84A75BEF398127F8C5F369B5C8305983887A06"
+  },
+  {
+    "package": "lyon_algorithms",
+    "version": "1.0.21",
+    "file": "supplemental/lyon_algorithms-1.0.21/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/nical/lyon/994526f2766c7e9bc5bb16687232fd7e8999dbdf/LICENSE-MIT",
+    "sha256": "80F275E90D799911ED3830A7F242A2EF5A4ADE2092FE0AA07BFB2D2CF2F2B95E"
+  },
+  {
+    "package": "lyon_geom",
+    "version": "1.0.19",
+    "file": "supplemental/lyon_geom-1.0.19/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/nical/lyon/56219c95c658d4f39de7b190d98e57d5773ba241/LICENSE-APACHE",
+    "sha256": "216486F29671A4262EFE32AF6D84A75BEF398127F8C5F369B5C8305983887A06"
+  },
+  {
+    "package": "lyon_geom",
+    "version": "1.0.19",
+    "file": "supplemental/lyon_geom-1.0.19/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/nical/lyon/56219c95c658d4f39de7b190d98e57d5773ba241/LICENSE-MIT",
+    "sha256": "80F275E90D799911ED3830A7F242A2EF5A4ADE2092FE0AA07BFB2D2CF2F2B95E"
+  },
+  {
+    "package": "lyon_path",
+    "version": "1.0.19",
+    "file": "supplemental/lyon_path-1.0.19/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/nical/lyon/56219c95c658d4f39de7b190d98e57d5773ba241/LICENSE-APACHE",
+    "sha256": "216486F29671A4262EFE32AF6D84A75BEF398127F8C5F369B5C8305983887A06"
+  },
+  {
+    "package": "lyon_path",
+    "version": "1.0.19",
+    "file": "supplemental/lyon_path-1.0.19/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/nical/lyon/56219c95c658d4f39de7b190d98e57d5773ba241/LICENSE-MIT",
+    "sha256": "80F275E90D799911ED3830A7F242A2EF5A4ADE2092FE0AA07BFB2D2CF2F2B95E"
+  },
+  {
+    "package": "lyon_tessellation",
+    "version": "1.0.21",
+    "file": "supplemental/lyon_tessellation-1.0.21/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/nical/lyon/994526f2766c7e9bc5bb16687232fd7e8999dbdf/LICENSE-APACHE",
+    "sha256": "216486F29671A4262EFE32AF6D84A75BEF398127F8C5F369B5C8305983887A06"
+  },
+  {
+    "package": "lyon_tessellation",
+    "version": "1.0.21",
+    "file": "supplemental/lyon_tessellation-1.0.21/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/nical/lyon/994526f2766c7e9bc5bb16687232fd7e8999dbdf/LICENSE-MIT",
+    "sha256": "80F275E90D799911ED3830A7F242A2EF5A4ADE2092FE0AA07BFB2D2CF2F2B95E"
+  },
+  {
+    "package": "profiling",
+    "version": "1.0.18",
+    "file": "supplemental/profiling-1.0.18/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/aclysma/profiling/8271551172eb6fa4cba47369aedd93790c623df9/LICENSE-APACHE",
+    "sha256": "10D30A673CD5E9349BDC02AEB48F14B3386D27D0DA32DF8F0A555D4AA16AA551"
+  },
+  {
+    "package": "profiling",
+    "version": "1.0.18",
+    "file": "supplemental/profiling-1.0.18/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/aclysma/profiling/8271551172eb6fa4cba47369aedd93790c623df9/LICENSE-MIT",
+    "sha256": "C8167FDEEED46D3F244D3F85C5BF998CE889343691C32BE2C61A8BC4B5C08333"
+  },
+  {
+    "package": "profiling-procmacros",
+    "version": "1.0.18",
+    "file": "supplemental/profiling-procmacros-1.0.18/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/aclysma/profiling/8271551172eb6fa4cba47369aedd93790c623df9/LICENSE-APACHE",
+    "sha256": "10D30A673CD5E9349BDC02AEB48F14B3386D27D0DA32DF8F0A555D4AA16AA551"
+  },
+  {
+    "package": "profiling-procmacros",
+    "version": "1.0.18",
+    "file": "supplemental/profiling-procmacros-1.0.18/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/aclysma/profiling/8271551172eb6fa4cba47369aedd93790c623df9/LICENSE-MIT",
+    "sha256": "C8167FDEEED46D3F244D3F85C5BF998CE889343691C32BE2C61A8BC4B5C08333"
+  },
+  {
+    "package": "pulp-wasm-simd-flag",
+    "version": "0.1.1",
+    "file": "supplemental/pulp-wasm-simd-flag-0.1.1/LICENSE",
+    "url": "https://raw.githubusercontent.com/sarah-quinones/pulp/5eb07fd7b68edf0a5e19f71737d315f72a510295/LICENSE",
+    "sha256": "D64F878C89BD5F1E5ADA7E4AAD57690B122727CF5229B7B87EA1980C188DA1D9"
+  },
+  {
+    "package": "seahash",
+    "version": "4.1.0",
+    "file": "supplemental/seahash-4.1.0/LICENSE",
+    "url": "https://gitlab.redox-os.org/redox-os/seahash/-/blob/3088c5c912b70b586d27bf553fbe964e025a2c89/LICENSE",
+    "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3",
+    "reason": "Immediate upstream follow-up to v4.1.0 adds only the missing MIT license text; git diff has no source changes."
+  },
+  {
+    "package": "simd_helpers",
+    "version": "0.1.0",
+    "file": "supplemental/simd_helpers-0.1.0/LICENSE",
+    "url": "https://raw.githubusercontent.com/lu-zero/simd_helpers/82040194cd05affb060bf94d6f19f82a771d07fb/LICENSE",
+    "sha256": "D69F24AD84EC2ADE64C0B68BDB31B41170E997B158370342056918329CC9AF1E",
+    "reason": "Upstream follow-up to crate VCS commit adds only LICENSE; compare contains no source changes."
+  },
+  {
+    "package": "sval_nested",
+    "version": "2.22.0",
+    "file": "supplemental/sval_nested-2.22.0/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/sval-rs/sval/02395d2e20b5f703ca3ac35ae13efa5ad5248258/LICENSE-APACHE",
+    "sha256": "A60EEA817514531668D7E00765731449FE14D059D3249E0BC93B36DE45F759F2"
+  },
+  {
+    "package": "sval_nested",
+    "version": "2.22.0",
+    "file": "supplemental/sval_nested-2.22.0/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/sval-rs/sval/02395d2e20b5f703ca3ac35ae13efa5ad5248258/LICENSE-MIT",
+    "sha256": "5D1BF69A3993489F96EFC2EC5AF6252CC4F5FF524B023AB6A43A08414F23DDB0"
+  },
+  {
+    "package": "svg_fmt",
+    "version": "0.4.5",
+    "file": "supplemental/svg_fmt-0.4.5/LICENSE",
+    "url": "https://raw.githubusercontent.com/nical/rust_debug/93f414cd572b5c2781df93dbdc068ed13443d05a/LICENSE",
+    "sha256": "7E98BED7F100747AAAE7D82AB94FBE6B76FD6B84B09A3AAA413BFF8196D0FBB1"
+  },
+  {
+    "package": "taffy",
+    "version": "0.13.0",
+    "file": "supplemental/taffy-0.13.0/LICENSE",
+    "url": "https://raw.githubusercontent.com/DioxusLabs/taffy/45a56299d366ddb383e593a1f0372158d00e8530/LICENSE",
+    "sha256": "F97DAF1A0124413DCCF399A4E6626B4B74ACD05282F80B6D64AC82225650B77A"
+  },
+  {
+    "package": "zune-inflate",
+    "version": "0.2.54",
+    "file": "supplemental/zune-inflate-0.2.54/LICENSE.md",
+    "url": "https://raw.githubusercontent.com/etemesi254/zune-image/69502ce83fdfecdd0beefd677e2abb3781b29d98/LICENSE.md",
+    "sha256": "E870D7FD7819A9F0453C62798CB52AE95D148A8C91DC2DE1D983F997143C72DE"
+  }
+]

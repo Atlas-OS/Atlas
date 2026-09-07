@@ -1,0 +1,3 @@
+max_width = 110
+use_small_heuristics = "Max"
+edition = "2024"

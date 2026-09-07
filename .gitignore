@@ -1,5 +1,7 @@
-# Claude Code
+# Local assistant state
 .claude/
+.codex/
+.agents/
 
 # MacOS
 .DS_Store
@@ -7,7 +9,40 @@
 # Playbooks
 *.apbx
 *.apbx.tmp
+*.apbx.*.building.tmp*
+*.apbx.*.replaced.bak
+
+# Installation media and disposable virtual machines
+*.iso
+*.vhd
+*.vhdx
+*.avhd
+*.avhdx
+*.vmdk
+*.qcow2
+
+# Local credentials and signing keys (never payload inputs)
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+
+# Diagnostics and temporary review captures; source images remain visible
+*.log
+/screenshots/
+/app/screenshots/
+/tmp/
+/app/tmp/
 
 # Test output
 tests/results/
 testResults.xml
+
+# Local tool output
+artifacts/
+lab-output/
+
+# Rust build output of the desktop app
+app/target/

@@ -28,7 +28,7 @@ failure for non-interactive callers.
 You can also run the build directly:
 
 ```
-pwsh tools/build/Build-Playbook.ps1 -ReplaceOldPlaybook -Removals Verification,WinverRequirement
+pwsh -NoProfile -File tools/build/Build-Playbook.ps1 -LocalTest
 ```
 
 Editor integrations are provided for VS Code (`.vscode/launch.json`) and Zed
@@ -46,7 +46,15 @@ Editor integrations are provided for VS Code (`.vscode/launch.json`) and Zed
 | `-DontOpenPbLocation` | Do not open Explorer at the built file (used by CI and the local wrappers). |
 | `-NoPassword` | Build without the `malte` ZIP password. |
 | `-PlaybookPath` / `-OutputPath` | Override the playbook dir / output dir (defaults to the repo layout). |
-| `-Removals <list>` | Strip selected metadata gates for dev builds. |
+| `-Removals <list>` | Strip selected metadata gates for dev builds. Pass arrays from a PowerShell session; native `pwsh -File` arguments do not construct an array from commas. |
+
+For a custom combination, invoke the script from a PowerShell 7 session:
+
+```powershell
+& ./tools/build/Build-Playbook.ps1 -Removals @(
+    'Requirements', 'WinverRequirement', 'Verification'
+) -DontOpenPbLocation
+```
 
 `-Removals` values:
 
@@ -65,6 +73,19 @@ compares the configuration with the source, and validates `playbook.conf`, the A
 and the stamped OEM version. Use `-PlaybookPath` when verifying against a non-default source
 tree. The builder verifies its temporary archive before publishing it, and CI runs the same
 verifier independently. A failed build leaves an existing destination archive unchanged.
+
+## Native assembly
+
+The payload compiles `Scripts\Modules\Atlas.Core\Native\Atlas.Native.cs` at runtime.
+`tools/native/Build-AtlasNative.ps1` builds the same source ahead of time into
+`artifacts\native\Atlas.Native.dll` with the Roslyn `csc.exe` from a Visual Studio or Build
+Tools installation (found through `vswhere`, or given with `-CompilerPath`), using
+`/deterministic` so the same source and compiler produce byte-identical output, and writes
+the SHA-256 beside it. `-SignCertificateThumbprint` signs the DLL with SHA-256 and a
+timestamp. The loader only accepts a DLL with a valid Authenticode signature, so an
+unsigned build is a local check, not something to ship; the project does not have a
+code-signing certificate yet. `-AllowLegacyCompiler` falls back to the .NET Framework
+`csc.exe`, whose output is not reproducible.
 
 ## CI and releases
 
@@ -86,7 +107,7 @@ pwsh tools/build/Set-AtlasVersion.ps1 -Version 0.7.0
 
 This updates `<Version>`, rewrites `<Title>` to `Atlas v0.7.0`, moves the previous
 version into `<UpgradableFrom>`, and rewrites every `onUpgradeVersions` entry in
-`playbook/Configuration/custom.yml` to the new version — one command, one commit.
+`playbook/Configuration/custom.yml` to the new version. Review the diff before committing.
 Tagging `v0.7.0` then triggers the release workflow described above.
 
 ## Optional developer setup

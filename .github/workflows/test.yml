@@ -3,17 +3,27 @@ name: Test
 on:
   push:
     paths:
+      - "app/resources/**"
+      - "app/tools/**"
+      - "app/licenses/**"
+      - "app/Cargo.lock"
       - "playbook/**"
       - "tools/**"
       - "tests/**"
+      - "docs/catalog/**"
       - ".github/workflows/**"
       - ".github/linters/**"
       - ".gitattributes"
   pull_request:
     paths:
+      - "app/resources/**"
+      - "app/tools/**"
+      - "app/licenses/**"
+      - "app/Cargo.lock"
       - "playbook/**"
       - "tools/**"
       - "tests/**"
+      - "docs/catalog/**"
       - ".github/workflows/**"
       - ".github/linters/**"
       - ".gitattributes"
@@ -41,7 +51,7 @@ jobs:
         shell: powershell
         run: |
           $failed = $false
-          Get-ChildItem -Path 'playbook' -Recurse -Include '*.ps1','*.psm1','*.psd1' | ForEach-Object {
+          Get-ChildItem -Path 'playbook','app/resources' -Recurse -Include '*.ps1','*.psm1','*.psd1' | ForEach-Object {
               $tokens = $null
               $errors = $null
               [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
@@ -54,7 +64,7 @@ jobs:
           }
 
           if ($failed) { exit 1 }
-          Write-Host "All payload scripts parse under Windows PowerShell 5.1."
+          Write-Host "All payload and app resource scripts parse under Windows PowerShell 5.1."
 
       - name: Install Pester
         shell: pwsh
@@ -67,8 +77,9 @@ jobs:
       - name: Test PowerShell 7 build tooling
         shell: pwsh
         run: |
+          Import-Module Pester -RequiredVersion 5.7.1
           $config = New-PesterConfiguration
-          $config.Run.Path = 'tests\AtlasBuild.Tests.ps1'
+          $config.Run.Path = @('tests\AtlasBuild.Tests.ps1', 'app\tools\tests')
           $config.Run.Exit = $true
           $config.Output.Verbosity = 'Normal'
           Invoke-Pester -Configuration $config

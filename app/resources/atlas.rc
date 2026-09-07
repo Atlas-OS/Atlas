@@ -1,0 +1,26 @@
+// GPUI embeds the process manifest (DPI awareness, asInvoker) itself.
+// build.rs supplies the icon path and Cargo package version.
+1 ICON "@ICON@"
+
+1 VERSIONINFO
+FILEVERSION @NUMERIC_VERSION@
+PRODUCTVERSION @NUMERIC_VERSION@
+FILETYPE 1
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "Atlas Manager\0"
+            VALUE "ProductName", "Atlas Manager\0"
+            VALUE "InternalName", "AtlasManager\0"
+            VALUE "OriginalFilename", "AtlasManager.exe\0"
+            VALUE "FileVersion", "@VERSION@\0"
+            VALUE "ProductVersion", "@VERSION@\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

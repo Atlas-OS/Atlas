@@ -3,6 +3,10 @@ name: Lint PowerShell
 on:
   push:
     paths:
+      - "app/resources/**"
+      - "app/tools/Build-Release.ps1"
+      - "app/tools/Export-DependencyNotices.ps1"
+      - "app/tools/tests/**"
       - "playbook/**/*.ps1"
       - "playbook/**/*.psm1"
       - "playbook/**/*.psd1"
@@ -14,6 +18,10 @@ on:
       - ".github/workflows/lint.yml"
   pull_request:
     paths:
+      - "app/resources/**"
+      - "app/tools/Build-Release.ps1"
+      - "app/tools/Export-DependencyNotices.ps1"
+      - "app/tools/tests/**"
       - "playbook/**/*.ps1"
       - "playbook/**/*.psm1"
       - "playbook/**/*.psd1"
@@ -49,11 +57,12 @@ jobs:
               Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -Scope CurrentUser
           }
 
-      - name: Lint payload (playbook/)
+      - name: Lint payload and app resources
         shell: pwsh
         run: |
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
           $settings = '.github/linters/PSScriptAnalyzerSettings.Payload.psd1'
-          $results = Get-ChildItem -Path 'playbook' -Recurse -Include '*.ps1','*.psm1' |
+          $results = Get-ChildItem -Path 'playbook','app/resources' -Recurse -Include '*.ps1','*.psm1' |
               Invoke-ScriptAnalyzer -Settings $settings
 
           if ($results) {
@@ -67,8 +76,9 @@ jobs:
       - name: Lint tooling and tests (tools/, tests/)
         shell: pwsh
         run: |
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
           $settings = '.github/linters/PSScriptAnalyzerSettings.psd1'
-          $paths = @('tools', 'tests') | Where-Object { Test-Path $_ }
+          $paths = @('tools', 'tests', 'app/tools/Build-Release.ps1', 'app/tools/Export-DependencyNotices.ps1', 'app/tools/tests') | Where-Object { Test-Path $_ }
           $results = Get-ChildItem -Path $paths -Recurse -Include '*.ps1','*.psm1' |
               Invoke-ScriptAnalyzer -Settings $settings
 
