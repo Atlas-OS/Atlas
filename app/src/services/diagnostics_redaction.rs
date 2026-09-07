@@ -30,10 +30,11 @@ impl Redactor {
                 r"(?s)-----BEGIN (?:[A-Z ]*PRIVATE KEY)-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\z)",
                 r"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b",
                 r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b",
-                r"(?i)\b(?:Bearer|Basic)\s+[A-Za-z0-9_+/=.-]+",
+                r"(?i)\bBearer\s+[A-Za-z0-9_+/=.-]{16,}",
+                r"(?i)\b(?:authorization|proxy-authorization)\s*[:=]\s*(?:Bearer|Basic)\s+[A-Za-z0-9_+/=.-]+",
                 r"(?i)\b[A-Z0-9]{5}(?:-[A-Z0-9]{5}){4}\b",
             ].into_iter().map(|pattern| Regex::new(pattern).unwrap()).collect(),
-            assignment: Regex::new(r#"(?i)(\b(?:password|passwd|pwd|access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|authorization|proxy-authorization|cookie|set-cookie|sig|signature|x-amz-signature|x-goog-signature)\b[\"']?\s*[:=]\s*)(?:\[credential removed\]|\"(?:\\.|[^\"\\])*\"|'[^']*'|[^\s&;,}\"<>]+)"#).unwrap(),
+            assignment: Regex::new(r#"(?i)(\b(?:password|passwd|pwd|access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|authorization|proxy-authorization|cookie|set-cookie)\b[\"']?\s*[:=]\s*)(?:\[credential removed\]|\"(?:\\.|[^\"\\])*\"|'[^']*'|[^\s&;,}\"<>]+)"#).unwrap(),
             sensitive_key: Regex::new(r"(?i)^(?:password|passwd|pwd|access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|authorization|proxy-authorization|cookie|set-cookie|private[_-]?key)$").unwrap(),
         };
         for name in ["USERNAME", "COMPUTERNAME", "USERDOMAIN", "USERDNSDOMAIN"] {
@@ -72,6 +73,10 @@ impl Redactor {
         static URL_AUTH: std::sync::LazyLock<Regex> =
             std::sync::LazyLock::new(|| Regex::new(r"(?i)(https?://)[^\s/@]+@([^\s/]+)").unwrap());
         text = URL_AUTH.replace_all(&text, "${1}[credential removed]@${2}").into_owned();
+        static URL_SIGNATURE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+            Regex::new(r"(?i)([?&](?:sig|signature|x-amz-signature|x-goog-signature)=)(?:\[credential removed\]|[^\s&#]+)").unwrap()
+        });
+        text = URL_SIGNATURE.replace_all(&text, "${1}[credential removed]").into_owned();
         let aliases = &mut self.aliases;
         text = self
             .profile
@@ -230,5 +235,15 @@ mod tests {
         let mut redactor = Redactor::new();
         let once = redactor.text(source);
         assert_eq!(redactor.text(&once), once);
+    }
+
+    #[test]
+    fn keeps_driver_names_and_code_signing_results() {
+        let evidence =
+            "Microsoft Basic Display Adapter; signature=valid; signature: invalid; ERROR=0x800B0100";
+        assert_eq!(Redactor::new().text(evidence), evidence);
+        let result = Redactor::new().text("request Authorization: Basic dXNlcjpwYXNz\nhttps://example.org/Atlas.apbx?sig=secret-value&version=1");
+        assert!(!result.contains("dXNlcjpwYXNz") && !result.contains("secret-value"));
+        assert!(result.contains("example.org/Atlas.apbx") && result.contains("version=1"));
     }
 }
