@@ -194,7 +194,7 @@ function InstallEdgeChromium {
     $link = 'Undefined'
 
     if ([Environment]::Is64BitOperatingSystem) {
-        $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+        $arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') -or ($env:PROCESSOR_ARCHITEW6432 -eq 'ARM64')
         $archString = ('x64', 'arm64')[$arm]
     }
     else {
