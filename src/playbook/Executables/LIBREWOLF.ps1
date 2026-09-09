@@ -24,7 +24,7 @@ Write-Output "Downloading the latest LibreWolf setup"
 $outputLibrewolf = "$drive\$librewolfFileName"
 curl.exe -LSs "$librewolfDownload" -o "$outputLibrewolf" $timeouts
 if ($LASTEXITCODE -ne 0) {
-	throw "Failed to download LibreWolf setup (curl exit code $LASTEXITCODE)."
+	throw "Downloading LibreWolf failed."
 }
 
 Write-Output "Installing LibreWolf silently"
@@ -48,7 +48,7 @@ Write-Output "Downloading the latest LibreWolf WinUpdater ZIP"
 $outputLibrewolfUpdater = "$drive\librewolf-winupdater.zip"
 curl.exe -LSs "$librewolfUpdaterDownload" -o "$outputLibrewolfUpdater" $timeouts
 if ($LASTEXITCODE -ne 0) {
-	throw "Failed to download LibreWolf WinUpdater (curl exit code $LASTEXITCODE)."
+	throw "Downloading LibreWolf WinUpdater failed."
 }
 
 Write-Output "Extracting Librewolf-WinUpdater"
