@@ -18,7 +18,7 @@ if (-not (Test-Path -LiteralPath $initScript -PathType Leaf)) {
 
 $script:CurlTimeouts = @('--connect-timeout', '10', '--retry', '5', '--retry-delay', '0', '--retry-all-errors')
 $script:MsiArgs = '/qn /quiet /norestart ALLUSERS=1 REBOOT=ReallySuppress'
-$script:IsArm64 = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+$script:IsArm64 = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') -or ($env:PROCESSOR_ARCHITEW6432 -eq 'ARM64')
 $script:TempDir = Join-Path -Path $env:TEMP -ChildPath ([guid]::NewGuid().ToString())
 
 function Remove-AtlasTempDirectory {
