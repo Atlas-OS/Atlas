@@ -1,0 +1,50 @@
+---
+title: EBOS Gaming Optimizations
+description: Applies gaming-focused optimizations (GPU scheduling, Game Mode, latency reduction)
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers'
+    value: 'HwSchMode'
+    data: '2'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\GameBar'
+    value: 'AutoGameModeEnabled'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\GameBar'
+    value: 'AllowAutoGameMode'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    value: 'GameModeEnabled'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\Ndu'
+    value: 'Start'
+    data: '4'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\SysMain'
+    value: 'Start'
+    data: '3'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\WSearch'
+    value: 'Start'
+    data: '3'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated

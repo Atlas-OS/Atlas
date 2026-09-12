@@ -33,14 +33,14 @@ The root of the file paths listed here starts in `src\playbook\Executables`.
 > [!NOTE]  
 > This is included in the Playbook and isn't in the AtlasModules.
 
-- Path: `Executables\ViVeTool-v0.3.3.zip`
-    - SHA256 hash: `59D1E792EDCC001A319C16435A03D203975BF50EB38BD55CA34370900606F9F0`
-    - Source: https://github.com/thebookisclosed/ViVe/releases/download/v0.3.3/ViVeTool-v0.3.3.zip
-    - Version: v0.3.3
-- Path: `Executables\ViVeTool-v0.3.3-ARM64CLR.zip`
-    - SHA256 hash: `37708C95C5053539CD068460E28E565D6B25A33C87F09B6B91A4F82A18E30132`
-    - Source: https://github.com/thebookisclosed/ViVe/releases/download/v0.3.3/ViVeTool-v0.3.3-ARM64CLR.zip
-    - Version: v0.3.3
+- Path: `Executables\ViVeTool-v0.3.4-IntelAmd.zip`
+    - SHA256 hash: `CC27F073F3FE5DD2C3D947FAF558FD4B2F8E34454F812689B0D65EE8A52E4147`
+    - Source: https://github.com/thebookisclosed/ViVe/releases/download/v0.3.4/ViVeTool-v0.3.4-IntelAmd.zip
+    - Version: v0.3.4
+- Path: `Executables\ViVeTool-v0.3.4-SnapdragonArm64.zip`
+    - SHA256 hash: `30AD9A4912686355BFCE60E1D7BEF608735475B7E2160D67418EED8F5E3BA8C7`
+    - Source: https://github.com/thebookisclosed/ViVe/releases/download/v0.3.4/ViVeTool-v0.3.4-SnapdragonArm64.zip
+    - Version: v0.3.4
 - Repository: https://github.com/thebookisclosed/ViVe
 - License: [GNU General Public License v3.0](https://github.com/thebookisclosed/ViVe/blob/master/LICENSE)
-- Last Verified: 7/14/2024 by he3als
+- Last Verified: 9/09/2026 (EBOS maintenance: v0.3.3 -> v0.3.4, asset rename IntelAmd/SnapdragonArm64)

@@ -1,0 +1,10 @@
+---
+title: Install Node.js
+description: Silently installs Node.js (LTS) when the "Install Node.js (LTS)" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id OpenJS.NodeJS.LTS'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

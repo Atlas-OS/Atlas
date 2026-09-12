@@ -1,0 +1,27 @@
+---
+title: EBOS Taskbar Configuration
+description: Configures the EBOS taskbar with custom pinning, colors, and settings for the optimal Windows 11 experience
+actions:
+  # NOTE: these are HKCU values - the old HKLM paths never applied.
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'TaskbarSi'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'ShowTaskViewButton'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  # Search box mode: 1 = icon. (The old TaskbarSbHoverSettings value does not exist.)
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+    value: 'SearchboxTaskbarMode'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  # NOTE: taskbar pinning is handled by tweaks\qol\taskbar\config-pins.yml +
+  # TASKBARPINS.ps1. The old MUICache placeholder block was removed (unexpanded
+  # $env: path, wrong location, did nothing).

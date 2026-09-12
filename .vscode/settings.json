@@ -57,7 +57,10 @@
     "!cmd: mapping",
     "!powerShell: mapping",
     "!writeStatus: mapping",
-    "!task: mapping"
+    "!task: mapping",
+    "!download: mapping",
+    "!status: mapping",
+    "!software: mapping"
   ],
   "files.associations": {
     "playbook.conf": "xml"

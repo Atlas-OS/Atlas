@@ -1,5 +1,5 @@
 name: Bug report
-description: Create a bug report to help us improve Atlas.
+description: Create a bug report to help us improve EBOS.
 title: "[BUG] - "
 
 labels: 
@@ -11,13 +11,13 @@ body:
     label: Before continuing...
     description: Please ensure you meet the following criteria. If not, the maintainers reserve the right to close and lock your issue.
     options:
-    - label: "I agree to follow Atlas' [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
+    - label: "I agree to follow EBOS' [Code of Conduct](https://github.com/EBOS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
       required: true
-    - label: "I have searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already"
+    - label: "I have searched our [issue tracker](https://github.com/EBOS/EBOS/issues?q=is%3Aissue) to verify that the issue hasn't been reported already"
       required: true
-    - label: "I have searched the [Atlas documentation](https://docs.atlasos.net) beforehand for a solution"
+    - label: "I have searched the [EBOS documentation](https://docs.ebos.net) beforehand for a solution"
       required: true
-    - label: "I am on the latest version of Atlas, and didn't do an unsupported upgrade"
+    - label: "I am on the latest version of EBOS, and didn't do an unsupported upgrade"
       required: true
 
 - type: textarea
@@ -54,11 +54,11 @@ body:
 
 - type: dropdown
   attributes:
-    label: Atlas Version
-    description: 'If you''re on v0.4.0, see the workarounds page first: https://github.com/orgs/Atlas-OS/projects/7/views/5'
+    label: EBOS Version
+    description: 'If you''re on v0.4.0, see the workarounds page first: https://github.com/orgs/EBOS/projects/7/views/5'
     options:
-    - Atlas v0.5.0 for Windows 11 24H2
-    - Atlas v0.5.0 for Windows 11 25H2
+    - EBOS v0.5.0 for Windows 11 24H2
+    - EBOS v0.5.0 for Windows 11 25H2
   validations:
     required: true
 

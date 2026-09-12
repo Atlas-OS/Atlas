@@ -1,0 +1,10 @@
+---
+title: Install Steam
+description: Silently installs Steam when the "Install Steam" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id Valve.Steam'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

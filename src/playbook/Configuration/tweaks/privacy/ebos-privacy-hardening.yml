@@ -1,0 +1,56 @@
+---
+title: EBOS Privacy Hardening
+description: Additional privacy protections beyond baseline (telemetry, web search, content delivery)
+actions:
+  # Real telemetry kill-switch (the old HKLM\...\Windows\DisableWindowsTelemetry value never applied)
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
+    value: 'AllowTelemetry'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
+    value: 'TelemetryEnabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  # Tailored experiences off (replaces the non-existent ...\Windows\SPI\SPIEnabled value)
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
+    value: 'AllowTailoredExperiencesWithDiagnosticData'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'BingSearchEnabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'ConsentToAppUsageStatistics'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'SubscribedContent-310093Enabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'SubscribedContent-353694Enabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  # Sync-provider (suggested content) notifications off in Explorer - the real
+  # value behind the old, non-existent HKCU\...\Explorer\DisableConvenienceFeed.
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'ShowSyncProviderNotifications'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true

@@ -1,0 +1,44 @@
+name: Feature Request
+description: Suggest an idea for this project
+title: "[FEATURE]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking your time to file a feature request! Please fill out the following information to help us implement the feature
+
+  - type: textarea
+    id: description
+    validations:
+      required: true
+    attributes:
+      label: Description
+      description: A clear and concise description 
+      placeholder: Add a feature that does X.
+
+  - type: textarea
+    id: benefit
+    validations:
+      required: true
+    attributes:
+      label: Benefit
+      description: Explain how this feature will benefit the users or the project
+      placeholder: This feature will improve...
+
+  - type: textarea
+    id: implementation
+    validations:
+      required: false
+    attributes:
+      label: Implementation (Optional)
+      description: Explain how this feature will be implemented
+      placeholder: This feature will be implemented by...
+
+  - type: checkboxes
+    id: search-before-submit
+    attributes:
+      label: Have you searched for similar feature requests?
+      options:
+      - label: I have searched for similar feature requests and found none.
+        required: true

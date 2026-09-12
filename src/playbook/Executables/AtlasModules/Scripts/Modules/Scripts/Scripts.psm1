@@ -84,11 +84,13 @@ if ($ids.Count -le 0) {
 
 # Extract ViVeTool https://github.com/thebookisclosed/ViVe
 # Not done in PowerShell as it's too complicated, it's just easiest to use the actual tool
+# v0.3.4 renamed assets: IntelAmd (x64) + SnapdragonArm64 (ARM64).
+# Old v0.3.3 assets: plain (x64) + ARM64CLR (ARM64). Support both, prefer newest.
 $viveZip = Get-ChildItem "ViVeTool-*.zip" -Name
 if ($arm) {
-    $viveZip = $viveZip | Where-Object { $_ -match '-ARM64CLR' }
+    $viveZip = $viveZip | Where-Object { $_ -match '(?i)(ARM64|Snapdragon)' } | Sort-Object -Descending | Select-Object -First 1
 } else {
-    $viveZip = $viveZip | Where-Object { $_ -notmatch '-ARM64CLR' }
+    $viveZip = $viveZip | Where-Object { $_ -notmatch '(?i)(ARM64|Snapdragon)' } | Sort-Object -Descending | Select-Object -First 1
 }
 
 # Extract & setup ViVeTool

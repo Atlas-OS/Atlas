@@ -11,17 +11,22 @@ playbook:
 - src/playbook/**/*
 
 appx:
-- src/playbook/Configuration/atlas/appx.yml
+- src/playbook/Configuration/windows/appx.yml
 
 components:
-- src/playbook/Configuration/atlas/components.yml
+- src/playbook/Configuration/windows/components.yml
 
 services:
-- src/playbook/Configuration/atlas/services.yml
+- src/playbook/Configuration/windows/services.yml
 
-tweaks:
-- src/playbook/Configuration/tweaks.yml
-- src/playbook/Configuration/tweaks/**/*
+core:
+- src/playbook/Executables/EBOSModules/Core/**/*
+
+ui:
+- src/playbook/Configuration/ui/**/*
+
+gaming:
+- src/playbook/Configuration/gaming/**/*
 
 desktop folder:
-- src/playbook/Executables/AtlasDesktop/**/*
+- src/playbook/Executables/EBOSDesktop/**/*

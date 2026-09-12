@@ -7,7 +7,7 @@ actions:
     command: 'reg load HKU\AME_UserHive_Default C:\Users\Default\NTUSER.DAT'
     oobe: false
     wait: true
-  - !writeStatus: { status: "Deleting old AtlasOS folders" }
+  - !writeStatus: { status: "Deleting previous configuration folders" }
   - !powerShell:
     command: '.\STOPFOLDERPROC.ps1'
     exeDir: true
@@ -17,8 +17,8 @@ actions:
   - !powerShell:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
-      Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse
-      Remove-Item -LiteralPath "$windir\AtlasModules" -Force -Recurse
+      Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse -ErrorAction SilentlyContinue
+      Remove-Item -LiteralPath "$windir\AtlasModules" -Force -Recurse -ErrorAction SilentlyContinue
     wait: true
     exeDir: true
     oobe: false
@@ -72,6 +72,7 @@ actions:
   - !task: { path: 'tweaks\qol\set-hidden-settings-pages.yml' }
 
   # Main tasks
+  - !writeStatus: { status: "Applying base configuration" }
   - !task: { path: 'atlas\start.yml' }
   - !task: { path: 'atlas\services.yml' }
   - !task: { path: 'atlas\components.yml' }
@@ -101,6 +102,8 @@ actions:
     command: 'reg unload HKU\AME_UserHive_Default'
     oobe: false
     wait: true
+
+  - !writeStatus: { status: "Finalizing EBOS configuration" }
 
   # Set PowerShell execution policy to RemoteSigned from the previous "Unrestricted"
   # This allows Atlas folder scripts (local) to run while requiring signatures for downloaded scripts

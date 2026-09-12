@@ -1,0 +1,10 @@
+---
+title: Install Visual Studio Code
+description: Silently installs Visual Studio Code when the "Install Visual Studio Code" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id Microsoft.VisualStudioCode'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

@@ -1,0 +1,62 @@
+---
+title: EBOS Service Optimizations
+description: >
+  Optimizes system services for better performance and reduced resource usage.
+  Disables non-essential services that consume memory and CPU.
+  Note: Dnscache is NOT disabled here as it is a protected service in ebos-process-optimization.
+actions:
+  # SysMain: Manual (3) - consistent with ebos-gaming-optimizations.yml and
+  # Verify-EBOS.ps1. Atlas upstream keeps SysMain enabled for responsiveness;
+  # Disabled (4) caused a conflict (service file set 4, gaming file set 3).
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\SysMain'
+    value: 'Start'
+    data: '3'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\Ndu'
+    value: 'Start'
+    data: '4'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\WSearch'
+    value: 'Start'
+    data: '3'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated
+  # ClipSVC (Client License Service): Manual (3), NOT Disabled. Disabled breaks
+  # Microsoft Store apps/Xbox services. Previously set to 4.
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\ClipSVC'
+    value: 'Start'
+    data: '3'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated
+  - !powerShell:
+    command: |
+      # Apply the same startup types as the registry values above.
+      # Manual services are left alone; only wrong values are corrected.
+      $targets = @{
+        'SysMain' = 'Manual'
+        'Ndu'     = 'Disabled'
+        'WSearch' = 'Manual'
+        'ClipSVC' = 'Manual'
+      }
+      foreach ($svc in $targets.Keys) {
+        $current = (Get-Service -Name $svc -ErrorAction SilentlyContinue).StartType
+        if ($null -ne $current -and $current -ne $targets[$svc]) {
+          Set-Service -Name $svc -StartupType $targets[$svc] -ErrorAction SilentlyContinue
+          Write-Host "Service $svc set to $($targets[$svc])."
+        }
+      }
+      Write-Host "EBOS service optimizations applied."
+    wait: true
+    exeDir: true
+    runas: currentUserElevated
+    onUpgrade: true

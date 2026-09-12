@@ -1,72 +1,147 @@
 <h1 align="center">
-  <a href="http://atlasos.net" target="_blank"><img src="https://gcore.jsdelivr.net/gh/Atlas-OS/branding@main/banners/banner-v3.png" alt="Atlas" width="800"></a>
+  <a href="https://ebos.net" target="_blank"><img src="images/github-banner.png" alt="EBOS" width="800"></a>
 </h1>
   <p align="center">
-    <a href="https://github.com/Atlas-OS/Atlas/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/atlas-os/atlas?style=for-the-badge&logo=github&color=1A91FF"/></a>
-    <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" /></a>
-    <a href="https://github.com/Atlas-OS/Atlas/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" /></a>
-    <a href="https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md"><img alt="Code of Conduct" src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge&color=1A91FF" /></a>
+    <a href="https://github.com/EBOS/EBOS/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/ebos-os/ebos?style=for-the-badge&logo=github&color=1A91FF"/></a>
+    <a href="https://github.com/EBOS/EBOS/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/ebos-os/ebos?style=for-the-badge&color=1A91FF" /></a>
+    <a href="https://github.com/EBOS/EBOS/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/ebos-os/ebos?style=for-the-badge&color=1A91FF" /></a>
   </p>
-<p align="center">A transparent and lightweight modification to Windows, designed to optimize performance, privacy and usability.</p>
+
+<p align="center"><b>EBOS — Unified Windows Performance, Gaming, Privacy, Security & Liquid Glass Desktop Experience</b></p>
 
 <p align="center">
-  <a href="https://atlasos.net" target="_blank">🌐 Website</a>
+  <a href="https://ebos.net" target="_blank">🌐 Website</a>
   •
-  <a href="https://docs.atlasos.net" target="_blank">📚 Documentation</a>
+  <a href="docs/DOCUMENTATION.md">📚 Documentation</a>
   •
-  <a href="https://discord.atlasos.net" target="_blank">☎️ Discord</a>
+  <a href="docs/INSTALLATION.md">🚀 Installation</a>
   •
-  <a href="https://github.com/Atlas-OS/Atlas/discussions" target="_blank">💬 Discussions</a>
+  <a href="docs/TASKBAR.md">🎛️ Taskbar</a>
+  •
+  <a href="docs/LIQUID-GLASS.md">💎 Liquid Glass</a>
 </p>
 
-## 📚 **Important Documentation**
-- [Installation](https://docs.atlasos.net/getting-started/installation/)
-- [Install FAQ](https://docs.atlasos.net/install-faq/removed-features/)
-- [General FAQ](https://docs.atlasos.net/general-faq/atlas-and-security/)
-- [Contribution Guidelines](https://docs.atlasos.net/contributing/contribution-guidelines/)
-- [Branding](https://docs.atlasos.net/branding/)
+## What is EBOS?
 
-## 🤔 What is Atlas?
+EBOS is an open-source platform that enhances Windows through a single
+[AME Wizard](https://amelabs.net) playbook: performance and gaming
+optimizations, privacy controls, security-aware configuration, a
+Windows 11 taskbar experience and the **Liquid Glass** design system —
+all hardware-aware, validated and reversible wherever technically
+possible.
 
-AtlasOS, or Atlas, is an open-source project that enhances Windows by conveniently applying privacy, usability, and performance optimizations, all while maintaining functionality and [customizability](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/general-configuration/).
+EBOS **unifies two legacy projects** (their functionality, not their
+identities — see [attribution](docs/ATTRIBUTION.md)) into one coherent
+system with a single Core, a single service list and a single design
+language.
 
-## 👀 Why Atlas?
-### 🔒 Enhanced Privacy
-Atlas removes the majority of telemetry embedded within Windows and implements numerous group policies to minimize data collection. However, it cannot ensure privacy outside the scope of Windows, such as browsers and other third-party applications.
+```
+                     ┌─────────────────────────────┐
+                     │        EBOS Core            │
+                     │ detect · backup · validate  │
+                     └──────────────┬──────────────┘
+        ┌────────┬────────┬────────┼────────┬────────┬────────┐
+        ▼        ▼        ▼        ▼        ▼        ▼        ▼
+     Windows  Privacy  Security  Optimize  Gaming  Network     UI
+        └────────┴────────┴────────┴────────┴────────┴───┬────┘
+                                                          ▼
+                                          Windows 11 Taskbar + Liquid Glass
+```
 
-### 📈 Optimized Performance
-Atlas strikes a balance between performance and compatibility. It implements numerous meaningful changes to improve Windows performance and responsiveness without breaking essential features. Atlas will not do tweaks for a placebo effect or marginal gains, making Atlas more stable and compatible.
+## Highlights
 
-### 🛡️ Security Features
-Most Windows modifications remove key security features most users need to maintain a secure system. On the other hand, Atlas allows users to customize their security at their own risk while informing users about each option's [pros and cons](https://docs.atlasos.net/getting-started/post-installation/atlas-folder/security/).
+- **🔒 Privacy** — telemetry, diagnostics, advertising and tracking
+  disabled while sign-in, Store and updates keep working
+- **📈 Performance** — meaningful optimizations only; no placebo
+- **🎮 Gaming** — Game Mode, input tuning, opt-in HAGS, gaming profiles
+- **🛡️ Security-aware** — security trade-offs are explicit, documented
+  and reversible
+- **💎 Liquid Glass** — token-driven translucent material system with
+  GPU/battery/accessibility-aware quality tiers
+- **🎛️ Windows 11 taskbar** — alignment, size, multi-monitor, glass
+  materials, Explorer recovery loop
+- **↩️ Recovery** — pre-change backups, restore points, per-action
+  undo, 17-check validation
+- **✅ Transparent** — plain-text playbook, hashed open-source binaries,
+  CI validation of every change
 
-Some optional security features are:
+## Documentation
 
-- Windows Defender & SmartScreen
-- Windows Update
-- Automatic updates are toggleable
-- CPU mitigations
-- User Account Control
-- Core isolation features
+| Doc | Contents |
+|---|---|
+| [INSTALLATION](docs/INSTALLATION.md) | Requirements, steps, ISO mode |
+| [FEATURES](docs/FEATURES.md) | Complete feature map + what the merge consolidated |
+| [OPTIMIZATION](docs/OPTIMIZATION.md) | Risk classes, hardware-aware engine, per-area details |
+| [SECURITY](docs/SECURITY.md) | Preserved vs opt-in security options |
+| [PRIVACY](docs/PRIVACY.md) | What is disabled and what keeps working |
+| [TASKBAR](docs/TASKBAR.md) | The EBOS taskbar experience |
+| [LIQUID-GLASS](docs/LIQUID-GLASS.md) | Materials, tiers, fallbacks |
+| [RECOVERY](docs/RECOVERY.md) | Backups, rollback, validation |
+| [TROUBLESHOOTING](docs/TROUBLESHOOTING.md) | Common issues & fixes |
+| [Design system](docs/design-system/README.md) | Tokens, materials, components |
+| [ATTRIBUTION](docs/ATTRIBUTION.md) | Licenses & third-party components |
+| [CHANGELOG](docs/CHANGELOG.md) | Release history |
 
-### ✅ Increased Usability
-Atlas applies many modifications and default settings to make Windows easier to use. This includes removing commonly unneeded applications (which are reinstallable), configuring many aspects of the interface, disabling advertisements, and much more.
+## Quick start (after install)
 
-### 🔍 Open Source and Transparent
+Open the **EBOS** folder on the Desktop → **0. EBOS Core**:
 
-Unlike custom Windows ISOs, Atlas is more straightforward to audit due to the use of [AME Wizard](https://amelabs.net). AME Wizard is controlled by Playbooks, a customizable script-esque system that can perform various tasks.
+```text
+EBOS Dashboard        interactive control center
+System Report         hardware + compatibility report
+Validate System Health   17-check [PASS]/[FAIL] report
+Create EBOS Backup    timestamped backup + restore point
+EBOS Rollback         backups / undo change-sets / restore points
+Configure Taskbar     alignment · size · multi-monitor · reset
+Liquid Glass Quality  auto or manual material tier
+Apply Profile         balanced · performance · gaming · competitive ·
+                      productivity · privacy · minimal · custom
+```
 
-Playbooks are renamed **.zip** archives, with the password [`malte`](https://docs.amelabs.net/developers/getting-started/creation.html). As they primarily consist of plain text, Playbooks enable transparency, unlike custom Windows ISOs, which have many entry points for malicious activity. 
+Or from PowerShell:
 
-The few binaries in the Playbook are open source in our [`utilities` repository](https://github.com/Atlas-OS/utilities), with the [hashes listed here](https://github.com/Atlas-OS/Atlas/blob/main/src/playbook/Executables/AtlasModules/README.md).
+```powershell
+$env:Path += ";$env:WINDIR\EBOSModules\Core"
+EBOS-Dashboard.ps1
+```
 
-Although the GUI is not open source for AME Wizard, AME Wizard's entire backend (called [TrustedUninstaller](https://github.com/Ameliorated-LLC/trusted-uninstaller-cli)) is open source under MIT, which contains each action used to run Atlas. The Atlas Playbook is open source under the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE).
+## Repository structure
 
-### 🔒 Legal Compliance
-As Atlas doesn't redistribute a modified Windows ISO, it complies with the [Microsoft Windows Usage Terms](https://www.microsoft.com/content/dam/microsoft/usetm/documents/windows/11/oem-(pre-installed)/UseTerms_OEM_Windows_11_English.pdf). In addition, Atlas does not alter activation in Windows.
+```
+src/playbook/
+├── Configuration/
+│   ├── custom.yml      # entry point — the unified pipeline
+│   ├── core/           # detection · backup · validation
+│   ├── windows/        # packages · components · services · updates · debloat
+│   ├── privacy/  security/  optimization/  gaming/  network/
+│   ├── ui/             # explorer · taskbar · start · shell · liquid-glass
+│   ├── recovery/       # backups · winre · legacy reverts
+│   └── misc/  scripts/
+├── Executables/
+│   ├── EBOSModules/Core/   # EBOS Core engine (PS)
+│   ├── EBOSDesktop/        # the user-facing EBOS folder
+│   └── ...
+└── playbook.conf
+docs/                    documentation + design system
+tools/validate/          repository validator (CI-enforced)
+```
 
-## 🎨 Brand kit
-Want to create your own Atlas wallpaper with some original creative designs? Visit our [Branding Kit on Docs](https://docs.atlasos.net/branding/) and share your creations on our [GitHub Discussions](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)!
+## Development
 
-## 💙 Contributors
-<a href="https://github.com/Atlas-OS/Atlas/graphs/contributors" target="_blank"><img src="https://contrib.rocks/image?repo=Atlas-OS/Atlas&columns=18" alt="Avatars of all contributors"></a>
+```bash
+python3 tools/validate/validate-ebos.py   # must pass before every PR
+src/playbook/build-playbook.cmd           # local playbook build (Windows)
+```
+
+See [CONTRIBUTING](.github/CONTRIBUTING.md).
+
+> [!WARNING]
+> Component removal (Windows features/packages) is intended for a
+> **fresh Windows installation only**. Applying it to an existing,
+> in-use system can cause irreversible damage.
+
+## License
+
+[CC BY-SA 4.0](LICENSE). EBOS does not redistribute a modified Windows
+ISO and does not alter activation — see [attribution](docs/ATTRIBUTION.md)
+for the integrated third-party components and their licenses.

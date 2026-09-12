@@ -1,0 +1,10 @@
+---
+title: Install OBS Studio
+description: Downloads and silently installs OBS Studio when selected in the Wizard.
+actions:
+  - !powerShell:
+      command: '.\Install-OBS.ps1'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

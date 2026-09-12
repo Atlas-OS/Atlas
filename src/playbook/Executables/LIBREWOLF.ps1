@@ -13,7 +13,7 @@ $librewolfPath = "$programs\LibreWolf"
 
 Write-Output "Getting the latest LibreWolf download link"
 $gitLabId = '44042130'
-$librewolfVersion = (Invoke-RestMethod "https://gitlab.com/api/v4/projects/$gitLabId/releases")[0].Name
+$librewolfVersion = (Invoke-RestMethod "https://gitlab.com/api/v4/projects/$gitLabId/releases" -Headers @{ 'User-Agent' = 'EBOS-Playbook' })[0].Name
 if ([string]::IsNullOrEmpty($librewolfVersion)) {
 	throw "GitLab API returned nothing!"
 }
@@ -37,7 +37,7 @@ New-Shortcut -Source "$librewolfPath\librewolf.exe" -Destination "$desktop\Libre
 Write-Title "Installing LibreWolf-WinUpdater..."
 Write-Output "Getting the latest LibreWolf-WinUpdater download link"
 $librewolfUpdaterURI = "https://codeberg.org/api/v1/repos/ltguillaume/librewolf-winupdater/releases?draft=false&pre-release=false&page=1&limit=1"
-$librewolfUpdaterDownload = (Invoke-RestMethod -Uri "$librewolfUpdaterURI").Assets |
+$librewolfUpdaterDownload = (Invoke-RestMethod -Uri "$librewolfUpdaterURI" -Headers @{ 'User-Agent' = 'EBOS-Playbook' }).Assets |
 	Where-Object { $_.name -like "*.zip" } |
 	Select-Object -ExpandProperty browser_download_url
 

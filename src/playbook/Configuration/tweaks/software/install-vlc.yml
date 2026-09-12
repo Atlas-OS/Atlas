@@ -1,0 +1,10 @@
+---
+title: Install VLC
+description: Silently installs VLC media player when the "Install VLC" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id VideoLAN.VLC'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

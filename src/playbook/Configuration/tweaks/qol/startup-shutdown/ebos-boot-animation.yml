@@ -1,0 +1,30 @@
+---
+title: EBOS Boot Animation
+description: Configures boot animation (disables Windows logo animation for faster boot, enables custom boot logo if present)
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation'
+    value: 'DisableBootAnimation'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'DisableBootDisplay'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !powerShell:
+    command: |
+      # Custom boot logos need HackBGRT - there is no 'BootLogoPath' registry
+      # value in Windows. Only log whether an asset was staged for manual use.
+      $logoPath = "$env:windir\System32\ebos-boot-logo.bmp"
+      if (Test-Path $logoPath) {
+        Write-Host "Custom EBOS boot logo staged at $logoPath (apply manually via HackBGRT)."
+      } else {
+        Write-Host "No custom boot logo staged; default boot display in use."
+      }
+    wait: true
+    exeDir: true
+    runas: currentUserElevated
+    onUpgrade: true

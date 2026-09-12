@@ -1,0 +1,82 @@
+name: Bug Report
+description: File a bug report
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking your time to file a bug report! Please fill out the following information to help us fix the bug
+  
+  - type: textarea
+    id: describe-bug
+    validations:
+      required: true
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: I was trying to do X, but Y happened instead
+  
+  - type: textarea
+    id: steps-to-reproduce
+    validations:
+      required: true
+    attributes:
+      label: Steps to reproduce
+      description: Steps to reproduce the behavior
+      value: |
+        1. 
+        2. 
+        3. 
+        4. 
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+  
+  - type: textarea
+    id: expected-behavior
+    validations:
+      required: true
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen
+      placeholder: I expected Z to happen.
+  
+  - type: textarea
+    id: environment
+    validations:
+      required: true
+    attributes:
+      label: Environment
+      description: |
+        Please fill out the following information. You can find your OS build number and version by running `winver` in the Run dialog
+      value: |
+        - OS Build Number & Edition: `type here`
+        - EBOS Version: `type here`
+        - ISO Injection: `type here`
+        - Specs: `type here`
+      placeholder: |
+        - OS Build Number & Edition: `26200.6584, Home`
+        - EBOS version: `0.5.0`
+        - ISO Injection: `Yes`
+        - Specs: `PC, Intel Core i5-10400, 16GB RAM, NVIDIA GeForce GTX 1650`
+  
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional information
+      description: |
+        Add any other context about the problem here
+      placeholder: |
+        I disabled Windows Defender, but it is still running after reboot.
+  
+  - type: checkboxes
+    id: search-before-submit
+    attributes:
+      label: Have you searched for similar issues?
+      description: Make sure to look up for similar issues before submitting a new one and the [documentation](https://docs.ebos.net) on the EBOS website
+      options:
+      - label: I have searched for similar issues and found none.
+        required: true

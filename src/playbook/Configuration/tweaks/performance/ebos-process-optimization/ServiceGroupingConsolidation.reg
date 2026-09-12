@@ -1,0 +1,155 @@
+Windows Registry Editor Version 5.00
+
+; ============================================
+; EBOS Process Optimization Module v3.1.0
+; Service Group Consolidation & System Optimization
+; ============================================
+
+; ============================================
+; Core Service Host Consolidation
+; Merges split svchost.exe instances into one
+; ============================================
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control]
+"SvcHostSplitThresholdInKB"=dword:ffffffff
+
+; ============================================
+; Memory Management Optimization
+; ============================================
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management]
+; Keep drivers in physical memory (faster access)
+"DisablePagingExecutive"=dword:00000001
+; Use small system cache (better for desktop workloads)
+"LargeSystemCache"=dword:00000000
+; Don't clear page file at shutdown (faster shutdown)
+"ClearPageFileAtShutdown"=dword:00000000
+; Increase session view size
+"SessionViewSize"=dword:00000030
+; Let system manage system pages
+"SystemPages"=dword:00000000
+
+; ============================================
+; Process Priority Optimization
+; 0x26 = Short, Fixed, High foreground boost
+; ============================================
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\PriorityControl]
+"Win32PrioritySeparation"=dword:00000026
+
+; ============================================
+; Service Timeout Optimization
+; ============================================
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control]
+; 60 seconds before service timeout
+"ServicesPipeTimeout"=dword:0000ea60
+; 12 seconds before killing service at shutdown
+"WaitToKillServiceTimeout"=dword:00003000
+
+; ============================================
+; TCP/IP Stack Optimization
+; ============================================
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters]
+; Max ephemeral port count
+"MaxUserPort"=dword:0000fffe
+; TIME_WAIT delay (30 seconds)
+"TcpTimedWaitDelay"=dword:0000001e
+; Max simultaneous connections
+"TcpNumConnections"=dword:00fffffe
+; Data retransmission attempts
+"TcpMaxDataRetransmissions"=dword:00000005
+; Default TTL (64 hops)
+"DefaultTTL"=dword:00000040
+
+; ============================================
+; DNS Cache Optimization
+; ============================================
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters]
+; Max cache TTL (1 hour)
+"MaxCacheTtl"=dword:00000e10
+; Negative cache TTL (5 seconds)
+"MaxNegativeCacheTtl"=dword:00000005
+; Don't cache network failures
+"NetFailureCacheTime"=dword:00000000
+; Don't cache negative SOA
+"NegativeSOACacheTime"=dword:00000000
+
+; ============================================
+; Disable Superfetch/Prefetch (Reduces Background I/O)
+; ============================================
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters]
+"EnableSuperfetch"=dword:00000000
+"EnablePrefetcher"=dword:00000000
+
+; ============================================
+; Disable Background Disk Optimization
+; ============================================
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Dfrg\BootOptimizeFunction]
+"Enable"="N"
+"OptimizeComplete"="Yes"
+
+; ============================================
+; Kernel Memory Dump Optimization
+; ============================================
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CrashControl]
+; Disable full kernel dump (saves disk and I/O)
+"CrashDumpEnabled"=dword:00000000
+"LogEvent"=dword:00000000
+"SendAlert"=dword:00000000
+; Auto-reboot after BSOD
+"AutoReboot"=dword:00000001
+
+; ============================================
+; Disable Windows Error Reporting
+; ============================================
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting]
+"Disabled"=dword:00000001
+"DontShowUI"=dword:00000001
+
+; ============================================
+; Disable Cortana Background Tasks
+; ============================================
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search]
+"AllowCortana"=dword:00000000
+"DisableWebSearch"=dword:00000001
+"ConnectedSearchUseWeb"=dword:00000000
+
+; ============================================
+; Disable Consumer Features (No app suggestions)
+; ============================================
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent]
+"DisableWindowsConsumerFeatures"=dword:00000001
+
+; ============================================
+; Disable Game DVR (Performance impact)
+; ============================================
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\GameDVR]
+"AllowGameDVR"=dword:00000000
+
+; ============================================
+; Disable Background Apps (UWP)
+; ============================================
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy]
+"LetAppsRunInBackground"=dword:00000002
+
+; ============================================
+; Disable Telemetry (Hardened)
+; ============================================
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection]
+"AllowTelemetry"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection]
+"AllowTelemetry"=dword:00000000
+
+; ============================================
+; Disable Advertising ID
+; ============================================
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo]
+"DisabledByGroupPolicy"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo]
+"Enabled"=dword:00000000
+
+; ============================================
+; Disable Location Tracking
+; ============================================
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors]
+"DisableLocation"=dword:00000001
+"DisableSensors"=dword:00000001

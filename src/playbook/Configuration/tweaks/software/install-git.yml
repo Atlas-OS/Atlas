@@ -1,0 +1,10 @@
+---
+title: Install Git
+description: Silently installs Git for Windows when the "Install Git" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id Git.Git'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

@@ -1,0 +1,58 @@
+---
+title: EBOS Enhanced Privacy
+description: Additional privacy hardening beyond baseline (Edge telemetry, SmartScreen, search, clipboard)
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Edge'
+    value: 'MetricsReportingEnabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Edge'
+    value: 'SendSiteInfoToImproveServices'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'AllowSmartScreen'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'AllowSearchToUseLocation'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'DisableSearchBoxSuggestions'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'SubscribedContent-310093Enabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+    value: 'SubscribedContent-353694Enabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'AllowClipboardHistory'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'AllowCrossDeviceClipboard'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true

@@ -1,0 +1,96 @@
+playbook_extension:
+  version: "3.1.0"
+  module_name: "Maximum Aggressive Process Reduction"
+  type: "ProcessOptimization"
+  compatibility: ["Windows10", "Windows11", "Windows11_22H2", "Windows11_23H2", "Windows11_24H2"]
+  
+  toggleable: true
+  default_state: "enabled"
+  
+  dependencies:
+    - "BaseSystem"
+    - "Security"
+    - "Registry"
+  
+  injection_points:
+    - file: "Playbook.xml"
+      xpath: "/Playbook/Modules"
+      position: "append"
+      
+    - file: "Configuration/Settings.xml"
+      xpath: "/Settings/Modules"
+      position: "append"
+      
+    - file: "Scripts/ExecutionOrder.ps1"
+      xpath: "/ExecutionOrder/PostInstallation"
+      position: "append"
+  
+  execution_phases:
+    - phase: "Post-Installation"
+      scripts: ["Optimize-ProcessBaseline.ps1"]
+      arguments: "-OptimizationLevel Maximum -SkipConfirmation -SkipValidation"
+      
+    - phase: "First-Boot"
+      scripts: ["Optimize-ProcessBaseline.ps1"]
+      arguments: "-OptimizationLevel Maximum -SkipConfirmation"
+  
+  components:
+    - name: "ebos-process-optimization.yml"
+      type: "yaml"
+      description: "AME Wizard manifest for playbook integration"
+      
+    - name: "ServiceGroupingConsolidation.reg"
+      type: "registry"
+      description: "Registry optimizations for service consolidation, memory, TCP/IP, DNS, crash control, telemetry, Cortana, Game DVR, background apps"
+      
+    - name: "Optimize-ProcessBaseline.ps1"
+      type: "powershell"
+      description: "Main optimization script v3.1.0 with ServiceGroup verification, pre-flight validation, 35 mandatory process protection, and rollback"
+      
+    - name: "ProcessProtection.xml"
+      type: "xml"
+      description: "Process protection manifest with categories, services, UWP apps, scheduled tasks, telemetry targets"
+      
+    - name: "OptimizationConfig.yaml"
+      type: "yaml"
+      description: "Complete configuration file for customization"
+      
+    - name: "InjectionConfig.yaml"
+      type: "yaml"
+      description: "Playbook integration configuration"
+      
+    - name: "Backup-Optimization.ps1"
+      type: "powershell"
+      description: "Pre-optimization backup script"
+      
+    - name: "Restore-Optimization.ps1"
+      type: "powershell"
+      description: "Post-optimization restore script"
+      
+    - name: "Test-Optimization.ps1"
+      type: "powershell"
+      description: "Validation test suite with 9 test categories"
+      
+    - name: "Monitor-Optimization.ps1"
+      type: "powershell"
+      description: "Real-time process monitoring"
+      
+    - name: "Deploy-Optimization.cmd"
+      type: "cmd"
+      description: "Deployment wrapper for target systems"
+      
+    - name: "ExecuteOptimization.cmd"
+      type: "cmd"
+      description: "Manual execution wrapper"
+  
+  validation:
+    min_process_count: 30
+    max_process_count: 45
+    protected_processes: 35
+  
+  rollback:
+    enabled: true
+    auto_backup: true
+    backup_path: "%PROGRAMDATA%\ProcessOptimization\Backup"
+    restore_script: "Rollback_Script.ps1"
+    create_on_optimization: true

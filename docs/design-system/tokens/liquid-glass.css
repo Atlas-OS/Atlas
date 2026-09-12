@@ -1,0 +1,188 @@
+/* =====================================================================
+   EBOS Design System — Liquid Glass tokens
+   ---------------------------------------------------------------
+   Canonical, centralized design tokens for every EBOS surface
+   (Taskbar, Start, Quick Settings, Control Center, panels, dialogs).
+   Components must consume these variables — never re-define materials.
+
+   Quality tiers map to the Windows-side implementation selected by
+   EBOS-Glass.ps1 (Ultra / High / Balanced / Performance / Compatibility)
+   and documented in docs/LIQUID-GLASS.md.
+
+   Fallback chain (per material property):
+     Refraction -> Blur + Highlight -> Translucency -> Opaque
+   ===================================================================== */
+
+:root {
+    /* ---------------------------------------------------------- core */
+    --ebos-glass-blur: 40px;              /* backdrop-filter radius     */
+    --ebos-glass-saturation: 180%;        /* background saturation boost */
+    --ebos-glass-brightness: 106%;        /* background brightness lift  */
+    --ebos-glass-opacity: 0.55;           /* surface translucency        */
+    --ebos-glass-tint: 255 255 255;       /* RGB tint (light over dark   */
+                                          /* backgrounds, dark over      */
+                                          /* bright ones — adaptive)     */
+    --ebos-glass-tint-strength: 0.12;
+
+    /* --------------------------------------------------------- edges */
+    --ebos-glass-border: 1px solid rgb(255 255 255 / 0.18);
+    --ebos-glass-rim: inset 0 1px 0 0 rgb(255 255 255 / 0.35); /* top rim   */
+    --ebos-glass-rim-strength: 0.35;      /* never a glowing border      */
+    --ebos-glass-sheen: linear-gradient(145deg,
+                            rgb(255 255 255 / 0.22) 0%,
+                            rgb(255 255 255 / 0.00) 38%,
+                            rgb(255 255 255 / 0.00) 62%,
+                            rgb(255 255 255 / 0.06) 100%);
+    --ebos-glass-specular: radial-gradient(120% 60% at 30% 0%,
+                            rgb(255 255 255 / 0.18), transparent 55%);
+
+    /* ------------------------------------------------------ geometry */
+    --ebos-glass-radius-sm: 8px;
+    --ebos-glass-radius:    12px;
+    --ebos-glass-radius-lg: 16px;
+    --ebos-glass-radius-xl: 24px;         /* taskbar / floating panels  */
+
+    /* ------------------------------------------------------- shadows */
+    --ebos-glass-shadow-1: 0 2px  8px rgb(0 0 0 / 0.14);
+    --ebos-glass-shadow-2: 0 8px 24px rgb(0 0 0 / 0.22);
+    --ebos-glass-shadow-3: 0 16px 48px rgb(0 0 0 / 0.30);
+
+    /* ---------------------------------------------------- refraction */
+    --ebos-glass-refraction: 0.5;         /* 0-1; edge-biased distortion */
+    --ebos-glass-refraction-mask: linear-gradient(to bottom,
+                                    transparent 0%,
+                                    rgb(0 0 0 / 0.9) 12%,
+                                    rgb(0 0 0 / 0.9) 88%,
+                                    transparent 100%);
+                                          /* refraction primarily affects
+                                             edges, never the content     */
+
+    /* -------------------------------------------------------- motion */
+    --ebos-motion-fast:     120ms cubic-bezier(0.2, 0, 0, 1);
+    --ebos-motion-standard: 220ms cubic-bezier(0.2, 0, 0, 1);
+    --ebos-motion-slow:     360ms cubic-bezier(0.2, 0, 0, 1);
+    --ebos-motion-spring:   500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ebos-motion-reduced:  0ms;          /* reduced-motion: no transform
+                                             or morph animations; opacity
+                                             cross-fades only            */
+
+    /* --------------------------------------------------- dark theme */
+    /* Dark mode strengthens the rim and lightens text for readability */
+    --ebos-glass-dark-tint: 12 14 18;
+    --ebos-glass-dark-rim-strength: 0.45;
+}
+
+/* =====================================================================
+   Quality tiers — applied by setting data-ebos-quality on the root.
+   The tier is chosen GPU-aware / battery-aware / accessibility-aware
+   by EBOS-Glass.ps1 (or -Quality manually).
+   ===================================================================== */
+
+/* Ultra — full stack: refraction emulation + blur + specular + rim */
+[data-ebos-quality="ultra"] {
+    --ebos-glass-blur: 64px;
+    --ebos-glass-saturation: 200%;
+    --ebos-glass-opacity: 0.50;
+    --ebos-glass-refraction: 1;
+}
+
+/* High — blur + highlight + rim (no refraction) */
+[data-ebos-quality="high"] {
+    --ebos-glass-blur: 48px;
+    --ebos-glass-refraction: 0;
+}
+
+/* Balanced — recommended default: blur + rim */
+[data-ebos-quality="balanced"] {
+    --ebos-glass-blur: 40px;
+    --ebos-glass-refraction: 0;
+    --ebos-glass-specular: none;
+}
+
+/* Performance — translucency only, animations off */
+[data-ebos-quality="performance"] {
+    --ebos-glass-blur: 0px;
+    --ebos-glass-saturation: 100%;
+    --ebos-glass-opacity: 0.72;
+    --ebos-glass-refraction: 0;
+    --ebos-glass-sheen: none;
+    --ebos-glass-specular: none;
+    --ebos-motion-fast: 0ms;
+    --ebos-motion-standard: 80ms linear;
+}
+
+/* Compatibility — opaque fallback (reduced transparency / weak GPU) */
+[data-ebos-quality="compatibility"] {
+    --ebos-glass-blur: 0px;
+    --ebos-glass-saturation: 100%;
+    --ebos-glass-brightness: 100%;
+    --ebos-glass-opacity: 0.98;
+    --ebos-glass-tint-strength: 0.06;
+    --ebos-glass-refraction: 0;
+    --ebos-glass-sheen: none;
+    --ebos-glass-specular: none;
+    --ebos-glass-shadow-2: 0 4px 12px rgb(0 0 0 / 0.18);
+    --ebos-motion-fast: 0ms;
+    --ebos-motion-standard: 0ms;
+}
+
+/* =====================================================================
+   Accessibility overrides — Windows is the source of truth
+   ===================================================================== */
+
+/* Reduced transparency (Windows personalization) => simplified material */
+[data-ebos-transparency="reduced"] {
+    --ebos-glass-opacity: 0.98;
+    --ebos-glass-blur: 0px;
+    --ebos-glass-refraction: 0;
+    --ebos-glass-sheen: none;
+    --ebos-glass-specular: none;
+}
+
+/* Increased contrast => stronger borders, full-opacity text */
+[data-ebos-contrast="increased"] {
+    --ebos-glass-border: 2px solid rgb(255 255 255 / 0.85);
+    --ebos-glass-tint-strength: 0.02;
+}
+
+/* High contrast => no glass, opaque system surfaces */
+[data-ebos-contrast="high"] {
+    --ebos-glass-opacity: 1;
+    --ebos-glass-blur: 0px;
+    --ebos-glass-saturation: 100%;
+    --ebos-glass-brightness: 100%;
+    --ebos-glass-border: none;
+    --ebos-glass-rim: none;
+    --ebos-glass-sheen: none;
+    --ebos-glass-specular: none;
+    --ebos-glass-shadow-1: none;
+    --ebos-glass-shadow-2: none;
+    --ebos-glass-shadow-3: none;
+}
+
+/* Reduced motion => durations collapse, feedback preserved via opacity */
+[data-ebos-motion="reduced"] {
+    --ebos-motion-fast: 0ms;
+    --ebos-motion-standard: 0ms;
+    --ebos-motion-slow: 0ms;
+    --ebos-motion-spring: 0ms;
+}
+
+/* Battery saver => step down one material level */
+[data-ebos-power="battery-saver"] {
+    --ebos-glass-blur: 0px;
+    --ebos-glass-refraction: 0;
+    --ebos-glass-specular: none;
+}
+
+/* =====================================================================
+   Typography over glass (never low contrast over complex backgrounds)
+   ===================================================================== */
+:root {
+    --ebos-type-primary:   rgb(255 255 255 / 0.96);
+    --ebos-type-secondary: rgb(255 255 255 / 0.78);
+    --ebos-type-tertiary:  rgb(255 255 255 / 0.60);
+    --ebos-type-disabled:  rgb(255 255 255 / 0.38);
+    --ebos-type-accent:    var(--ebos-accent, #4cc2ff);
+    --ebos-type-shadow:    0 1px 2px rgb(0 0 0 / 0.45); /* legibility */
+}

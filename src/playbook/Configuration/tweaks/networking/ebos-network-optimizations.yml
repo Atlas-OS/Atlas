@@ -1,0 +1,49 @@
+---
+title: EBOS Network Optimizations
+description: Optimizes network settings for better performance, reduced latency, and improved gaming/streaming experience
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters'
+    value: 'DisableTaskOffload'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated
+  # NOTE: the old global 'DisableNagle=1' value does not exist in Windows and
+  # never applied. Nagle is controlled per-interface via TcpNoDelay (1 = off)
+  # and TcpAckFrequency (1 = immediate ACK). Applied below.
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\QualityCompat'
+    value: 'WindowsUpdateDisable4022715'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  - !powerShell:
+    command: |
+      # Disable Nagle on every TCP interface (real keys, not the fake global one)
+      foreach ($iface in (Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces' -ErrorAction SilentlyContinue)) {
+        Set-ItemProperty -Path $iface.PSPath -Name 'TcpNoDelay' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $iface.PSPath -Name 'TcpAckFrequency' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+      }
+      # Cloudflare DNS on active adapters (Set-DnsClientServerAddress, netsh fallback)
+      $dns = @('1.1.1.1', '1.0.0.1')
+      try {
+        Get-DnsClientServerAddress -AddressFamily IPv4 -ErrorAction Stop |
+          Where-Object { $_.ServerAddresses } |
+          ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses $dns -ErrorAction Stop }
+        Write-Host 'EBOS DNS set to Cloudflare (1.1.1.1, 1.0.0.1).'
+      } catch {
+        Write-Host 'Set-DnsClientServerAddress unavailable, trying netsh ...'
+        foreach ($line in (netsh interface show interface | Select-Object -Skip 3)) {
+          if ($line -match 'Connected\s+(.+?)\s*$') {
+            $name = $Matches[1].Trim()
+            netsh interface ip set dns name="$name" static 1.1.1.1 primary 2>&1 | Out-Null
+            netsh interface ip add dns name="$name" 1.0.0.1 index=2 2>&1 | Out-Null
+          }
+        }
+      }
+      Write-Host 'EBOS network optimizations applied.'
+    wait: true
+    exeDir: true
+    runas: currentUserElevated
+    onUpgrade: true

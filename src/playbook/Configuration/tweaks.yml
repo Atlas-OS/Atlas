@@ -24,8 +24,6 @@ actions:
   # to improving network performance, security, etc.
   # -----------------------------------------------------
   - !writeStatus: {status: 'Running networking tweaks'}
-  # Needed for compatibility
-  # - !task: {path: 'tweaks\networking\disable-llmnr.yml'}
   - !task: {path: 'tweaks\networking\atlas-network-settings.yml'}
 
   # -------------------------------------------------------------------------- #
@@ -34,6 +32,7 @@ actions:
   - !task: {path: 'tweaks\networking\shares\restrict-anonymous-access.yml'}
   - !task: {path: 'tweaks\networking\shares\restrict-anonymous-enumeration.yml'}
   - !task: {path: 'tweaks\networking\shares\disable-smb-bandwidth-throttling.yml'}
+  - !task: {path: 'tweaks\networking\ebos-network-optimizations.yml'}
 
 
 
@@ -48,7 +47,6 @@ actions:
   - !writeStatus: {status: 'Running performance tweaks'}
   - !task: {path: 'tweaks\performance\config-mmcss.yml'}
   - !task: {path: 'tweaks\performance\disable-auto-folder-discovery.yml'}
-  # - !task: {path: 'tweaks\performance\disable-game-bar.yml'}
   - !task: {path: 'tweaks\performance\config-automatic-maintenance.yml'}
   - !task: {path: 'tweaks\performance\disable-background-apps.yml'}
   - !task: {path: 'tweaks\performance\disable-fth.yml'}
@@ -59,11 +57,15 @@ actions:
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
   # -------------------------------------------------------------------------- #
-  # Disabled as there's no evidence it helps (likely placebo)
-  # - !task: {path: 'tweaks\performance\system\disable-paging.yml'}
   - !task: {path: 'tweaks\performance\system\optimize-ntfs.yml'}
   - !task: {path: 'tweaks\performance\system\disable-service-host-split.yml'}
   - !task: {path: 'tweaks\performance\system\win32-priority-separation.yml'}
+  - !task: {path: 'tweaks\performance\ebos-process-optimization.yml'}
+  - !task: {path: 'tweaks\performance\ebos-service-optimizations.yml'}
+  - !task: {path: 'tweaks\performance\ebos-gaming-optimizations.yml'}
+  - !task: {path: 'tweaks\performance\ebos-gaming-profile-switcher.yml'}
+  - !task: {path: 'tweaks\performance\ebos-media-codecs.yml'}
+  - !task: {path: 'tweaks\performance\ebos-power-plan.yml'}
 
 
 
@@ -100,6 +102,9 @@ actions:
   - !task: {path: 'tweaks\privacy\disallow-ms-accounts.yml'}
   - !task: {path: 'tweaks\privacy\disallow-user-activity-upload.yml'}
   - !task: {path: 'tweaks\privacy\search-settings.yml'}
+  - !task: {path: 'tweaks\privacy\ebos-enhanced-privacy.yml'}
+  - !task: {path: 'tweaks\privacy\ebos-privacy-hardening.yml'}
+  - !task: {path: 'tweaks\privacy\ebos-security-hardening.yml'}
 
   # -------------------------------------------------------------------------- #
   #  privacy\apps                                                              #
@@ -173,7 +178,7 @@ actions:
   #  qol\appearance                                                            #
   # -------------------------------------------------------------------------- #
   - !task: {path: 'tweaks\qol\appearance\blue-tooltips.yml'}
-  - !task: {path: 'tweaks\qol\appearance\atlas-theme.yml'}
+  - !task: {path: 'tweaks\qol\appearance\ebos-theme.yml'}
   - !task: {path: 'tweaks\qol\appearance\disallow-theme-changes.yml'}
 
   # -------------------------------------------------------------------------- #
@@ -210,6 +215,7 @@ actions:
   - !task: {path: 'tweaks\qol\taskbar\disable-windows-chat.yml'}
   - !task: {path: 'tweaks\qol\taskbar\set-to-left.yml'}
   - !task: {path: 'tweaks\qol\taskbar\end-task.yml'}
+  - !task: {path: 'tweaks\qol\taskbar\ebos-taskbar.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\explorer                                                              #
@@ -217,7 +223,6 @@ actions:
   - !task: {path: 'tweaks\qol\explorer\always-more-details-transfer.yml'}
   - !task: {path: 'tweaks\qol\explorer\disable-invalid-shortcuts-search.yml'}
   - !task: {path: 'tweaks\qol\explorer\disable-check-boxes.yml'}
-  #- !task: {path: 'tweaks\qol\explorer\disable-folders-this-pc.yml'}
   - !task: {path: 'tweaks\qol\explorer\disable-network-navigation-pane.yml'}
   - !task: {path: 'tweaks\qol\explorer\full-context-on-more-than-15-items.yml'}
   - !task: {path: 'tweaks\qol\explorer\hide-frequently-used-items.yml'}
@@ -283,9 +288,9 @@ actions:
   # -------------------------------------------------------------------------- #
   - !task: {path: 'tweaks\qol\startup-shutdown\decrease-shutdown-time.yml'}
   - !task: {path: 'tweaks\qol\startup-shutdown\disable-startup-delay.yml'}
-  # - !task: {path: 'tweaks\qol\startup-shutdown\force-end-shutdown-apps.yml'}
-    # It confused people
-  # - !task: {path: 'tweaks\qol\startup-shutdown\enable-verbose-messages.yml'}
+  - !task: {path: 'tweaks\qol\startup-shutdown\ebos-boot-animation.yml'}
+  - !task: {path: 'tweaks\qol\startup-shutdown\ebos-boot-asset.yml'}
+  - !task: {path: 'tweaks\qol\startup-shutdown\ebos-startup-optimizer.yml'}
 
   # -------------------------------------------------------------------------- #
   #  qol\system                                                                #
@@ -362,4 +367,46 @@ actions:
   - !task: {path: 'tweaks\misc\add-music-videos-to-home.yml'}
   - !task: {path: 'tweaks\scripts\script-power.yml'} # Done last on purpose
   - !task: {path: 'tweaks\misc\enable-notifications.yml'}
+  - !task: {path: 'tweaks\misc\enable-winre.yml'}
+  - !task: {path: 'tweaks\misc\remove-efi-drive-letter.yml'}
+  - !task: {path: 'tweaks\qol\disable-resume.yml'}
   - !task: {path: 'tweaks\misc\config-oem-information.yml'}
+  # -----------------------------------------------------
+  #                       Software
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Optional software, installed only when selected in the
+  # EBOS Wizard (gated by the 'install-*' / 'custom-*' options).
+  # Kept as its own section so installs run after the base
+  # configuration is in place (and after network is set up).
+  # -----------------------------------------------------
+  - !writeStatus: {status: 'Installing selected software'}
+  - !task: {path: 'tweaks\software\install-obs.yml', option: 'install-obs'}
+  - !task: {path: 'tweaks\software\install-vlc.yml', option: 'install-vlc'}
+  - !task: {path: 'tweaks\software\install-discord.yml', option: 'install-discord'}
+  - !task: {path: 'tweaks\software\install-7zip.yml', option: 'install-7zip'}
+  - !task: {path: 'tweaks\software\install-spotify.yml', option: 'install-spotify'}
+  - !task: {path: 'tweaks\software\install-steam.yml', option: 'install-steam'}
+  - !task: {path: 'tweaks\software\install-notepadpp.yml', option: 'install-notepadpp'}
+  - !task: {path: 'tweaks\software\install-powertoys.yml', option: 'install-powertoys'}
+  - !task: {path: 'tweaks\software\install-vscode.yml', option: 'install-vscode'}
+  - !task: {path: 'tweaks\software\install-node.yml', option: 'install-node'}
+  - !task: {path: 'tweaks\software\install-voicemeeter.yml', option: 'install-voicemeeter'}
+  - !task: {path: 'tweaks\software\install-streamelements.yml', option: 'install-streamelements'}
+  - !task: {path: 'tweaks\software\install-git.yml', option: 'install-git'}
+  - !task: {path: 'tweaks\software\install-windhawk.yml', option: 'windhawk-transparency'}
+
+
+
+  # -----------------------------------------------------
+  #                   EBOS Final Fixes
+  # -----------------------------------------------------
+  # >>> Description <<<
+  #
+  # Final comprehensive fixes applied last to ensure
+  # all EBOS settings are properly configured.
+  # This overrides any previous settings.
+  # -----------------------------------------------------
+  - !writeStatus: {status: 'Applying EBOS final fixes'}
+  - !task: {path: 'tweaks\ebos-final-fixes.yml'}
