@@ -1,0 +1,41 @@
+---
+title: Configure OEM Information
+description: Configures OEM information to contain the EBOS version and the EBOS Discord server
+actions:
+  # NOTE: the boot-entry description is set once in tweaks\ebos-final-fixes.yml
+  # (runs last, wins). It was previously also set here with a bare
+  # 'bcdedit /set description' (missing {current} identifier = fails) and a
+  # conflicting string - removed to avoid the conflict.
+  - !powerShell:
+    command: |
+      # Single source of truth: <Version> in playbook.conf. The token is
+      # replaced with that version by Build-Playbook.ps1 when packaging.
+      $version = '%%EBOS_VERSION%%'
+
+      Write-Output 'Setting versioned OEM information...'
+      $reportedVer = """EBOS Playbook $version"""
+      # Shows in Settings
+      if (-not (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation')) {
+        New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Force | Out-Null
+      }
+      Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Name 'Model' -Value $reportedVer -Force
+      # Shows in winver
+      Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'RegisteredOrganization' -Value $reportedVer -Force
+    wait: true
+    runas: currentUserElevated
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
+    value: 'Manufacturer'
+    data: 'EBOS Team'
+    type: REG_SZ
+    runas: currentUserElevated
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'
+    value: 'SupportURL'
+    data: 'https://discord.gg/ebos'
+    type: REG_SZ
+    runas: currentUserElevated
+  # NOTE: SupportPhone previously held a GitHub URL (a URL is not a phone
+  # number and renders oddly in Settings) - removed. Project link lives in
+  # playbook.conf (Git/Website) instead.
+

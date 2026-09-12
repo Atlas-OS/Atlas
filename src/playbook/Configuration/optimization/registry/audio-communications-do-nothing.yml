@@ -1,9 +1,0 @@
----
-title: enable-audio-communications-do-nothing
-description: enable-audio-communications-do-nothing
-privilege: TrustedInstaller
-actions:
-
-    # === Set Sound -> Communications -> "When Windows detects communications activity" to "Do Nothing".
-  - !registryValue: {path: 'HKCU\Software\Microsoft\Multimedia\Audio', value: 'UserDuckingPreference', type: REG_DWORD, data: '3'}
-  - !registryValue: {path: 'HKU\.DEFAULT\Software\Microsoft\Multimedia\Audio', value: 'UserDuckingPreference', type: REG_DWORD, data: '3'}

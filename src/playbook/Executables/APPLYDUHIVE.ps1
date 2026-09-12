@@ -13,8 +13,11 @@ foreach ($yamlFile in $yamlFiles) {
     $parsedYaml = ConvertFrom-Yaml $yamlContent
     foreach ($entry in $parsedYaml) {
         foreach ($value in $entry.actions.path) {
-            if ($value -like 'HKCU') {
-                if (!$RegistryPaths.Contains($value.Substring(4))) { $RegistryPaths += $value.Substring(4) }
+            # Wildcard required: exact '-like HKCU' never matches 'HKCU\...'
+            # paths, which left the default-user hive empty.
+            if ($value -like 'HKCU*') {
+                $sub = "$value" -replace '^HKCU\\?', ''
+                if ($sub -and !$RegistryPaths.Contains($sub)) { $RegistryPaths += $sub }
             }
         }
     }

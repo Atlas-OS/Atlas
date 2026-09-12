@@ -1,7 +1,7 @@
 $windir = [Environment]::GetFolderPath('Windows')
 $targetRoots = @(
-    Join-Path $windir 'EBOSModules'
-    Join-Path $windir 'EBOSDesktop'
+    Join-Path $windir 'AtlasModules'
+    Join-Path $windir 'AtlasDesktop'
 ) | ForEach-Object {
     try {
         ([System.IO.Path]::GetFullPath($_)).TrimEnd('\')
@@ -112,7 +112,7 @@ $rootsLower = $targetRoots | ForEach-Object { ($_ + '\').ToLowerInvariant() }
 Stop-ProcessesUnderRoots -RootsLower $rootsLower
 Stop-TasksUnderRoots -RootsLower $rootsLower
 
-$timerExePath = Join-Path $windir 'EBOSModules\Tools\SetTimerResolution.exe'
+$timerExePath = Join-Path $windir 'AtlasModules\Tools\SetTimerResolution.exe'
 if (Test-Path $timerExePath) {
     try {
         $stream = [System.IO.File]::Open($timerExePath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)

@@ -1,0 +1,156 @@
+---
+title: EBOS Final Fixes
+description: >
+  Final safety-net that re-applies only settings unique to EBOS
+  that are NOT covered by the dedicated tweak files. Settings
+  already handled by ebos-gaming-optimizations, ebos-enhanced-privacy,
+  ebos-privacy-hardening, ebos-security-hardening, ebos-service-optimizations,
+  ebos-boot-animation, ebos-power-plan, ebos-theme, ebos-taskbar,
+  ebos-startup-optimizer and config-oem-information are intentionally
+  omitted here. The boot-entry description is versioned here (keep in sync
+  with <Version> in playbook.conf); OEMInformation itself lives in
+  config-oem-information.
+actions:
+  # ============================================
+  # Gaming Extras (not in ebos-gaming-optimizations)
+  # ============================================
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\GameBar'
+    value: 'UseNexusForGameBarEnabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+
+  # ============================================
+  # Privacy Extras (not in ebos-enhanced-privacy)
+  # ============================================
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Edge'
+    value: 'SpotlightExperiencesAndRecommendationsEnabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'UseSearchBoxSuggestions'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+
+  # Per-user web-search kill-switch (real key, complements the HKLM
+  # DisableWebSearch policy above). The old HKCU UseSearchBoxSuggestions DWORD
+  # is kept for compat but is not a documented value.
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+    value: 'BingSearchEnabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'ConnectedSearchUseWeb'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'
+    value: 'DisableWebSearch'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Clipboard'
+    value: 'EnableClipboardHistory'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Clipboard'
+    value: 'EnableCrossDeviceClipboard'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+
+  # ============================================
+  # Power Plan Extras (not in ebos-power-plan)
+  # ============================================
+  - !powerShell:
+    command: |
+      # Apply extra EBOS power settings on top of ebos-power-plan.
+      # powercfg /list lines look like 'Power Scheme GUID: <guid>  (Name)' -
+      # parse the GUID with a regex (index-based Split is off by one: [2] is
+      # the literal 'GUID:').
+      $planName = "EBOS High Performance"
+      $existing = powercfg /list | Select-String -Pattern ([regex]::Escape($planName))
+      if ($existing) {
+        $m = [regex]::Match("$($existing.Line)", '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}')
+        if (-not $m.Success) { throw "Could not parse power scheme GUID from: $($existing.Line)" }
+        $guid = $m.Value
+        powercfg /setacvalueindex $guid SUB_PROCESSOR PERFBOOSTMODE 2 2>&1 | Out-Null
+        powercfg /setacvalueindex $guid SUB_PROCESSOR PERFBOOSTPOL 100 2>&1 | Out-Null
+        powercfg /setacvalueindex $guid SUB_SLEEP UNATTENDSLEEP 0 2>&1 | Out-Null
+        powercfg /setactive $guid 2>&1 | Out-Null
+        Write-Host "EBOS extra power settings applied"
+      } else {
+        Write-Host "EBOS power plan not found, skipping extra settings."
+      }
+    wait: true
+    runas: currentUserElevated
+    onUpgrade: true
+
+  # ============================================
+  # Theme Extras (not in ebos-theme)
+  # ============================================
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization'
+    value: 'PreventThemeChanges'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+
+  # ============================================
+  # Boot Extras (not in ebos-boot-animation)
+  # ============================================
+  - !powerShell:
+    command: |
+      try {
+        bcdedit /set {default} disablebootanimation yes 2>&1 | Out-Null
+        Write-Host "Boot animation disabled via bcdedit"
+      } catch {
+        Write-Host "Failed to disable boot animation via bcdedit"
+      }
+    wait: true
+    runas: currentUserElevated
+    onUpgrade: true
+
+  # ============================================
+  # OEM Extras (versioned boot entry; OEMInformation itself lives in
+  # config-oem-information, intentionally not duplicated here)
+  # ============================================
+  - !powerShell:
+    command: |
+      # Single source of truth: <Version> in playbook.conf. The token is
+      # replaced with that version by Build-Playbook.ps1 when packaging.
+      $ebosVersion = '%%EBOS_VERSION%%'
+      $osVersion = [System.Environment]::OSVersion.Version.Build
+      $winVersion = if ($osVersion -ge 22000) { '11' } else { '10' }
+      $description = "EBOS $winVersion $ebosVersion"
+      try {
+        # {current} identifier is required - bare 'bcdedit /set description'
+        # fails with 'The set command specified is not valid'.
+        bcdedit /set '{current}' description "$description" 2>&1 | Out-Null
+        Write-Host "Boot entry description set to: $description"
+      } catch {
+        Write-Host "Failed to set boot entry description"
+      }
+      $ntPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+      Set-ItemProperty -Path $ntPath -Name 'RegisteredOrganization' -Value 'EBOS Team' -Force -ErrorAction SilentlyContinue
+      Write-Host "OEM extras configured"
+    wait: true
+    runas: currentUserElevated
+    onUpgrade: true

@@ -1,0 +1,10 @@
+---
+title: Install PowerToys
+description: Silently installs Microsoft PowerToys when the "Install PowerToys" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id Microsoft.PowerToys'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

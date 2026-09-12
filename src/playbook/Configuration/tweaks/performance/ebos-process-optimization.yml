@@ -1,0 +1,60 @@
+---
+title: EBOS Process Optimization
+description: >
+  Maximum Aggressive Process Reduction Module v3.1.0.
+  Consolidates svchost instances (SvcHostSplitThresholdInKB=0xFFFFFFFF),
+  disables 60+ non-essential services, suspends 33 UWP apps,
+  disables 13 scheduled tasks, blocks telemetry,
+  and reduces background overhead to 30-45 processes
+  while protecting 35 mandatory Windows baseline processes.
+actions:
+  # Step 1: Apply registry optimizations (service host consolidation, memory, TCP/IP, DNS)
+  # The .reg ships inside Configuration\...\ebos-process-optimization\, NOT in
+  # Executables\, so exeDir-relative paths and %PLAYBOOK_PATH% do not resolve.
+  # Search the likely playbook locations instead.
+  - !powerShell:
+    command: |
+      $candidates = @(
+        (Join-Path (Get-Location) 'tweaks\performance\ebos-process-optimization\ServiceGroupingConsolidation.reg'),
+        (Join-Path (Get-Location) 'Configuration\tweaks\performance\ebos-process-optimization\ServiceGroupingConsolidation.reg'),
+        (Join-Path $env:SystemRoot 'AtlasModules\ServiceGroupingConsolidation.reg')
+      )
+      $regFile = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if (-not $regFile) {
+        $found = Get-ChildItem -Path (Get-Location) -Recurse -Filter 'ServiceGroupingConsolidation.reg' -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) { $regFile = $found.FullName }
+      }
+      if ($regFile) {
+        Write-Host "Importing $regFile ..."
+        & reg.exe import "$regFile"
+        exit $LASTEXITCODE
+      } else {
+        Write-Host "[EBOS] WARNING: ServiceGroupingConsolidation.reg not found, skipping." -ForegroundColor Yellow
+      }
+    wait: true
+    runas: currentUserElevated
+    onUpgrade: true
+
+  # Step 2: Run main optimization script
+  - !powerShell:
+    command: |
+      # $PSScriptRoot is $null in AME Wizard inline commands - search instead.
+      $candidates = @(
+        (Join-Path (Get-Location) 'tweaks\performance\ebos-process-optimization\Optimize-ProcessBaseline.ps1'),
+        (Join-Path (Get-Location) 'Configuration\tweaks\performance\ebos-process-optimization\Optimize-ProcessBaseline.ps1')
+      )
+      $modulePath = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if (-not $modulePath) {
+        $found = Get-ChildItem -Path (Get-Location) -Recurse -Filter 'Optimize-ProcessBaseline.ps1' -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) { $modulePath = $found.FullName }
+      }
+      if ($modulePath) {
+        & $modulePath -OptimizationLevel Maximum -SkipConfirmation -SkipValidation
+        exit $LASTEXITCODE
+      } else {
+        Write-Host "[EBOS] ERROR: Process optimization module not found." -ForegroundColor Red
+        exit 1
+      }
+    wait: true
+    runas: currentUserElevated
+    onUpgrade: true

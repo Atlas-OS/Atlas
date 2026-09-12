@@ -1,0 +1,693 @@
+# ============================================
+# EBOS Process Optimization Configuration
+# Version: 3.1.0
+# Description: Configuration file for process optimization module
+# ============================================
+
+# General Settings
+general:
+  version: "3.1.0"
+  author: "EBOS Team"
+  compatibility: ["Windows10", "Windows11"]
+  requires_admin: true
+  requires_powershell: "5.1"
+
+# Optimization Levels
+optimization_levels:
+  maximum:
+    description: "Maximum optimization - terminates all non-protected processes and services"
+    process_termination: "all_non_protected"
+    service_disabling: "full"
+    uwp_app_handling: "disable"
+    scheduled_task_disabling: "full"
+    
+  aggressive:
+    description: "Aggressive optimization - terminates most non-essential processes"
+    process_termination: "most_non_essential"
+    service_disabling: "moderate"
+    uwp_app_handling: "disable"
+    scheduled_task_disabling: "moderate"
+    
+  standard:
+    description: "Standard optimization - conservative approach"
+    process_termination: "known_non_essential"
+    service_disabling: "minimal"
+    uwp_app_handling: "disable"
+    scheduled_task_disabling: "minimal"
+
+# Protected Processes (35 mandatory)
+protected_processes:
+  kernel:
+    - name: "System Idle Process"
+      priority: 1
+      category: "Kernel"
+      ServiceGroup: ""
+    - name: "System"
+      priority: 2
+      category: "Kernel"
+      ServiceGroup: ""
+    - name: "Registry"
+      priority: 3
+      category: "Kernel"
+      ServiceGroup: ""
+    
+  session_init:
+    - name: "smss.exe"
+      path: "%SystemRoot%\\System32\\smss.exe"
+      priority: 4
+      category: "Session"
+      ServiceGroup: ""
+    - name: "csrss.exe"
+      path: "%SystemRoot%\\System32\\csrss.exe"
+      priority: 5
+      category: "Session"
+      ServiceGroup: ""
+    - name: "wininit.exe"
+      path: "%SystemRoot%\\System32\\wininit.exe"
+      priority: 6
+      category: "Session"
+      ServiceGroup: ""
+    
+  security:
+    - name: "services.exe"
+      path: "%SystemRoot%\\System32\\services.exe"
+      priority: 7
+      category: "Security"
+      ServiceGroup: ""
+    - name: "lsass.exe"
+      path: "%SystemRoot%\\System32\\lsass.exe"
+      priority: 8
+      category: "Security"
+      ServiceGroup: ""
+    - name: "winlogon.exe"
+      path: "%SystemRoot%\\System32\\winlogon.exe"
+      priority: 9
+      category: "Security"
+      ServiceGroup: ""
+    - name: "LsaIso.exe"
+      path: "%SystemRoot%\\System32\\LsaIso.exe"
+      priority: 10
+      category: "Security"
+      ServiceGroup: ""
+    
+  svchost_core:
+    - name: "svchost.exe"
+      service_group: "RpcSs"
+      priority: 11
+      category: "Core Services"
+      ServiceGroup: "RpcSs"
+    - name: "svchost.exe"
+      service_group: "DcomLaunch"
+      priority: 12
+      category: "Core Services"
+      ServiceGroup: "DcomLaunch"
+    - name: "svchost.exe"
+      service_group: "Power"
+      priority: 13
+      category: "Core Services"
+      ServiceGroup: "Power"
+    
+  ui:
+    - name: "dwm.exe"
+      path: "%SystemRoot%\\System32\\dwm.exe"
+      priority: 14
+      category: "UI"
+      ServiceGroup: ""
+    - name: "explorer.exe"
+      path: "%SystemRoot%\\explorer.exe"
+      priority: 15
+      category: "UI"
+      ServiceGroup: ""
+    - name: "sihost.exe"
+      path: "%SystemRoot%\\System32\\sihost.exe"
+      priority: 16
+      category: "UI"
+      ServiceGroup: ""
+    - name: "fontdrvhost.exe"
+      path: "%SystemRoot%\\System32\\fontdrvhost.exe"
+      priority: 17
+      category: "UI"
+      ServiceGroup: ""
+    - name: "ctfmon.exe"
+      path: "%SystemRoot%\\System32\\ctfmon.exe"
+      priority: 18
+      category: "UI"
+      ServiceGroup: ""
+    - name: "taskhostw.exe"
+      path: "%SystemRoot%\\System32\\taskhostw.exe"
+      priority: 19
+      category: "UI"
+      ServiceGroup: ""
+    - name: "RuntimeBroker.exe"
+      path: "%SystemRoot%\\System32\\RuntimeBroker.exe"
+      priority: 20
+      category: "UI"
+      ServiceGroup: ""
+    
+  audio_network:
+    - name: "audiodg.exe"
+      path: "%SystemRoot%\\System32\\audiodg.exe"
+      priority: 21
+      category: "Audio"
+      ServiceGroup: ""
+    - name: "svchost.exe"
+      service_group: "AudioSrv"
+      priority: 22
+      category: "Audio"
+      ServiceGroup: "AudioSrv"
+    - name: "svchost.exe"
+      service_group: "Dhcp"
+      priority: 23
+      category: "Network"
+      ServiceGroup: "Dhcp"
+    - name: "svchost.exe"
+      service_group: "Dnscache"
+      priority: 24
+      category: "Network"
+      ServiceGroup: "Dnscache"
+    - name: "svchost.exe"
+      service_group: "NLA"
+      priority: 25
+      category: "Network"
+      ServiceGroup: "NLA"
+    - name: "svchost.exe"
+      service_group: "nsi"
+      priority: 26
+      category: "Network"
+      ServiceGroup: "nsi"
+    - name: "svchost.exe"
+      service_group: "mpssvc"
+      priority: 27
+      category: "Network"
+      ServiceGroup: "mpssvc"
+    - name: "spoolsv.exe"
+      path: "%SystemRoot%\\System32\\spoolsv.exe"
+      priority: 28
+      category: "Print"
+      ServiceGroup: ""
+    
+  graphics_hardware:
+    - name: "nvcontainer.exe"
+      priority: 29
+      category: "GPU"
+      ServiceGroup: ""
+    - name: "amdow.exe"
+      priority: 29
+      category: "GPU"
+      ServiceGroup: ""
+    - name: "igfxCUIService.exe"
+      priority: 29
+      category: "GPU"
+      ServiceGroup: ""
+    - name: "conhost.exe"
+      path: "%SystemRoot%\\System32\\conhost.exe"
+      priority: 30
+      category: "Console"
+      ServiceGroup: ""
+    - name: "wlanext.exe"
+      path: "%SystemRoot%\\System32\\wlanext.exe"
+      priority: 31
+      category: "WiFi"
+      ServiceGroup: ""
+    - name: "svchost.exe"
+      service_group: "CryptSvc"
+      priority: 32
+      category: "Security"
+      ServiceGroup: "CryptSvc"
+    - name: "svchost.exe"
+      service_group: "ProfSvc"
+      priority: 33
+      category: "User"
+      ServiceGroup: "ProfSvc"
+    - name: "svchost.exe"
+      service_group: "gpsvc"
+      priority: 34
+      category: "Policy"
+      ServiceGroup: "gpsvc"
+    - name: "svchost.exe"
+      service_group: "EventLog"
+      priority: 35
+      category: "Logging"
+      ServiceGroup: "EventLog"
+
+# Services to Disable (60+)
+services_to_disable:
+  telemetry:
+    - name: "DiagTrack"
+      display_name: "Diagnostics Tracking Service"
+    - name: "dmwappushservice"
+      display_name: "WAP Push Message Routing Service"
+    - name: "diagnosticshub.standardcollector.service"
+      display_name: "Diagnostics Hub Standard Collector"
+    - name: "DPS"
+      display_name: "Diagnostic Policy Service"
+    - name: "WdiServiceHost"
+      display_name: "Diagnostic Service Host"
+    - name: "WdiSystemHost"
+      display_name: "Diagnostic System Host"
+    - name: "Wecsvc"
+      display_name: "Windows Event Collector"
+    - name: "WEPHOSTSVC"
+      display_name: "Windows Event Reporting Service"
+    
+  maps_location:
+    - name: "MapsBroker"
+      display_name: "Downloaded Maps Manager"
+    - name: "lfsvc"
+      display_name: "Geolocation Service"
+    
+  update:
+    - name: "EdgeUpdate"
+      display_name: "Microsoft Edge Update Service"
+    - name: "edgeupdatem"
+      display_name: "Microsoft Edge Update Service (EdgeUpdateM)"
+    - name: "wuauserv"
+      display_name: "Windows Update"
+    - name: "UsoSvc"
+      display_name: "Update Orchestrator Service"
+    - name: "WaaSMedicSvc"
+      display_name: "Windows Update Medic Service"
+    - name: "BITS"
+      display_name: "Background Intelligent Transfer Service"
+    - name: "DoSvc"
+      display_name: "Delivery Optimization"
+    
+  xbox:
+    - name: "XblAuthManager"
+      display_name: "Xbox Live Auth Manager"
+    - name: "XblGameSave"
+      display_name: "Xbox Live Game Save"
+    - name: "XboxNetApiSvc"
+      display_name: "Xbox Live Networking Service"
+    - name: "XboxGipSvc"
+      display_name: "Xbox Accessory Management Service"
+    
+  phone_messaging:
+    - name: "PhoneSvc"
+      display_name: "Phone Service"
+    - name: "MessagingService"
+      display_name: "Messaging Service"
+    - name: "PimIndexMaintenanceSvc"
+      display_name: "Contact Data"
+    - name: "UnistoreSvc"
+      display_name: "User Data Storage"
+    - name: "UserDataSvc"
+      display_name: "User Data Access"
+    - name: "OneSyncSvc"
+      display_name: "Sync Host"
+    
+  retail:
+    - name: "RetailDemo"
+      display_name: "Retail Demo Service"
+    
+  search:
+    - name: "WSearch"
+      display_name: "Windows Search"
+    
+  print:
+    - name: "Spooler"
+      display_name: "Print Spooler"
+    - name: "PrintNotify"
+      display_name: "Printer Extensions and Notifications"
+    
+  bluetooth:
+    - name: "bthserv"
+      display_name: "Bluetooth Support Service"
+    - name: "BluetoothUserService"
+      display_name: "Bluetooth User Support Service"
+    
+  misc:
+    - name: "WalletService"
+      display_name: "WalletService"
+    - name: "PushToInstall"
+      display_name: "Push to Install Service"
+    - name: "AppReadiness"
+      display_name: "App Readiness"
+    - name: "AssignedAccessManagerSvc"
+      display_name: "AssignedAccessManager Service"
+    - name: "CDPSvc"
+      display_name: "Connected Devices Platform Service"
+    - name: "CDPUserSvc"
+      display_name: "Connected Devices Platform User Service"
+    - name: "DevicePickerUserSvc"
+      display_name: "DevicePicker User Service"
+    - name: "DevicesFlowUserSvc"
+      display_name: "DevicesFlow User Service"
+    - name: "DusmSvc"
+      display_name: "Data Usage Monitor Service"
+    - name: "InstallService"
+      display_name: "Microsoft Store Install Service"
+    - name: "LicenseManager"
+      display_name: "Windows License Manager Service"
+    - name: "NetTcpPortSharing"
+      display_name: "Net.Tcp Port Sharing Service"
+    - name: "PcaSvc"
+      display_name: "Program Compatibility Assistant Service"
+    - name: "SEMgrSvc"
+      display_name: "Payments and NFC/SE Manager"
+    - name: "SensorDataService"
+      display_name: "Sensor Data Service"
+    - name: "SensorService"
+      display_name: "Sensor Service"
+    - name: "SensrSvc"
+      display_name: "Active Sensor Monitoring Service"
+    - name: "StorSvc"
+      display_name: "Storage Service"
+    - name: "Themes"
+      display_name: "Themes"
+    - name: "TimeBrokerSvc"
+      display_name: "Time Broker"
+    - name: "TokenBroker"
+      display_name: "Web Account Manager"
+    - name: "TroubleshootingSvc"
+      display_name: "Microsoft Support Diagnostic Tool"
+    - name: "WbioSrvc"
+      display_name: "Windows Biometric Service"
+    - name: "WpnService"
+      display_name: "Windows Push Notifications System Service"
+    - name: "WpnUserService"
+      display_name: "Windows Push Notifications User Service"
+    - name: "TableInputService"
+      display_name: "Tablet Input Service"
+
+# UWP Apps to Disable (33+)
+uwp_apps_to_disable:
+  store:
+    - "Microsoft.StorePurchaseApp_8wekyb3d8bbwe"
+    - "Microsoft.WindowsStore_8wekyb3d8bbwe"
+    - "Microsoft.Getstarted_8wekyb3d8bbwe"
+    - "Microsoft.MicrosoftOfficeHub_8wekyb3d8bbwe"
+    - "Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe"
+    
+  communication:
+    - "Microsoft.People_8wekyb3d8bbwe"
+    - "Microsoft.WindowsCommunicationsApps_8wekyb3d8bbwe"
+    - "microsoft.windowscommunicationsapps_8wekyb3d8bbwe"
+    
+  entertainment:
+    - "Microsoft.ZuneMusic_8wekyb3d8bbwe"
+    - "Microsoft.ZuneVideo_8wekyb3d8bbwe"
+    - "Microsoft.BingWeather_8wekyb3d8bbwe"
+    - "Microsoft.BingNews_8wekyb3d8bbwe"
+    - "Microsoft.BingSports_8wekyb3d8bbwe"
+    - "Microsoft.BingFinance_8wekyb3d8bbwe"
+    
+  utility:
+    - "Microsoft.WindowsAlarms_8wekyb3d8bbwe"
+    - "Microsoft.WindowsCalculator_8wekyb3d8bbwe"
+    - "Microsoft.WindowsCamera_8wekyb3d8bbwe"
+    - "Microsoft.WindowsMaps_8wekyb3d8bbwe"
+    - "Microsoft.WindowsSoundRecorder_8wekyb3d8bbwe"
+    - "Microsoft.Windows.Photos_8wekyb3d8bbwe"
+    
+  xbox:
+    - "Microsoft.XboxApp_8wekyb3d8bbwe"
+    - "Microsoft.XboxGameOverlay_8wekyb3d8bbwe"
+    - "Microsoft.XboxGamingOverlay_8wekyb3d8bbwe"
+    - "Microsoft.XboxIdentityProvider_8wekyb3d8bbwe"
+    - "Microsoft.XboxSpeechToTextOverlay_8wekyb3d8bbwe"
+    
+  mixed_reality:
+    - "Microsoft.MixedReality.Portal_8wekyb3d8bbwe"
+    - "Microsoft.Microsoft3DViewer_8wekyb3d8bbwe"
+    
+  productivity:
+    - "Microsoft.YourPhone_8wekyb3d8bbwe"
+    - "Microsoft.ScreenSketch_8wekyb3d8bbwe"
+    - "Microsoft.MicrosoftStickyNotes_8wekyb3d8bbwe"
+    - "Microsoft.MSPaint_8wekyb3d8bbwe"
+    - "Microsoft.WindowsFeedbackHub_8wekyb3d8bbwe"
+
+# Registry Optimizations
+registry_optimizations:
+  service_host_consolidation:
+    path: "HKLM\\SYSTEM\\CurrentControlSet\\Control"
+    name: "SvcHostSplitThresholdInKB"
+    value: "0xFFFFFFFF"
+    type: "REG_DWORD"
+    description: "Force all services into shared svchost.exe instances (0xFFFFFFFF = disable splitting)"
+    
+  memory_management:
+    path: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management"
+    settings:
+      - name: "DisablePagingExecutive"
+        value: 1
+        type: "REG_DWORD"
+        description: "Keep kernel and drivers in physical memory"
+      - name: "LargeSystemCache"
+        value: 0
+        type: "REG_DWORD"
+        description: "Optimize for workstation (not server)"
+      - name: "SessionViewSize"
+        value: 48
+        type: "REG_DWORD"
+        description: "Session view size"
+      - name: "PoolUsageMaximum"
+        value: 60
+        type: "REG_DWORD"
+        description: "Maximum pool usage percentage"
+      - name: "NonPagedPoolSize"
+        value: 0
+        type: "REG_DWORD"
+        description: "Let Windows manage non-paged pool"
+    
+  priority_control:
+    path: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl"
+    name: "Win32PrioritySeparation"
+    value: "0x28"
+    type: "REG_DWORD"
+    description: "Optimize foreground process priority"
+    
+  service_timeout:
+    path: "HKLM\\SYSTEM\\CurrentControlSet\\Control"
+    name: "ServicesPipeTimeout"
+    value: "0xEA60"
+    type: "REG_DWORD"
+    description: "Increase service timeout to 60 seconds"
+    
+  wait_to_kill:
+    path: "HKLM\\SYSTEM\\CurrentControlSet\\Control"
+    name: "WaitToKillServiceTimeout"
+    value: "0x1388"
+    type: "REG_DWORD"
+    description: "Reduce service shutdown wait to 5 seconds"
+    
+  tcp_ip:
+    path: "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters"
+    settings:
+      - name: "MaxUserPort"
+        value: "0xFFFE"
+        type: "REG_DWORD"
+        description: "Maximum ephemeral port"
+      - name: "TcpTimedWaitDelay"
+        value: "0x1E"
+        type: "REG_DWORD"
+        description: "TIME_WAIT delay (30 seconds)"
+      - name: "TcpNumConnections"
+        value: "0xFFFFFE"
+        type: "REG_DWORD"
+        description: "Maximum TCP connections"
+      - name: "TcpMaxDataRetransmissions"
+        value: 5
+        type: "REG_DWORD"
+        description: "TCP data retransmissions"
+      - name: "DefaultTTL"
+        value: "0x40"
+        type: "REG_DWORD"
+        description: "Default TTL (64)"
+    
+  dns_cache:
+    path: "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters"
+    settings:
+      - name: "MaxCacheTtl"
+        value: "0xE10"
+        type: "REG_DWORD"
+        description: "Maximum DNS cache TTL (1 hour)"
+      - name: "MaxNegativeCacheTtl"
+        value: 5
+        type: "REG_DWORD"
+        description: "Negative cache TTL (5 seconds)"
+      - name: "NetFailureCacheTime"
+        value: 0
+        type: "REG_DWORD"
+        description: "No cache for network failures"
+      - name: "NegativeSOACacheTime"
+        value: 0
+        type: "REG_DWORD"
+        description: "No cache for negative SOA"
+
+# Crash Dump Optimization
+crash_dump:
+  path: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CrashControl"
+  settings:
+    - name: "CrashDumpEnabled"
+      value: 0
+      type: "REG_DWORD"
+      description: "Disable kernel crash dump"
+    - name: "LogEvent"
+      value: 0
+      type: "REG_DWORD"
+      description: "Disable crash event logging"
+    - name: "SendAlert"
+      value: 0
+      type: "REG_DWORD"
+      description: "Disable crash alert"
+    - name: "AutoReboot"
+      value: 1
+      type: "REG_DWORD"
+      description: "Auto reboot after crash"
+
+# Windows Error Reporting
+error_reporting:
+  path: "HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting"
+  settings:
+    - name: "Disabled"
+      value: 1
+      type: "REG_DWORD"
+      description: "Disable Windows Error Reporting"
+
+# Cortana Disable
+cortana:
+  path: "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search"
+  settings:
+    - name: "AllowCortana"
+      value: 0
+      type: "REG_DWORD"
+      description: "Disable Cortana"
+
+# Consumer Features
+consumer_features:
+  path: "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent"
+  settings:
+    - name: "DisableWindowsConsumerFeatures"
+      value: 1
+      type: "REG_DWORD"
+      description: "Disable Windows consumer features"
+    - name: "DisableSoftLanding"
+      value: 1
+      type: "REG_DWORD"
+      description: "Disable soft landing"
+
+# Game DVR
+game_dvr:
+  path: "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR"
+  settings:
+    - name: "AllowGameDVR"
+      value: 0
+      type: "REG_DWORD"
+      description: "Disable Game DVR"
+
+# Background Apps
+background_apps:
+  path: "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy"
+  settings:
+    - name: "LetAppsRunInBackground"
+      value: 2
+      type: "REG_DWORD"
+      description: "Block all apps from running in background"
+    - name: "LetAppsAccessCamera"
+      value: 2
+      type: "REG_DWORD"
+      description: "Block camera access"
+    - name: "LetAppsAccessMicrophone"
+      value: 2
+      type: "REG_DWORD"
+      description: "Block microphone access"
+    - name: "LetAppsAccessLocation"
+      value: 2
+      type: "REG_DWORD"
+      description: "Block location access"
+
+# Telemetry Blocking
+telemetry_blocking:
+  registry_keys:
+    - path: "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection"
+      name: "AllowTelemetry"
+      value: 0
+    - path: "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection"
+      name: "AllowTelemetry"
+      value: 0
+    - path: "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo"
+      name: "DisabledByGroupPolicy"
+      value: 1
+    - path: "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo"
+      name: "Enabled"
+      value: 0
+    - path: "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors"
+      name: "DisableLocation"
+      value: 1
+    - path: "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors"
+      name: "DisableWindowsLocationProvider"
+      value: 1
+
+# Scheduled Tasks to Disable
+scheduled_tasks:
+  - path: "\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser"
+    description: "Application compatibility telemetry"
+  - path: "\Microsoft\Windows\Application Experience\ProgramDataUpdater"
+    description: "Application compatibility data updater"
+  - path: "\Microsoft\Windows\Application Experience\StartupAppTask"
+    description: "Startup application tracking"
+  - path: "\Microsoft\Windows\Customer Experience Improvement Program\Consolidator"
+    description: "CEIP data consolidation"
+  - path: "\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip"
+    description: "CEIP USB data collection"
+  - path: "\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector"
+    description: "Disk diagnostic data collector"
+  - path: "\Microsoft\Windows\Location\Notifications"
+    description: "Location notifications"
+  - path: "\Microsoft\Windows\Maps\MapsUpdateTask"
+    description: "Maps update task"
+  - path: "\Microsoft\Windows\Media Center\MediaCenterRecoveryTask"
+    description: "Media Center recovery"
+  - path: "\Microsoft\Windows\Mobile Broadband Accounts\MNO Metadata Parser"
+    description: "Mobile broadband metadata"
+  - path: "\Microsoft\Windows\Windows Error Reporting\QueueReporting"
+    description: "Error reporting queue"
+  - path: "\Microsoft\Windows\WindowsUpdate\Scheduled Start"
+    description: "Windows Update scheduled start"
+  - path: "\Microsoft\Windows\Xbox\Xbox Update Task"
+    description: "Xbox update task"
+
+# Logging Configuration
+logging:
+  enabled: true
+  path: "%ProgramData%\\ProcessOptimization"
+  file: "Optimization_v3.1.0.log"
+  levels: ["INFO", "WARNING", "ERROR", "SUCCESS", "DEBUG"]
+  console_output: true
+  color_coding:
+    INFO: "White"
+    WARNING: "Yellow"
+    ERROR: "Red"
+    SUCCESS: "Green"
+    DEBUG: "Gray"
+
+# Rollback Configuration
+rollback:
+  enabled: true
+  auto_save: true
+  backup_path: "%ProgramData%\\ProcessOptimization\\Rollback"
+  restore_script: "Rollback_Script.ps1"
+  create_on_optimization: true
+  include_services: true
+  include_processes: true
+  include_registry: true
+  include_network: true
+
+# Emergency Recovery
+emergency_recovery:
+  enabled: true
+  critical_services:
+    - "RpcSs"
+    - "DcomLaunch"
+    - "Power"
+    - "AudioSrv"
+    - "AudioEndpointBuilder"
+    - "Dhcp"
+    - "Dnscache"
+    - "NLA"
+    - "nsi"
+    - "mpssvc"
+  restore_startup_type: "Automatic"
+  auto_start: true

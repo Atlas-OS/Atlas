@@ -1,0 +1,37 @@
+---
+title: EBOS High Performance Power Plan
+description: Creates and sets the EBOS High Performance power plan as active
+actions:
+  - !powerShell:
+    command: |
+      # Create EBOS High Performance plan if it doesn't exist.
+      # powercfg /duplicatescheme prints the new GUID itself ("Power Scheme GUID:
+      # <guid>") - capture that instead of re-parsing /list (fragile).
+      $planName = "EBOS High Performance"
+      $existing = powercfg /list | Select-String -Pattern ([regex]::Escape($planName))
+      if (-not $existing) {
+        Write-Host "Creating $planName..."
+        # Duplicate High Performance (8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c) as base
+        $dupOut = powercfg /duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+        $m = [regex]::Match("$dupOut", '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}')
+        if (-not $m.Success) { throw "Could not determine new power scheme GUID from: $dupOut" }
+        $newGuid = $m.Value
+        powercfg /changename $newGuid "$planName" "EBOS Optimized High Performance Plan" | Out-Null
+      } else {
+        $m = [regex]::Match("$($existing.Line)", '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}')
+        if (-not $m.Success) { throw "Could not parse existing power scheme GUID from: $($existing.Line)" }
+        $newGuid = $m.Value
+      }
+      # Apply optimizations
+      powercfg /setacvalueindex $newGuid SUB_PROCESSOR PROCTHROTTLEMIN 100
+      powercfg /setacvalueindex $newGuid SUB_PROCESSOR PROCTHROTTLEMAX 100
+      powercfg /setacvalueindex $newGuid SUB_PROCESSOR SYSCOOLPOL 0
+      powercfg /setacvalueindex $newGuid SUB_VIDEO VIDEOIDLE 0
+      powercfg /setacvalueindex $newGuid SUB_SLEEP STANDBYIDLE 0
+      powercfg /setacvalueindex $newGuid SUB_SLEEP HIBERNATEIDLE 0
+      powercfg /setactive $newGuid
+      Write-Host "EBOS High Performance plan activated."
+    wait: true
+    exeDir: true
+    runas: currentUserElevated
+    onUpgrade: true

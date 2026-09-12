@@ -1,30 +1,31 @@
-[Theme]
-DisplayName=EBOS Frost
-ThemeId={9F1AEB0B-4DD7-44EF-8734-D4F82A341818}
+﻿[Theme]
+DisplayName=ebos-v0.4.x-light
+ThemeId={4049130C-2F88-4F1B-9E50-48FEEF20C0B7}
 
 [Control Panel\Desktop]
-Wallpaper=%windir%\EBOSModules\Wallpapers\ebos-v0.4.x-light.png
+Wallpaper=%windir%\AtlasModules\Wallpapers\ebos-v0.4.x-light.png
 Pattern=
 MultimonBackgrounds=0
 PicturePosition=4
 WindowsSpotlight=0
 
 [Control Panel\Cursors]
-AppStarting=%windir%\cursors\aero_working.ani
-Arrow=%windir%\cursors\aero_arrow.cur
-Hand=%windir%\cursors\aero_link.cur
-Help=%windir%\cursors\aero_helpsel.cur
-No=%windir%\cursors\aero_unavail.cur
-NWPen=%windir%\cursors\aero_pen.cur
-SizeAll=%windir%\cursors\aero_move.cur
-SizeNESW=%windir%\cursors\aero_nesw.cur
-SizeNS=%windir%\cursors\aero_ns.cur
-SizeNWSE=%windir%\cursors\aero_nwse.cur
-SizeWE=%windir%\cursors\aero_ew.cur
-UpArrow=%windir%\cursors\aero_up.cur
-Wait=%windir%\cursors\aero_busy.ani
+AppStarting=%SystemRoot%\cursors\aero_working.ani
+Arrow=%SystemRoot%\cursors\aero_arrow.cur
+Hand=%SystemRoot%\cursors\aero_link.cur
+Help=%SystemRoot%\cursors\aero_helpsel.cur
+No=%SystemRoot%\cursors\aero_unavail.cur
+NWPen=%SystemRoot%\cursors\aero_pen.cur
+SizeAll=%SystemRoot%\cursors\aero_move.cur
+SizeNESW=%SystemRoot%\cursors\aero_nesw.cur
+SizeNS=%SystemRoot%\cursors\aero_ns.cur
+SizeNWSE=%SystemRoot%\cursors\aero_nwse.cur
+SizeWE=%SystemRoot%\cursors\aero_ew.cur
+UpArrow=%SystemRoot%\cursors\aero_up.cur
+Wait=%SystemRoot%\cursors\aero_busy.ani
 DefaultValue=Windows Default
-
+Crosshair=
+IBeam=
 [Sounds]
 SchemeName=No Sounds
 
@@ -33,10 +34,6 @@ Path=%windir%\resources\themes\Aero\Aero.msstyles
 ColorStyle=NormalColor
 Size=NormalSize
 AutoColorization=0
-ColorizationColor=0XC41B345A
-SystemMode=Dark
+ColorizationColor=0XC44A51A8
+SystemMode=Light
 AppMode=Light
-VisualStyleVersion=10
-
-[MasterThemeSelector]
-MTSM=RJSPBS

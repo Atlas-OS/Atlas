@@ -1,39 +1,13 @@
 ---
-title: EBOS
-description: Unified entry point — runs the EBOS Core preflight, all EBOS domains, and the recovery/validation tail
-privilege: TrustedInstaller
+title: Root Playbook File
+description: Runs all of the Playbook files
 actions:
-  # ==================================================================
-  #  EBOS — unified Windows optimization platform
-  #
-  #  Pipeline (each stage is a domain under Configuration\):
-  #    1. Preflight   (hive, files, notifications)
-  #    2. Core        (detection, pre-change backup)
-  #    3. Windows     (packages, components, services, updates, debloat)
-  #    4. Privacy     (telemetry, tracking, advertising, cloud)
-  #    5. Security    (hardening, remote access)
-  #    6. Optimization (kernel, boot, power, storage, multimedia)
-  #    7. Gaming      (Game Mode, Game Bar, input, GPU scheduling)
-  #    8. Network     (TCP, SMB, sharing hardening)
-  #    9. UI          (Explorer, taskbar, Start, shell, Liquid Glass)
-  #   10. Misc        (general QoL)
-  #   11. Scripts     (script-backed configuration, power last)
-  #   12. Recovery    (post-change backups, legacy reverts)
-  #   13. Core tail   (system validation)
-  #
-  #  Legacy note: this playbook unifies two former projects into one
-  #  system. Their functionality lives on in the domains above; there
-  #  are no separate products, modes or folders. Attribution for the
-  #  integrated third-party components is kept in docs/ATTRIBUTION.md.
-  # ==================================================================
-
-  # ------------------------- 1. PREFLIGHT ------------------------- #
   # some changes requires default user access. loading the hive before everything else is required
   - !powerShell:
     command: 'reg load HKU\AME_UserHive_Default C:\Users\Default\NTUSER.DAT'
     oobe: false
     wait: true
-  - !writeStatus: { status: "Deleting old EBOS folders" }
+  - !writeStatus: { status: "Deleting previous configuration folders" }
   - !powerShell:
     command: '.\STOPFOLDERPROC.ps1'
     exeDir: true
@@ -43,8 +17,8 @@ actions:
   - !powerShell:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
-      Remove-Item -LiteralPath "$windir\EBOSDesktop" -Force -Recurse
-      Remove-Item -LiteralPath "$windir\EBOSModules" -Force -Recurse
+      Remove-Item -LiteralPath "$windir\AtlasDesktop" -Force -Recurse -ErrorAction SilentlyContinue
+      Remove-Item -LiteralPath "$windir\AtlasModules" -Force -Recurse -ErrorAction SilentlyContinue
     wait: true
     exeDir: true
     oobe: false
@@ -55,14 +29,14 @@ actions:
     command: |
       $windir = [Environment]::GetFolderPath('Windows')
       @(
-          'EBOSModules',
-          'EBOSDesktop'
+          'AtlasModules',
+          'AtlasDesktop'
       ) | ForEach-Object {
           if (!(Test-Path $_)) { exit 1 }
           Copy-Item -Path $_ -Destination $windir -Force -Recurse
           if (!$?) { exit 2 }
       }
-      Start-Process -FilePath """$windir\EBOSDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd""" -ArgumentList "/silent" -WindowStyle Hidden
+      Start-Process -FilePath """$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd""" -ArgumentList "/silent" -WindowStyle Hidden
       Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
     weight: 10
     wait: true
@@ -82,8 +56,8 @@ actions:
   # Configure PowerShell first so that other PowerShell scripts work
   # NGEN - .NET assemblies PowerShell optimization
   - !writeStatus: { status: "Optimizing PowerShell" }
-  - !task: { path: 'scripts\script-ngen.yml' }
-  - !task: { path: 'misc\config-powershell.yml' }
+  - !task: { path: 'tweaks\scripts\script-ngen.yml' }
+  - !task: { path: 'tweaks\qol\config-powershell.yml' }
 
   # Disk Cleanup is run first so it can run in the background
   - !writeStatus: { status: "Cleaning up" }
@@ -94,48 +68,19 @@ actions:
     runas: currentUserElevated
 
   # Set hidden Settings pages
-  # Done before the domains as their scripts may overwrite it
-  - !task: { path: 'windows\set-hidden-settings-pages.yml' }
+  # Done before everything else as scripts will overwrite it
+  - !task: { path: 'tweaks\qol\set-hidden-settings-pages.yml' }
 
-  # ------------------------- 2. CORE ------------------------------ #
-  # Hardware detection, compatibility report, pre-change backup
-  - !task: { path: 'core\detect.yml' }
-  - !task: { path: 'core\backup.yml' }
+  # Main tasks
+  - !writeStatus: { status: "Applying base configuration" }
+  - !task: { path: 'atlas\start.yml' }
+  - !task: { path: 'atlas\services.yml' }
+  - !task: { path: 'atlas\components.yml' }
+  - !task: { path: 'atlas\appx.yml' }
+  - !task: { path: 'atlas\default.yml' }
+  - !task: { path: 'atlas\revert.yml' }
+  - !task: { path: "tweaks.yml" }
 
-  # ------------------------- 3. WINDOWS --------------------------- #
-  # Initial environment (PATH, DirectPlay, software), then the
-  # Windows domain (packages, components, services, updates, debloat)
-  - !task: { path: 'windows\init.yml' }
-  - !task: { path: 'windows\index.yml' }
-
-  # ------------------------- 4. PRIVACY --------------------------- #
-  - !task: { path: 'privacy\index.yml' }
-
-  # ------------------------- 5. SECURITY -------------------------- #
-  - !task: { path: 'security\index.yml' }
-
-  # --------------------- 6. OPTIMIZATION -------------------------- #
-  - !task: { path: 'optimization\index.yml' }
-
-  # ------------------------- 7. GAMING ---------------------------- #
-  - !task: { path: 'gaming\index.yml' }
-
-  # ------------------------- 8. NETWORK --------------------------- #
-  - !task: { path: 'network\index.yml' }
-
-  # ------------------------- 9. UI -------------------------------- #
-  - !task: { path: 'ui\index.yml' }
-
-  # ------------------------- 10. MISC ----------------------------- #
-  - !task: { path: 'misc\index.yml' }
-
-  # ------------------------- 11. SCRIPTS -------------------------- #
-  - !task: { path: 'scripts\index.yml' }
-
-  # ------------------------- 12. RECOVERY ------------------------- #
-  - !task: { path: 'recovery\index.yml' }
-
-  # ------------------------- TAIL --------------------------------- #
   # Set hives to HKU default user
   - !writeStatus: { status: "Applying hives..." }
   - !powerShell:
@@ -158,15 +103,13 @@ actions:
     oobe: false
     wait: true
 
+  - !writeStatus: { status: "Finalizing EBOS configuration" }
+
   # Set PowerShell execution policy to RemoteSigned from the previous "Unrestricted"
-  # This allows EBOS folder scripts (local) to run while requiring signatures for downloaded scripts
+  # This allows Atlas folder scripts (local) to run while requiring signatures for downloaded scripts
   - !writeStatus: { status: "Securing PowerShell execution policy" }
   - !registryValue:
     path: 'HKLM\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
     value: 'ExecutionPolicy'
     data: 'RemoteSigned'
     type: REG_SZ
-
-  # --------------------- 13. CORE TAIL ---------------------------- #
-  # Post-install system validation (fail-soft)
-  - !task: { path: 'core\validate.yml' }

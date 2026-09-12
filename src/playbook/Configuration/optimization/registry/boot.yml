@@ -1,8 +1,0 @@
----
-title: Configure boot
-description: Configure boot settings
-privilege: TrustedInstaller
-actions:
-
-  # === Disable automatic disk checking on boot
-  - !registryValue: {path: 'HKLM\SYSTEM\ControlSet001\Control\Session Manager', value: 'BootExecute', type: REG_MULTI_SZ, data: 'autocheck autochk /k:C*'}

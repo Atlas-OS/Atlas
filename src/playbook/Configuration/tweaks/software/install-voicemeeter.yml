@@ -1,0 +1,10 @@
+---
+title: Install Voicemeeter Banana
+description: Silently downloads and installs Voicemeeter Banana (virtual audio mixer) when selected.
+actions:
+  - !powerShell:
+      command: '.\Install-VoicemeeterBanana.ps1'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

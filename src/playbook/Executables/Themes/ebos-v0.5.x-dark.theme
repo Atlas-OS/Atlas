@@ -1,9 +1,9 @@
-[Theme]
-DisplayName=EBOS Aurora Dark
-ThemeId={5F8F7C9B-455A-4BDC-BE7F-1B70AE765E97}
+﻿[Theme]
+DisplayName=ebos-v0.5.x-dark
+ThemeId={313191F9-5CB1-4CF4-BA9B-795064A4DF15}
 
 [Control Panel\Desktop]
-Wallpaper=%windir%\EBOSModules\Wallpapers\ebos-v0.5.x-dark.png
+Wallpaper=%windir%\AtlasModules\Wallpapers\ebos-v0.5.x-dark.png
 Pattern=
 MultimonBackgrounds=0
 PicturePosition=4
@@ -26,7 +26,6 @@ Wait=%SystemRoot%\cursors\aero_busy.ani
 DefaultValue=Windows Default
 Crosshair=
 IBeam=
-
 [Sounds]
 SchemeName=No Sounds
 
@@ -38,7 +37,3 @@ AutoColorization=0
 ColorizationColor=0XC44A51A8
 SystemMode=Dark
 AppMode=Dark
-VisualStyleVersion=10
-
-[MasterThemeSelector]
-MTSM=RJSPBS

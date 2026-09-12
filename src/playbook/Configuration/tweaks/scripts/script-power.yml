@@ -1,0 +1,32 @@
+---
+title: Configure Power Settings
+description: Executes script to configure power settings for the best performance, especially focusing on the lowest latency e.g. by reducing any potential jitter
+actions:
+    # Disable power saving features
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Power-saving\Disable Power-saving.cmd" /silent'
+    exeDir: true
+    wait: true
+    weight: 20
+    runas: currentUserElevated
+    option: 'disable-power-saving'
+
+    # Disable Fast Startup
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power'
+    value: 'HiberbootEnabled'
+    data: '0'
+    type: REG_DWORD
+
+    # Disable Hibernation
+    # Disabling makes NTFS accessible outside of Windows
+  - !cmd:
+    command: '"AtlasDesktop\3. General Configuration\Hibernation\Disable Hibernation (default).cmd" /silent'
+    exeDir: true
+    wait: true
+    weight: 20
+    runas: currentUserElevated
+    option: 'disable-hibernation'
+
+    # Set 'Balanced' power scheme if keeping power saving
+  - !run: {exe: 'powercfg.exe', args: '/setactive "381b4222-f694-41f0-9685-ff5bb260df2e"', option: '!disable-power-saving'}

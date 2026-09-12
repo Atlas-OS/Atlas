@@ -1,0 +1,42 @@
+[Theme]
+DisplayName=Atlas v0.4.x Dark
+ThemeId={FB5C68CD-E525-4324-9830-18BFE1746747}
+
+[Control Panel\Desktop]
+Wallpaper=%windir%\AtlasModules\Wallpapers\atlas-v0.4.x-dark.png
+Pattern=
+MultimonBackgrounds=0
+PicturePosition=4
+WindowsSpotlight=0
+
+[Control Panel\Cursors]
+AppStarting=%windir%\cursors\aero_working.ani
+Arrow=%windir%\cursors\aero_arrow.cur
+Hand=%windir%\cursors\aero_link.cur
+Help=%windir%\cursors\aero_helpsel.cur
+No=%windir%\cursors\aero_unavail.cur
+NWPen=%windir%\cursors\aero_pen.cur
+SizeAll=%windir%\cursors\aero_move.cur
+SizeNESW=%windir%\cursors\aero_nesw.cur
+SizeNS=%windir%\cursors\aero_ns.cur
+SizeNWSE=%windir%\cursors\aero_nwse.cur
+SizeWE=%windir%\cursors\aero_ew.cur
+UpArrow=%windir%\cursors\aero_up.cur
+Wait=%windir%\cursors\aero_busy.ani
+DefaultValue=Windows Default
+
+[Sounds]
+SchemeName=No Sounds
+
+[VisualStyles]
+Path=%windir%\resources\themes\Aero\Aero.msstyles
+ColorStyle=NormalColor
+Size=NormalSize
+AutoColorization=0
+ColorizationColor=0XC44A51A8
+SystemMode=Dark
+AppMode=Dark
+VisualStyleVersion=10
+
+[MasterThemeSelector]
+MTSM=RJSPBS

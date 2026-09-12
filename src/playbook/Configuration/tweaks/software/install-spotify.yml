@@ -1,0 +1,10 @@
+---
+title: Install Spotify
+description: Silently installs Spotify when the "Install Spotify" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id Spotify.Spotify'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUser

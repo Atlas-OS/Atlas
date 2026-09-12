@@ -1,0 +1,10 @@
+---
+title: Transparent Taskbar (Windhawk)
+description: Installs Windhawk and the Windows 11 Taskbar Styler mod for a fully transparent taskbar.
+actions:
+  - !powerShell:
+      command: '.\Install-WindhawkTransparentTaskbar.ps1'
+      exeDir: true
+      wait: true
+      weight: 90
+      runas: currentUserElevated

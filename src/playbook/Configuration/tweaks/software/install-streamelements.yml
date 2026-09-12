@@ -1,0 +1,10 @@
+---
+title: Install StreamElements OBS
+description: Silently downloads and installs StreamElements SE.Live (OBS plugin) when selected.
+actions:
+  - !powerShell:
+      command: '.\Install-StreamElements.ps1'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

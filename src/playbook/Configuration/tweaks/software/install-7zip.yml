@@ -1,0 +1,10 @@
+---
+title: Install 7-Zip
+description: Silently installs 7-Zip when the "Install 7-Zip" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id 7zip.7zip'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

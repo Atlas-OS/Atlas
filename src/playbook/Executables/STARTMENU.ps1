@@ -1,4 +1,4 @@
-.\EBOSModules\initPowerShell.ps1
+.\AtlasModules\initPowerShell.ps1
 
 foreach ($userKey in (Get-RegUserPaths).PsPath) {
     $default = if ($userKey -match 'AME_UserHive_Default') { $true }

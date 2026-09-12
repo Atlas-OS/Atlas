@@ -1,0 +1,28 @@
+---
+title: EBOS Media Codecs Enhancement
+description: Enhances media playback support and codecs for improved audio/video experience
+actions:
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Media Foundation\Features'
+    value: 'AllowPlaybackOfSample4K'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Media Foundation\Features'
+    value: 'ResampleAudio'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  - !powerShell:
+    command: |
+      # Enhance audio quality settings
+      $audioKey = 'HKLM:\SOFTWARE\Microsoft\Windows\Audio\Engine'
+      if (Test-Path $audioKey) {
+        Set-ItemProperty -Path $audioKey -Name 'ConservativeFormatChange' -Value 0 -Force -ErrorAction SilentlyContinue
+      }
+      Write-Host "EBOS media codec enhancements applied."
+    wait: true
+    exeDir: true
+    runas: currentUserElevated
+    onUpgrade: true

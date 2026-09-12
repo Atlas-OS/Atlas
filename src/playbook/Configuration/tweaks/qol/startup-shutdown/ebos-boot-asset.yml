@@ -1,0 +1,10 @@
+---
+title: EBOS Custom Boot Animation Asset
+description: Documents the optional custom boot logo path used by the boot animation tweak
+actions:
+  # NOTE: Windows has no registry-driven custom boot logo (that needs HackBGRT).
+  # The old version created an empty C:\Windows\System32\EBOSBootAssets folder and
+  # referenced a mistyped Resources\EboSBoot.bmp that never existed - both removed.
+  # ebos-boot-animation.yml already handles a missing logo gracefully, so this
+  # task intentionally applies no system changes.
+  - !writeStatus: { status: "Checking EBOS boot assets" }

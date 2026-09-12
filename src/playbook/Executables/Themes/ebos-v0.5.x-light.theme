@@ -1,9 +1,9 @@
-[Theme]
-DisplayName=EBOS Aurora Light
-ThemeId={D8EF7D75-D11F-4007-AC65-A242DEBB3766}
+﻿[Theme]
+DisplayName=ebos-v0.5.x-light
+ThemeId={03C55A0E-9D70-461E-BE82-731690397D68}
 
 [Control Panel\Desktop]
-Wallpaper=%windir%\EBOSModules\Wallpapers\ebos-v0.5.x-light.png
+Wallpaper=%windir%\AtlasModules\Wallpapers\ebos-v0.5.x-light.png
 Pattern=
 MultimonBackgrounds=0
 PicturePosition=4
@@ -26,20 +26,14 @@ Wait=%SystemRoot%\cursors\aero_busy.ani
 DefaultValue=Windows Default
 Crosshair=
 IBeam=
-
 [Sounds]
 SchemeName=No Sounds
 
 [VisualStyles]
-Path=%SystemRoot%\resources\themes\Aero\Aero.msstyles
+Path=%windir%\resources\themes\Aero\Aero.msstyles
 ColorStyle=NormalColor
 Size=NormalSize
 AutoColorization=0
-ColorizationColor=0XC41B345A
-SystemMode=Dark
+ColorizationColor=0XC44A51A8
+SystemMode=Light
 AppMode=Light
-VisualStyleVersion=10
-
-[MasterThemeSelector]
-MTSM=RJSPBS
-

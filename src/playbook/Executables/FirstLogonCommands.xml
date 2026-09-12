@@ -1,0 +1,15 @@
+<!--
+  Snippet to embed inside <settings pass="oobeSystem">
+  <component name="Microsoft-Windows-Shell-Setup" ...>  ->  <FirstLogonCommands>
+  Runs once at first user logon. Assumes the Windhawk script was staged to C:\EBOS.
+  Uses powershell.exe (always present); the script self-elevates and prefers
+  pwsh internally when available.
+-->
+<FirstLogonCommands>
+  <SynchronousCommand wcm:action="add">
+    <Order>1</Order>
+    <CommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if (Test-Path 'C:\EBOS\Install-WindhawkTransparentTaskbar.ps1') { &amp; 'C:\EBOS\Install-WindhawkTransparentTaskbar.ps1' }"</CommandLine>
+    <Description>Install Windhawk + apply transparent taskbar</Description>
+    <RequiresUserInput>false</RequiresUserInput>
+  </SynchronousCommand>
+</FirstLogonCommands>

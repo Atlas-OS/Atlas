@@ -1,0 +1,113 @@
+<ProcessOptimization>
+    <Version>3.1.0</Version>
+    <TargetProcessCount>40</TargetProcessCount>
+    <ProtectionList>
+        <!-- Category A: Kernel & Session (1-6) -->
+        <Process name="System Idle Process" priority="1" category="Kernel" ServiceGroup=""/>
+        <Process name="System" priority="2" category="Kernel" ServiceGroup=""/>
+        <Process name="Registry" priority="3" category="Kernel" ServiceGroup=""/>
+        <Process name="smss.exe" path="\Windows\System32\smss.exe" priority="4" category="Session" ServiceGroup=""/>
+        <Process name="csrss.exe" path="\Windows\System32\csrss.exe" priority="5" category="Session" ServiceGroup=""/>
+        <Process name="wininit.exe" path="\Windows\System32\wininit.exe" priority="6" category="Session" ServiceGroup=""/>
+        
+        <!-- Category B: Security (7-13) -->
+        <Process name="services.exe" path="\Windows\System32\services.exe" priority="7" category="Security" ServiceGroup=""/>
+        <Process name="lsass.exe" path="\Windows\System32\lsass.exe" priority="8" category="Security" ServiceGroup=""/>
+        <Process name="winlogon.exe" path="\Windows\System32\winlogon.exe" priority="9" category="Security" ServiceGroup=""/>
+        <Process name="LsaIso.exe" path="\Windows\System32\LsaIso.exe" priority="10" category="Security" ServiceGroup=""/>
+        <Process name="svchost.exe" serviceGroup="RpcSs" priority="11" category="Core Services" ServiceGroup="RpcSs"/>
+        <Process name="svchost.exe" serviceGroup="DcomLaunch" priority="12" category="Core Services" ServiceGroup="DcomLaunch"/>
+        <Process name="svchost.exe" serviceGroup="Power" priority="13" category="Core Services" ServiceGroup="Power"/>
+        
+        <!-- Category C: UI & Shell (14-20) -->
+        <Process name="dwm.exe" path="\Windows\System32\dwm.exe" priority="14" category="UI" ServiceGroup=""/>
+        <Process name="explorer.exe" path="\Windows\explorer.exe" priority="15" category="UI" ServiceGroup=""/>
+        <Process name="sihost.exe" path="\Windows\System32\sihost.exe" priority="16" category="UI" ServiceGroup=""/>
+        <Process name="fontdrvhost.exe" path="\Windows\System32\fontdrvhost.exe" priority="17" category="UI" ServiceGroup=""/>
+        <Process name="ctfmon.exe" path="\Windows\System32\ctfmon.exe" priority="18" category="UI" ServiceGroup=""/>
+        <Process name="taskhostw.exe" path="\Windows\System32\taskhostw.exe" priority="19" category="UI" ServiceGroup=""/>
+        <Process name="RuntimeBroker.exe" path="\Windows\System32\RuntimeBroker.exe" priority="20" category="UI" ServiceGroup=""/>
+        
+        <!-- Category D: Audio & Network (21-28) -->
+        <Process name="audiodg.exe" path="\Windows\System32\audiodg.exe" priority="21" category="Audio" ServiceGroup=""/>
+        <Process name="svchost.exe" serviceGroup="AudioSrv" priority="22" category="Audio" ServiceGroup="AudioSrv"/>
+        <Process name="svchost.exe" serviceGroup="Dhcp" priority="23" category="Network" ServiceGroup="Dhcp"/>
+        <Process name="svchost.exe" serviceGroup="Dnscache" priority="24" category="Network" ServiceGroup="Dnscache"/>
+        <Process name="svchost.exe" serviceGroup="NLA" priority="25" category="Network" ServiceGroup="NLA"/>
+        <Process name="svchost.exe" serviceGroup="nsi" priority="26" category="Network" ServiceGroup="nsi"/>
+        <Process name="svchost.exe" serviceGroup="mpssvc" priority="27" category="Network" ServiceGroup="mpssvc"/>
+        <Process name="spoolsv.exe" path="\Windows\System32\spoolsv.exe" priority="28" category="Print" ServiceGroup=""/>
+        
+        <!-- Category E: GPU & Hardware (29-35) -->
+        <Process name="nvcontainer.exe" priority="29" category="GPU" ServiceGroup=""/>
+        <Process name="amdow.exe" priority="29" category="GPU" ServiceGroup=""/>
+        <Process name="igfxCUIService.exe" priority="29" category="GPU" ServiceGroup=""/>
+        <Process name="conhost.exe" path="\Windows\System32\conhost.exe" priority="30" category="Console" ServiceGroup=""/>
+        <Process name="wlanext.exe" path="\Windows\System32\wlanext.exe" priority="31" category="WiFi" ServiceGroup=""/>
+        <Process name="svchost.exe" serviceGroup="CryptSvc" priority="32" category="Security" ServiceGroup="CryptSvc"/>
+        <Process name="svchost.exe" serviceGroup="ProfSvc" priority="33" category="User" ServiceGroup="ProfSvc"/>
+        <Process name="svchost.exe" serviceGroup="gpsvc" priority="34" category="Policy" ServiceGroup="gpsvc"/>
+        <Process name="svchost.exe" serviceGroup="EventLog" priority="35" category="Logging" ServiceGroup="EventLog"/>
+    </ProtectionList>
+    
+    <OptimizationTargets>
+        <Services>
+            DiagTrack,dmwappushservice,diagnosticshub.standardcollector.service,DPS,WdiServiceHost,WdiSystemHost,
+            Wecsvc,WEPHOSTSVC,MapsBroker,lfsvc,EdgeUpdate,edgeupdatem,wuauserv,UsoSvc,WaaSMedicSvc,BITS,DoSvc,
+            XblAuthManager,XblGameSave,XboxNetApiSvc,XboxGipSvc,
+            RetailDemo,WSearch,Spooler,PrintNotify,bthserv,BluetoothUserService,
+            PhoneSvc,MessagingService,PimIndexMaintenanceSvc,UnistoreSvc,UserDataSvc,OneSyncSvc,
+            WalletService,PushToInstall,AppReadiness,AssignedAccessManagerSvc,
+            CDPSvc,CDPUserSvc,DevicePickerUserSvc,DevicesFlowUserSvc,DusmSvc,
+            InstallService,LicenseManager,NetTcpPortSharing,PcaSvc,
+            PrintNotify,SEMgrSvc,SensorDataService,SensorService,SensrSvc,
+            StorSvc,Themes,TimeBrokerSvc,TokenBroker,TroubleshootingSvc,
+            WbioSrvc,WpnService,WpnUserService,TableInputService
+        </Services>
+        <UWPApps>
+            Microsoft.StorePurchaseApp_8wekyb3d8bbwe,Microsoft.WindowsStore_8wekyb3d8bbwe,
+            Microsoft.Getstarted_8wekyb3d8bbwe,Microsoft.MicrosoftOfficeHub_8wekyb3d8bbwe,
+            Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe,Microsoft.ZuneMusic_8wekyb3d8bbwe,
+            Microsoft.ZuneVideo_8wekyb3d8bbwe,Microsoft.BingWeather_8wekyb3d8bbwe,
+            Microsoft.BingNews_8wekyb3d8bbwe,Microsoft.BingSports_8wekyb3d8bbwe,
+            Microsoft.BingFinance_8wekyb3d8bbwe,Microsoft.People_8wekyb3d8bbwe,
+            Microsoft.WindowsCommunicationsApps_8wekyb3d8bbwe,microsoft.windowscommunicationsapps_8wekyb3d8bbwe,
+            Microsoft.WindowsAlarms_8wekyb3d8bbwe,Microsoft.WindowsCalculator_8wekyb3d8bbwe,
+            Microsoft.WindowsCamera_8wekyb3d8bbwe,Microsoft.WindowsMaps_8wekyb3d8bbwe,
+            Microsoft.WindowsSoundRecorder_8wekyb3d8bbwe,Microsoft.Windows.Photos_8wekyb3d8bbwe,
+            Microsoft.XboxApp_8wekyb3d8bbwe,Microsoft.XboxGameOverlay_8wekyb3d8bbwe,
+            Microsoft.XboxGamingOverlay_8wekyb3d8bbwe,Microsoft.XboxIdentityProvider_8wekyb3d8bbwe,
+            Microsoft.XboxSpeechToTextOverlay_8wekyb3d8bbwe,
+            Microsoft.MixedReality.Portal_8wekyb3d8bbwe,Microsoft.Microsoft3DViewer_8wekyb3d8bbwe,
+            Microsoft.YourPhone_8wekyb3d8bbwe,Microsoft.ScreenSketch_8wekyb3d8bbwe,
+            Microsoft.MicrosoftStickyNotes_8wekyb3d8bbwe,Microsoft.MSPaint_8wekyb3d8bbwe,
+            Microsoft.WindowsFeedbackHub_8wekyb3d8bbwe
+        </UWPApps>
+        <ScheduledTasks>
+            \Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser,
+            \Microsoft\Windows\Application Experience\ProgramDataUpdater,
+            \Microsoft\Windows\Application Experience\StartupAppTask,
+            \Microsoft\Windows\Customer Experience Improvement Program\Consolidator,
+            \Microsoft\Windows\Customer Experience Improvement Program\UsbCeip,
+            \Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector,
+            \Microsoft\Windows\Location\Notifications,
+            \Microsoft\Windows\Maps\MapsUpdateTask,
+            \Microsoft\Windows\Media Center\MediaCenterRecoveryTask,
+            \Microsoft\Windows\Mobile Broadband Accounts\MNO Metadata Parser,
+            \Microsoft\Windows\Windows Error Reporting\QueueReporting,
+            \Microsoft\Windows\WindowsUpdate\Scheduled Start,
+            \Microsoft\Windows\Xbox\Xbox Update Task
+        </ScheduledTasks>
+        <Telemetry>
+            DiagTrack,dmwappushservice,diagnosticshub.standardcollector.service,
+            DPS,WdiServiceHost,WdiSystemHost,Wecsvc,WEPHOSTSVC
+        </Telemetry>
+    </OptimizationTargets>
+    
+    <Rollback>
+        <Enabled>true</Enabled>
+        <AutoBackup>true</AutoBackup>
+        <BackupLocation>%PROGRAMDATA%\ProcessOptimization\Backup</BackupLocation>
+        <RestoreScript>Rollback_Script.ps1</RestoreScript>
+    </Rollback>
+</ProcessOptimization>

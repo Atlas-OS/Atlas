@@ -1,9 +1,0 @@
----
-title: configure-multimedia
-description: configure-multimedia
-privilege: TrustedInstaller
-actions:
-
-  # === NetworkThrottlingIndex - 10 (default)
-  # -----> https://github.com/djdallmann/GamingPCSetup/blob/master/CONTENT/RESEARCH/NETWORK/README.md#networkthrottlingindex
-  - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile', value: 'NetworkThrottlingIndex', type: REG_DWORD, data: '10'}

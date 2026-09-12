@@ -12,11 +12,11 @@ for %%a in (
 	"notifications"
 	"privacy-notifications"
 ) do (
-	call "%windir%\EBOSModules\Scripts\settingsPages.cmd" /unhide %%~a /silent
+	call "%windir%\AtlasModules\Scripts\settingsPages.cmd" /unhide %%~a /silent
 )
 
 :: Enable services
-call "%windir%\EBOSModules\Scripts\setSvc.cmd" "WpnUserService" 2
+call "%windir%\AtlasModules\Scripts\setSvc.cmd" "WpnUserService" 2
 sc config WpnService start=auto > nul
 
 echo Enabled notifications.

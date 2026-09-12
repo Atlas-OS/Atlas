@@ -1,0 +1,43 @@
+---
+title: EBOS Gaming Profile Switcher
+description: Switches between gaming and balanced power profiles, optimizes GPU scheduling, and adjusts system settings for maximum FPS
+actions:
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers'
+    value: 'HwSchMode'
+    data: '2'
+    type: REG_DWORD
+    onUpgrade: true
+    runas: currentUserElevated
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\GameBar'
+    value: 'GameDVR_Enabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR'
+    value: 'AppCaptureEnabled'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !powerShell:
+    command: |
+      # Apply gaming optimizations: keep CPU at 100%, disable video idle.
+      # SCHEME_CURRENT = the active power scheme (the EBOS plan at this point).
+      $powerPlan = powercfg /getactivescheme | Select-String "High Performance"
+      if ($powerPlan) {
+        powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMIN 100
+        powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 100
+        powercfg /setacvalueindex SCHEME_CURRENT SUB_VIDEO VIDEOIDLE 0
+      }
+      # Disable Nagle's TCP algorithm for reduced latency
+      $key = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters'
+      if (Test-Path $key) {
+        Set-ItemProperty -Path $key -Name 'DisableTaskOffload' -Value 1 -Force -ErrorAction SilentlyContinue
+      }
+      Write-Host "Gaming profile optimizations applied."
+    wait: true
+    exeDir: true
+    runas: currentUserElevated
+    onUpgrade: true

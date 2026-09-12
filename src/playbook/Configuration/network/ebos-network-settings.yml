@@ -1,9 +1,0 @@
----
-title: Applies EBOS' Network Settings
-description: Applies EBOS' optimised network settings
-actions:
-  - !cmd:
-    command: '"EBOSDesktop\9. Troubleshooting\Network\Reset Network to EBOS Default.cmd" /silent'
-    exeDir: true
-    wait: true
-    runas: currentUserElevated

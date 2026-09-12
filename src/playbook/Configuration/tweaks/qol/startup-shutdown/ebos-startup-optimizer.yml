@@ -1,0 +1,20 @@
+---
+title: EBOS Startup Optimizer
+description: Reduces boot time by disabling the startup-apps delay for all users
+actions:
+  # Real startup-delay switch (per-user). The old HKLM TimeServerControl and
+  # StartupApproved placeholders never applied - removed. The base
+  # disable-startup-delay.yml covers the current user; this extends it to the
+  # default profile so new users get it too.
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize'
+    value: 'StartupDelayInMSec'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true
+  - !registryValue:
+    path: 'HKU\AME_UserHive_Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize'
+    value: 'StartupDelayInMSec'
+    data: '0'
+    type: REG_DWORD
+    onUpgrade: true

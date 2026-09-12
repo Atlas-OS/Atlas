@@ -1,0 +1,10 @@
+---
+title: Make MeasureSleep run as admin
+description: It requires admin
+actions:
+  - !powerShell:
+    command: |
+      Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers' `
+        -Name """$([Environment]::GetFolderPath('Windows'))\AtlasDesktop\3. General Configuration\Timer Resolution\! MeasureSleep.exe""" `
+        -Value '~ RUNASADMIN' -Force
+    wait: true

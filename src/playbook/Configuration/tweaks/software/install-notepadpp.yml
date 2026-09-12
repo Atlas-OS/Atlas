@@ -1,0 +1,10 @@
+---
+title: Install Notepad++
+description: Silently installs Notepad++ when the "Install Notepad++" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id Notepad++.Notepad++'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

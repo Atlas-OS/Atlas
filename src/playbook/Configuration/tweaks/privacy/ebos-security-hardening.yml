@@ -1,0 +1,35 @@
+---
+title: EBOS Security Hardening
+description: Additional security protections beyond baseline (UAC, autoplay, app control)
+actions:
+  # UAC stays enabled (real path, not the Policies prefix which does nothing)
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    value: 'EnableLUA'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  # NOTE: Firewall is left at Windows defaults (on). It was previously forced via a
+  # non-existent Defender path (EnableFirewall) which never applied - removed.
+  # Spotlight recommendations off (Defender App & Browser Control surface)
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Defender'
+    value: 'DisableSpotlightRecommendations'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  # Real Spotlight kill-switch (CloudContent policy)
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'
+    value: 'DisableWindowsSpotlightFeatures'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true
+  # NOTE: HKLM\...\Explorer\NoViewContextMenu=1 was removed - it disables ALL
+  # right-click context menus and breaks usability. Do not re-add.
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'
+    value: 'DisableAutoPlayAll'
+    data: '1'
+    type: REG_DWORD
+    onUpgrade: true

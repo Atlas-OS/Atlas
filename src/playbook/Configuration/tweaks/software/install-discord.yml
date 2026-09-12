@@ -1,0 +1,10 @@
+---
+title: Install Discord
+description: Silently installs Discord when the "Install Discord" option is selected.
+actions:
+  - !powerShell:
+      command: '.\Install-Software.ps1 -Id Discord.Discord'
+      exeDir: true
+      wait: true
+      weight: 120
+      runas: currentUserElevated

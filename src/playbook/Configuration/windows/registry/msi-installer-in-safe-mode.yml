@@ -1,8 +1,0 @@
----
-title: Make MSI installer work in safe mode
-description: make-msi-installer-work-in-safe-mode
-privilege: TrustedInstaller
-actions:
-
-  - !registryValue: {path: 'HKLM\SYSTEM\ControlSet001\Control\SafeBoot\Minimal\MSIServer', value: '', type: REG_SZ, data: 'Service'}
-  - !registryValue: {path: 'HKLM\SYSTEM\ControlSet001\Control\SafeBoot\Network\MSIServer', value: '', type: REG_SZ, data: 'Service'}

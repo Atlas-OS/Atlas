@@ -1,9 +1,9 @@
-[Theme]
-DisplayName=EBOS Liquid Glass
-ThemeId={2C43B12F-AB7A-4E46-B236-437C39D787B6}
+﻿[Theme]
+DisplayName=ebos-liquid-glass
+ThemeId={B8AB47FF-2721-46C8-9871-AA5F7CC35ADA}
 
 [Control Panel\Desktop]
-Wallpaper=%windir%\EBOSModules\Wallpapers\ebos-liquid-glass.png
+Wallpaper=%windir%\AtlasModules\Wallpapers\ebos-liquid-glass.png
 Pattern=
 MultimonBackgrounds=0
 PicturePosition=4
@@ -26,7 +26,6 @@ Wait=%SystemRoot%\cursors\aero_busy.ani
 DefaultValue=Windows Default
 Crosshair=
 IBeam=
-
 [Sounds]
 SchemeName=No Sounds
 
@@ -35,10 +34,6 @@ Path=%windir%\resources\themes\Aero\Aero.msstyles
 ColorStyle=NormalColor
 Size=NormalSize
 AutoColorization=0
-ColorizationColor=0XC48CA3B8
+ColorizationColor=0XFF4CC9F0
 SystemMode=Dark
 AppMode=Dark
-VisualStyleVersion=10
-
-[MasterThemeSelector]
-MTSM=RJSPBS
