@@ -1,11 +1,64 @@
 #![allow(clippy::disallowed_methods, reason = "build scripts are exempt")]
 
 fn main() {
+    for input in [
+        "src/shaders.hlsl",
+        "src/color_text_raster.hlsl",
+        "src/alpha_correction.hlsl",
+        "prebuilt/shaders_bytes.rs",
+        "prebuilt/inputs.sha256",
+    ] {
+        println!("cargo:rerun-if-changed={input}");
+    }
+    println!("cargo:rerun-if-env-changed=GPUI_FXC_PATH");
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
+        return;
+    }
+
+    // This build script inherits the release profile's debug-assertion setting.
+    // The Windows renderer uses the same setting to select precompiled shaders.
+    #[cfg(not(debug_assertions))]
+    prepare_release_shaders();
+}
+
+#[cfg(not(debug_assertions))]
+fn prepare_release_shaders() {
+    use std::{fs, path::PathBuf};
+    let root = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    let output = PathBuf::from(std::env::var_os("OUT_DIR").unwrap()).join("shaders_bytes.rs");
+    let prebuilt = root.join("prebuilt/shaders_bytes.rs");
+
     #[cfg(target_os = "windows")]
     {
-        // Compile HLSL shaders
-        #[cfg(not(debug_assertions))]
         compile_shaders();
+        if prebuilt.exists() && fs::read(&prebuilt).unwrap() != fs::read(&output).unwrap() {
+            println!(
+                "cargo::warning=GPUI shader bytecode differs from prebuilt/. Run app/tools/Export-ShaderBytes.ps1 on Windows and commit its output."
+            );
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        const HELP: &str = "Run app/tools/Export-ShaderBytes.ps1 on Windows (or download the atlas-gpui-shaders CI artifact) and commit prebuilt/.";
+        let expected = fs::read_to_string(root.join("prebuilt/inputs.sha256"))
+            .unwrap_or_else(|error| panic!("Missing GPUI shader input hashes: {error}. {HELP}"));
+        let hashes = std::process::Command::new("sha256sum")
+            .current_dir(&root)
+            .args(["src/shaders.hlsl", "src/color_text_raster.hlsl", "src/alpha_correction.hlsl"])
+            .output()
+            .expect("sha256sum is required for the Linux GPUI shader check");
+        assert!(
+            hashes.status.success(),
+            "Cannot hash GPUI shader inputs: {}",
+            String::from_utf8_lossy(&hashes.stderr)
+        );
+        assert_eq!(
+            String::from_utf8(hashes.stdout).unwrap(),
+            expected,
+            "GPUI prebuilt shader inputs are stale. {HELP}"
+        );
+        fs::copy(&prebuilt, &output)
+            .unwrap_or_else(|error| panic!("Cannot copy GPUI prebuilt shader bytecode: {error}. {HELP}"));
     }
 }
 
@@ -27,6 +80,8 @@ mod shader_compilation {
 
         // Check if fxc.exe is available
         let fxc_path = find_fxc_compiler();
+        fs::write(Path::new(&out_dir).join("fxc-path.txt"), &fxc_path)
+            .expect("record the shader compiler used for export");
 
         // Define all modules
         let modules = [
@@ -42,8 +97,7 @@ mod shader_compilation {
 
         let rust_binding_path = format!("{}/shaders_bytes.rs", out_dir);
         if Path::new(&rust_binding_path).exists() {
-            fs::remove_file(&rust_binding_path)
-                .expect("Failed to remove existing Rust binding file");
+            fs::remove_file(&rust_binding_path).expect("Failed to remove existing Rust binding file");
         }
         for module in modules {
             compile_shader_for_module(
@@ -84,28 +138,16 @@ mod shader_compilation {
             .filter_map(|entry| entry.file_name().into_string().ok())
             .collect();
 
-        versions.sort_by_key(|s| {
-            s.split('.')
-                .filter_map(|p| p.parse().ok())
-                .collect::<Vec<u32>>()
-        });
+        versions.sort_by_key(|s| s.split('.').filter_map(|p| p.parse().ok()).collect::<Vec<u32>>());
 
         let arch = match std::env::consts::ARCH {
             "x86_64" => "x64",
             "aarch64" => "arm64",
-            _ => Err(format!(
-                "Unsupported architecture: {}",
-                std::env::consts::ARCH
-            ))?,
+            _ => Err(format!("Unsupported architecture: {}", std::env::consts::ARCH))?,
         };
 
         if let Some(highest_version) = versions.last() {
-            return Ok(Some(
-                install_folder_bin
-                    .join(highest_version)
-                    .join(arch)
-                    .join(binary),
-            ));
+            return Ok(Some(install_folder_bin.join(highest_version).join(arch).join(binary)));
         }
 
         Ok(None)
@@ -122,9 +164,7 @@ mod shader_compilation {
 
         // Try to find in PATH
         // NOTE: This has to be `where.exe` on Windows, not `where`, it must be ended with `.exe`
-        if let Ok(output) = std::process::Command::new("where.exe")
-            .arg("fxc.exe")
-            .output()
+        if let Ok(output) = std::process::Command::new("where.exe").arg("fxc.exe").output()
             && output.status.success()
         {
             let path = String::from_utf8_lossy(&output.stdout);
@@ -181,18 +221,7 @@ mod shader_compilation {
         target: &str,
     ) {
         let output = Command::new(fxc_path)
-            .args([
-                "/T",
-                target,
-                "/E",
-                entry_point,
-                "/Fh",
-                output_path,
-                "/Vn",
-                var_name,
-                "/O3",
-                shader_path,
-            ])
+            .args(["/T", target, "/E", entry_point, "/Fh", output_path, "/Vn", var_name, "/O3", shader_path])
             .output();
 
         match output {
@@ -232,9 +261,7 @@ mod shader_compilation {
             .append(true)
             .open(output_path)
             .expect("Failed to open Rust binding file");
-        options
-            .write_all(rust_binding.as_bytes())
-            .expect("Failed to write Rust binding file");
+        options.write_all(rust_binding.as_bytes()).expect("Failed to write Rust binding file");
     }
 }
 

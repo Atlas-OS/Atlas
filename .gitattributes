@@ -6,6 +6,8 @@
 *.yaml eol=lf
 *.cpp  eol=lf
 *.h    eol=lf
+*.hlsl eol=lf
+app/vendor/gpui-pre-windows/prebuilt/* text eol=lf
 *.rc   eol=lf
 *.manifest eol=lf
 *.bat  eol=crlf

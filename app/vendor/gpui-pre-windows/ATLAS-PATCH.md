@@ -4,7 +4,15 @@ Vendored from the published Apache-2.0 `gpui-pre-windows` 0.3.3 crate,
 upstream Zed revision `5b055fa789a8b8d38ac951a6e0cde272f66b4495`.
 Original LICENSE-APACHE is retained. Cargo patches this backend and gpui-pre together.
 
-Only `src/shaders.hlsl` differs from the published backend. Background tag 4
+`src/shaders.hlsl` adds the visual change described below. `build.rs` also supports
+Linux cross-builds using checked-in production bytecode in `prebuilt/`. Windows
+still compiles with FXC and warns if the result differs. Run
+`app/tools/Export-ShaderBytes.ps1` on Windows (or use the `atlas-gpui-shaders` CI
+artifact) and commit its output after changing any of the three HLSL inputs,
+compiler flags, profiles or entrypoints. Linux checks all input hashes before
+using this output. The prebuilt README records the generating compiler.
+
+Background tag 4
 adds the completion-page procedural effect. It reuses the 72-byte Background
 layout: solid is the base colour, colors contain the middle/highlight, the first
 percentage carries grain, and gradient_angle_or_pattern_height carries phase.
