@@ -1,0 +1,3 @@
+fe8b22d6fb899e1da08891fc51e27029ed8745a4b8c5e5163c2f1d924d2107c6  src/shaders.hlsl
+53bb7f737dcf5b7c7a2c474cf6e7f649cc4e7d49b5526c2ac5f75f75086ce2b8  src/color_text_raster.hlsl
+d37b106f1266b40a0e17478455dfaac1205214f597e23fbd0a26455c49806bf4  src/alpha_correction.hlsl
