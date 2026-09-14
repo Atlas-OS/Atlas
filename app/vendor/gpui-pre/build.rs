@@ -17,7 +17,13 @@ fn embed_resource() {
     let rc_file = std::path::Path::new("resources/windows/gpui.rc");
     println!("cargo:rerun-if-changed={}", manifest.display());
     println!("cargo:rerun-if-changed={}", rc_file.display());
-    embed_resource::compile(rc_file, embed_resource::NONE)
-        .manifest_required()
-        .unwrap();
+    // llvm-rc resolves file resources from the preprocessed RC's output directory.
+    let root = std::path::PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    let absolute_manifest = root.join(manifest).to_string_lossy().replace('\\', "/");
+    let resource = std::fs::read_to_string(rc_file)
+        .unwrap()
+        .replace("resources/windows/gpui.manifest.xml", &absolute_manifest);
+    let output = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap()).join("gpui.rc");
+    std::fs::write(&output, resource).unwrap();
+    embed_resource::compile(&output, embed_resource::NONE).manifest_required().unwrap();
 }

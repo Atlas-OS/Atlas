@@ -8,6 +8,8 @@
 *.h    eol=lf
 *.hlsl eol=lf
 app/vendor/gpui-pre-windows/prebuilt/* text eol=lf
+# Preserve FXC's generated array formatting for exact Windows comparisons.
+app/vendor/gpui-pre-windows/prebuilt/shaders_bytes.rs whitespace=-blank-at-eol
 *.rc   eol=lf
 *.manifest eol=lf
 *.bat  eol=crlf

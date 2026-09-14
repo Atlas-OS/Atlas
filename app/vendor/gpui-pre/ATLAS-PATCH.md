@@ -33,3 +33,9 @@ constructor, transparency handling and debug formatting. `src/style.rs` handles
 that tag in the existing background paint path. The Background memory layout
 is unchanged. Pair with the vendored Windows renderer; see
 `../gpui-pre-windows/ATLAS-PATCH.md` for its shader and maintenance checks.
+
+## Linux resource compilation
+
+`build.rs` writes an RC with an absolute manifest path into Cargo's output
+directory so `llvm-rc` can resolve `resources/windows/gpui.manifest.xml` during
+an MSVC cross-build.

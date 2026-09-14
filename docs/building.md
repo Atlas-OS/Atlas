@@ -74,6 +74,61 @@ and the stamped OEM version. Use `-PlaybookPath` when verifying against a non-de
 tree. The builder verifies its temporary archive before publishing it, and CI runs the same
 verifier independently. A failed build leaves an existing destination archive unchanged.
 
+## Linux desktop cross-build
+
+The desktop app targets Windows MSVC from Linux using cargo-xwin 0.23.1 and
+the Rust version in `app/rust-toolchain.toml`. Install PowerShell 7 (`pwsh`),
+7-Zip, Rust/rustup and LLVM (including `clang-cl`, `lld-link`, `llvm-lib`,
+`llvm-rc` and `llvm-readobj`) using your distribution's supported package
+instructions. `sha256sum` is also required. On Arch-based systems, PowerShell
+may require an AUR package such as `powershell-bin`; review and install it with
+your normal package manager. The setup script does not install system packages.
+
+From any directory, run `tools/release/setup-linux.sh` using its repository path.
+It resolves the checkout root and selects the app's pinned toolchain before
+installing the Windows target and cargo-xwin. The checkout/cache path must not
+contain spaces. Unset `RUSTFLAGS` and `CARGO_ENCODED_RUSTFLAGS`: target-scoped
+static CRT flags must reach the Windows build without affecting host tools.
+
+The first successful Linux link used cargo-xwin 0.23.1, SDK `10.0.26100` and
+CRT `14.44.17.14` (xwin package identifiers). Use these pins with the absolute
+cache path when building from `app/`:
+
+```bash
+export XWIN_CACHE_DIR="$(cd .. && pwd -P)/artifacts/xwin"
+export XWIN_ACCEPT_LICENSE=1
+export XWIN_SDK_VERSION=10.0.26100
+export XWIN_CRT_VERSION=14.44.17.14
+pwsh -NoProfile -File tools/Export-DependencyNotices.ps1 -Check
+CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS='-C target-feature=+crt-static' \
+  cargo xwin build --release --locked --target x86_64-pc-windows-msvc
+```
+
+The result is `app/target/x86_64-pc-windows-msvc/release/AtlasManager.exe`.
+`7z l` shows its icon, version information and manifest. This link is a build
+check; run installation and recovery checks on Windows.
+
+### Production shader export
+
+Linux uses the Windows-generated shader bytecode committed under
+`app/vendor/gpui-pre-windows/prebuilt/`. It checks SHA-256 hashes of
+`shaders.hlsl`, `color_text_raster.hlsl` and their shared `alpha_correction.hlsl`
+include before copying the bytecode into the build output. It never runs FXC or
+Wine. A missing or stale export fails the build.
+
+On Windows with the SDK installed, regenerate with:
+
+```powershell
+pwsh -NoProfile -File app/tools/Export-ShaderBytes.ps1
+```
+
+This uses Cargo's reported build-script output for the exact release build,
+and exports bytecode, input hashes and FXC provenance together. Desktop app CI
+also uploads these files as `atlas-gpui-shaders`. Commit the complete export
+after changing any HLSL input, compiler, compiler flag, profile or entrypoint.
+The Windows build continues to compile its own shaders and warns on differences
+from the committed export.
+
 ## Native assembly
 
 The payload compiles `Scripts\Modules\Atlas.Core\Native\Atlas.Native.cs` at runtime.
