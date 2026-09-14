@@ -1176,3 +1176,81 @@ fn english_follows_the_windows_variant_when_there_is_one() {
     assert_eq!(english_for(&["de-DE".into()]), "en-GB", "no English in the list: the source");
     assert_eq!(english_for(&[]), "en-GB");
 }
+
+// A tester build: the bundled playbook is the only package, and GitHub is
+// never asked. These run only when the binary carries one.
+
+#[cfg(feature = "embedded-playbook")]
+mod bundled {
+    use super::*;
+    use crate::services::embedded;
+
+    fn tester_environment(machine: &Machine, root: &Path) -> Environment {
+        Environment { embedded_startup: true, ..machine.environment(root) }
+    }
+
+    #[test]
+    fn a_tester_build_loads_its_bundled_playbook_and_never_asks_github() {
+        run_model_test(async move |mut cx| {
+            let temp = TempDir::new("bundled-startup");
+            let machine = Machine::new(all_off());
+            let env = tester_environment(&machine, temp.path());
+            let model = new_model(&mut cx, env.clone());
+            wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+            act(&mut cx, &model, |m, cx| m.begin_install(cx));
+            wait_for(&cx, &model, "the bundled package", |m| m.playbook.is_some()).await;
+            read(&cx, &model, |m| {
+                let book = m.playbook.as_ref().unwrap();
+                assert!(embedded::holds(&book.dir), "the loaded package is the embedded archive");
+                assert!(matches!(book.origin, Origin::Bundled));
+                assert!(matches!(m.release, ReleaseCheck::NotChecked));
+            });
+            let archive = env.paths.downloads().join(format!("Atlas-{}.apbx", embedded::rc_id().unwrap()));
+            assert_eq!(releases::sha256_file(&archive).unwrap(), embedded::sha256());
+
+            // The explicit actions are inert too, not merely hidden.
+            act(&mut cx, &model, |m, cx| {
+                m.check_for_updates(cx);
+                m.acquire_latest(cx);
+            });
+            cx.background_executor().timer(Duration::from_millis(200)).await;
+            read(&cx, &model, |m| {
+                assert!(matches!(m.release, ReleaseCheck::NotChecked), "no release check ran");
+                assert!(!m.acquisition.is_busy(), "no download started");
+                assert!(matches!(m.playbook.as_ref().unwrap().origin, Origin::Bundled));
+            });
+        });
+    }
+
+    #[test]
+    fn a_draft_from_another_package_yields_to_the_bundled_one() {
+        run_model_test(async move |mut cx| {
+            let temp = TempDir::new("bundled-foreign-draft");
+            let machine = Machine::new(all_off());
+            let env = tester_environment(&machine, &temp.path().join("App"));
+            let (package, _) = marking_package(&temp, 0);
+            let (foreign, _) = playbook::extract_into(&package, &env.paths.playbooks(), |_, _| {}).unwrap();
+            save_draft(
+                &env,
+                InstallDraft {
+                    step: "ready".into(),
+                    options: vec![],
+                    playbook_dir: Some(foreign.clone()),
+                    option_screen: 0,
+                    session: None,
+                    flow: Some("other-window".into()),
+                    preparation_restart_at: None,
+                },
+            );
+            let model = new_model(&mut cx, env);
+            wait_for(&cx, &model, "the bundled package", |m| {
+                m.playbook.as_ref().is_some_and(|book| embedded::holds(&book.dir))
+            })
+            .await;
+            read(&cx, &model, |m| {
+                assert!(m.flow.active && m.flow.step == Step::Ready, "the draft's step is resumed");
+                assert_ne!(m.playbook.as_ref().unwrap().dir, foreign, "the foreign package is not adopted");
+            });
+        });
+    }
+}

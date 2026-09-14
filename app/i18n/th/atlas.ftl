@@ -700,3 +700,14 @@ diagnostics-exporting = กำลังรวบรวมข้อมูลว�
 diagnostics-show = แสดงไฟล์ ZIP วินิจฉัย
 diagnostics-privacy = สร้าง ZIP ที่ปกปิดข้อมูลละเอียดอ่อนเพื่อแนบรายงานบั๊กสาธารณะ
 diagnostics-error = ส่งออกข้อมูลวินิจฉัยไม่ได้: { $error }
+
+## Tester builds (embedded-playbook feature)
+
+# One line of chrome under the title bar on a release-candidate build.
+rc-banner = Atlas { $release } รุ่นทดสอบ แอปนี้ติดตั้งเฉพาะ playbook ที่มาพร้อมกันเท่านั้น
+home-status-bundled = รุ่นทดสอบ { $release }
+package-bundled = Atlas { $version } ที่มาพร้อมรุ่นทดสอบนี้พร้อมติดตั้งแล้ว
+rc-about-release = รุ่นทดสอบ
+rc-about-commit = คอมมิตต้นทาง
+rc-about-package = Playbook ที่มาพร้อมกัน (SHA-256)
+iso-package-bundled = Playbook ที่มาพร้อมรุ่นทดสอบนี้

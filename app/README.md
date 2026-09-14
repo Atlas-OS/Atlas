@@ -47,8 +47,23 @@ cargo clippy --locked --all-targets -- -D warnings
 powershell -NoProfile -File tools/Build-Release.ps1
 ```
 
-The same checks run in CI (`.github/workflows/app.yml`) on every change under `app/`.
-CI also builds and saves the release executable as `atlas-manager-windows-x64`.
+The same checks run in CI (`.github/workflows/app.yml`) on every change under `app/`,
+once without features and once with `--features embedded-playbook` against a
+LocalTest package. CI also builds and saves the release executable as
+`atlas-manager-windows-x64`. On Linux, `tools/release/setup-linux.sh` and the
+cross-build in `docs/building.md` replace the Visual Studio tools; the icon and
+manifest are compiled with `llvm-rc` and the shaders come from the committed
+Windows export.
+
+`--features embedded-playbook` builds a tester candidate: `build.rs` reads
+`ATLAS_EMBED_APBX` (the archive to carry) and `ATLAS_RC_ID` (for example
+`0.6.0-rc.1`) and fails without them. Such a build installs only its bundled
+playbook: no release check, no download, no file picker, `--playbook` and
+`.apbx` arguments ignored, ISO creation uses the bundled archive, and a draft or
+recovered session for another package is not run. The RC id appears under the
+title bar, in Settings > About with the source commit and package digest, in
+the executable's version resource, and as `rcId` in diagnostic exports.
+`tools/release/build-rc.sh` produces the tester ZIP.
 The release script writes `target/x86_64-pc-windows-msvc/release/AtlasManager.exe`
 with the C runtime linked statically, so a clean Windows installation does not
 need a separately installed Visual C++ runtime. The explicit Cargo target keeps

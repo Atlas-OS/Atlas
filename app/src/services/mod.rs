@@ -4,6 +4,7 @@
 pub mod atlas_state;
 pub mod diagnostics;
 mod diagnostics_redaction;
+pub mod embedded;
 pub mod installer;
 pub mod licenses;
 pub mod locale;

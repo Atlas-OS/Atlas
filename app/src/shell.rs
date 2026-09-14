@@ -283,6 +283,32 @@ impl Render for Shell {
                     })
                 },
             ))
+            // A tester build: one persistent line of chrome says which
+            // candidate this is and that nothing else installs from it.
+            .when_some(crate::services::embedded::rc_id(), |this, rc_id| {
+                this.child(
+                    div()
+                        .id("rc-banner")
+                        .role(gpui::Role::Status)
+                        .flex_shrink_0()
+                        .flex()
+                        .items_start()
+                        .gap(px(8.))
+                        .pl(px(16.))
+                        .pr(px(16.))
+                        .pt(px(2.))
+                        .pb(px(8.))
+                        .child(icon_in_line(Icon::Info, BODY_LINE_HEIGHT).text_color(theme.info))
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .type_body()
+                                .whitespace_normal()
+                                .child(t!("rc-banner", release = rc_id)),
+                        ),
+                )
+            })
             // A preview translation is in use: one line of chrome under the
             // title bar says so, with the two ways out, until the user
             // dismisses it for this language or picks English.

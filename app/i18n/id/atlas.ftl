@@ -699,3 +699,14 @@ diagnostics-exporting = Mengumpulkan diagnostik…
 diagnostics-show = Tampilkan ZIP diagnostik
 diagnostics-privacy = Buat ZIP dengan data sensitif disamarkan untuk laporan bug publik.
 diagnostics-error = Tidak dapat mengekspor diagnostik: { $error }
+
+## Tester builds (embedded-playbook feature)
+
+# One line of chrome under the title bar on a release-candidate build.
+rc-banner = Versi uji Atlas { $release }. Aplikasi ini hanya menginstal playbook bawaan.
+home-status-bundled = Versi uji { $release }
+package-bundled = Atlas { $version } bawaan versi uji ini siap diinstal.
+rc-about-release = Versi uji
+rc-about-commit = Commit sumber
+rc-about-package = Playbook bawaan (SHA-256)
+iso-package-bundled = Playbook bawaan versi uji ini

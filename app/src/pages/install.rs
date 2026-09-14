@@ -228,6 +228,7 @@ impl InstallPage {
             _ => None,
         };
         let busy = state.acquisition.is_busy() || state.locked() || !state.flow.may_edit();
+        let bundled = state.bundled();
         let download_label = match (&release, &state.playbook) {
             (Some(r), Some(p)) if p.manifest.version == r.version() => t!("package-download-again"),
             (Some(r), _) => t!("package-download-version", version = r.version()),
@@ -258,26 +259,47 @@ impl InstallPage {
                             .flex_wrap()
                             .gap(px(8.))
                             .pt(px(4.))
-                            .when(state.can_download_latest() || state.playbook.is_none(), |this| {
+                            // A tester build offers its bundled playbook and nothing else.
+                            .when(bundled && matches!(state.acquisition, Acquisition::Failed(_)), |this| {
                                 this.child(
-                                    Button::new("source-download", download_label)
-                                        .icon(Icon::Download)
-                                        .disabled(busy || release.is_none())
+                                    Button::new("source-bundled", t!("common-try-again"))
+                                        .icon(Icon::Sync)
+                                        .disabled(busy)
                                         .on_click({
                                             let model = model.clone();
-                                            move |_, _, cx| model.update(cx, |m, cx| m.acquire_latest(cx))
+                                            move |_, _, cx| {
+                                                model.update(cx, |m, cx| m.load_bundled_package(cx))
+                                            }
                                         }),
                                 )
                             })
-                            .child(
-                                Button::new("source-local", t!("package-open-file"))
-                                    .icon(Icon::Folder)
-                                    .disabled(busy)
-                                    .on_click({
-                                        let model = model.clone();
-                                        move |_, _, cx| model.update(cx, |m, cx| m.choose_local_playbook(cx))
-                                    }),
-                            ),
+                            .when(
+                                !bundled && (state.can_download_latest() || state.playbook.is_none()),
+                                |this| {
+                                    this.child(
+                                        Button::new("source-download", download_label)
+                                            .icon(Icon::Download)
+                                            .disabled(busy || release.is_none())
+                                            .on_click({
+                                                let model = model.clone();
+                                                move |_, _, cx| model.update(cx, |m, cx| m.acquire_latest(cx))
+                                            }),
+                                    )
+                                },
+                            )
+                            .when(!bundled, |this| {
+                                this.child(
+                                    Button::new("source-local", t!("package-open-file"))
+                                        .icon(Icon::Folder)
+                                        .disabled(busy)
+                                        .on_click({
+                                            let model = model.clone();
+                                            move |_, _, cx| {
+                                                model.update(cx, |m, cx| m.choose_local_playbook(cx))
+                                            }
+                                        }),
+                                )
+                            }),
                     ),
             )
             .into_any_element()

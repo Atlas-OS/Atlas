@@ -62,6 +62,11 @@ windows = { version = "0.62", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 
+[features]
+# A tester build that carries one playbook and installs nothing else. The
+# release script sets ATLAS_EMBED_APBX and ATLAS_RC_ID; see docs/rc-testers-build.md.
+embedded-playbook = []
+
 [dev-dependencies]
 icu_segmenter = { version = "2.2.0", default-features = false, features = ["compiled_data"] }
 fluent-syntax = "0.12"

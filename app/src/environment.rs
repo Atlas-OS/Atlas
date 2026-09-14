@@ -70,6 +70,9 @@ pub struct Environment {
     pub paths: AppPaths,
     /// Ask GitHub for the latest release at startup.
     pub check_updates: bool,
+    /// Load the playbook built into a tester build when a flow needs one.
+    /// Tests keep this off and choose their own packages.
+    pub embedded_startup: bool,
     /// `--language`, which outranks the language setting (review and testing).
     pub language_override: Option<String>,
     pub restart: RestartTiming,
@@ -81,7 +84,8 @@ impl Environment {
     pub fn from_process(language_override: Option<String>) -> Self {
         Self {
             paths: AppPaths::from_process(),
-            check_updates: true,
+            check_updates: !cfg!(feature = "embedded-playbook"),
+            embedded_startup: cfg!(feature = "embedded-playbook"),
             language_override,
             restart: RestartTiming::default(),
             adapters: Adapters::windows(),
@@ -95,6 +99,7 @@ impl Environment {
         Self {
             paths: AppPaths::under(root),
             check_updates: false,
+            embedded_startup: false,
             language_override: None,
             restart: RestartTiming::default(),
             adapters: Adapters::windows(),
@@ -107,6 +112,7 @@ impl std::fmt::Debug for Environment {
         f.debug_struct("Environment")
             .field("paths", &self.paths)
             .field("check_updates", &self.check_updates)
+            .field("embedded_startup", &self.embedded_startup)
             .field("language_override", &self.language_override)
             .field("restart", &self.restart)
             .finish_non_exhaustive()

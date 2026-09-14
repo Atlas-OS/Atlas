@@ -380,7 +380,7 @@ pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
             let executable = std::env::current_exe().ok();
             let hash = executable.as_ref().and_then(|path| super::releases::sha256_file(path).ok());
             let info = super::system::SystemInfo::read();
-            let manifest = json!({"schema":2,"redaction":"public-v1","createdAt":chrono::Utc::now().to_rfc3339(),"appVersion":env!("CARGO_PKG_VERSION"),"executable":executable,"appSha256":hash,"package":package,"windows":{"build":info.build_label(),"edition":info.edition_id,"release":info.display_version},"elevated":super::system::is_elevated(),"collectorError":collector,"loggingPath":LOG_LOCATION.get(),"limits":{"fileBytes":FILE_LIMIT,"totalBytes":TOTAL_LIMIT,"entries":2048},"files":bundle.entries});
+            let manifest = json!({"schema":2,"redaction":"public-v1","createdAt":chrono::Utc::now().to_rfc3339(),"appVersion":env!("CARGO_PKG_VERSION"),"rcId":super::embedded::rc_id(),"sourceCommit":super::embedded::source_commit(),"executable":executable,"appSha256":hash,"package":package,"windows":{"build":info.build_label(),"edition":info.edition_id,"release":info.display_version},"elevated":super::system::is_elevated(),"collectorError":collector,"loggingPath":LOG_LOCATION.get(),"limits":{"fileBytes":FILE_LIMIT,"totalBytes":TOTAL_LIMIT,"entries":2048},"files":bundle.entries});
             bundle.text("manifest.json", &serde_json::to_vec_pretty(&manifest)?)?;
             Ok(())
         })();

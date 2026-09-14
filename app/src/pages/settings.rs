@@ -1,6 +1,8 @@
 //! Settings: appearance, language, install behaviour and about.
 
-use gpui::{Context, Entity, IntoElement, ParentElement, Render, ScrollHandle, Styled, Window, div, px};
+use gpui::{
+    Context, Entity, IntoElement, ParentElement, Render, ScrollHandle, Styled, Window, div, prelude::*, px,
+};
 
 use super::{card_body, card_header, detail_row, detail_text, page_frame};
 use crate::i18n::{self, Decision, Readiness, fmt};
@@ -234,6 +236,24 @@ impl Render for SettingsPage {
                     t!("settings-about-app"),
                     detail_text("app", env!("CARGO_PKG_VERSION")),
                 ))
+                .when_some(crate::services::embedded::rc_id(), |this, rc_id| {
+                    this.child(detail_row(cx, "rc", t!("rc-about-release"), detail_text("rc", rc_id)))
+                        .child(detail_row(
+                            cx,
+                            "commit",
+                            t!("rc-about-commit"),
+                            detail_text(
+                                "commit",
+                                crate::services::embedded::source_commit().unwrap_or("unknown"),
+                            ),
+                        ))
+                        .child(detail_row(
+                            cx,
+                            "bundled",
+                            t!("rc-about-package"),
+                            detail_text("bundled", bundled_digest()),
+                        ))
+                })
                 .child(detail_row(
                     cx,
                     "data",
@@ -300,5 +320,17 @@ impl Render for SettingsPage {
             None,
             cx,
         )
+    }
+}
+
+/// The bundled playbook's digest on a tester build; empty elsewhere.
+fn bundled_digest() -> String {
+    #[cfg(feature = "embedded-playbook")]
+    {
+        crate::services::embedded::sha256().to_owned()
+    }
+    #[cfg(not(feature = "embedded-playbook"))]
+    {
+        String::new()
     }
 }

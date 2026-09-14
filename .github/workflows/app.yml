@@ -77,6 +77,20 @@ jobs:
         # stub scripts in a temporary directory; nothing is installed.
         run: cargo test --locked -- --nocapture
 
+      - name: Build a LocalTest playbook for the tester-build checks
+        # The embedded-playbook feature compiles one APBX into the test binary.
+        # Tests never install it; they only unpack it into a temporary root.
+        working-directory: ${{ github.workspace }}
+        run: ./tools/build/Build-Playbook.ps1 -LocalTest
+
+      - name: Clippy and test the tester build (embedded-playbook)
+        env:
+          ATLAS_EMBED_APBX: ${{ github.workspace }}/playbook/Atlas Test.apbx
+          ATLAS_RC_ID: 0.6.0-rc.0
+        run: |
+          cargo clippy --locked --all-targets --features embedded-playbook -- -D warnings
+          cargo test --locked --features embedded-playbook -- --nocapture
+
       - name: Build production executable
         run: ./tools/Build-Release.ps1
 

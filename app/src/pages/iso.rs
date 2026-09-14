@@ -211,10 +211,13 @@ impl IsoPage {
         if self.model.read(cx).locked() || self.model.read(cx).recovering {
             return;
         }
-        let (Some(source), Some(archive), Some(output)) =
-            (self.source.clone(), self.archive.clone(), self.output.clone())
-        else {
-            return;
+        let bundled = self.model.read(cx).bundled();
+        let (Some(source), Some(output)) = (self.source.clone(), self.output.clone()) else { return };
+        let archive = match self.archive.clone() {
+            Some(archive) => archive,
+            // A tester build injects its bundled playbook, written on the worker.
+            None if bundled => PathBuf::new(),
+            None => return,
         };
         let Ok(job) = iso::job_dir() else {
             self.error = true;
@@ -247,6 +250,7 @@ impl IsoPage {
                 let operation = || -> anyhow::Result<(Option<ImageInfo>, PathBuf, Manifest)> {
                     // Inspect and inject the same archive bytes even if the original
                     // file is replaced while the worker is running.
+                    let archive = if bundled { bundled_archive()? } else { archive };
                     let snapshot = job.join("Atlas.apbx");
                     std::fs::copy(&archive, &snapshot)?;
                     let (package, manifest) = playbook::extract_into(
@@ -346,11 +350,23 @@ impl IsoPage {
 
     fn files(&self, cx: &mut Context<Self>) -> AnyElement {
         let mut content = card_body(cx).gap(px(14.));
+        let bundled = self.model.read(cx).bundled();
         for (index, label, path) in [
             (0, t!("iso-source"), &self.source),
             (1, t!("iso-package"), &self.archive),
             (2, t!("iso-output"), &self.output),
         ] {
+            if index == 1 && bundled {
+                content = content.child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .gap(px(6.))
+                        .child(div().type_body_strong().child(label))
+                        .child(detail_text("iso-path-1", t!("iso-package-bundled"))),
+                );
+                continue;
+            }
             content = content.child(
                 div().flex().flex_col().gap(px(6.)).child(div().type_body_strong().child(label)).child(
                     div()
@@ -968,7 +984,7 @@ impl Render for IsoPage {
                         .accent()
                         .disabled(
                             self.source.is_none()
-                                || self.archive.is_none()
+                                || (self.archive.is_none() && !self.model.read(cx).bundled())
                                 || self.output.is_none()
                                 || self.model.read(cx).locked(),
                         )
@@ -1065,5 +1081,17 @@ impl Render for IsoPage {
             cx,
         )
         .into_any_element()
+    }
+}
+
+/// The bundled playbook, written to the downloads folder for injection.
+fn bundled_archive() -> anyhow::Result<PathBuf> {
+    #[cfg(feature = "embedded-playbook")]
+    {
+        crate::services::embedded::materialize(&settings::AppPaths::from_process())
+    }
+    #[cfg(not(feature = "embedded-playbook"))]
+    {
+        anyhow::bail!("this build has no bundled playbook")
     }
 }

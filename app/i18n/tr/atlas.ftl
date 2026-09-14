@@ -714,3 +714,14 @@ diagnostics-exporting = Tanı bilgileri toplanıyor…
 diagnostics-show = Tanı ZIP dosyasını göster
 diagnostics-privacy = Herkese açık hata bildirimi için hassas verileri gizlenmiş bir ZIP oluşturun.
 diagnostics-error = Tanı bilgileri dışa aktarılamadı: { $error }
+
+## Tester builds (embedded-playbook feature)
+
+# One line of chrome under the title bar on a release-candidate build.
+rc-banner = Atlas { $release } test sürümü. Bu uygulama yalnızca birlikte gelen playbook’u kurar.
+home-status-bundled = Test sürümü { $release }
+package-bundled = Bu test sürümüyle gelen Atlas { $version } kuruluma hazır.
+rc-about-release = Test sürümü
+rc-about-commit = Kaynak commit
+rc-about-package = Birlikte gelen playbook (SHA-256)
+iso-package-bundled = Bu test sürümüyle gelen playbook

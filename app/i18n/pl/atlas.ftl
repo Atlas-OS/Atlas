@@ -731,3 +731,14 @@ diagnostics-exporting = Zbieranie danych diagnostycznych…
 diagnostics-show = Pokaż ZIP z diagnostyką
 diagnostics-privacy = Utwórz ZIP z ukrytymi danymi wrażliwymi do publicznego zgłoszenia błędu.
 diagnostics-error = Nie można wyeksportować diagnostyki: { $error }
+
+## Tester builds (embedded-playbook feature)
+
+# One line of chrome under the title bar on a release-candidate build.
+rc-banner = Wersja testowa Atlas { $release }. Ta aplikacja instaluje tylko dołączony playbook.
+home-status-bundled = Wersja testowa { $release }
+package-bundled = Atlas { $version } dołączony do tej wersji testowej jest gotowy do instalacji.
+rc-about-release = Wersja testowa
+rc-about-commit = Commit źródłowy
+rc-about-package = Dołączony playbook (SHA-256)
+iso-package-bundled = Playbook dołączony do tej wersji testowej

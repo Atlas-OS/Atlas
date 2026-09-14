@@ -6,7 +6,7 @@
 //! task drops its handle; generation checks discard results from older tasks.
 
 use std::collections::BTreeSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -113,6 +113,8 @@ pub enum Origin {
     LocalFile(PathBuf),
     /// Unpacked earlier and picked up again after a relaunch.
     Unpacked,
+    /// The playbook built into a tester build.
+    Bundled,
 }
 
 /// A prepared package: an immutable directory whose name carries the
@@ -134,6 +136,7 @@ impl PlaybookSource {
                 t!("package-from-file", version = &self.manifest.version, file = releases::file_name(path))
             }
             Origin::Unpacked => t!("package-unpacked", version = &self.manifest.version),
+            Origin::Bundled => t!("package-bundled", version = &self.manifest.version),
         }
     }
 }
@@ -386,6 +389,20 @@ pub struct AppModel {
 }
 
 impl EventEmitter<ModelEvent> for AppModel {}
+
+/// Whether an unpacked directory holds the playbook built into this tester
+/// build. Never true in other builds.
+fn bundled_holds(dir: &Path) -> bool {
+    #[cfg(feature = "embedded-playbook")]
+    {
+        crate::services::embedded::holds(dir)
+    }
+    #[cfg(not(feature = "embedded-playbook"))]
+    {
+        let _ = dir;
+        false
+    }
+}
 
 /// The shipped English variant that best matches a Windows display-language
 /// list; British English, the source, when none matches.
@@ -780,6 +797,11 @@ impl AppModel {
         self.flow.locked() || self.iso_busy || self.preparation.busy()
     }
 
+    /// A tester build: the bundled playbook is the only package on offer.
+    pub fn bundled(&self) -> bool {
+        self.env.embedded_startup
+    }
+
     /// The window shows the dedicated installing view: while an install is
     /// preparing or running, and after it succeeded until the user leaves.
     pub fn install_in_progress(&self) -> bool {
@@ -1163,7 +1185,11 @@ impl AppModel {
             && !self.acquisition.is_busy()
             && !matches!(self.acquisition, Acquisition::Failed(_))
         {
-            self.acquire_latest(cx);
+            if self.env.embedded_startup {
+                self.load_bundled_package(cx);
+            } else {
+                self.acquire_latest(cx);
+            }
         }
     }
 
@@ -1367,11 +1393,18 @@ impl AppModel {
         self.flow_id = Some(draft.flow.clone().unwrap_or_else(settings::new_flow_id));
         self.own_session = draft.session.clone();
         if let Some(dir) = draft.playbook_dir.filter(|dir| playbook::is_extracted(dir)) {
-            match playbook::read_manifest(&dir) {
-                Ok(manifest) => {
-                    self.playbook = Some(PlaybookSource { dir, manifest, origin: Origin::Unpacked });
+            if self.env.embedded_startup && !bundled_holds(&dir) {
+                // A draft from another package (or an unverifiable one) is
+                // not this tester build's to resume; the bundled playbook is
+                // loaded in its place once the flow reaches Ready.
+                log::info!("The draft's package {} is not the bundled playbook; ignoring it", dir.display());
+            } else {
+                match playbook::read_manifest(&dir) {
+                    Ok(manifest) => {
+                        self.playbook = Some(PlaybookSource { dir, manifest, origin: Origin::Unpacked });
+                    }
+                    Err(error) => log::warn!("could not resume the unpacked playbook: {error:#}"),
                 }
-                Err(error) => log::warn!("could not resume the unpacked playbook: {error:#}"),
             }
         }
         if !draft.options.is_empty() {
@@ -1475,6 +1508,15 @@ impl AppModel {
             }
             Err(error) => log::warn!("could not inspect preparation recovery: {error:#}"),
             Ok(None) => {}
+        }
+        // A flow that reached Ready while recovery was still running (a
+        // command-line step) waited for this answer before loading anything.
+        if self.env.embedded_startup
+            && self.flow.active
+            && self.flow.step == Step::Ready
+            && self.playbook.is_none()
+        {
+            self.load_bundled_package(cx);
         }
         cx.notify();
     }
@@ -1585,6 +1627,11 @@ impl AppModel {
     // ----- Releases --------------------------------------------------------
 
     pub fn check_for_updates(&mut self, cx: &mut Context<Self>) {
+        if cfg!(feature = "embedded-playbook") {
+            // A tester build installs only its bundled playbook and never
+            // asks GitHub what is newest.
+            return;
+        }
         self.refresh_atlas_state();
         if matches!(self.release, ReleaseCheck::Checking) {
             return;
@@ -1615,7 +1662,11 @@ impl AppModel {
     /// Downloads the latest playbook (or reuses a verified cached copy) and
     /// unpacks it so it can be installed.
     pub fn acquire_latest(&mut self, cx: &mut Context<Self>) {
-        if self.locked() || self.acquisition.is_busy() || !self.flow.may_edit() || !self.can_download_latest()
+        if cfg!(feature = "embedded-playbook")
+            || self.locked()
+            || self.acquisition.is_busy()
+            || !self.flow.may_edit()
+            || !self.can_download_latest()
         {
             return;
         }
@@ -1689,6 +1740,53 @@ impl AppModel {
         }));
     }
 
+    /// Unpacks the playbook built into a tester build: written to the
+    /// downloads folder on a worker, then loaded like any other file. Waits
+    /// for startup recovery, which retries this once it knows nothing else
+    /// is running. A no-op in other builds.
+    pub fn load_bundled_package(&mut self, cx: &mut Context<Self>) {
+        #[cfg(feature = "embedded-playbook")]
+        {
+            if self.recovering || self.locked() || self.acquisition.is_busy() || !self.flow.may_edit() {
+                return;
+            }
+            let paths = self.env.paths.clone();
+            self.acquisition = Acquisition::Extracting { done: 0, total: 0 };
+            self.acquisition_epoch += 1;
+            let epoch = self.acquisition_epoch;
+            cx.notify();
+            self.acquisition_task = Some(cx.spawn(async move |this, cx| {
+                let result = cx
+                    .background_executor()
+                    .spawn(async move { crate::services::embedded::materialize(&paths) })
+                    .await;
+                this.update(cx, |this, cx| {
+                    if this.acquisition_epoch != epoch {
+                        return;
+                    }
+                    this.acquisition_task = None;
+                    match result {
+                        Ok(path) => {
+                            this.acquisition = Acquisition::Idle;
+                            this.load_playbook_file(path, cx);
+                        }
+                        Err(error) => {
+                            log::error!("Could not write the bundled playbook: {error:#}");
+                            this.acquisition =
+                                Acquisition::Failed(AcquireProblem::Other { error: format!("{error:#}") });
+                            cx.notify();
+                        }
+                    }
+                })
+                .ok();
+            }));
+        }
+        #[cfg(not(feature = "embedded-playbook"))]
+        {
+            let _ = cx;
+        }
+    }
+
     /// Lets the user pick an .apbx they already have.
     pub fn choose_local_playbook(&mut self, cx: &mut Context<Self>) {
         if self.locked() || self.acquisition.is_busy() || !self.flow.may_edit() {
@@ -1747,7 +1845,11 @@ impl AppModel {
             this.update(cx, |this, cx| {
                 this.finish_acquisition(
                     epoch,
-                    result.map(|(dir, manifest)| (dir, manifest, Origin::LocalFile(path))),
+                    result.map(|(dir, manifest)| {
+                        let origin =
+                            if bundled_holds(&dir) { Origin::Bundled } else { Origin::LocalFile(path) };
+                        (dir, manifest, origin)
+                    }),
                     cx,
                 );
             })
@@ -1972,6 +2074,15 @@ impl AppModel {
     /// child) runs on a worker while the flow stays locked in `Preparing`.
     pub fn start_install(&mut self, cx: &mut Context<Self>) {
         self.refresh_atlas_state();
+        if self.env.embedded_startup && !self.playbook.as_ref().is_some_and(|book| bundled_holds(&book.dir)) {
+            // A recovered session can describe another package. It can be
+            // looked at, not run: only the bundled playbook installs.
+            log::warn!("The loaded package is not the bundled playbook; loading the bundled one instead");
+            self.playbook = None;
+            self.load_bundled_package(cx);
+            cx.notify();
+            return;
+        }
         if !self.can_install() {
             cx.notify();
             return;

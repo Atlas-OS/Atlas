@@ -80,8 +80,11 @@ impl Render for HomePage {
             None => system_text.clone(),
         };
 
+        let bundled = state.bundled();
         let (light, status_text) = if eligibility_problem.is_some() {
             (LightState::Caution, t!("install-source-title"))
+        } else if let Some(rc_id) = crate::services::embedded::rc_id() {
+            (LightState::Good, t!("home-status-bundled", release = rc_id))
         } else {
             match (&state.release, &update, &installed_version) {
                 (ReleaseCheck::Checking, _, _) => (LightState::Pending, t!("home-status-checking")),
@@ -186,17 +189,19 @@ impl Render for HomePage {
                             .gap(px(10.))
                             .mt(px(6.))
                             .child(StatusLight::new(light, status_text).id("home-update-status"))
-                            .child(
-                                Button::new("home-check", t!("home-check-again"))
-                                    .hyperlink()
-                                    .compact()
-                                    .centre_label()
-                                    .disabled(checking)
-                                    .on_click({
-                                        let model = model.clone();
-                                        move |_, _, cx| model.update(cx, |m, cx| m.check_for_updates(cx))
-                                    }),
-                            ),
+                            .when(!bundled, |this| {
+                                this.child(
+                                    Button::new("home-check", t!("home-check-again"))
+                                        .hyperlink()
+                                        .compact()
+                                        .centre_label()
+                                        .disabled(checking)
+                                        .on_click({
+                                            let model = model.clone();
+                                            move |_, _, cx| model.update(cx, |m, cx| m.check_for_updates(cx))
+                                        }),
+                                )
+                            }),
                     ),
             )
             .child(

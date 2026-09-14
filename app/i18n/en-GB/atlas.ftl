@@ -724,3 +724,14 @@ diagnostics-exporting = Collecting diagnostics…
 diagnostics-show = Show diagnostic ZIP
 diagnostics-privacy = Create a redacted ZIP to share with a public bug report.
 diagnostics-error = Could not export diagnostics: { $error }
+
+## Tester builds (embedded-playbook feature)
+
+# One line of chrome under the title bar on a release-candidate build.
+rc-banner = Atlas { $release } test build. This app installs only the bundled playbook.
+home-status-bundled = Test build { $release }
+package-bundled = Atlas { $version } bundled with this test build is ready to install.
+rc-about-release = Test build
+rc-about-commit = Source commit
+rc-about-package = Bundled playbook (SHA-256)
+iso-package-bundled = The playbook bundled with this test build

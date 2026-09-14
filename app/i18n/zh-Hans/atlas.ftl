@@ -688,3 +688,14 @@ diagnostics-exporting = 正在收集诊断信息…
 diagnostics-show = 显示诊断 ZIP
 diagnostics-privacy = 创建已隐去敏感信息的 ZIP，用于公开报告问题。
 diagnostics-error = 无法导出诊断信息：{ $error }
+
+## Tester builds (embedded-playbook feature)
+
+# One line of chrome under the title bar on a release-candidate build.
+rc-banner = Atlas { $release } 测试版。此应用只安装内置的 playbook。
+home-status-bundled = 测试版 { $release }
+package-bundled = 此测试版内置的 Atlas { $version } 已就绪，可以安装。
+rc-about-release = 测试版
+rc-about-commit = 源代码提交
+rc-about-package = 内置 playbook (SHA-256)
+iso-package-bundled = 此测试版内置的 playbook

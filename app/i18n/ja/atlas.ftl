@@ -692,3 +692,14 @@ diagnostics-exporting = 診断情報を収集中…
 diagnostics-show = 診断 ZIP を表示
 diagnostics-privacy = 機密情報を除去した ZIP を作成し、公開のバグ報告で共有できます。
 diagnostics-error = 診断情報をエクスポートできませんでした: { $error }
+
+## Tester builds (embedded-playbook feature)
+
+# One line of chrome under the title bar on a release-candidate build.
+rc-banner = Atlas { $release } テストビルド。このアプリは同梱の playbook のみをインストールします。
+home-status-bundled = テストビルド { $release }
+package-bundled = このテストビルドに同梱された Atlas { $version } のインストール準備ができています。
+rc-about-release = テストビルド
+rc-about-commit = ソースコミット
+rc-about-package = 同梱の playbook (SHA-256)
+iso-package-bundled = このテストビルドに同梱された playbook

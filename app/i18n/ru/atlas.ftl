@@ -724,3 +724,14 @@ diagnostics-exporting = Сбор диагностики…
 diagnostics-show = Показать ZIP с диагностикой
 diagnostics-privacy = Создайте ZIP со скрытыми конфиденциальными данными для публичного отчёта об ошибке.
 diagnostics-error = Не удалось экспортировать диагностику: { $error }
+
+## Tester builds (embedded-playbook feature)
+
+# One line of chrome under the title bar on a release-candidate build.
+rc-banner = Тестовая сборка Atlas { $release }. Это приложение устанавливает только встроенный playbook.
+home-status-bundled = Тестовая сборка { $release }
+package-bundled = Atlas { $version }, встроенный в эту тестовую сборку, готов к установке.
+rc-about-release = Тестовая сборка
+rc-about-commit = Исходный коммит
+rc-about-package = Встроенный playbook (SHA-256)
+iso-package-bundled = Playbook, встроенный в эту тестовую сборку

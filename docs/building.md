@@ -108,6 +108,25 @@ The result is `app/target/x86_64-pc-windows-msvc/release/AtlasManager.exe`.
 `7z l` shows its icon, version information and manifest. This link is a build
 check; run installation and recovery checks on Windows.
 
+### Release candidates for testers
+
+`tools/release/build-rc.sh --rc N` builds one tester bundle entirely on Linux:
+the production APBX (all eligibility gates intact, verified with
+`Test-Apbx.ps1`), then `AtlasManager.exe` compiled with the
+`embedded-playbook` feature so it carries exactly that archive, then a ZIP
+with both files, the licence notices and a tester note. Output lands in
+`artifacts/rc/<version>-rc.N/` with `SHA256SUMS.txt` beside the ZIP; a failed
+run leaves an earlier candidate untouched. The tree must be committed unless
+`--allow-dirty` is passed, in which case About and diagnostics show a
+`-dirty` commit. Nothing is tagged or published: post the ZIP and the checksum
+lines by hand. See `docs/rc-testers-build.md` for the design and the checks
+still owed on Windows.
+
+A tester build never checks GitHub, downloads, or opens another playbook. It
+writes its bundled archive to the app's Downloads folder on first use and
+unpacks it through the ordinary package cache. Testers reinstall Windows
+between candidates; an installed candidate is not upgraded.
+
 ### Production shader export
 
 Linux uses the Windows-generated shader bytecode committed under

@@ -702,3 +702,14 @@ diagnostics-exporting = निदान इकट्ठा किया जा �
 diagnostics-show = निदान ZIP दिखाएँ
 diagnostics-privacy = सार्वजनिक बग रिपोर्ट के लिए संवेदनशील जानकारी हटाकर ZIP बनाएँ।
 diagnostics-error = निदान निर्यात नहीं हो सका: { $error }
+
+## Tester builds (embedded-playbook feature)
+
+# One line of chrome under the title bar on a release-candidate build.
+rc-banner = Atlas { $release } परीक्षण बिल्ड। यह ऐप केवल साथ में दिया गया playbook इंस्टॉल करता है।
+home-status-bundled = परीक्षण बिल्ड { $release }
+package-bundled = इस परीक्षण बिल्ड के साथ दिया गया Atlas { $version } इंस्टॉल के लिए तैयार है।
+rc-about-release = परीक्षण बिल्ड
+rc-about-commit = स्रोत कमिट
+rc-about-package = साथ दिया गया playbook (SHA-256)
+iso-package-bundled = इस परीक्षण बिल्ड के साथ दिया गया playbook

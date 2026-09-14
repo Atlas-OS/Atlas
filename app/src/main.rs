@@ -46,6 +46,11 @@ fn start_at() -> StartAt {
     if start.playbook.is_some() && start.page.is_none() {
         start.page = Some(model::Page::Install);
     }
+    if cfg!(feature = "embedded-playbook")
+        && let Some(path) = start.playbook.take()
+    {
+        log::info!("Ignoring {}: this tester build installs only its bundled playbook", path.display());
+    }
     start
 }
 
@@ -93,7 +98,10 @@ fn main() {
     if before_desktop {
         start.page = Some(model::Page::Install);
         let paths = services::settings::AppPaths::from_process();
-        if services::settings::load_from(&paths.settings()).settings.draft.is_none() {
+        // A tester build unpacks its bundled playbook once the flow is Ready.
+        if !cfg!(feature = "embedded-playbook")
+            && services::settings::load_from(&paths.settings()).settings.draft.is_none()
+        {
             start.playbook =
                 std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.join("Atlas.apbx")));
         }
