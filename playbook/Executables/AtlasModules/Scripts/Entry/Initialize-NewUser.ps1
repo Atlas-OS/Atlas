@@ -4,6 +4,7 @@
 param(
     [switch]$FinalizeSearch,
     [switch]$FromInstall,
+    [switch]$RefreshStart,
     [string]$ExpectedUserSid
 )
 
@@ -13,8 +14,8 @@ $windir = [Environment]::GetFolderPath('Windows')
 $markerSubKey = 'SOFTWARE\AtlasOS\UserSetup'
 $markerPath = "HKCU:\$markerSubKey"
 
-if ($FinalizeSearch -and $FromInstall) {
-    throw 'FinalizeSearch and FromInstall are mutually exclusive.'
+if (($FinalizeSearch -and $FromInstall) -or ($RefreshStart -and ($FinalizeSearch -or $FromInstall))) {
+    throw 'FinalizeSearch, FromInstall and RefreshStart are mutually exclusive.'
 }
 
 if ($FromInstall) {
@@ -146,6 +147,46 @@ function Invoke-CurrentSessionExplorerRefresh {
     }
 }
 
+# Start's Category view records one Category value per app under this key and
+# never revisits an app that has no entry. At the installing account's first
+# sign-in after the restart, Windows is still deregistering the packages the
+# install removed while the shell builds Start for the first time, so Start
+# categorises only the apps it can enumerate through that churn and the rest sit
+# in "Other" for good. Removing the whole key makes the next Start host redo every
+# app in one pass; pins live elsewhere and are untouched.
+$startCategoriesPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Start\TileProperties'
+$startRefreshRunPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
+$startRefreshRunName = 'AtlasStartCategories'
+$startRefreshBootName = 'StartRefreshBoot'
+
+function Get-BootStamp {
+    return (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime.ToUniversalTime().ToString('o')
+}
+
+function Register-StartCategoryRefresh {
+    # Run, not RunOnce: the install-time Explorer restart consumes RunOnce within the
+    # same boot. The stage compares the boot recorded here and acts only after a restart.
+    if (-not (Test-Path -LiteralPath $markerPath)) {
+        $null = New-Item -Path $markerPath -Force
+    }
+    Set-ItemProperty -Path $markerPath -Name $startRefreshBootName -Value (Get-BootStamp) -Type String -Force
+    if (-not (Test-Path -LiteralPath $startRefreshRunPath)) {
+        $null = New-Item -Path $startRefreshRunPath -Force
+    }
+    $command = '"%windir%\System32\wscript.exe" "%windir%\AtlasModules\Scripts\Entry\Invoke-InitializeNewUserHidden.vbs" -RefreshStart'
+    Set-ItemProperty -Path $startRefreshRunPath -Name $startRefreshRunName -Value $command -Type ExpandString -Force
+}
+
+function Reset-StartCategories {
+    Remove-Item -Path $startCategoriesPath -Recurse -Force -ErrorAction SilentlyContinue
+    $sessionId = [Diagnostics.Process]::GetCurrentProcess().SessionId
+    foreach ($startHost in @(Get-Process -Name StartMenuExperienceHost -ErrorAction SilentlyContinue)) {
+        if ($startHost.SessionId -eq $sessionId) {
+            Stop-Process -InputObject $startHost -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Start-DelayedSearchFinalizer {
     $vbsPath = Join-Path $windir 'AtlasModules\Scripts\Entry\Invoke-InitializeNewUserHidden.vbs'
     $wscriptPath = Join-Path ([Environment]::SystemDirectory) 'wscript.exe'
@@ -153,8 +194,23 @@ function Start-DelayedSearchFinalizer {
         -ArgumentList @("`"$vbsPath`"", '-FinalizeSearch')
 }
 
+if ($RefreshStart) {
+    $recordedBoot = (Get-ItemProperty -Path $markerPath -Name $startRefreshBootName -ErrorAction SilentlyContinue).$startRefreshBootName
+    if ($recordedBoot -and $recordedBoot -ceq (Get-BootStamp)) {
+        return
+    }
+    Remove-ItemProperty -Path $startRefreshRunPath -Name $startRefreshRunName -ErrorAction SilentlyContinue
+    Remove-ItemProperty -Path $markerPath -Name $startRefreshBootName -ErrorAction SilentlyContinue
+    # ponytail: the observed churn lasts ~10 s from sign-in; poll the AppX deployment
+    # log instead if a slow disk ever outruns this.
+    Start-Sleep -Seconds 60
+    Reset-StartCategories
+    return
+}
+
 if ($FinalizeSearch) {
     Start-Sleep -Seconds 20
+    Reset-StartCategories
     Set-SearchTaskbarMode
     Invoke-CurrentSessionExplorerRefresh
     Start-Sleep -Seconds 5
@@ -396,6 +452,7 @@ Initialize-AtlasNativeType
 
 if ($FromInstall) {
     Set-SetupMarker -Value 2
+    Register-StartCategoryRefresh
     # Set-AtlasTaskbarPins keeps Explorer alive while it atomically replaces the pin
     # files and Taskband values. Refresh this user's shell only after every
     # install-time user action is complete so the running Explorer window adopts
