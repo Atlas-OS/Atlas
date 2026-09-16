@@ -345,37 +345,51 @@ float2x2 rotate2d(float angle) {
     return float2x2(c, -s, s, c);
 }
 
-// Atlas: analytic wave distortion evaluated per pixel, with stable screen-space
-// grain. No textures, CPU rasterization, or frame-dependent random flicker.
+// Atlas: light through water, printed as a halftone. A domain-warped sum of
+// four sine octaves gives a caustic-like network of bright folds of varying
+// width; every term uses an integer multiple of the phase so the loop has no
+// seam. The folds drive a fixed device-pixel dot grid: dots rest tiny and
+// faint, and swell and brighten as the light passes over them. A soft glow
+// underneath ties the dots together. No textures or frame-dependent noise.
+//   solid          resting dot colour (alpha included)
+//   colors[0]      glow colour; its percentage carries the dot pitch in device px
+//   colors[1]      lit dot colour
 float4 atlas_flowing_gradient(Background background, float2 position, Bounds bounds,
-                              float4 base, float4 middle, float4 highlight) {
-    float2 uv = (position - bounds.origin) / max(bounds.size, float2(1., 1.));
+                              float4 rest, float4 glow, float4 lit) {
+    float2 local = position - bounds.origin;
+    float2 uv = local / max(bounds.size, float2(1., 1.));
     float2 p = (uv - .5) * float2(bounds.size.x / max(bounds.size.y, 1.), 1.);
     p = mul(rotate2d(-.45), p);
-    float phase = background.gradient_angle_or_pattern_height;
-    float bend = .19 * sin(p.x * 2.7 + phase) + .10 * sin(p.x * 5.3 - phase * 2.);
-    float field = (p.y + bend) * 8. + .45 * sin(p.x * 3. + phase);
-    float wave = .5 + .5 * sin(field);
+    float t = background.gradient_angle_or_pattern_height;
 
-    // Two independently shaped colour transitions give each fold a luminous
-    // edge and a wide soft shoulder, rather than a row of linear stripes.
-    float4 color = lerp(base, middle, smoothstep(.08, .82, wave));
-    color = lerp(color, highlight, smoothstep(.72, 1., wave) * .85);
+    float2 q = p * 4.5;
+    q += .3 * float2(sin(q.y * 1.3 + t), cos(q.x * 1.1 - t));
+    float w = sin(q.x * 1.9 + q.y * .8 + t)
+            + .5 * sin(q.x * -2.7 + q.y * 3.6 - 2. * t)
+            + .25 * sin(q.x * 7.1 + q.y * 4.3 + 3. * t)
+            + .125 * sin(q.x * -9.3 + q.y * 11.7 - 2. * t);
+    w = saturate(w / 1.875 * .5 + .5);
+    float light = pow(1. - abs(2. * w - 1.), 1.5);
 
-    uint2 pixel = (uint2)floor(position - bounds.origin);
-    uint seed = pixel.x * 1973u + pixel.y * 9277u + 89173u;
-    seed = (seed ^ (seed >> 16)) * 0x7feb352du;
-    seed = (seed ^ (seed >> 15)) * 0x846ca68bu;
-    seed = seed ^ (seed >> 16);
-    float grain = float(seed & 0xffffu) / 65535. - .5;
-    color.rgb = saturate(color.rgb + grain * background.colors[0].percentage);
-    color.a = saturate(color.a * (1. + grain * background.colors[0].percentage * 2.));
-
-    // Protect the completion heading/buttons; the richer wave lives below
-    // the hero and along the edges, leaving the existing Mica visible.
+    // Keep the heading and buttons clear; the light is richest low and at the sides.
     float edge = smoothstep(.15, .48, abs(uv.x - .5));
     float depth = smoothstep(.22, .68, uv.y);
-    color.a *= .24 + .76 * max(edge * .65, depth);
+    float mask = .12 + .88 * max(edge * .7, depth);
+
+    float pitch = max(background.colors[0].percentage, 2.);
+    float2 cell = frac(local / pitch) - .5;
+    float d = length(cell) * pitch;
+    float grow = smoothstep(.62, 1., light);
+    float radius = pitch * lerp(.06, .22, grow);
+    float dot = 1. - smoothstep(radius - .7, radius + .7, d);
+
+    float4 color = float4(glow.rgb, glow.a * smoothstep(.25, 1., light));
+    float4 dot_color = lerp(rest, lit, grow);
+    dot_color.a *= dot;
+    // Straight-alpha "over" of the dot on the glow.
+    float a = dot_color.a + color.a * (1. - dot_color.a);
+    color.rgb = (dot_color.rgb * dot_color.a + color.rgb * color.a * (1. - dot_color.a)) / max(a, 1e-4);
+    color.a = a * mask;
     return color;
 }
 

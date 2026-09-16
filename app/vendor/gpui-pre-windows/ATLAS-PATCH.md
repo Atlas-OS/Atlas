@@ -14,22 +14,27 @@ using this output. The prebuilt README records the generating compiler.
 
 Background tag 4
 adds the completion-page procedural effect. It reuses the 72-byte Background
-layout: solid is the base colour, colors contain the middle/highlight, the first
-percentage carries grain, and gradient_angle_or_pattern_height carries phase.
-The existing quad vertex/pixel pipeline, clipping, alpha blending, device-loss
-recovery, and release shader compilation remain in use. Existing background
-tags keep their original shader branches. The effect is Windows-only.
+layout: solid is the resting dot colour, colors carry the glow and lit dot
+colours, the first percentage carries the dot pitch in device pixels, and
+gradient_angle_or_pattern_height carries phase. The existing quad vertex/pixel
+pipeline, clipping, alpha blending, device-loss recovery, and release shader
+compilation remain in use. Existing background tags keep their original shader
+branches. The effect is Windows-only.
 
-The shader is original Atlas code. Paper's Grain Gradient was the visual reference,
-reviewed in `paper-design/shaders` at `7002061d8389781a45e479584deeca0cf538474e`,
-`packages/shaders/src/shaders/grain-gradient.ts`; no npm runtime or Paper code
-is included. It uses analytical wave distortion and a stationary integer hash
-for fine grain, avoiding texture uploads and frame-to-frame grain flicker.
+The shader is original Atlas code: light through water printed as a halftone.
+A domain-warped sum of four sine octaves, each on an integer multiple of the
+phase so the loop has no seam, is folded into a caustic-like network of bright
+folds of varying width. That light drives a fixed device-pixel dot grid: dots
+rest tiny and faint, and swell and brighten as a fold passes over them, with a
+soft glow beneath. A mask keeps the heading and buttons clear and lets the
+light gather low and at the sides. No textures or frame-dependent noise.
 
 `app/src/ui/completion_backdrop.rs` uses one full-size background quad, limits
-updates to 30 fps, holds a static frame for Windows reduced motion, and omits
-artwork in high contrast. The phase closes at 2*pi over 64 seconds. Palette
-colours come from the app theme and are translucent over its existing material.
+updates to 30 fps, animates regardless of the Windows animation setting (Atlas
+turns that setting off, so the page would otherwise always be static), and omits
+artwork in high contrast. The phase closes at 2*pi over 48 seconds. Palette
+colours and alphas come from the app theme; the dot pitch is 11 logical pixels
+scaled by the window's scale factor.
 
 When upgrading GPUI, preserve tag/layout agreement with `gpui-pre/src/color.rs`
 and its style dispatch, or replace this extension with upstream custom shader

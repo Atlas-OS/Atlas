@@ -851,17 +851,19 @@ pub fn checkerboard(color: impl Into<Hsla>, size: f32) -> Background {
     }
 }
 
-/// A Windows DirectX procedural gradient with smooth looping distortion and grain.
-/// `phase` is in radians; 0 and TAU produce the same image. `grain` is clamped
-/// to 0..1. Colours retain their alpha so the material beneath remains visible.
+/// A Windows DirectX procedural "light through water" halftone. `phase` is in
+/// radians; 0 and TAU produce the same image. `rest` colours the dots the light
+/// is not touching, `glow` the soft field beneath them and `lit` the dots it
+/// swells; `dot_pitch` is the grid spacing in device pixels, clamped to 2..4096.
+/// Colours retain their alpha so the material beneath remains visible.
 /// This uses the existing Background buffer layout, interpreted by tag 4.
 #[cfg(target_os = "windows")]
-pub fn flowing_gradient(phase: f32, base: Hsla, middle: Hsla, highlight: Hsla, grain: f32) -> Background {
+pub fn flowing_gradient(phase: f32, rest: Hsla, glow: Hsla, lit: Hsla, dot_pitch: f32) -> Background {
     Background {
         tag: BackgroundTag::FlowingGradient,
-        solid: base,
+        solid: rest,
         gradient_angle_or_pattern_height: if phase.is_finite() { phase.rem_euclid(std::f32::consts::TAU) } else { 0. },
-        colors: [linear_color_stop(middle, if grain.is_finite() { grain.clamp(0., 1.) } else { 0. }), linear_color_stop(highlight, 1.)],
+        colors: [linear_color_stop(glow, if dot_pitch.is_finite() { dot_pitch.clamp(2., 4096.) } else { 2. }), linear_color_stop(lit, 1.)],
         ..Default::default()
     }
 }
