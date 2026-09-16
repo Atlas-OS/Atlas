@@ -1,4 +1,4 @@
-### Atlas Manager: ไทย (Thai) — preview translation, revised on 6 September 2026 from the en-GB source.
+### Atlas Manager: ไทย (Thai) — preview translation, revised on 16 September 2026 from the en-GB source.
 ###
 ### This complete translation follows the en-GB source semantically, not
 ### sentence by sentence. Ids are stable identifiers, never shown to users.
@@ -77,6 +77,9 @@ window-close-close = ปิดหน้าต่าง
 file-dialog-open-playbook = เปิด playbook ของ Atlas (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = ติดตั้ง Atlas แล้ว กำลังรีสตาร์ต Windows เพื่อตั้งค่าให้เสร็จสมบูรณ์
+# Message Windows shows in its restart notification when "Get ready" restarts
+# to finish installing Windows updates.
+prepare-shutdown-comment = Atlas กำลังรีสตาร์ต Windows เพื่อติดตั้งการอัปเดตให้เสร็จสมบูรณ์
 
 ## System
 
@@ -123,6 +126,8 @@ home-history-entry = Atlas { $version } · { $mode } · { $date }
 home-how-it-works = เตรียมพีซีของคุณให้พร้อมสำหรับ Atlas
 home-step-1-title = ตรวจสอบพีซีของคุณ
 home-step-1-detail = Atlas จะตรวจสอบ Windows และดาวน์โหลดไฟล์ติดตั้ง โดยการตั้งค่า Windows ของคุณจะยังคงเดิม
+# Tester build: the playbook is bundled, nothing is downloaded.
+home-step-1-detail-bundled = Atlas จะตรวจสอบ Windows และเตรียมไฟล์ติดตั้งที่มาพร้อมกัน โดยการตั้งค่า Windows ของคุณจะยังคงเดิม
 home-step-2-title = เลือกให้เหมาะกับคุณ
 home-step-2-detail = เลือกวิธีที่ Windows จัดการการป้องกันและการอัปเดต แล้วเลือกแอปหรือการตั้งค่าเพิ่มเติมตามต้องการ
 home-step-3-title = พักการป้องกันไวรัสไว้ชั่วคราว
@@ -191,6 +196,9 @@ ready-banner-blocked-title = พีซีของคุณยังต้อง
 ready-banner-blocked-message = ทำตามคำแนะนำด้านล่าง แล้วเลือก ตรวจสอบอีกครั้ง
 ready-banner-no-package-title = ดาวน์โหลด Atlas เพื่อดำเนินการต่อ
 ready-banner-no-package-message = ดาวน์โหลดเวอร์ชันล่าสุดด้านล่าง หรือเปิด playbook ของ Atlas (.apbx) ที่บันทึกไว้
+# Tester build: the bundled playbook could not be unpacked.
+ready-banner-no-package-bundled-title = เตรียม playbook ที่มาพร้อมกันเพื่อดำเนินการต่อ
+ready-banner-no-package-bundled-message = playbook ที่มาพร้อมรุ่นทดสอบนี้ยังไม่พร้อม ตรวจดูการ์ด ไฟล์ติดตั้ง ด้านล่าง
 ready-banner-warnings-title = มีบางอย่างที่ควรตรวจดู
 ready-banner-warnings-message = อ่านหมายเหตุด้านล่างและทำตามคำแนะนำก่อนดำเนินการต่อ
 ready-banner-ok-title = พร้อมเลือกการตั้งค่าแล้ว
@@ -205,6 +213,8 @@ package-downloading = กำลังดาวน์โหลด Atlas { $versio
 package-unpacking-progress = กำลังแตกไฟล์ · { $done } จาก { $total } ไฟล์
 package-unpacking = กำลังแตกไฟล์
 package-looking = กำลังตรวจหา Atlas เวอร์ชันล่าสุด
+# Tester build: the bundled playbook is being unpacked, nothing is downloaded.
+package-looking-bundled = กำลังเตรียม playbook ที่มาพร้อมกัน
 package-none = ยังไม่มีไฟล์ติดตั้ง โดย playbook (.apbx) คือไฟล์ที่มีคำสั่งและไฟล์ต่าง ๆ ที่ Atlas ต้องใช้
 # Short status words beside the card title.
 package-status-downloading = กำลังดาวน์โหลด
@@ -212,6 +222,7 @@ package-status-unpacking = กำลังแตกไฟล์
 package-status-failed = เตรียมไฟล์ไม่ได้
 package-status-ready = พร้อม
 package-status-checking = กำลังตรวจสอบ
+package-status-preparing = กำลังเตรียม
 package-status-missing = ยังไม่ได้ดาวน์โหลด
 # Accessible name of the progress bar.
 package-progress = ความคืบหน้าของไฟล์ติดตั้ง
@@ -228,6 +239,8 @@ package-none-yet = ยังไม่ได้เลือกไฟล์ติ�
 acquire-no-asset = Atlas { $version } ไม่มีไฟล์ playbook ให้ดาวน์โหลด เปิด playbook ของ Atlas (.apbx) ที่บันทึกไว้เพื่อดำเนินการต่อ
 acquire-unsupported = แอปนี้ติดตั้งได้เฉพาะ Atlas 0.6.0 ขึ้นไป หากต้องการติดตั้ง Atlas { $version } ให้ใช้ AME Wizard แทน
 acquire-failed = เตรียมไฟล์ติดตั้งไม่ได้ ลองดาวน์โหลดอีกครั้ง หรือเปิด playbook ของ Atlas (.apbx) อีกไฟล์หนึ่ง รายละเอียด: { $error }
+# Tester build: the bundled playbook could not be unpacked. Try again is the only control offered.
+acquire-failed-bundled = เตรียม playbook ที่มาพร้อมกันไม่ได้ เลือก ลองอีกครั้ง รายละเอียด: { $error }
 
 ## System checks
 
@@ -308,7 +321,7 @@ screen-extras-question = เลือกรายการเพิ่มเต�
 # Question for a required choice this app has no specific wording for.
 screen-generic-question = เลือกตัวเลือกสำหรับ { $title }
 learn-more-defender = เรียนรู้เพิ่มเติมเกี่ยวกับ Microsoft Defender
-learn-more-mitigations = อ่านเกี่ยวกับความปลอดภัยของตัวประมวลผล
+learn-more-mitigations = เรียนรู้เพิ่มเติมเกี่ยวกับความปลอดภัยของตัวประมวลผล
 learn-more-updates = เรียนรู้เพิ่มเติมเกี่ยวกับ Windows Update
 learn-more-browser = เรียนรู้เพิ่มเติมเกี่ยวกับเบราว์เซอร์
 learn-more-power = เรียนรู้เพิ่มเติมเกี่ยวกับพลังงานและความปลอดภัย
@@ -319,7 +332,7 @@ learn-more-generic = อ่านคู่มือการตั้งค่�
 consequence-defender-enable = เก็บโปรแกรมป้องกันไวรัสที่มาพร้อม Windows ไว้ เพื่อช่วยปกป้องพีซีของคุณจากไวรัสและภัยคุกคามอื่น ๆ
 consequence-defender-disable = นำ Microsoft Defender ออก พีซีของคุณจะไม่มีการป้องกันไวรัสจนกว่าคุณจะติดตั้งแอปป้องกันไวรัสอื่น
 consequence-mitigations-default = เก็บการป้องกันเริ่มต้นของ Windows ไว้ เพื่อป้องกันการโจมตีที่อาศัยช่องโหว่ในการทำงานของตัวประมวลผล
-consequence-mitigations-disable = ปิดการป้องกันเหล่านี้ ซึ่งทำให้ความปลอดภัยลดลง ส่วนประสิทธิภาพขึ้นอยู่กับตัวประมวลผลของคุณและอาจแย่ลง
+consequence-mitigations-disable = ปิดการป้องกันเหล่านี้ ซึ่งทำให้ความปลอดภัยลดลง ส่วนประสิทธิภาพจะต่างไปหรือไม่นั้นขึ้นอยู่กับตัวประมวลผลของคุณ
 consequence-auto-updates-disable = คุณจะต้องเปิด Windows Update และติดตั้งการอัปเดตด้วยตนเอง โดยการแจ้งเตือนการอัปเดตจะยังเปิดอยู่
 consequence-auto-updates-default = Windows จะติดตั้งการอัปเดตโดยอัตโนมัติ รวมถึงการแก้ไขด้านความปลอดภัย
 
@@ -409,18 +422,19 @@ phase-done = กำลังตั้งค่าขั้นสุดท้า�
 outcome-succeeded-title = ติดตั้ง Atlas แล้ว
 outcome-lost-title = ยืนยันผลการติดตั้งไม่ได้
 outcome-failed-title = การติดตั้งไม่เสร็จสมบูรณ์
-outcome-succeeded = รีสตาร์ตพีซีเพื่อตั้งค่า Atlas ให้เสร็จสมบูรณ์
+# The same sentence as the Installing view shows after success.
+outcome-succeeded = { restart-needed }
 outcome-requirements = พีซีของคุณไม่ตรงตามข้อกำหนดการติดตั้ง ยังไม่มีการเปลี่ยนแปลงใด ๆ กลับไปที่ เตรียมความพร้อม แล้วตรวจสอบอีกครั้ง
 outcome-not-elevated = ยังไม่มีการเปลี่ยนแปลงใด ๆ เปิด Atlas ใหม่ในฐานะผู้ดูแลระบบแล้วลองอีกครั้ง
 outcome-failed-preflight = การติดตั้งหยุดลงก่อนที่จะเปลี่ยนแปลงสิ่งใด เปิดไฟล์บันทึกเพื่อดูสาเหตุ แล้วลองอีกครั้ง
 outcome-failed-staging = การติดตั้งหยุดลงระหว่างเตรียมไฟล์ ก่อนที่จะเปลี่ยนแปลง Windows เปิดไฟล์บันทึกเพื่อดูสาเหตุ แล้วลองอีกครั้ง
-outcome-failed-applying = อาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว หากคุณจะหยุดไว้เพียงเท่านี้ ให้กลับไปเปิดการป้องกันที่ปิดไว้ในแอป ความปลอดภัยของ Windows อีกครั้ง หากการป้องกันเหล่านั้นยังมีอยู่
+outcome-failed-applying = อาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว หากคุณจะหยุดไว้เพียงเท่านี้ ให้กลับไปเปิดการป้องกันที่ปิดไว้ในแอป ความปลอดภัยของ Windows อีกครั้ง หากการป้องกันเหล่านั้นยังมีอยู่ เปิดไฟล์บันทึกเพื่อดูสาเหตุ คุณเลือก ลองอีกครั้ง ได้
 outcome-not-started = ตัวติดตั้งไม่เริ่มทำงานภายในเวลาที่กำหนด ยังไม่มีการเปลี่ยนแปลงใด ๆ เลือก ลองอีกครั้ง
-outcome-lost = ตัวติดตั้งหยุดลงโดยไม่ได้รายงานผล และอาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว เปิดไฟล์บันทึกเพื่อดูสาเหตุ แล้วเลือก ลองอีกครั้ง เพื่อติดตั้งต่อจากเดิม
+outcome-lost = ตัวติดตั้งหยุดลงโดยไม่ได้รายงานผล และอาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว เปิดไฟล์บันทึกเพื่อดูสาเหตุก่อนเลือก ลองอีกครั้ง
 restart-now-message = Windows กำลังรีสตาร์ตเพื่อตั้งค่า Atlas ให้เสร็จสมบูรณ์
 restart-countdown = Windows จะรีสตาร์ตในอีก { $seconds } วินาที เพื่อให้ Atlas ตั้งค่าให้เสร็จสมบูรณ์
 restart-stopped = ยกเลิกการรีสตาร์ตอัตโนมัติแล้ว บันทึกงานของคุณ แล้วรีสตาร์ตพีซีเพื่อตั้งค่า Atlas ให้เสร็จสมบูรณ์
-restart-needed = บันทึกงานของคุณ แล้วรีสตาร์ต Windows เพื่อตั้งค่า Atlas ให้เสร็จสมบูรณ์
+restart-needed = บันทึกงานของคุณ แล้วรีสตาร์ตพีซีเพื่อตั้งค่า Atlas ให้เสร็จสมบูรณ์
 restart-dont-now = รีสตาร์ตภายหลัง
 restart-now = รีสตาร์ตเดี๋ยวนี้
 # Accessible name of the countdown bar.
@@ -443,6 +457,11 @@ output-problem-message = Atlas อ่านบันทึกไม่ได้ 
 install-elevate-title = Atlas ต้องได้รับสิทธิ์จึงจะติดตั้งได้
 install-no-package-title = เลือกไฟล์ติดตั้งก่อน
 install-no-package-message = กลับไปที่ เตรียมความพร้อม เพื่อดาวน์โหลด Atlas หรือเปิด playbook (.apbx) ที่บันทึกไว้
+# Tester build variant of install-no-package-message.
+install-no-package-bundled-message = กลับไปที่ เตรียมความพร้อม เพื่อเตรียม playbook ที่มาพร้อมรุ่นทดสอบนี้
+# Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
+install-not-ready-title = ทำขั้นตอน เตรียมความพร้อม ให้เสร็จก่อน
+install-not-ready-message = การตรวจสอบพีซีหรือการตรวจหาการอัปเดต Windows ในขั้นตอน เตรียมความพร้อม ยังไม่เสร็จสำหรับเซสชันนี้
 install-security-title = ตรวจสอบการป้องกันไวรัสก่อนติดตั้ง
 install-security-reading = กำลังตรวจสอบสวิตช์การป้องกันทั้งสี่รายการอีกครั้ง
 install-security-message = สวิตช์การป้องกัน{ $summary } เปิดแอป ความปลอดภัยของ Windows แล้วตรวจดูให้แน่ใจว่าสวิตช์ทั้งสี่รายการปิดอยู่ก่อนดำเนินการต่อ
@@ -465,6 +484,8 @@ summary-change-a11y = เปลี่ยน { $title }
 footer-still-checking = กำลังเตรียมการติดตั้ง
 footer-fix-items = แก้ไขรายการที่ยังไม่ผ่านด้านบนให้ครบเพื่อดำเนินการต่อ
 footer-need-package = ดาวน์โหลด Atlas หรือเปิด playbook เพื่อดำเนินการต่อ
+# Tester build variant of footer-need-package.
+footer-need-package-bundled = เตรียม playbook ที่มาพร้อมกันเพื่อดำเนินการต่อ
 footer-reading-security = กำลังตรวจสอบสวิตช์การป้องกัน
 button-checking = กำลังตรวจสอบ
 button-installing = กำลังติดตั้ง
@@ -531,6 +552,8 @@ settings-about-data = ไฟล์ของแอป
 settings-about-licence = สัญญาอนุญาต
 settings-about-licence-value = GPL-3.0 ซอฟต์แวร์เสรีและโอเพนซอร์ส
 settings-view-source = ดูซอร์สโค้ดบน GitHub
+# Link that opens the third-party licence notices.
+settings-view-licences = ดูประกาศสัญญาอนุญาต
 settings-open-data-folder = เปิดโฟลเดอร์ของแอป
 
 ## Optional choices: explanations shown before selection.
@@ -555,6 +578,8 @@ iso-beta = เบต้า
 iso-beta-description = ทดสอบ ISO ในเครื่องเสมือนก่อนนำไปใช้บนพีซี และสำรองไฟล์ก่อนติดตั้ง Windows
 iso-admin-description = ต้องใช้สิทธิ์ผู้ดูแลระบบเพื่ออ่านอิมเมจ Windows และสร้างสื่อการติดตั้ง
 iso-files-description = เลือก ISO ของ Windows 11 x64 ที่ไม่ได้ดัดแปลง, Playbook ของ Atlas (.apbx) และชื่อไฟล์ใหม่สำหรับผลลัพธ์
+# Tester build: no playbook picker.
+iso-files-description-bundled = เลือก ISO ของ Windows 11 x64 ที่ไม่ได้ดัดแปลง และชื่อไฟล์ใหม่สำหรับผลลัพธ์ โดยจะใช้ Playbook ที่มาพร้อมรุ่นทดสอบนี้
 iso-source = ISO ของ Windows
 iso-package = Playbook ของ Atlas (0.6+)
 iso-output = บันทึก ISO ใหม่ที่
@@ -564,11 +589,14 @@ iso-save-as = บันทึกเป็น
 iso-inspect = ตรวจสอบไฟล์
 iso-mode-title = การตั้งค่า Windows และ Atlas
 iso-mode-interactive = เลือกการตั้งค่า Atlas หลังเข้าสู่ระบบ
-iso-mode-interactive-description = หลังเข้าสู่ระบบ แอป Atlas จะช่วยคุณอัปเดต Windows และแอปจาก Store เลือกการตั้งค่า และปรับใช้ Atlas
+iso-mode-interactive-description = หลังเข้าสู่ระบบ Atlas Manager จะช่วยคุณอัปเดต Windows และแอปจาก Store เลือกการตั้งค่า และปรับใช้ Atlas
 iso-mode-before = เลือกการตั้งค่า Atlas ตอนนี้
 iso-mode-before-description = บันทึกการตั้งค่า Atlas ลงใน ISO หลังเข้าสู่ระบบ ให้อัปเดต Windows และแอปจาก Store แล้วปรับใช้ Atlas ด้วยการตั้งค่าเหล่านี้
 iso-package-unsupported-title = เลือก Playbook รุ่นใหม่กว่า
 iso-package-unsupported = การตั้งค่า ISO ต้องใช้ Atlas 0.6 ขึ้นไปที่รองรับ ISO โปรดเลือกเพลย์บุ๊กที่เข้ากันได้
+# Tester build: the bundled playbook cannot be swapped, so the only way on is the after-sign-in mode.
+iso-package-unsupported-bundled-title = บันทึกการตั้งค่า Atlas ลงใน ISO นี้ไม่ได้
+iso-package-unsupported-bundled = Playbook ที่มาพร้อมรุ่นทดสอบนี้ไม่รองรับการตั้งค่าผ่าน ISO ให้เลือก เลือกการตั้งค่า Atlas หลังเข้าสู่ระบบ แทน
 iso-atlas-options = การตั้งค่า Atlas
 iso-review = ตรวจทาน ISO
 iso-review-description = Atlas จะสร้าง ISO ใหม่และเก็บต้นฉบับไว้ หากต้องการติดตั้ง Windows ให้บูตจาก ISO ใหม่ การสร้าง ISO จะไม่ติดตั้ง Atlas บนพีซีเครื่องนี้
@@ -597,7 +625,19 @@ iso-complete = ISO พร้อมใช้งานแล้ว
 iso-complete-description = ทดสอบในเครื่องเสมือนก่อน แล้วจึงนำไปสร้างสื่อการติดตั้ง Windows
 iso-open-folder = แสดงในโฟลเดอร์
 iso-failed = สร้าง ISO ไม่สำเร็จ
-iso-failed-description = เปิดการวินิจฉัยเพื่อดูสาเหตุ แก้ไขปัญหาแล้วลองอีกครั้งโดยใช้ชื่อไฟล์ผลลัพธ์ใหม่
+iso-failed-description = เปิดการวินิจฉัยเพื่อดูสาเหตุ แก้ไขปัญหาแล้วลองอีกครั้ง
+# Title while the Check files step fails; the messages below say why.
+iso-check-failed = ตรวจสอบไฟล์ไม่ได้
+iso-check-failed-description = เปิดการวินิจฉัยเพื่อดูสาเหตุ แก้ไขปัญหาแล้วตรวจสอบไฟล์อีกครั้ง
+# Title when Windows refused the administrator relaunch (UAC declined); elevation-declined is the message.
+iso-elevation-title = ต้องใช้สิทธิ์ผู้ดูแลระบบ
+# Typed reasons reported by the image worker.
+iso-failed-output-exists = มีไฟล์ชื่อนี้อยู่แล้ว เลือก บันทึกเป็น แล้วป้อนชื่อไฟล์ใหม่
+iso-failed-destination = บันทึก ISO ใหม่ลงในไดรฟ์ NTFS หรือ ReFS ในเครื่อง ตำแหน่งบนเครือข่ายและไดรฟ์ FAT32 หรือ exFAT เก็บไฟล์ติดตั้งไม่ได้
+iso-failed-space = พื้นที่ว่างในไดรฟ์ปลายทางไม่พอ เพิ่มพื้นที่ว่าง หรือบันทึก ISO ใหม่ลงในไดรฟ์อื่น
+iso-failed-edition = ISO นี้ไม่มีรุ่น Windows ที่รองรับ ไม่รองรับ Windows Home และ LTSC ให้ใช้ ISO ที่มีรุ่น Pro, Pro for Workstations หรือ Enterprise
+iso-failed-customised = ISO นี้มีไฟล์ตั้งค่าแบบกำหนดเองอยู่แล้ว เช่น autounattend.xml เลือก ISO ของ Windows จาก Microsoft ที่ไม่ได้ดัดแปลง
+iso-failed-windows-unsupported = Playbook ไม่รองรับอิมเมจ Windows นี้ ให้ใช้ ISO ของ Windows 11 25H2 แบบ 64 บิตที่ไม่ได้ดัดแปลงสำหรับ Atlas 0.6 โดยไม่รองรับ 24H2 และบิลด์ Insider
 iso-diagnostics = เปิดการวินิจฉัย
 iso-close-title = ยังสร้าง ISO อยู่
 iso-close-message = เปิดหน้าต่างนี้ไว้จนกว่าการสร้างหรือการยกเลิกจะเสร็จ การยกเลิกจะรอจนกว่าขั้นตอนปัจจุบันจะหยุดได้อย่างปลอดภัย
@@ -638,10 +678,10 @@ iso-network-source = แหล่งที่มาของไดรเวอ�
 iso-network-installed = ใช้ไดรเวอร์ที่ติดตั้งไว้
 iso-network-updated = ตรวจสอบ Windows Update ก่อน
 iso-network-updated-detail = ดาวน์โหลดไดรเวอร์ที่ตรงกับฮาร์ดแวร์จาก Windows Update และเก็บไดรเวอร์ที่ติดตั้งไว้เป็นสำรอง ต้องใช้การเชื่อมต่อที่ไม่คิดค่าบริการตามปริมาณข้อมูล
-iso-stage-network-drivers = กำลังเตรียมไดรเวอร์เครือข่าย…
+iso-stage-network-drivers = กำลังเตรียมไดรเวอร์เครือข่าย
 iso-network-failed = เตรียมไดรเวอร์เครือข่ายไม่ได้ โปรดตรวจสอบข้อมูลวินิจฉัย หรือย้อนกลับไปเปลี่ยนตัวเลือกไดรเวอร์เครือข่าย
 iso-mode-desktop = ตั้งค่าให้เสร็จก่อนเข้าสู่เดสก์ท็อป
-iso-mode-desktop-description = เลือกการตั้งค่า Atlas ตอนนี้ หลังเข้าสู่ระบบ ให้อัปเดตและตั้งค่า Atlas ให้เสร็จก่อนเปิดเดสก์ท็อป Windows
+iso-mode-desktop-description = บันทึกการตั้งค่า Atlas ตอนนี้ แล้วอัปเดตและตั้งค่า Atlas ให้เสร็จก่อนที่เดสก์ท็อป Windows จะเปิดขึ้น
 desktop-setup-description = ตั้งค่าพีซีให้เสร็จ ตัวเลือก Atlas ของคุณบันทึกไว้แล้ว หากจำเป็น คุณสามารถกลับไปที่ Windows ได้
 desktop-setup-exit = ดำเนินการต่อใน Windows
 
@@ -651,9 +691,15 @@ usb-existing = สร้าง USB จาก ISO ที่มีอยู่
 usb-description = สร้าง USB ที่บูตได้สำหรับ Windows 11 25H2 เพื่อใช้ติดตั้ง Windows และ Atlas บนพีซีของคุณ
 usb-choose-iso = เลือก ISO
 usb-drive = ไดรฟ์ USB
-usb-empty = เชื่อมต่อไดรฟ์ USB แล้วรีเฟรชรายการ ระบบจะแสดงเฉพาะไดรฟ์ USB ที่เขียนข้อมูลได้และไม่มี Windows ที่กำลังใช้งานอยู่
+usb-empty = เชื่อมต่อไดรฟ์ USB แล้วรีเฟรชรายการ ระบบจะแสดงเฉพาะไดรฟ์ USB ขนาด 8 GB ถึง 2 TB ที่เขียนข้อมูลได้และไม่มี Windows ที่กำลังใช้งานอยู่
 usb-refresh = รีเฟรช
-usb-drive-detail = { $size } GB · { $volumes } · หมายเลขซีเรียล: { $serial }
+# Shown when the drive list could not be read.
+usb-scan-failed = อ่านรายการไดรฟ์ USB ไม่ได้ ตรวจดูว่าเชื่อมต่อไดรฟ์แล้ว จากนั้นรีเฟรชรายการ เปิดการวินิจฉัยเพื่อดูรายละเอียด
+# Parts of a drive's detail line, joined by usb-detail-separator; empty parts are left out.
+# $size is a formatted number of gigabytes (text); $volumes and $serial are text.
+usb-drive-size = { $size } GB
+usb-drive-serial = หมายเลขซีเรียล: { $serial }
+usb-detail-separator = { " · " }
 usb-review = ตรวจสอบ USB
 usb-erase-title = ล้างข้อมูลในไดรฟ์ USB นี้หรือไม่?
 usb-erase-description = ไฟล์และพาร์ทิชันทั้งหมดบน { $drive } ({ $size } GB) จะถูกลบอย่างถาวร โดยไฟล์ ISO ของคุณจะยังอยู่
@@ -665,6 +711,10 @@ usb-stage-format = กำลังฟอร์แมต USB…
 usb-stage-copy = กำลังคัดลอกไฟล์ติดตั้ง…
 usb-stage-verify = กำลังตรวจสอบ USB…
 usb-working = เปิด Atlas ไว้และอย่าถอด USB การยกเลิกจะรอให้ขั้นตอนปัจจุบันหยุดอย่างปลอดภัย USB ที่ยังสร้างไม่เสร็จจะใช้ติดตั้ง Windows ไม่ได้
+# Titles of the error bar, the success bar and the close prompt while a USB is being written.
+usb-failed-title = สร้าง USB ไม่สำเร็จ
+usb-complete-title = USB พร้อมใช้งานแล้ว
+usb-close-title = ยังสร้าง USB อยู่
 usb-failed = สร้าง USB ไม่สำเร็จ ตรวจสอบการเชื่อมต่อและเปิดการวินิจฉัยเพื่อดูรายละเอียด จากนั้นเลือกไดรฟ์อีกครั้งเพื่อลองใหม่
 usb-cancelled = หยุดสร้าง USB แล้ว ไดรฟ์อาจมีไฟล์ติดตั้งที่ไม่สมบูรณ์ โปรดสร้างใหม่ก่อนนำไปติดตั้ง Windows
 usb-complete = USB พร้อมใช้งานและตรวจสอบไฟล์ทั้งหมดแล้ว ให้นำ USB ออกอย่างปลอดภัย เชื่อมต่อกับพีซีที่จะติดตั้ง Windows ใหม่ แล้วเลือก USB ในเมนูบูต UEFI ของพีซีเครื่องนั้น
@@ -683,9 +733,9 @@ detail-windows-release-unknown = Atlas ยืนยันไม่ได้ว�
 iso-release-unknown = ยืนยันไม่ได้ว่า ISO นี้มี Windows 11 25H2 รุ่นที่เผยแพร่ทั่วไป โปรดเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง หรือเลือกสื่อการติดตั้งอย่างเป็นทางการ
 prepare-previous-worker = การอัปเดตก่อนหน้านี้ยังทำงานอยู่ Atlas จะรอให้เสร็จสิ้นก่อนที่คุณจะลองอีกครั้งได้
 
-ready-used-windows-title = ติดตั้ง Windows ใหม่ก่อนดำเนินการต่อ
+ready-used-windows-title = Windows นี้ดูเหมือนเคยใช้งานมาแล้ว
 ready-used-windows-description = Windows นี้มีสัญญาณว่าเคยใช้งานมาแล้ว การติดตั้ง Atlas บนระบบนี้ไม่ได้รับการสนับสนุนและไม่แนะนำอย่างยิ่ง ดำเนินการต่อเฉพาะเมื่อคุณเข้าใจความเสี่ยงเท่านั้น
-ready-used-windows-dismiss = ฉันเข้าใจความเสี่ยง
+ready-used-windows-dismiss = ยังคงดำเนินการต่อ
 playbook-option-install-eclean = ติดตั้ง eclean
 consequence-install-eclean = เครื่องมือบำรุงรักษาจากทีมผู้สร้าง AtlasOS เพื่อดูแล PC ให้เป็นระเบียบหลังตั้งค่า ตรวจสอบไฟล์ขยะและแอปเริ่มต้นระบบ ต้องมีบัญชีและการเชื่อมต่ออินเทอร์เน็ต
 
@@ -699,7 +749,7 @@ diagnostics-export = ส่งออกข้อมูลวินิจฉั�
 diagnostics-exporting = กำลังรวบรวมข้อมูลวินิจฉัย…
 diagnostics-show = แสดงไฟล์ ZIP วินิจฉัย
 diagnostics-privacy = สร้าง ZIP ที่ปกปิดข้อมูลละเอียดอ่อนเพื่อแนบรายงานบั๊กสาธารณะ
-diagnostics-error = ส่งออกข้อมูลวินิจฉัยไม่ได้: { $error }
+diagnostics-error = ส่งออกข้อมูลวินิจฉัยไม่ได้ รายละเอียด: { $error }
 
 ## Tester builds (embedded-playbook feature)
 

@@ -1,5 +1,6 @@
 // GPUI embeds the process manifest (DPI awareness, asInvoker) itself.
-// build.rs supplies the icon path and Cargo package version.
+// build.rs supplies the icon path and the version fields: the Cargo package
+// version, with the RC number as the fourth numeric component on a tester build.
 1 ICON "@ICON@"
 
 1 VERSIONINFO
@@ -11,8 +12,10 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
+            VALUE "CompanyName", "AtlasOS\0"
             VALUE "FileDescription", "Atlas Manager\0"
             VALUE "ProductName", "Atlas Manager\0"
+            VALUE "LegalCopyright", "Copyright (c) AtlasOS contributors. GPL-3.0.\0"
             VALUE "InternalName", "AtlasManager\0"
             VALUE "OriginalFilename", "AtlasManager.exe\0"
             VALUE "FileVersion", "@VERSION@\0"

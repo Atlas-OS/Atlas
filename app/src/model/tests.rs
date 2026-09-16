@@ -520,6 +520,7 @@ fn a_success_found_on_reopening_shows_its_result_and_clears_its_draft() {
                 session: Some(record.id.clone()),
                 flow: Some("launcher".into()),
                 preparation_restart_at: None,
+                preparation_ready: false,
             },
         );
 
@@ -574,6 +575,7 @@ fn a_success_from_before_a_restart_is_closed_out_and_a_foreign_draft_survives() 
                 session: None,
                 flow: Some("another-window".into()),
                 preparation_restart_at: None,
+                preparation_ready: false,
             },
         );
 
@@ -659,6 +661,7 @@ fn a_draft_from_before_drafts_named_their_install_is_finished_with_it() {
         session::save(&env.paths.session(), &record).unwrap();
         let old_shape = InstallDraft {
             preparation_restart_at: None,
+            preparation_ready: false,
             step: "install".into(),
             options: vec!["defender-enable".into()],
             playbook_dir: Some(record.request.playbook_dir.clone()),
@@ -742,6 +745,7 @@ fn a_foreign_draft_survives_done_after_a_recovered_success_and_is_resumed() {
             session: None,
             flow: Some("other-window".into()),
             preparation_restart_at: None,
+            preparation_ready: false,
         };
         save_draft(&env, foreign.clone());
         let model = new_model(&mut cx, env.clone());
@@ -791,6 +795,7 @@ fn a_current_install_step_draft_for_the_same_package_survives_another_flows_succ
                 session: None,
                 flow: Some("second-window".into()),
                 preparation_restart_at: None,
+                preparation_ready: false,
             };
             save_draft(&env, second_flow.clone());
             let model = new_model(&mut cx, env.clone());
@@ -888,6 +893,7 @@ fn a_completed_record_outlives_a_failed_draft_cleanup() {
                 session: Some(record.id.clone()),
                 flow: Some("launching-flow".into()),
                 preparation_restart_at: None,
+                preparation_ready: false,
             };
             save_draft(&env, launching.clone());
             let lock_path = env.paths.settings().with_extension("json.lock");
@@ -1006,6 +1012,7 @@ fn a_failure_found_on_reopening_runs_the_checks_its_retry_needs() {
                 session: Some(record.id.clone()),
                 flow: Some("failed-install-launcher".into()),
                 preparation_restart_at: None,
+                preparation_ready: false,
             },
         );
 
@@ -1072,7 +1079,7 @@ fn an_old_restart_timer_cannot_touch_a_newer_countdown() {
             assert!(m.attempt.restart_cancelled);
         });
         assert_eq!(*machine.scheduled.lock().unwrap(), 0);
-        act(&mut cx, &model, |m, cx| m.restart_now(cx));
+        act(&mut cx, &model, |m, cx| m.begin_restart_countdown(cx));
         assert_eq!(*machine.scheduled.lock().unwrap(), 0);
         let restarted = Instant::now();
         assert_eq!(read(&cx, &model, |m| m.restart_countdown()), Some(2));
@@ -1094,9 +1101,139 @@ fn an_old_restart_timer_cannot_touch_a_newer_countdown() {
         assert_eq!(*machine.scheduled.lock().unwrap(), 0);
         // And it reaches "restarting now", then its own grace ends it.
         wait_for(&cx, &model, "the new countdown to reach zero", |m| m.restart_countdown() == Some(0)).await;
-        wait_for(&cx, &model, "the new grace period to end", |m| m.restart_countdown().is_none()).await;
-        assert!(read(&cx, &model, |m| !m.attempt.restart_cancelled));
+        wait_for(&cx, &model, "Windows to be asked", |m| m.attempt.restart_requested).await;
         assert_eq!(*machine.scheduled.lock().unwrap(), 1);
+        // Once Windows has the request, "Restart later" has nothing to cancel.
+        assert!(!read(&cx, &model, |m| m.restart_cancellable()));
+        act(&mut cx, &model, |m, cx| m.cancel_restart(cx));
+        read(&cx, &model, |m| {
+            assert!(m.attempt.restart_requested);
+            assert_eq!(m.restart_countdown(), Some(0));
+            assert!(!m.attempt.restart_cancelled);
+        });
+        wait_for(&cx, &model, "the new grace period to end", |m| m.restart_countdown().is_none()).await;
+        assert!(read(&cx, &model, |m| !m.attempt.restart_cancelled && !m.attempt.restart_requested));
+        assert_eq!(*machine.scheduled.lock().unwrap(), 1);
+    });
+}
+
+#[test]
+#[cfg(windows)]
+fn restart_now_asks_windows_at_once_and_the_request_cannot_be_taken_back() {
+    run_model_test(async move |mut cx| {
+        let temp = TempDir::new("model-restart-now");
+        let machine = Machine::new(all_off());
+        let timing = RestartTiming {
+            countdown: Duration::from_secs(30),
+            tick: Duration::from_millis(50),
+            grace: Duration::from_millis(300),
+        };
+        let env = Environment { restart: timing, ..machine.environment(&temp.path().join("App")) };
+        let (package, _) = marking_package(&temp, 0);
+        let model = new_model(&mut cx, env);
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| m.next_step(cx));
+        act(&mut cx, &model, |m, cx| m.start_install(cx));
+        wait_for(&cx, &model, "a successful install", |m| {
+            m.flow.run == RunState::Finished(InstallOutcome::Succeeded)
+        })
+        .await;
+        assert!(read(&cx, &model, |m| m.restart_cancellable()));
+        act(&mut cx, &model, |m, cx| m.cancel_restart(cx));
+        assert_eq!(*machine.scheduled.lock().unwrap(), 0);
+
+        // "Restart now" asks Windows straight away; no second countdown.
+        act(&mut cx, &model, |m, cx| m.restart_now(cx));
+        assert_eq!(*machine.scheduled.lock().unwrap(), 1);
+        read(&cx, &model, |m| {
+            assert!(m.attempt.restart_requested);
+            assert!(m.restart_countdown().is_none());
+            assert!(!m.restart_cancellable());
+            assert!(!m.attempt.restart_cancelled);
+        });
+        // While Windows has the request, neither button can do anything.
+        act(&mut cx, &model, |m, cx| m.cancel_restart(cx));
+        act(&mut cx, &model, |m, cx| m.restart_now(cx));
+        read(&cx, &model, |m| assert!(m.attempt.restart_requested && !m.attempt.restart_cancelled));
+        assert_eq!(*machine.scheduled.lock().unwrap(), 1);
+        // Windows did not go: the restart is offered again, not claimed.
+        wait_for(&cx, &model, "the grace period to end", |m| !m.attempt.restart_requested).await;
+        read(&cx, &model, |m| {
+            assert!(m.restart_countdown().is_none());
+            assert!(!m.attempt.restart_cancelled);
+            assert!(m.attempt.restart_problem.is_none());
+        });
+
+        // A refusal is shown, with the restart offered again.
+        act(&mut cx, &model, |m, cx| {
+            m.env.adapters.schedule_restart = Arc::new(|_| anyhow::bail!("shutdown denied"));
+            m.restart_now(cx);
+        });
+        read(&cx, &model, |m| {
+            assert!(!m.attempt.restart_requested);
+            assert!(m.restart_countdown().is_none());
+            assert!(matches!(m.attempt.restart_problem, Some(RestartProblem::Start { .. })));
+        });
+        assert_eq!(*machine.scheduled.lock().unwrap(), 1);
+    });
+}
+
+// A draft remembers that "Get ready" finished.
+
+#[test]
+fn a_resumed_draft_keeps_a_finished_preparation() {
+    run_model_test(async move |mut cx| {
+        use crate::services::preparation::{Drivers, State};
+        let temp = TempDir::new("model-draft-preparation-ready");
+        let machine = Machine::new(all_off());
+        let env = machine.environment(&temp.path().join("App"));
+        let (package, _) = marking_package(&temp, 0);
+        let (dir, _) = playbook::extract_into(&package, &env.paths.playbooks(), |_, _| {}).unwrap();
+        save_draft(
+            &env,
+            InstallDraft {
+                step: "install".into(),
+                options: vec!["defender-enable".into()],
+                playbook_dir: Some(dir),
+                flow: Some("earlier-window".into()),
+                preparation_ready: true,
+                ..InstallDraft::default()
+            },
+        );
+        // Not `new_model`: that helper marks preparation ready by hand.
+        let model = cx.update(|cx| cx.new(|cx| AppModel::with_environment(env.clone(), cx)));
+        wait_for(&cx, &model, "the draft and its checks", |m| m.flow.active && m.checks_complete()).await;
+        read(&cx, &model, |m| {
+            assert_eq!(m.flow.step, Step::Install);
+            assert!(m.preparation.ready(), "the draft carries the finished preparation");
+            assert!(m.ready_to_continue(), "Install is not held back for a preparation already done");
+        });
+
+        // Changing the driver policy starts preparation over, on disk too.
+        act(&mut cx, &model, |m, cx| m.set_drivers(Drivers::Manual, cx));
+        assert!(!read(&cx, &model, |m| m.preparation.ready()));
+        wait_on_disk(&cx, &env, "the draft to forget the finished preparation", |s| {
+            s.draft.as_ref().is_some_and(|draft| !draft.preparation_ready)
+        })
+        .await;
+        // Finishing it again records it.
+        act(&mut cx, &model, |m, cx| {
+            m.preparation = State::Ready;
+            m.save_draft(cx);
+        });
+        wait_on_disk(&cx, &env, "the draft to record the finished preparation", |s| {
+            s.draft.as_ref().is_some_and(|draft| draft.preparation_ready)
+        })
+        .await;
+
+        // A restart still owed wins over the flag.
+        let mut saved = settings::load_from(&env.paths.settings()).settings;
+        saved.draft.as_mut().unwrap().preparation_restart_at = Some("2001-01-01T00:00:00Z".into());
+        act(&mut cx, &model, |m, cx| {
+            m.settings = saved;
+            m.resume_draft(cx);
+        });
+        assert_eq!(read(&cx, &model, |m| m.preparation.clone()), State::Resumed);
     });
 }
 
@@ -1240,6 +1377,7 @@ mod bundled {
                     session: None,
                     flow: Some("other-window".into()),
                     preparation_restart_at: None,
+                    preparation_ready: false,
                 },
             );
             let model = new_model(&mut cx, env);

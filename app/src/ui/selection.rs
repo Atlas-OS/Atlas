@@ -15,7 +15,7 @@ use gpui::{
 
 use super::actions::{RadioNext, RadioPrevious};
 use super::typography::CapCenteredText;
-use super::{Icon, TextMark, Typography, focus_ring, icon_sized};
+use super::{Icon, Revealed, TextMark, Typography, focus_ring, icon_sized};
 use crate::t;
 use crate::theme::ActiveTheme;
 
@@ -142,6 +142,7 @@ impl RenderOnce for RadioGroup {
                 let next = step_index(current, items.len(), forward);
                 if let Some(handle) = items.get(next) {
                     window.focus(handle, cx);
+                    super::focus_reveal::request(window, cx);
                     if let Some(on_select) = &on_select {
                         on_select(next, window, cx);
                     }
@@ -359,7 +360,7 @@ fn selectable_row(
     let label_color = if disabled { theme.text_disabled } else { theme.text_primary };
     let description_color = if disabled { theme.text_disabled } else { theme.text_secondary };
     let has_description = description.as_ref().is_some_and(|text| !text.is_empty());
-    div()
+    let row = div()
         .id(id)
         .role(role)
         .aria_label(label.clone())
@@ -412,7 +413,8 @@ fn selectable_row(
                 .when_some(description, |this, text| {
                     this.child(div().type_caption().text_color(description_color).child(text))
                 }),
-        )
+        );
+    Revealed::new(row)
 }
 
 #[cfg(test)]

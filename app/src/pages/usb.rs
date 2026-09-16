@@ -190,12 +190,11 @@ impl UsbPage {
                     },
                     Err(error) => {
                         log::error!("USB operation {operation} failed: {error:#}");
-                        this.error = Some(if operation == "Eject" {
-                            "usb-eject-failed"
-                        } else if cancelled {
-                            "usb-cancelled"
-                        } else {
-                            "usb-failed"
+                        this.error = Some(match operation {
+                            "Eject" => "usb-eject-failed",
+                            "List" => "usb-scan-failed",
+                            _ if cancelled => "usb-cancelled",
+                            _ => "usb-failed",
                         })
                     }
                 }
@@ -205,6 +204,20 @@ impl UsbPage {
         }));
         cx.notify();
     }
+}
+
+/// "28.7 GB · F: USB · Serial: 1234": the size, then the volumes and serial
+/// when Windows reported them. Blank parts are left out rather than shown as
+/// empty slots between separators.
+fn drive_detail(drive: &Drive) -> String {
+    let mut parts = vec![t!("usb-drive-size", size = crate::i18n::fmt::decimal(drive.size as f64 / 1e9, 1))];
+    if !drive.volumes.trim().is_empty() {
+        parts.push(drive.volumes.trim().to_string());
+    }
+    if !drive.serial.trim().is_empty() {
+        parts.push(t!("usb-drive-serial", serial = drive.serial.trim()));
+    }
+    parts.join(&t!("usb-detail-separator"))
 }
 
 impl Render for UsbPage {
@@ -219,9 +232,10 @@ impl Render for UsbPage {
             let text = match error {
                 "usb-cancelled" => t!("usb-cancelled"),
                 "usb-eject-failed" => t!("usb-eject-failed"),
+                "usb-scan-failed" => t!("usb-scan-failed"),
                 _ => t!("usb-failed"),
             };
-            body.push(InfoBar::new(Severity::Error, t!("usb-title"), text).into_any_element());
+            body.push(InfoBar::new(Severity::Error, t!("usb-failed-title"), text).into_any_element());
         }
         if busy {
             let text = if self.scanning {
@@ -264,7 +278,7 @@ impl Render for UsbPage {
             body.push(
                 InfoBar::new(
                     Severity::Success,
-                    t!("usb-title"),
+                    t!("usb-complete-title"),
                     if self.ejected { t!("usb-ejected") } else { t!("usb-complete") },
                 )
                 .into_any_element(),
@@ -314,15 +328,10 @@ impl Render for UsbPage {
                                             )
                                             .natural_text(),
                                         )
-                                        .child(detail_text(
+                                        .child(div().flex_1().min_w_0().child(detail_text(
                                             "usb-confirm-identity",
-                                            t!(
-                                                "usb-drive-detail",
-                                                size = crate::i18n::fmt::decimal(drive.size as f64 / 1e9, 1),
-                                                volumes = drive.volumes,
-                                                serial = drive.serial
-                                            ),
-                                        )),
+                                            drive_detail(&drive),
+                                        ))),
                                 )
                                 .child(detail_text("usb-layout", t!("usb-layout")))
                                 .child(CheckBox::new("usb-ack", t!("usb-ack"), self.acknowledged).on_toggle(
@@ -367,13 +376,15 @@ impl Render for UsbPage {
                                             .natural_text(),
                                         )
                                     })
-                                    .child(detail_text(
-                                        "usb-source",
-                                        self.source
-                                            .as_ref()
-                                            .map(|p| p.display().to_string())
-                                            .unwrap_or_else(|| t!("iso-no-file")),
-                                    )),
+                                    .child(
+                                        div().flex_1().min_w_0().child(detail_text(
+                                            "usb-source",
+                                            self.source
+                                                .as_ref()
+                                                .map(|p| p.display().to_string())
+                                                .unwrap_or_else(|| t!("iso-no-file")),
+                                        )),
+                                    ),
                             )
                             .child(
                                 Button::new("usb-choose-iso", t!("usb-choose-iso"))
@@ -392,12 +403,7 @@ impl Render for UsbPage {
                         drive.name.clone(),
                         self.focus.get(&format!("usb-drive-{i}"), cx),
                     )
-                    .description(t!(
-                        "usb-drive-detail",
-                        size = crate::i18n::fmt::decimal(drive.size as f64 / 1e9, 1),
-                        volumes = drive.volumes.clone(),
-                        serial = drive.serial.clone()
-                    ))
+                    .description(drive_detail(drive))
                 })
                 .collect::<Vec<_>>();
             let entity = cx.entity();

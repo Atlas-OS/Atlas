@@ -5,7 +5,7 @@ use super::{
 use crate::i18n::describe;
 use crate::model::{AppModel, Page};
 use crate::services::{
-    iso::{self, ImageInfo, Mode, Request, Stage},
+    iso::{self, FailureReason, ImageInfo, Mode, Request, Stage},
     playbook::{self, Manifest, PageKind},
     settings, system,
 };
@@ -43,7 +43,8 @@ pub struct IsoPage {
     step: usize,
     stage: Stage,
     error: bool,
-    release_unverified: bool,
+    /// Why the last operation failed, when the worker said.
+    failure: Option<FailureReason>,
     complete: bool,
     cancelled: bool,
     job: Option<PathBuf>,
@@ -81,7 +82,7 @@ impl IsoPage {
             step: 0,
             stage: Stage::Inspect,
             error: false,
-            release_unverified: false,
+            failure: None,
             complete: false,
             cancelled: false,
             job: None,
@@ -118,7 +119,7 @@ impl IsoPage {
             page.update_network_drivers = state == "network-drivers";
             page.complete = state == "complete";
             page.error = matches!(state.as_str(), "failed" | "release-unknown");
-            page.release_unverified = state == "release-unknown";
+            page.failure = (state == "release-unknown").then_some(FailureReason::WindowsReleaseUnknown);
             if page.error {
                 page.job = Some(settings::app_data_dir());
             }
@@ -132,6 +133,22 @@ impl IsoPage {
             }
         }
         page
+    }
+
+    /// Closes an open USB panel the way its Back button does. Returns false
+    /// when no panel is showing or a write is running, so the caller can fall
+    /// back to leaving the page.
+    pub fn close_usb_panel(&mut self, cx: &mut Context<Self>) -> bool {
+        let Some(panel) = &self.usb else { return false };
+        if panel.read(cx).closed || self.model.read(cx).usb_busy {
+            return false;
+        }
+        panel.update(cx, |usb, cx| {
+            usb.closed = true;
+            cx.notify();
+        });
+        cx.notify();
+        true
     }
 
     fn open_usb(&mut self, source: Option<PathBuf>, cx: &mut Context<Self>) {
@@ -160,7 +177,7 @@ impl IsoPage {
             cx.spawn(async move |this, cx| {
                 if let Ok(Ok(Some(path))) = response.await {
                     this.update(cx, |this, cx| {
-                        this.output = Some(path);
+                        this.output = Some(with_iso_extension(path));
                         this.invalidate(cx);
                     })
                     .ok();
@@ -197,7 +214,7 @@ impl IsoPage {
     fn invalidate(&mut self, cx: &mut Context<Self>) {
         self.image = None;
         self.error = false;
-        self.release_unverified = false;
+        self.failure = None;
         self.complete = false;
         self.cancelled = false;
         self.step = 0;
@@ -226,7 +243,7 @@ impl IsoPage {
         };
         self.job = Some(job.clone());
         self.error = false;
-        self.release_unverified = false;
+        self.failure = None;
         self.cancelled = false;
         self.complete = false;
         self.stage = Stage::Inspect;
@@ -323,7 +340,7 @@ impl IsoPage {
                         }
                     }
                     Err(error) => {
-                        this.release_unverified = error.is::<iso::UnverifiedWindowsRelease>();
+                        this.failure = error.downcast_ref::<iso::Failure>().map(|failure| failure.reason);
                         this.error = !cancelled;
                         this.cancelled = cancelled;
                     }
@@ -556,13 +573,24 @@ impl IsoPage {
         );
         if self.mode != Mode::Interactive {
             if !self.setup_available {
+                // A tester build cannot swap its playbook, so the advice is to
+                // choose the after-sign-in mode instead of a newer package.
+                let bundled = self.model.read(cx).bundled();
                 body.insert(
                     0,
-                    InfoBar::new(
-                        Severity::Warning,
-                        t!("iso-package-unsupported-title"),
-                        t!("iso-package-unsupported"),
-                    )
+                    if bundled {
+                        InfoBar::new(
+                            Severity::Warning,
+                            t!("iso-package-unsupported-bundled-title"),
+                            t!("iso-package-unsupported-bundled"),
+                        )
+                    } else {
+                        InfoBar::new(
+                            Severity::Warning,
+                            t!("iso-package-unsupported-title"),
+                            t!("iso-package-unsupported"),
+                        )
+                    }
                     .into_any_element(),
                 );
             }
@@ -738,6 +766,15 @@ impl IsoPage {
                 t!("iso-review-package"),
                 file_value("iso-review-package", path),
             ));
+        } else if self.model.read(cx).bundled() {
+            // A tester build injects its bundled playbook; say so rather than
+            // leaving the row out.
+            files = files.child(detail_row(
+                cx,
+                "iso-package",
+                t!("iso-review-package"),
+                detail_text("iso-review-package", t!("iso-package-bundled")),
+            ));
         }
         if let Some(path) = &self.output {
             files = files.child(detail_row(
@@ -873,7 +910,8 @@ impl Render for IsoPage {
             InfoBar::new(Severity::Informational, t!("iso-beta"), t!("iso-beta-description"))
                 .into_any_element(),
         ];
-        let mut footer = div().flex().items_center().justify_between().gap(px(12.));
+        // The footer strip is only drawn when a state puts controls in it.
+        let mut footer: Vec<AnyElement> = Vec::new();
         if elevated && !busy && !self.complete {
             let title = match self.step {
                 0 => t!("iso-inspect"),
@@ -898,19 +936,22 @@ impl Render for IsoPage {
                         card_body(cx)
                             .gap(px(12.))
                             .child(detail_text("iso-admin-description", t!("iso-admin-description")))
+                            // A row keeps the card's action at its natural width.
                             .child(
-                                Button::new("iso-elevate", t!("common-restart-as-administrator"))
-                                    .accent()
-                                    .icon(Icon::Admin)
-                                    .on_click(cx.listener(
-                                        |this, _, _, cx| match system::relaunch_iso_elevated() {
-                                            Ok(()) => cx.quit(),
-                                            Err(_) => {
-                                                this.error = true;
-                                                cx.notify();
+                                div().flex().child(
+                                    Button::new("iso-elevate", t!("common-restart-as-administrator"))
+                                        .accent()
+                                        .icon(Icon::Admin)
+                                        .on_click(cx.listener(|this, _, _, cx| {
+                                            match system::relaunch_iso_elevated() {
+                                                Ok(()) => cx.quit(),
+                                                Err(_) => {
+                                                    this.error = true;
+                                                    cx.notify();
+                                                }
                                             }
-                                        },
-                                    )),
+                                        })),
+                                ),
                             ),
                     )
                     .into_any_element(),
@@ -934,14 +975,17 @@ impl Render for IsoPage {
                     )
                     .into_any_element(),
             );
-            footer = footer.child(Button::new("iso-cancel", t!("iso-cancel")).disabled(cancelling).on_click(
-                cx.listener(|this, _, _, cx| {
-                    this.model.update(cx, |m, cx| {
-                        m.iso_cancel.store(true, Ordering::Relaxed);
-                        cx.notify();
-                    });
-                }),
-            ));
+            footer.push(
+                Button::new("iso-cancel", t!("iso-cancel"))
+                    .disabled(cancelling)
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.model.update(cx, |m, cx| {
+                            m.iso_cancel.store(true, Ordering::Relaxed);
+                            cx.notify();
+                        });
+                    }))
+                    .into_any_element(),
+            );
         } else if self.complete {
             body.push(
                 InfoBar::new(Severity::Success, t!("iso-complete"), t!("iso-complete-description"))
@@ -951,26 +995,47 @@ impl Render for IsoPage {
             if let Some(path) = &self.output {
                 body.push(detail_text("iso-created-file", path.display().to_string()).into_any_element());
             }
-            footer = footer
-                .child(Button::new("iso-done", t!("common-done")).on_click(
-                    cx.listener(|this, _, _, cx| this.model.update(cx, |m, cx| m.navigate(Page::Home, cx))),
-                ))
-                .child(Button::new("iso-reveal", t!("iso-open-folder")).icon(Icon::Folder).on_click(
-                    cx.listener(|this, _, _, cx| {
+            footer.push(
+                Button::new("iso-done", t!("common-done"))
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        // Done leaves the page ready for another ISO: the file
+                        // just written cannot be the next output, so it is
+                        // cleared with the result.
+                        this.output = None;
+                        this.invalidate(cx);
+                        this.model.update(cx, |m, cx| m.navigate(Page::Home, cx));
+                    }))
+                    .into_any_element(),
+            );
+            footer.push(
+                Button::new("iso-reveal", t!("iso-open-folder"))
+                    .icon(Icon::Folder)
+                    .on_click(cx.listener(|this, _, _, cx| {
                         if let Some(path) = &this.output {
                             cx.reveal_path(path);
                         }
-                    }),
-                ))
-                .child(
-                    Button::new("iso-write-usb", t!("usb-title"))
-                        .accent()
-                        .on_click(cx.listener(|this, _, _, cx| this.open_usb(this.output.clone(), cx))),
-                );
+                    }))
+                    .into_any_element(),
+            );
+            footer.push(
+                Button::new("iso-write-usb", t!("usb-title"))
+                    .accent()
+                    .on_click(cx.listener(|this, _, _, cx| this.open_usb(this.output.clone(), cx)))
+                    .into_any_element(),
+            );
         } else {
             if self.step == 0 {
+                let bundled = self.model.read(cx).bundled();
                 body.push(
-                    detail_text("iso-files-description", t!("iso-files-description")).into_any_element(),
+                    detail_text(
+                        "iso-files-description",
+                        if bundled {
+                            t!("iso-files-description-bundled")
+                        } else {
+                            t!("iso-files-description")
+                        },
+                    )
+                    .into_any_element(),
                 );
                 body.push(self.files(cx));
                 body.push(
@@ -979,70 +1044,64 @@ impl Render for IsoPage {
                         .on_click(cx.listener(|this, _, _, cx| this.open_usb(None, cx)))
                         .into_any_element(),
                 );
-                footer = footer.child(div().flex_1()).child(
+                footer.push(div().flex_1().into_any_element());
+                footer.push(
                     Button::new("iso-inspect", t!("iso-inspect"))
                         .accent()
                         .disabled(
                             self.source.is_none()
-                                || (self.archive.is_none() && !self.model.read(cx).bundled())
+                                || (self.archive.is_none() && !bundled)
                                 || self.output.is_none()
                                 || self.model.read(cx).locked(),
                         )
-                        .on_click(cx.listener(|this, _, _, cx| this.start(true, cx))),
+                        .on_click(cx.listener(|this, _, _, cx| this.start(true, cx)))
+                        .into_any_element(),
                 );
             } else if self.step == 1 {
                 body.extend(self.choices(cx));
-                footer = footer
-                    .child(Button::new("iso-back-files", t!("common-back")).on_click(cx.listener(
-                        |this, _, _, cx| {
+                footer.push(
+                    Button::new("iso-back-files", t!("common-back"))
+                        .on_click(cx.listener(|this, _, _, cx| {
                             this.step = 0;
                             cx.notify();
-                        },
-                    )))
-                    .child(
-                        Button::new("iso-review", t!("iso-review"))
-                            .accent()
-                            .disabled(
-                                (self.mode != Mode::Interactive && !self.setup_available)
-                                    || !iso::valid_username(self.username.read(cx).value()),
-                            )
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.step = 2;
-                                this.scroll.set_offset(gpui::point(px(0.), px(0.)));
-                                cx.notify();
-                            })),
-                    );
+                        }))
+                        .into_any_element(),
+                );
+                footer.push(
+                    Button::new("iso-review", t!("iso-review"))
+                        .accent()
+                        .disabled(
+                            (self.mode != Mode::Interactive && !self.setup_available)
+                                || !iso::valid_username(self.username.read(cx).value()),
+                        )
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.step = 2;
+                            this.scroll.set_offset(gpui::point(px(0.), px(0.)));
+                            cx.notify();
+                        }))
+                        .into_any_element(),
+                );
             } else {
                 body.extend(self.review(cx));
-                footer = footer
-                    .child(Button::new("iso-back-choices", t!("common-back")).on_click(cx.listener(
-                        |this, _, _, cx| {
+                footer.push(
+                    Button::new("iso-back-choices", t!("common-back"))
+                        .on_click(cx.listener(|this, _, _, cx| {
                             this.step = 1;
                             cx.notify();
-                        },
-                    )))
-                    .child(
-                        Button::new("iso-create", t!("iso-create"))
-                            .accent()
-                            .on_click(cx.listener(|this, _, _, cx| this.start(false, cx))),
-                    );
+                        }))
+                        .into_any_element(),
+                );
+                footer.push(
+                    Button::new("iso-create", t!("iso-create"))
+                        .accent()
+                        .on_click(cx.listener(|this, _, _, cx| this.start(false, cx)))
+                        .into_any_element(),
+                );
             }
         }
         if self.error {
-            let mut error = InfoBar::new(
-                Severity::Error,
-                t!("iso-failed"),
-                if !elevated {
-                    t!("elevation-declined")
-                } else if self.release_unverified {
-                    t!("iso-release-unknown")
-                } else if self.stage == Stage::NetworkDrivers {
-                    t!("iso-network-failed")
-                } else {
-                    t!("iso-failed-description")
-                },
-            )
-            .focus_handle(focus.clone());
+            let (title, message) = self.failure_text(elevated);
+            let mut error = InfoBar::new(Severity::Error, title, message).focus_handle(focus.clone());
             if let Some(job) = self.job.clone() {
                 error = error.action(
                     Button::new("iso-error-diagnostics", t!("iso-diagnostics"))
@@ -1077,10 +1136,52 @@ impl Render for IsoPage {
             (&self.scroll, &self.scrollbar),
             body.into_iter()
                 .chain(std::iter::once(super::diagnostics_panel(&self.model, cx).into_any_element())),
-            Some(footer.into_any_element()),
+            (!footer.is_empty()).then(|| {
+                div().flex().items_center().justify_between().gap(px(12.)).children(footer).into_any_element()
+            }),
             cx,
         )
         .into_any_element()
+    }
+}
+
+impl IsoPage {
+    /// Title and message of the error bar: what failed and what to do next,
+    /// as far as the worker said. Only an existing output file calls for a
+    /// new filename; a failed build leaves the chosen name free.
+    fn failure_text(&self, elevated: bool) -> (String, String) {
+        if !elevated {
+            // Windows refused the relaunch (UAC declined): nothing has failed
+            // beyond the permission prompt.
+            return (t!("iso-elevation-title"), t!("elevation-declined"));
+        }
+        let checking = self.step == 0;
+        let title = if checking { t!("iso-check-failed") } else { t!("iso-failed") };
+        let message = match self.failure {
+            Some(FailureReason::WindowsReleaseUnknown) => t!("iso-release-unknown"),
+            Some(FailureReason::OutputExists) => t!("iso-failed-output-exists"),
+            Some(FailureReason::DestinationFilesystem) => t!("iso-failed-destination"),
+            Some(FailureReason::DiskSpace) => t!("iso-failed-space"),
+            Some(FailureReason::WindowsUnsupported) => t!("iso-failed-windows-unsupported"),
+            Some(FailureReason::EditionUnsupported) => t!("iso-failed-edition"),
+            Some(FailureReason::IsoCustomised) => t!("iso-failed-customised"),
+            Some(FailureReason::Build) if self.stage == Stage::NetworkDrivers => t!("iso-network-failed"),
+            Some(FailureReason::Check) | None if checking => t!("iso-check-failed-description"),
+            Some(FailureReason::Check | FailureReason::Build) | None => t!("iso-failed-description"),
+        };
+        (title, message)
+    }
+}
+
+/// The output must end in `.iso`: the worker refuses anything else, so a
+/// name typed without an extension gets one rather than a failure later.
+fn with_iso_extension(path: PathBuf) -> PathBuf {
+    if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("iso")) {
+        path
+    } else {
+        let mut name = path.into_os_string();
+        name.push(".iso");
+        PathBuf::from(name)
     }
 }
 

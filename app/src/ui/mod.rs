@@ -5,6 +5,7 @@
 mod button;
 mod card;
 mod completion_backdrop;
+pub mod focus_reveal;
 mod icons;
 mod infobar;
 mod markdown;
@@ -19,6 +20,7 @@ mod typography;
 pub use button::Button;
 pub use card::card;
 pub use completion_backdrop::CompletionBackdrop;
+pub use focus_reveal::Revealed;
 pub use icons::{Icon, icon, icon_in_line, icon_in_line_sized, icon_sized};
 pub use infobar::{InfoBar, Severity};
 pub use markdown::{Block as MarkdownBlock, Markdown, parse as parse_markdown};
@@ -33,9 +35,10 @@ pub use typography::{
 };
 
 /// Keyboard actions the shell and controls respond to. The key bindings are
-/// installed in `main`.
+/// installed in `main`. `NavigateBack` (Escape) does what a page's back
+/// arrow does.
 pub mod actions {
-    gpui::actions!(atlas, [FocusNext, FocusPrevious, RadioNext, RadioPrevious]);
+    gpui::actions!(atlas, [FocusNext, FocusPrevious, NavigateBack, RadioNext, RadioPrevious]);
 }
 
 /// The Windows focus visual: a 2px outer ring with a 1px inner ring, drawn

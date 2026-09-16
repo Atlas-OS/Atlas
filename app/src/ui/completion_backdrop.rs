@@ -27,6 +27,13 @@ impl RenderOnce for CompletionBackdrop {
         // is true on practically every machine that reaches this page. Honouring
         // it here would freeze the artwork for everyone, so the loop always runs;
         // it is slow, low-contrast and 30 fps, and never carries information.
+        //
+        // It only runs while the window is active. An inactive window shows
+        // the loop's first frame; dropping the animation element resets its
+        // clock, so the motion resumes from that same frame on activation.
+        if !window.is_window_active() {
+            return surface.bg(fill(0.)).into_any_element();
+        }
         surface
             .bg(fill(0.))
             .with_animation(

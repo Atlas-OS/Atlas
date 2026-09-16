@@ -62,7 +62,10 @@ impl RenderOnce for ProgressBar {
                     .bg(accent)
                     .with_animation(
                         "progress-sweep",
-                        Animation::new(Duration::from_millis(1600)).repeat().with_easing(ease_in_out),
+                        Animation::new(Duration::from_millis(1600))
+                            .repeat()
+                            .with_easing(ease_in_out)
+                            .with_max_fps(60.),
                         |this, delta| this.left(relative(-0.33 + delta * 1.33)),
                     ),
             ),
@@ -104,7 +107,7 @@ impl RenderOnce for ProgressRing {
         } else {
             ring.with_animation(
                 "progress-ring",
-                Animation::new(Duration::from_millis(1100)).repeat(),
+                Animation::new(Duration::from_millis(1100)).repeat().with_max_fps(60.),
                 |this, delta| this.with_transformation(Transformation::rotate(percentage(delta))),
             )
             .into_any_element()

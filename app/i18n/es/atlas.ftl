@@ -1,4 +1,4 @@
-### Atlas Manager: Spanish (es), preview translation. Revised on 6 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
+### Atlas Manager: Spanish (es), preview translation. Revised on 16 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
 ###
 ### Español internacional (neutro entre España y Latinoamérica). Se trata al
 ### usuario de usted de forma implícita (imperativos "Seleccione", posesivo
@@ -63,6 +63,9 @@ window-close-close = Cerrar la ventana
 file-dialog-open-playbook = Abrir un playbook de Atlas (.apbx)
 # Mensaje que Windows muestra en su notificación de reinicio.
 shutdown-comment = Atlas está instalado. Windows se reiniciará para terminar la configuración.
+# Mensaje que Windows muestra en su notificación de reinicio cuando Preparación
+# reinicia para terminar de instalar actualizaciones de Windows.
+prepare-shutdown-comment = Atlas está reiniciando Windows para terminar de instalar las actualizaciones.
 
 ## Sistema
 
@@ -109,6 +112,8 @@ home-history-entry = Atlas { $version } · { $mode } · { $date }
 home-how-it-works = Vamos a preparar su PC para Atlas
 home-step-1-title = Compruebe su PC
 home-step-1-detail = Atlas comprueba Windows y descarga los archivos de instalación. La configuración de Windows no cambia.
+# Versión de prueba: el playbook viene incluido, no se descarga nada.
+home-step-1-detail-bundled = Atlas comprueba Windows y prepara los archivos de instalación incluidos. La configuración de Windows no cambia.
 home-step-2-title = Elija sus preferencias
 home-step-2-detail = Decida cómo administra Windows la protección y las actualizaciones y, si quiere, agregue aplicaciones o ajustes adicionales.
 home-step-3-title = Pause la protección antivirus
@@ -181,6 +186,9 @@ ready-banner-blocked-title = Su PC necesita un poco de preparación
 ready-banner-blocked-message = Siga las instrucciones de abajo y luego elija Volver a comprobar.
 ready-banner-no-package-title = Descargue Atlas para continuar
 ready-banner-no-package-message = Descargue la versión más reciente abajo o abra un playbook de Atlas (.apbx) guardado.
+# Versión de prueba: no se pudo extraer el playbook incluido.
+ready-banner-no-package-bundled-title = Prepare el playbook incluido para continuar
+ready-banner-no-package-bundled-message = El playbook incluido en esta versión de prueba aún no está listo. Revise la tarjeta Archivos de instalación de abajo.
 ready-banner-warnings-title = Algunos puntos que revisar
 ready-banner-warnings-message = Lea las notas de abajo y siga los pasos recomendados antes de continuar.
 ready-banner-ok-title = Ya puede elegir sus preferencias
@@ -200,6 +208,8 @@ package-unpacking-progress =
     }
 package-unpacking = Extrayendo
 package-looking = Buscando la versión más reciente de Atlas.
+# Versión de prueba: se está extrayendo el playbook incluido, no se descarga nada.
+package-looking-bundled = Preparando el playbook incluido.
 package-none = Aún no hay archivos de instalación. Un playbook (.apbx) contiene las instrucciones y los archivos que Atlas necesita.
 # Palabras de estado breves junto al título de la tarjeta.
 package-status-downloading = Descargando
@@ -207,6 +217,7 @@ package-status-unpacking = Extrayendo
 package-status-failed = Error al preparar
 package-status-ready = Listos
 package-status-checking = Comprobando
+package-status-preparing = Preparando
 package-status-missing = Sin descargar
 # Nombre accesible de la barra de progreso.
 package-progress = Progreso de los archivos de instalación
@@ -223,6 +234,8 @@ package-none-yet = No se han seleccionado archivos de instalación
 acquire-no-asset = Atlas { $version } no tiene ningún archivo playbook disponible para descargar. Para continuar, abra un playbook de Atlas (.apbx) guardado.
 acquire-unsupported = Esta aplicación puede instalar Atlas 0.6.0 y versiones posteriores. Para instalar Atlas { $version }, use AME Wizard.
 acquire-failed = No se pudieron preparar los archivos de instalación. Vuelva a descargarlos o abra otro playbook de Atlas (.apbx). Detalles: { $error }
+# Versión de prueba: no se pudo extraer el playbook incluido. Reintentar es el único control que se ofrece.
+acquire-failed-bundled = No se pudo preparar el playbook incluido. Elija Reintentar. Detalles: { $error }
 
 ## Comprobaciones del sistema
 
@@ -314,7 +327,7 @@ learn-more-generic = Leer la guía de configuración
 consequence-defender-enable = Conserva el antivirus integrado de Windows para ayudar a proteger su PC frente a virus y otras amenazas.
 consequence-defender-disable = Quita Microsoft Defender. Su PC no tendrá protección antivirus hasta que instale otra aplicación antivirus.
 consequence-mitigations-default = Mantiene las protecciones predeterminadas de Windows frente a ataques que aprovechan el funcionamiento del procesador.
-consequence-mitigations-disable = Desactiva estas protecciones y reduce la seguridad. El rendimiento depende del procesador y puede empeorar.
+consequence-mitigations-disable = Desactiva estas protecciones y reduce la seguridad. Cualquier diferencia de rendimiento depende del procesador.
 consequence-auto-updates-disable = Tendrá que abrir Windows Update e instalar las actualizaciones por su cuenta. Seguirá recibiendo notificaciones de actualizaciones.
 consequence-auto-updates-default = Windows instalará las actualizaciones automáticamente, incluidas las correcciones de seguridad.
 
@@ -404,14 +417,15 @@ phase-done = Terminando la configuración
 outcome-succeeded-title = Atlas está instalado
 outcome-lost-title = No se pudo confirmar el resultado de la instalación
 outcome-failed-title = La instalación no terminó
-outcome-succeeded = Reinicie su PC para terminar de configurar Atlas.
+# La misma frase que muestra la vista de instalación tras el éxito.
+outcome-succeeded = { restart-needed }
 outcome-requirements = Su PC no cumplía los requisitos de instalación. No se hizo ningún cambio. Vuelva a Preparación y ejecute de nuevo las comprobaciones.
 outcome-not-elevated = No se hizo ningún cambio. Vuelva a abrir Atlas como administrador e inténtelo de nuevo.
 outcome-failed-preflight = La instalación se detuvo antes de cambiar nada. Abra el archivo de registro para ver qué ocurrió y vuelva a intentarlo.
 outcome-failed-staging = La instalación se detuvo al preparar los archivos, antes de cambiar Windows. Abra el archivo de registro para ver qué ocurrió y vuelva a intentarlo.
-outcome-failed-applying = Puede que ya se hayan hecho algunos cambios. Si se detiene aquí, vuelva a activar en Seguridad de Windows las protecciones que desactivó, si siguen disponibles.
+outcome-failed-applying = Puede que ya se hayan hecho algunos cambios. Si se detiene aquí, vuelva a activar en Seguridad de Windows las protecciones que desactivó, si siguen disponibles. Abra el archivo de registro para ver qué ocurrió. Puede elegir Reintentar.
 outcome-not-started = El instalador no se inició a tiempo. No se hizo ningún cambio. Elija Reintentar.
-outcome-lost = El instalador se detuvo sin informar del resultado y puede que ya se hayan hecho algunos cambios. Abra el archivo de registro para ver qué ocurrió y elija Reintentar para reanudar.
+outcome-lost = El instalador se detuvo sin informar del resultado y puede que ya se hayan hecho algunos cambios. Abra el archivo de registro para ver qué ocurrió antes de elegir Reintentar.
 restart-now-message = Windows se está reiniciando para terminar de configurar Atlas.
 restart-countdown =
     { $seconds ->
@@ -419,7 +433,7 @@ restart-countdown =
        *[other] Windows se reiniciará en { $seconds } segundos para que Atlas pueda terminar la configuración.
     }
 restart-stopped = Reinicio automático cancelado. Guarde su trabajo y reinicie su PC para terminar de configurar Atlas.
-restart-needed = Guarde su trabajo y reinicie Windows para terminar de configurar Atlas.
+restart-needed = Guarde su trabajo y reinicie su PC para terminar de configurar Atlas.
 restart-dont-now = Reiniciar más tarde
 restart-now = Reiniciar ahora
 # Nombre accesible de la barra de cuenta atrás.
@@ -442,6 +456,11 @@ output-problem-message = Atlas no pudo leer el registro. Esto no significa que l
 install-elevate-title = Atlas necesita permiso para instalar
 install-no-package-title = Elija primero los archivos de instalación
 install-no-package-message = Vuelva a Preparación para descargar Atlas o abrir un playbook (.apbx) guardado.
+# Variante de install-no-package-message para la versión de prueba.
+install-no-package-bundled-message = Vuelva a Preparación para preparar el playbook incluido en esta versión de prueba.
+# Paso 4 cuando el paso 1 no se ha completado en esta sesión (comprobaciones o actualizaciones de Windows); go-to-ready es el botón.
+install-not-ready-title = Termine primero el paso Preparación
+install-not-ready-message = Las comprobaciones del equipo o la búsqueda de actualizaciones de Windows del paso Preparación no se han completado en esta sesión.
 install-security-title = Compruebe la protección antivirus antes de instalar
 install-security-reading = Comprobando de nuevo los cuatro interruptores de protección.
 install-security-message = { $summary }. Abra Seguridad de Windows y asegúrese de que los cuatro interruptores estén desactivados antes de continuar.
@@ -468,6 +487,8 @@ summary-change-a11y = Cambiar { $title }
 footer-still-checking = Preparando la instalación
 footer-fix-items = Complete las comprobaciones de arriba para continuar
 footer-need-package = Descargue Atlas o abra un playbook para continuar
+# Variante de footer-need-package para la versión de prueba.
+footer-need-package-bundled = Prepare el playbook incluido para continuar
 footer-reading-security = Comprobando los interruptores de protección
 button-checking = Comprobando
 button-installing = Instalando
@@ -541,6 +562,8 @@ settings-about-data = Archivos de la aplicación
 settings-about-licence = Licencia
 settings-about-licence-value = GPL-3.0, gratuito y de código abierto
 settings-view-source = Ver el código fuente en GitHub
+# Vínculo que abre los avisos de licencia de terceros.
+settings-view-licences = Ver los avisos de licencia
 settings-open-data-folder = Abrir la carpeta de la aplicación
 
 ## Opciones adicionales: explicaciones que se muestran antes de elegir.
@@ -565,6 +588,8 @@ iso-beta = Beta
 iso-beta-description = Pruebe la ISO en una máquina virtual antes de usarla en un equipo. Haga una copia de seguridad de sus archivos antes de instalar Windows.
 iso-admin-description = Se necesitan permisos de administrador para leer imágenes de Windows y crear medios de instalación.
 iso-files-description = Seleccione una ISO original de Windows 11 para x64, un playbook de Atlas (.apbx) y un nombre nuevo para el archivo de salida.
+# Versión de prueba: sin selector de playbook.
+iso-files-description-bundled = Seleccione una ISO original de Windows 11 para x64 y un nombre nuevo para el archivo de salida. Se usa el playbook incluido en esta versión de prueba.
 iso-source = ISO de Windows
 iso-package = Playbook de Atlas (0.6+)
 iso-output = Guardar la nueva ISO en
@@ -574,11 +599,14 @@ iso-save-as = Guardar como
 iso-inspect = Comprobar archivos
 iso-mode-title = Opciones de Windows y Atlas
 iso-mode-interactive = Elegir las opciones de Atlas al iniciar sesión
-iso-mode-interactive-description = Tras iniciar sesión, Atlas le ayudará a actualizar Windows y las aplicaciones de la Store, elegir sus opciones y aplicar Atlas.
+iso-mode-interactive-description = Tras iniciar sesión, Atlas Manager le ayudará a actualizar Windows y las aplicaciones de la Store, elegir sus opciones y aplicar Atlas.
 iso-mode-before = Elegir ahora las opciones de Atlas
 iso-mode-before-description = Guarde sus opciones de Atlas en la ISO. Tras iniciar sesión, actualice Windows y las aplicaciones de la Store y aplique Atlas con estas opciones.
 iso-package-unsupported-title = Elige un playbook más reciente
 iso-package-unsupported = La instalación desde ISO requiere Atlas 0.6 o posterior con soporte para ISO. Seleccione un playbook compatible.
+# Versión de prueba: el playbook incluido no se puede cambiar, así que la única salida es el modo tras iniciar sesión.
+iso-package-unsupported-bundled-title = Las opciones de Atlas no se pueden guardar en esta ISO
+iso-package-unsupported-bundled = El playbook incluido en esta versión de prueba no admite la instalación desde ISO. Seleccione en su lugar Elegir las opciones de Atlas al iniciar sesión.
 iso-atlas-options = Ajustes de Atlas
 iso-review = Revisar ISO
 iso-review-description = Atlas creará una ISO nueva y conservará el archivo original. Arranque desde la nueva ISO para instalar Windows. Crear la ISO no instala Atlas en este equipo.
@@ -607,7 +635,19 @@ iso-complete = Su ISO está lista
 iso-complete-description = Pruébela en una máquina virtual y úsela después para crear un medio de instalación de Windows.
 iso-open-folder = Mostrar en la carpeta
 iso-failed = No se ha podido terminar de crear la ISO
-iso-failed-description = Abra los diagnósticos para ver qué ha fallado. Corrija el problema e inténtelo de nuevo con otro nombre de archivo.
+iso-failed-description = Abra los diagnósticos para ver qué ha fallado. Corrija el problema e inténtelo de nuevo.
+# Título cuando falla el paso Comprobar archivos; los mensajes de abajo dicen por qué.
+iso-check-failed = No se pudieron comprobar los archivos
+iso-check-failed-description = Abra los diagnósticos para ver qué ha fallado. Corrija el problema y vuelva a comprobar los archivos.
+# Título cuando Windows rechazó la reapertura como administrador (UAC denegado); elevation-declined es el mensaje.
+iso-elevation-title = Se necesitan permisos de administrador
+# Motivos tipificados que informa el proceso de imagen.
+iso-failed-output-exists = Ya existe un archivo con ese nombre. Elija Guardar como y escriba un nombre de archivo nuevo.
+iso-failed-destination = Guarde la nueva ISO en una unidad local NTFS o ReFS. Las ubicaciones de red y las unidades FAT32 o exFAT no pueden contener los archivos de instalación.
+iso-failed-space = No hay suficiente espacio libre en la unidad de destino. Libere espacio o guarde la nueva ISO en otra unidad.
+iso-failed-edition = Esta ISO no contiene ninguna edición compatible de Windows. Windows Home y LTSC no son compatibles; use una ISO que incluya Pro, Pro for Workstations o Enterprise.
+iso-failed-customised = Esta ISO ya contiene archivos de instalación personalizados, como autounattend.xml. Elija una ISO original de Windows de Microsoft.
+iso-failed-windows-unsupported = Esta imagen de Windows no es compatible con el playbook. Para Atlas 0.6, use una ISO original de 64 bits de Windows 11 25H2; 24H2 y las compilaciones Insider no son compatibles.
 iso-diagnostics = Abrir diagnóstico
 iso-close-title = La ISO se está creando
 iso-close-message = Mantenga esta ventana abierta hasta que termine la creación o la cancelación. La cancelación espera a que la operación en curso pueda detenerse de forma segura.
@@ -648,10 +688,10 @@ iso-network-source = Origen de los controladores de red
 iso-network-installed = Usar los controladores instalados
 iso-network-updated = Buscar primero en Windows Update
 iso-network-updated-detail = Descarga controladores compatibles ofrecidos por Windows Update y conserva los instalados como respaldo. Requiere una conexión sin uso medido.
-iso-stage-network-drivers = Preparando los controladores de red…
+iso-stage-network-drivers = Preparando los controladores de red
 iso-network-failed = No se pudieron preparar los controladores de red. Consulte el diagnóstico o vuelva atrás y cambie la opción de controladores de red.
 iso-mode-desktop = Completar la configuración antes del escritorio
-iso-mode-desktop-description = Elija ahora las opciones de Atlas. Tras iniciar sesión, complete las actualizaciones y la configuración antes de abrir el escritorio de Windows.
+iso-mode-desktop-description = Guarde ahora sus opciones de Atlas y complete las actualizaciones y la configuración de Atlas antes de que se abra el escritorio de Windows.
 desktop-setup-description = Complete la configuración del equipo. Sus opciones de Atlas están guardadas; puede volver a Windows si lo necesita.
 desktop-setup-exit = Continuar en Windows
 
@@ -661,9 +701,15 @@ usb-existing = Crear un USB a partir de una ISO existente
 usb-description = Cree un USB de arranque de Windows 11 25H2 para instalar Windows y Atlas en su PC.
 usb-choose-iso = Elegir ISO
 usb-drive = Unidad USB
-usb-empty = Conecte una unidad USB y actualice la lista. Solo se muestran unidades USB con permiso de escritura que no contienen la instalación de Windows en uso.
+usb-empty = Conecte una unidad USB y actualice la lista. Solo se muestran unidades USB con permiso de escritura, de entre 8 GB y 2 TB, que no contienen la instalación de Windows en uso.
 usb-refresh = Actualizar
-usb-drive-detail = { $size } GB · { $volumes } · Serie: { $serial }
+# Se muestra cuando no se pudo leer la lista de unidades.
+usb-scan-failed = No se pudo leer la lista de unidades USB. Compruebe que la unidad esté conectada y actualice la lista. Abra el diagnóstico para ver los detalles.
+# Partes de la línea de detalle de una unidad, unidas con usb-detail-separator; las partes vacías se omiten.
+# $size es un número de gigabytes con formato (texto); $volumes y $serial son texto.
+usb-drive-size = { $size } GB
+usb-drive-serial = Serie: { $serial }
+usb-detail-separator = { " · " }
 usb-review = Revisar USB
 usb-erase-title = ¿Borrar esta unidad USB?
 usb-erase-description = Se borrarán permanentemente todos los archivos y particiones de { $drive } ({ $size } GB). Su ISO se conservará.
@@ -675,6 +721,10 @@ usb-stage-format = Formateando USB…
 usb-stage-copy = Copiando archivos de instalación…
 usb-stage-verify = Verificando USB…
 usb-working = Mantenga Atlas abierto y el USB conectado. Al cancelar, se espera a que la operación actual se detenga de forma segura. Un USB incompleto no permite instalar Windows.
+# Títulos de la barra de error, la barra de éxito y el aviso de cierre mientras se escribe un USB.
+usb-failed-title = No se pudo terminar de crear el USB
+usb-complete-title = Su USB está listo
+usb-close-title = El USB se está creando
 usb-failed = No se pudo terminar de crear el USB. Compruebe la conexión y abra el diagnóstico para ver los detalles. Vuelva a seleccionar la unidad para reintentarlo.
 usb-cancelled = Se detuvo la creación del USB. La unidad puede contener archivos de instalación incompletos. Créela de nuevo antes de instalar Windows.
 usb-complete = Su USB está listo y se han verificado todos los archivos. Expúlselo, conéctelo al PC que desea reinstalar y selecciónelo en su menú de arranque UEFI.
@@ -693,9 +743,9 @@ detail-windows-release-unknown = Atlas no pudo confirmar que esta compilación d
 iso-release-unknown = No se pudo confirmar que esta ISO contenga una versión pública de Windows 11 25H2. Conéctate a internet e inténtalo de nuevo, o elige un medio de instalación oficial.
 prepare-previous-worker = Una actualización anterior sigue en curso. Atlas esperará a que termine para que puedas volver a intentarlo.
 
-ready-used-windows-title = Reinstala Windows antes de continuar
-ready-used-windows-description = Esta instalación de Windows muestra signos de uso previo. Instalar Atlas aquí no tiene soporte y se desaconseja encarecidamente. Continúa solo si comprendes los riesgos.
-ready-used-windows-dismiss = Comprendo los riesgos
+ready-used-windows-title = Esta instalación de Windows parece usada
+ready-used-windows-description = Esta instalación de Windows muestra signos de uso previo. Instalar Atlas aquí no tiene soporte y se desaconseja encarecidamente. Continúe solo si comprende los riesgos.
+ready-used-windows-dismiss = Continuar de todos modos
 playbook-option-install-eclean = Instalar eclean
 consequence-install-eclean = Una herramienta de mantenimiento del equipo de AtlasOS para mantener su PC ordenado después de la instalación. Revise archivos innecesarios y aplicaciones de inicio. Requiere una cuenta y conexión a internet.
 
@@ -709,7 +759,7 @@ diagnostics-export = Exportar diagnóstico
 diagnostics-exporting = Recopilando diagnóstico…
 diagnostics-show = Mostrar ZIP de diagnóstico
 diagnostics-privacy = Crea un ZIP con datos sensibles ocultos para informar de un error públicamente.
-diagnostics-error = No se pudo exportar el diagnóstico: { $error }
+diagnostics-error = No se pudo exportar el diagnóstico. Detalles: { $error }
 
 ## Tester builds (embedded-playbook feature)
 

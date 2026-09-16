@@ -10,8 +10,8 @@ use std::rc::Rc;
 use gpui::{
     App, BorderStyle, Bounds, Corners, DispatchPhase, Div, Edges, Element, ElementId, GlobalElementId,
     Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, ParentElement, Pixels, ScrollHandle, Style, Styled, Window, div, point, px,
-    quad, relative, size,
+    MouseExitEvent, MouseMoveEvent, MouseUpEvent, ParentElement, Pixels, ScrollHandle, Style, Styled, Window,
+    div, point, px, quad, relative, size,
 };
 
 use crate::theme::ActiveTheme;
@@ -102,8 +102,11 @@ impl Element for Scrollbar {
         bounds: Bounds<Pixels>,
         _request_layout: &mut Self::RequestLayoutState,
         window: &mut Window,
-        _cx: &mut App,
+        cx: &mut App,
     ) -> Self::PrepaintState {
+        // The container's content has just been laid out; if keyboard focus
+        // moved into it, bring the focused control into view.
+        super::focus_reveal::reveal_in(&self.handle, window, cx);
         let max_offset = self.handle.max_offset().y;
         let viewport = bounds.size.height;
         if max_offset <= px(0.) || viewport <= px(0.) {
@@ -196,7 +199,10 @@ impl Element for Scrollbar {
                 if !hitbox.is_hovered(window) {
                     return;
                 }
-                if thumb.contains(&event.position) {
+                // The thumb is 2-6px wide inside a 12px rail: anywhere across
+                // the rail at the thumb's height grabs it.
+                let on_thumb = event.position.y >= thumb.top() && event.position.y <= thumb.bottom();
+                if on_thumb {
                     state.0.borrow_mut().drag = Some(event.position.y - thumb.origin.y);
                 } else {
                     // Jump so the thumb centres on the click.
@@ -242,6 +248,22 @@ impl Element for Scrollbar {
                     return;
                 }
                 if state.0.borrow_mut().drag.take().is_some() {
+                    window.refresh();
+                }
+            }
+        });
+
+        // Leaving the window over the rail sends no further moves, so the
+        // widened thumb would stick until the pointer came back.
+        window.on_mouse_event({
+            let state = state.clone();
+            move |_: &MouseExitEvent, phase, window, _| {
+                if phase != DispatchPhase::Bubble {
+                    return;
+                }
+                let mut inner = state.0.borrow_mut();
+                if inner.hovered {
+                    inner.hovered = false;
                     window.refresh();
                 }
             }

@@ -231,6 +231,9 @@ pub struct InstallAttempt {
     pub recovered: bool,
     /// The front door asked Windows to restart, and this is the countdown.
     pub restart: Option<RestartCountdown>,
+    /// Windows has been asked to restart (the countdown ended, or the user
+    /// chose "Restart now"); nothing here can take that back.
+    pub restart_requested: bool,
     /// The user stopped the automatic restart.
     pub restart_cancelled: bool,
     /// A restart command that did not take.
@@ -572,8 +575,11 @@ impl AppModel {
             return;
         }
         self.settings.drivers = Some(drivers);
+        // Preparation starts over under the new policy, on disk too: a draft
+        // resumed later must not skip it.
         self.preparation = Default::default();
         self.persist(move |doc| doc.drivers = Some(drivers), |_, (), _| {}, cx);
+        self.save_draft(cx);
         cx.notify();
     }
 
@@ -668,6 +674,10 @@ impl AppModel {
                 });
                 if this.preparation == State::Reboot {
                     this.save_preparation_restart(false, cx);
+                } else if this.preparation.ready() {
+                    // So a draft resumed later does not ask for a
+                    // preparation that is already done.
+                    this.save_draft(cx);
                 }
                 this.run_checks(cx);
                 cx.notify();
@@ -737,7 +747,7 @@ impl AppModel {
                 } else if restart {
                     // Keep recovery armed if shutdown fails: restarting through
                     // Windows should still bring the user back to their draft.
-                    match (this.env.adapters.schedule_restart)(&t!("shutdown-comment")) {
+                    match (this.env.adapters.schedule_restart)(&t!("prepare-shutdown-comment")) {
                         Ok(()) => {
                             this.preparation = State::Restarting;
                             let grace = this.env.restart.grace;
@@ -1164,6 +1174,13 @@ impl AppModel {
                 None => self.persist(|doc| doc.draft.clone(), picked_up, cx),
             }
         } else {
+            if self.session.is_some() {
+                // The attempt this flow ran did not succeed; it owes no
+                // completion window after a restart.
+                if let Err(error) = session::unregister_completion() {
+                    log::warn!("could not remove the completion Run entry: {error:#}");
+                }
+            }
             self.clear_session(cx);
             self.clear_draft(cx);
             self.flow_id = None;
@@ -1206,6 +1223,7 @@ impl AppModel {
         }
         Some(InstallDraft {
             preparation_restart_at: self.preparation_restart_at.clone(),
+            preparation_ready: self.preparation.ready(),
             step: self.flow.step.name().to_owned(),
             options: self.options.iter().cloned().collect(),
             playbook_dir: self.playbook.as_ref().map(|p| p.dir.clone()),
@@ -1386,6 +1404,10 @@ impl AppModel {
         if self.preparation_restart_at.is_some() {
             self.preparation =
                 crate::services::preparation::state_after_restart(self.preparation_restart_at.as_deref());
+        } else if draft.preparation_ready {
+            // Windows was prepared before the draft was saved, and no
+            // restart is owed: the Install step need not wait for it again.
+            self.preparation = crate::services::preparation::State::Ready;
         }
         let Some(step) = Step::parse(&draft.step) else {
             self.flow_id = draft.flow.clone();
@@ -2346,8 +2368,15 @@ impl AppModel {
             if restart && !self.attempt.recovered {
                 self.begin_restart_countdown(cx);
             }
-        } else if self.checks.is_empty() {
-            self.run_checks(cx);
+        } else {
+            // No restart follows this attempt, so the entry that reopens the
+            // app after one must not fire at some later sign-in.
+            if let Err(error) = session::unregister_completion() {
+                log::warn!("could not remove the completion Run entry: {error:#}");
+            }
+            if self.checks.is_empty() {
+                self.run_checks(cx);
+            }
         }
         self.sync_security_watch(cx);
     }
@@ -2385,37 +2414,46 @@ impl AppModel {
                     Tick::Expired => break,
                 }
             }
-            let requested = this
-                .update(cx, |this, cx| {
-                    if this.restart_epoch != epoch || this.attempt.restart.is_none() {
-                        return false;
-                    }
-                    if let Err(error) = (this.env.adapters.schedule_restart)(&t!("shutdown-comment")) {
-                        this.attempt.restart = None;
-                        this.attempt.restart_problem =
-                            Some(RestartProblem::Start { error: format!("{error:#}") });
-                        cx.notify();
-                        return false;
-                    }
-                    true
-                })
-                .unwrap_or(false);
-            if !requested {
-                return;
-            }
-            // If Windows is still running well after the countdown, it did
-            // not restart; offer the restart again instead of claiming it is
-            // happening.
-            cx.background_executor().timer(timing.grace).await;
             this.update(cx, |this, cx| {
                 if this.restart_epoch == epoch && this.attempt.restart.is_some() {
+                    this.request_restart(cx);
+                }
+            })
+            .ok();
+        }));
+    }
+
+    /// Asks Windows to restart now, at the end of the countdown or on
+    /// "Restart now". A refusal is shown with the restart offered again. A
+    /// request Windows accepted but has not acted on by the end of the grace
+    /// period is offered again too, rather than claiming a restart that is
+    /// not happening. A countdown left showing stays at zero meanwhile.
+    fn request_restart(&mut self, cx: &mut Context<Self>) {
+        self.attempt.restart_problem = None;
+        if let Err(error) = (self.env.adapters.schedule_restart)(&t!("shutdown-comment")) {
+            self.attempt.restart = None;
+            self.attempt.restart_requested = false;
+            self.attempt.restart_problem = Some(RestartProblem::Start { error: format!("{error:#}") });
+            cx.notify();
+            return;
+        }
+        self.attempt.restart_requested = true;
+        let epoch = self.restart_epoch;
+        let grace = self.env.restart.grace;
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(grace).await;
+            this.update(cx, |this, cx| {
+                if this.restart_epoch == epoch && this.attempt.restart_requested {
                     this.attempt.restart = None;
+                    this.attempt.restart_requested = false;
                     this.attempt.restart_cancelled = false;
                     cx.notify();
                 }
             })
             .ok();
-        }));
+        })
+        .detach();
+        cx.notify();
     }
 
     fn stop_restart_timer(&mut self) {
@@ -2424,10 +2462,17 @@ impl AppModel {
         self.attempt.restart = None;
     }
 
+    /// Whether "Restart later" can still do anything: a countdown is running
+    /// and Windows has not been asked yet.
+    pub fn restart_cancellable(&self) -> bool {
+        self.attempt.restart.is_some() && !self.attempt.restart_requested
+    }
+
     /// Cancels the local countdown, so the user can finish
     /// something first. Atlas still needs the restart to complete setup.
+    /// Once Windows has the request there is nothing here to cancel.
     pub fn cancel_restart(&mut self, cx: &mut Context<Self>) {
-        if self.attempt.restart.is_none() {
+        if !self.restart_cancellable() {
             return;
         }
         self.stop_restart_timer();
@@ -2436,15 +2481,17 @@ impl AppModel {
         cx.notify();
     }
 
-    /// Starts the app countdown
-    /// when the automatic restart was declined or turned off.
+    /// Asks Windows to restart straight away, when the automatic restart
+    /// was declined, turned off, or did not take.
     pub fn restart_now(&mut self, cx: &mut Context<Self>) {
-        if !matches!(self.flow.run, RunState::Finished(outcome) if outcome.is_success()) {
+        if !matches!(self.flow.run, RunState::Finished(outcome) if outcome.is_success())
+            || self.attempt.restart_requested
+        {
             return;
         }
-        self.attempt.restart_problem = None;
-        self.begin_restart_countdown(cx);
-        cx.notify();
+        self.stop_restart_timer();
+        self.attempt.restart_cancelled = false;
+        self.request_restart(cx);
     }
 
     fn push_log(&mut self, lines: Vec<String>) {

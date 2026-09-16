@@ -10,7 +10,7 @@ use gpui::{
     WindowControlArea, div, prelude::*, px, svg,
 };
 
-use super::{Icon, Typography, icon_sized};
+use super::{Icon, Typography, focus_ring, icon_sized};
 use crate::t;
 use crate::theme::{ActiveTheme, FONT_ICONS};
 
@@ -50,6 +50,7 @@ impl RenderOnce for TitleBar {
         let hover_text = theme.text_on_hover(text);
         let pressed = theme.subtle_pressed;
         let focus_outer = theme.focus_outer;
+        let focus_inner = theme.focus_inner;
         div()
             .flex()
             .flex_shrink_0()
@@ -107,7 +108,7 @@ impl RenderOnce for TitleBar {
                         .when(selected, |this| this.bg(hover))
                         .hover(move |style| style.bg(hover).text_color(hover_text))
                         .active(move |style| style.bg(pressed))
-                        .focus_visible(move |style| style.border_color(focus_outer))
+                        .focus_visible(move |style| focus_ring(style, focus_outer, focus_inner))
                         .tab_index(0)
                         .on_a11y_action(gpui::AccessibleAction::Click, {
                             let handler = handler.clone();

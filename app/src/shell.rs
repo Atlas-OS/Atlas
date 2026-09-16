@@ -16,8 +16,8 @@ use crate::model::{AppModel, ModelEvent, Page};
 use crate::pages::{HomePage, InstallPage, InstalledPage, InstallingPage, IsoPage, SettingsPage};
 use crate::t;
 use crate::theme::{ActiveTheme, Appearance, FONT_TEXT, Theme};
-use crate::ui::actions::{FocusNext, FocusPrevious};
-use crate::ui::{BODY_LINE_HEIGHT, Button, Icon, TitleBar, Typography, icon_in_line};
+use crate::ui::actions::{FocusNext, FocusPrevious, NavigateBack};
+use crate::ui::{BODY_LINE_HEIGHT, Button, Icon, TitleBar, Typography, focus_reveal, icon_in_line};
 
 /// Where the window opens. Set from the command line for review and testing.
 #[derive(Clone, Debug, Default)]
@@ -102,6 +102,9 @@ impl Shell {
                         model.refresh_language(cx);
                     });
                 }
+                // Chrome and the completion backdrop draw differently for
+                // an inactive window, whether or not the model changed.
+                cx.notify();
             }),
         ];
 
@@ -156,7 +159,8 @@ impl Shell {
             return false;
         }
         if self.model.read(cx).iso_busy {
-            let title = if self.model.read(cx).usb_busy { t!("usb-title") } else { t!("iso-close-title") };
+            let title =
+                if self.model.read(cx).usb_busy { t!("usb-close-title") } else { t!("iso-close-title") };
             let message =
                 if self.model.read(cx).usb_busy { t!("usb-working") } else { t!("iso-close-message") };
             let keep = t!("iso-keep-open");
@@ -202,6 +206,29 @@ impl Shell {
         })
         .detach();
         false
+    }
+
+    /// Escape does what the page's back arrow does, so it works only where
+    /// the arrow is drawn: Settings, the ISO page while no job runs, and the
+    /// install flow outside desktop setup. Home, a running install and the
+    /// completion page have no arrow and ignore it. The model's own refusals
+    /// (a busy preparation or ISO job) apply as they do to the arrow.
+    fn navigate_back(&mut self, cx: &mut Context<Self>) {
+        // Escape inside the USB panel closes the panel first, as its Back button does.
+        if self.model.read(cx).page == Page::Iso && self.iso.update(cx, |iso, cx| iso.close_usb_panel(cx)) {
+            return;
+        }
+        let state = self.model.read(cx);
+        let has_arrow = !state.install_in_progress()
+            && match state.page {
+                Page::Settings => true,
+                Page::Iso => !state.iso_busy,
+                Page::Install => !state.before_desktop,
+                Page::Home | Page::Installed => false,
+            };
+        if has_arrow {
+            self.model.update(cx, |model, cx| model.navigate(Page::Home, cx));
+        }
     }
 
     /// The catalog has already been swapped by the model; every view
@@ -255,8 +282,15 @@ impl Render for Shell {
         div()
             .id("atlas-root")
             .track_focus(&self.focus_handle)
-            .on_action(|_: &FocusNext, window, cx| window.focus_next(cx))
-            .on_action(|_: &FocusPrevious, window, cx| window.focus_prev(cx))
+            .on_action(|_: &FocusNext, window, cx| {
+                window.focus_next(cx);
+                focus_reveal::request(window, cx);
+            })
+            .on_action(|_: &FocusPrevious, window, cx| {
+                window.focus_prev(cx);
+                focus_reveal::request(window, cx);
+            })
+            .on_action(cx.listener(|this, _: &NavigateBack, _, cx| this.navigate_back(cx)))
             .size_full()
             .flex()
             .flex_col()

@@ -79,6 +79,9 @@ impl InstallPage {
 
     fn stepper(&self, current: Step, may_edit: bool, window: &Window, cx: &App) -> AnyElement {
         let theme = cx.theme();
+        // Get ready is only ticked once it is satisfied for this session, even
+        // when a later step is showing.
+        let ready = self.model.read(cx).ready_to_continue();
         let mut row = div()
             .id("stepper")
             .role(Role::List)
@@ -89,7 +92,8 @@ impl InstallPage {
             .gap_y(px(8.))
             .pb(px(4.));
         for (index, step) in Step::ALL.iter().enumerate() {
-            let done = step.index() < current.index();
+            let visited = step.index() < current.index();
+            let done = visited && (*step != Step::Ready || ready);
             let active = *step == current;
             let title = step.title();
             let marker = div()
@@ -135,10 +139,10 @@ impl InstallPage {
                 title = title.as_str(),
                 status = status
             );
-            let clickable = done && may_edit;
+            let clickable = visited && may_edit;
             let hover = theme.subtle_hover;
             let focus_outer = theme.focus_outer;
-            row = row.child(
+            row = row.child(crate::ui::Revealed::new(
                 div()
                     .id(("step", index))
                     .role(if clickable { Role::Button } else { Role::ListItem })
@@ -166,7 +170,7 @@ impl InstallPage {
                     })
                     .child(marker)
                     .child(label),
-            );
+            ));
             if index + 1 < Step::ALL.len() {
                 row = row.child(
                     crate::ui::icon_in_line_sized(Icon::ChevronRight, 10., crate::ui::BODY_LINE_HEIGHT)
@@ -185,6 +189,7 @@ impl InstallPage {
         let model = self.model.clone();
         let state = self.model.read(cx);
         let release = state.release.release().cloned();
+        let bundled = state.bundled();
 
         let (line, light, light_label) = match (&state.acquisition, &state.playbook) {
             (Acquisition::Downloading { received, total }, _) => (
@@ -207,10 +212,15 @@ impl InstallPage {
                 t!("package-status-unpacking"),
             ),
             (Acquisition::Failed(problem), _) => {
-                (problem.text(), LightState::Bad, t!("package-status-failed"))
+                (problem.text(bundled), LightState::Bad, t!("package-status-failed"))
             }
             (Acquisition::Idle, Some(source)) => {
                 (source.describe(), LightState::Good, t!("package-status-ready"))
+            }
+            // A tester build never checks for a release: before its bundled
+            // playbook is unpacked it is preparing, not checking.
+            (Acquisition::Idle, None) if bundled => {
+                (t!("package-looking-bundled"), LightState::Pending, t!("package-status-preparing"))
             }
             (Acquisition::Idle, None) => match &state.release {
                 crate::model::ReleaseCheck::Checking | crate::model::ReleaseCheck::NotChecked => {
@@ -228,7 +238,6 @@ impl InstallPage {
             _ => None,
         };
         let busy = state.acquisition.is_busy() || state.locked() || !state.flow.may_edit();
-        let bundled = state.bundled();
         let download_label = match (&release, &state.playbook) {
             (Some(r), Some(p)) if p.manifest.version == r.version() => t!("package-download-again"),
             (Some(r), _) => t!("package-download-version", version = r.version()),
@@ -328,6 +337,12 @@ impl InstallPage {
                 Severity::Error,
                 t!("ready-banner-blocked-title"),
                 t!("ready-banner-blocked-message"),
+            )
+        } else if state.playbook.is_none() && state.bundled() {
+            InfoBar::new(
+                Severity::Warning,
+                t!("ready-banner-no-package-bundled-title"),
+                t!("ready-banner-no-package-bundled-message"),
             )
         } else if state.playbook.is_none() {
             InfoBar::new(
@@ -463,10 +478,14 @@ impl InstallPage {
             );
         }
 
-        let show_used_windows_warning =
-            matches!(state.install_identity, Ok(crate::services::atlas_state::InstallIdentity::Fresh))
-                && self.windows_installation.suggests_prior_use()
-                && !self.used_windows_warning_dismissed;
+        // The fresh-install note applies to a first install on Windows that
+        // shows no prior use. Once the used-Windows warning applies, it takes
+        // over; dismissing it must not bring another bar back in its place.
+        let fresh_identity =
+            matches!(state.install_identity, Ok(crate::services::atlas_state::InstallIdentity::Fresh));
+        let used_windows = fresh_identity && self.windows_installation.suggests_prior_use();
+        let show_used_windows_warning = used_windows && !self.used_windows_warning_dismissed;
+        let show_fresh_note = fresh_identity && !used_windows;
         let mut cards = vec![
             drivers,
             self.preparation_card(cx),
@@ -491,10 +510,10 @@ impl InstallPage {
                 .child(list)
                 .into_any_element(),
         ];
-        if !show_used_windows_warning {
+        if show_fresh_note {
             cards.insert(
                 0,
-                InfoBar::new(Severity::Warning, t!("ready-fresh-title"), t!("ready-fresh-description"))
+                InfoBar::new(Severity::Informational, t!("ready-fresh-title"), t!("ready-fresh-description"))
                     .into_any_element(),
             );
         }
@@ -676,62 +695,68 @@ impl InstallPage {
                             )
                     })
                     .when(state.preparation != State::WaitingExternal, |this| {
+                        // A row keeps the card's action at its natural width.
                         this.child(
-                            Button::new(
-                                "prepare-action",
-                                if busy && state.preparation_cancel.load(std::sync::atomic::Ordering::Relaxed)
-                                {
-                                    t!("iso-cancelling")
-                                } else if matches!(
-                                    state.preparation,
-                                    State::SavingRestart | State::Restarting
-                                ) {
-                                    t!("prepare-restart")
-                                } else if busy {
-                                    t!("prepare-stop")
-                                } else if reboot {
-                                    t!("prepare-restart")
-                                } else if !state.elevated {
-                                    t!("common-restart-as-administrator")
-                                } else if state.preparation == State::Resumed {
-                                    t!("prepare-continue")
-                                } else {
-                                    t!("prepare-start")
-                                },
-                            )
-                            .when(!busy && !reboot && !state.elevated, |button| button.icon(Icon::Admin))
-                            .disabled(
-                                state.preparation.ready()
-                                    || (!busy && !state.preparation_build_supported())
-                                    || (!busy && state.install_eligibility_problem().is_some())
-                                    || state.preparation == State::Restarting
-                                    || state.preparation == State::SavingRestart
-                                    || (busy
-                                        && state
-                                            .preparation_cancel
-                                            .load(std::sync::atomic::Ordering::Relaxed)),
-                            )
-                            .on_click(move |_, _, cx| {
-                                model.update(cx, |m, cx| {
-                                    if m.preparation.busy() {
-                                        m.preparation_cancel
-                                            .store(true, std::sync::atomic::Ordering::Relaxed);
-                                    } else if !m.elevated {
-                                        m.relaunch_elevated(cx);
+                            div().flex().child(
+                                Button::new(
+                                    "prepare-action",
+                                    if busy
+                                        && state.preparation_cancel.load(std::sync::atomic::Ordering::Relaxed)
+                                    {
+                                        t!("iso-cancelling")
+                                    } else if matches!(
+                                        state.preparation,
+                                        State::SavingRestart | State::Restarting
+                                    ) {
+                                        t!("prepare-restart")
+                                    } else if busy {
+                                        t!("prepare-stop")
                                     } else if reboot {
-                                        m.restart_preparation(cx);
+                                        t!("prepare-restart")
+                                    } else if !state.elevated {
+                                        t!("common-restart-as-administrator")
+                                    } else if state.preparation == State::Resumed {
+                                        t!("prepare-continue")
                                     } else {
-                                        m.prepare_windows(cx);
-                                    }
-                                    cx.notify();
-                                })
-                            }),
+                                        t!("prepare-start")
+                                    },
+                                )
+                                .when(!busy && !reboot && !state.elevated, |button| button.icon(Icon::Admin))
+                                .disabled(
+                                    state.preparation.ready()
+                                        || (!busy && !state.preparation_build_supported())
+                                        || (!busy && state.install_eligibility_problem().is_some())
+                                        || state.preparation == State::Restarting
+                                        || state.preparation == State::SavingRestart
+                                        || (busy
+                                            && state
+                                                .preparation_cancel
+                                                .load(std::sync::atomic::Ordering::Relaxed)),
+                                )
+                                .on_click(move |_, _, cx| {
+                                    model.update(cx, |m, cx| {
+                                        if m.preparation.busy() {
+                                            m.preparation_cancel
+                                                .store(true, std::sync::atomic::Ordering::Relaxed);
+                                        } else if !m.elevated {
+                                            m.relaunch_elevated(cx);
+                                        } else if reboot {
+                                            m.restart_preparation(cx);
+                                        } else {
+                                            m.prepare_windows(cx);
+                                        }
+                                        cx.notify();
+                                    })
+                                }),
+                            ),
                         )
                     })
                     .when_some(state.preparation_job.clone(), |this, job| {
                         this.child(
-                            Button::new("prepare-log", t!("iso-diagnostics"))
-                                .on_click(move |_, _, cx| cx.reveal_path(&job)),
+                            div().flex().child(
+                                Button::new("prepare-log", t!("iso-diagnostics"))
+                                    .on_click(move |_, _, cx| cx.reveal_path(&job)),
+                            ),
                         )
                     }),
             )
@@ -1275,9 +1300,29 @@ impl InstallPage {
                     InfoBar::new(
                         Severity::Warning,
                         t!("install-no-package-title"),
-                        t!("install-no-package-message"),
+                        if state.bundled() {
+                            t!("install-no-package-bundled-message")
+                        } else {
+                            t!("install-no-package-message")
+                        },
                     )
                     .id("install-no-package")
+                    .action(Button::new("install-back-ready", t!("go-to-ready")).on_click({
+                        let model = model.clone();
+                        move |_, _, cx| model.update(cx, |m, cx| m.set_step(Step::Ready, cx))
+                    }))
+                    .into_any_element(),
+                );
+            } else if !state.ready_to_continue() {
+                // Step 1 is not satisfied for this session (checks or Windows
+                // updates), so Install stays disabled: say so and lead back.
+                cards.push(
+                    InfoBar::new(
+                        Severity::Warning,
+                        t!("install-not-ready-title"),
+                        t!("install-not-ready-message"),
+                    )
+                    .id("install-not-ready")
                     .action(Button::new("install-back-ready", t!("go-to-ready")).on_click({
                         let model = model.clone();
                         move |_, _, cx| model.update(cx, |m, cx| m.set_step(Step::Ready, cx))
@@ -1568,6 +1613,8 @@ impl InstallPage {
                     (t!("footer-still-checking"), false)
                 } else if state.checks_blocking() {
                     (t!("footer-fix-items"), false)
+                } else if state.playbook.is_none() && state.bundled() {
+                    (t!("footer-need-package-bundled"), false)
                 } else if state.playbook.is_none() {
                     (t!("footer-need-package"), false)
                 } else if !state.preparation.ready() {
@@ -1586,7 +1633,13 @@ impl InstallPage {
                     (describe::security_summary(&state.security.counts()), false)
                 }
             }
-            Step::Install => (String::new(), false),
+            Step::Install => {
+                let not_ready = run == RunState::Idle
+                    && state.elevated
+                    && state.playbook.is_some()
+                    && !state.ready_to_continue();
+                (if not_ready { t!("install-not-ready-title") } else { String::new() }, false)
+            }
         };
 
         let cancel =

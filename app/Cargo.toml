@@ -1,6 +1,6 @@
 [package]
 name = "atlas-app"
-version = "0.1.0"
+version = "0.6.0"
 edition = "2024"
 description = "Atlas Manager: the graphical front door for installing and updating AtlasOS."
 license = "GPL-3.0-only"
@@ -64,7 +64,8 @@ windows = { version = "0.62", features = [
 
 [features]
 # A tester build that carries one playbook and installs nothing else. The
-# release script sets ATLAS_EMBED_APBX and ATLAS_RC_ID; see docs/rc-testers-build.md.
+# release script sets ATLAS_EMBED_APBX and ATLAS_RC_ID; see docs/rc-testers-build.md
+# (app/docs/rc-testers-build.md from the repository root).
 embedded-playbook = []
 
 [dev-dependencies]

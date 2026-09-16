@@ -8,7 +8,7 @@ use gpui::{
 };
 
 use super::icons::icon_in_line_sized;
-use super::{BODY_LINE_HEIGHT, Icon, Typography, focus_ring, icon, icon_in_line};
+use super::{BODY_LINE_HEIGHT, Icon, Revealed, Typography, focus_ring, icon, icon_in_line};
 use crate::t;
 use crate::theme::ActiveTheme;
 
@@ -194,7 +194,7 @@ impl RenderOnce for Button {
         let name = self.aria_label.clone().unwrap_or_else(|| self.label.clone());
         let description = disabled.then(|| t!("common-not-available"));
 
-        div()
+        let button = div()
             .id(self.id)
             .role(if self.opens_externally { Role::Link } else { Role::Button })
             .aria_label(name)
@@ -257,6 +257,7 @@ impl RenderOnce for Button {
                 } else {
                     icon_in_line_sized(glyph, 12., BODY_LINE_HEIGHT).into_any_element()
                 })
-            })
+            });
+        Revealed::new(button)
     }
 }

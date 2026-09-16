@@ -57,7 +57,18 @@ impl Render for InstallingPage {
         let theme = cx.theme().clone();
         let model = self.model.clone();
         let heading_focus = self.focus.get("installing-heading", cx);
-        let (run, phase, countdown, progress, cancelled, started_at, output_problem, restart_problem) = {
+        let (
+            run,
+            phase,
+            countdown,
+            progress,
+            cancelled,
+            restarting,
+            cancellable,
+            started_at,
+            output_problem,
+            restart_problem,
+        ) = {
             let state = self.model.read(cx);
             (
                 state.flow.run,
@@ -65,6 +76,8 @@ impl Render for InstallingPage {
                 state.restart_countdown(),
                 state.restart_progress(),
                 state.attempt.restart_cancelled,
+                state.attempt.restart_requested,
+                state.restart_cancellable(),
                 state.session.as_ref().map(|s| s.started_at.clone()),
                 state.attempt.output_problem.clone(),
                 state.attempt.restart_problem.clone(),
@@ -92,11 +105,11 @@ impl Render for InstallingPage {
             ),
             RunState::Finished(_) if succeeded => (
                 t!("installing-installed-title"),
-                match (countdown, cancelled) {
-                    (Some(0), _) => t!("restart-now-message"),
-                    (Some(seconds), _) => t!("restart-countdown", seconds = seconds),
-                    (None, true) => t!("restart-stopped"),
-                    (None, false) => t!("restart-needed"),
+                match (restarting, countdown, cancelled) {
+                    (true, _, _) | (_, Some(0), _) => t!("restart-now-message"),
+                    (_, Some(seconds), _) => t!("restart-countdown", seconds = seconds),
+                    (_, None, true) => t!("restart-stopped"),
+                    (_, None, false) => t!("restart-needed"),
                 },
             ),
             _ => (t!("install-title"), String::new()),
@@ -190,7 +203,9 @@ impl Render for InstallingPage {
                     )));
                 }
                 let mut buttons = div().flex().gap(px(8.)).pt(px(8.));
-                if countdown.is_some() {
+                if restarting {
+                    // Windows has the request; nothing here can take it back.
+                } else if cancellable {
                     buttons = buttons.child(Button::new("stop-restart", t!("restart-dont-now")).on_click({
                         let model = model.clone();
                         move |_, _, cx| model.update(cx, |m, cx| m.cancel_restart(cx))

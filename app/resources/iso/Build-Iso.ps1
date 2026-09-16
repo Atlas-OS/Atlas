@@ -21,6 +21,11 @@ function Write-Stage([string]$Stage) {
     Write-Output "ATLAS_STAGE:$Stage"
     if (Test-Path -LiteralPath (Join-Path $job 'cancel')) { throw 'Cancelled at a safe checkpoint.' }
 }
+# A typed reason the app turns into specific advice; the message goes to the log.
+function Fail([string]$Reason, [string]$Message) {
+    [Console]::Out.WriteLine("ATLAS_ERROR:$Reason")
+    throw $Message
+}
 function Assert-PlainTree([string]$Path) {
     $root = Get-Item -LiteralPath $Path -Force
     if ($root.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Reparse point: $Path" }
@@ -56,15 +61,15 @@ function Assert-BootCatalog([string]$Path) {
 }
 function Assert-Output {
     if ([IO.Path]::GetExtension($request.output) -ine '.iso') { throw 'Output must end in .iso.' }
-    if (Test-Path -LiteralPath $request.output) { throw 'Output already exists. Choose a new filename.' }
+    if (Test-Path -LiteralPath $request.output) { Fail 'output-exists' 'Output already exists. Choose a new filename.' }
     $parent = Get-Item -LiteralPath ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($request.output)))
-    if ($parent.FullName.StartsWith('\\')) { throw 'Choose a local NTFS or ReFS destination.' }
+    if ($parent.FullName.StartsWith('\\')) { Fail 'destination-filesystem' 'Choose a local NTFS or ReFS destination.' }
     $volume = Get-Volume -FilePath $parent.FullName
-    if ($volume.FileSystem -notin @('NTFS', 'ReFS')) { throw 'Choose an NTFS or ReFS destination for large installation files.' }
+    if ($volume.FileSystem -notin @('NTFS', 'ReFS')) { Fail 'destination-filesystem' 'Choose an NTFS or ReFS destination for large installation files.' }
     # Conservative budget: extracted media, output, package, plus scratch headroom.
     $packageBytes = (Get-ChildItem -LiteralPath $request.package -File -Force -Recurse | Measure-Object Length -Sum).Sum
     $required = 5 * (Get-Item -LiteralPath $source).Length + 2 * [long]$packageBytes + 4GB
-    if ($volume.SizeRemaining -lt $required) { throw "Not enough free space. Required: $required bytes." }
+    if ($volume.SizeRemaining -lt $required) { Fail 'disk-space' "Not enough free space. Required: $required bytes." }
     return $parent.FullName
 }
 function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds) {
@@ -72,12 +77,11 @@ function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds) {
         $info = Get-WindowsImage -ImagePath $ImagePath -Index $summary.ImageIndex
         $version = [version]$info.Version
         if ([int]$info.Architecture -ne 9 -or $SupportedBuilds -notcontains $version.Build) {
-            throw "Unsupported Windows image: $($info.ImageName), $($info.Version), architecture $($info.Architecture)."
+            Fail 'windows-unsupported' "Unsupported Windows image: $($info.ImageName), $($info.Version), architecture $($info.Architecture)."
         }
-        if ($info.InstallationType -ne 'Client') { throw 'Only Windows client installation media is supported.' }
+        if ($info.InstallationType -ne 'Client') { Fail 'windows-unsupported' 'Only Windows client installation media is supported.' }
         if ((Get-AtlasWindowsReleaseStatus -Version $version) -ne 'Released') {
-            [Console]::Out.WriteLine('ATLAS_ERROR:windows-release-unknown')
-            throw "The Windows image version $version could not be verified as a public release. Connect to the internet and retry, or choose official release media."
+            Fail 'windows-release-unknown' "The Windows image version $version could not be verified as a public release. Connect to the internet and retry, or choose official release media."
         }
         # Match the destination edition gate. Normal Microsoft consumer media
         # also contains Home; retain every supported edition for Setup to offer.
@@ -89,7 +93,7 @@ function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds) {
 }
 function Export-AtlasMediaEditions([string]$SourceImage, [string]$DestinationImage, [object[]]$Editions) {
     if (Test-Path -LiteralPath $DestinationImage) { throw 'The filtered Windows image already exists.' }
-    if ($Editions.Count -eq 0) { throw 'The ISO contains no supported Windows editions.' }
+    if ($Editions.Count -eq 0) { Fail 'edition-unsupported' 'The ISO contains no supported Windows editions.' }
     foreach ($edition in $Editions) {
         Write-Stage copy
         Export-WindowsImage -SourceImagePath $SourceImage -SourceIndex $edition.ImageIndex -DestinationImagePath $DestinationImage -CompressionType Max -CheckIntegrity -ErrorAction Stop | Out-Null
@@ -127,7 +131,7 @@ try {
         if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { throw "Windows installation file missing: $relative" }
     }
     foreach ($relative in @('autounattend.xml', 'unattend.xml', 'sources\autounattend.xml', 'sources\unattend.xml', 'sources\$OEM$')) {
-        if (Test-Path -LiteralPath (Join-Path $root $relative)) { throw "This ISO already has custom setup content ($relative). Choose unmodified Microsoft media." }
+        if (Test-Path -LiteralPath (Join-Path $root $relative)) { Fail 'iso-customised' "This ISO already has custom setup content ($relative). Choose unmodified Microsoft media." }
     }
     $images = @('sources\install.wim', 'sources\install.esd' | ForEach-Object { Join-Path $root $_ } | Where-Object { Test-Path -LiteralPath $_ })
     if ($images.Count -ne 1) { throw 'Expected one install.wim or install.esd. Split images are not supported in this Beta.' }
@@ -135,7 +139,7 @@ try {
     $sourceEditionCount = @(Get-WindowsImage -ImagePath $images[0]).Count
     $supportedEditions = @(Get-AtlasMediaEditions -ImagePath $images[0] -SupportedBuilds $request.supportedBuilds)
     $editions = @($supportedEditions | ForEach-Object { [string]$_.ImageName })
-    if ($editions.Count -eq 0) { throw 'The ISO contains no supported Windows editions. Windows Home and LTSC are not supported.' }
+    if ($editions.Count -eq 0) { Fail 'edition-unsupported' 'The ISO contains no supported Windows editions. Windows Home and LTSC are not supported.' }
     Write-Output ('ATLAS_RESULT:' + (@{ editions = $editions; bytes = (Get-Item -LiteralPath $source).Length } | ConvertTo-Json -Compress))
     if ($Operation -eq 'Inspect') { exit 0 }
     if ($request.mode -notin @('interactive', 'configured', 'before-desktop')) { throw 'Unknown setup mode.' }

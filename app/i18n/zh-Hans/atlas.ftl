@@ -1,4 +1,4 @@
-### Atlas Manager: Chinese (Simplified) (zh-Hans), preview translation. Revised 6 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
+### Atlas Manager: Chinese (Simplified) (zh-Hans), preview translation. Revised 16 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
 ###
 ### 译者说明：
 ### - 称呼用户为“你”（与 Windows 11 简体中文界面一致），称呼计算机为“电脑”。
@@ -64,6 +64,8 @@ window-close-close = 关闭窗口
 file-dialog-open-playbook = 打开 Atlas Playbook (.apbx) 文件
 # Windows 在重启通知中显示的消息。
 shutdown-comment = Atlas 已安装。Windows 即将重启以完成设置。
+# “准备”步骤为完成 Windows 更新的安装而重启时，Windows 在重启通知中显示的消息。
+prepare-shutdown-comment = Atlas 正在重启 Windows，以完成更新的安装。
 
 ## 系统
 
@@ -110,6 +112,8 @@ home-history-entry = Atlas { $version } · { $mode } · { $date }
 home-how-it-works = 为安装 Atlas 做好准备
 home-step-1-title = 检查电脑
 home-step-1-detail = Atlas 会检查 Windows 并下载安装文件。你的 Windows 设置保持不变。
+# 测试版：Playbook 已内置，不需要下载。
+home-step-1-detail-bundled = Atlas 会检查 Windows 并准备内置的安装文件。你的 Windows 设置保持不变。
 home-step-2-title = 选择设置
 home-step-2-detail = 选择 Windows 处理防护和更新的方式，再按需挑选额外的应用和设置。
 home-step-3-title = 暂停防病毒保护
@@ -179,6 +183,9 @@ ready-banner-blocked-title = 电脑还需要做些准备
 ready-banner-blocked-message = 请按照下方说明操作，然后选择“重新检查”。
 ready-banner-no-package-title = 下载 Atlas 以继续
 ready-banner-no-package-message = 请在下方下载最新版本，或打开已保存的 Atlas Playbook (.apbx) 文件。
+# 测试版：内置的 Playbook 无法解压。
+ready-banner-no-package-bundled-title = 准备内置的 Playbook 以继续
+ready-banner-no-package-bundled-message = 此测试版内置的 Playbook 尚未就绪。请查看下方的“安装文件”卡片。
 ready-banner-warnings-title = 有几项需要留意
 ready-banner-warnings-message = 继续之前，请阅读下方说明并按建议处理。
 ready-banner-ok-title = 可以开始选择设置了
@@ -195,6 +202,8 @@ package-downloading = 正在下载 Atlas { $version } · { $received } / { $tota
 package-unpacking-progress = 正在解压 · { $done } / { $total } 个文件
 package-unpacking = 正在解压
 package-looking = 正在检查 Atlas 的最新版本。
+# 测试版：正在解压内置的 Playbook，不需要下载。
+package-looking-bundled = 正在准备内置的 Playbook。
 package-none = 尚无安装文件。Playbook (.apbx) 文件包含 Atlas 所需的安装指令和文件。
 # 卡片标题旁边的简短状态词。
 package-status-downloading = 正在下载
@@ -202,6 +211,7 @@ package-status-unpacking = 正在解压
 package-status-failed = 无法准备文件
 package-status-ready = 已就绪
 package-status-checking = 正在检查
+package-status-preparing = 正在准备
 package-status-missing = 未下载
 # 进度条的辅助功能名称。
 package-progress = 安装文件进度
@@ -218,6 +228,8 @@ package-none-yet = 尚未选择安装文件
 acquire-no-asset = Atlas { $version } 没有可下载的 Playbook 文件。请打开已保存的 Atlas Playbook (.apbx) 文件以继续。
 acquire-unsupported = 此应用只能安装 Atlas 0.6.0 及更高版本。要安装 Atlas { $version }，请改用 AME Wizard。
 acquire-failed = 无法准备安装文件。请重新下载，或打开其他 Atlas Playbook (.apbx) 文件。详细信息：{ $error }
+# 测试版：内置的 Playbook 无法解压。“重试”是唯一提供的操作。
+acquire-failed-bundled = 无法准备内置的 Playbook。请选择“重试”。详细信息：{ $error }
 
 ## 系统检查
 
@@ -298,7 +310,7 @@ screen-extras-question = 按需选择附加项
 # 此应用没有专门措辞的必选项所使用的问题。
 screen-generic-question = 为“{ $title }”选择一项
 learn-more-defender = 详细了解 Microsoft Defender
-learn-more-mitigations = 了解处理器安全
+learn-more-mitigations = 详细了解处理器安全
 learn-more-updates = 详细了解 Windows 更新
 learn-more-browser = 详细了解浏览器
 learn-more-power = 详细了解电源和安全
@@ -309,7 +321,7 @@ learn-more-generic = 阅读安装指南
 consequence-defender-enable = 保留 Windows 内置的防病毒软件，帮助保护电脑免受病毒和其他威胁。
 consequence-defender-disable = 移除 Microsoft Defender。在你安装其他防病毒应用之前，电脑将没有防病毒保护。
 consequence-mitigations-default = 保留 Windows 默认的防护，抵御利用处理器工作方式的攻击。
-consequence-mitigations-disable = 关闭这些防护，安全性会降低。性能表现取决于处理器，也可能变差。
+consequence-mitigations-disable = 关闭这些防护，安全性会降低。对性能的影响取决于你的处理器。
 consequence-auto-updates-disable = 你需要自行打开 Windows 更新并安装更新。更新通知仍会保留。
 consequence-auto-updates-default = Windows 会自动安装更新，包括安全修复。
 
@@ -394,19 +406,20 @@ phase-done = 正在完成设置
 outcome-succeeded-title = Atlas 已安装
 outcome-lost-title = 无法确认安装结果
 outcome-failed-title = 安装未完成
-outcome-succeeded = 请重启电脑以完成 Atlas 的设置。
+# 与安装中视图在成功后显示的句子相同。
+outcome-succeeded = { restart-needed }
 outcome-requirements = 你的电脑不满足安装要求。未进行任何安装更改。请返回“准备”步骤并重新运行检查。
 outcome-not-elevated = 未进行任何安装更改。请以管理员身份重新打开 Atlas，然后重试。
 outcome-failed-preflight = 安装在更改任何内容之前已停止。请打开日志文件查看原因，然后重试。
 outcome-failed-staging = 安装在准备文件时停止，尚未更改 Windows。请打开日志文件查看原因，然后重试。
-outcome-failed-applying = 部分更改可能已经生效。如果你不再继续安装，请在 Windows 安全中心重新开启你之前关闭的防护（如果它们仍然存在）。
+outcome-failed-applying = 部分更改可能已经生效。如果你不再继续安装，请在 Windows 安全中心重新开启你之前关闭的防护（如果它们仍然存在）。请打开日志文件查看原因。你可以选择“重试”。
 outcome-not-started = 安装程序未能及时启动。未进行任何安装更改。请选择“重试”。
-outcome-lost = 安装程序已停止但没有报告结果，部分更改可能已经生效。请打开日志文件查看原因，然后选择“重试”以继续安装。
+outcome-lost = 安装程序已停止但没有报告结果，部分更改可能已经生效。请先打开日志文件查看原因，再选择“重试”。
 restart-now-message = Windows 正在重启，以完成 Atlas 的设置。
 # 中文不区分单复数，因此不需要选择表达式。
 restart-countdown = Windows 将在 { $seconds } 秒后重启，以便 Atlas 完成设置。
 restart-stopped = 已取消自动重启。请保存工作，然后重启电脑以完成 Atlas 的设置。
-restart-needed = 请保存工作，然后重启 Windows 以完成 Atlas 的设置。
+restart-needed = 请保存工作，然后重启电脑以完成 Atlas 的设置。
 restart-dont-now = 稍后重启
 restart-now = 立即重启
 # 倒计时条的辅助功能名称。
@@ -429,6 +442,11 @@ output-problem-message = Atlas 无法读取日志，但这并不表示安装已�
 install-elevate-title = Atlas 需要权限才能安装
 install-no-package-title = 请先选择安装文件
 install-no-package-message = 请返回“准备”步骤下载 Atlas，或打开已保存的 Playbook (.apbx) 文件。
+# install-no-package-message 的测试版变体。
+install-no-package-bundled-message = 请返回“准备”步骤，准备此测试版内置的 Playbook。
+# 本次会话中第 1 步（检查或 Windows 更新）未完成时的第 4 步，按钮为 go-to-ready。
+install-not-ready-title = 请先完成“准备”步骤
+install-not-ready-message = 本次会话中，“准备”步骤的电脑检查或 Windows 更新检查尚未完成。
 install-security-title = 安装前请检查防病毒保护
 install-security-reading = 正在再次检查四个防护开关。
 install-security-message = { $summary }。继续之前，请打开 Windows 安全中心，确认四个开关均已关闭。
@@ -452,6 +470,8 @@ summary-change-a11y = 更改“{ $title }”
 footer-still-checking = 正在为安装做准备
 footer-fix-items = 请完成上方的检查以继续
 footer-need-package = 请下载 Atlas 或打开 Playbook 以继续
+# footer-need-package 的测试版变体。
+footer-need-package-bundled = 请准备内置的 Playbook 以继续
 footer-reading-security = 正在检查防护开关
 button-checking = 正在检查
 button-installing = 正在安装
@@ -519,6 +539,8 @@ settings-about-data = 应用文件
 settings-about-licence = 许可证
 settings-about-licence-value = GPL-3.0，自由开源
 settings-view-source = 在 GitHub 上查看源代码
+# 打开第三方许可证声明的链接。
+settings-view-licences = 查看许可证声明
 settings-open-data-folder = 打开应用文件夹
 
 ## 可选项：选择前显示的说明。
@@ -543,6 +565,8 @@ iso-beta = 测试版
 iso-beta-description = 在电脑上使用前，请先在虚拟机中测试 ISO。安装 Windows 前，请备份文件。
 iso-admin-description = 读取 Windows 映像和创建安装介质需要管理员权限。
 iso-files-description = 选择未经修改的 Windows 11 x64 ISO、Atlas Playbook (.apbx)，并为生成的文件指定一个新名称。
+# 测试版：没有 Playbook 选择器。
+iso-files-description-bundled = 选择未经修改的 Windows 11 x64 ISO，并为生成的文件指定一个新名称。将使用此测试版内置的 Playbook。
 iso-source = Windows ISO
 iso-package = Atlas Playbook (0.6+)
 iso-output = 新 ISO 的保存位置
@@ -552,11 +576,14 @@ iso-save-as = 另存为
 iso-inspect = 检查文件
 iso-mode-title = Windows 和 Atlas 偏好设置
 iso-mode-interactive = 登录后选择 Atlas 设置
-iso-mode-interactive-description = 登录后，Atlas 应用会帮助你更新 Windows 和商店应用、选择设置并应用 Atlas。
+iso-mode-interactive-description = 登录后，Atlas Manager 会帮助你更新 Windows 和商店应用、选择设置并应用 Atlas。
 iso-mode-before = 现在选择 Atlas 设置
 iso-mode-before-description = 将 Atlas 设置保存到 ISO 中。登录后，先更新 Windows 和商店应用，再按这些设置应用 Atlas。
 iso-package-unsupported-title = 请选择更新的 Playbook
 iso-package-unsupported = ISO 设置需要支持 ISO 的 Atlas 0.6 或更新版本。请选择兼容的 Playbook。
+# 测试版：内置的 Playbook 无法更换，因此只能选择登录后设置的模式。
+iso-package-unsupported-bundled-title = 无法将 Atlas 设置保存到此 ISO 中
+iso-package-unsupported-bundled = 此测试版内置的 Playbook 不支持 ISO 设置。请改为选择“登录后选择 Atlas 设置”。
 iso-atlas-options = Atlas 设置
 iso-review = 检查 ISO 配置
 iso-review-description = Atlas 会创建新的 ISO，并保留原文件。要安装 Windows，请从新 ISO 启动。创建 ISO 不会在这台电脑上安装 Atlas。
@@ -585,7 +612,19 @@ iso-complete = ISO 已准备就绪
 iso-complete-description = 请先在虚拟机中测试，再用它创建 Windows 安装介质。
 iso-open-folder = 在文件夹中显示
 iso-failed = 未能完成 ISO 创建
-iso-failed-description = 打开诊断查看失败原因。解决问题后，请使用新的输出文件名重试。
+iso-failed-description = 打开诊断查看失败原因。解决问题后，请重试。
+# “检查文件”步骤失败时的标题；下方的消息说明原因。
+iso-check-failed = 无法检查文件
+iso-check-failed-description = 打开诊断查看失败原因。解决问题后，请重新检查文件。
+# Windows 拒绝以管理员身份重新打开（UAC 被拒绝）时的标题；消息为 elevation-declined。
+iso-elevation-title = 需要管理员权限
+# 映像处理进程报告的具体原因。
+iso-failed-output-exists = 已存在同名文件。请选择“另存为”并输入新的文件名。
+iso-failed-destination = 请将新 ISO 保存到本地 NTFS 或 ReFS 驱动器。网络位置以及 FAT32 或 exFAT 驱动器无法存放安装文件。
+iso-failed-space = 目标驱动器的可用空间不足。请释放空间，或将新 ISO 保存到其他驱动器。
+iso-failed-edition = 此 ISO 不包含受支持的 Windows 版本。不支持 Windows Home 和 LTSC；请使用包含 Pro、Pro for Workstations 或 Enterprise 的 ISO。
+iso-failed-customised = 此 ISO 已包含自定义安装文件（例如 autounattend.xml）。请选择 Microsoft 提供的未经修改的 Windows ISO。
+iso-failed-windows-unsupported = Playbook 不支持此 Windows 映像。Atlas 0.6 请使用未经修改的 64 位 Windows 11 25H2 ISO；不支持 24H2 和 Insider 预览版本。
 iso-diagnostics = 打开诊断
 iso-close-title = ISO 仍在创建中
 iso-close-message = 请保持此窗口打开，直到创建或取消完成。取消操作会等待当前步骤可以安全停止后再执行。
@@ -626,10 +665,10 @@ iso-network-source = 网卡驱动程序来源
 iso-network-installed = 使用已安装的驱动程序
 iso-network-updated = 先检查 Windows 更新
 iso-network-updated-detail = 下载 Windows 更新提供的匹配驱动程序，同时保留已安装的驱动程序作为备用。需要非按流量计费的连接。
-iso-stage-network-drivers = 正在准备网卡驱动程序…
+iso-stage-network-drivers = 正在准备网卡驱动程序
 iso-network-failed = 无法准备网卡驱动程序。请查看诊断信息，或返回并更改网卡驱动程序选项。
 iso-mode-desktop = 进入桌面前完成设置
-iso-mode-desktop-description = 现在选择 Atlas 设置。登录后，先完成更新和 Atlas 设置，再进入 Windows 桌面。
+iso-mode-desktop-description = 立即保存你的 Atlas 设置，并在进入 Windows 桌面前完成更新和 Atlas 设置。
 desktop-setup-description = 请完成电脑设置。你的 Atlas 选项已保存，需要时可以返回 Windows。
 desktop-setup-exit = 在 Windows 中继续
 
@@ -639,9 +678,15 @@ usb-existing = 使用现有 ISO 创建 U 盘
 usb-description = 创建 Windows 11 25H2 启动 U 盘，用于在电脑上安装 Windows 和 Atlas。
 usb-choose-iso = 选择 ISO
 usb-drive = USB 驱动器
-usb-empty = 连接 USB 驱动器后刷新列表。这里只显示可写入且不包含当前运行的 Windows 系统的 USB 驱动器。
+usb-empty = 连接 USB 驱动器后刷新列表。这里只显示容量在 8 GB 到 2 TB 之间、可写入且不包含当前运行的 Windows 系统的 USB 驱动器。
 usb-refresh = 刷新
-usb-drive-detail = { $size } GB · { $volumes } · 序列号：{ $serial }
+# 无法读取驱动器列表时显示。
+usb-scan-failed = 无法读取 USB 驱动器列表。请检查驱动器是否已连接，然后刷新列表。打开诊断查看详情。
+# 驱动器详情行的各部分，以 usb-detail-separator 连接；空的部分会省略。
+# $size 为格式化后的 GB 数（文本）；$volumes 和 $serial 为文本。
+usb-drive-size = { $size } GB
+usb-drive-serial = 序列号：{ $serial }
+usb-detail-separator = { " · " }
 usb-review = 检查 U 盘
 usb-erase-title = 要清空此 USB 驱动器吗？
 usb-erase-description = { $drive }（{ $size } GB）上的所有文件和分区都将被永久删除。ISO 文件会保留。
@@ -653,6 +698,10 @@ usb-stage-format = 正在格式化 U 盘…
 usb-stage-copy = 正在复制安装文件…
 usb-stage-verify = 正在验证 U 盘…
 usb-working = 请保持 Atlas 打开，并保持 U 盘连接。取消操作会等待当前任务安全停止。未完成的 U 盘无法用于安装 Windows。
+# 写入 U 盘期间错误栏、成功栏和关闭提示的标题。
+usb-failed-title = 无法完成 U 盘创建
+usb-complete-title = U 盘已准备就绪
+usb-close-title = U 盘仍在创建中
 usb-failed = 无法完成 U 盘创建。请检查连接，并打开诊断查看详情。重新选择驱动器后再试。
 usb-cancelled = U 盘创建已停止。驱动器上可能存在不完整的安装文件。请重新创建后再用于安装 Windows。
 usb-complete = U 盘已准备就绪，所有文件均已验证。请先弹出 U 盘，再将其连接到要重装系统的电脑，并在该电脑的 UEFI 启动菜单中选择它。
@@ -671,9 +720,9 @@ detail-windows-release-unknown = Atlas 无法确认此 Windows 内部版本是�
 iso-release-unknown = 无法确认此 ISO 是否包含正式发布的 Windows 11 25H2。请连接互联网后重试，或选择官方安装介质。
 prepare-previous-worker = 之前的更新操作仍在运行。Atlas 会等待其完成，之后你可以重试。
 
-ready-used-windows-title = 请先重新安装 Windows 再继续
+ready-used-windows-title = 此 Windows 系统似乎已被使用过
 ready-used-windows-description = 此 Windows 系统存在已使用的迹象。在此系统上安装 Atlas 不受支持，我们强烈建议不要这样做。仅在你了解风险的情况下继续。
-ready-used-windows-dismiss = 我了解风险
+ready-used-windows-dismiss = 仍要继续
 playbook-option-install-eclean = 安装 eclean
 consequence-install-eclean = AtlasOS 团队打造的维护工具，帮助您在设置完成后保持电脑整洁。检查垃圾文件和启动应用。需要账户和互联网连接。
 
@@ -687,7 +736,7 @@ diagnostics-export = 导出诊断信息
 diagnostics-exporting = 正在收集诊断信息…
 diagnostics-show = 显示诊断 ZIP
 diagnostics-privacy = 创建已隐去敏感信息的 ZIP，用于公开报告问题。
-diagnostics-error = 无法导出诊断信息：{ $error }
+diagnostics-error = 无法导出诊断信息。详细信息：{ $error }
 
 ## Tester builds (embedded-playbook feature)
 

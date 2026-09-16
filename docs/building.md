@@ -119,8 +119,8 @@ with both files, the licence notices and a tester note. Output lands in
 run leaves an earlier candidate untouched. The tree must be committed unless
 `--allow-dirty` is passed, in which case About and diagnostics show a
 `-dirty` commit. Nothing is tagged or published: post the ZIP and the checksum
-lines by hand. See `docs/rc-testers-build.md` for the design and the checks
-still owed on Windows.
+lines by hand. See [`app/docs/rc-testers-build.md`](../app/docs/rc-testers-build.md)
+for the design and the checks still owed on Windows.
 
 A tester build never checks GitHub, downloads, or opens another playbook. It
 writes its bundled archive to the app's Downloads folder on first use and

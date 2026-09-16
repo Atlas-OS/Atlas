@@ -3,19 +3,53 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{self, Read, Write},
     path::{Path, PathBuf},
-    sync::{Arc, Mutex, OnceLock},
+    sync::{
+        Arc, Mutex, OnceLock,
+        atomic::{AtomicBool, Ordering},
+    },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, Result};
 use serde_json::{Value, json};
 use std::os::windows::fs::OpenOptionsExt;
+use windows::Win32::UI::WindowsAndMessaging::{
+    MB_ICONERROR, MB_ICONINFORMATION, MB_OK, MB_SETFOREGROUND, MESSAGEBOX_STYLE, MessageBoxW,
+};
+use windows::core::{HSTRING, PCWSTR};
 use zip::{ZipWriter, write::SimpleFileOptions};
 
 const CHUNK: u64 = 4 * 1024 * 1024;
 const FILE_LIMIT: u64 = 32 * 1024 * 1024;
 const TOTAL_LIMIT: u64 = 256 * 1024 * 1024;
 static LOG_LOCATION: OnceLock<PathBuf> = OnceLock::new();
+/// The panic dialog has been shown (or is showing): a second panic on another
+/// thread, or one raised while the dialog is up, must not stack another.
+static PANIC_SHOWN: AtomicBool = AtomicBool::new(false);
+/// Not translated: it is shown when the app has no window (or no working
+/// one) to speak through, and must never depend on anything that can fail.
+const DIALOG_TITLE: &str = "Atlas Manager";
+
+/// A message box owned by no window, for the moments the app has none: a
+/// panic, or a headless command-line run. Blocks until dismissed.
+fn message_box(text: &str, style: MESSAGEBOX_STYLE) {
+    let title = HSTRING::from(DIALOG_TITLE);
+    let text = HSTRING::from(text);
+    unsafe {
+        MessageBoxW(None, PCWSTR(text.as_ptr()), PCWSTR(title.as_ptr()), MB_OK | MB_SETFOREGROUND | style);
+    }
+}
+
+/// Tells the user how `--export-diagnostics` ended. That run has no window,
+/// so a message box is the only place the answer can go.
+pub fn report_headless_export(result: &Result<PathBuf>) {
+    match result {
+        Ok(path) => {
+            message_box(&format!("Diagnostics were saved to {}.", path.display()), MB_ICONINFORMATION)
+        }
+        Err(error) => message_box(&format!("Couldn't export diagnostics. {error:#}"), MB_ICONERROR),
+    }
+}
 
 fn unique_id() -> String {
     format!(
@@ -111,7 +145,8 @@ pub fn init_logging() {
     // RUST_LOG=warn/off filter. Dependency verbosity remains configurable.
     builder.filter_module(module_path!().split("::").next().unwrap(), log::LevelFilter::Info);
     if let Ok(writer) = opened {
-        let _ = LOG_LOCATION.set(writer.path.clone());
+        let log_path = writer.path.clone();
+        let _ = LOG_LOCATION.set(log_path.clone());
         let shared = SharedLog(Arc::new(Mutex::new(writer)));
         builder.target(env_logger::Target::Pipe(Box::new(shared.clone())));
         std::panic::set_hook(Box::new(move |panic| {
@@ -126,11 +161,29 @@ pub fn init_logging() {
                 );
                 let _ = log.flush();
             }
+            // The window is about to vanish; say so, and where the details
+            // are, once. Test binaries panic on purpose and must not block.
+            if !cfg!(test) && !PANIC_SHOWN.swap(true, Ordering::SeqCst) {
+                message_box(
+                    &format!(
+                        "Atlas Manager stopped unexpectedly. Details were written to {}.",
+                        log_path.display()
+                    ),
+                    MB_ICONERROR,
+                );
+            }
         }));
     }
     builder.init();
+    // A tester's log excerpt names the candidate it came from.
+    let candidate = match (super::embedded::rc_id(), super::embedded::source_commit()) {
+        (Some(rc), Some(commit)) => format!(" (candidate {rc}, source {commit})"),
+        (Some(rc), None) => format!(" (candidate {rc})"),
+        (None, Some(commit)) => format!(" (source {commit})"),
+        (None, None) => String::new(),
+    };
     log::info!(
-        "Atlas Manager {} started; pid={}; Windows={:?}; elevated={}",
+        "Atlas Manager {}{candidate} started; pid={}; Windows={:?}; elevated={}",
         env!("CARGO_PKG_VERSION"),
         std::process::id(),
         super::system::SystemInfo::read(),

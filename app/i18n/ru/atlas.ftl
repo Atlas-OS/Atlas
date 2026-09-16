@@ -1,4 +1,4 @@
-### Atlas Manager: Russian (ru). Preview translation, revised on 6 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
+### Atlas Manager: Russian (ru). Preview translation, revised on 16 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
 ###
 ### Conventions for this catalog: the reader is addressed as "вы" (lower case,
 ### as Windows does); the computer is "ПК"; buttons are short imperatives;
@@ -58,6 +58,9 @@ window-close-close = Закрыть окно
 file-dialog-open-playbook = Открыть playbook Atlas (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas установлен. Windows перезагружается, чтобы завершить настройку.
+# Message Windows shows in its restart notification when "Get ready" restarts
+# to finish installing Windows updates.
+prepare-shutdown-comment = Atlas перезагружает Windows, чтобы завершить установку обновлений.
 
 ## System
 
@@ -104,6 +107,8 @@ home-history-entry = Atlas { $version } · { $mode } · { $date }
 home-how-it-works = Подготовим ПК к установке Atlas
 home-step-1-title = Проверка ПК
 home-step-1-detail = Atlas проверит Windows и скачает установочные файлы. Параметры Windows при этом не изменятся.
+# Tester build: the playbook is bundled, nothing is downloaded.
+home-step-1-detail-bundled = Atlas проверит Windows и подготовит встроенные установочные файлы. Параметры Windows при этом не изменятся.
 home-step-2-title = Настройка под себя
 home-step-2-detail = Вы выберете, как Windows будет защищать ПК и устанавливать обновления, а также дополнительные приложения и настройки.
 home-step-3-title = Временное отключение антивирусной защиты
@@ -178,6 +183,9 @@ ready-banner-blocked-title = ПК нужно немного подготовит
 ready-banner-blocked-message = Выполните указания ниже, затем нажмите «Проверить снова».
 ready-banner-no-package-title = Скачайте Atlas, чтобы продолжить
 ready-banner-no-package-message = Скачайте последнюю версию ниже или откройте сохранённый playbook Atlas (.apbx).
+# Tester build: the bundled playbook could not be unpacked.
+ready-banner-no-package-bundled-title = Подготовьте встроенный playbook, чтобы продолжить
+ready-banner-no-package-bundled-message = Playbook, встроенный в эту тестовую сборку, ещё не готов. Проверьте карточку «Установочные файлы» ниже.
 ready-banner-warnings-title = Есть несколько замечаний
 ready-banner-warnings-message = Прочитайте замечания ниже и при необходимости выполните рекомендации, прежде чем продолжить.
 ready-banner-ok-title = Можно переходить к выбору настроек
@@ -199,6 +207,8 @@ package-unpacking-progress =
     }
 package-unpacking = Распаковка
 package-looking = Поиск последней версии Atlas.
+# Tester build: the bundled playbook is being unpacked, nothing is downloaded.
+package-looking-bundled = Подготовка встроенного playbook.
 package-none = Установочных файлов пока нет. Playbook (.apbx) содержит инструкции и файлы, необходимые Atlas.
 # Short status words beside the card title.
 package-status-downloading = Скачивание
@@ -206,6 +216,7 @@ package-status-unpacking = Распаковка
 package-status-failed = Не удалось подготовить
 package-status-ready = Готово
 package-status-checking = Проверка
+package-status-preparing = Подготовка
 package-status-missing = Не скачано
 # Accessible name of the progress bar.
 package-progress = Ход подготовки установочных файлов
@@ -222,6 +233,8 @@ package-none-yet = Установочные файлы не выбраны
 acquire-no-asset = Для Atlas { $version } нет файла playbook, доступного для скачивания. Чтобы продолжить, откройте сохранённый playbook Atlas (.apbx).
 acquire-unsupported = Это приложение устанавливает Atlas 0.6.0 и новее. Чтобы установить Atlas { $version }, используйте AME Wizard.
 acquire-failed = Не удалось подготовить установочные файлы. Попробуйте скачать снова или откройте другой playbook Atlas (.apbx). Подробности: { $error }
+# Tester build: the bundled playbook could not be unpacked. Try again is the only control offered.
+acquire-failed-bundled = Не удалось подготовить встроенный playbook. Нажмите «Повторить попытку». Подробности: { $error }
 
 ## System checks
 
@@ -317,7 +330,7 @@ learn-more-generic = Открыть руководство по настройк
 consequence-defender-enable = Оставляет встроенный антивирус Windows, который помогает защитить ПК от вирусов и других угроз.
 consequence-defender-disable = Удаляет Microsoft Defender. На ПК не будет антивирусной защиты, пока вы не установите другой антивирус.
 consequence-mitigations-default = Оставляет стандартную защиту Windows от атак, использующих особенности работы процессора.
-consequence-mitigations-disable = Отключает эту защиту и снижает безопасность. Производительность зависит от процессора и может ухудшиться.
+consequence-mitigations-disable = Отключает эту защиту и снижает безопасность. Возможная разница в производительности зависит от процессора.
 consequence-auto-updates-disable = Вам придётся самостоятельно открывать Центр обновления Windows и устанавливать обновления. Уведомления об обновлениях останутся включёнными.
 consequence-auto-updates-default = Windows будет устанавливать обновления автоматически, включая исправления безопасности.
 
@@ -410,14 +423,14 @@ phase-done = Завершение настройки
 outcome-succeeded-title = Atlas установлен
 outcome-lost-title = Не удалось подтвердить результат установки
 outcome-failed-title = Установка не завершена
-outcome-succeeded = Перезагрузите ПК, чтобы завершить настройку Atlas.
+outcome-succeeded = { restart-needed }
 outcome-requirements = ПК не соответствует требованиям установки. Изменения не вносились. Вернитесь на шаг «Подготовка» и запустите проверки снова.
 outcome-not-elevated = Изменения не вносились. Перезапустите Atlas от имени администратора и повторите попытку.
 outcome-failed-preflight = Установка остановилась, ничего не изменив. Откройте файл журнала, чтобы узнать причину, затем повторите попытку.
 outcome-failed-staging = Установка остановилась при подготовке файлов, до внесения изменений в Windows. Откройте файл журнала, чтобы узнать причину, затем повторите попытку.
-outcome-failed-applying = Часть изменений уже могла быть внесена. Если вы решите не продолжать, снова включите отключённые средства защиты в приложении «Безопасность Windows», если они ещё доступны.
+outcome-failed-applying = Часть изменений уже могла быть внесена. Если вы решите не продолжать, снова включите отключённые средства защиты в приложении «Безопасность Windows», если они ещё доступны. Откройте файл журнала, чтобы узнать причину. Можно нажать «Повторить попытку».
 outcome-not-started = Установщик не запустился вовремя. Изменения не вносились. Нажмите «Повторить попытку».
-outcome-lost = Установщик завершил работу, не сообщив результат, и часть изменений уже могла быть внесена. Откройте файл журнала, чтобы узнать причину, затем нажмите «Повторить попытку», чтобы продолжить установку.
+outcome-lost = Установщик завершил работу, не сообщив результат, и часть изменений уже могла быть внесена. Откройте файл журнала, чтобы узнать причину, прежде чем нажимать «Повторить попытку».
 restart-now-message = Windows перезагружается, чтобы завершить настройку Atlas.
 restart-countdown =
     { $seconds ->
@@ -427,7 +440,7 @@ restart-countdown =
        *[other] Windows перезагрузится через { $seconds } секунды, чтобы завершить настройку Atlas.
     }
 restart-stopped = Автоматическая перезагрузка отменена. Сохраните работу, затем перезагрузите ПК, чтобы завершить настройку Atlas.
-restart-needed = Сохраните работу, затем перезагрузите Windows, чтобы завершить настройку Atlas.
+restart-needed = Сохраните работу, затем перезагрузите ПК, чтобы завершить настройку Atlas.
 restart-dont-now = Перезагрузить позже
 restart-now = Перезагрузить сейчас
 # Accessible name of the countdown bar.
@@ -450,6 +463,11 @@ output-problem-message = Atlas не удалось прочитать журна
 install-elevate-title = Для установки Atlas нужны права администратора
 install-no-package-title = Сначала выберите установочные файлы
 install-no-package-message = Вернитесь на шаг «Подготовка», чтобы скачать Atlas или открыть сохранённый playbook (.apbx).
+# Tester build variant of install-no-package-message.
+install-no-package-bundled-message = Вернитесь на шаг «Подготовка», чтобы подготовить playbook, встроенный в эту тестовую сборку.
+# Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
+install-not-ready-title = Сначала завершите шаг «Подготовка»
+install-not-ready-message = Проверки ПК или проверка обновлений Windows на шаге «Подготовка» в этом сеансе ещё не завершены.
 install-security-title = Перед установкой проверьте антивирусную защиту
 install-security-reading = Повторная проверка четырёх переключателей защиты.
 install-security-message = { $summary }. Откройте «Безопасность Windows» и убедитесь, что все четыре переключателя отключены, прежде чем продолжить.
@@ -478,6 +496,8 @@ summary-change-a11y = Изменить: { $title }
 footer-still-checking = Подготовка к установке
 footer-fix-items = Чтобы продолжить, выполните указания выше
 footer-need-package = Чтобы продолжить, скачайте Atlas или откройте playbook
+# Tester build variant of footer-need-package.
+footer-need-package-bundled = Чтобы продолжить, подготовьте встроенный playbook
 footer-reading-security = Проверка переключателей защиты
 button-checking = Проверка
 button-installing = Установка
@@ -555,6 +575,8 @@ settings-about-data = Файлы приложения
 settings-about-licence = Лицензия
 settings-about-licence-value = GPL-3.0, свободное ПО с открытым исходным кодом
 settings-view-source = Открыть исходный код на GitHub
+# Link that opens the third-party licence notices.
+settings-view-licences = Открыть сведения о лицензиях
 settings-open-data-folder = Открыть папку приложения
 
 ## Optional choices: explanations shown before selection.
@@ -579,6 +601,8 @@ iso-beta = Бета
 iso-beta-description = Проверьте ISO-образ в виртуальной машине, прежде чем использовать его на ПК. Перед установкой Windows сделайте резервную копию файлов.
 iso-admin-description = Для чтения образов Windows и создания установочных носителей нужны права администратора.
 iso-files-description = Выберите неизменённый ISO-образ Windows 11 x64, плейбук Atlas (.apbx) и новое имя для готового файла.
+# Tester build: no playbook picker.
+iso-files-description-bundled = Выберите неизменённый ISO-образ Windows 11 x64 и новое имя для готового файла. Будет использован плейбук, встроенный в эту тестовую сборку.
 iso-source = ISO-образ Windows
 iso-package = Плейбук Atlas (0.6+)
 iso-output = Сохранить новый ISO-образ в
@@ -588,11 +612,14 @@ iso-save-as = Сохранить как
 iso-inspect = Проверить файлы
 iso-mode-title = Настройки Windows и Atlas
 iso-mode-interactive = Выбрать настройки Atlas после входа
-iso-mode-interactive-description = После входа Atlas поможет обновить Windows и приложения Store, выбрать настройки и применить Atlas.
+iso-mode-interactive-description = После входа Atlas Manager поможет обновить Windows и приложения Store, выбрать настройки и применить Atlas.
 iso-mode-before = Выбрать настройки Atlas сейчас
 iso-mode-before-description = Сохраните настройки Atlas в ISO. После входа обновите Windows и приложения Store, затем примените Atlas с этими настройками.
 iso-package-unsupported-title = Выберите более новый плейбук
 iso-package-unsupported = Для установки из ISO требуется Atlas 0.6 или новее с поддержкой ISO. Выберите совместимый плейбук.
+# Tester build: the bundled playbook cannot be swapped, so the only way on is the after-sign-in mode.
+iso-package-unsupported-bundled-title = Настройки Atlas нельзя сохранить в этом ISO
+iso-package-unsupported-bundled = Плейбук, встроенный в эту тестовую сборку, не поддерживает установку из ISO. Вместо этого выберите «Выбрать настройки Atlas после входа».
 iso-atlas-options = Настройки Atlas
 iso-review = Проверить параметры ISO
 iso-review-description = Atlas создаст отдельный ISO-образ и сохранит исходный. Загрузитесь с нового образа, чтобы установить Windows. Создание образа не устанавливает Atlas на этот ПК.
@@ -621,7 +648,19 @@ iso-complete = ISO-образ готов
 iso-complete-description = Проверьте его в виртуальной машине, а затем используйте для создания установочного носителя Windows.
 iso-open-folder = Показать в папке
 iso-failed = Не удалось завершить создание ISO
-iso-failed-description = Откройте диагностику, чтобы узнать причину. Устраните проблему и повторите попытку с новым именем выходного файла.
+iso-failed-description = Откройте диагностику, чтобы узнать причину. Устраните проблему и повторите попытку.
+# Title while the Check files step fails; the messages below say why.
+iso-check-failed = Не удалось проверить файлы
+iso-check-failed-description = Откройте диагностику, чтобы узнать причину. Устраните проблему и проверьте файлы снова.
+# Title when Windows refused the administrator relaunch (UAC declined); elevation-declined is the message.
+iso-elevation-title = Нужны права администратора
+# Typed reasons reported by the image worker.
+iso-failed-output-exists = Файл с таким именем уже существует. Нажмите «Сохранить как» и введите новое имя файла.
+iso-failed-destination = Сохраните новый ISO-образ на локальном диске с файловой системой NTFS или ReFS. Сетевые расположения и диски FAT32 или exFAT не могут вместить установочные файлы.
+iso-failed-space = На целевом диске недостаточно свободного места. Освободите место или сохраните новый ISO-образ на другом диске.
+iso-failed-edition = Этот ISO-образ не содержит поддерживаемых редакций Windows. Windows Home и LTSC не поддерживаются; используйте ISO-образ с редакцией Pro, Pro for Workstations или Enterprise.
+iso-failed-customised = Этот ISO-образ уже содержит пользовательские файлы установки, например autounattend.xml. Выберите неизменённый ISO-образ Windows от Microsoft.
+iso-failed-windows-unsupported = Этот образ Windows не поддерживается плейбуком. Для Atlas 0.6 используйте неизменённый 64-разрядный ISO-образ Windows 11 25H2; версия 24H2 и сборки Insider не поддерживаются.
 iso-diagnostics = Открыть диагностику
 iso-close-title = ISO-образ ещё создаётся
 iso-close-message = Не закрывайте окно до завершения создания или отмены. Отмена произойдёт, когда текущую операцию можно будет безопасно остановить.
@@ -662,10 +701,10 @@ iso-network-source = Источник сетевых драйверов
 iso-network-installed = Использовать установленные драйверы
 iso-network-updated = Сначала проверить Центр обновления Windows
 iso-network-updated-detail = Загружает подходящие драйверы из Центра обновления Windows и сохраняет установленные как запасной вариант. Требуется нелимитное подключение.
-iso-stage-network-drivers = Подготовка сетевых драйверов…
+iso-stage-network-drivers = Подготовка сетевых драйверов
 iso-network-failed = Не удалось подготовить сетевые драйверы. Проверьте диагностику или вернитесь назад и измените вариант подготовки сетевых драйверов.
 iso-mode-desktop = Завершить настройку до открытия рабочего стола
-iso-mode-desktop-description = Выберите параметры Atlas сейчас. После входа завершите обновления и настройку Atlas перед открытием рабочего стола Windows.
+iso-mode-desktop-description = Сохраните настройки Atlas сейчас и завершите обновления и настройку Atlas до открытия рабочего стола Windows.
 desktop-setup-description = Завершите настройку ПК. Параметры Atlas сохранены; при необходимости можно вернуться в Windows.
 desktop-setup-exit = Продолжить в Windows
 
@@ -675,9 +714,15 @@ usb-existing = Создать флешку из готового ISO
 usb-description = Создайте загрузочную флешку с Windows 11 25H2 для установки Windows и Atlas на компьютер.
 usb-choose-iso = Выбрать ISO
 usb-drive = USB-накопитель
-usb-empty = Подключите USB-накопитель и обновите список. Здесь отображаются только доступные для записи USB-накопители, на которых нет запущенной Windows.
+usb-empty = Подключите USB-накопитель и обновите список. Здесь отображаются только доступные для записи USB-накопители объёмом от 8 ГБ до 2 ТБ, на которых нет запущенной Windows.
 usb-refresh = Обновить
-usb-drive-detail = { $size } ГБ · { $volumes } · Серийный номер: { $serial }
+# Shown when the drive list could not be read.
+usb-scan-failed = Не удалось прочитать список USB-накопителей. Убедитесь, что накопитель подключён, затем обновите список. Откройте диагностику для подробностей.
+# Parts of a drive's detail line, joined by usb-detail-separator; empty parts are left out.
+# $size is a formatted number of gigabytes (text); $volumes and $serial are text.
+usb-drive-size = { $size } ГБ
+usb-drive-serial = Серийный номер: { $serial }
+usb-detail-separator = { " · " }
 usb-review = Проверить выбор
 usb-erase-title = Стереть этот USB-накопитель?
 usb-erase-description = Все файлы и разделы на { $drive } ({ $size } ГБ) будут безвозвратно удалены. Ваш ISO сохранится.
@@ -689,6 +734,10 @@ usb-stage-format = Форматирование USB-накопителя…
 usb-stage-copy = Копирование установочных файлов…
 usb-stage-verify = Проверка USB-накопителя…
 usb-working = Не закрывайте Atlas и не отключайте накопитель. Отмена дождётся безопасной остановки текущей операции. Незавершённый накопитель нельзя использовать для установки Windows.
+# Titles of the error bar, the success bar and the close prompt while a USB is being written.
+usb-failed-title = Не удалось завершить создание флешки
+usb-complete-title = Флешка готова
+usb-close-title = Создание флешки ещё продолжается
 usb-failed = Не удалось закончить создание флешки. Проверьте подключение и откройте диагностику. Для повторной попытки выберите накопитель заново.
 usb-cancelled = Создание флешки остановлено. На накопителе могут остаться неполные установочные файлы. Создайте его заново перед установкой Windows.
 usb-complete = Флешка готова, все файлы проверены. Извлеките её, подключите к компьютеру для переустановки Windows и выберите в меню загрузки UEFI.
@@ -707,9 +756,9 @@ detail-windows-release-unknown = Atlas не удалось подтвердит�
 iso-release-unknown = Не удалось подтвердить, что этот ISO-образ содержит общедоступную версию Windows 11 25H2. Подключитесь к интернету и повторите попытку или выберите официальный установочный образ.
 prepare-previous-worker = Предыдущее обновление ещё выполняется. Atlas дождётся его завершения, после чего можно будет повторить попытку.
 
-ready-used-windows-title = Переустановите Windows перед продолжением
+ready-used-windows-title = Похоже, эта система Windows уже использовалась
 ready-used-windows-description = Эта система Windows имеет признаки предыдущего использования. Установка Atlas здесь не поддерживается и настоятельно не рекомендуется. Продолжайте, только если понимаете риски.
-ready-used-windows-dismiss = Я понимаю риски
+ready-used-windows-dismiss = Всё равно продолжить
 playbook-option-install-eclean = Установить eclean
 consequence-install-eclean = Инструмент обслуживания от команды AtlasOS, который помогает поддерживать порядок на ПК после настройки. Просматривайте ненужные файлы и приложения автозагрузки. Требуется учётная запись и подключение к интернету.
 
@@ -723,7 +772,7 @@ diagnostics-export = Экспорт диагностики
 diagnostics-exporting = Сбор диагностики…
 diagnostics-show = Показать ZIP с диагностикой
 diagnostics-privacy = Создайте ZIP со скрытыми конфиденциальными данными для публичного отчёта об ошибке.
-diagnostics-error = Не удалось экспортировать диагностику: { $error }
+diagnostics-error = Не удалось экспортировать диагностику. Подробности: { $error }
 
 ## Tester builds (embedded-playbook feature)
 

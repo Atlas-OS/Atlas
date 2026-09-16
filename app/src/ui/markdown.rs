@@ -9,7 +9,7 @@ use gpui::{
     RenderOnce, Role, SharedString, StyledText, UnderlineStyle, Window, div, prelude::*, px,
 };
 
-use super::{Typography, focus_ring};
+use super::{Revealed, Typography, focus_ring};
 use crate::theme::ActiveTheme;
 
 #[derive(Clone, Debug, Default)]
@@ -140,7 +140,9 @@ fn parse_inline(source: &str) -> Inline {
     let bytes = source.as_bytes();
     let mut i = 0;
     let mut bold_open: Option<usize> = None;
-    let mut italic_open: Option<usize> = None;
+    // The opener's position and which character opened it, so an unclosed
+    // one can be put back as text.
+    let mut italic_open: Option<(usize, char)> = None;
 
     while i < bytes.len() {
         let rest = &source[i..];
@@ -198,14 +200,24 @@ fn parse_inline(source: &str) -> Inline {
             && !rest.starts_with("**")
             && !rest.starts_with("__")
         {
-            // Only treat as emphasis when it hugs a word, so "5 * 3" stays literal.
+            // GFM flanking, simplified: an opener hugs the word after it and
+            // does not follow one ("1920*1080" and "snake_case" stay
+            // literal, as does "5 * 3"); a closer hugs the word before it.
+            let marker = rest.chars().next().unwrap_or('*');
             let next_is_word = rest[1..].chars().next().is_some_and(|c| !c.is_whitespace());
-            let prev_is_word = out.text.chars().last().is_some_and(|c| !c.is_whitespace());
+            let prev = out.text.chars().last();
+            let prev_is_word = prev.is_some_and(|c| !c.is_whitespace());
+            let prev_is_alphanumeric = prev.is_some_and(char::is_alphanumeric);
             match italic_open.take() {
-                Some(start) if prev_is_word => out.italic.push(start..out.text.len()),
-                Some(start) => italic_open = Some(start),
-                None if next_is_word => italic_open = Some(out.text.len()),
-                None => out.text.push_str(&rest[..1]),
+                Some((start, opener)) if opener == marker && prev_is_word => {
+                    out.italic.push(start..out.text.len());
+                }
+                Some(open) => {
+                    italic_open = Some(open);
+                    out.text.push(marker);
+                }
+                None if next_is_word && !prev_is_alphanumeric => italic_open = Some((out.text.len(), marker)),
+                None => out.text.push(marker),
             }
             i += 1;
             continue;
@@ -216,6 +228,10 @@ fn parse_inline(source: &str) -> Inline {
         i += ch.len_utf8();
     }
     // Unbalanced markers were literal text after all.
+    if let Some((start, marker)) = italic_open {
+        out.text.insert(start, marker);
+        shift_ranges(&mut out, start, 1);
+    }
     if let Some(start) = bold_open {
         out.text.insert_str(start, "**");
         shift_ranges(&mut out, start, 2);
@@ -455,7 +471,7 @@ fn inline_link(
             ..Default::default()
         },
     )]);
-    div()
+    let link = div()
         .id(id)
         .role(Role::Link)
         .aria_label(label)
@@ -470,5 +486,47 @@ fn inline_link(
         .focus_visible(move |style| focus_ring(style, focus_outer, focus_inner))
         .on_click(move |_, _, cx| open(cx))
         .on_a11y_action(gpui::AccessibleAction::Click, move |_, _, cx| by_action(cx))
-        .child(text)
+        .child(text);
+    Revealed::new(link)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_inline;
+
+    #[test]
+    fn a_marker_inside_a_word_is_text() {
+        assert_eq!(parse_inline("1920*1080 and 2560*1440").text, "1920*1080 and 2560*1440");
+        let snake = parse_inline("use snake_case_name here");
+        assert_eq!(snake.text, "use snake_case_name here");
+        assert!(snake.italic.is_empty());
+        assert_eq!(parse_inline("5 * 3 = 15").text, "5 * 3 = 15");
+    }
+
+    #[test]
+    fn emphasis_still_marks_a_word() {
+        let inline = parse_inline("very *important* and _also_ this");
+        assert_eq!(inline.text, "very important and also this");
+        assert_eq!(inline.italic, vec![5..14, 19..23]);
+    }
+
+    #[test]
+    fn an_unclosed_opener_is_restored() {
+        let inline = parse_inline("a *dangling opener");
+        assert_eq!(inline.text, "a *dangling opener");
+        assert!(inline.italic.is_empty());
+        let mixed = parse_inline("_open then `code` and [link](https://x.y)");
+        assert_eq!(mixed.text, "_open then code and link");
+        assert_eq!(mixed.code, vec![11..15]);
+        assert_eq!(mixed.links[0].0, 20..24);
+    }
+
+    #[test]
+    fn a_stray_marker_while_open_stays_in_the_text() {
+        assert_eq!(parse_inline("*a * b*").text, "a * b");
+        // One level of emphasis: a different marker inside it is literal.
+        let nested = parse_inline("*a _b_ c*");
+        assert_eq!(nested.text, "a _b_ c");
+        assert_eq!(nested.italic, vec![0..7]);
+    }
 }

@@ -1,4 +1,4 @@
-### Atlas Manager: Turkish (tr). Preview translation, revised on 6 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
+### Atlas Manager: Turkish (tr). Preview translation, revised on 16 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
 ###
 ### Conventions for translators:
 ### - Keep the variables ({ $name }) exactly; reorder them freely.
@@ -71,6 +71,9 @@ window-close-close = Pencereyi kapat
 file-dialog-open-playbook = Atlas playbook dosyası aç (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas kuruldu. Kurulumu tamamlamak için Windows yeniden başlatılıyor.
+# Message Windows shows in its restart notification when "Get ready" restarts
+# to finish installing Windows updates.
+prepare-shutdown-comment = Atlas, güncelleştirmelerin yüklenmesini tamamlamak için Windows'u yeniden başlatıyor.
 
 ## System
 
@@ -117,6 +120,8 @@ home-history-entry = Atlas { $version } · { $mode } · { $date }
 home-how-it-works = Bilgisayarınızı Atlas için hazırlayalım
 home-step-1-title = Bilgisayarınızı denetleyin
 home-step-1-detail = Atlas, Windows'u denetler ve kurulum dosyalarını indirir. Windows ayarlarınız olduğu gibi kalır.
+# Tester build: the playbook is bundled, nothing is downloaded.
+home-step-1-detail-bundled = Atlas, Windows'u denetler ve birlikte gelen kurulum dosyalarını hazırlar. Windows ayarlarınız olduğu gibi kalır.
 home-step-2-title = Seçimlerinizi yapın
 home-step-2-detail = Windows'un korumayı ve güncelleştirmeleri nasıl yöneteceğini seçin, ardından isterseniz ek uygulama ve ayarlar ekleyin.
 home-step-3-title = Virüsten korumayı geçici olarak kapatın
@@ -189,6 +194,9 @@ ready-banner-blocked-title = Bilgisayarınızın biraz hazırlanması gerekiyor
 ready-banner-blocked-message = Aşağıdaki yönergeleri uygulayın, sonra Yeniden denetle'yi seçin.
 ready-banner-no-package-title = Devam etmek için Atlas'ı indirin
 ready-banner-no-package-message = Aşağıdan en son sürümü indirin veya kayıtlı bir Atlas playbook dosyası (.apbx) açın.
+# Tester build: the bundled playbook could not be unpacked.
+ready-banner-no-package-bundled-title = Devam etmek için birlikte gelen playbook'u hazırlayın
+ready-banner-no-package-bundled-message = Bu test sürümüyle gelen playbook henüz hazır değil. Aşağıdaki Kurulum dosyaları kartını denetleyin.
 ready-banner-warnings-title = Gözden geçirmeniz gereken birkaç nokta var
 ready-banner-warnings-message = Devam etmeden önce aşağıdaki notları okuyun ve önerilen adımları uygulayın.
 ready-banner-ok-title = Seçimlerinizi yapmaya hazırsınız
@@ -208,6 +216,8 @@ package-unpacking-progress =
     }
 package-unpacking = Paket açılıyor
 package-looking = En son Atlas sürümü denetleniyor.
+# Tester build: the bundled playbook is being unpacked, nothing is downloaded.
+package-looking-bundled = Birlikte gelen playbook hazırlanıyor.
 package-none = Henüz kurulum dosyası yok. Playbook (.apbx), Atlas'ın ihtiyaç duyduğu yönergeleri ve dosyaları içerir.
 # Short status words beside the card title.
 package-status-downloading = İndiriliyor
@@ -215,6 +225,7 @@ package-status-unpacking = Açılıyor
 package-status-failed = Dosyalar hazırlanamadı
 package-status-ready = Hazır
 package-status-checking = Denetleniyor
+package-status-preparing = Hazırlanıyor
 package-status-missing = İndirilmedi
 # Accessible name of the progress bar.
 package-progress = Kurulum dosyalarının ilerlemesi
@@ -231,6 +242,8 @@ package-none-yet = Kurulum dosyası seçilmedi
 acquire-no-asset = Atlas { $version } sürümü için indirilebilecek bir playbook dosyası yok. Devam etmek için kayıtlı bir Atlas playbook dosyası (.apbx) açın.
 acquire-unsupported = Bu uygulama Atlas 0.6.0 ve sonraki sürümleri kurabilir. Atlas { $version } sürümünü kurmak için AME Wizard'ı kullanın.
 acquire-failed = Kurulum dosyaları hazırlanamadı. Yeniden indirmeyi deneyin veya başka bir Atlas playbook dosyası (.apbx) açın. Ayrıntılar: { $error }
+# Tester build: the bundled playbook could not be unpacked. Try again is the only control offered.
+acquire-failed-bundled = Birlikte gelen playbook hazırlanamadı. Yeniden dene'yi seçin. Ayrıntılar: { $error }
 
 ## System checks
 
@@ -322,7 +335,7 @@ learn-more-generic = Kurulum kılavuzunu oku
 consequence-defender-enable = Bilgisayarınızı virüslerden ve diğer tehditlerden korumaya yardımcı olan yerleşik Windows virüsten koruma yazılımını tutar.
 consequence-defender-disable = Microsoft Defender'ı kaldırır. Başka bir virüsten koruma uygulaması yükleyene kadar bilgisayarınızda virüsten koruma olmaz.
 consequence-mitigations-default = İşlemcinizin çalışma biçiminden yararlanan saldırılara karşı Windows'un varsayılan korumalarını tutar.
-consequence-mitigations-disable = Bu korumaları kapatır ve güvenliği azaltır. Performans işlemcinize bağlıdır ve kötüleşebilir.
+consequence-mitigations-disable = Bu korumaları kapatır ve güvenliği azaltır. Performanstaki olası fark işlemcinize bağlıdır.
 consequence-auto-updates-disable = Windows Update'i açıp güncelleştirmeleri kendiniz yüklemeniz gerekir. Güncelleştirme bildirimleri açık kalır.
 consequence-auto-updates-default = Windows, güvenlik düzeltmeleri dahil güncelleştirmeleri otomatik olarak yükler.
 
@@ -408,14 +421,14 @@ phase-done = Kurulum tamamlanıyor
 outcome-succeeded-title = Atlas kuruldu
 outcome-lost-title = Kurulum sonucu doğrulanamadı
 outcome-failed-title = Kurulum tamamlanmadı
-outcome-succeeded = Atlas kurulumunu tamamlamak için bilgisayarınızı yeniden başlatın.
+outcome-succeeded = { restart-needed }
 outcome-requirements = Bilgisayarınız kurulum gereksinimlerini karşılamadı. Bilgisayarınızda hiçbir değişiklik yapılmadı. Hazırlık adımına dönüp denetimleri yeniden çalıştırın.
 outcome-not-elevated = Bilgisayarınızda hiçbir değişiklik yapılmadı. Atlas'ı yönetici olarak yeniden açıp yeniden deneyin.
 outcome-failed-preflight = Kurulum, henüz hiçbir şey değiştirilmeden durdu. Ne olduğunu görmek için günlük dosyasını açın, sonra yeniden deneyin.
 outcome-failed-staging = Kurulum, dosyalar hazırlanırken durdu; Windows henüz değiştirilmedi. Ne olduğunu görmek için günlük dosyasını açın, sonra yeniden deneyin.
-outcome-failed-applying = Bazı değişiklikler yapılmış olabilir. Burada duracaksanız, kapattığınız korumaları hâlâ mevcutsa Windows Güvenliği'nde yeniden açın.
+outcome-failed-applying = Bazı değişiklikler yapılmış olabilir. Burada duracaksanız, kapattığınız korumaları hâlâ mevcutsa Windows Güvenliği'nde yeniden açın. Ne olduğunu görmek için günlük dosyasını açın. Yeniden dene'yi seçebilirsiniz.
 outcome-not-started = Yükleyici zamanında başlamadı. Bilgisayarınızda hiçbir değişiklik yapılmadı. Yeniden dene'yi seçin.
-outcome-lost = Yükleyici sonuç bildirmeden durdu ve bazı değişiklikler yapılmış olabilir. Ne olduğunu görmek için günlük dosyasını açın, sonra kaldığı yerden devam etmesi için Yeniden dene'yi seçin.
+outcome-lost = Yükleyici sonuç bildirmeden durdu ve bazı değişiklikler yapılmış olabilir. Yeniden dene'yi seçmeden önce ne olduğunu görmek için günlük dosyasını açın.
 restart-now-message = Atlas kurulumunu tamamlamak için Windows yeniden başlatılıyor.
 restart-countdown =
     { $seconds ->
@@ -423,7 +436,7 @@ restart-countdown =
        *[other] Atlas kurulumunu tamamlamak için Windows { $seconds } saniye içinde yeniden başlatılacak.
     }
 restart-stopped = Otomatik yeniden başlatma iptal edildi. Çalışmanızı kaydedin, sonra Atlas kurulumunu tamamlamak için bilgisayarınızı yeniden başlatın.
-restart-needed = Çalışmanızı kaydedin, sonra Atlas kurulumunu tamamlamak için Windows'u yeniden başlatın.
+restart-needed = Çalışmanızı kaydedin, sonra Atlas kurulumunu tamamlamak için bilgisayarınızı yeniden başlatın.
 restart-dont-now = Daha sonra yeniden başlat
 restart-now = Şimdi yeniden başlat
 # Accessible name of the countdown bar.
@@ -446,6 +459,11 @@ output-problem-message = Atlas günlüğü okuyamadı. Bu, kurulumun durduğu an
 install-elevate-title = Atlas'ın kurulum için izne ihtiyacı var
 install-no-package-title = Önce kurulum dosyalarınızı seçin
 install-no-package-message = Atlas'ı indirmek veya kayıtlı bir playbook dosyası (.apbx) açmak için Hazırlık adımına dönün.
+# Tester build variant of install-no-package-message.
+install-no-package-bundled-message = Bu test sürümüyle gelen playbook'u hazırlamak için Hazırlık adımına dönün.
+# Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
+install-not-ready-title = Önce Hazırlık adımını tamamlayın
+install-not-ready-message = Hazırlık adımındaki bilgisayar denetimleri veya Windows güncelleştirme denetimi bu oturumda henüz tamamlanmadı.
 install-security-title = Kurulumdan önce virüsten korumayı denetleyin
 install-security-reading = Dört koruma anahtarı yeniden denetleniyor.
 install-security-message = { $summary }. Devam etmeden önce Windows Güvenliği'ni açıp dört anahtarın da kapalı olduğundan emin olun.
@@ -472,6 +490,8 @@ summary-change-a11y = { $title } seçimini değiştir
 footer-still-checking = Kuruluma hazırlanıyor
 footer-fix-items = Devam etmek için yukarıdaki denetimleri tamamlayın
 footer-need-package = Devam etmek için Atlas'ı indirin veya bir playbook açın
+# Tester build variant of footer-need-package.
+footer-need-package-bundled = Devam etmek için birlikte gelen playbook'u hazırlayın
 footer-reading-security = Koruma anahtarları denetleniyor
 button-checking = Denetleniyor
 button-installing = Kuruluyor
@@ -545,6 +565,8 @@ settings-about-data = Uygulama dosyaları
 settings-about-licence = Lisans
 settings-about-licence-value = GPL-3.0, ücretsiz ve açık kaynak
 settings-view-source = Kaynak kodunu GitHub'da görüntüle
+# Link that opens the third-party licence notices.
+settings-view-licences = Lisans bildirimlerini görüntüle
 settings-open-data-folder = Uygulama klasörünü aç
 
 ## Optional choices: explanations shown before selection.
@@ -569,6 +591,8 @@ iso-beta = Beta
 iso-beta-description = ISO'yu bir bilgisayarda kullanmadan önce sanal makinede deneyin. Windows'u yüklemeden önce dosyalarınızı yedekleyin.
 iso-admin-description = Windows görüntülerini okumak ve yükleme medyası oluşturmak için yönetici erişimi gerekir.
 iso-files-description = Değiştirilmemiş bir Windows 11 x64 ISO'su, bir Atlas playbook dosyası (.apbx) ve çıktı için yeni bir dosya adı seçin.
+# Tester build: no playbook picker.
+iso-files-description-bundled = Değiştirilmemiş bir Windows 11 x64 ISO'su ve çıktı için yeni bir dosya adı seçin. Bu test sürümüyle gelen playbook kullanılır.
 iso-source = Windows ISO'su
 iso-package = Atlas playbook dosyası (0.6+)
 iso-output = Yeni ISO'nun kaydedileceği konum
@@ -578,11 +602,14 @@ iso-save-as = Farklı kaydet
 iso-inspect = Dosyaları denetle
 iso-mode-title = Windows ve Atlas tercihleri
 iso-mode-interactive = Atlas ayarlarını oturum açtıktan sonra seçin
-iso-mode-interactive-description = Oturum açtıktan sonra Atlas, Windows ve Store uygulamalarını güncellemenize, ayarlarınızı seçmenize ve Atlas’ı uygulamanıza yardımcı olur.
+iso-mode-interactive-description = Oturum açtıktan sonra Atlas Manager, Windows ve Store uygulamalarını güncellemenize, ayarlarınızı seçmenize ve Atlas’ı uygulamanıza yardımcı olur.
 iso-mode-before = Atlas ayarlarını şimdi seçin
 iso-mode-before-description = Atlas ayarlarınızı ISO’ya kaydedin. Oturum açtıktan sonra Windows ve Store uygulamalarını güncelleyin, ardından Atlas’ı bu ayarlarla uygulayın.
 iso-package-unsupported-title = Daha yeni bir playbook seçin
 iso-package-unsupported = ISO kurulumu için ISO desteği sunan Atlas 0.6 veya daha yeni bir sürüm gerekir. Uyumlu bir playbook seçin.
+# Tester build: the bundled playbook cannot be swapped, so the only way on is the after-sign-in mode.
+iso-package-unsupported-bundled-title = Atlas ayarları bu ISO'ya kaydedilemez
+iso-package-unsupported-bundled = Bu test sürümüyle gelen playbook ISO kurulumunu desteklemiyor. Bunun yerine Atlas ayarlarını oturum açtıktan sonra seçin seçeneğini belirleyin.
 iso-atlas-options = Atlas ayarları
 iso-review = ISO'yu gözden geçir
 iso-review-description = Atlas ayrı bir ISO oluşturur ve orijinalini korur. Windows'u yüklemek için yeni ISO'dan önyükleme yapın. ISO oluşturmak bu bilgisayara Atlas yüklemez.
@@ -611,7 +638,19 @@ iso-complete = ISO'nuz hazır
 iso-complete-description = Önce sanal makinede deneyin, ardından Windows yükleme medyası oluşturmak için kullanın.
 iso-open-folder = Klasörde göster
 iso-failed = ISO oluşturma tamamlanamadı
-iso-failed-description = Neyin başarısız olduğunu görmek için tanılamayı açın. Sorunu giderip yeni bir çıktı dosyası adıyla tekrar deneyin.
+iso-failed-description = Neyin başarısız olduğunu görmek için tanılamayı açın. Sorunu giderip yeniden deneyin.
+# Title while the Check files step fails; the messages below say why.
+iso-check-failed = Dosyalar denetlenemedi
+iso-check-failed-description = Neyin başarısız olduğunu görmek için tanılamayı açın. Sorunu giderip dosyaları yeniden denetleyin.
+# Title when Windows refused the administrator relaunch (UAC declined); elevation-declined is the message.
+iso-elevation-title = Yönetici erişimi gerekiyor
+# Typed reasons reported by the image worker.
+iso-failed-output-exists = Bu adda bir dosya zaten var. Farklı kaydet'i seçip yeni bir dosya adı girin.
+iso-failed-destination = Yeni ISO'yu yerel bir NTFS veya ReFS sürücüsüne kaydedin. Ağ konumları ile FAT32 veya exFAT sürücüler kurulum dosyalarını barındıramaz.
+iso-failed-space = Hedef sürücüde yeterli boş alan yok. Alan boşaltın veya yeni ISO'yu başka bir sürücüye kaydedin.
+iso-failed-edition = Bu ISO desteklenen bir Windows sürümü içermiyor. Windows Home ve LTSC desteklenmez; Pro, Pro for Workstations veya Enterprise içeren bir ISO kullanın.
+iso-failed-customised = Bu ISO zaten autounattend.xml gibi özel kurulum dosyaları içeriyor. Microsoft'tan alınmış, değiştirilmemiş bir Windows ISO'su seçin.
+iso-failed-windows-unsupported = Bu Windows görüntüsü playbook tarafından desteklenmiyor. Atlas 0.6 için değiştirilmemiş, 64 bit bir Windows 11 25H2 ISO'su kullanın; 24H2 ve Insider derlemeleri desteklenmez.
 iso-diagnostics = Tanılamayı aç
 iso-close-title = ISO oluşturma devam ediyor
 iso-close-message = Oluşturma veya iptal işlemi bitene kadar bu pencereyi açık tutun. İptal işlemi, mevcut işlemin güvenle durdurulabileceği noktayı bekler.
@@ -652,10 +691,10 @@ iso-network-source = Ağ sürücüsü kaynağı
 iso-network-installed = Yüklü sürücüleri kullan
 iso-network-updated = Önce Windows Update’i kontrol et
 iso-network-updated-detail = Windows Update’in sunduğu uygun sürücüleri indirir ve yüklü sürücüleri yedek olarak saklar. Tarifeli olmayan bir bağlantı gerekir.
-iso-stage-network-drivers = Ağ sürücüleri hazırlanıyor…
+iso-stage-network-drivers = Ağ sürücüleri hazırlanıyor
 iso-network-failed = Ağ sürücüleri hazırlanamadı. Tanılama bilgilerini kontrol edin veya geri dönüp ağ sürücüsü seçeneğini değiştirin.
 iso-mode-desktop = Masaüstünden önce kurulumu tamamla
-iso-mode-desktop-description = Atlas ayarlarını şimdi seçin. Oturum açtıktan sonra Windows masaüstünü açmadan önce güncellemeleri ve Atlas kurulumunu tamamlayın.
+iso-mode-desktop-description = Atlas ayarlarınızı şimdi kaydedin; güncellemeleri ve Atlas kurulumunu Windows masaüstü açılmadan önce tamamlayın.
 desktop-setup-description = Bilgisayarınızın kurulumunu tamamlayın. Atlas tercihleriniz kaydedildi; gerekirse Windows’a dönebilirsiniz.
 desktop-setup-exit = Windows’ta devam et
 
@@ -665,9 +704,15 @@ usb-existing = Mevcut bir ISO’dan USB oluştur
 usb-description = Bilgisayarınıza Windows ve Atlas kurmak için önyüklenebilir bir Windows 11 25H2 USB’si oluşturun.
 usb-choose-iso = ISO seç
 usb-drive = USB sürücüsü
-usb-empty = Bir USB sürücüsü bağlayıp listeyi yenileyin. Yalnızca yazılabilir ve çalışan Windows kurulumunu içermeyen USB sürücüleri gösterilir.
+usb-empty = Bir USB sürücüsü bağlayıp listeyi yenileyin. Yalnızca 8 GB ile 2 TB arasında, yazılabilir ve çalışan Windows kurulumunu içermeyen USB sürücüleri gösterilir.
 usb-refresh = Yenile
-usb-drive-detail = { $size } GB · { $volumes } · Seri numarası: { $serial }
+# Shown when the drive list could not be read.
+usb-scan-failed = USB sürücüleri listesi okunamadı. Sürücünün bağlı olduğundan emin olun, sonra listeyi yenileyin. Ayrıntılar için tanılamayı açın.
+# Parts of a drive's detail line, joined by usb-detail-separator; empty parts are left out.
+# $size is a formatted number of gigabytes (text); $volumes and $serial are text.
+usb-drive-size = { $size } GB
+usb-drive-serial = Seri numarası: { $serial }
+usb-detail-separator = { " · " }
 usb-review = USB’yi gözden geçir
 usb-erase-title = Bu USB sürücüsü silinsin mi?
 usb-erase-description = { $drive } ({ $size } GB) üzerindeki tüm dosyalar ve bölümler kalıcı olarak silinecek. ISO dosyanız korunacak.
@@ -679,6 +724,10 @@ usb-stage-format = USB biçimlendiriliyor…
 usb-stage-copy = Kurulum dosyaları kopyalanıyor…
 usb-stage-verify = USB doğrulanıyor…
 usb-working = Atlas’ı açık, USB’yi bağlı tutun. İptal işlemi, mevcut işlemin güvenli biçimde durmasını bekler. Tamamlanmamış bir USB ile Windows kurulamaz.
+# Titles of the error bar, the success bar and the close prompt while a USB is being written.
+usb-failed-title = USB oluşturma tamamlanamadı
+usb-complete-title = USB’niz hazır
+usb-close-title = USB oluşturma devam ediyor
 usb-failed = USB oluşturma tamamlanamadı. Bağlantıyı kontrol edin ve ayrıntılar için tanılamayı açın. Yeniden denemek için sürücüyü tekrar seçin.
 usb-cancelled = USB oluşturma durduruldu. Sürücüde eksik kurulum dosyaları bulunabilir. Windows kurmadan önce USB’yi yeniden oluşturun.
 usb-complete = USB’niz hazır ve tüm dosyalar doğrulandı. USB’yi çıkarın, Windows’u yeniden kuracağınız bilgisayara bağlayın ve UEFI önyükleme menüsünden seçin.
@@ -697,9 +746,9 @@ detail-windows-release-unknown = Atlas, bu Windows derlemesinin genel kullanıma
 iso-release-unknown = Bu ISO’nun genel kullanıma sunulan bir Windows 11 25H2 sürümü içerdiği doğrulanamadı. İnternete bağlanıp yeniden deneyin veya resmî bir yükleme medyası seçin.
 prepare-previous-worker = Önceki bir güncelleme işlemi hâlâ sürüyor. Atlas, yeniden deneyebilmeniz için işlemin bitmesini bekleyecek.
 
-ready-used-windows-title = Devam etmeden önce Windows’u yeniden yükleyin
+ready-used-windows-title = Bu Windows kurulumu kullanılmış görünüyor
 ready-used-windows-description = Bu Windows kurulumunda önceki kullanım belirtileri var. Buraya Atlas yüklemek desteklenmez ve kesinlikle önerilmez. Yalnızca riskleri anlıyorsanız devam edin.
-ready-used-windows-dismiss = Riskleri anlıyorum
+ready-used-windows-dismiss = Yine de devam et
 playbook-option-install-eclean = eclean yükle
 consequence-install-eclean = Kurulumdan sonra bilgisayarınızı düzenli tutmak için AtlasOS ekibinden bir bakım aracı. Gereksiz dosyaları ve başlangıç uygulamalarını inceleyin. Hesap ve internet bağlantısı gerektirir.
 
@@ -713,7 +762,7 @@ diagnostics-export = Tanı bilgilerini dışa aktar
 diagnostics-exporting = Tanı bilgileri toplanıyor…
 diagnostics-show = Tanı ZIP dosyasını göster
 diagnostics-privacy = Herkese açık hata bildirimi için hassas verileri gizlenmiş bir ZIP oluşturun.
-diagnostics-error = Tanı bilgileri dışa aktarılamadı: { $error }
+diagnostics-error = Tanı bilgileri dışa aktarılamadı. Ayrıntılar: { $error }
 
 ## Tester builds (embedded-playbook feature)
 

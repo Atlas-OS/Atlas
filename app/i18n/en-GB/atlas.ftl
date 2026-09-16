@@ -71,6 +71,9 @@ window-close-close = Close window
 file-dialog-open-playbook = Open an Atlas playbook (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas is installed. Restarting Windows to finish setup.
+# Message Windows shows in its restart notification when "Get ready" restarts
+# to finish installing Windows updates.
+prepare-shutdown-comment = Atlas is restarting Windows to finish installing updates.
 
 ## System
 
@@ -117,6 +120,8 @@ home-history-entry = Atlas { $version } · { $mode } · { $date }
 home-how-it-works = Let's get your PC ready for Atlas
 home-step-1-title = Check your PC
 home-step-1-detail = Atlas checks Windows and downloads the installation files. Your Windows settings stay as they are.
+# Tester build: the playbook is bundled, nothing is downloaded.
+home-step-1-detail-bundled = Atlas checks Windows and prepares the bundled installation files. Your Windows settings stay as they are.
 home-step-2-title = Make it yours
 home-step-2-detail = Choose how Windows handles protection and updates, then pick any extra apps or settings.
 home-step-3-title = Pause antivirus protection
@@ -189,6 +194,9 @@ ready-banner-blocked-title = Your PC needs a little preparation
 ready-banner-blocked-message = Follow the instructions below, then choose Check again.
 ready-banner-no-package-title = Download Atlas to continue
 ready-banner-no-package-message = Download the latest version below, or open a saved Atlas playbook (.apbx).
+# Tester build: the bundled playbook could not be unpacked.
+ready-banner-no-package-bundled-title = Prepare the bundled playbook to continue
+ready-banner-no-package-bundled-message = The playbook bundled with this test build isn't ready yet. Check the Installation files card below.
 
 ready-banner-warnings-title = A few things to review
 ready-banner-warnings-message = Read the notes below and take any recommended steps before continuing.
@@ -209,6 +217,8 @@ package-unpacking-progress =
     }
 package-unpacking = Unpacking
 package-looking = Checking for the latest Atlas version.
+# Tester build: the bundled playbook is being unpacked, nothing is downloaded.
+package-looking-bundled = Preparing the bundled playbook.
 package-none = No installation files yet. A playbook (.apbx) contains the instructions and files Atlas needs.
 # Short status words beside the card title.
 package-status-downloading = Downloading
@@ -216,6 +226,7 @@ package-status-unpacking = Unpacking
 package-status-failed = Couldn't prepare files
 package-status-ready = Ready
 package-status-checking = Checking
+package-status-preparing = Preparing
 package-status-missing = Not downloaded
 # Accessible name of the progress bar.
 package-progress = Installation file progress
@@ -232,6 +243,8 @@ package-none-yet = No installation files selected
 acquire-no-asset = Atlas { $version } has no playbook file available to download. Open a saved Atlas playbook (.apbx) to continue.
 acquire-unsupported = This app can install Atlas 0.6.0 and later. To install Atlas { $version }, use AME Wizard instead.
 acquire-failed = Couldn't prepare the installation files. Try downloading again or open another Atlas playbook (.apbx). Details: { $error }
+# Tester build: the bundled playbook could not be unpacked. Try again is the only control offered.
+acquire-failed-bundled = Couldn't prepare the bundled playbook. Choose Try again. Details: { $error }
 
 ## System checks
 
@@ -256,7 +269,7 @@ check-fix-network = Open network settings
 check-fix-power = Open power settings
 check-fix-activation = Open activation settings
 # Check boxes the user ticks when a check could not run.
-check-ack-updates = I checked Windows Update: no updates are waiting to install
+check-ack-updates = I've checked Windows Update: no updates are waiting to install
 check-ack-reboot = I've restarted Windows and no further restart is needed
 check-ack-internet = This PC is connected to the internet
 check-ack-generic = I've checked this requirement myself
@@ -312,7 +325,7 @@ screen-extras-question = Choose any extras you'd like
 # Question for a required choice this app has no specific wording for.
 screen-generic-question = Choose an option for { $title }
 learn-more-defender = Learn more about Microsoft Defender
-learn-more-mitigations = Read about processor security
+learn-more-mitigations = Learn more about processor security
 learn-more-updates = Learn more about Windows Update
 learn-more-browser = Learn more about browsers
 learn-more-power = Learn more about power and security
@@ -323,7 +336,7 @@ learn-more-generic = Read the setup guide
 consequence-defender-enable = Keeps Windows' built-in antivirus to help protect your PC from viruses and other threats.
 consequence-defender-disable = Removes Microsoft Defender. Your PC won't have antivirus protection until you install another antivirus app.
 consequence-mitigations-default = Keeps Windows' default protections against attacks that exploit how your processor works.
-consequence-mitigations-disable = Turns off these protections and reduces security. Performance depends on your processor and may get worse.
+consequence-mitigations-disable = Turns off these protections and reduces security. Any performance difference depends on your processor.
 consequence-auto-updates-disable = You'll need to open Windows Update and install updates yourself. Update notifications stay on.
 consequence-auto-updates-default = Windows will install updates automatically, including security fixes.
 
@@ -411,14 +424,15 @@ phase-done = Finishing setup
 outcome-succeeded-title = Atlas is installed
 outcome-lost-title = Couldn't confirm the installation result
 outcome-failed-title = Installation didn't finish
-outcome-succeeded = Restart your PC to finish setting up Atlas.
+# The same sentence as the Installing view shows after success.
+outcome-succeeded = { restart-needed }
 outcome-requirements = Your PC didn't meet the installation requirements. No installation changes were made. Return to Get ready and run the checks again.
 outcome-not-elevated = No installation changes were made. Relaunch Atlas as administrator and try again.
 outcome-failed-preflight = Installation stopped before changing anything. Open the log file to see what happened, then try again.
 outcome-failed-staging = Installation stopped while preparing files, before changing Windows. Open the log file to see what happened, then try again.
-outcome-failed-applying = Some changes may already have been made. If you stop here, turn the protections you turned off back on in Windows Security, if they're still available.
+outcome-failed-applying = Some changes may already have been made. If you stop here, turn the protections you turned off back on in Windows Security, if they're still available. Open the log file to see what happened. You can choose Try again.
 outcome-not-started = The installer didn't start in time. No installation changes were made. Choose Try again.
-outcome-lost = The installer stopped without reporting a result, and some changes may already have been made. Open the log file to see what happened, then choose Try again to resume.
+outcome-lost = The installer stopped without reporting a result, and some changes may already have been made. Open the log file to see what happened before choosing Try again.
 restart-now-message = Windows is restarting to finish setting up Atlas.
 restart-countdown =
     { $seconds ->
@@ -426,7 +440,7 @@ restart-countdown =
        *[other] Windows restarts in { $seconds } seconds so Atlas can finish setting up.
     }
 restart-stopped = Automatic restart cancelled. Save your work, then restart your PC to finish setting up Atlas.
-restart-needed = Save your work, then restart Windows to finish setting up Atlas.
+restart-needed = Save your work, then restart your PC to finish setting up Atlas.
 restart-dont-now = Restart later
 restart-now = Restart now
 # Accessible name of the countdown bar.
@@ -451,6 +465,11 @@ output-problem-message = Atlas couldn't read the log. This doesn't mean installa
 install-elevate-title = Atlas needs permission to install
 install-no-package-title = Choose your installation files first
 install-no-package-message = Return to Get ready to download Atlas or open a saved playbook (.apbx).
+# Tester build variant of install-no-package-message.
+install-no-package-bundled-message = Return to Get ready to prepare the playbook bundled with this test build.
+# Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
+install-not-ready-title = Finish Get ready first
+install-not-ready-message = The PC checks or the Windows update check in Get ready haven't completed for this session.
 install-security-title = Check antivirus protection before installing
 install-security-reading = Checking the four protection switches again.
 install-security-message = { $summary }. Open Windows Security and make sure all four switches are off before continuing.
@@ -478,6 +497,8 @@ footer-still-checking = Preparing for installation
 
 footer-fix-items = Complete the checks above to continue
 footer-need-package = Download Atlas or open a playbook to continue
+# Tester build variant of footer-need-package.
+footer-need-package-bundled = Prepare the bundled playbook to continue
 footer-reading-security = Checking the protection switches
 button-checking = Checking
 button-installing = Installing
@@ -555,6 +576,8 @@ settings-about-data = App files
 settings-about-licence = Licence
 settings-about-licence-value = GPL-3.0, free and open source
 settings-view-source = View source code
+# Link that opens the third-party licence notices.
+settings-view-licences = View licence notices
 settings-open-data-folder = Open app folder
 
 ## Optional choices: explanations shown before selection.
@@ -579,6 +602,8 @@ iso-beta = Beta
 iso-beta-description = Try the ISO in a virtual machine before using it on a PC. Back up your files before installing Windows.
 iso-admin-description = Administrator access is needed to read Windows images and create installation media.
 iso-files-description = Choose an unmodified Windows 11 x64 ISO, an Atlas playbook (.apbx), and a new filename for the result.
+# Tester build: no playbook picker.
+iso-files-description-bundled = Choose an unmodified Windows 11 x64 ISO and a new filename for the result. The playbook bundled with this test build is used.
 iso-source = Windows ISO
 iso-package = Atlas playbook (0.6+)
 iso-output = Save the new ISO to
@@ -588,11 +613,14 @@ iso-save-as = Save as
 iso-inspect = Check files
 iso-mode-title = Windows and Atlas preferences
 iso-mode-interactive = Choose Atlas settings after sign-in
-iso-mode-interactive-description = After signing in, the Atlas Manager helps you update Windows and Store apps, choose your settings and apply Atlas.
+iso-mode-interactive-description = After signing in, Atlas Manager helps you update Windows and Store apps, choose your settings and apply Atlas.
 iso-mode-before = Choose Atlas settings now
 iso-mode-before-description = Save your Atlas settings in the ISO. After signing in, update Windows and Store apps, then apply Atlas with these settings.
 iso-package-unsupported-title = Choose a newer playbook
 iso-package-unsupported = ISO setup requires Atlas 0.6 or newer with ISO support. Choose a compatible playbook.
+# Tester build: the bundled playbook cannot be swapped, so the only way on is the after-sign-in mode.
+iso-package-unsupported-bundled-title = Atlas settings can't be saved in this ISO
+iso-package-unsupported-bundled = The playbook bundled with this test build doesn't support ISO setup. Choose Atlas settings after sign-in instead.
 iso-atlas-options = Atlas settings
 iso-review = Review ISO
 iso-review-description = Atlas will create a separate ISO. Your original ISO is kept. Boot from the new ISO to install Windows; creating it does not install Atlas on this PC.
@@ -620,8 +648,20 @@ iso-cancelled-description = Your original ISO is kept. The diagnostic log record
 iso-complete = Your ISO is ready
 iso-complete-description = Test it in a virtual machine, then use it to create Windows installation media.
 iso-open-folder = Show in folder
-iso-failed = Could not finish creating the ISO
-iso-failed-description = Open the diagnostics to see what failed. Correct the problem, then try again with a new output filename.
+iso-failed = Couldn't finish creating the ISO
+iso-failed-description = Open the diagnostics to see what failed. Correct the problem, then try again.
+# Title while the Check files step fails; the messages below say why.
+iso-check-failed = Couldn't check the files
+iso-check-failed-description = Open the diagnostics to see what failed. Correct the problem, then check the files again.
+# Title when Windows refused the administrator relaunch (UAC declined); elevation-declined is the message.
+iso-elevation-title = Administrator access is needed
+# Typed reasons reported by the image worker.
+iso-failed-output-exists = A file with that name already exists. Choose Save as and enter a new filename.
+iso-failed-destination = Save the new ISO to a local NTFS or ReFS drive. Network locations and FAT32 or exFAT drives can't hold the installation files.
+iso-failed-space = There isn't enough free space on the destination drive. Free up space, or save the new ISO to another drive.
+iso-failed-edition = This ISO contains no supported Windows editions. Windows Home and LTSC aren't supported; use an ISO that includes Pro, Pro for Workstations or Enterprise.
+iso-failed-customised = This ISO already contains custom setup files, such as autounattend.xml. Choose an unmodified Windows ISO from Microsoft.
+iso-failed-windows-unsupported = This Windows image isn't supported by the playbook. Use an unmodified 64-bit Windows 11 25H2 ISO for Atlas 0.6; 24H2 and Insider builds aren't supported.
 iso-diagnostics = Open diagnostics
 iso-close-title = ISO creation is still running
 iso-close-message = Keep this window open until creation or cancellation finishes. Cancelling waits for the current operation to reach a safe stopping point.
@@ -669,10 +709,10 @@ iso-network-source = Network driver source
 iso-network-installed = Use installed drivers
 iso-network-updated = Check Windows Update first
 iso-network-updated-detail = Download matching drivers offered by Windows Update and keep installed drivers as a fallback. Requires an unmetered connection.
-iso-stage-network-drivers = Preparing network drivers…
+iso-stage-network-drivers = Preparing network drivers
 iso-network-failed = Network drivers couldn’t be prepared. Check the diagnostics, or go back and change the network driver option.
 iso-mode-desktop = Finish setup before the desktop
-iso-mode-desktop-description = Choose Atlas settings now. After signing in, finish updates and Atlas setup before opening the Windows desktop.
+iso-mode-desktop-description = Save your Atlas settings now and finish updates and Atlas setup before the Windows desktop opens.
 desktop-setup-description = Finish setting up your PC. Your Atlas choices are saved; you can return to Windows if you need to.
 desktop-setup-exit = Continue in Windows
 
@@ -682,9 +722,15 @@ usb-existing = Create a USB from an existing ISO
 usb-description = Create a bootable USB for Windows 11 25H2. Use it to install Windows and Atlas on your PC.
 usb-choose-iso = Choose ISO
 usb-drive = USB drive
-usb-empty = Connect a USB drive, then refresh the list. Only writable USB drives that do not contain the running Windows installation are shown.
+usb-empty = Connect a USB drive, then refresh the list. Only writable USB drives between 8 GB and 2 TB that don't contain the running Windows installation are shown.
 usb-refresh = Refresh
-usb-drive-detail = { $size } GB · { $volumes } · Serial: { $serial }
+# Shown when the drive list could not be read.
+usb-scan-failed = Couldn't read the list of USB drives. Check that the drive is connected, then refresh the list. Open diagnostics for details.
+# Parts of a drive's detail line, joined by usb-detail-separator; empty parts are left out.
+# $size is a formatted number of gigabytes (text); $volumes and $serial are text.
+usb-drive-size = { $size } GB
+usb-drive-serial = Serial: { $serial }
+usb-detail-separator = { " · " }
 usb-review = Review USB
 usb-erase-title = Erase this USB drive?
 usb-erase-description = All files and partitions on { $drive } ({ $size } GB) will be permanently erased. Your ISO will be kept.
@@ -696,6 +742,10 @@ usb-stage-format = Formatting USB…
 usb-stage-copy = Copying installation files…
 usb-stage-verify = Verifying USB…
 usb-working = Keep Atlas open and the USB connected. Cancelling waits for the current operation to stop safely; an unfinished USB cannot be used to install Windows.
+# Titles of the error bar, the success bar and the close prompt while a USB is being written.
+usb-failed-title = Couldn't finish creating the USB
+usb-complete-title = Your USB is ready
+usb-close-title = USB creation is still running
 usb-failed = Could not finish creating the USB. Check that it is connected and open diagnostics for details. Select the drive again to retry.
 usb-cancelled = USB creation stopped. The drive may contain unfinished installation files. Create it again before using it to install Windows.
 usb-complete = Your USB is ready and all files have been verified. Eject it, connect it to the PC you want to reinstall, then choose the USB in that PC’s UEFI boot menu.
@@ -714,9 +764,9 @@ detail-windows-release-unknown = Atlas couldn’t verify this Windows build as a
 iso-release-unknown = This ISO couldn’t be verified as a public Windows 11 25H2 release. Connect to the internet and try again, or choose official release media.
 prepare-previous-worker = An earlier update operation is still running. Atlas will wait for it to finish before you can try again.
 
-ready-used-windows-title = Reinstall Windows before continuing
+ready-used-windows-title = This Windows setup looks used
 ready-used-windows-description = This Windows setup shows signs of prior use. Installing Atlas here is unsupported and strongly discouraged. Continue only if you understand the risks.
-ready-used-windows-dismiss = I understand the risks
+ready-used-windows-dismiss = Continue anyway
 playbook-option-install-eclean = Install eclean
 consequence-install-eclean = A maintenance tool from the team behind AtlasOS, for keeping your PC tidy after setup. Review junk files and startup apps. Requires an account and an internet connection.
 
@@ -730,7 +780,7 @@ diagnostics-export = Export diagnostics
 diagnostics-exporting = Collecting diagnostics…
 diagnostics-show = Show diagnostic ZIP
 diagnostics-privacy = Create a redacted ZIP to share with a public bug report.
-diagnostics-error = Could not export diagnostics: { $error }
+diagnostics-error = Couldn't export diagnostics. Details: { $error }
 
 ## Tester builds (embedded-playbook feature)
 

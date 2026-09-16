@@ -224,7 +224,7 @@ checksum = "8b75356056920673b02621b35afd0f7dda9306d03c79a30f5c56c44cf256e3de"
 
 [[package]]
 name = "atlas-app"
-version = "0.1.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "chrono",

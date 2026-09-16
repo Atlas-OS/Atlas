@@ -1,4 +1,4 @@
-### Atlas Manager: Japanese (ja), preview translation. Revised 6 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
+### Atlas Manager: Japanese (ja), preview translation. Revised 16 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
 ###
 ### Conventions for this catalog:
 ### - Polite です・ます form for sentences; noun-stop or verb-stem labels for
@@ -66,6 +66,9 @@ window-close-close = ウィンドウを閉じる
 file-dialog-open-playbook = Atlas の Playbook (.apbx) を開く
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas のインストールが完了しました。セットアップを完了するため、Windows を再起動します。
+# Message Windows shows in its restart notification when "Get ready" restarts
+# to finish installing Windows updates.
+prepare-shutdown-comment = 更新プログラムのインストールを完了するため、Atlas が Windows を再起動します。
 
 ## システム
 
@@ -112,6 +115,8 @@ home-history-entry = Atlas { $version } · { $mode } · { $date }
 home-how-it-works = インストールの流れ
 home-step-1-title = PC の確認
 home-step-1-detail = Atlas が Windows を確認し、インストール ファイルをダウンロードします。この段階では Windows の設定は変更されません。
+# Tester build: the playbook is bundled, nothing is downloaded.
+home-step-1-detail-bundled = Atlas が Windows を確認し、同梱のインストール ファイルを準備します。この段階では Windows の設定は変更されません。
 home-step-2-title = 設定の選択
 home-step-2-detail = Windows の保護と更新プログラムの扱いを選び、必要に応じて追加のアプリや設定を選択します。
 home-step-3-title = ウイルス対策の一時停止
@@ -182,6 +187,9 @@ ready-banner-blocked-title = 先に対処が必要な項目があります
 ready-banner-blocked-message = 下の指示に従ってから、「もう一度確認」を選んでください。
 ready-banner-no-package-title = 続行するには Atlas をダウンロードしてください
 ready-banner-no-package-message = 下から最新バージョンをダウンロードするか、保存済みの Atlas Playbook (.apbx) を開いてください。
+# Tester build: the bundled playbook could not be unpacked.
+ready-banner-no-package-bundled-title = 続行するには同梱の Playbook を準備してください
+ready-banner-no-package-bundled-message = このテストビルドに同梱された Playbook はまだ準備できていません。下の「インストール ファイル」カードを確認してください。
 ready-banner-warnings-title = 確認しておきたい点があります
 ready-banner-warnings-message = 下の注意事項を読み、推奨される対処があれば続行前に済ませてください。
 ready-banner-ok-title = 設定を選ぶ準備ができました
@@ -198,6 +206,8 @@ package-downloading = Atlas { $version } をダウンロード中 · { $received
 package-unpacking-progress = 展開中 · { $done } / { $total } ファイル
 package-unpacking = 展開中
 package-looking = 最新の Atlas バージョンを確認しています。
+# Tester build: the bundled playbook is being unpacked, nothing is downloaded.
+package-looking-bundled = 同梱の Playbook を準備しています。
 package-none = インストール ファイルはまだありません。Playbook (.apbx) には、Atlas に必要な手順とファイルが含まれています。
 # Short status words beside the card title.
 package-status-downloading = ダウンロード中
@@ -205,6 +215,7 @@ package-status-unpacking = 展開中
 package-status-failed = 準備できませんでした
 package-status-ready = 準備完了
 package-status-checking = 確認中
+package-status-preparing = 準備中
 package-status-missing = 未ダウンロード
 # Accessible name of the progress bar.
 package-progress = インストール ファイルの進行状況
@@ -221,6 +232,8 @@ package-none-yet = インストール ファイルが選択されていません
 acquire-no-asset = Atlas { $version } にはダウンロードできる Playbook ファイルがありません。続行するには、保存済みの Atlas Playbook (.apbx) を開いてください。
 acquire-unsupported = このアプリでインストールできるのは Atlas 0.6.0 以降です。Atlas { $version } をインストールするには、代わりに AME Wizard を使ってください。
 acquire-failed = インストール ファイルを準備できませんでした。もう一度ダウンロードするか、別の Atlas Playbook (.apbx) を開いてください。詳細: { $error }
+# Tester build: the bundled playbook could not be unpacked. Try again is the only control offered.
+acquire-failed-bundled = 同梱の Playbook を準備できませんでした。「再試行」を選んでください。詳細: { $error }
 
 ## システム チェック
 
@@ -312,7 +325,7 @@ learn-more-generic = セットアップ ガイドを読む
 consequence-defender-enable = Windows 標準のウイルス対策を残し、ウイルスなどの脅威から PC を保護します。
 consequence-defender-disable = Microsoft Defender を削除します。別のウイルス対策アプリをインストールするまで、PC にはウイルス対策の保護がなくなります。
 consequence-mitigations-default = プロセッサの仕組みを悪用する攻撃に対する、Windows の既定の保護を維持します。
-consequence-mitigations-disable = これらの保護をオフにするため、セキュリティが低下します。パフォーマンスはプロセッサによって異なり、低下することもあります。
+consequence-mitigations-disable = これらの保護をオフにするため、セキュリティが低下します。パフォーマンスへの影響はプロセッサによって異なります。
 consequence-auto-updates-disable = Windows Update を開いて、更新プログラムをご自身でインストールする必要があります。更新の通知は引き続き表示されます。
 consequence-auto-updates-default = Windows がセキュリティ修正を含む更新プログラムを自動的にインストールします。
 
@@ -398,19 +411,20 @@ phase-done = セットアップを完了しています
 outcome-succeeded-title = Atlas がインストールされました
 outcome-lost-title = インストール結果を確認できませんでした
 outcome-failed-title = インストールが完了しませんでした
-outcome-succeeded = PC を再起動して Atlas のセットアップを完了してください。
+# The same sentence as the Installing view shows after success.
+outcome-succeeded = { restart-needed }
 outcome-requirements = この PC はインストール要件を満たしていませんでした。インストールによる変更はありません。「準備」に戻って、もう一度確認を実行してください。
 outcome-not-elevated = インストールによる変更はありません。Atlas を管理者として再実行し、もう一度お試しください。
 outcome-failed-preflight = 変更を加える前にインストールが停止しました。ログ ファイルを開いて原因を確認し、再試行してください。
 outcome-failed-staging = ファイルの準備中、Windows を変更する前にインストールが停止しました。ログ ファイルを開いて原因を確認し、再試行してください。
-outcome-failed-applying = 一部の変更はすでに適用されている可能性があります。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
+outcome-failed-applying = 一部の変更はすでに適用されている可能性があります。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。ログ ファイルを開いて原因を確認してください。「再試行」を選ぶこともできます。
 outcome-not-started = インストーラーが時間内に起動しませんでした。インストールによる変更はありません。「再試行」を選んでください。
-outcome-lost = インストーラーが結果を報告せずに終了しました。一部の変更はすでに適用されている可能性があります。ログ ファイルを開いて原因を確認し、「再試行」を選ぶとインストールを再開できます。
+outcome-lost = インストーラーが結果を報告せずに終了しました。一部の変更はすでに適用されている可能性があります。「再試行」を選ぶ前に、ログ ファイルを開いて原因を確認してください。
 restart-now-message = Atlas のセットアップを完了するため、Windows を再起動しています。
 # Japanese has no plural forms; the same wording serves every count.
 restart-countdown = Atlas のセットアップを完了するため、{ $seconds } 秒後に Windows を再起動します。
 restart-stopped = 自動再起動をキャンセルしました。作業を保存してから PC を再起動し、Atlas のセットアップを完了してください。
-restart-needed = 作業を保存してから Windows を再起動し、Atlas のセットアップを完了してください。
+restart-needed = 作業を保存してから PC を再起動し、Atlas のセットアップを完了してください。
 restart-dont-now = 後で再起動
 restart-now = 今すぐ再起動
 # Accessible name of the countdown bar.
@@ -433,6 +447,11 @@ output-problem-message = Atlas はログを読み取れませんでした。イ�
 install-elevate-title = インストールには管理者権限が必要です
 install-no-package-title = 先にインストール ファイルを選んでください
 install-no-package-message = 「準備」に戻って Atlas をダウンロードするか、保存済みの Playbook (.apbx) を開いてください。
+# Tester build variant of install-no-package-message.
+install-no-package-bundled-message = 「準備」に戻って、このテストビルドに同梱された Playbook を準備してください。
+# Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
+install-not-ready-title = 先に「準備」を完了してください
+install-not-ready-message = このセッションでは、「準備」の PC の確認または Windows 更新プログラムの確認がまだ完了していません。
 install-security-title = インストール前にウイルス対策の保護を確認してください
 install-security-reading = 4 つの保護スイッチをもう一度確認しています。
 install-security-message = { $summary }。続行する前に、Windows セキュリティを開いて 4 つのスイッチがすべてオフになっていることを確認してください。
@@ -456,6 +475,8 @@ summary-change-a11y = { $title } を変更
 footer-still-checking = インストールの準備中
 footer-fix-items = 続行するには、上の確認項目をすべて完了してください
 footer-need-package = 続行するには、Atlas をダウンロードするか Playbook を開いてください
+# Tester build variant of footer-need-package.
+footer-need-package-bundled = 続行するには、同梱の Playbook を準備してください
 footer-reading-security = 保護スイッチを確認中
 button-checking = 確認中
 button-installing = インストール中
@@ -523,6 +544,8 @@ settings-about-data = アプリのファイル
 settings-about-licence = ライセンス
 settings-about-licence-value = GPL-3.0、無料のオープン ソース
 settings-view-source = GitHub でソース コードを表示
+# Link that opens the third-party licence notices.
+settings-view-licences = サードパーティのライセンス情報を表示
 settings-open-data-folder = アプリのフォルダーを開く
 
 ## Optional choices: explanations shown before selection.
@@ -547,6 +570,8 @@ iso-beta = ベータ
 iso-beta-description = PC で使用する前に、仮想マシンで ISO をテストしてください。Windows のインストール前にファイルをバックアップしてください。
 iso-admin-description = Windows イメージの読み取りとインストールメディアの作成には、管理者権限が必要です。
 iso-files-description = 未変更の Windows 11 x64 ISO、Atlas プレイブック（.apbx）、出力先の新しいファイル名を指定してください。
+# Tester build: no playbook picker.
+iso-files-description-bundled = 未変更の Windows 11 x64 ISO と、出力先の新しいファイル名を指定してください。このテストビルドに同梱された Playbook が使用されます。
 iso-source = Windows ISO
 iso-package = Atlas プレイブック (0.6+)
 iso-output = 新しい ISO の保存先
@@ -556,11 +581,14 @@ iso-save-as = 名前を付けて保存
 iso-inspect = ファイルを確認
 iso-mode-title = Windows と Atlas の設定
 iso-mode-interactive = サインイン後に Atlas の設定を選択
-iso-mode-interactive-description = サインイン後、Atlas アプリで Windows と Store アプリを更新し、設定を選択して Atlas を適用します。
+iso-mode-interactive-description = サインイン後、Atlas Manager が Windows と Store アプリの更新、設定の選択、Atlas の適用をサポートします。
 iso-mode-before = Atlas の設定を今すぐ選択
 iso-mode-before-description = Atlas の設定を ISO に保存します。サインイン後に Windows と Store アプリを更新してから、この設定で Atlas を適用します。
 iso-package-unsupported-title = 新しいプレイブックを選んでください
 iso-package-unsupported = ISO のセットアップには、ISO に対応した Atlas 0.6 以降が必要です。対応する Playbook を選択してください。
+# Tester build: the bundled playbook cannot be swapped, so the only way on is the after-sign-in mode.
+iso-package-unsupported-bundled-title = この ISO には Atlas の設定を保存できません
+iso-package-unsupported-bundled = このテストビルドに同梱された Playbook は ISO のセットアップに対応していません。代わりに「サインイン後に Atlas の設定を選択」を選んでください。
 iso-atlas-options = Atlas の設定
 iso-review = ISO の内容を確認
 iso-review-description = Atlas は元の ISO を残して、新しい ISO を作成します。Windows をインストールするには、新しい ISO から起動してください。ISO の作成だけでは、この PC に Atlas はインストールされません。
@@ -589,7 +617,19 @@ iso-complete = ISO が完成しました
 iso-complete-description = 仮想マシンでテストしてから、Windows インストールメディアの作成に使用してください。
 iso-open-folder = フォルダーに表示
 iso-failed = ISO の作成を完了できませんでした
-iso-failed-description = 診断を開いて原因を確認してください。問題を解決したら、新しい出力ファイル名でやり直してください。
+iso-failed-description = 診断を開いて原因を確認してください。問題を解決したら、もう一度お試しください。
+# Title while the Check files step fails; the messages below say why.
+iso-check-failed = ファイルを確認できませんでした
+iso-check-failed-description = 診断を開いて原因を確認してください。問題を解決したら、もう一度ファイルを確認してください。
+# Title when Windows refused the administrator relaunch (UAC declined); elevation-declined is the message.
+iso-elevation-title = 管理者権限が必要です
+# Typed reasons reported by the image worker.
+iso-failed-output-exists = 同じ名前のファイルがすでに存在します。「名前を付けて保存」を選んで、新しいファイル名を入力してください。
+iso-failed-destination = 新しい ISO はローカルの NTFS または ReFS ドライブに保存してください。ネットワーク上の場所や FAT32、exFAT のドライブにはインストール ファイルを保存できません。
+iso-failed-space = 保存先ドライブの空き領域が不足しています。空き領域を確保するか、新しい ISO を別のドライブに保存してください。
+iso-failed-edition = この ISO には対応する Windows エディションが含まれていません。Windows Home と LTSC には対応していません。Pro、Pro for Workstations、または Enterprise を含む ISO を使用してください。
+iso-failed-customised = この ISO には autounattend.xml などのカスタム セットアップ ファイルがすでに含まれています。Microsoft が提供する未変更の Windows ISO を選んでください。
+iso-failed-windows-unsupported = この Windows イメージは Playbook で対応していません。Atlas 0.6 には未変更の 64 ビット版 Windows 11 25H2 ISO を使用してください。24H2 と Insider ビルドには対応していません。
 iso-diagnostics = 診断を開く
 iso-close-title = ISO を作成しています
 iso-close-message = 作成またはキャンセルが完了するまで、このウィンドウを開いたままにしてください。キャンセルは、現在の処理を安全に停止できる時点まで待機します。
@@ -630,10 +670,10 @@ iso-network-source = ネットワークドライバーの取得元
 iso-network-installed = インストール済みのドライバーを使う
 iso-network-updated = 先に Windows Update で確認する
 iso-network-updated-detail = Windows Update が提供する適合ドライバーをダウンロードし、インストール済みのドライバーも予備として保持します。従量制課金ではない接続が必要です。
-iso-stage-network-drivers = ネットワークドライバーを準備しています…
+iso-stage-network-drivers = ネットワークドライバーを準備しています
 iso-network-failed = ネットワークドライバーを準備できませんでした。診断情報を確認するか、前の画面に戻ってネットワークドライバーの設定を変更してください。
 iso-mode-desktop = デスクトップを開く前にセットアップを完了
-iso-mode-desktop-description = Atlas の設定を今選びます。サインイン後、更新と Atlas のセットアップを終えてから Windows デスクトップを開きます。
+iso-mode-desktop-description = Atlas の設定を今すぐ保存し、Windows デスクトップが開く前に更新と Atlas のセットアップを完了します。
 desktop-setup-description = PC のセットアップを完了しましょう。Atlas の設定は保存されています。必要に応じて Windows に戻れます。
 desktop-setup-exit = Windows で続ける
 
@@ -643,9 +683,15 @@ usb-existing = 既存の ISO から USB を作成
 usb-description = Windows 11 25H2 の起動用 USB を作成します。この USB から PC に Windows と Atlas をインストールできます。
 usb-choose-iso = ISO を選択
 usb-drive = USB ドライブ
-usb-empty = USB ドライブを接続し、一覧を更新してください。書き込み可能で、現在実行中の Windows が含まれていない USB ドライブだけが表示されます。
+usb-empty = USB ドライブを接続し、一覧を更新してください。書き込み可能で、容量が 8 GB から 2 TB までで、現在実行中の Windows が含まれていない USB ドライブだけが表示されます。
 usb-refresh = 更新
-usb-drive-detail = { $size } GB · { $volumes } · シリアル番号: { $serial }
+# Shown when the drive list could not be read.
+usb-scan-failed = USB ドライブの一覧を読み取れませんでした。ドライブが接続されていることを確認し、一覧を更新してください。詳細は診断を開いて確認してください。
+# Parts of a drive's detail line, joined by usb-detail-separator; empty parts are left out.
+# $size is a formatted number of gigabytes (text); $volumes and $serial are text.
+usb-drive-size = { $size } GB
+usb-drive-serial = シリアル番号: { $serial }
+usb-detail-separator = { " · " }
 usb-review = USB を確認
 usb-erase-title = この USB ドライブを消去しますか？
 usb-erase-description = { $drive }（{ $size } GB）のすべてのファイルとパーティションが完全に消去されます。ISO ファイルは保持されます。
@@ -657,6 +703,10 @@ usb-stage-format = USB をフォーマットしています…
 usb-stage-copy = インストールファイルをコピーしています…
 usb-stage-verify = USB を検証しています…
 usb-working = Atlas を開いたまま、USB を接続しておいてください。キャンセルすると、現在の処理が安全に停止するまで待機します。未完成の USB では Windows をインストールできません。
+# Titles of the error bar, the success bar and the close prompt while a USB is being written.
+usb-failed-title = USB の作成を完了できませんでした
+usb-complete-title = USB の準備ができました
+usb-close-title = USB を作成しています
 usb-failed = USB の作成を完了できませんでした。接続を確認し、診断を開いて詳細を確認してください。再試行するにはドライブを選び直してください。
 usb-cancelled = USB の作成を停止しました。ドライブに不完全なインストールファイルが残っている可能性があります。Windows のインストール前に作成し直してください。
 usb-complete = USB の準備ができ、すべてのファイルの検証が完了しました。USB を取り出して再インストール先の PC に接続し、その PC の UEFI ブートメニューで選択してください。
@@ -675,9 +725,9 @@ detail-windows-release-unknown = この Windows ビルドが一般公開版か�
 iso-release-unknown = この ISO に Windows 11 25H2 の一般公開版が含まれているか確認できませんでした。インターネットに接続して再試行するか、公式のインストールメディアを選択してください。
 prepare-previous-worker = 前の更新処理がまだ実行中です。処理が完了するまでお待ちください。完了後に再試行できます。
 
-ready-used-windows-title = 続行する前に Windows を再インストールしてください
+ready-used-windows-title = この Windows 環境は使用済みのようです
 ready-used-windows-description = この Windows 環境には使用済みの兆候があります。ここへの Atlas のインストールはサポート対象外で、強く非推奨です。リスクを理解している場合のみ続行してください。
-ready-used-windows-dismiss = リスクを理解しました
+ready-used-windows-dismiss = このまま続行
 playbook-option-install-eclean = eclean をインストールする
 consequence-install-eclean = セットアップ後の PC を整える、AtlasOS 開発チームのメンテナンスツールです。不要なファイルやスタートアップアプリを確認できます。アカウントとインターネット接続が必要です。
 
@@ -691,7 +741,7 @@ diagnostics-export = 診断情報をエクスポート
 diagnostics-exporting = 診断情報を収集中…
 diagnostics-show = 診断 ZIP を表示
 diagnostics-privacy = 機密情報を除去した ZIP を作成し、公開のバグ報告で共有できます。
-diagnostics-error = 診断情報をエクスポートできませんでした: { $error }
+diagnostics-error = 診断情報をエクスポートできませんでした。詳細: { $error }
 
 ## Tester builds (embedded-playbook feature)
 

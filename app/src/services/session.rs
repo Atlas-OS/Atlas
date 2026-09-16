@@ -264,7 +264,10 @@ pub fn release(paths: &SessionPaths, id: &str) -> Result<bool> {
 
 // RunOnce is consumed when Explorer restarts during installation. Keep this entry
 // through same-boot launches, then remove it on the next boot even after failure.
+#[cfg(not(test))]
 const COMPLETION_RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
+#[cfg(not(test))]
+const COMPLETION_RUN_VALUE: &str = "AtlasInstallCompletion";
 
 #[cfg(not(test))]
 pub fn register_completion() -> Result<()> {
@@ -276,19 +279,44 @@ pub fn register_completion() -> Result<()> {
     let exe = super::recovery_app::stage()?;
     windows_registry::CURRENT_USER
         .create(COMPLETION_RUN_KEY)?
-        .set_string("AtlasInstallCompletion", format!("\"{}\" --after-install-restart", exe.display()))?;
+        .set_string(COMPLETION_RUN_VALUE, format!("\"{}\" --after-install-restart", exe.display()))?;
+    Ok(())
+}
+
+/// Removes the Run entry that reopens this app after the restart. An install
+/// that failed or was abandoned owes no completion window, and one that has
+/// been shown must not come back at every sign-in. An entry that is already
+/// gone is fine.
+#[cfg(not(test))]
+pub fn unregister_completion() -> Result<()> {
+    const NOT_FOUND: i32 = 0x8007_0002_u32 as i32;
+    let key = windows_registry::CURRENT_USER.create(COMPLETION_RUN_KEY)?;
+    match key.remove_value(COMPLETION_RUN_VALUE) {
+        Ok(()) => Ok(()),
+        Err(error) if error.code().0 == NOT_FOUND => Ok(()),
+        Err(error) => {
+            Err(error).with_context(|| format!("remove HKCU\\{COMPLETION_RUN_KEY}\\{COMPLETION_RUN_VALUE}"))
+        }
+    }
+}
+
+#[cfg(test)]
+pub fn unregister_completion() -> Result<()> {
     Ok(())
 }
 
 pub fn completion_after_restart(paths: &SessionPaths) -> Result<bool> {
+    // Whatever the answer, the entry has had its one chance: a launch that
+    // finds nothing to show must not be repeated at the next sign-in.
+    if let Err(error) = unregister_completion() {
+        log::warn!("could not remove the completion Run entry: {error:#}");
+    }
     let Some(launcher) = load_launcher(paths)? else {
         return Ok(false);
     };
     if !system::booted_since(&launcher.written_at) {
         return Ok(false);
     }
-    let key = windows_registry::CURRENT_USER.create(COMPLETION_RUN_KEY)?;
-    let _ = key.remove_value("AtlasInstallCompletion");
     let installed = super::atlas_state::read()?.and_then(|s| s.installed_at);
     Ok(completion_matches(&launcher.written_at, installed.as_deref()))
 }

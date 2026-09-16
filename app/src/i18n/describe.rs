@@ -362,10 +362,12 @@ impl Notice {
 }
 
 impl AcquireProblem {
-    pub fn text(&self) -> String {
+    /// `bundled` is a tester build, where the only remedy is Try again.
+    pub fn text(&self, bundled: bool) -> String {
         match self {
             AcquireProblem::NoPlaybookAsset { version } => t!("acquire-no-asset", version = version),
             AcquireProblem::Unsupported { version } => t!("acquire-unsupported", version = version),
+            AcquireProblem::Other { error } if bundled => t!("acquire-failed-bundled", error = error),
             AcquireProblem::Other { error } => t!("acquire-failed", error = error),
         }
     }

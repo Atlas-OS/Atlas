@@ -56,6 +56,9 @@ impl From<LanguagePreference> for String {
 pub struct InstallDraft {
     /// Restart requirement recorded before registering preparation recovery.
     pub preparation_restart_at: Option<String>,
+    /// "Get ready" finished preparing Windows with no restart owed, so a
+    /// resumed draft does not ask for it again.
+    pub preparation_ready: bool,
     /// Step name as `Step::parse` understands it.
     pub step: String,
     pub options: Vec<String>,
@@ -360,6 +363,7 @@ mod tests {
                 session: Some("20260905-120000-1234-abc".into()),
                 flow: Some("flow-1".into()),
                 preparation_restart_at: None,
+                preparation_ready: true,
             }),
         };
         save_to(&path, &settings).unwrap();

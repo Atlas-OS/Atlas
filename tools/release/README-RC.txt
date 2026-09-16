@@ -6,6 +6,10 @@ What this is
 - AtlasManager.exe is a release candidate of Atlas Manager with the
   Atlas @RC_ID@ playbook built in. It installs only that playbook. It does
   not check GitHub for releases, download anything, or open other playbooks.
+- The normal build may consult Microsoft's Windows release page when your
+  Windows update revision is newer than the list built into the app. This
+  build never contacts that page: a public revision of build 26200 that the
+  list does not know is accepted. Insider builds are still refused.
 - The .apbx beside it is the same playbook, byte for byte, for people who
   install with AME Wizard instead.
 
@@ -21,6 +25,11 @@ Reporting problems
 - In Atlas Manager, open Settings and choose Export diagnostics, then share
   the ZIP it shows you. It is redacted, and nothing is uploaded automatically.
 - If the window will not open, run: AtlasManager.exe --export-diagnostics
+  The ZIP is saved under %LOCALAPPDATA%\AtlasOS\App\Diagnostics and a message
+  box shows the exact path.
+- If the app crashed before it could export anything, its logs are in
+  %LOCALAPPDATA%\AtlasOS\App\Logs (app-*.log; %TEMP%\AtlasDiagnostics when
+  that folder could not be created). Attach the newest one to your report.
 - Say which candidate you used (@RC_ID@ appears under the title bar and in
   Settings > About), what you did, and what you expected.
 

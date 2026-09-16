@@ -464,7 +464,11 @@ impl Render for HomePage {
                                             cx,
                                             1,
                                             t!("home-step-1-title"),
-                                            t!("home-step-1-detail"),
+                                            if state.bundled() {
+                                                t!("home-step-1-detail-bundled")
+                                            } else {
+                                                t!("home-step-1-detail")
+                                            },
                                         ))
                                         .child(step_line(
                                             window,

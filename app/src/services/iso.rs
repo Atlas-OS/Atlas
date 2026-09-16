@@ -141,7 +141,11 @@ pub fn validate(request: &Request) -> Result<()> {
         bail!("The output filename must end in .iso");
     }
     if request.output.exists() {
-        bail!("The output already exists; choose a new filename");
+        return Err(Failure::new(
+            FailureReason::OutputExists,
+            "The output already exists; choose a new filename",
+        )
+        .into());
     }
     let parent = request.output.parent().context("output has no parent")?.canonicalize()?;
     let source = request.source.canonicalize()?;
@@ -214,16 +218,66 @@ pub fn job_dir() -> Result<PathBuf> {
     Ok(dir)
 }
 
-#[derive(Debug)]
-pub struct UnverifiedWindowsRelease;
+/// Why an ISO operation failed, as far as the app can tell. The worker
+/// reports the typed reasons on stdout as `ATLAS_ERROR:<reason>` before it
+/// throws; anything else is a check failure (nothing built yet) or a build
+/// failure, decided by the last stage reported.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FailureReason {
+    /// The Windows build could not be verified as a public release.
+    WindowsReleaseUnknown,
+    /// The output file already exists.
+    OutputExists,
+    /// The destination is not a local NTFS or ReFS volume.
+    DestinationFilesystem,
+    /// The destination has too little free space.
+    DiskSpace,
+    /// The image is not a supported client build or architecture.
+    WindowsUnsupported,
+    /// The ISO contains no supported edition (Home, LTSC).
+    EditionUnsupported,
+    /// The ISO already carries custom setup content.
+    IsoCustomised,
+    /// Some other problem while checking the files.
+    Check,
+    /// Some other problem after the checks passed.
+    Build,
+}
 
-impl std::fmt::Display for UnverifiedWindowsRelease {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("The ISO's Windows build could not be verified as a public release")
+impl FailureReason {
+    pub fn parse(value: &str) -> Option<Self> {
+        Some(match value {
+            "windows-release-unknown" => Self::WindowsReleaseUnknown,
+            "output-exists" => Self::OutputExists,
+            "destination-filesystem" => Self::DestinationFilesystem,
+            "disk-space" => Self::DiskSpace,
+            "windows-unsupported" => Self::WindowsUnsupported,
+            "edition-unsupported" => Self::EditionUnsupported,
+            "iso-customised" => Self::IsoCustomised,
+            _ => return None,
+        })
     }
 }
 
-impl std::error::Error for UnverifiedWindowsRelease {}
+#[derive(Debug)]
+pub struct Failure {
+    pub reason: FailureReason,
+    detail: String,
+}
+
+impl Failure {
+    pub fn new(reason: FailureReason, detail: impl Into<String>) -> Self {
+        Self { reason, detail: detail.into() }
+    }
+}
+
+impl std::fmt::Display for Failure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}: {}", self.reason, self.detail)
+    }
+}
+
+impl std::error::Error for Failure {}
 
 pub fn run(
     request: &Request,
@@ -276,16 +330,20 @@ pub fn run(
     let stop = Arc::new(AtomicBool::new(false));
     let watcher = super::system::watch_cancellation(cancel, stop.clone(), flag);
     let mut image = None;
-    let mut release_unverified = false;
+    let mut reason = None;
+    let mut stage = Stage::Inspect;
     use std::io::Write;
     let mut log = log;
     let stream = child.stdout.take().context("worker stdout")?;
     for line in BufReader::new(stream).lines() {
         let Ok(line) = line else { break };
         let _ = writeln!(log, "{line}");
-        release_unverified |= line == "ATLAS_ERROR:windows-release-unknown";
-        if let Some(stage) = line.strip_prefix("ATLAS_STAGE:").and_then(Stage::parse) {
-            report(stage);
+        if let Some(typed) = line.strip_prefix("ATLAS_ERROR:").and_then(FailureReason::parse) {
+            reason = Some(typed);
+        }
+        if let Some(reported) = line.strip_prefix("ATLAS_STAGE:").and_then(Stage::parse) {
+            stage = reported;
+            report(reported);
         }
         if let Some(json) = line.strip_prefix("ATLAS_RESULT:") {
             image = serde_json::from_str(json).ok();
@@ -295,10 +353,18 @@ pub fn run(
     stop.store(true, Ordering::Relaxed);
     let _ = watcher.join();
     if !result?.success() {
-        if release_unverified {
-            return Err(UnverifiedWindowsRelease.into());
-        }
-        bail!("Windows image worker failed. See {}", dir.join("build.log").display());
+        // Without a typed reason, anything that failed while still checking
+        // the files is a check failure; later stages had a build under way.
+        let reason = reason.unwrap_or(if stage == Stage::Inspect {
+            FailureReason::Check
+        } else {
+            FailureReason::Build
+        });
+        return Err(Failure::new(
+            reason,
+            format!("Windows image worker failed. See {}", dir.join("build.log").display()),
+        )
+        .into());
     }
     if inspect && image.is_none() {
         bail!("Windows did not return image information");
@@ -363,6 +429,24 @@ mod tests {
     }
 
     #[test]
+    fn failure_reasons_match_the_worker_markers() {
+        // Every marker the worker writes must be understood here, or the page
+        // falls back to generic advice.
+        let script = include_str!("../../resources/iso/Build-Iso.ps1");
+        for marker in script.lines().filter_map(|line| {
+            let start = line.find("Fail '")? + "Fail '".len();
+            line[start..].split('\'').next()
+        }) {
+            assert!(FailureReason::parse(marker).is_some(), "unknown worker marker {marker:?}");
+        }
+        assert_eq!(
+            FailureReason::parse("windows-release-unknown"),
+            Some(FailureReason::WindowsReleaseUnknown)
+        );
+        assert_eq!(FailureReason::parse("check"), None);
+    }
+
+    #[test]
     fn iso_options_respect_required_groups_and_dependencies() {
         let manifest = super::super::playbook::Manifest::builtin();
         let defaults = default_options(&manifest);
@@ -408,7 +492,8 @@ mod tests {
         assert!(validate(&request).is_err());
         request.update_network_drivers = false;
         fs::write(&output, b"keep").unwrap();
-        assert!(validate(&request).is_err());
+        let existing = validate(&request).unwrap_err();
+        assert_eq!(existing.downcast_ref::<Failure>().map(|f| f.reason), Some(FailureReason::OutputExists));
         assert_eq!(fs::read(&output).unwrap(), b"keep");
         request.output = source.clone();
         assert!(validate(&request).is_err());

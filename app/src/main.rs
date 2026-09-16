@@ -21,7 +21,7 @@ use gpui::{
 };
 
 use crate::shell::{Shell, StartAt};
-use crate::ui::actions::{FocusNext, FocusPrevious, RadioNext, RadioPrevious};
+use crate::ui::actions::{FocusNext, FocusPrevious, NavigateBack, RadioNext, RadioPrevious};
 
 /// `atlas [--page home|install|iso|updates|settings|installed] [--step options|security|checks|install]
 /// [--playbook <file.apbx>] [--language <tag>] [--just-installed]`. A bare `.apbx` argument (from
@@ -58,7 +58,8 @@ fn main() {
     services::diagnostics::init_logging();
     // Headless collection also works when the window cannot initialize.
     if std::env::args().any(|arg| arg == "--export-diagnostics") {
-        match services::diagnostics::export(&services::settings::app_data_dir(), None) {
+        let result = services::diagnostics::export(&services::settings::app_data_dir(), None);
+        match &result {
             Ok(path) => {
                 log::info!("Diagnostic export: {}", path.display());
                 println!("{}", path.display());
@@ -66,8 +67,12 @@ fn main() {
             Err(error) => {
                 log::error!("Diagnostic export failed: {error:#}");
                 eprintln!("{error:#}");
-                std::process::exit(1);
             }
+        }
+        // The release build has no console, so the path is also shown in a message box.
+        services::diagnostics::report_headless_export(&result);
+        if result.is_err() {
+            std::process::exit(1);
         }
         return;
     }
@@ -123,6 +128,7 @@ fn main() {
         cx.bind_keys([
             KeyBinding::new("tab", FocusNext, None),
             KeyBinding::new("shift-tab", FocusPrevious, None),
+            KeyBinding::new("escape", NavigateBack, None),
             KeyBinding::new("down", RadioNext, Some("RadioGroup")),
             KeyBinding::new("right", RadioNext, Some("RadioGroup")),
             KeyBinding::new("up", RadioPrevious, Some("RadioGroup")),

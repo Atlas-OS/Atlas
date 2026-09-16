@@ -96,8 +96,21 @@ impl RenderOnce for InfoBar {
                     .when(has_message, |this| this.child(div().type_body().child(self.message)))
                     // Actions may contain a full translated acknowledgement. Keep
                     // them below the copy rather than squeezing it into a sliver.
+                    // A row lets a button keep its natural width, left-aligned
+                    // under the message like WinUI's InfoBar action button,
+                    // while a check box that asks for the full width still gets it.
                     .when_some(self.action, |this, action| {
-                        this.child(div().w_full().min_w_0().pt(px(8.)).child(action))
+                        this.child(
+                            div()
+                                .flex()
+                                .flex_wrap()
+                                .items_start()
+                                .gap(px(8.))
+                                .w_full()
+                                .min_w_0()
+                                .pt(px(8.))
+                                .child(action),
+                        )
                     }),
             );
         match self.focus {

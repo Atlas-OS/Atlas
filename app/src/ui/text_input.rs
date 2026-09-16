@@ -178,7 +178,7 @@ impl TextInput {
 
     fn paste(&mut self, _: &Paste, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-            self.replace_text_in_range(None, &text.replace("\n", " "), window, cx);
+            self.replace_text_in_range(None, &single_line(&text), window, cx);
         }
     }
 
@@ -238,33 +238,11 @@ impl TextInput {
     }
 
     fn offset_from_utf16(&self, offset: usize) -> usize {
-        let mut utf8_offset = 0;
-        let mut utf16_count = 0;
-
-        for ch in self.content.chars() {
-            if utf16_count >= offset {
-                break;
-            }
-            utf16_count += ch.len_utf16();
-            utf8_offset += ch.len_utf8();
-        }
-
-        utf8_offset
+        offset_from_utf16(&self.content, offset)
     }
 
     fn offset_to_utf16(&self, offset: usize) -> usize {
-        let mut utf16_offset = 0;
-        let mut utf8_count = 0;
-
-        for ch in self.content.chars() {
-            if utf8_count >= offset {
-                break;
-            }
-            utf8_count += ch.len_utf8();
-            utf16_offset += ch.len_utf16();
-        }
-
-        utf16_offset
+        offset_to_utf16(&self.content, offset)
     }
 
     fn range_to_utf16(&self, range: &Range<usize>) -> Range<usize> {
@@ -289,6 +267,66 @@ impl TextInput {
             .find_map(|(idx, _)| (idx > offset).then_some(idx))
             .unwrap_or(self.content.len())
     }
+}
+
+/// The clipboard as one line: each line break (CRLF from Windows counts
+/// once) and tab becomes a space, and surrounding whitespace goes.
+fn single_line(text: &str) -> String {
+    text.replace("\r\n", " ").replace(['\r', '\n', '\t'], " ").trim().to_owned()
+}
+
+/// The byte offset in `text` for a UTF-16 offset, clamped to the text.
+fn offset_from_utf16(text: &str, offset: usize) -> usize {
+    let mut utf8_offset = 0;
+    let mut utf16_count = 0;
+
+    for ch in text.chars() {
+        if utf16_count >= offset {
+            break;
+        }
+        utf16_count += ch.len_utf16();
+        utf8_offset += ch.len_utf8();
+    }
+
+    utf8_offset
+}
+
+/// The UTF-16 offset in `text` for a byte offset, clamped to the text.
+fn offset_to_utf16(text: &str, offset: usize) -> usize {
+    let mut utf16_offset = 0;
+    let mut utf8_count = 0;
+
+    for ch in text.chars() {
+        if utf8_count >= offset {
+            break;
+        }
+        utf8_count += ch.len_utf8();
+        utf16_offset += ch.len_utf16();
+    }
+
+    utf16_offset
+}
+
+/// One IME composition step: `new_text` replaces `range` of `content` and is
+/// marked; the caret (`caret_utf16`, in UTF-16 units relative to `new_text`,
+/// as the Windows IME reports it) lands inside it. Returns the new content,
+/// the marked range and the selected range, all in bytes.
+fn compose(
+    content: &str,
+    range: Range<usize>,
+    new_text: &str,
+    caret_utf16: Option<Range<usize>>,
+) -> (String, Option<Range<usize>>, Range<usize>) {
+    let composed = content[..range.start].to_owned() + new_text + &content[range.end..];
+    let marked = (!new_text.is_empty()).then(|| range.start..range.start + new_text.len());
+    let selected = match caret_utf16 {
+        Some(caret) => {
+            range.start + offset_from_utf16(new_text, caret.start)
+                ..range.start + offset_from_utf16(new_text, caret.end)
+        }
+        None => range.start + new_text.len()..range.start + new_text.len(),
+    };
+    (composed, marked, selected)
 }
 
 impl EntityInputHandler for TextInput {
@@ -358,18 +396,10 @@ impl EntityInputHandler for TextInput {
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
 
-        self.content =
-            (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..]).into();
-        if !new_text.is_empty() {
-            self.marked_range = Some(range.start..range.start + new_text.len());
-        } else {
-            self.marked_range = None;
-        }
-        self.selected_range = new_selected_range_utf16
-            .as_ref()
-            .map(|range_utf16| self.range_from_utf16(range_utf16))
-            .map(|new_range| new_range.start + range.start..new_range.end + range.end)
-            .unwrap_or_else(|| range.start + new_text.len()..range.start + new_text.len());
+        let (content, marked, selected) = compose(&self.content, range, new_text, new_selected_range_utf16);
+        self.content = content.into();
+        self.marked_range = marked;
+        self.selected_range = selected;
 
         cx.notify();
     }
@@ -561,7 +591,7 @@ impl Element for TextElement {
 impl Render for TextInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.placeholder = crate::t!("iso-username-placeholder").into();
-        div()
+        let input = div()
             .id("iso-username-input")
             .role(gpui::Role::TextInput)
             .aria_label(crate::t!("iso-username"))
@@ -606,12 +636,64 @@ impl Render for TextInput {
                     .px(px(10.))
                     .py(px(6.))
                     .child(TextElement { input: cx.entity() }),
-            )
+            );
+        super::Revealed::new(input)
     }
 }
 
 impl Focusable for TextInput {
     fn focus_handle(&self, _: &App) -> FocusHandle {
         self.focus_handle.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{compose, offset_from_utf16, offset_to_utf16, single_line};
+
+    #[test]
+    fn composing_after_ascii_marks_the_new_text_and_places_the_caret_inside_it() {
+        // "ab" with the caret at the end; the IME composes two 3-byte
+        // characters and reports the caret after both (2 UTF-16 units).
+        let (content, marked, selected) = compose("ab", 2..2, "日本", Some(2..2));
+        assert_eq!(content, "ab日本");
+        assert_eq!(marked, Some(2..8));
+        assert_eq!(selected, 8..8);
+
+        // Caret between the two composed characters: a UTF-16 unit into the
+        // new text, not into the whole content.
+        let (_, _, selected) = compose("ab", 2..2, "日本", Some(1..1));
+        assert_eq!(selected, 5..5);
+    }
+
+    #[test]
+    fn a_composition_that_replaces_text_offsets_both_caret_ends_by_the_range_start() {
+        // Replace "b" (bytes 1..2) with the composition and select all of it.
+        let (content, marked, selected) = compose("ab", 1..2, "日本", Some(0..2));
+        assert_eq!(content, "a日本");
+        assert_eq!(marked, Some(1..7));
+        assert_eq!(selected, 1..7);
+    }
+
+    #[test]
+    fn an_empty_composition_clears_the_mark() {
+        let (content, marked, selected) = compose("ab日本", 2..8, "", None);
+        assert_eq!(content, "ab");
+        assert_eq!(marked, None);
+        assert_eq!(selected, 2..2);
+    }
+
+    #[test]
+    fn utf16_offsets_round_trip_and_clamp() {
+        assert_eq!(offset_from_utf16("a😀b", 3), 5);
+        assert_eq!(offset_to_utf16("a😀b", 5), 3);
+        assert_eq!(offset_from_utf16("ab", 10), 2);
+        assert_eq!(offset_to_utf16("ab", 10), 2);
+    }
+
+    #[test]
+    fn pasted_text_becomes_one_trimmed_line() {
+        assert_eq!(single_line("  user\r\nname\t\r\n"), "user name");
+        assert_eq!(single_line("plain"), "plain");
     }
 }

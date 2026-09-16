@@ -23,12 +23,20 @@ Home also offers **Create an Atlas ISO**. Choose an unmodified supported Windows
 Storage, DISM and IMAPI services create and verify the media; the ADK is not required.
 Administrator access and sufficient space on a local NTFS or ReFS volume are required.
 
-ISO creation requires Atlas 0.6.0 or newer. Choose Atlas settings now or after
-sign-in, and provide a local-account name. Windows creates the account and
-requests a new password at the user's first sign-in. Both modes open the app
-on the destination, where Windows, Microsoft Store and installed Store apps
-must finish updating before Atlas can be applied. Updates require internet
-access. This Beta does not apply Atlas before the first desktop.
+ISO creation requires Atlas 0.6.0 or newer. Provide a local-account name
+(Windows creates the account and asks for a password at the first sign-in)
+and choose one of three modes. **Choose Atlas settings after sign-in** opens
+Atlas Manager on the new desktop, where you update Windows and Store apps,
+choose your options and apply Atlas. **Choose Atlas settings now** saves your
+options in the ISO, so the destination app skips the options step and goes
+straight to updates and the install. **Finish setup before the desktop** also
+saves the options and, after the intended user's sign-in, shows Atlas Manager
+full-screen so updates and the install finish before the Windows desktop
+opens (Explorer's shell services run behind it, and Continue in Windows is
+always available). In every mode Atlas is staged in the ISO and applied after
+Windows setup and sign-in, never inside `install.wim`, and Windows, Microsoft
+Store and installed Store apps must finish updating first, which needs
+internet access.
 Use the portable release executable when creating media for a clean PC.
 See [ISO creation and release validation](docs/iso-injection.md).
 
@@ -45,13 +53,14 @@ cargo run
 cargo test --locked # unit and model tests; Windows PowerShell runs harmless stubs
 cargo clippy --locked --all-targets -- -D warnings
 powershell -NoProfile -File tools/Build-Release.ps1
+powershell -NoProfile -File tools/Build-Release.ps1 -RcId 0.6.0-rc.1 -EmbedApbx "..\playbook\Atlas v0.6.0-rc.1.apbx"
 ```
 
 The same checks run in CI (`.github/workflows/app.yml`) on every change under `app/`,
 once without features and once with `--features embedded-playbook` against a
 LocalTest package. CI also builds and saves the release executable as
-`atlas-manager-windows-x64`. On Linux, `tools/release/setup-linux.sh` and the
-cross-build in `docs/building.md` replace the Visual Studio tools; the icon and
+`atlas-manager-windows-x64`. On Linux, `../tools/release/setup-linux.sh` and the
+cross-build in `../docs/building.md` replace the Visual Studio tools; the icon and
 manifest are compiled with `llvm-rc` and the shaders come from the committed
 Windows export.
 
@@ -59,15 +68,24 @@ Windows export.
 `ATLAS_EMBED_APBX` (the archive to carry) and `ATLAS_RC_ID` (for example
 `0.6.0-rc.1`) and fails without them. Such a build installs only its bundled
 playbook: no release check, no download, no file picker, `--playbook` and
-`.apbx` arguments ignored, ISO creation uses the bundled archive, and a draft or
-recovered session for another package is not run. The RC id appears under the
-title bar, in Settings > About with the source commit and package digest, in
-the executable's version resource, and as `rcId` in diagnostic exports.
-`tools/release/build-rc.sh` produces the tester ZIP.
-The release script writes `target/x86_64-pc-windows-msvc/release/AtlasManager.exe`
+`.apbx` arguments ignored, ISO creation uses the bundled archive, no lookup of
+Microsoft's Windows release page (an unlisted revision of build 26200 is
+accepted rather than depending on a live page), and a draft or recovered
+session for another package is not run. The RC id appears under the title
+bar, in Settings > About with the source commit and package digest, in the
+executable's version resource (as text, and as the fourth numeric component),
+and as `rcId` in diagnostic exports. `../tools/release/build-rc.sh` produces
+the tester ZIP on Linux; see [docs/rc-testers-build.md](docs/rc-testers-build.md).
+`tools/Build-Release.ps1` writes `target/x86_64-pc-windows-msvc/release/AtlasManager.exe`
 with the C runtime linked statically, so a clean Windows installation does not
 need a separately installed Visual C++ runtime. The explicit Cargo target keeps
-this setting separate from host build scripts and procedural macros.
+this setting separate from host build scripts and procedural macros. Without
+parameters it builds the stable executable; `-RcId <id>` and `-EmbedApbx
+<path>` together build the tester variant (they set `ATLAS_RC_ID` and
+`ATLAS_EMBED_APBX` and add `--features embedded-playbook`, as `build-rc.sh`
+does), and `-Json` switches Cargo to JSON diagnostics. The script builds with
+`CARGO_INCREMENTAL=0`, because stale incremental state has produced link
+failures in release builds.
 Use the release executable for performance measurements and distribution;
 `cargo run` without `--release` is a development build.
 
@@ -103,7 +121,8 @@ AtlasManager.exe --language de                       # a shipped language tag, o
   logs and the install session under a directory of your choice, so a review run
   never touches the real `%LOCALAPPDATA%\AtlasOS\App`.
 - `ATLAS_STATE_FILE=<state.json>` renders the installed and update-available
-  states on a PC without Atlas.
+  states on a PC without Atlas. Debug builds only: a release build always reads
+  `%windir%\AtlasOS\state.json` (`src/services/atlas_state.rs`).
 - `ATLAS_LANGUAGE=<tag>` is `--language` from the environment;
   `ATLAS_FORMAT_LOCALE=<tag>` (for example `de-DE`) overrides the Windows
   regional format used for numbers, dates and times;

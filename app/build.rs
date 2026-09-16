@@ -3,13 +3,17 @@ fn main() {
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
         println!("cargo:rerun-if-changed=resources/atlas.rc");
         println!("cargo:rerun-if-changed=resources/atlas.ico");
-        // File Properties show the RC id on a tester build; the numeric
-        // fields stay the Cargo version.
-        let version = rc_id.unwrap_or_else(|| std::env::var("CARGO_PKG_VERSION").expect("package version"));
+        // File Properties show the RC id on a tester build. The numeric
+        // FILEVERSION/PRODUCTVERSION take the Cargo version, with the fourth
+        // component set to the candidate number (0.6.0-rc.2 -> 0,6,0,2) so
+        // two candidates' executables differ in Explorer and in installers
+        // that compare binary versions; a stable build is x,y,z,0.
+        let version =
+            rc_id.clone().unwrap_or_else(|| std::env::var("CARGO_PKG_VERSION").expect("package version"));
         let numeric_version = ["MAJOR", "MINOR", "PATCH"]
             .map(|part| std::env::var(format!("CARGO_PKG_VERSION_{part}")).unwrap())
             .join(",")
-            + ",0";
+            + &format!(",{}", rc_id.as_deref().map_or(0, rc_number));
         let icon = std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap())
             .join("resources/atlas.ico")
             .to_string_lossy()
@@ -60,6 +64,19 @@ fn embedded_playbook() -> Option<String> {
     let out = std::path::Path::new(&std::env::var("OUT_DIR").unwrap()).join("embedded.rs");
     std::fs::write(&out, generated).expect("write the embedded playbook binding");
     Some(rc_id)
+}
+
+/// The candidate number of an RC id such as `0.6.0-rc.12`, for the version
+/// resource's fourth component. Any other suffix, or a number the 16-bit
+/// field cannot hold, fails the build rather than misnumbering the executable.
+fn rc_number(rc_id: &str) -> u16 {
+    let (_, suffix) =
+        rc_id.split_once("-rc.").unwrap_or_else(|| panic!("ATLAS_RC_ID {rc_id:?} must look like 0.6.0-rc.1"));
+    let number: u16 =
+        suffix.parse().ok().filter(|number| *number > 0 && !suffix.starts_with('0')).unwrap_or_else(|| {
+            panic!("ATLAS_RC_ID {rc_id:?} needs a candidate number from 1 to 65535 after -rc.")
+        });
+    number
 }
 
 /// Short commit, with `-dirty` when the tree has changes; `unknown` without Git.

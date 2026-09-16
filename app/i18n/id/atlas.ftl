@@ -1,4 +1,4 @@
-### Atlas Manager: Bahasa Indonesia (id). Preview translation, revised on 6 September 2026 from the en-GB source; native-speaker review pending.
+### Atlas Manager: Bahasa Indonesia (id). Preview translation, revised on 16 September 2026 from the en-GB source; native-speaker review pending.
 ###
 ### This complete translation follows the en-GB source.
 ### Ids are stable identifiers, never shown to users. Comments
@@ -75,6 +75,9 @@ window-close-close = Tutup jendela
 file-dialog-open-playbook = Buka playbook Atlas (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas sudah terinstal. Windows dimulai ulang untuk menyelesaikan penyiapan.
+# Message Windows shows in its restart notification when "Get ready" restarts
+# to finish installing Windows updates.
+prepare-shutdown-comment = Atlas memulai ulang Windows untuk menyelesaikan penginstalan pembaruan.
 
 ## System
 
@@ -121,6 +124,8 @@ home-history-entry = Atlas { $version } · { $mode } · { $date }
 home-how-it-works = Mari siapkan PC Anda untuk Atlas
 home-step-1-title = Periksa PC Anda
 home-step-1-detail = Atlas memeriksa Windows dan mengunduh file penginstalan. Pengaturan Windows Anda tetap seperti semula.
+# Tester build: the playbook is bundled, nothing is downloaded.
+home-step-1-detail-bundled = Atlas memeriksa Windows dan menyiapkan file penginstalan bawaan. Pengaturan Windows Anda tetap seperti semula.
 home-step-2-title = Tentukan pilihan Anda
 home-step-2-detail = Pilih cara Windows menangani perlindungan dan pembaruan, lalu pilih aplikasi atau pengaturan tambahan yang Anda inginkan.
 home-step-3-title = Jeda perlindungan antivirus
@@ -190,6 +195,9 @@ ready-banner-blocked-title = PC Anda masih perlu disiapkan
 ready-banner-blocked-message = Ikuti petunjuk di bawah, lalu pilih Periksa lagi.
 ready-banner-no-package-title = Unduh Atlas untuk melanjutkan
 ready-banner-no-package-message = Unduh versi terbaru di bawah, atau buka playbook Atlas (.apbx) yang tersimpan.
+# Tester build: the bundled playbook could not be unpacked.
+ready-banner-no-package-bundled-title = Siapkan playbook bawaan untuk melanjutkan
+ready-banner-no-package-bundled-message = Playbook bawaan versi uji ini belum siap. Periksa kartu File penginstalan di bawah.
 ready-banner-warnings-title = Ada beberapa hal yang perlu diperhatikan
 ready-banner-warnings-message = Baca catatan di bawah dan lakukan langkah yang disarankan sebelum melanjutkan.
 ready-banner-ok-title = Anda siap menentukan pilihan
@@ -204,6 +212,8 @@ package-downloading = Mengunduh Atlas { $version } · { $received } dari { $tota
 package-unpacking-progress = Mengekstrak · { $done } dari { $total } file
 package-unpacking = Mengekstrak
 package-looking = Memeriksa versi Atlas terbaru.
+# Tester build: the bundled playbook is being unpacked, nothing is downloaded.
+package-looking-bundled = Menyiapkan playbook bawaan.
 package-none = Belum ada file penginstalan. Playbook (.apbx) berisi petunjuk dan file yang diperlukan Atlas.
 # Short status words beside the card title.
 package-status-downloading = Mengunduh
@@ -211,6 +221,7 @@ package-status-unpacking = Mengekstrak
 package-status-failed = File tidak dapat disiapkan
 package-status-ready = Siap
 package-status-checking = Memeriksa
+package-status-preparing = Menyiapkan
 package-status-missing = Belum diunduh
 # Accessible name of the progress bar.
 package-progress = Kemajuan penyiapan file penginstalan
@@ -227,6 +238,8 @@ package-none-yet = Belum ada file penginstalan yang dipilih
 acquire-no-asset = Atlas { $version } tidak memiliki file playbook yang dapat diunduh. Buka playbook Atlas (.apbx) yang tersimpan untuk melanjutkan.
 acquire-unsupported = Aplikasi ini dapat menginstal Atlas 0.6.0 dan yang lebih baru. Untuk menginstal Atlas { $version }, gunakan AME Wizard.
 acquire-failed = Tidak dapat menyiapkan file penginstalan. Coba unduh lagi atau buka playbook Atlas (.apbx) lain. Detail: { $error }
+# Tester build: the bundled playbook could not be unpacked. Try again is the only control offered.
+acquire-failed-bundled = Tidak dapat menyiapkan playbook bawaan. Pilih Coba lagi. Detail: { $error }
 
 ## System checks
 
@@ -317,7 +330,7 @@ learn-more-generic = Baca panduan penyiapan
 consequence-defender-enable = Mempertahankan antivirus bawaan Windows untuk membantu melindungi PC Anda dari virus dan ancaman lainnya.
 consequence-defender-disable = Menghapus Microsoft Defender. PC Anda tidak akan memiliki perlindungan antivirus sampai Anda menginstal aplikasi antivirus lain.
 consequence-mitigations-default = Mempertahankan perlindungan bawaan Windows terhadap serangan yang mengeksploitasi cara kerja prosesor.
-consequence-mitigations-disable = Menonaktifkan perlindungan ini dan mengurangi keamanan. Kinerja bergantung pada prosesor Anda dan mungkin justru memburuk.
+consequence-mitigations-disable = Menonaktifkan perlindungan ini dan mengurangi keamanan. Perbedaan kinerja, jika ada, bergantung pada prosesor Anda.
 consequence-auto-updates-disable = Anda perlu membuka Windows Update dan menginstal pembaruan sendiri. Notifikasi pembaruan tetap aktif.
 consequence-auto-updates-default = Windows akan menginstal pembaruan secara otomatis, termasuk perbaikan keamanan.
 
@@ -406,19 +419,20 @@ phase-done = Menyelesaikan penyiapan
 outcome-succeeded-title = Atlas sudah terinstal
 outcome-lost-title = Hasil penginstalan tidak dapat dipastikan
 outcome-failed-title = Penginstalan tidak selesai
-outcome-succeeded = Mulai ulang PC untuk menyelesaikan penyiapan Atlas.
+# The same sentence as the Installing view shows after success.
+outcome-succeeded = { restart-needed }
 outcome-requirements = PC Anda tidak memenuhi persyaratan penginstalan. Tidak ada perubahan yang dilakukan pada PC Anda. Kembali ke Persiapan dan jalankan pemeriksaan lagi.
 outcome-not-elevated = Tidak ada perubahan yang dilakukan pada PC Anda. Jalankan ulang Atlas sebagai administrator, lalu coba lagi.
 outcome-failed-preflight = Penginstalan berhenti sebelum mengubah apa pun. Buka file log untuk melihat penyebabnya, lalu coba lagi.
 outcome-failed-staging = Penginstalan berhenti saat menyiapkan file, sebelum mengubah Windows. Buka file log untuk melihat penyebabnya, lalu coba lagi.
-outcome-failed-applying = Sebagian perubahan mungkin sudah diterapkan. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
+outcome-failed-applying = Sebagian perubahan mungkin sudah diterapkan. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia. Buka file log untuk melihat apa yang terjadi. Anda dapat memilih Coba lagi.
 outcome-not-started = Penginstal tidak dimulai tepat waktu. Tidak ada perubahan yang dilakukan pada PC Anda. Pilih Coba lagi.
-outcome-lost = Penginstal berhenti tanpa melaporkan hasilnya, dan sebagian perubahan mungkin sudah diterapkan. Buka file log untuk melihat apa yang terjadi, lalu pilih Coba lagi untuk melanjutkan penginstalan.
+outcome-lost = Penginstal berhenti tanpa melaporkan hasilnya, dan sebagian perubahan mungkin sudah diterapkan. Buka file log untuk melihat apa yang terjadi sebelum memilih Coba lagi.
 restart-now-message = Windows sedang dimulai ulang untuk menyelesaikan penyiapan Atlas.
 # Indonesian has no plural forms; one wording covers every count.
 restart-countdown = Windows akan dimulai ulang dalam { $seconds } detik agar Atlas dapat menyelesaikan penyiapan.
 restart-stopped = Mulai ulang otomatis dibatalkan. Simpan pekerjaan Anda, lalu mulai ulang PC untuk menyelesaikan penyiapan Atlas.
-restart-needed = Simpan pekerjaan Anda, lalu mulai ulang Windows untuk menyelesaikan penyiapan Atlas.
+restart-needed = Simpan pekerjaan Anda, lalu mulai ulang PC untuk menyelesaikan penyiapan Atlas.
 restart-dont-now = Mulai ulang nanti
 restart-now = Mulai ulang sekarang
 # Accessible name of the countdown bar.
@@ -441,6 +455,11 @@ output-problem-message = Atlas tidak dapat membaca log. Ini tidak berarti pengin
 install-elevate-title = Atlas memerlukan izin untuk menginstal
 install-no-package-title = Pilih file penginstalan terlebih dahulu
 install-no-package-message = Kembali ke Persiapan untuk mengunduh Atlas atau membuka playbook (.apbx) yang tersimpan.
+# Tester build variant of install-no-package-message.
+install-no-package-bundled-message = Kembali ke Persiapan untuk menyiapkan playbook bawaan versi uji ini.
+# Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
+install-not-ready-title = Selesaikan Persiapan terlebih dahulu
+install-not-ready-message = Pemeriksaan PC atau pemeriksaan pembaruan Windows di Persiapan belum selesai untuk sesi ini.
 install-security-title = Periksa perlindungan antivirus sebelum menginstal
 install-security-reading = Memeriksa kembali keempat pengaturan perlindungan.
 install-security-message = { $summary }. Buka Keamanan Windows dan pastikan keempat pengaturan sudah nonaktif sebelum melanjutkan.
@@ -464,6 +483,8 @@ summary-change-a11y = Ubah { $title }
 footer-still-checking = Menyiapkan penginstalan
 footer-fix-items = Selesaikan pemeriksaan di atas untuk melanjutkan
 footer-need-package = Unduh Atlas atau buka playbook untuk melanjutkan
+# Tester build variant of footer-need-package.
+footer-need-package-bundled = Siapkan playbook bawaan untuk melanjutkan
 footer-reading-security = Memeriksa pengaturan perlindungan
 button-checking = Memeriksa
 button-installing = Menginstal
@@ -531,6 +552,8 @@ settings-about-data = File aplikasi
 settings-about-licence = Lisensi
 settings-about-licence-value = GPL-3.0, gratis dan sumber terbuka
 settings-view-source = Lihat kode sumber di GitHub
+# Link that opens the third-party licence notices.
+settings-view-licences = Lihat pemberitahuan lisensi
 settings-open-data-folder = Buka folder aplikasi
 
 ## Optional choices: explanations shown before selection.
@@ -554,6 +577,8 @@ iso-beta = Beta
 iso-beta-description = Uji ISO di mesin virtual sebelum menggunakannya di PC. Cadangkan file Anda sebelum menginstal Windows.
 iso-admin-description = Akses administrator diperlukan untuk membaca citra Windows dan membuat media instalasi.
 iso-files-description = Pilih ISO Windows 11 x64 yang belum dimodifikasi, playbook Atlas (.apbx), dan nama file baru untuk hasilnya.
+# Tester build: no playbook picker.
+iso-files-description-bundled = Pilih ISO Windows 11 x64 yang belum dimodifikasi dan nama file baru untuk hasilnya. Playbook bawaan versi uji ini akan digunakan.
 iso-source = ISO Windows
 iso-package = Playbook Atlas (0.6+)
 iso-output = Simpan ISO baru ke
@@ -563,11 +588,14 @@ iso-save-as = Simpan sebagai
 iso-inspect = Periksa file
 iso-mode-title = Preferensi Windows dan Atlas
 iso-mode-interactive = Pilih pengaturan Atlas setelah masuk
-iso-mode-interactive-description = Setelah masuk, Atlas membantu Anda memperbarui Windows dan aplikasi Store, memilih pengaturan, lalu menerapkan Atlas.
+iso-mode-interactive-description = Setelah masuk, Atlas Manager membantu Anda memperbarui Windows dan aplikasi Store, memilih pengaturan, lalu menerapkan Atlas.
 iso-mode-before = Pilih pengaturan Atlas sekarang
 iso-mode-before-description = Simpan pengaturan Atlas dalam ISO. Setelah masuk, perbarui Windows dan aplikasi Store, lalu terapkan Atlas dengan pengaturan ini.
 iso-package-unsupported-title = Pilih playbook yang lebih baru
 iso-package-unsupported = Penyiapan ISO memerlukan Atlas 0.6 atau lebih baru dengan dukungan ISO. Pilih playbook yang kompatibel.
+# Tester build: the bundled playbook cannot be swapped, so the only way on is the after-sign-in mode.
+iso-package-unsupported-bundled-title = Pengaturan Atlas tidak dapat disimpan dalam ISO ini
+iso-package-unsupported-bundled = Playbook bawaan versi uji ini tidak mendukung penyiapan ISO. Sebagai gantinya, pilih opsi Pilih pengaturan Atlas setelah masuk.
 iso-atlas-options = Pengaturan Atlas
 iso-review = Tinjau ISO
 iso-review-description = Atlas akan membuat ISO terpisah dan mempertahankan ISO asli. Lakukan boot dari ISO baru untuk menginstal Windows. Membuat ISO tidak menginstal Atlas di PC ini.
@@ -596,7 +624,19 @@ iso-complete = ISO Anda siap
 iso-complete-description = Uji di mesin virtual, lalu gunakan untuk membuat media instalasi Windows.
 iso-open-folder = Tampilkan di folder
 iso-failed = Pembuatan ISO tidak dapat diselesaikan
-iso-failed-description = Buka diagnostik untuk melihat penyebabnya. Atasi masalahnya, lalu coba lagi dengan nama file keluaran yang baru.
+iso-failed-description = Buka diagnostik untuk melihat penyebabnya. Atasi masalahnya, lalu coba lagi.
+# Title while the Check files step fails; the messages below say why.
+iso-check-failed = Tidak dapat memeriksa file
+iso-check-failed-description = Buka diagnostik untuk melihat penyebabnya. Atasi masalahnya, lalu periksa file lagi.
+# Title when Windows refused the administrator relaunch (UAC declined); elevation-declined is the message.
+iso-elevation-title = Diperlukan akses administrator
+# Typed reasons reported by the image worker.
+iso-failed-output-exists = File dengan nama tersebut sudah ada. Pilih Simpan sebagai dan masukkan nama file baru.
+iso-failed-destination = Simpan ISO baru ke drive NTFS atau ReFS lokal. Lokasi jaringan serta drive FAT32 atau exFAT tidak dapat menampung file penginstalan.
+iso-failed-space = Ruang kosong di drive tujuan tidak cukup. Kosongkan ruang, atau simpan ISO baru ke drive lain.
+iso-failed-edition = ISO ini tidak berisi edisi Windows yang didukung. Windows Home dan LTSC tidak didukung; gunakan ISO yang menyertakan Pro, Pro for Workstations, atau Enterprise.
+iso-failed-customised = ISO ini sudah berisi file penyiapan kustom, seperti autounattend.xml. Pilih ISO Windows dari Microsoft yang belum dimodifikasi.
+iso-failed-windows-unsupported = Citra Windows ini tidak didukung oleh playbook. Gunakan ISO Windows 11 25H2 64-bit yang belum dimodifikasi untuk Atlas 0.6; build 24H2 dan Insider tidak didukung.
 iso-diagnostics = Buka diagnostik
 iso-close-title = Pembuatan ISO masih berlangsung
 iso-close-message = Biarkan jendela ini terbuka hingga pembuatan atau pembatalan selesai. Pembatalan menunggu hingga operasi saat ini dapat dihentikan dengan aman.
@@ -637,10 +677,10 @@ iso-network-source = Sumber driver jaringan
 iso-network-installed = Gunakan driver yang terinstal
 iso-network-updated = Periksa Windows Update terlebih dahulu
 iso-network-updated-detail = Unduh driver yang sesuai dari Windows Update dan simpan driver terinstal sebagai cadangan. Memerlukan koneksi yang tidak terukur.
-iso-stage-network-drivers = Menyiapkan driver jaringan…
+iso-stage-network-drivers = Menyiapkan driver jaringan
 iso-network-failed = Driver jaringan tidak dapat disiapkan. Periksa diagnostik atau kembali dan ubah opsi driver jaringan.
 iso-mode-desktop = Selesaikan penyiapan sebelum membuka desktop
-iso-mode-desktop-description = Pilih pengaturan Atlas sekarang. Setelah masuk, selesaikan pembaruan dan penyiapan Atlas sebelum membuka desktop Windows.
+iso-mode-desktop-description = Simpan pengaturan Atlas sekarang dan selesaikan pembaruan serta penyiapan Atlas sebelum desktop Windows terbuka.
 desktop-setup-description = Selesaikan penyiapan PC Anda. Pilihan Atlas tersimpan; Anda dapat kembali ke Windows jika perlu.
 desktop-setup-exit = Lanjutkan di Windows
 
@@ -650,9 +690,15 @@ usb-existing = Buat USB dari ISO yang sudah ada
 usb-description = Buat USB boot Windows 11 25H2 untuk menginstal Windows dan Atlas di PC Anda.
 usb-choose-iso = Pilih ISO
 usb-drive = Drive USB
-usb-empty = Hubungkan drive USB, lalu muat ulang daftar. Hanya drive USB yang dapat ditulis dan tidak berisi Windows yang sedang berjalan yang ditampilkan.
+usb-empty = Hubungkan drive USB, lalu muat ulang daftar. Hanya drive USB yang dapat ditulis, berukuran 8 GB hingga 2 TB, dan tidak berisi Windows yang sedang berjalan yang ditampilkan.
 usb-refresh = Muat ulang
-usb-drive-detail = { $size } GB · { $volumes } · Nomor seri: { $serial }
+# Shown when the drive list could not be read.
+usb-scan-failed = Tidak dapat membaca daftar drive USB. Pastikan drive terhubung, lalu muat ulang daftar. Buka diagnostik untuk detailnya.
+# Parts of a drive's detail line, joined by usb-detail-separator; empty parts are left out.
+# $size is a formatted number of gigabytes (text); $volumes and $serial are text.
+usb-drive-size = { $size } GB
+usb-drive-serial = Nomor seri: { $serial }
+usb-detail-separator = { " · " }
 usb-review = Tinjau USB
 usb-erase-title = Hapus isi drive USB ini?
 usb-erase-description = Semua file dan partisi pada { $drive } ({ $size } GB) akan dihapus secara permanen. ISO Anda tetap disimpan.
@@ -664,6 +710,10 @@ usb-stage-format = Memformat USB…
 usb-stage-copy = Menyalin file instalasi…
 usb-stage-verify = Memverifikasi USB…
 usb-working = Biarkan Atlas terbuka dan USB tetap terhubung. Pembatalan menunggu operasi saat ini berhenti dengan aman. USB yang belum selesai tidak dapat digunakan untuk menginstal Windows.
+# Titles of the error bar, the success bar and the close prompt while a USB is being written.
+usb-failed-title = Pembuatan USB tidak dapat diselesaikan
+usb-complete-title = USB Anda siap
+usb-close-title = Pembuatan USB masih berlangsung
 usb-failed = Pembuatan USB tidak dapat diselesaikan. Periksa koneksinya dan buka diagnostik untuk melihat detail. Pilih kembali drive untuk mencoba lagi.
 usb-cancelled = Pembuatan USB dihentikan. Drive mungkin berisi file instalasi yang belum lengkap. Buat ulang sebelum menggunakannya untuk menginstal Windows.
 usb-complete = USB Anda siap dan semua file telah diverifikasi. Keluarkan USB, hubungkan ke PC yang akan diinstal ulang, lalu pilih USB di menu boot UEFI PC tersebut.
@@ -682,9 +732,9 @@ detail-windows-release-unknown = Atlas tidak dapat memastikan bahwa build Window
 iso-release-unknown = Tidak dapat dipastikan bahwa ISO ini berisi rilis publik Windows 11 25H2. Sambungkan ke internet dan coba lagi, atau pilih media instalasi resmi.
 prepare-previous-worker = Proses pembaruan sebelumnya masih berjalan. Atlas akan menunggu hingga selesai sebelum Anda dapat mencoba lagi.
 
-ready-used-windows-title = Instal ulang Windows sebelum melanjutkan
+ready-used-windows-title = Windows ini tampaknya sudah pernah digunakan
 ready-used-windows-description = Windows ini menunjukkan tanda penggunaan sebelumnya. Menginstal Atlas di sini tidak didukung dan sangat tidak disarankan. Lanjutkan hanya jika Anda memahami risikonya.
-ready-used-windows-dismiss = Saya memahami risikonya
+ready-used-windows-dismiss = Tetap lanjutkan
 playbook-option-install-eclean = Instal eclean
 consequence-install-eclean = Alat perawatan dari tim di balik AtlasOS untuk menjaga PC tetap rapi setelah penyiapan. Tinjau berkas sampah dan aplikasi startup. Memerlukan akun dan koneksi internet.
 
@@ -698,7 +748,7 @@ diagnostics-export = Ekspor diagnostik
 diagnostics-exporting = Mengumpulkan diagnostik…
 diagnostics-show = Tampilkan ZIP diagnostik
 diagnostics-privacy = Buat ZIP dengan data sensitif disamarkan untuk laporan bug publik.
-diagnostics-error = Tidak dapat mengekspor diagnostik: { $error }
+diagnostics-error = Tidak dapat mengekspor diagnostik. Detail: { $error }
 
 ## Tester builds (embedded-playbook feature)
 

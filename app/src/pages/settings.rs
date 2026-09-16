@@ -285,7 +285,7 @@ impl Render for SettingsPage {
                                 .opens(links::GITHUB),
                         )
                         .child(
-                            Button::new("about-licenses", t!("settings-about-licence")).hyperlink().on_click(
+                            Button::new("about-licenses", t!("settings-view-licences")).hyperlink().on_click(
                                 |_, _, _| {
                                     if let Err(error) = crate::services::licenses::open() {
                                         log::error!("Could not open license notices: {error}");
