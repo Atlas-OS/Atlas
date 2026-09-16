@@ -7,6 +7,9 @@ $env:PSModulePath = [IO.Path]::Combine($PSHOME, 'Modules')
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+$script:PreparationClock = [Diagnostics.Stopwatch]::StartNew()
+$script:PreparationLastChange = 0L
+$script:PreparationLastProgress = ''
 
 function Get-PreparationSessionOwner {
     if (-not ('AtlasPreparation.Session' -as [type])) {
@@ -95,7 +98,18 @@ function Get-PreparationStateSecurity {
     return $security
 }
 
-function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed = 0, [int]$Total = 0) {
+function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed = 0, [int]$Total = 0, [hashtable]$Detail = @{}) {
+    # A heartbeat is not evidence that the provider has made progress. Keep
+    # separate clocks for elapsed time and the last actual progress change.
+    $elapsed = [long]$script:PreparationClock.Elapsed.TotalSeconds
+    $signature = "$Status/$Stage/$Completed/$Total/" + ($Detail | ConvertTo-Json -Compress)
+    if ($signature -cne $script:PreparationLastProgress) {
+        $script:PreparationLastProgress = $signature
+        $script:PreparationLastChange = $elapsed
+    }
+    $activity = $Detail.Clone()
+    $activity.elapsedSeconds = $elapsed
+    $activity.unchangedSeconds = $elapsed - $script:PreparationLastChange
     $os = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     $state = [ordered]@{
         schema = 1; status = $Status; stage = $Stage; completed = $Completed; total = $Total
@@ -103,6 +117,7 @@ function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed
         userSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
         build = [int]$os.CurrentBuildNumber; revision = [int]$os.UBR
         updatedAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        activity = $activity
     }
     $json = $state | ConvertTo-Json -Compress
     $path = Join-Path $JobPath 'state.json'
@@ -122,6 +137,86 @@ function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed
     if ([IO.File]::Exists($path)) { [IO.File]::Replace($temporary, $path, [NullString]::Value) }
     else { [IO.File]::Move($temporary, $path) }
     [Console]::WriteLine("ATLAS_PREP:$json")
+}
+
+function New-PreparationCallback {
+    if (-not ('AtlasPreparation.Callback' -as [type])) {
+        # WUA accepts an Automation callback with DISPID 0. Do not run
+        # PowerShell on COM's callback threads (they have no runspace).
+        # Progress is polled on our own thread through the job's GetProgress.
+        Add-Type -TypeDefinition @'
+using System.Runtime.InteropServices;
+namespace AtlasPreparation {
+    [ComVisible(true), ClassInterface(ClassInterfaceType.AutoDispatch)]
+    public sealed class Callback {
+        [DispId(0)] public void Invoke(object job, object args) { }
+    }
+}
+'@
+    }
+    return New-Object AtlasPreparation.Callback
+}
+
+function Write-PreparationWindowsProgress($Job, $Updates, [string]$Stage) {
+    $detail = @{}
+    $completed = 0
+    try {
+        $progress = $Job.GetProgress()
+        $detail.percent = [int]$progress.PercentComplete
+        $index = [int]$progress.CurrentUpdateIndex
+        if ($index -ge 0 -and $index -lt $Updates.Count) {
+            $detail.currentUpdate = [string]$Updates.Item($index).Title
+        }
+        if ($Stage -eq 'windows-download') {
+            $detail.bytesDownloaded = [long]$progress.TotalBytesDownloaded
+            $detail.bytesTotal = [long]$progress.TotalBytesToDownload
+        }
+        for ($i = 0; $i -lt $Updates.Count; $i++) {
+            try {
+                if ([int]$progress.GetUpdateResult($i).ResultCode -eq 2) { $completed++ }
+            } catch { # WUA may not have a per-update result yet.
+                Write-Verbose "Update $i has no result yet: $_"
+            }
+        }
+    } catch {
+        # A telemetry failure must not abandon a provider-owned operation or
+        # manufacture a percentage. EndDownload/EndInstall owns the result.
+        $detail = @{}
+        $completed = 0
+    }
+    Write-PreparationState running $Stage $completed $Updates.Count -Detail $detail
+}
+
+function Invoke-PreparationWindowsOperation($Provider, $Updates, [ValidateSet('Download','Install')][string]$Kind) {
+    $callback = New-PreparationCallback
+    $stage = if ($Kind -eq 'Download') { 'windows-download' } else { 'windows-install' }
+    $job = if ($Kind -eq 'Download') { $Provider.BeginDownload($callback, $callback, $null) }
+           else { $Provider.BeginInstall($callback, $callback, $null) }
+    $ended = $false
+    try {
+        while (-not $job.IsCompleted) {
+            Write-PreparationWindowsProgress $job $Updates $stage
+            # Stop requests are honoured between operations, never by killing
+            # servicing or abandoning the active job.
+            Start-Sleep -Seconds 2
+        }
+        $ended = $true
+        if ($Kind -eq 'Download') { return $Provider.EndDownload($job) }
+        return $Provider.EndInstall($job)
+    } finally {
+        try {
+            if (-not $ended) {
+                # Even a failed journal write must not release the operation
+                # lock while Windows is still servicing the machine.
+                while (-not $job.IsCompleted) { Start-Sleep -Seconds 2 }
+                if ($Kind -eq 'Download') { [void]$Provider.EndDownload($job) }
+                else { [void]$Provider.EndInstall($job) }
+            }
+        } finally {
+            $job.CleanUp()
+            [GC]::KeepAlive($callback)
+        }
+    }
 }
 
 function Assert-PreparationContinue {
@@ -157,7 +252,7 @@ function Invoke-PreparationWindows {
         Write-PreparationState running windows-download 0 $updates.Count
         $downloader = $session.CreateUpdateDownloader()
         $downloader.Updates = $updates
-        $downloaded = $downloader.Download()
+        $downloaded = Invoke-PreparationWindowsOperation $downloader $updates Download
         if ([int]$downloaded.ResultCode -ne 2) { throw "Windows update download failed: $($downloaded.ResultCode)" }
         Assert-PreparationContinue
         Write-PreparationState running windows-install 0 $updates.Count
@@ -166,7 +261,7 @@ function Invoke-PreparationWindows {
         $installer.ForceQuiet = $true
         $installer.AllowSourcePrompts = $false
         if ($installer.RebootRequiredBeforeInstallation) { return 'reboot' }
-        $installed = $installer.Install()
+        $installed = Invoke-PreparationWindowsOperation $installer $updates Install
         for ($index = 0; $index -lt $updates.Count; $index++) {
             $item = $installed.GetUpdateResult($index)
             "$($updates.Item($index).Title): result=$($item.ResultCode), HRESULT=$($item.HResult)" | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
@@ -180,7 +275,18 @@ function Invoke-PreparationWindows {
 function Find-PreparationWindowsUpdate($Session) {
     $searcher = $Session.CreateUpdateSearcher()
     $searcher.Online = $true
-    $found = $searcher.Search("IsInstalled=0 and IsHidden=0 and BrowseOnly=0 and DeploymentAction='Installation'")
+    $callback = New-PreparationCallback
+    $job = $searcher.BeginSearch("IsInstalled=0 and IsHidden=0 and BrowseOnly=0 and DeploymentAction='Installation'", $callback, $null)
+    try {
+        while (-not $job.IsCompleted) {
+            Write-PreparationState running windows-search
+            Start-Sleep -Seconds 2
+        }
+        $found = $searcher.EndSearch($job)
+    } finally {
+        $job.CleanUp()
+        [GC]::KeepAlive($callback)
+    }
     if ([int]$found.ResultCode -ne 2) { throw "Windows update search failed: $($found.ResultCode)" }
     foreach ($update in $found.Updates) {
         if (Test-PreparationUpdate $update) { $update }
@@ -193,7 +299,11 @@ function Wait-PreparationStoreSearch($Operation) {
         $_.Name -eq 'AsTask' -and $_.IsGenericMethod -and $_.GetGenericArguments().Count -eq 1 -and $_.GetParameters().Count -eq 1
     } | Select-Object -First 1
     $task = $asTask.MakeGenericMethod($resultType).Invoke($null, @($Operation))
-    if (-not $task.Wait(180000)) { throw 'Microsoft Store did not finish checking for updates.' }
+    $deadline = [DateTime]::UtcNow.AddMinutes(3)
+    while (-not $task.Wait(2000)) {
+        Write-PreparationState running store-search
+        if ([DateTime]::UtcNow -gt $deadline) { throw 'Microsoft Store did not finish checking for updates.' }
+    }
     return $task.Result
 }
 
@@ -240,10 +350,12 @@ function Invoke-PreparationStore {
         $restarted = @{}
         do {
             $complete = 0
+            $percent = 0.0
             foreach ($item in $items) {
                 $status = $item.GetCurrentStatus()
                 $state = [string]$status.InstallState
-                if ($state -eq 'Completed') { $complete++; continue }
+                if ($state -eq 'Completed') { $complete++; $percent += 100; continue }
+                $percent += [Math]::Max(0, [Math]::Min(100, [double]$status.PercentComplete))
                 # Store may return a queued download even when automatic
                 # installation was requested. WinGet restarts this state too.
                 if ($state -in @('ReadyToDownload','Paused') -and -not $restarted.ContainsKey($item.ProductId)) {
@@ -255,7 +367,7 @@ function Invoke-PreparationStore {
                     throw "Microsoft Store needs attention: $($item.PackageFamilyName), $state, $($status.ErrorCode)"
                 }
             }
-            Write-PreparationState running store-install $complete $items.Count
+            Write-PreparationState running store-install $complete $items.Count -Detail @{percent = [int][Math]::Floor($percent / $items.Count)}
             if ($complete -lt $items.Count) {
                 if ([DateTime]::UtcNow -gt $deadline) { throw 'Store apps have not finished updating. Open Microsoft Store and resolve the remaining downloads.' }
                 Start-Sleep -Seconds 2

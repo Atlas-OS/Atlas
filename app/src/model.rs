@@ -315,6 +315,7 @@ pub struct AppModel {
     pub before_desktop: bool,
     iso_initial_options: Option<Vec<String>>,
     pub preparation: crate::services::preparation::State,
+    pub preparation_progress: Option<crate::services::preparation::Progress>,
     pub preparation_job: Option<PathBuf>,
     preparation_restart_at: Option<String>,
     pub preparation_problem: Option<crate::services::preparation::RestartProblem>,
@@ -481,6 +482,7 @@ impl AppModel {
                 None
             },
             preparation: Default::default(),
+            preparation_progress: None,
             preparation_job: None,
             preparation_restart_at: None,
             preparation_problem: None,
@@ -629,6 +631,7 @@ impl AppModel {
         self.preparation_restart_at = None;
         self.preparation_problem = None;
         self.preparation_job = Some(job.clone());
+        self.preparation_progress = None;
         self.preparation_cancel = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let cancel = self.preparation_cancel.clone();
         self.save_draft(cx);
@@ -652,6 +655,7 @@ impl AppModel {
                 this.update(cx, |this, cx| {
                     this.preparation =
                         State::Running { stage: event.stage, completed: event.completed, total: event.total };
+                    this.preparation_progress = Some(event);
                     cx.notify();
                 })
                 .ok();

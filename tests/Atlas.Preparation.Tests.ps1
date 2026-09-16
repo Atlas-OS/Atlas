@@ -174,6 +174,10 @@ Describe 'Windows installation results requiring restart' {
         Mock Test-PreparationNetwork { $true }
         Mock Write-PreparationState {}
         $script:offered = [pscustomobject]@{ Title='Fixture update'; EulaAccepted=$true; InstallationBehavior=[pscustomobject]@{CanRequestUserInput=$false} }
+        Mock Invoke-PreparationWindowsOperation {
+            if ($Kind -eq 'Download') { return [pscustomobject]@{ResultCode=2} }
+            return $script:installation
+        }
         Mock Find-PreparationWindowsUpdate { $script:offered }
         $script:collection = [pscustomobject]@{Count=0}
         $script:collection | Add-Member ScriptMethod Add { param($Update); $script:queuedUpdate = $Update; $this.Count++ }
@@ -205,6 +209,92 @@ Describe 'Windows installation results requiring restart' {
         $script:installer.RebootRequiredBeforeInstallation = $true
         $script:installer | Add-Member ScriptMethod Install { throw 'Install must not run' } -Force
         Invoke-PreparationWindows | Should -Be 'reboot'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+    }
+}
+
+Describe 'Provider progress without interrupting servicing' {
+    BeforeEach {
+        $script:ticks = 0
+        $script:cleaned = $false
+        $script:ended = $false
+        $script:progress = [pscustomobject]@{
+            PercentComplete=37; CurrentUpdateIndex=1
+            TotalBytesDownloaded='37000000'; TotalBytesToDownload='100000000'
+        }
+        $script:progress | Add-Member ScriptMethod GetUpdateResult {
+            param($Index)
+            if ($Index -eq 0) { return [pscustomobject]@{ResultCode=2} }
+            throw 'No result for the active update yet'
+        }
+        $script:updates = [pscustomobject]@{Count=2}
+        $script:updates | Add-Member ScriptMethod Item { param($Index); [pscustomobject]@{Title="Update $Index"} }
+        $script:job = [pscustomobject]@{}
+        $script:job | Add-Member ScriptProperty IsCompleted { $script:ticks -ge 2 }
+        $script:job | Add-Member ScriptMethod GetProgress { $script:progress }
+        $script:job | Add-Member ScriptMethod CleanUp { $script:cleaned=$true }
+        $script:provider = [pscustomobject]@{}
+        $script:provider | Add-Member ScriptMethod BeginDownload { param($Progress, $Completed, $State); if ($null -eq $Progress -or $null -eq $Completed -or $null -ne $State) { throw 'Invalid callbacks' }; $script:job }
+        $script:provider | Add-Member ScriptMethod BeginInstall { param($Progress, $Completed, $State); if ($null -eq $Progress -or $null -eq $Completed -or $null -ne $State) { throw 'Invalid callbacks' }; $script:job }
+        $script:provider | Add-Member ScriptMethod EndDownload { param($Job); if ($Job -ne $script:job) { throw 'Wrong job' }; $script:ended=$true; [pscustomobject]@{ResultCode=3} }
+        $script:provider | Add-Member ScriptMethod EndInstall { param($Job); if ($Job -ne $script:job) { throw 'Wrong job' }; $script:ended=$true; [pscustomobject]@{ResultCode=3; RebootRequired=$true} }
+        Mock New-PreparationCallback { [pscustomobject]@{} }
+        Mock Start-Sleep { $script:ticks++ }
+        Mock Write-PreparationState {}
+        Mock Assert-PreparationContinue { throw 'Do not abandon an active provider job for a stop request' }
+    }
+    It 'reports bytes, the update title and provider percentage without equating the index with success' {
+        Write-PreparationWindowsProgress $script:job $script:updates windows-download
+        Should -Invoke Write-PreparationState -Times 1 -Exactly -ParameterFilter {
+            $Stage -eq 'windows-download' -and $Completed -eq 1 -and $Total -eq 2 -and
+            $Detail.percent -eq 37 -and $Detail.currentUpdate -eq 'Update 1' -and
+            $Detail.bytesDownloaded -eq 37000000 -and $Detail.bytesTotal -eq 100000000
+        }
+    }
+    It 'keeps unknown progress indeterminate when telemetry is unavailable' {
+        $script:job | Add-Member ScriptMethod GetProgress { throw 'temporarily unavailable' } -Force
+        Write-PreparationWindowsProgress $script:job $script:updates windows-install
+        Should -Invoke Write-PreparationState -Times 1 -Exactly -ParameterFilter { $Detail.Count -eq 0 -and $Completed -eq 0 }
+    }
+    It 'waits for <Kind>, keeps the provider result and cleans up the completed job' -TestCases @(
+        @{Kind='Download'}, @{Kind='Install'}
+    ) {
+        param($Kind)
+        $result = Invoke-PreparationWindowsOperation $script:provider $script:updates $Kind
+        $script:ticks | Should -Be 2
+        $script:ended | Should -BeTrue
+        $script:cleaned | Should -BeTrue
+        $result.ResultCode | Should -Be 3
+        if ($Kind -eq 'Install') { $result.RebootRequired | Should -BeTrue }
+        Should -Invoke Write-PreparationState -Times 2 -Exactly
+        Should -Invoke Assert-PreparationContinue -Times 0 -Exactly
+    }
+    It 'does not abandon an active installation when the progress journal cannot be written' {
+        Mock Write-PreparationState { throw 'disk write failed' }
+        { Invoke-PreparationWindowsOperation $script:provider $script:updates Install } | Should -Throw '*disk write failed*'
+        $script:ticks | Should -Be 2
+        $script:ended | Should -BeTrue
+        $script:cleaned | Should -BeTrue
+    }
+}
+
+Describe 'Progress freshness' {
+    It 'distinguishes unchanged provider progress from a fresh heartbeat' {
+        $JobPath = Join-Path $TestDrive 'heartbeat'
+        [void][IO.Directory]::CreateDirectory($JobPath)
+        $savedClock = $script:PreparationClock
+        try {
+            $script:PreparationClock = [pscustomobject]@{Elapsed=[TimeSpan]::FromSeconds(5)}
+            Write-PreparationState running windows-download -Detail @{percent=20}
+            $script:PreparationClock.Elapsed = [TimeSpan]::FromSeconds(70)
+            Write-PreparationState running windows-download -Detail @{percent=20}
+            $record = Get-Content (Join-Path $JobPath 'state.json') -Raw | ConvertFrom-Json
+            $record.activity.elapsedSeconds | Should -Be 70
+            $record.activity.unchangedSeconds | Should -Be 65
+            Write-PreparationState running windows-download -Detail @{percent=21}
+            $record = Get-Content (Join-Path $JobPath 'state.json') -Raw | ConvertFrom-Json
+            $record.activity.unchangedSeconds | Should -Be 0
+        } finally { $script:PreparationClock = $savedClock }
     }
 }
 

@@ -47,6 +47,36 @@ pub struct Progress {
     pub pid: u32,
     #[serde(default, rename = "processStart")]
     pub process_start: u64,
+    #[serde(default, rename = "updatedAt")]
+    pub updated_at: u64,
+    #[serde(default)]
+    pub activity: Activity,
+}
+
+/// Optional telemetry keeps journals from older workers recoverable. A fresh
+/// heartbeat and a change in provider progress are deliberately different facts.
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Activity {
+    pub percent: Option<u32>,
+    pub current_update: Option<String>,
+    pub bytes_downloaded: Option<u64>,
+    pub bytes_total: Option<u64>,
+    pub elapsed_seconds: Option<u64>,
+    pub unchanged_seconds: u64,
+}
+
+impl Progress {
+    pub fn fraction(&self) -> Option<f32> {
+        self.activity.percent.map(|p| p as f32 / 100.).or_else(|| {
+            (self.stage == Stage::StoreInstall && self.total > 0)
+                .then(|| self.completed as f32 / self.total as f32)
+        })
+    }
+
+    pub fn report_age(&self, now: u64) -> u64 {
+        if self.updated_at == 0 { 0 } else { now.saturating_sub(self.updated_at) }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -127,7 +157,8 @@ pub fn new_job(settings: &Path) -> Result<PathBuf> {
 
 fn parse_event(line: &str) -> Option<Progress> {
     let event: Progress = serde_json::from_str(line.strip_prefix("ATLAS_PREP:")?).ok()?;
-    (event.schema == 1 && event.completed <= event.total).then_some(event)
+    (event.schema == 1 && event.completed <= event.total && event.activity.percent.is_none_or(|p| p <= 100))
+        .then_some(event)
 }
 
 #[derive(Clone, Debug)]
@@ -271,6 +302,7 @@ fn monitor_with(
     mut liveness: impl FnMut() -> super::system::Liveness,
 ) -> Result<State> {
     let mut last: Option<Progress> = None;
+    let mut reported = std::time::Instant::now();
     loop {
         let ended = liveness() == super::system::Liveness::Ended;
         if let Some(progress) = read_progress(&job.directory)
@@ -280,6 +312,15 @@ fn monitor_with(
         {
             report(progress.clone());
             last = Some(progress);
+            reported = std::time::Instant::now();
+        }
+        // Keep the age of the last known report visible even if a worker
+        // stops writing or its newest journal cannot be read.
+        if reported.elapsed() >= std::time::Duration::from_secs(2) {
+            if let Some(progress) = &last {
+                report(progress.clone());
+            }
+            reported = std::time::Instant::now();
         }
         if ended {
             break;
@@ -416,6 +457,52 @@ fn resume_at(key: &windows_registry::Key, state: State) -> Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn progress_recovers_legacy_journals_and_uses_only_provider_percentages() {
+        let old =
+            r#"ATLAS_PREP:{"schema":1,"status":"running","stage":"windows-install","completed":0,"total":5}"#;
+        let old = parse_event(old).unwrap();
+        assert_eq!(old.fraction(), None);
+        assert_eq!(old.report_age(100), 0);
+        let new = r#"ATLAS_PREP:{"schema":1,"status":"running","stage":"windows-download","completed":1,"total":5,"updatedAt":100,"activity":{"percent":37,"currentUpdate":"Cumulative update","bytesDownloaded":370,"bytesTotal":1000,"elapsedSeconds":65,"unchangedSeconds":60}}"#;
+        let progress = parse_event(new).unwrap();
+        assert_eq!(progress.fraction(), Some(0.37));
+        assert_eq!(progress.activity.current_update.as_deref(), Some("Cumulative update"));
+        assert_eq!(progress.activity.unchanged_seconds, 60);
+        assert_eq!(progress.report_age(120), 20);
+        assert_eq!(progress.report_age(90), 0);
+        assert!(parse_event(&new.replace("\"percent\":37", "\"percent\":101")).is_none());
+        assert!(parse_event(&new.replace("\"completed\":1", "\"completed\":6")).is_none());
+    }
+
+    #[test]
+    fn a_missing_journal_keeps_last_known_progress_aging_without_claiming_success() {
+        let temp = super::super::test_support::TempDir::new("preparation-heartbeat");
+        let job =
+            RunningJob { directory: temp.path().to_owned(), pid: 123, process_start: 456, trusted: true };
+        journal(&job.directory, job.pid, job.process_start, "running");
+        let started = std::time::Instant::now();
+        let mut reports = Vec::new();
+        let result = monitor_with(
+            &job,
+            |event| {
+                reports.push(event);
+                let _ = fs::remove_file(job.directory.join("state.json"));
+            },
+            || {
+                if started.elapsed() >= std::time::Duration::from_millis(2250) {
+                    super::super::system::Liveness::Ended
+                } else {
+                    super::super::system::Liveness::Alive
+                }
+            },
+        )
+        .unwrap();
+        assert!(reports.len() >= 2);
+        assert_eq!(reports[0], reports[1], "a UI refresh must not fabricate provider activity");
+        assert_eq!(result, State::Failed);
+    }
 
     #[test]
     fn cancellation_only_writes_an_existing_marker() {

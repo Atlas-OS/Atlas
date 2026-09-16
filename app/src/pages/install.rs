@@ -574,24 +574,106 @@ impl InstallPage {
                         )
                     })
                     .when(busy, |this| {
-                        let value = match state.preparation {
-                            State::Running { stage: Stage::StoreInstall, completed, total } if total > 0 => {
-                                Some(completed as f32 / total as f32)
-                            }
-                            _ => None,
-                        };
-                        this.child(ProgressBar::new("preparation-progress", message.clone(), value)).when(
-                            !matches!(
-                                state.preparation,
-                                State::WaitingExternal | State::SavingRestart | State::Restarting
-                            ),
-                            |this| {
-                                this.child(detail_text(
-                                    "preparation-stop-detail",
-                                    t!("prepare-stop-description"),
-                                ))
-                            },
-                        )
+                        let value =
+                            state.preparation_progress.as_ref().and_then(|p| p.fraction()).or_else(|| {
+                                match state.preparation {
+                                    State::Running { stage: Stage::StoreInstall, completed, total }
+                                        if total > 0 =>
+                                    {
+                                        Some(completed as f32 / total as f32)
+                                    }
+                                    _ => None,
+                                }
+                            });
+                        this.child(ProgressBar::new("preparation-progress", message.clone(), value))
+                            .when_some(
+                                state
+                                    .preparation_progress
+                                    .as_ref()
+                                    .filter(|_| matches!(state.preparation, State::Running { .. })),
+                                |mut this, progress| {
+                                    let activity = &progress.activity;
+                                    if let Some(title) = &activity.current_update {
+                                        this = this.child(detail_text("preparation-update", title.clone()));
+                                    }
+                                    if let Some(percent) = activity.percent {
+                                        this = this.child(detail_text(
+                                            "preparation-percent",
+                                            t!("prepare-percent", percent = percent),
+                                        ));
+                                    }
+                                    if progress.total > 0
+                                        && (activity.percent.is_some()
+                                            || progress.stage == Stage::StoreInstall)
+                                    {
+                                        this = this.child(detail_text(
+                                            "preparation-count",
+                                            t!(
+                                                "prepare-count",
+                                                completed = progress.completed,
+                                                total = progress.total
+                                            ),
+                                        ));
+                                    }
+                                    if let (Some(done), Some(total)) =
+                                        (activity.bytes_downloaded, activity.bytes_total.filter(|n| *n > 0))
+                                    {
+                                        this = this.child(detail_text(
+                                            "preparation-bytes",
+                                            t!(
+                                                "prepare-bytes",
+                                                downloaded = crate::i18n::fmt::megabytes_value(done),
+                                                total = crate::i18n::fmt::megabytes_value(total)
+                                            ),
+                                        ));
+                                    }
+                                    let now = chrono::Utc::now().timestamp().max(0) as u64;
+                                    let age = progress.report_age(now);
+                                    if let Some(elapsed) = activity.elapsed_seconds {
+                                        let elapsed = elapsed.saturating_add(age);
+                                        this = this.child(detail_text(
+                                            "preparation-elapsed",
+                                            t!(
+                                                "prepare-elapsed",
+                                                minutes = elapsed / 60,
+                                                seconds = elapsed % 60
+                                            ),
+                                        ));
+                                    }
+                                    if age >= 15 {
+                                        this = this.child(detail_text(
+                                            "preparation-activity",
+                                            t!("prepare-report-delayed", seconds = age),
+                                        ));
+                                    } else if activity.unchanged_seconds >= 60 {
+                                        this = this.child(detail_text(
+                                            "preparation-activity",
+                                            t!(
+                                                "prepare-progress-unchanged",
+                                                minutes = activity.unchanged_seconds / 60
+                                            ),
+                                        ));
+                                    } else if activity.percent.is_none() {
+                                        this = this.child(detail_text(
+                                            "preparation-activity",
+                                            t!("prepare-progress-waiting"),
+                                        ));
+                                    }
+                                    this
+                                },
+                            )
+                            .when(
+                                !matches!(
+                                    state.preparation,
+                                    State::WaitingExternal | State::SavingRestart | State::Restarting
+                                ),
+                                |this| {
+                                    this.child(detail_text(
+                                        "preparation-stop-detail",
+                                        t!("prepare-stop-description"),
+                                    ))
+                                },
+                            )
                     })
                     .when(state.preparation != State::WaitingExternal, |this| {
                         this.child(
