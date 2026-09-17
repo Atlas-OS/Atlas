@@ -9,6 +9,16 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $job = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($RequestFile))
 $request = [IO.File]::ReadAllText($RequestFile) | ConvertFrom-Json
+# Rust may hand over paths in the \\?\ verbatim form, which -LiteralPath accepts
+# but Join-Path and the other path cmdlets cannot parse ("drive is null").
+function ConvertFrom-VerbatimPath([string]$Path) {
+    if ($Path.StartsWith('\\?\UNC\')) { return '\\' + $Path.Substring(8) }
+    if ($Path.StartsWith('\\?\')) { return $Path.Substring(4) }
+    return $Path
+}
+foreach ($name in @('source', 'output', 'archive', 'package', 'app')) {
+    if ($null -ne $request.PSObject.Properties[$name]) { $request.$name = ConvertFrom-VerbatimPath ([string]$request.$name) }
+}
 . (Join-Path $PSScriptRoot 'Windows-Release.ps1')
 $ownedMount = $false
 $work = $null

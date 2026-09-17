@@ -86,7 +86,8 @@ jobs:
       - name: Clippy and test the tester build (embedded-playbook)
         env:
           ATLAS_EMBED_APBX: ${{ github.workspace }}/playbook/Atlas Test.apbx
-          ATLAS_RC_ID: 0.6.0-rc.0
+          # build.rs requires a candidate number from 1; this id only labels the CI test binary.
+          ATLAS_RC_ID: 0.6.0-rc.1
         run: |
           cargo clippy --locked --all-targets --features embedded-playbook -- -D warnings
           cargo test --locked --features embedded-playbook -- --nocapture

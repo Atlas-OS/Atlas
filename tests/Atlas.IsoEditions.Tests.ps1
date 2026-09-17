@@ -4,7 +4,7 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Get-AtlasMediaEditions', 'Export-AtlasMediaEditions')) {
+    foreach ($name in @('Fail', 'Get-AtlasMediaEditions', 'Export-AtlasMediaEditions')) {
         $function = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
         . ([scriptblock]::Create($function.Extent.Text))
     }

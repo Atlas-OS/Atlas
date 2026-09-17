@@ -294,6 +294,20 @@ pub fn front_door(dir: &Path) -> PathBuf {
     dir.join("Executables").join("AtlasModules").join("Scripts").join("Entry").join("Install-Atlas.ps1")
 }
 
+/// `canonicalize` on Windows answers in the `\\?\` verbatim form. PowerShell's
+/// path cmdlets (`Join-Path`, `Split-Path`, `Resolve-Path`) cannot parse that
+/// prefix, and the extracted directory is handed to the ISO worker and the
+/// install script, so the ordinary drive form is kept instead. Rust itself
+/// accepts both forms.
+pub fn plain_path(path: PathBuf) -> PathBuf {
+    let Some(text) = path.to_str() else { return path };
+    let Some(rest) = text.strip_prefix(r"\\?\") else { return path };
+    if let Some(unc) = rest.strip_prefix(r"UNC\") {
+        return PathBuf::from(format!(r"\\{unc}"));
+    }
+    PathBuf::from(rest)
+}
+
 pub fn is_extracted(dir: &Path) -> bool {
     dir.join("playbook.conf").is_file() && front_door(dir).is_file()
 }
@@ -325,7 +339,7 @@ pub fn extract_into(
     let identity = PackageIdentity { version: version.clone(), sha256: sha256_file(apbx)? };
 
     fs::create_dir_all(root).with_context(|| format!("create {}", root.display()))?;
-    let root = root.canonicalize().with_context(|| format!("resolve {}", root.display()))?;
+    let root = plain_path(root.canonicalize().with_context(|| format!("resolve {}", root.display()))?);
     sweep_leftovers(&root);
 
     let target = root.join(identity.directory_name());
@@ -659,7 +673,7 @@ mod tests {
         let (dir, manifest) = extract_into(&package, &root, |_, _| {}).unwrap();
         assert_eq!(manifest.version, "0.6.0");
         let digest = sha256_file(&package).unwrap();
-        assert_eq!(dir, root.canonicalize().unwrap().join(format!("0.6.0_{}", &digest[..16])));
+        assert_eq!(dir, plain_path(root.canonicalize().unwrap()).join(format!("0.6.0_{}", &digest[..16])));
         assert!(is_extracted(&dir));
         assert_eq!(identity(&dir), Some(PackageIdentity { version: "0.6.0".into(), sha256: digest }));
         assert!(apbx::leftovers(&root).is_empty());
@@ -742,7 +756,8 @@ mod tests {
         assert_ne!(dir_b2, dir_b);
         assert_eq!(
             dir_b2,
-            root.canonicalize().unwrap().join(format!("{}-2", dir_b.file_name().unwrap().to_string_lossy()))
+            plain_path(root.canonicalize().unwrap())
+                .join(format!("{}-2", dir_b.file_name().unwrap().to_string_lossy()))
         );
         assert!(is_extracted(&dir_b2));
         assert!(dir_b.join("remnant.txt").is_file(), "the occupied path is left as it was");
@@ -763,7 +778,7 @@ mod tests {
         // A regular file with content sits where the package would go.
         fs::write(root.join(&name), b"preserve me").unwrap();
         let (published, _) = extract_into(&package, &root, |_, _| {}).unwrap();
-        assert_eq!(published, root.canonicalize().unwrap().join(format!("{name}-2")));
+        assert_eq!(published, plain_path(root.canonicalize().unwrap()).join(format!("{name}-2")));
         assert_eq!(fs::read(root.join(&name)).unwrap(), b"preserve me");
         assert!(is_extracted(&published));
 
@@ -775,7 +790,7 @@ mod tests {
         let name = format!("0.6.0_{}", &sha256_file(&package).unwrap()[..16]);
         fs::create_dir_all(root.join(&name)).unwrap();
         let (published, _) = extract_into(&package, &root, |_, _| {}).unwrap();
-        assert_eq!(published, root.canonicalize().unwrap().join(format!("{name}-2")));
+        assert_eq!(published, plain_path(root.canonicalize().unwrap()).join(format!("{name}-2")));
         assert_eq!(fs::read_dir(root.join(&name)).unwrap().count(), 0, "the empty directory is untouched");
         // The move itself refuses an occupied destination of either kind.
         let staging = temp.path().join("staging");
@@ -801,7 +816,7 @@ mod tests {
         let scratch = temp.path().join("Scratch");
         let (staged, _) = extract_into(&package, &scratch, |_, _| {}).unwrap();
         fs::create_dir_all(&root).unwrap();
-        let root = root.canonicalize().unwrap();
+        let root = plain_path(root.canonicalize().unwrap());
         let staging = root.join(format!("{STAGING_PREFIX}0.6.0-test"));
         fs::rename(&staged, &staging).unwrap();
         // The first extractor publishes and its caller starts using the path.
@@ -828,5 +843,18 @@ mod tests {
         let total = seen.last().unwrap().1;
         assert_eq!(seen.len(), total);
         assert_eq!(seen.last().unwrap().0, total);
+    }
+
+    #[test]
+    fn plain_path_drops_only_the_verbatim_prefix() {
+        assert_eq!(plain_path(PathBuf::from(r"\\?\C:\Users\x")), PathBuf::from(r"C:\Users\x"));
+        assert_eq!(plain_path(PathBuf::from(r"\\?\UNC\server\share\x")), PathBuf::from(r"\\server\share\x"));
+        assert_eq!(plain_path(PathBuf::from(r"C:\Users\x")), PathBuf::from(r"C:\Users\x"));
+        assert_eq!(plain_path(PathBuf::from(r"\\server\share")), PathBuf::from(r"\\server\share"));
+        // What a tester's PowerShell receives must not start with the prefix.
+        let temp = TempDir::new("playbook-plain");
+        let package = apbx::write(&temp.path().join("valid.apbx"), &apbx::valid("0.6.0"));
+        let (dir, _) = extract_into(&package, &temp.path().join("Playbooks"), |_, _| {}).unwrap();
+        assert!(!dir.to_string_lossy().starts_with(r"\\?\"), "{}", dir.display());
     }
 }

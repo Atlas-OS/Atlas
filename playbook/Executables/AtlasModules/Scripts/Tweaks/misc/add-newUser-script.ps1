@@ -2,50 +2,67 @@
 # state exclusively in the exact user's HKCU hive. Do not recreate or consume the old
 # shared HKLM UserSetup marker: its historical Builtin Users write ACL made every value
 # in that key forgeable by another local account.
+#
+# The key is opened through .NET rather than Get-Acl: Windows PowerShell's
+# Get-Acl -LiteralPath rewrites a registry PSPath to its provider form
+# (HKEY_LOCAL_MACHINE\...) and then reports that the key does not exist, which
+# failed every upgrade from a release that still had the marker.
 $ErrorActionPreference = 'Stop'
 
-$legacyMarkerPath = 'HKLM:\SOFTWARE\AtlasOS\UserSetup'
-if (Test-Path -LiteralPath $legacyMarkerPath) {
-    # Revoke only explicit allow rules for Builtin Users. Never enumerate, migrate, or
-    # delete values in this historically user-writable key: none can be authenticated.
-    $usersSid = New-Object -TypeName Security.Principal.SecurityIdentifier `
-        -ArgumentList 'S-1-5-32-545'
-    $legacyAcl = Get-Acl -LiteralPath $legacyMarkerPath
-    $aclChanged = $false
-    foreach ($rule in @($legacyAcl.GetAccessRules(
-                $true,
-                $false,
-                [Security.Principal.SecurityIdentifier]
-            ))) {
-        if ($rule.IdentityReference.Value -ceq $usersSid.Value -and
-            $rule.AccessControlType -eq [Security.AccessControl.AccessControlType]::Allow) {
-            $legacyAcl.RemoveAccessRuleSpecific($rule)
-            $aclChanged = $true
+$legacyMarkerSubKey = 'SOFTWARE\AtlasOS\UserSetup'
+$usersSid = New-Object -TypeName Security.Principal.SecurityIdentifier `
+    -ArgumentList 'S-1-5-32-545'
+$aclRights = [Security.AccessControl.RegistryRights]::ReadPermissions -bor
+    [Security.AccessControl.RegistryRights]::ChangePermissions
+$legacyKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey(
+    $legacyMarkerSubKey,
+    [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,
+    $aclRights)
+if ($null -ne $legacyKey) {
+    try {
+        # Revoke only explicit allow rules for Builtin Users. Never enumerate, migrate, or
+        # delete values in this historically user-writable key: none can be authenticated.
+        $accessSections = [Security.AccessControl.AccessControlSections]::Access
+        $legacyAcl = $legacyKey.GetAccessControl($accessSections)
+        $aclChanged = $false
+        foreach ($rule in @($legacyAcl.GetAccessRules(
+                    $true,
+                    $false,
+                    [Security.Principal.SecurityIdentifier]
+                ))) {
+            if ($rule.IdentityReference.Value -ceq $usersSid.Value -and
+                $rule.AccessControlType -eq [Security.AccessControl.AccessControlType]::Allow) {
+                [void]$legacyAcl.RemoveAccessRuleSpecific($rule)
+                $aclChanged = $true
+            }
         }
-    }
-    if ($aclChanged) {
-        Set-Acl -LiteralPath $legacyMarkerPath -AclObject $legacyAcl -ErrorAction Stop
-    }
+        if ($aclChanged) {
+            $legacyKey.SetAccessControl($legacyAcl)
+        }
 
-    # Fail closed if a write-capable Users rule survives through inheritance or an ACL
-    # publication failure. Read-only legacy access is harmless because values are ignored.
-    $writeRights = [Security.AccessControl.RegistryRights]::SetValue -bor
-        [Security.AccessControl.RegistryRights]::CreateSubKey -bor
-        [Security.AccessControl.RegistryRights]::WriteKey -bor
-        [Security.AccessControl.RegistryRights]::ChangePermissions -bor
-        [Security.AccessControl.RegistryRights]::TakeOwnership -bor
-        [Security.AccessControl.RegistryRights]::FullControl
-    $publishedAcl = Get-Acl -LiteralPath $legacyMarkerPath
-    foreach ($rule in @($publishedAcl.GetAccessRules(
-                $true,
-                $true,
-                [Security.Principal.SecurityIdentifier]
-            ))) {
-        if ($rule.IdentityReference.Value -ceq $usersSid.Value -and
-            $rule.AccessControlType -eq [Security.AccessControl.AccessControlType]::Allow -and
-            (($rule.RegistryRights -band $writeRights) -ne 0)) {
-            throw 'The legacy machine UserSetup marker still grants write access to Builtin Users.'
+        # Fail closed if a write-capable Users rule survives through inheritance or an ACL
+        # publication failure. Read-only legacy access is harmless because values are ignored.
+        $writeRights = [Security.AccessControl.RegistryRights]::SetValue -bor
+            [Security.AccessControl.RegistryRights]::CreateSubKey -bor
+            [Security.AccessControl.RegistryRights]::WriteKey -bor
+            [Security.AccessControl.RegistryRights]::ChangePermissions -bor
+            [Security.AccessControl.RegistryRights]::TakeOwnership -bor
+            [Security.AccessControl.RegistryRights]::FullControl
+        $publishedAcl = $legacyKey.GetAccessControl($accessSections)
+        foreach ($rule in @($publishedAcl.GetAccessRules(
+                    $true,
+                    $true,
+                    [Security.Principal.SecurityIdentifier]
+                ))) {
+            if ($rule.IdentityReference.Value -ceq $usersSid.Value -and
+                $rule.AccessControlType -eq [Security.AccessControl.AccessControlType]::Allow -and
+                (($rule.RegistryRights -band $writeRights) -ne 0)) {
+                throw 'The legacy machine UserSetup marker still grants write access to Builtin Users.'
+            }
         }
+    }
+    finally {
+        $legacyKey.Close()
     }
 }
 
