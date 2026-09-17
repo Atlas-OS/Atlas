@@ -361,13 +361,17 @@ Describe 'Front door requirements and staging' {
         Should -Invoke Get-AtlasWindowsReleaseStatus -Times 1 -Exactly -ParameterFilter { $Version -eq [version]'10.0.26200.5551' -and $BuildLabEx -eq 'rs_prerelease' }
     }
 
-    It 'requires a restart for pending file renames even without update markers' {
+    It 'warns about pending file renames without blocking when no update marker is set' {
         Mock Test-Path { $false }
         Mock Get-CimInstance { @() }
-        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = @('\??\C:\old', '\??\C:\new') } }
-        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client | Where-Object Name -eq 'No pending reboot'
-        $result.Passed | Should -BeFalse
-        $result.Blocking | Should -BeTrue
+        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = @('*1\??\C:\Windows\System32\gamingservicesproxy_13.dll.0', '') } }
+        $results = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client
+        $reboot = $results | Where-Object Name -eq 'No pending reboot'
+        $reboot.Passed | Should -BeTrue
+        $files = $results | Where-Object Name -eq 'No pending file replacements'
+        $files.Passed | Should -BeFalse
+        $files.Blocking | Should -BeFalse
+        $files.Detail | Should -BeLike '*C:\Windows\System32\gamingservicesproxy_13.dll.0*'
     }
 
     It 'does not treat an unreadable reboot marker as absent' {

@@ -290,6 +290,8 @@ detail-reboot-none = Windows को अभी रीस्टार्ट की
 detail-reboot-pending = पहले किए गए बदलाव पूरे करने के लिए अपना PC रीस्टार्ट करें, फिर Atlas दोबारा खोलकर फिर से जाँचें।
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
 detail-reboot-pending-reasons = पहले किए गए बदलाव पूरे करने के लिए अपना PC रीस्टार्ट करें ({ $reasons }), फिर Atlas दोबारा खोलकर फिर से जाँचें।
+# Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
+detail-reboot-file-renames = Windows अगली बार रीस्टार्ट होने पर कुछ फ़ाइलें बदलने या हटाने की प्रतीक्षा में है ({ $files })। Xbox Gaming Services जैसे कुछ ऐप हर रीस्टार्ट के बाद इसे फिर से सेट कर देते हैं। Atlas फिर भी इंस्टॉलेशन जारी रख सकता है।
 detail-reboot-unknown = यह जाँच नहीं हो सकी कि Windows को रीस्टार्ट की ज़रूरत है या नहीं। अपना PC रीस्टार्ट करें, फिर Atlas दोबारा खोलकर फिर से जाँचें। ({ $error })
 detail-antivirus-none = कोई दूसरा एंटीवायरस सॉफ़्टवेयर नहीं मिला।
 # $products is a list of product names (text).

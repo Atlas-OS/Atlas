@@ -136,6 +136,10 @@ impl CheckDetail {
             CheckDetail::RebootPending { reasons } => {
                 t!("detail-reboot-pending-reasons", reasons = restart_reasons(reasons))
             }
+            CheckDetail::RebootFileRenames { files } => {
+                let shown: Vec<String> = files.iter().take(3).cloned().collect();
+                t!("detail-reboot-file-renames", files = join_list(&shown))
+            }
             CheckDetail::RebootUnknown { error } => t!("detail-reboot-unknown", error = error),
             CheckDetail::AntivirusNone => t!("detail-antivirus-none"),
             CheckDetail::AntivirusFound { products } => {

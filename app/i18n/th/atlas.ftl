@@ -287,6 +287,8 @@ detail-reboot-none = Windows ไม่จำเป็นต้องรีสต
 detail-reboot-pending = รีสตาร์ตพีซีเพื่อให้การเปลี่ยนแปลงก่อนหน้านี้เสร็จสมบูรณ์ จากนั้นเปิด Atlas อีกครั้งแล้วตรวจสอบใหม่
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
 detail-reboot-pending-reasons = รีสตาร์ตพีซีเพื่อให้การเปลี่ยนแปลงก่อนหน้านี้เสร็จสมบูรณ์ ({ $reasons }) จากนั้นเปิด Atlas อีกครั้งแล้วตรวจสอบใหม่
+# Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
+detail-reboot-file-renames = Windows กำลังรอแทนที่หรือลบไฟล์เมื่อรีสตาร์ตครั้งถัดไป ({ $files }) บางแอป เช่น Xbox Gaming Services จะทิ้งสถานะนี้ไว้หลังรีสตาร์ตทุกครั้ง Atlas ยังติดตั้งต่อได้
 detail-reboot-unknown = ตรวจสอบไม่ได้ว่า Windows ต้องรีสตาร์ตหรือไม่ รีสตาร์ตพีซี จากนั้นเปิด Atlas อีกครั้งแล้วตรวจสอบใหม่ ({ $error })
 detail-antivirus-none = ไม่พบโปรแกรมป้องกันไวรัสอื่น
 # $products is a list of product names (text).

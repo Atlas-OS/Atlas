@@ -285,6 +285,8 @@ detail-reboot-none = Windows tidak perlu dimulai ulang saat ini.
 detail-reboot-pending = Mulai ulang PC untuk menyelesaikan perubahan sebelumnya. Setelah itu, buka kembali Atlas dan periksa lagi.
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
 detail-reboot-pending-reasons = Mulai ulang PC untuk menyelesaikan perubahan sebelumnya ({ $reasons }). Setelah itu, buka kembali Atlas dan periksa lagi.
+# Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
+detail-reboot-file-renames = Windows akan mengganti atau menghapus beberapa file saat PC dimulai ulang berikutnya ({ $files }). Beberapa aplikasi, seperti Xbox Gaming Services, meninggalkan tanda ini setelah setiap mulai ulang. Atlas tetap dapat melanjutkan penginstalan.
 detail-reboot-unknown = Tidak dapat memeriksa apakah Windows perlu dimulai ulang. Mulai ulang PC, lalu buka kembali Atlas dan periksa lagi. ({ $error })
 detail-antivirus-none = Tidak ada antivirus lain yang terdeteksi.
 # $products is a list of product names (text).

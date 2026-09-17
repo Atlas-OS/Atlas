@@ -276,6 +276,8 @@ detail-reboot-none = Windows 目前不需要重启。
 detail-reboot-pending = 请重启电脑以完成之前的更改，然后重新打开 Atlas 并重新检查。
 # $reasons：Windows 设置的待重启标记，取自 prepare-reason-* 各项名称。
 detail-reboot-pending-reasons = 请重启电脑以完成之前的更改（{ $reasons }），然后重新打开 Atlas 并重新检查。
+# 这是警告而非阻止项：$files 列出 Windows 将在下次重启时替换或删除的文件路径，最多三个。
+detail-reboot-file-renames = Windows 正在等待下次重启时替换或删除文件（{ $files }）。Xbox Gaming Services 等部分应用每次重启后都会留下此标记。Atlas 仍可继续安装。
 detail-reboot-unknown = 无法检查 Windows 是否需要重启。请重启电脑，然后重新打开 Atlas 并重新检查。（{ $error }）
 detail-antivirus-none = 未检测到其他防病毒软件。
 # $products 为产品名称列表（文本）。

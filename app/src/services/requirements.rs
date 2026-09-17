@@ -114,9 +114,15 @@ pub enum CheckDetail {
     },
     RebootNone,
     /// Marker ids as the preparation worker names them: `servicing`,
-    /// `windows-update`, `file-renames`.
+    /// `windows-update`.
     RebootPending {
         reasons: Vec<String>,
+    },
+    /// Only `PendingFileRenameOperations` is set. Apps such as Xbox Gaming
+    /// Services queue a file there at every boot, so it does not block; the
+    /// files are named so the tester can see whose they are.
+    RebootFileRenames {
+        files: Vec<String>,
     },
     RebootUnknown {
         error: String,
@@ -203,12 +209,15 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
             Ok(titles) => (Verdict::Fail, D::UpdatesPending { titles }),
             Err(error) => (Verdict::Unknown, D::UpdatesUnknown { error: format!("{error:#}") }),
         },
-        CheckId::PendingReboot => match reboot_reasons() {
-            Ok(reasons) if reasons.is_empty() => (Verdict::Pass, D::RebootNone),
-            Ok(reasons) => (
+        CheckId::PendingReboot => match reboot_markers() {
+            Ok(markers) if !markers.blocking.is_empty() => (
                 Verdict::Fail,
-                D::RebootPending { reasons: reasons.iter().map(|r| (*r).to_owned()).collect() },
+                D::RebootPending { reasons: markers.blocking.iter().map(|r| (*r).to_owned()).collect() },
             ),
+            Ok(markers) if !markers.file_renames.is_empty() => {
+                (Verdict::Warn, D::RebootFileRenames { files: markers.file_renames })
+            }
+            Ok(_) => (Verdict::Pass, D::RebootNone),
             Err(error) => (Verdict::Unknown, D::RebootUnknown { error: format!("{error:#}") }),
         },
         CheckId::ThirdPartyAntivirus => match third_party_antivirus() {
@@ -241,30 +250,35 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
     CheckResult { id, verdict, detail }
 }
 
-/// Registry markers Windows sets when servicing or Windows Update wants a
-/// restart. A marker that cannot be read is an error, not a pass: only
-/// "no such key" means no marker.
-fn reboot_reasons() -> Result<Vec<&'static str>> {
-    let mut reasons = Vec::new();
+/// Registry markers Windows sets when it wants a restart. The servicing and
+/// Windows Update keys block: a restart clears them. Pending file renames are
+/// reported separately, since some apps re-queue one at every boot.
+pub struct RebootMarkers {
+    pub blocking: Vec<&'static str>,
+    pub file_renames: Vec<String>,
+}
+
+/// A marker that cannot be read is an error, not a pass: only "no such key"
+/// means no marker.
+fn reboot_markers() -> Result<RebootMarkers> {
+    let mut blocking = Vec::new();
     if key_present(
         LOCAL_MACHINE,
         r"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
     )? {
-        reasons.push("servicing");
+        blocking.push("servicing");
     }
     if key_present(
         LOCAL_MACHINE,
         r"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired",
     )? {
-        reasons.push("windows-update");
+        blocking.push("windows-update");
     }
     let session_manager = LOCAL_MACHINE
         .open(r"SYSTEM\CurrentControlSet\Control\Session Manager")
         .context("open Session Manager")?;
-    if pending_file_renames(&session_manager)? {
-        reasons.push("file-renames");
-    }
-    Ok(reasons)
+    let file_renames = pending_file_renames(&session_manager)?;
+    Ok(RebootMarkers { blocking, file_renames })
 }
 
 const ERROR_FILE_NOT_FOUND: i32 = 0x8007_0002_u32 as i32;
@@ -279,14 +293,41 @@ pub fn key_present(root: &Key, path: &str) -> Result<bool> {
     }
 }
 
-/// Whether `PendingFileRenameOperations` (a REG_MULTI_SZ) lists any rename.
-/// A missing value means no renames; any other read failure is reported.
-pub fn pending_file_renames(key: &Key) -> Result<bool> {
-    match key.get_multi_string("PendingFileRenameOperations") {
-        Ok(entries) => Ok(entries.iter().any(|entry| !entry.trim().is_empty())),
-        Err(error) if error.code().0 == ERROR_FILE_NOT_FOUND => Ok(false),
-        Err(error) => Err(anyhow::anyhow!("read PendingFileRenameOperations: {error}")),
+/// The files `PendingFileRenameOperations` (a REG_MULTI_SZ of source/target
+/// pairs) will replace or remove at the next restart, as readable paths. A
+/// missing value means no renames; any other read failure is reported.
+pub fn pending_file_renames(key: &Key) -> Result<Vec<String>> {
+    let value = match key.get_value("PendingFileRenameOperations") {
+        Ok(value) => value,
+        Err(error) if error.code().0 == ERROR_FILE_NOT_FOUND => return Ok(vec![]),
+        Err(error) => return Err(anyhow::anyhow!("read PendingFileRenameOperations: {error}")),
+    };
+    if value.ty() != windows_registry::Type::MultiString {
+        return Err(anyhow::anyhow!("PendingFileRenameOperations is not a multi-string"));
     }
+    // Decoded by hand: a removal is stored as a source followed by an empty
+    // target, and the crate's decoder treats the first empty string as the
+    // end of the list, which would hide every entry after a removal.
+    let mut entries: Vec<String> = value.as_wide().split(|c| *c == 0).map(String::from_utf16_lossy).collect();
+    while entries.last().is_some_and(String::is_empty) {
+        entries.pop();
+    }
+    Ok(entries
+        .chunks(2)
+        .map(|pair| pair[0].trim())
+        .filter(|source| !source.is_empty())
+        .map(pending_path_display)
+        .collect())
+}
+
+/// Strips the kernel-path decorations a rename entry carries (`!` for
+/// replace-existing, a `*N` flag group, the `\??\` prefix).
+fn pending_path_display(entry: &str) -> String {
+    let mut rest = entry.strip_prefix('!').unwrap_or(entry);
+    if let Some(after_star) = rest.strip_prefix('*') {
+        rest = after_star.trim_start_matches(|c: char| c.is_ascii_digit());
+    }
+    rest.strip_prefix(r"\??\").unwrap_or(rest).to_owned()
 }
 
 /// A COM apartment for the current thread. Only an initialisation this guard
@@ -950,13 +991,33 @@ mod tests {
     #[test]
     fn pending_file_renames_are_read_as_a_multi_string() {
         let test = TestKey::new();
-        assert!(!pending_file_renames(&test.key).unwrap(), "missing value means no renames");
+        assert!(pending_file_renames(&test.key).unwrap().is_empty(), "missing value means no renames");
 
         test.key.set_multi_string("PendingFileRenameOperations", &[r"\??\C:\old.dll", ""]).unwrap();
-        assert!(pending_file_renames(&test.key).unwrap());
+        assert_eq!(pending_file_renames(&test.key).unwrap(), vec![r"C:\old.dll".to_owned()]);
+
+        // Only the sources are named; the decorations Windows adds are dropped.
+        test.key
+            .set_multi_string(
+                "PendingFileRenameOperations",
+                &[
+                    r"*1\??\C:\Windows\System32\gamingservicesproxy_13.dll.0",
+                    "",
+                    r"!\??\C:\a.tmp",
+                    r"\??\C:\a.dll",
+                ],
+            )
+            .unwrap();
+        assert_eq!(
+            pending_file_renames(&test.key).unwrap(),
+            vec![r"C:\Windows\System32\gamingservicesproxy_13.dll.0".to_owned(), r"C:\a.tmp".to_owned()]
+        );
 
         test.key.set_multi_string("PendingFileRenameOperations", &[""]).unwrap();
-        assert!(!pending_file_renames(&test.key).unwrap(), "only empty entries is not a pending rename");
+        assert!(
+            pending_file_renames(&test.key).unwrap().is_empty(),
+            "only empty entries is not a pending rename"
+        );
 
         // A value of the wrong type is a read error, not silently "no renames".
         test.key.set_u32("PendingFileRenameOperations", 1).unwrap();

@@ -176,15 +176,27 @@ function Test-AtlasInstallRequirement {
             $pendingReboot = $true
         }
     }
-    $sessionManager = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -ErrorAction Stop
-    $renameProperty = $sessionManager.PSObject.Properties['PendingFileRenameOperations']
-    if ($null -ne $renameProperty -and
-        @($renameProperty.Value | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }).Count -gt 0) {
-        $pendingReboot = $true
-    }
     $results += [pscustomobject]@{
         Name = 'No pending reboot'; Passed = -not $pendingReboot; Blocking = $true
         Detail = 'restart Windows before installing so servicing does not run alongside Atlas'
+    }
+    # Deferred file replacements warn but do not block: apps such as Xbox Gaming
+    # Services queue one at every boot, so a restart never clears it.
+    $sessionManager = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -ErrorAction Stop
+    $renameProperty = $sessionManager.PSObject.Properties['PendingFileRenameOperations']
+    $pendingFiles = @()
+    if ($null -ne $renameProperty) {
+        $entries = @($renameProperty.Value)
+        for ($index = 0; $index -lt $entries.Count; $index += 2) {
+            $source = [string]$entries[$index]
+            if (-not [string]::IsNullOrWhiteSpace($source)) {
+                $pendingFiles += ($source.Trim() -replace '^!', '' -replace '^\*\d*', '' -replace '^\\\?\?\\', '')
+            }
+        }
+    }
+    $results += [pscustomobject]@{
+        Name = 'No pending file replacements'; Passed = $pendingFiles.Count -eq 0; Blocking = $false
+        Detail = if ($pendingFiles.Count -eq 0) { 'no files are waiting to be replaced at the next restart' } else { "Windows will replace or remove files at the next restart ($(($pendingFiles | Select-Object -First 3) -join ', ')); apps such as Xbox Gaming Services leave this set after every restart" }
     }
 
     $powerConnected = $false

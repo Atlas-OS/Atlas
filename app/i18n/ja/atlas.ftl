@@ -280,6 +280,8 @@ detail-reboot-none = 現在、Windows の再起動は必要ありません。
 detail-reboot-pending = 以前の変更を完了するために PC を再起動し、Atlas を開き直してからもう一度確認してください。
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
 detail-reboot-pending-reasons = 以前の変更 ({ $reasons }) を完了するために PC を再起動し、Atlas を開き直してからもう一度確認してください。
+# Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
+detail-reboot-file-renames = Windows は次回の再起動時にファイルの置き換えまたは削除を待機しています ({ $files })。Xbox Gaming Services など一部のアプリは、再起動のたびにこの状態を残します。Atlas はこのままインストールできます。
 detail-reboot-unknown = Windows に再起動が必要かどうかを確認できませんでした。PC を再起動し、Atlas を開き直してからもう一度確認してください。 ({ $error })
 detail-antivirus-none = 他のウイルス対策ソフトは検出されませんでした。
 # $products is a list of product names (text).

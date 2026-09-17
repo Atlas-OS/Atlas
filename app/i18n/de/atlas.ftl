@@ -289,6 +289,8 @@ detail-reboot-none = Windows benötigt derzeit keinen Neustart.
 detail-reboot-pending = Starten Sie Ihren PC neu, um frühere Änderungen abzuschließen. Öffnen Sie danach Atlas erneut und prüfen Sie noch einmal.
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
 detail-reboot-pending-reasons = Starten Sie Ihren PC neu, um frühere Änderungen abzuschließen ({ $reasons }). Öffnen Sie danach Atlas erneut und prüfen Sie noch einmal.
+# Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
+detail-reboot-file-renames = Windows wartet darauf, beim nächsten Neustart Dateien zu ersetzen oder zu entfernen ({ $files }). Manche Apps, etwa Xbox Gaming Services, hinterlassen diese Markierung nach jedem Neustart. Atlas kann trotzdem installiert werden.
 detail-reboot-unknown = Es konnte nicht geprüft werden, ob Windows einen Neustart benötigt. Starten Sie Ihren PC neu, öffnen Sie Atlas erneut und prüfen Sie noch einmal. ({ $error })
 detail-antivirus-none = Es wurde keine andere Antivirensoftware gefunden.
 # $products is a list of product names (text).

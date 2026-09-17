@@ -285,6 +285,8 @@ detail-reboot-none = Сейчас Windows не требует перезагру
 detail-reboot-pending = Перезагрузите ПК, чтобы завершить предыдущие изменения, затем снова откройте Atlas и проверьте снова.
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
 detail-reboot-pending-reasons = Перезагрузите ПК, чтобы завершить предыдущие изменения ({ $reasons }), затем снова откройте Atlas и проверьте снова.
+# Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
+detail-reboot-file-renames = Windows ожидает следующей перезагрузки, чтобы заменить или удалить файлы ({ $files }). Некоторые приложения, например Xbox Gaming Services, оставляют этот признак после каждой перезагрузки. Atlas всё равно можно установить.
 detail-reboot-unknown = Не удалось проверить, нужна ли Windows перезагрузка. Перезагрузите ПК, затем снова откройте Atlas и повторите проверку. ({ $error })
 detail-antivirus-none = Других антивирусов не обнаружено.
 # $products is a list of product names (text).

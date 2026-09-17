@@ -290,6 +290,8 @@ detail-reboot-none = Windows'un şu anda yeniden başlatılması gerekmiyor.
 detail-reboot-pending = Önceki değişiklikleri tamamlamak için bilgisayarınızı yeniden başlatın, ardından Atlas'ı yeniden açıp yeniden denetleyin.
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
 detail-reboot-pending-reasons = Önceki değişiklikleri ({ $reasons }) tamamlamak için bilgisayarınızı yeniden başlatın, ardından Atlas'ı yeniden açıp yeniden denetleyin.
+# Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
+detail-reboot-file-renames = Windows, bir sonraki yeniden başlatmada dosyaları değiştirmek veya kaldırmak için bekliyor ({ $files }). Xbox Gaming Services gibi bazı uygulamalar bu işareti her yeniden başlatmadan sonra bırakır. Atlas yine de yüklenebilir.
 detail-reboot-unknown = Windows'un yeniden başlatılması gerekip gerekmediği denetlenemedi. Bilgisayarınızı yeniden başlatın, ardından Atlas'ı yeniden açıp yeniden denetleyin. ({ $error })
 detail-antivirus-none = Başka bir virüsten koruma yazılımı algılanmadı.
 # $products is a list of product names (text).

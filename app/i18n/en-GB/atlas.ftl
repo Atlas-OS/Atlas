@@ -291,6 +291,8 @@ detail-reboot-none = Windows doesn't need a restart right now.
 detail-reboot-pending = Restart your PC to finish earlier changes, then reopen Atlas and check again.
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
 detail-reboot-pending-reasons = Restart your PC to finish earlier changes ({ $reasons }), then reopen Atlas and check again.
+# Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
+detail-reboot-file-renames = Windows is waiting to replace or remove files at the next restart ({ $files }). Some apps, such as Xbox Gaming Services, leave this set after every restart. Atlas can install anyway.
 detail-reboot-unknown = Couldn't check whether Windows needs a restart. Restart your PC, then reopen Atlas and check again. ({ $error })
 detail-antivirus-none = No other antivirus software was detected.
 # $products is a list of product names (text).

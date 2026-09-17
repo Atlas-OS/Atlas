@@ -350,11 +350,19 @@ Describe 'Windows preparation prerequisites' {
         $script:networkLevel = 'ConstrainedInternetAccess'
         Test-PreparationNetwork | Should -BeFalse
     }
-    It 'requires a restart for deferred file replacements without asking the update provider' {
+    It 'reports deferred file replacements without requiring a restart for them' {
         Mock Test-Path { $false }
         Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = [string[]]@('\??\C:\old.dll', '') } }
-        Mock New-Object { throw 'The file replacement marker already requires a restart.' }
+        Mock New-Object { [pscustomobject]@{ RebootRequired = $false } } -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
+        Test-PreparationRestart | Should -BeFalse
+        $script:PreparationRestartReasons | Should -Be @('file-renames')
+    }
+    It 'still requires a restart when the update provider asks for one alongside file replacements' {
+        Mock Test-Path { $false }
+        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = [string[]]@('\??\C:\old.dll', '') } }
+        Mock New-Object { [pscustomobject]@{ RebootRequired = $true } } -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
         Test-PreparationRestart | Should -BeTrue
+        $script:PreparationRestartReasons | Should -Be @('file-renames', 'update-agent')
     }
     It 'does not treat empty rename entries as a pending restart' {
         Mock Test-Path { $false }

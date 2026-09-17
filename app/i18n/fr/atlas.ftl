@@ -278,6 +278,8 @@ detail-reboot-none = Windows n’a pas besoin de redémarrer pour le moment.
 detail-reboot-pending = Redémarrez votre PC pour terminer les modifications en attente, puis rouvrez Atlas et vérifiez à nouveau.
 # $reasons : les marqueurs de redémarrage en attente posés par Windows, d'après les noms prepare-reason-*.
 detail-reboot-pending-reasons = Redémarrez votre PC pour terminer les modifications en attente ({ $reasons }), puis rouvrez Atlas et vérifiez à nouveau.
+# Avertissement, pas un blocage : $files liste jusqu'à trois chemins de fichiers que Windows remplacera ou supprimera au prochain redémarrage.
+detail-reboot-file-renames = Windows attend le prochain redémarrage pour remplacer ou supprimer des fichiers ({ $files }). Certaines applications, comme Xbox Gaming Services, laissent ce marqueur après chaque redémarrage. Atlas peut quand même être installé.
 detail-reboot-unknown = Impossible de vérifier si Windows doit redémarrer. Redémarrez votre PC, puis rouvrez Atlas et vérifiez à nouveau. ({ $error })
 detail-antivirus-none = Aucun autre logiciel antivirus n’a été détecté.
 # $products est une liste de noms de produits (texte).

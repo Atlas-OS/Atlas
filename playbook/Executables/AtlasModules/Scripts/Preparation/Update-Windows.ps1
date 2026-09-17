@@ -85,10 +85,16 @@ function Test-PreparationRestart {
         if ($renames.Value -isnot [string[]]) { throw 'Windows pending file renames have an unexpected registry type.' }
         if (@($renames.Value | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) { $reasons += 'file-renames' }
     }
-    # The update provider is asked only when no registry marker already answers.
-    if ($reasons.Count -eq 0 -and [bool](New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired) { $reasons += 'update-agent' }
+    # Deferred file replacements are reported but do not call for a restart:
+    # apps such as Xbox Gaming Services queue one at every boot. The update
+    # provider is asked only when no blocking registry marker already answers.
+    $blocking = @($reasons | Where-Object { $_ -ne 'file-renames' })
+    if ($blocking.Count -eq 0 -and [bool](New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired) {
+        $reasons += 'update-agent'
+        $blocking += 'update-agent'
+    }
     $script:PreparationRestartReasons = $reasons
-    return $reasons.Count -gt 0
+    return $blocking.Count -gt 0
 }
 
 function Test-PreparationUpdate($Update) {
