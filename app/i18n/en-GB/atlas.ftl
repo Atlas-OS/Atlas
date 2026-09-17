@@ -289,6 +289,8 @@ detail-updates-pending =
 detail-updates-unknown = Couldn't check for Windows updates. Open Windows Update, then confirm below if no updates are waiting. ({ $error })
 detail-reboot-none = Windows doesn't need a restart right now.
 detail-reboot-pending = Restart your PC to finish earlier changes, then reopen Atlas and check again.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = Restart your PC to finish earlier changes ({ $reasons }), then reopen Atlas and check again.
 detail-reboot-unknown = Couldn't check whether Windows needs a restart. Restart your PC, then reopen Atlas and check again. ({ $error })
 detail-antivirus-none = No other antivirus software was detected.
 # $products is a list of product names (text).
@@ -670,6 +672,17 @@ prepare-title = Update Windows and Store apps
 prepare-description = Install Windows updates, update Microsoft Store and all installed Store apps before applying Atlas. Store apps may close during updates.
 prepare-complete = Windows and Store apps are up to date.
 prepare-reboot = Windows needs to restart. Your Atlas choices will be saved; check for updates again after signing in.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Windows needs to restart ({ $reasons }). Your Atlas choices will be saved; check for updates again after signing in.
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = Windows still reports a pending restart after restarting ({ $reasons }). Restarting again is unlikely to change this. Open Windows Update and finish anything waiting, then check for updates again. If nothing is waiting, export diagnostics and report the problem.
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Windows needs to restart (…)"; keep them short and lower case where the language allows.
+prepare-reason-servicing = Windows servicing
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = files waiting to be replaced
+prepare-reason-update-agent = the Windows Update service
+prepare-reason-unknown = reason not reported
 prepare-failed = Some updates could not finish. Check the diagnostic log, resolve any Windows or Store errors, then try again.
 prepare-cancelled = Preparation stopped. Check for updates again before continuing.
 prepare-windows-search = Checking Windows Update…

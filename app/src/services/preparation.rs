@@ -64,6 +64,9 @@ pub struct Activity {
     pub bytes_total: Option<u64>,
     pub elapsed_seconds: Option<u64>,
     pub unchanged_seconds: u64,
+    /// Which restart markers the worker saw when it asked for a restart
+    /// (`servicing`, `windows-update`, `file-renames`, `update-agent`).
+    pub restart_reasons: Vec<String>,
 }
 
 impl Progress {
@@ -94,6 +97,12 @@ pub enum State {
     Reboot,
     SavingRestart,
     Restarting,
+    /// Windows asked for a restart again right after one, without any update
+    /// work in between: a marker survives restarts, so another one is not
+    /// offered. `reasons` names the markers the worker saw.
+    RestartPersists {
+        reasons: Vec<String>,
+    },
     Failed,
     Cancelled,
     Network,
@@ -142,6 +151,16 @@ pub fn existing_driver_policy() -> Drivers {
 impl State {
     pub fn busy(&self) -> bool {
         matches!(self, Self::Running { .. } | Self::WaitingExternal | Self::SavingRestart | Self::Restarting)
+    }
+
+    /// The state a finished run settles into. A restart request that follows
+    /// a restart Atlas already made, with no update work in between, means a
+    /// marker survives restarts; it is named instead of restarting again.
+    pub fn settle(self, after_restart: bool, did_work: bool, reasons: Vec<String>) -> Self {
+        if self == Self::Reboot && after_restart && !did_work {
+            return Self::RestartPersists { reasons };
+        }
+        self
     }
     pub fn ready(&self) -> bool {
         matches!(self, Self::Ready)
@@ -675,11 +694,38 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
         }
     }
     #[test]
+    fn a_second_restart_request_without_work_names_the_marker_instead() {
+        let reasons = vec!["file-renames".to_owned()];
+        assert_eq!(
+            State::Reboot.settle(true, false, reasons.clone()),
+            State::RestartPersists { reasons: reasons.clone() }
+        );
+        // A first request, or one after updates were installed, still restarts.
+        assert_eq!(State::Reboot.settle(false, false, reasons.clone()), State::Reboot);
+        assert_eq!(State::Reboot.settle(true, true, reasons.clone()), State::Reboot);
+        // Other verdicts are untouched.
+        assert_eq!(State::Ready.settle(true, false, reasons.clone()), State::Ready);
+        assert_eq!(State::Failed.settle(true, false, reasons), State::Failed);
+    }
+
+    #[test]
+    fn a_reboot_report_names_the_markers_the_worker_saw() {
+        let line = r#"ATLAS_PREP:{"schema":1,"status":"reboot","stage":"windows-install","completed":0,"total":0,"activity":{"restartReasons":["servicing","file-renames"],"elapsedSeconds":1,"unchangedSeconds":0}}"#;
+        let event = parse_event(line).unwrap();
+        assert_eq!(event.status, Status::Reboot);
+        assert_eq!(event.activity.restart_reasons, vec!["servicing".to_owned(), "file-renames".to_owned()]);
+        // Older workers report no reasons; that still parses.
+        let old =
+            r#"ATLAS_PREP:{"schema":1,"status":"reboot","stage":"windows-install","completed":0,"total":0}"#;
+        assert!(parse_event(old).unwrap().activity.restart_reasons.is_empty());
+    }
+    #[test]
     fn only_provider_completion_satisfies_preparation() {
         for state in [
             State::Idle,
             State::Failed,
             State::Reboot,
+            State::RestartPersists { reasons: vec!["servicing".into()] },
             State::Cancelled,
             State::Network,
             State::Running { stage: Stage::StoreSearch, completed: 0, total: 0 },

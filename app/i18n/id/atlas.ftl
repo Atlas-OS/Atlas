@@ -283,6 +283,8 @@ detail-updates-pending =
 detail-updates-unknown = Tidak dapat memeriksa pembaruan Windows. Buka Windows Update, lalu konfirmasikan di bawah jika tidak ada pembaruan yang menunggu. ({ $error })
 detail-reboot-none = Windows tidak perlu dimulai ulang saat ini.
 detail-reboot-pending = Mulai ulang PC untuk menyelesaikan perubahan sebelumnya. Setelah itu, buka kembali Atlas dan periksa lagi.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = Mulai ulang PC untuk menyelesaikan perubahan sebelumnya ({ $reasons }). Setelah itu, buka kembali Atlas dan periksa lagi.
 detail-reboot-unknown = Tidak dapat memeriksa apakah Windows perlu dimulai ulang. Mulai ulang PC, lalu buka kembali Atlas dan periksa lagi. ({ $error })
 detail-antivirus-none = Tidak ada antivirus lain yang terdeteksi.
 # $products is a list of product names (text).
@@ -645,6 +647,17 @@ prepare-title = Perbarui Windows dan aplikasi Store
 prepare-description = Sebelum menerapkan Atlas, instal pembaruan Windows serta perbarui Microsoft Store dan semua aplikasi Store yang terinstal. Aplikasi Store mungkin ditutup saat diperbarui.
 prepare-complete = Windows dan aplikasi Store sudah diperbarui.
 prepare-reboot = Windows perlu dimulai ulang. Pilihan Atlas Anda akan disimpan. Periksa pembaruan lagi setelah masuk.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Windows perlu dimulai ulang ({ $reasons }). Pilihan Atlas Anda akan disimpan. Periksa pembaruan lagi setelah masuk.
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = Windows masih melaporkan mulai ulang yang tertunda setelah dimulai ulang ({ $reasons }). Memulai ulang lagi kemungkinan tidak akan mengubahnya. Buka Windows Update dan selesaikan apa pun yang menunggu, lalu periksa pembaruan lagi. Jika tidak ada yang menunggu, ekspor diagnostik dan laporkan masalahnya.
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Windows needs to restart (…)"; keep them short and lower case where the language allows.
+prepare-reason-servicing = pemeliharaan komponen Windows
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = file yang menunggu diganti
+prepare-reason-update-agent = layanan Windows Update
+prepare-reason-unknown = alasan tidak dilaporkan
 prepare-failed = Beberapa pembaruan belum selesai. Periksa log diagnostik, atasi kesalahan Windows atau Store, lalu coba lagi.
 prepare-cancelled = Persiapan dihentikan. Periksa pembaruan lagi sebelum melanjutkan.
 prepare-windows-search = Memeriksa pembaruan Windows…

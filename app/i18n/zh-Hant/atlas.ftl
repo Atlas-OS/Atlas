@@ -270,6 +270,8 @@ detail-updates-pending =
 detail-updates-unknown = 無法檢查 Windows 更新。請開啟 Windows Update 查看；如果沒有等待安裝的更新，請在下方確認。（{ $error }）
 detail-reboot-none = Windows 目前不需要重新啟動。
 detail-reboot-pending = 請重新啟動電腦以完成先前的變更，然後重新開啟 Atlas 並再次檢查。
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = 請重新啟動電腦以完成先前的變更（{ $reasons }），然後重新開啟 Atlas 並再次檢查。
 detail-reboot-unknown = 無法確認 Windows 是否需要重新啟動。請重新啟動電腦，然後重新開啟 Atlas 並再次檢查。（{ $error }）
 detail-antivirus-none = 未偵測到其他防毒軟體。
 # $products is a list of product names (text).
@@ -626,6 +628,17 @@ prepare-title = 更新 Windows 和市集應用程式
 prepare-description = 套用 Atlas 前，請安裝 Windows 更新，並更新 Microsoft Store 及所有已安裝的市集應用程式。更新期間，市集應用程式可能會關閉。
 prepare-complete = Windows 和市集應用程式都已更新。
 prepare-reboot = Windows 需要重新啟動。你的 Atlas 選項將會儲存。登入後，請再次檢查更新。
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Windows 需要重新啟動（{ $reasons }）。你的 Atlas 選項將會儲存。登入後，請再次檢查更新。
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = 重新啟動後，Windows 仍回報有待處理的重新啟動（{ $reasons }）。再次重新啟動不太可能改變此狀況。請開啟 Windows Update 完成所有等待中的項目，然後再次檢查更新。如果沒有等待中的項目，請匯出診斷資訊並回報問題。
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Windows needs to restart (…)"; keep them short and lower case where the language allows.
+prepare-reason-servicing = Windows 元件服務
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = 等待取代的檔案
+prepare-reason-update-agent = Windows Update 服務
+prepare-reason-unknown = 未回報原因
 prepare-failed = 部分更新無法完成。請查看診斷記錄，排除 Windows 或市集錯誤後再試一次。
 prepare-cancelled = 準備已停止。繼續之前，請再次檢查更新。
 prepare-windows-search = 正在檢查 Windows 更新…

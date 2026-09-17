@@ -285,6 +285,8 @@ detail-updates-pending =
 detail-updates-unknown = ตรวจหาการอัปเดต Windows ไม่ได้ เปิด Windows Update แล้วยืนยันด้านล่างหากไม่มีการอัปเดตที่รอติดตั้ง ({ $error })
 detail-reboot-none = Windows ไม่จำเป็นต้องรีสตาร์ตในขณะนี้
 detail-reboot-pending = รีสตาร์ตพีซีเพื่อให้การเปลี่ยนแปลงก่อนหน้านี้เสร็จสมบูรณ์ จากนั้นเปิด Atlas อีกครั้งแล้วตรวจสอบใหม่
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = รีสตาร์ตพีซีเพื่อให้การเปลี่ยนแปลงก่อนหน้านี้เสร็จสมบูรณ์ ({ $reasons }) จากนั้นเปิด Atlas อีกครั้งแล้วตรวจสอบใหม่
 detail-reboot-unknown = ตรวจสอบไม่ได้ว่า Windows ต้องรีสตาร์ตหรือไม่ รีสตาร์ตพีซี จากนั้นเปิด Atlas อีกครั้งแล้วตรวจสอบใหม่ ({ $error })
 detail-antivirus-none = ไม่พบโปรแกรมป้องกันไวรัสอื่น
 # $products is a list of product names (text).
@@ -646,6 +648,17 @@ prepare-title = อัปเดต Windows และแอปจาก Store
 prepare-description = ก่อนปรับใช้ Atlas ให้ติดตั้งการอัปเดต Windows รวมถึงอัปเดต Microsoft Store และแอปจาก Store ทั้งหมดที่ติดตั้งไว้ แอปจาก Store อาจปิดระหว่างการอัปเดต
 prepare-complete = Windows และแอปจาก Store เป็นเวอร์ชันล่าสุดแล้ว
 prepare-reboot = Windows ต้องรีสตาร์ต ตัวเลือก Atlas ของคุณจะถูกบันทึกไว้ เมื่อเข้าสู่ระบบแล้ว ให้ตรวจหาการอัปเดตอีกครั้ง
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Windows ต้องรีสตาร์ต ({ $reasons }) ตัวเลือก Atlas ของคุณจะถูกบันทึกไว้ เมื่อเข้าสู่ระบบแล้ว ให้ตรวจหาการอัปเดตอีกครั้ง
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = หลังรีสตาร์ตแล้ว Windows ยังคงรายงานว่ามีการรีสตาร์ตที่รอดำเนินการ ({ $reasons }) การรีสตาร์ตอีกครั้งไม่น่าจะเปลี่ยนแปลงสิ่งนี้ เปิด Windows Update แล้วดำเนินการทุกอย่างที่รออยู่ให้เสร็จ จากนั้นตรวจหาการอัปเดตอีกครั้ง หากไม่มีอะไรรออยู่ ให้ส่งออกข้อมูลวินิจฉัยแล้วรายงานปัญหา
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Windows needs to restart (…)"; keep them short and lower case where the language allows.
+prepare-reason-servicing = การบำรุงรักษา Windows
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = ไฟล์ที่รอการแทนที่
+prepare-reason-update-agent = บริการ Windows Update
+prepare-reason-unknown = ไม่ได้รายงานสาเหตุ
 prepare-failed = การอัปเดตบางรายการไม่สำเร็จ ตรวจสอบบันทึกการวินิจฉัย แก้ไขข้อผิดพลาดของ Windows หรือ Store แล้วลองอีกครั้ง
 prepare-cancelled = หยุดการเตรียมพร้อมแล้ว ตรวจหาการอัปเดตอีกครั้งก่อนดำเนินการต่อ
 prepare-windows-search = กำลังตรวจหาการอัปเดต Windows…

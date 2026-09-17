@@ -10,6 +10,10 @@ $ProgressPreference = 'SilentlyContinue'
 $script:PreparationClock = [Diagnostics.Stopwatch]::StartNew()
 $script:PreparationLastChange = 0L
 $script:PreparationLastProgress = ''
+# Which restart markers the last Test-PreparationRestart saw, for the state
+# journal and the app: a marker that survives a restart must be named, not
+# answered with another restart.
+$script:PreparationRestartReasons = @()
 
 function Get-PreparationSessionOwner {
     if (-not ('AtlasPreparation.Session' -as [type])) {
@@ -69,16 +73,22 @@ function Set-PreparationDriver {
 }
 
 function Test-PreparationRestart {
-    foreach ($path in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending', 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) {
-        if (Test-Path -LiteralPath $path) { return $true }
+    $reasons = @()
+    foreach ($marker in @(
+            @{ Id = 'servicing'; Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' },
+            @{ Id = 'windows-update'; Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' })) {
+        if (Test-Path -LiteralPath $marker.Path) { $reasons += $marker.Id }
     }
     $session = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager'
     $renames = $session.PSObject.Properties['PendingFileRenameOperations']
     if ($null -ne $renames) {
         if ($renames.Value -isnot [string[]]) { throw 'Windows pending file renames have an unexpected registry type.' }
-        if (@($renames.Value | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) { return $true }
+        if (@($renames.Value | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) { $reasons += 'file-renames' }
     }
-    return [bool](New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired
+    # The update provider is asked only when no registry marker already answers.
+    if ($reasons.Count -eq 0 -and [bool](New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired) { $reasons += 'update-agent' }
+    $script:PreparationRestartReasons = $reasons
+    return $reasons.Count -gt 0
 }
 
 function Test-PreparationUpdate($Update) {
@@ -385,7 +395,7 @@ function Invoke-PreparationStore {
 function Assert-PreparationCurrent {
     Assert-PreparationContinue
     Assert-PreparationUser
-    if (Test-PreparationRestart) { throw 'Restart Windows and run preparation again before installing Atlas.' }
+    if (Test-PreparationRestart) { throw "Restart Windows and run preparation again before installing Atlas (pending: $($script:PreparationRestartReasons -join ', '))." }
     if (-not (Test-PreparationNetwork)) { throw 'Connect to unrestricted internet before verifying Windows and Store updates.' }
     Write-PreparationState running windows-search
     $session = New-Object -ComObject Microsoft.Update.Session
@@ -404,7 +414,7 @@ function Assert-PreparationCurrent {
     if ($pending.Count -gt 0) { throw 'Microsoft Store apps still need updates. Finish the queued updates in Atlas or Microsoft Store, then retry installation.' }
     Assert-PreparationContinue
     if (@(Find-PreparationWindowsUpdate $session).Count -gt 0) { throw 'Windows offered additional updates during verification. Finish preparation, then retry.' }
-    if (Test-PreparationRestart) { throw 'Restart Windows before installing Atlas.' }
+    if (Test-PreparationRestart) { throw "Restart Windows before installing Atlas (pending: $($script:PreparationRestartReasons -join ', '))." }
     if (-not (Test-PreparationNetwork)) { throw 'The internet connection changed during preparation verification.' }
 }
 
@@ -452,7 +462,7 @@ try {
     }
     Set-PreparationDriver
     if ((Invoke-PreparationUpdates | Select-Object -Last 1) -eq 'reboot') {
-        Write-PreparationState reboot windows-install
+        Write-PreparationState reboot windows-install -Detail @{ restartReasons = @($script:PreparationRestartReasons) }
         exit 0
     }
     Write-PreparationState complete verify

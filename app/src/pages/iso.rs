@@ -942,14 +942,25 @@ impl Render for IsoPage {
                                     Button::new("iso-elevate", t!("common-restart-as-administrator"))
                                         .accent()
                                         .icon(Icon::Admin)
-                                        .on_click(cx.listener(|this, _, _, cx| {
-                                            match system::relaunch_iso_elevated() {
-                                                Ok(()) => cx.quit(),
-                                                Err(_) => {
-                                                    this.error = true;
-                                                    cx.notify();
-                                                }
-                                            }
+                                        .on_click(cx.listener(|_, _, _, cx| {
+                                            // The UAC prompt pumps a nested message
+                                            // loop inside ShellExecute; keep it off
+                                            // the UI thread.
+                                            cx.spawn(async move |this, cx| {
+                                                let launched = cx
+                                                    .background_executor()
+                                                    .spawn(async { system::relaunch_iso_elevated() })
+                                                    .await;
+                                                this.update(cx, |this, cx| match launched {
+                                                    Ok(()) => cx.quit(),
+                                                    Err(_) => {
+                                                        this.error = true;
+                                                        cx.notify();
+                                                    }
+                                                })
+                                                .ok();
+                                            })
+                                            .detach();
                                         })),
                                 ),
                             ),

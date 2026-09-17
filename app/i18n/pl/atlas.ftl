@@ -285,6 +285,8 @@ detail-updates-pending =
 detail-updates-unknown = Nie udało się sprawdzić aktualizacji Windows. Otwórz Windows Update, a jeśli żadne aktualizacje nie czekają na instalację, potwierdź to poniżej. ({ $error })
 detail-reboot-none = Windows nie wymaga teraz ponownego uruchomienia.
 detail-reboot-pending = Uruchom komputer ponownie, aby dokończyć wcześniejsze zmiany, a potem otwórz Atlas i sprawdź ponownie.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = Uruchom komputer ponownie, aby dokończyć wcześniejsze zmiany ({ $reasons }), a potem otwórz Atlas i sprawdź ponownie.
 detail-reboot-unknown = Nie udało się sprawdzić, czy Windows wymaga ponownego uruchomienia. Uruchom komputer ponownie, a potem otwórz Atlas i sprawdź ponownie. ({ $error })
 detail-antivirus-none = Nie wykryto innego oprogramowania antywirusowego.
 # $products is a list of product names (text).
@@ -676,6 +678,17 @@ prepare-title = Zaktualizuj Windows i aplikacje ze sklepu
 prepare-description = Przed instalacją Atlasa zainstaluj aktualizacje Windows oraz zaktualizuj Microsoft Store i wszystkie zainstalowane aplikacje ze sklepu. Aplikacje ze sklepu mogą zostać zamknięte podczas aktualizacji.
 prepare-complete = Windows i aplikacje ze sklepu są aktualne.
 prepare-reboot = Windows wymaga ponownego uruchomienia. Twoje ustawienia Atlasa zostaną zapisane. Po zalogowaniu ponownie sprawdź aktualizacje.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Windows wymaga ponownego uruchomienia ({ $reasons }). Twoje ustawienia Atlasa zostaną zapisane. Po zalogowaniu ponownie sprawdź aktualizacje.
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = Windows nadal zgłasza oczekujące ponowne uruchomienie, mimo że komputer został już uruchomiony ponownie ({ $reasons }). Kolejne ponowne uruchomienie raczej tego nie zmieni. Otwórz Windows Update i dokończ wszystko, co czeka na instalację, a potem ponownie sprawdź aktualizacje. Jeśli nic nie czeka, wybierz „Eksportuj diagnostykę” i zgłoś problem.
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Windows wymaga ponownego uruchomienia (…)"; keep them short and lower case.
+prepare-reason-servicing = obsługa serwisowa Windows
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = pliki oczekujące na zastąpienie
+prepare-reason-update-agent = usługa Windows Update
+prepare-reason-unknown = nie podano przyczyny
 prepare-failed = Nie udało się ukończyć części aktualizacji. Sprawdź dziennik diagnostyczny, rozwiąż problemy z Windows lub sklepem i spróbuj ponownie.
 prepare-cancelled = Przygotowanie zostało zatrzymane. Przed kontynuowaniem ponownie sprawdź aktualizacje.
 prepare-windows-search = Sprawdzanie aktualizacji Windows…

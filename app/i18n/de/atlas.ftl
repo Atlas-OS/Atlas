@@ -287,6 +287,8 @@ detail-updates-pending =
 detail-updates-unknown = Windows-Updates konnten nicht geprüft werden. Öffnen Sie Windows Update und bestätigen Sie unten, falls keine Updates warten. ({ $error })
 detail-reboot-none = Windows benötigt derzeit keinen Neustart.
 detail-reboot-pending = Starten Sie Ihren PC neu, um frühere Änderungen abzuschließen. Öffnen Sie danach Atlas erneut und prüfen Sie noch einmal.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = Starten Sie Ihren PC neu, um frühere Änderungen abzuschließen ({ $reasons }). Öffnen Sie danach Atlas erneut und prüfen Sie noch einmal.
 detail-reboot-unknown = Es konnte nicht geprüft werden, ob Windows einen Neustart benötigt. Starten Sie Ihren PC neu, öffnen Sie Atlas erneut und prüfen Sie noch einmal. ({ $error })
 detail-antivirus-none = Es wurde keine andere Antivirensoftware gefunden.
 # $products is a list of product names (text).
@@ -659,6 +661,17 @@ prepare-title = Windows und Store-Apps aktualisieren
 prepare-description = Installieren Sie vor Atlas die Windows-Updates und aktualisieren Sie den Microsoft Store sowie alle installierten Store-Apps. Store-Apps können beim Aktualisieren geschlossen werden.
 prepare-complete = Windows und die Store-Apps sind auf dem neuesten Stand.
 prepare-reboot = Windows muss neu gestartet werden. Ihre Atlas-Auswahl wird gespeichert. Suchen Sie nach der Anmeldung erneut nach Updates.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Windows muss neu gestartet werden ({ $reasons }). Ihre Atlas-Auswahl wird gespeichert. Suchen Sie nach der Anmeldung erneut nach Updates.
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = Windows meldet auch nach dem Neustart noch einen ausstehenden Neustart ({ $reasons }). Ein weiterer Neustart wird daran wahrscheinlich nichts ändern. Öffnen Sie Windows Update und schließen Sie alles ab, was noch wartet. Suchen Sie dann erneut nach Updates. Wenn nichts wartet, wählen Sie „Diagnose exportieren“ und melden Sie das Problem.
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Windows muss neu gestartet werden (…)"; keep them short.
+prepare-reason-servicing = Windows-Wartung
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = noch zu ersetzende Dateien
+prepare-reason-update-agent = der Windows Update-Dienst
+prepare-reason-unknown = Grund nicht gemeldet
 prepare-failed = Einige Updates konnten nicht abgeschlossen werden. Prüfen Sie das Diagnoseprotokoll, beheben Sie Fehler in Windows oder im Store und versuchen Sie es erneut.
 prepare-cancelled = Die Vorbereitung wurde angehalten. Suchen Sie vor dem Fortfahren erneut nach Updates.
 prepare-windows-search = Windows Update wird geprüft…

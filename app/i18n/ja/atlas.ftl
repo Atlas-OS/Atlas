@@ -278,6 +278,8 @@ detail-updates-pending =
 detail-updates-unknown = Windows 更新プログラムを確認できませんでした。Windows Update を開き、インストール待ちの更新プログラムがなければ下でチェックを入れてください。 ({ $error })
 detail-reboot-none = 現在、Windows の再起動は必要ありません。
 detail-reboot-pending = 以前の変更を完了するために PC を再起動し、Atlas を開き直してからもう一度確認してください。
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = 以前の変更 ({ $reasons }) を完了するために PC を再起動し、Atlas を開き直してからもう一度確認してください。
 detail-reboot-unknown = Windows に再起動が必要かどうかを確認できませんでした。PC を再起動し、Atlas を開き直してからもう一度確認してください。 ({ $error })
 detail-antivirus-none = 他のウイルス対策ソフトは検出されませんでした。
 # $products is a list of product names (text).
@@ -638,6 +640,17 @@ prepare-title = Windows と Store アプリの更新
 prepare-description = Atlas を適用する前に、Windows の更新プログラムをインストールし、Microsoft Store とインストール済みのすべての Store アプリを更新します。更新中に Store アプリが終了することがあります。
 prepare-complete = Windows と Store アプリは最新の状態です。
 prepare-reboot = Windows の再起動が必要です。Atlas の設定は保存されます。サインイン後に、もう一度更新を確認してください。
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Windows の再起動が必要です ({ $reasons })。Atlas の設定は保存されます。サインイン後に、もう一度更新を確認してください。
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = 再起動した後も、Windows は再起動が保留中であると報告しています ({ $reasons })。もう一度再起動しても、この状態が変わる可能性は低いです。Windows Update を開いて待機中の処理を完了してから、もう一度更新を確認してください。何も待機していない場合は、診断情報をエクスポートして問題を報告してください。
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Windows の再起動が必要です (…)"; keep them short, noun-stop, in the half-width parentheses.
+prepare-reason-servicing = Windows サービシング
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = 置き換え待ちのファイル
+prepare-reason-update-agent = Windows Update サービス
+prepare-reason-unknown = 理由の報告なし
 prepare-failed = 一部の更新を完了できませんでした。診断ログを確認し、Windows または Store のエラーを解消してから、もう一度お試しください。
 prepare-cancelled = 準備を停止しました。続行する前に、もう一度更新を確認してください。
 prepare-windows-search = Windows の更新を確認しています…

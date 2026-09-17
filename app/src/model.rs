@@ -544,6 +544,9 @@ impl AppModel {
                 "complete" => State::Ready,
                 "failed" => State::Failed,
                 "reboot" => State::Reboot,
+                "restart-persists" => {
+                    State::RestartPersists { reasons: vec!["servicing".into(), "file-renames".into()] }
+                }
                 "network" => State::Network,
                 "previous-worker" => State::WaitingExternal,
                 _ => State::Idle,
@@ -632,8 +635,12 @@ impl AppModel {
         recovered: Option<crate::services::preparation::RunningJob>,
         cx: &mut Context<Self>,
     ) {
-        use crate::services::preparation::{self, State};
+        use crate::services::preparation::{self, Stage, State, Status};
         let drivers = self.driver_preference();
+        // A run started from the resumed state follows a restart Atlas asked
+        // for; if Windows immediately asks for another one, the marker
+        // survives restarts and restarting again would loop.
+        let after_restart = self.preparation == State::Resumed;
         self.preparation_restart_at = None;
         self.preparation_problem = None;
         self.preparation_job = Some(job.clone());
@@ -657,7 +664,13 @@ impl AppModel {
                     None => preparation::run(&job, drivers, cancel, report),
                 }
             });
+            let mut did_work = false;
             while let Some(event) = rx.next().await {
+                if event.status == Status::Running
+                    && matches!(event.stage, Stage::WindowsDownload | Stage::WindowsInstall | Stage::StoreInstall)
+                {
+                    did_work = true;
+                }
                 this.update(cx, |this, cx| {
                     this.preparation =
                         State::Running { stage: event.stage, completed: event.completed, total: event.total };
@@ -668,10 +681,23 @@ impl AppModel {
             }
             let result = task.await;
             this.update(cx, |this, cx| {
-                this.preparation = result.unwrap_or_else(|error| {
-                    log::error!("Windows preparation: {error:#}");
-                    State::Failed
-                });
+                let reasons = this
+                    .preparation_progress
+                    .as_ref()
+                    .map(|progress| progress.activity.restart_reasons.clone())
+                    .unwrap_or_default();
+                let state = result
+                    .unwrap_or_else(|error| {
+                        log::error!("Windows preparation: {error:#}");
+                        State::Failed
+                    })
+                    .settle(after_restart, did_work, reasons);
+                if let State::RestartPersists { reasons } = &state {
+                    log::warn!(
+                        "Windows still reports a pending restart after restarting ({reasons:?}); not restarting again"
+                    );
+                }
+                this.preparation = state;
                 if this.preparation == State::Reboot {
                     this.save_preparation_restart(false, cx);
                 } else if this.preparation.ready() {
@@ -2669,30 +2695,42 @@ impl AppModel {
         });
         cx.spawn(async move |this, cx| {
             let saved = saved.await;
-            this.update(cx, |this, cx| {
-                if this.locked() {
-                    return;
-                }
-                let problem = match saved {
-                    Ok(Ok(true)) => None,
-                    Ok(Ok(false)) => Some("another Atlas window has taken over this install flow".to_owned()),
-                    Ok(Err(error)) => Some(error),
-                    Err(_) => Some("the settings writer stopped".to_owned()),
-                };
-                if let Some(error) = problem {
-                    this.elevation_error = Some(ElevationProblem::DraftNotSaved { error });
-                    cx.notify();
-                    return;
-                }
-                match system::relaunch_elevated() {
-                    // The elevated copy is starting; quit once this handler has
-                    // returned, since quitting mid-update would re-enter the app state.
-                    Ok(()) => cx.defer(|cx| cx.quit()),
-                    Err(error) => {
-                        log::warn!("elevation declined: {error:#}");
-                        this.elevation_error = Some(ElevationProblem::DeclinedContinue);
-                        cx.notify();
+            let ready = this
+                .update(cx, |this, cx| {
+                    if this.locked() {
+                        return false;
                     }
+                    let problem = match saved {
+                        Ok(Ok(true)) => None,
+                        Ok(Ok(false)) => {
+                            Some("another Atlas window has taken over this install flow".to_owned())
+                        }
+                        Ok(Err(error)) => Some(error),
+                        Err(_) => Some("the settings writer stopped".to_owned()),
+                    };
+                    if let Some(error) = problem {
+                        this.elevation_error = Some(ElevationProblem::DraftNotSaved { error });
+                        cx.notify();
+                        return false;
+                    }
+                    true
+                })
+                .unwrap_or(false);
+            if !ready {
+                return;
+            }
+            // ShellExecute's "runas" pumps a nested message loop while the UAC
+            // prompt is up. Off the UI thread it cannot re-enter the app
+            // state from that loop (every frame logged "RefCell already borrowed").
+            let launched = cx.background_executor().spawn(async { system::relaunch_elevated() }).await;
+            this.update(cx, |this, cx| match launched {
+                // The elevated copy is starting; quit once this handler has
+                // returned, since quitting mid-update would re-enter the app state.
+                Ok(()) => cx.defer(|cx| cx.quit()),
+                Err(error) => {
+                    log::warn!("elevation declined: {error:#}");
+                    this.elevation_error = Some(ElevationProblem::DeclinedContinue);
+                    cx.notify();
                 }
             })
             .ok();

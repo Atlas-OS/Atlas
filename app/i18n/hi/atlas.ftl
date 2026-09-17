@@ -288,6 +288,8 @@ detail-updates-pending =
 detail-updates-unknown = अपडेट की जाँच नहीं हो सकी। Windows Update खोलें, और अगर कोई अपडेट प्रतीक्षा में नहीं है, तो नीचे पुष्टि करें। ({ $error })
 detail-reboot-none = Windows को अभी रीस्टार्ट की ज़रूरत नहीं है।
 detail-reboot-pending = पहले किए गए बदलाव पूरे करने के लिए अपना PC रीस्टार्ट करें, फिर Atlas दोबारा खोलकर फिर से जाँचें।
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = पहले किए गए बदलाव पूरे करने के लिए अपना PC रीस्टार्ट करें ({ $reasons }), फिर Atlas दोबारा खोलकर फिर से जाँचें।
 detail-reboot-unknown = यह जाँच नहीं हो सकी कि Windows को रीस्टार्ट की ज़रूरत है या नहीं। अपना PC रीस्टार्ट करें, फिर Atlas दोबारा खोलकर फिर से जाँचें। ({ $error })
 detail-antivirus-none = कोई दूसरा एंटीवायरस सॉफ़्टवेयर नहीं मिला।
 # $products is a list of product names (text).
@@ -648,6 +650,17 @@ prepare-title = Windows और Store ऐप अपडेट करें
 prepare-description = Atlas लागू करने से पहले Windows अपडेट इंस्टॉल करें और Microsoft Store व उससे इंस्टॉल किए गए सभी ऐप अपडेट करें। अपडेट के दौरान Store ऐप बंद हो सकते हैं।
 prepare-complete = Windows और Store ऐप अप टू डेट हैं।
 prepare-reboot = Windows को रीस्टार्ट करना होगा। Atlas में आपके चुने हुए विकल्प सेव रहेंगे। साइन इन करने के बाद अपडेट फिर से जाँचें।
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Windows को रीस्टार्ट करना होगा ({ $reasons })। Atlas में आपके चुने हुए विकल्प सेव रहेंगे। साइन इन करने के बाद अपडेट फिर से जाँचें।
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = रीस्टार्ट करने के बाद भी Windows बता रहा है कि रीस्टार्ट बाकी है ({ $reasons })। फिर से रीस्टार्ट करने से शायद कुछ नहीं बदलेगा। Windows Update खोलें, जो भी प्रतीक्षा में है उसे पूरा करें, फिर अपडेट फिर से जाँचें। अगर कुछ भी प्रतीक्षा में नहीं है, तो निदान निर्यात करें और समस्या रिपोर्ट करें।
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Windows needs to restart (…)"; keep them short and lower case where the language allows.
+prepare-reason-servicing = Windows सर्विसिंग
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = बदले जाने की प्रतीक्षा में फ़ाइलें
+prepare-reason-update-agent = Windows Update सेवा
+prepare-reason-unknown = कारण नहीं बताया गया
 prepare-failed = कुछ अपडेट पूरे नहीं हो सके। डायग्नोस्टिक लॉग देखें, Windows या Store की गड़बड़ियाँ ठीक करें और फिर कोशिश करें।
 prepare-cancelled = तैयारी रोक दी गई है। आगे बढ़ने से पहले अपडेट फिर से जाँचें।
 prepare-windows-search = Windows अपडेट जाँचे जा रहे हैं…

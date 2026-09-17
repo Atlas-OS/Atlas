@@ -274,6 +274,8 @@ detail-updates-pending =
 detail-updates-unknown = 无法检查 Windows 更新。请打开 Windows 更新，如果没有等待安装的更新，请在下方确认。（{ $error }）
 detail-reboot-none = Windows 目前不需要重启。
 detail-reboot-pending = 请重启电脑以完成之前的更改，然后重新打开 Atlas 并重新检查。
+# $reasons：Windows 设置的待重启标记，取自 prepare-reason-* 各项名称。
+detail-reboot-pending-reasons = 请重启电脑以完成之前的更改（{ $reasons }），然后重新打开 Atlas 并重新检查。
 detail-reboot-unknown = 无法检查 Windows 是否需要重启。请重启电脑，然后重新打开 Atlas 并重新检查。（{ $error }）
 detail-antivirus-none = 未检测到其他防病毒软件。
 # $products 为产品名称列表（文本）。
@@ -633,6 +635,17 @@ prepare-title = 更新 Windows 和商店应用
 prepare-description = 应用 Atlas 前，请安装 Windows 更新，并更新 Microsoft Store 及所有已安装的商店应用。更新期间，商店应用可能会关闭。
 prepare-complete = Windows 和商店应用均已更新。
 prepare-reboot = Windows 需要重启。你的 Atlas 选项会被保存。登录后，请再次检查更新。
+# $reasons：Windows 设置的待重启标记，取自 prepare-reason-* 各项名称。
+prepare-reboot-reasons = Windows 需要重启（{ $reasons }）。你的 Atlas 选项会被保存。登录后，请再次检查更新。
+# 刚重启后 Windows 又要求重启时显示，代替再次重启。
+prepare-restart-persists = 重启后，Windows 仍报告有待处理的重启（{ $reasons }）。再次重启不太可能改变这一情况。请打开 Windows 更新，完成所有等待中的项目，然后再次检查更新。如果没有等待中的项目，请导出诊断信息并报告问题。
+# Windows 需要重启时所设置标记的名称。它们用于补全“Windows 需要重启（…）”；
+# 请保持简短。
+prepare-reason-servicing = Windows 组件服务
+prepare-reason-windows-update = Windows 更新
+prepare-reason-file-renames = 等待替换的文件
+prepare-reason-update-agent = Windows 更新服务
+prepare-reason-unknown = 未报告原因
 prepare-failed = 部分更新未能完成。请查看诊断日志，解决 Windows 或商店错误后重试。
 prepare-cancelled = 准备已停止。继续之前，请再次检查更新。
 prepare-windows-search = 正在检查 Windows 更新…

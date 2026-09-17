@@ -276,6 +276,8 @@ detail-updates-pending =
 detail-updates-unknown = Impossible de rechercher les mises à jour Windows. Ouvrez Windows Update puis, si aucune mise à jour n’est en attente, confirmez-le ci-dessous. ({ $error })
 detail-reboot-none = Windows n’a pas besoin de redémarrer pour le moment.
 detail-reboot-pending = Redémarrez votre PC pour terminer les modifications en attente, puis rouvrez Atlas et vérifiez à nouveau.
+# $reasons : les marqueurs de redémarrage en attente posés par Windows, d'après les noms prepare-reason-*.
+detail-reboot-pending-reasons = Redémarrez votre PC pour terminer les modifications en attente ({ $reasons }), puis rouvrez Atlas et vérifiez à nouveau.
 detail-reboot-unknown = Impossible de vérifier si Windows doit redémarrer. Redémarrez votre PC, puis rouvrez Atlas et vérifiez à nouveau. ({ $error })
 detail-antivirus-none = Aucun autre logiciel antivirus n’a été détecté.
 # $products est une liste de noms de produits (texte).
@@ -656,6 +658,17 @@ prepare-title = Mettre à jour Windows et les applications du Store
 prepare-description = Avant d’appliquer Atlas, installez les mises à jour de Windows et mettez à jour le Microsoft Store et toutes ses applications installées. Les applications du Store peuvent se fermer pendant leur mise à jour.
 prepare-complete = Windows et les applications du Store sont à jour.
 prepare-reboot = Windows doit redémarrer. Vos choix pour Atlas seront enregistrés. Recherchez à nouveau les mises à jour après votre connexion.
+# $reasons : les marqueurs de redémarrage en attente posés par Windows, d'après les noms prepare-reason-*.
+prepare-reboot-reasons = Windows doit redémarrer ({ $reasons }). Vos choix pour Atlas seront enregistrés. Recherchez à nouveau les mises à jour après votre connexion.
+# Affiché à la place d'un nouveau redémarrage lorsque Windows en redemande un juste après avoir redémarré.
+prepare-restart-persists = Windows signale toujours un redémarrage en attente après le redémarrage ({ $reasons }). Redémarrer à nouveau n’y changera probablement rien. Ouvrez Windows Update et terminez ce qui est en attente, puis recherchez à nouveau les mises à jour. Si rien n’est en attente, exportez le diagnostic et signalez le problème.
+# Noms des marqueurs posés par Windows lorsqu'il demande un redémarrage. Ils complètent
+# « Windows doit redémarrer (…) » ; courts et en minuscules.
+prepare-reason-servicing = la maintenance de Windows
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = des fichiers en attente de remplacement
+prepare-reason-update-agent = le service Windows Update
+prepare-reason-unknown = motif non indiqué
 prepare-failed = Certaines mises à jour n’ont pas pu se terminer. Consultez le journal de diagnostic, corrigez les erreurs de Windows ou du Store, puis réessayez.
 prepare-cancelled = La préparation a été arrêtée. Recherchez à nouveau les mises à jour avant de continuer.
 prepare-windows-search = Recherche de mises à jour Windows…

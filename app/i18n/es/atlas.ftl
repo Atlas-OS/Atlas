@@ -280,6 +280,8 @@ detail-updates-pending =
 detail-updates-unknown = No se pudieron buscar actualizaciones de Windows. Abra Windows Update y, si no hay actualizaciones pendientes, confírmelo abajo. ({ $error })
 detail-reboot-none = Windows no necesita reiniciarse ahora.
 detail-reboot-pending = Reinicie su PC para completar cambios anteriores; después, vuelva a abrir Atlas y elija Volver a comprobar.
+# $reasons: los marcadores de reinicio pendiente que dejó Windows, a partir de los nombres prepare-reason-*.
+detail-reboot-pending-reasons = Reinicie su PC para completar cambios anteriores ({ $reasons }); después, vuelva a abrir Atlas y elija Volver a comprobar.
 detail-reboot-unknown = No se pudo comprobar si Windows necesita reiniciarse. Reinicie su PC; después, vuelva a abrir Atlas y elija Volver a comprobar. ({ $error })
 detail-antivirus-none = No se detectó otro software antivirus.
 # $products es una lista de nombres de producto (texto).
@@ -656,6 +658,17 @@ prepare-title = Actualizar Windows y las apps de la Store
 prepare-description = Antes de aplicar Atlas, instale las actualizaciones de Windows y actualice Microsoft Store y todas sus aplicaciones instaladas. Las aplicaciones de Store pueden cerrarse durante la actualización.
 prepare-complete = Windows y las apps de la Store están al día.
 prepare-reboot = Windows necesita reiniciarse. Sus opciones de Atlas se guardarán. Vuelva a buscar actualizaciones cuando inicie sesión.
+# $reasons: los marcadores de reinicio pendiente que dejó Windows, a partir de los nombres prepare-reason-*.
+prepare-reboot-reasons = Windows necesita reiniciarse ({ $reasons }). Sus opciones de Atlas se guardarán. Vuelva a buscar actualizaciones cuando inicie sesión.
+# Se muestra en lugar de otro reinicio cuando Windows vuelve a pedir uno justo después de reiniciar.
+prepare-restart-persists = Windows sigue indicando un reinicio pendiente después de reiniciar ({ $reasons }). Es poco probable que reiniciar de nuevo lo cambie. Abra Windows Update y termine lo que esté pendiente; después, vuelva a buscar actualizaciones. Si no hay nada pendiente, elija Exportar diagnóstico y notifique el problema.
+# Nombres de los marcadores que deja Windows cuando pide un reinicio. Completan
+# "Windows necesita reiniciarse (…)"; cortos y en minúsculas.
+prepare-reason-servicing = mantenimiento de Windows
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = archivos pendientes de reemplazar
+prepare-reason-update-agent = el servicio de Windows Update
+prepare-reason-unknown = motivo no indicado
 prepare-failed = No se pudieron completar algunas actualizaciones. Revise el registro de diagnóstico, resuelva los errores de Windows o la Store e inténtelo de nuevo.
 prepare-cancelled = Se ha detenido la preparación. Vuelva a buscar actualizaciones antes de continuar.
 prepare-windows-search = Buscando actualizaciones de Windows…

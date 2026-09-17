@@ -62,6 +62,38 @@ Describe 'Protected preparation recovery journals' {
         [IO.File]::ReadAllText($temporary) | Should -Be 'existing file'
         (Get-FileHash -LiteralPath $path).Hash | Should -Be $before
     }
+    It 'journals the restart markers a reboot verdict came from' {
+        $JobPath = Join-Path $TestDrive 'restart-reasons'
+        [void][IO.Directory]::CreateDirectory($JobPath)
+        Mock Get-PreparationStateSecurity {
+            $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+            $security = New-Object Security.AccessControl.FileSecurity
+            $security.SetSecurityDescriptorSddlForm("O:${sid}D:P(A;;FA;;;${sid})")
+            return $security
+        }
+        Mock Get-ItemProperty { [pscustomobject]@{CurrentBuildNumber='26200'; UBR=9278} }
+        Write-PreparationState reboot windows-install -Detail @{ restartReasons = @('servicing', 'file-renames') }
+        $record = Get-Content -LiteralPath (Join-Path $JobPath 'state.json') -Raw | ConvertFrom-Json
+        $record.status | Should -Be 'reboot'
+        @($record.activity.restartReasons) | Should -Be @('servicing', 'file-renames')
+    }
+}
+
+Describe 'Restart markers' {
+    It 'names every registry marker it saw rather than stopping at the first' {
+        Mock Test-Path { $LiteralPath -like '*Component Based Servicing*' }
+        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = [string[]]@('\??\C:\old.dll', '') } }
+        Mock New-Object { [pscustomobject]@{ RebootRequired = $false } } -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
+        Test-PreparationRestart | Should -BeTrue
+        $script:PreparationRestartReasons | Should -Be @('servicing', 'file-renames')
+    }
+    It 'reports no restart when no marker is set' {
+        Mock Test-Path { $false }
+        Mock Get-ItemProperty { [pscustomobject]@{} }
+        Mock New-Object { [pscustomobject]@{ RebootRequired = $false } } -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
+        Test-PreparationRestart | Should -BeFalse
+        @($script:PreparationRestartReasons).Count | Should -Be 0
+    }
 }
 
 Describe 'Live preparation verification without installing updates' {

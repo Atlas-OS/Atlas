@@ -555,7 +555,21 @@ impl InstallPage {
             State::Resumed => t!("prepare-resumed"),
             State::SavingRestart => t!("prepare-saving-restart"),
             State::Ready => t!("prepare-complete"),
-            State::Reboot | State::Restarting => t!("prepare-reboot"),
+            State::Reboot | State::Restarting => {
+                let reasons = state
+                    .preparation_progress
+                    .as_ref()
+                    .map(|progress| progress.activity.restart_reasons.as_slice())
+                    .unwrap_or(&[]);
+                if reasons.is_empty() {
+                    t!("prepare-reboot")
+                } else {
+                    t!("prepare-reboot-reasons", reasons = describe::restart_reasons(reasons))
+                }
+            }
+            State::RestartPersists { reasons } => {
+                t!("prepare-restart-persists", reasons = describe::restart_reasons(reasons))
+            }
             State::Failed => t!("prepare-failed"),
             State::Cancelled => t!("prepare-cancelled"),
             State::Network => t!("prepare-network-needed"),

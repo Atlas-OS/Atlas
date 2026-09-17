@@ -23,6 +23,27 @@ pub fn join_list(items: &[String]) -> String {
     items.join(&separator)
 }
 
+/// The user-facing name of a pending-restart marker id reported by the
+/// checks or the preparation worker. An id this build does not know is shown
+/// as it came, so a newer worker still says something.
+pub fn restart_reason(id: &str) -> String {
+    match id {
+        "servicing" => t!("prepare-reason-servicing"),
+        "windows-update" => t!("prepare-reason-windows-update"),
+        "file-renames" => t!("prepare-reason-file-renames"),
+        "update-agent" => t!("prepare-reason-update-agent"),
+        other => other.to_owned(),
+    }
+}
+
+pub fn restart_reasons(ids: &[String]) -> String {
+    if ids.is_empty() {
+        return t!("prepare-reason-unknown");
+    }
+    let names: Vec<String> = ids.iter().map(|id| restart_reason(id)).collect();
+    join_list(&names)
+}
+
 /// Joins alternatives: "26100 or 26200".
 pub fn join_or(items: &[String]) -> String {
     let mut iter = items.iter();
@@ -111,7 +132,10 @@ impl CheckDetail {
             }
             CheckDetail::UpdatesUnknown { error } => t!("detail-updates-unknown", error = error),
             CheckDetail::RebootNone => t!("detail-reboot-none"),
-            CheckDetail::RebootPending => t!("detail-reboot-pending"),
+            CheckDetail::RebootPending { reasons } if reasons.is_empty() => t!("detail-reboot-pending"),
+            CheckDetail::RebootPending { reasons } => {
+                t!("detail-reboot-pending-reasons", reasons = restart_reasons(reasons))
+            }
             CheckDetail::RebootUnknown { error } => t!("detail-reboot-unknown", error = error),
             CheckDetail::AntivirusNone => t!("detail-antivirus-none"),
             CheckDetail::AntivirusFound { products } => {

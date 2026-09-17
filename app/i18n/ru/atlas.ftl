@@ -283,6 +283,8 @@ detail-updates-pending =
 detail-updates-unknown = Не удалось проверить обновления Windows. Откройте Центр обновления Windows и, если ожидающих установки обновлений нет, подтвердите это ниже. ({ $error })
 detail-reboot-none = Сейчас Windows не требует перезагрузки.
 detail-reboot-pending = Перезагрузите ПК, чтобы завершить предыдущие изменения, затем снова откройте Atlas и проверьте снова.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = Перезагрузите ПК, чтобы завершить предыдущие изменения ({ $reasons }), затем снова откройте Atlas и проверьте снова.
 detail-reboot-unknown = Не удалось проверить, нужна ли Windows перезагрузка. Перезагрузите ПК, затем снова откройте Atlas и повторите проверку. ({ $error })
 detail-antivirus-none = Других антивирусов не обнаружено.
 # $products is a list of product names (text).
@@ -669,6 +671,17 @@ prepare-title = Обновление Windows и приложений Store
 prepare-description = Перед применением Atlas установите обновления Windows и обновите Microsoft Store и все установленные приложения из него. Приложения из Store могут закрыться во время обновления.
 prepare-complete = Windows и приложения Store обновлены.
 prepare-reboot = Требуется перезагрузка Windows. Ваши настройки Atlas будут сохранены. После входа снова проверьте обновления.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Требуется перезагрузка Windows ({ $reasons }). Ваши настройки Atlas будут сохранены. После входа снова проверьте обновления.
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = После перезагрузки Windows по-прежнему сообщает об ожидающей перезагрузке ({ $reasons }). Повторная перезагрузка вряд ли это изменит. Откройте Центр обновления Windows и завершите всё, что ожидает установки, затем снова проверьте обновления. Если ничего не ожидает, экспортируйте диагностику и сообщите о проблеме.
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Требуется перезагрузка Windows (…)"; keep them short and lower case where the language allows.
+prepare-reason-servicing = обслуживание Windows
+prepare-reason-windows-update = Центр обновления Windows
+prepare-reason-file-renames = ожидающие замены файлы
+prepare-reason-update-agent = служба Центра обновления Windows
+prepare-reason-unknown = причина не указана
 prepare-failed = Не удалось завершить некоторые обновления. Проверьте журнал диагностики, устраните ошибки Windows или Store и повторите попытку.
 prepare-cancelled = Подготовка остановлена. Перед продолжением снова проверьте обновления.
 prepare-windows-search = Проверка обновлений Windows…

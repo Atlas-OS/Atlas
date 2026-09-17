@@ -101,16 +101,33 @@ pub enum CheckDetail {
     EditionUnsupported,
     WindowsPreview,
     WindowsReleaseUnknown,
-    BuildUnsupported { supported: Vec<u32>, actual: u32 },
+    BuildUnsupported {
+        supported: Vec<u32>,
+        actual: u32,
+    },
     UpdatesNone,
-    UpdatesPending { titles: Vec<String> },
-    UpdatesUnknown { error: String },
+    UpdatesPending {
+        titles: Vec<String>,
+    },
+    UpdatesUnknown {
+        error: String,
+    },
     RebootNone,
-    RebootPending,
-    RebootUnknown { error: String },
+    /// Marker ids as the preparation worker names them: `servicing`,
+    /// `windows-update`, `file-renames`.
+    RebootPending {
+        reasons: Vec<String>,
+    },
+    RebootUnknown {
+        error: String,
+    },
     AntivirusNone,
-    AntivirusFound { products: Vec<String> },
-    AntivirusUnknown { error: String },
+    AntivirusFound {
+        products: Vec<String>,
+    },
+    AntivirusUnknown {
+        error: String,
+    },
     InternetOk,
     InternetMissing,
     PowerMains,
@@ -119,7 +136,9 @@ pub enum CheckDetail {
     ActivationOk,
     ActivationMissing,
     ActivationNoLicence,
-    ActivationUnknown { error: String },
+    ActivationUnknown {
+        error: String,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -186,7 +205,10 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
         },
         CheckId::PendingReboot => match reboot_reasons() {
             Ok(reasons) if reasons.is_empty() => (Verdict::Pass, D::RebootNone),
-            Ok(_) => (Verdict::Fail, D::RebootPending),
+            Ok(reasons) => (
+                Verdict::Fail,
+                D::RebootPending { reasons: reasons.iter().map(|r| (*r).to_owned()).collect() },
+            ),
             Err(error) => (Verdict::Unknown, D::RebootUnknown { error: format!("{error:#}") }),
         },
         CheckId::ThirdPartyAntivirus => match third_party_antivirus() {
@@ -228,19 +250,19 @@ fn reboot_reasons() -> Result<Vec<&'static str>> {
         LOCAL_MACHINE,
         r"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
     )? {
-        reasons.push("component servicing");
+        reasons.push("servicing");
     }
     if key_present(
         LOCAL_MACHINE,
         r"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired",
     )? {
-        reasons.push("Windows Update");
+        reasons.push("windows-update");
     }
     let session_manager = LOCAL_MACHINE
         .open(r"SYSTEM\CurrentControlSet\Control\Session Manager")
         .context("open Session Manager")?;
     if pending_file_renames(&session_manager)? {
-        reasons.push("file renames");
+        reasons.push("file-renames");
     }
     Ok(reasons)
 }

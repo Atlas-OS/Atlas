@@ -280,6 +280,8 @@ detail-updates-pending =
 detail-updates-unknown = Não foi possível verificar se há atualizações do Windows. Abra o Windows Update e, se não houver atualizações aguardando, confirme abaixo. ({ $error })
 detail-reboot-none = O Windows não precisa ser reiniciado agora.
 detail-reboot-pending = Reinicie o PC para concluir alterações anteriores. Depois, reabra o Atlas e verifique novamente.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = Reinicie o PC para concluir alterações anteriores ({ $reasons }). Depois, reabra o Atlas e verifique novamente.
 detail-reboot-unknown = Não foi possível verificar se o Windows precisa ser reiniciado. Reinicie o PC, reabra o Atlas e verifique novamente. ({ $error })
 detail-antivirus-none = Nenhum outro antivírus foi detectado.
 # $products is a list of product names (text).
@@ -664,6 +666,17 @@ prepare-title = Atualizar o Windows e os apps da Store
 prepare-description = Antes de aplicar o Atlas, instale as atualizações do Windows e atualize a Microsoft Store e todos os apps instalados por ela. Os apps da Store podem ser fechados durante as atualizações.
 prepare-complete = O Windows e os apps da Store estão atualizados.
 prepare-reboot = O Windows precisa reiniciar. Suas escolhas no Atlas serão salvas. Busque atualizações novamente depois de entrar na sua conta.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = O Windows precisa reiniciar ({ $reasons }). Suas escolhas no Atlas serão salvas. Busque atualizações novamente depois de entrar na sua conta.
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = O Windows ainda informa uma reinicialização pendente depois de reiniciar ({ $reasons }). Reiniciar de novo provavelmente não vai mudar isso. Abra o Windows Update e conclua o que estiver aguardando; depois, busque atualizações novamente. Se não houver nada aguardando, escolha Exportar diagnóstico e relate o problema.
+# Names of the markers Windows sets when it wants a restart. They complete
+# "O Windows precisa reiniciar (…)"; keep them short and lower case.
+prepare-reason-servicing = manutenção do Windows
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = arquivos aguardando substituição
+prepare-reason-update-agent = o serviço do Windows Update
+prepare-reason-unknown = motivo não informado
 prepare-failed = Algumas atualizações não foram concluídas. Consulte o log de diagnóstico, resolva os erros do Windows ou da Store e tente novamente.
 prepare-cancelled = A preparação foi interrompida. Busque atualizações novamente antes de continuar.
 prepare-windows-search = Buscando atualizações do Windows…

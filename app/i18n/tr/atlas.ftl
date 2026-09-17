@@ -288,6 +288,8 @@ detail-updates-pending =
 detail-updates-unknown = Windows güncelleştirmeleri denetlenemedi. Windows Update'i açın; bekleyen güncelleştirme yoksa aşağıda onaylayın. ({ $error })
 detail-reboot-none = Windows'un şu anda yeniden başlatılması gerekmiyor.
 detail-reboot-pending = Önceki değişiklikleri tamamlamak için bilgisayarınızı yeniden başlatın, ardından Atlas'ı yeniden açıp yeniden denetleyin.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+detail-reboot-pending-reasons = Önceki değişiklikleri ({ $reasons }) tamamlamak için bilgisayarınızı yeniden başlatın, ardından Atlas'ı yeniden açıp yeniden denetleyin.
 detail-reboot-unknown = Windows'un yeniden başlatılması gerekip gerekmediği denetlenemedi. Bilgisayarınızı yeniden başlatın, ardından Atlas'ı yeniden açıp yeniden denetleyin. ({ $error })
 detail-antivirus-none = Başka bir virüsten koruma yazılımı algılanmadı.
 # $products is a list of product names (text).
@@ -659,6 +661,17 @@ prepare-title = Windows ve Store uygulamalarını güncelleyin
 prepare-description = Atlas’ı uygulamadan önce Windows güncellemelerini yükleyin, Microsoft Store’u ve yüklü tüm Store uygulamalarını güncelleyin. Store uygulamaları güncellenirken kapanabilir.
 prepare-complete = Windows ve Store uygulamaları güncel.
 prepare-reboot = Windows’un yeniden başlatılması gerekiyor. Atlas seçimleriniz kaydedilecek. Oturum açtıktan sonra güncellemeleri yeniden denetleyin.
+# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
+prepare-reboot-reasons = Windows’un yeniden başlatılması gerekiyor ({ $reasons }). Atlas seçimleriniz kaydedilecek. Oturum açtıktan sonra güncellemeleri yeniden denetleyin.
+# Shown instead of another restart when Windows asks for one again right after restarting.
+prepare-restart-persists = Windows, yeniden başlatıldıktan sonra hâlâ bekleyen bir yeniden başlatma bildiriyor ({ $reasons }). Yeniden başlatmayı tekrarlamak büyük olasılıkla bunu değiştirmez. Windows Update’i açın ve bekleyen işlemleri tamamlayın, ardından güncellemeleri yeniden denetleyin. Bekleyen bir şey yoksa tanı bilgilerini dışa aktarın ve sorunu bildirin.
+# Names of the markers Windows sets when it wants a restart. They complete
+# "Windows’un yeniden başlatılması gerekiyor (…)"; keep them short and lower case where the language allows.
+prepare-reason-servicing = Windows bileşen bakımı
+prepare-reason-windows-update = Windows Update
+prepare-reason-file-renames = değiştirilmeyi bekleyen dosyalar
+prepare-reason-update-agent = Windows Update hizmeti
+prepare-reason-unknown = neden bildirilmedi
 prepare-failed = Bazı güncellemeler tamamlanamadı. Tanılama günlüğünü inceleyin, Windows veya Store hatalarını giderin ve yeniden deneyin.
 prepare-cancelled = Hazırlık durduruldu. Devam etmeden önce güncellemeleri yeniden denetleyin.
 prepare-windows-search = Windows güncellemeleri denetleniyor…
