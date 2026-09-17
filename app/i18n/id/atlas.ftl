@@ -372,6 +372,9 @@ playbook-page-browser-brave-description = Pilih browser untuk diinstal. Atlas ti
 security-banner-reading-title = Memeriksa Keamanan Windows
 security-banner-reading-message = Atlas sedang memeriksa empat pengaturan perlindungan di bawah.
 security-banner-off-title = Keempat pengaturan perlindungan sudah nonaktif
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = Microsoft Defender tidak terinstal di PC ini
+security-banner-absent-message = Penginstalan Atlas sebelumnya sudah menghapusnya, jadi tidak ada yang perlu dinonaktifkan di sini. Lanjutkan saat Anda siap.
 security-banner-off-message = Sekarang Anda dapat meninjau pilihan sebelum menginstal.
 security-banner-readable-off-title = Pengaturan yang berhasil diperiksa Atlas sudah nonaktif
 security-banner-readable-off-message = Periksa pengaturan lainnya di Keamanan Windows.

@@ -369,6 +369,9 @@ playbook-page-browser-brave-description = Elija un navegador para instalar. Atla
 security-banner-reading-title = Comprobando Seguridad de Windows
 security-banner-reading-message = Atlas está comprobando los cuatro interruptores de protección de abajo.
 security-banner-off-title = Los cuatro interruptores de protección están desactivados
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = Microsoft Defender no está instalado en este equipo
+security-banner-absent-message = Una instalación anterior de Atlas lo quitó, así que aquí no hay nada que desactivar. Continúe cuando lo desee.
 security-banner-off-message = Ya puede revisar sus preferencias antes de instalar.
 security-banner-readable-off-title = Los interruptores que Atlas pudo comprobar están desactivados
 security-banner-readable-off-message = Compruebe los demás interruptores en Seguridad de Windows.

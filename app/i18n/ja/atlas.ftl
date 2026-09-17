@@ -367,6 +367,9 @@ playbook-page-browser-brave-description = インストールするブラウザ�
 security-banner-reading-title = Windows セキュリティを確認しています
 security-banner-reading-message = Atlas が下の 4 つの保護スイッチを確認しています。
 security-banner-off-title = 4 つの保護スイッチはすべてオフです
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = この PC に Microsoft Defender はインストールされていません
+security-banner-absent-message = 以前の Atlas のインストールで削除されているため、ここでオフにするものはありません。準備ができたら続行してください。
 security-banner-off-message = インストール前に、選択した設定を確認できます。
 security-banner-readable-off-title = 読み取れたスイッチはオフです
 security-banner-readable-off-message = 残りのスイッチを Windows セキュリティで確認してください。

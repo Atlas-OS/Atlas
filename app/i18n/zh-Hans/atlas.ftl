@@ -362,6 +362,9 @@ playbook-page-browser-brave-description = 选择要安装的浏览器。Atlas �
 security-banner-reading-title = 正在检查 Windows 安全中心
 security-banner-reading-message = Atlas 正在检查下方的四个防护开关。
 security-banner-off-title = 四个防护开关均已关闭
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = 这台电脑未安装 Microsoft Defender
+security-banner-absent-message = 之前的 Atlas 安装已将其移除，因此这里没有需要关闭的项目。准备好后即可继续。
 security-banner-off-message = 现在可以在安装前核对你的选择了。
 security-banner-readable-off-title = Atlas 能读取的开关均已关闭
 security-banner-readable-off-message = 请在 Windows 安全中心检查其余开关。

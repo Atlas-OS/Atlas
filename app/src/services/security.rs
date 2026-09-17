@@ -5,6 +5,9 @@
 use windows_registry::{Key, LOCAL_MACHINE};
 
 const DEFENDER: &str = r"SOFTWARE\Microsoft\Windows Defender";
+/// Atlas removes the Defender service together with Defender; a PC where an
+/// earlier install did so has no switches to turn off.
+const WINDEFEND_SERVICE: &str = r"SYSTEM\CurrentControlSet\Services\WinDefend";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Switch {
@@ -46,6 +49,9 @@ pub struct SecurityStatus {
     pub real_time_protection: Switch,
     pub cloud_delivered: Switch,
     pub sample_submission: Switch,
+    /// False only when the Defender service is known to be gone (an earlier
+    /// Atlas install removed it); an unreadable service key counts as present.
+    pub defender_present: bool,
 }
 
 impl Default for SecurityStatus {
@@ -55,6 +61,7 @@ impl Default for SecurityStatus {
             real_time_protection: Switch::Unknown,
             cloud_delivered: Switch::Unknown,
             sample_submission: Switch::Unknown,
+            defender_present: true,
         }
     }
 }
@@ -106,6 +113,8 @@ impl SecurityStatus {
 
     /// Reads every switch. Cheap enough to poll once a second.
     pub fn read() -> Self {
+        let defender_present =
+            !matches!(super::requirements::key_present(LOCAL_MACHINE, WINDEFEND_SERVICE), Ok(false));
         let root = LOCAL_MACHINE.open(DEFENDER).ok();
         let open = |name: &str| root.as_ref().and_then(|root| root.open(name).ok());
         let features = open("Features");
@@ -134,6 +143,7 @@ impl SecurityStatus {
                 .and_then(|key| key.get_u32("SubmitSamplesConsent").ok())
                 .map(sample_submission_switch)
                 .unwrap_or(Switch::Unknown),
+            defender_present,
         }
     }
 }
@@ -203,6 +213,7 @@ mod tests {
             real_time_protection: Switch::Off,
             cloud_delivered: Switch::Unknown,
             sample_submission: Switch::Unknown,
+            defender_present: true,
         };
         assert_eq!(status.counts(), SwitchCounts { off: 2, on: 0, unknown: 2 });
         assert!(!status.all_off());
@@ -218,6 +229,7 @@ mod tests {
             real_time_protection: Switch::Off,
             cloud_delivered: Switch::Off,
             sample_submission: Switch::Off,
+            defender_present: true,
         };
         assert!(all_off.all_off());
         assert!(!SecurityStatus::default().any_off());

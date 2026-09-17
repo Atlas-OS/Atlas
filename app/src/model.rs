@@ -2748,7 +2748,10 @@ pub fn security_verified(
     confirmation: Option<SecurityStatus>,
     elevated: bool,
 ) -> bool {
-    status.all_off() || (elevated && confirmation == Some(*status) && status.off_where_readable())
+    // No Defender, no switches: an earlier Atlas install removed it.
+    !status.defender_present
+        || status.all_off()
+        || (elevated && confirmation == Some(*status) && status.off_where_readable())
 }
 
 /// The last decision before the child starts, from the readings taken a

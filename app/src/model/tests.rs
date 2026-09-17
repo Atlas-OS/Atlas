@@ -299,6 +299,7 @@ fn all_off() -> SecurityStatus {
         real_time_protection: Switch::Off,
         cloud_delivered: Switch::Off,
         sample_submission: Switch::Off,
+        defender_present: true,
     }
 }
 

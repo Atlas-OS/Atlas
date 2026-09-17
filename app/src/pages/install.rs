@@ -986,6 +986,11 @@ impl InstallPage {
                 t!("security-banner-reading-title"),
                 t!("security-banner-reading-message"),
             ),
+            SecurityBanner::Absent => InfoBar::new(
+                Severity::Success,
+                t!("security-banner-absent-title"),
+                t!("security-banner-absent-message"),
+            ),
             SecurityBanner::AllOff => InfoBar::new(
                 Severity::Success,
                 t!("security-banner-off-title"),
@@ -1130,6 +1135,10 @@ impl InstallPage {
         });
 
         let mut cards = vec![banner.into_any_element()];
+        // Without Defender there are no switches to list or to confirm.
+        if security_banner(&status, fresh) == SecurityBanner::Absent {
+            return cards;
+        }
         cards.push(
             card(cx)
                 .child(card_header(
@@ -1731,6 +1740,8 @@ impl InstallPage {
 enum SecurityBanner {
     /// The first reading has not arrived yet.
     Reading,
+    /// The Defender service is gone (an earlier Atlas install removed it).
+    Absent,
     /// All four switches read off.
     AllOff,
     /// At least one switch read off, none read on, and the rest could not be
@@ -1745,6 +1756,8 @@ fn security_banner(status: &crate::services::security::SecurityStatus, fresh: bo
     let counts = status.counts();
     if !fresh {
         SecurityBanner::Reading
+    } else if !status.defender_present {
+        SecurityBanner::Absent
     } else if status.all_off() {
         SecurityBanner::AllOff
     } else if counts.on == 0 && counts.off > 0 {
@@ -1826,6 +1839,7 @@ mod tests {
             real_time_protection: switches[1],
             cloud_delivered: switches[2],
             sample_submission: switches[3],
+            defender_present: true,
         }
     }
 
@@ -1844,5 +1858,10 @@ mod tests {
         // No switch could be read: "the switches Atlas could check are off"
         // would describe a check that never happened.
         assert_eq!(security_banner(&nothing_readable, true), SecurityBanner::TurnOff);
+        // Defender removed by an earlier install: nothing to read, nothing to turn off.
+        let removed = SecurityStatus { defender_present: false, ..nothing_readable };
+        assert_eq!(security_banner(&removed, false), SecurityBanner::Reading);
+        assert_eq!(security_banner(&removed, true), SecurityBanner::Absent);
+        assert!(crate::model::security_verified(&removed, None, false));
     }
 }

@@ -372,6 +372,9 @@ playbook-page-browser-brave-description = Выберите браузер для
 security-banner-reading-title = Проверка параметров защиты
 security-banner-reading-message = Atlas проверяет четыре переключателя защиты, перечисленные ниже.
 security-banner-off-title = Все четыре переключателя защиты отключены
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = Microsoft Defender не установлен на этом ПК
+security-banner-absent-message = Его удалила предыдущая установка Atlas, поэтому здесь нечего отключать. Продолжайте, когда будете готовы.
 security-banner-off-message = Теперь можно проверить выбранные настройки перед установкой.
 security-banner-readable-off-title = Переключатели, которые Atlas удалось проверить, отключены
 security-banner-readable-off-message = Проверьте остальные переключатели в приложении «Безопасность Windows».

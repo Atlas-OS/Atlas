@@ -378,6 +378,9 @@ playbook-page-browser-brave-description = Choose a browser to install. Atlas won
 security-banner-reading-title = Checking Windows Security
 security-banner-reading-message = Atlas is checking the four protection switches below.
 security-banner-off-title = The four protection switches are off
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = Microsoft Defender isn't installed on this PC
+security-banner-absent-message = An earlier Atlas installation removed it, so there's nothing to turn off here. Continue when you're ready.
 security-banner-off-message = You can now review your choices before installing.
 
 security-banner-readable-off-title = The switches Atlas could check are off

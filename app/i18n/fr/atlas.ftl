@@ -365,6 +365,9 @@ playbook-page-browser-brave-description = Choisissez un navigateur à installer.
 security-banner-reading-title = Vérification de Sécurité Windows
 security-banner-reading-message = Atlas vérifie les quatre paramètres de protection ci-dessous.
 security-banner-off-title = Les quatre paramètres de protection sont désactivés
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = Microsoft Defender n’est pas installé sur ce PC
+security-banner-absent-message = Une installation précédente d’Atlas l’a supprimé, il n’y a donc rien à désactiver ici. Continuez quand vous le souhaitez.
 security-banner-off-message = Vous pouvez maintenant revoir vos choix avant l’installation.
 security-banner-readable-off-title = Les paramètres qu’Atlas a pu vérifier sont désactivés
 security-banner-readable-off-message = Vérifiez les autres paramètres dans Sécurité Windows.

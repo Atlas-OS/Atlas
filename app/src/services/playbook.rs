@@ -489,23 +489,43 @@ fn is_reparse_point(metadata: &fs::Metadata) -> bool {
 /// that copy is the package and this staging directory is simply dropped; a
 /// path occupied by anything else is left alone and the next name tried.
 fn publish(staging: &Path, root: &Path, identity: &PackageIdentity) -> Result<PathBuf> {
+    // A move refused while nothing sits at the destination is a lock on the
+    // staging tree (a scanner reading the freshly unpacked files), not an
+    // occupied name; it is retried for a while before being reported as such.
+    const LOCK_ATTEMPTS: u32 = 40;
+    const LOCK_PAUSE: Duration = Duration::from_millis(500);
+    let mut locked_attempts = 0;
     for candidate in candidates(root, identity) {
         if holds(&candidate, identity) {
             let _ = fs::remove_dir_all(staging);
             return Ok(candidate);
         }
-        match move_without_replacing(staging, &candidate) {
-            Ok(()) => return Ok(candidate),
-            // Taken (at the check, or since): by a concurrent extractor of
-            // the same bytes (reuse it) or by something else (next name).
-            Err(Occupied) => {
-                if holds(&candidate, identity) {
-                    let _ = fs::remove_dir_all(staging);
-                    return Ok(candidate);
+        loop {
+            match move_without_replacing(staging, &candidate) {
+                Ok(()) => return Ok(candidate),
+                // Taken (at the check, or since): by a concurrent extractor of
+                // the same bytes (reuse it) or by something else (next name).
+                Err(Occupied) if candidate.exists() => {
+                    if holds(&candidate, identity) {
+                        let _ = fs::remove_dir_all(staging);
+                        return Ok(candidate);
+                    }
+                    break;
                 }
-            }
-            Err(Failed(error)) => {
-                return Err(error).with_context(|| format!("publish {}", candidate.display()));
+                Err(Occupied) => {
+                    locked_attempts += 1;
+                    if locked_attempts >= LOCK_ATTEMPTS {
+                        anyhow::bail!(
+                            "the unpacked package under {} could not be moved into place: Windows refused the move for {} seconds, so another program is probably still reading it",
+                            staging.display(),
+                            LOCK_ATTEMPTS as u64 * LOCK_PAUSE.as_millis() as u64 / 1000
+                        );
+                    }
+                    std::thread::sleep(LOCK_PAUSE);
+                }
+                Err(Failed(error)) => {
+                    return Err(error).with_context(|| format!("publish {}", candidate.display()));
+                }
             }
         }
     }
@@ -843,6 +863,35 @@ mod tests {
         let total = seen.last().unwrap().1;
         assert_eq!(seen.len(), total);
         assert_eq!(seen.last().unwrap().0, total);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_move_refused_by_an_open_handle_is_retried_rather_than_called_occupied() {
+        let temp = TempDir::new("playbook-locked");
+        let package = apbx::write(&temp.path().join("valid.apbx"), &apbx::valid("0.6.0"));
+        let root = temp.path().join("Playbooks");
+        fs::create_dir_all(&root).unwrap();
+        let staging = create_unique_dir(&root, &format!("{STAGING_PREFIX}0.6.0-")).unwrap();
+        // A tree that would publish, with one of its files held open the way a
+        // scanner holds a freshly written file.
+        fs::write(staging.join("scanned.txt"), "contents").unwrap();
+        let held = fs::File::open(staging.join("scanned.txt")).unwrap();
+        let identity = PackageIdentity { version: "0.6.0".into(), sha256: sha256_file(&package).unwrap() };
+        let expected = root.join(identity.directory_name());
+        assert!(
+            matches!(move_without_replacing(&staging, &expected), Err(Occupied)),
+            "a held file refuses the move"
+        );
+        let publisher = {
+            let (staging, root, identity) = (staging.clone(), root.clone(), identity.clone());
+            std::thread::spawn(move || publish(&staging, &root, &identity))
+        };
+        std::thread::sleep(Duration::from_millis(1200));
+        drop(held);
+        let published = publisher.join().unwrap().unwrap();
+        assert_eq!(published, expected);
+        assert!(published.join("scanned.txt").is_file());
     }
 
     #[test]

@@ -374,6 +374,9 @@ playbook-page-browser-brave-description = Wybierz przeglądarkę do zainstalowan
 security-banner-reading-title = Sprawdzanie Zabezpieczeń Windows
 security-banner-reading-message = Atlas sprawdza cztery poniższe przełączniki ochrony.
 security-banner-off-title = Cztery przełączniki ochrony są wyłączone
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = Microsoft Defender nie jest zainstalowany na tym komputerze
+security-banner-absent-message = Wcześniejsza instalacja Atlasa go usunęła, więc nie ma tu nic do wyłączenia. Kontynuuj, kiedy zechcesz.
 security-banner-off-message = Możesz teraz przejrzeć wybrane ustawienia przed instalacją.
 security-banner-readable-off-title = Przełączniki, które Atlas mógł sprawdzić, są wyłączone
 security-banner-readable-off-message = Sprawdź pozostałe przełączniki w Zabezpieczeniach Windows.

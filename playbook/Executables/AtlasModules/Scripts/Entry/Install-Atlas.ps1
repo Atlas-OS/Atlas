@@ -92,6 +92,12 @@ function Get-AtlasDeclaredRequirement([xml]$Playbook) {
     }
 }
 
+function Test-AtlasDefenderPresent {
+    # Atlas removes the Defender service together with Defender; a PC where an
+    # earlier install did so has no switches to turn off.
+    return [bool](Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\WinDefend')
+}
+
 function Test-AtlasDefenderPrepared {
     $base = 'HKLM:\SOFTWARE\Microsoft\Windows Defender'
     $features = Get-ItemProperty -LiteralPath ($base + '\Features') -Name TamperProtection -ErrorAction Stop
@@ -234,7 +240,15 @@ function Test-AtlasInstallRequirement {
     if ($DeclaredRequirements -contains 'DefenderToggled') {
         $defenderPassed = $false
         $defenderDetail = 'turn off the four Windows Security switches shown by Atlas before installation'
-        try { $defenderPassed = Test-AtlasDefenderPrepared }
+        try {
+            if (Test-AtlasDefenderPresent) {
+                $defenderPassed = Test-AtlasDefenderPrepared
+            }
+            else {
+                $defenderPassed = $true
+                $defenderDetail = 'Microsoft Defender is not installed on this PC; an earlier Atlas install removed it, so there is nothing to turn off'
+            }
+        }
         catch { $defenderDetail = "Windows Security could not be checked: $($_.Exception.Message)" }
         $results += [pscustomobject]@{ Name='Windows Security'; Passed=$defenderPassed; Blocking=$true; Detail=$defenderDetail }
     }

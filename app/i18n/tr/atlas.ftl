@@ -377,6 +377,9 @@ playbook-page-browser-brave-description = Yüklenecek bir tarayıcı seçin. Atl
 security-banner-reading-title = Windows Güvenliği denetleniyor
 security-banner-reading-message = Atlas aşağıdaki dört koruma anahtarını denetliyor.
 security-banner-off-title = Dört koruma anahtarı da kapalı
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = Microsoft Defender bu bilgisayarda yüklü değil
+security-banner-absent-message = Önceki bir Atlas kurulumu onu kaldırdı, bu yüzden burada kapatılacak bir şey yok. Hazır olduğunuzda devam edin.
 security-banner-off-message = Artık kurulumdan önce seçimlerinizi gözden geçirebilirsiniz.
 security-banner-readable-off-title = Atlas'ın denetleyebildiği anahtarlar kapalı
 security-banner-readable-off-message = Kalan anahtarları Windows Güvenliği'nde denetleyin.

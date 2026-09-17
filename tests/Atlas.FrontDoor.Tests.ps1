@@ -23,7 +23,7 @@ BeforeAll {
         }
     }
     foreach ($text in @(Get-ScriptFunctionText -Path $script:SessionScript -Names 'Read-AtlasInstallRequest', 'Assert-AtlasInstallOptionSet') +
-        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity')) {
+        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity')) {
         . ([scriptblock]::Create($text))
     }
     $script:Groups = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookPath)
@@ -333,6 +333,7 @@ Describe 'Front door requirements and staging' {
     It 'blocks enabled or unreadable required Windows Security settings' {
         Mock Test-Path { $false }
         Mock Get-CimInstance { @() }
+        Mock Test-AtlasDefenderPresent { $true }
         Mock Test-AtlasDefenderPrepared { $false }
         $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('DefenderToggled') | Where-Object Name -eq 'Windows Security'
         $result.Passed | Should -BeFalse
@@ -341,6 +342,17 @@ Describe 'Front door requirements and staging' {
         $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('DefenderToggled') | Where-Object Name -eq 'Windows Security'
         $result.Passed | Should -BeFalse
         $result.Detail | Should -Match 'could not be checked'
+    }
+
+    It 'passes the Windows Security requirement when an earlier install removed Defender' {
+        Mock Test-Path { $false }
+        Mock Get-CimInstance { @() }
+        Mock Test-AtlasDefenderPresent { $false }
+        Mock Test-AtlasDefenderPrepared { throw "Cannot find path 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features' because it does not exist." }
+        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('DefenderToggled') | Where-Object Name -eq 'Windows Security'
+        $result.Passed | Should -BeTrue
+        $result.Detail | Should -Match 'not installed'
+        Should -Invoke Test-AtlasDefenderPrepared -Times 0
     }
 
     It 'rejects an unknown declared requirement instead of silently bypassing it' {

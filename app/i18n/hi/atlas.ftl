@@ -377,6 +377,9 @@ playbook-page-browser-brave-description = इंस्टॉल करने क
 security-banner-reading-title = Windows सुरक्षा की जाँच हो रही है
 security-banner-reading-message = Atlas नीचे दिए चार सुरक्षा स्विच की जाँच कर रहा है।
 security-banner-off-title = चारों सुरक्षा स्विच बंद हैं
+# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+security-banner-absent-title = इस PC पर Microsoft Defender इंस्टॉल नहीं है
+security-banner-absent-message = पहले की किसी Atlas इंस्टॉलेशन ने इसे हटा दिया था, इसलिए यहाँ बंद करने के लिए कुछ नहीं है। तैयार हों, तो जारी रखें।
 security-banner-off-message = अब आप इंस्टॉल करने से पहले अपने विकल्प देख सकते हैं।
 security-banner-readable-off-title = जिन स्विच की जाँच Atlas कर सका, वे बंद हैं
 security-banner-readable-off-message = बाकी स्विच Windows सुरक्षा में जाँचें।
