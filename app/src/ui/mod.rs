@@ -19,7 +19,7 @@ mod typography;
 
 pub use button::Button;
 pub use card::card;
-pub use completion_backdrop::CompletionBackdrop;
+pub use completion_backdrop::{CompletionBackdrop, KeepOut};
 pub use focus_reveal::Revealed;
 pub use icons::{Icon, icon, icon_in_line, icon_in_line_sized, icon_sized};
 pub use infobar::{InfoBar, Severity};

@@ -345,6 +345,16 @@ float2x2 rotate2d(float angle) {
     return float2x2(c, -s, s, c);
 }
 
+// Atlas: signed distance from `p` to a keep-out rectangle with rounded
+// corners; negative inside. `rect` holds the rectangle's bottom-right corner
+// (xy) and its size (zw), in device pixels from the quad origin.
+float atlas_keep_out_distance(float2 p, float4 rect, float radius) {
+    float2 half_size = rect.zw * .5;
+    radius = min(radius, min(half_size.x, half_size.y));
+    float2 q = abs(p - (rect.xy - half_size)) - half_size + radius;
+    return length(max(q, 0.)) + min(max(q.x, q.y), 0.) - radius;
+}
+
 // Atlas: light through water, printed as a halftone. A domain-warped sum of
 // four sine octaves gives a caustic-like network of bright folds of varying
 // width; every term uses an integer multiple of the phase so the loop has no
@@ -353,9 +363,13 @@ float2x2 rotate2d(float angle) {
 // underneath ties the dots together. No textures or frame-dependent noise.
 //   solid          resting dot colour (alpha included)
 //   colors[0]      glow colour; its percentage carries the dot pitch in device px
-//   colors[1]      lit dot colour
+//   colors[1]      lit dot colour; its percentage carries the keep-out feather in device px
+//   keep0, keep1   keep-out rectangles (bottom-right corner, size; zero size = none):
+//                  the artwork is fully clear inside and fades back in over the
+//                  feather distance outside, so it flows around the page's text
 float4 atlas_flowing_gradient(Background background, float2 position, Bounds bounds,
-                              float4 rest, float4 glow, float4 lit) {
+                              float4 rest, float4 glow, float4 lit,
+                              float4 keep0, float4 keep1) {
     float2 local = position - bounds.origin;
     float2 uv = local / max(bounds.size, float2(1., 1.));
     float2 p = (uv - .5) * float2(bounds.size.x / max(bounds.size.y, 1.), 1.);
@@ -371,10 +385,16 @@ float4 atlas_flowing_gradient(Background background, float2 position, Bounds bou
     w = saturate(w / 1.875 * .5 + .5);
     float light = pow(1. - abs(2. * w - 1.), 1.5);
 
-    // Keep the heading and buttons clear; the light is richest low and at the sides.
-    float edge = smoothstep(.15, .48, abs(uv.x - .5));
-    float depth = smoothstep(.22, .68, uv.y);
-    float mask = .12 + .88 * max(edge * .7, depth);
+    // Keep clear of the text: nothing inside a keep-out rectangle, then a
+    // soft return over the feather distance so the light flows around it.
+    float feather = max(background.colors[1].percentage, 1.);
+    float mask = 1.;
+    if (keep0.z > 0.) {
+        mask *= smoothstep(0., feather, atlas_keep_out_distance(local, keep0, feather * .5));
+    }
+    if (keep1.z > 0.) {
+        mask *= smoothstep(0., feather, atlas_keep_out_distance(local, keep1, feather * .5));
+    }
 
     float pitch = max(background.colors[0].percentage, 2.);
     float2 cell = frac(local / pitch) - .5;
@@ -401,7 +421,9 @@ float4 gradient_color(Background background,
 
     switch (background.tag) {
         case 4:
-            return atlas_flowing_gradient(background, position, bounds, solid_color, color0, color1);
+            // Only quads carry keep-out rectangles; other primitives draw the full field.
+            return atlas_flowing_gradient(background, position, bounds, solid_color, color0, color1,
+                                          float4(0., 0., 0., 0.), float4(0., 0., 0., 0.));
         case 0:
             color = solid_color;
             break;
@@ -613,6 +635,18 @@ QuadVertexOutput quad_vertex(uint vertex_id: SV_VertexID, uint instance_id: SV_I
 
 float4 quad_fragment(QuadFragmentInput input): SV_Target {
     Quad quad = quads[input.quad_id];
+    if (quad.background.tag == 4) {
+        // Atlas: a tag-4 quad draws no border or rounding. Its corner_radii and
+        // border_widths instead carry two keep-out rectangles, each as
+        // (right, bottom, width, height) in device pixels from the quad origin.
+        float4 keep0 = float4(quad.corner_radii.top_left, quad.corner_radii.top_right,
+                              quad.corner_radii.bottom_right, quad.corner_radii.bottom_left);
+        float4 keep1 = float4(quad.border_widths.top, quad.border_widths.right,
+                              quad.border_widths.bottom, quad.border_widths.left);
+        return atlas_flowing_gradient(quad.background, input.position.xy, quad.bounds,
+                                      input.background_solid, input.background_color0,
+                                      input.background_color1, keep0, keep1);
+    }
     float4 background_color = gradient_color(quad.background, input.position.xy, quad.bounds,
     input.background_solid, input.background_color0, input.background_color1);
 

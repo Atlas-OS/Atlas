@@ -14,8 +14,8 @@ use crate::services::system::links;
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{
-    Button, CompletionBackdrop, FocusHandles, Icon, ScrollbarState, Typography, a11y_text, card, icon_sized,
-    scrollbar,
+    Button, CompletionBackdrop, FocusHandles, Icon, KeepOut, ScrollbarState, Typography, a11y_text, card,
+    icon_sized, scrollbar,
 };
 
 pub struct InstalledPage {
@@ -107,6 +107,7 @@ impl Render for InstalledPage {
                 .into_any_element()
         });
 
+        let keep_out = KeepOut::default();
         let column = div()
             .flex()
             .flex_col()
@@ -144,65 +145,81 @@ impl Render for InstalledPage {
                     ),
             )
             .child(
-                div()
-                    .id("installed-heading")
-                    .role(Role::Heading)
-                    .aria_level(1)
-                    .aria_label(title.clone())
-                    .track_focus(&heading_focus.clone().tab_stop(false))
-                    .type_title()
-                    .text_color(theme.text_primary)
-                    .text_center()
-                    .child(title),
-            )
-            .child(
-                div()
-                    .type_body_large()
-                    .text_color(theme.text_secondary)
-                    .text_center()
-                    .child(a11y_text("installed-line", t!("installed-ready"))),
-            )
-            .child(
+                // The text block the artwork keeps clear of; it reports its bounds each frame.
                 div()
                     .flex()
                     .flex_col()
                     .items_center()
-                    .gap(px(8.))
-                    .pt(px(8.))
+                    .gap(px(16.))
+                    .w_full()
+                    .on_children_prepainted(keep_out.record(0))
                     .child(
-                        Button::new("installed-done", t!("common-done"))
-                            .accent()
-                            .on_click(|_, window, _| window.remove_window()),
+                        div()
+                            .id("installed-heading")
+                            .role(Role::Heading)
+                            .aria_level(1)
+                            .aria_label(title.clone())
+                            .track_focus(&heading_focus.clone().tab_stop(false))
+                            .type_title()
+                            .text_color(theme.text_primary)
+                            .text_center()
+                            .child(title),
+                    )
+                    .child(
+                        div()
+                            .type_body_large()
+                            .text_color(theme.text_secondary)
+                            .text_center()
+                            .child(a11y_text("installed-line", t!("installed-ready"))),
                     )
                     .child(
                         div()
                             .flex()
-                            .flex_wrap()
-                            .justify_center()
+                            .flex_col()
+                            .items_center()
                             .gap(px(8.))
+                            .pt(px(8.))
                             .child(
-                                Button::new("installed-docs", t!("common-read-the-docs"))
-                                    .hyperlink()
-                                    .trailing_icon(Icon::OpenInNewWindow)
-                                    .opens(links::DOCS),
+                                Button::new("installed-done", t!("common-done"))
+                                    .accent()
+                                    .on_click(|_, window, _| window.remove_window()),
                             )
                             .child(
-                                Button::new("installed-home", t!("installed-open-atlas"))
-                                    .hyperlink()
-                                    .on_click({
-                                        let model = model.clone();
-                                        move |_, _, cx| model.update(cx, |m, cx| m.navigate(Page::Home, cx))
-                                    }),
+                                div()
+                                    .flex()
+                                    .flex_wrap()
+                                    .justify_center()
+                                    .gap(px(8.))
+                                    .child(
+                                        Button::new("installed-docs", t!("common-read-the-docs"))
+                                            .hyperlink()
+                                            .trailing_icon(Icon::OpenInNewWindow)
+                                            .opens(links::DOCS),
+                                    )
+                                    .child(
+                                        Button::new("installed-home", t!("installed-open-atlas"))
+                                            .hyperlink()
+                                            .on_click({
+                                                let model = model.clone();
+                                                move |_, _, cx| {
+                                                    model.update(cx, |m, cx| m.navigate(Page::Home, cx))
+                                                }
+                                            }),
+                                    ),
                             ),
                     ),
             )
-            .when_some(details, |this, details| this.child(div().w_full().pt(px(16.)).child(details)));
+            .when_some(details, |this, details| {
+                this.child(
+                    div().w_full().pt(px(16.)).on_children_prepainted(keep_out.record(1)).child(details),
+                )
+            });
 
         div()
             .relative()
             .size_full()
             .overflow_hidden()
-            .child(CompletionBackdrop)
+            .child(CompletionBackdrop::new(keep_out))
             .child(
                 div()
                     .id("installed-scroll")

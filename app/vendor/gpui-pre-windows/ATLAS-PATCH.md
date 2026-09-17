@@ -15,26 +15,34 @@ using this output. The prebuilt README records the generating compiler.
 Background tag 4
 adds the completion-page procedural effect. It reuses the 72-byte Background
 layout: solid is the resting dot colour, colors carry the glow and lit dot
-colours, the first percentage carries the dot pitch in device pixels, and
-gradient_angle_or_pattern_height carries phase. The existing quad vertex/pixel
-pipeline, clipping, alpha blending, device-loss recovery, and release shader
-compilation remain in use. Existing background tags keep their original shader
-branches. The effect is Windows-only.
+colours, the first percentage carries the dot pitch in device pixels, the second
+percentage carries the keep-out feather in device pixels, and
+gradient_angle_or_pattern_height carries phase. A tag-4 quad draws no border or
+rounding, so `quad_fragment` returns the effect directly and reads two keep-out
+rectangles from the quad's `corner_radii` and `border_widths`, each as (right,
+bottom, width, height) in device pixels from the quad origin; a zero width means
+none. The existing quad vertex/pixel pipeline, clipping, alpha blending,
+device-loss recovery, and release shader compilation remain in use. Existing
+background tags keep their original shader branches. The effect is Windows-only.
 
 The shader is original Atlas code: light through water printed as a halftone.
 A domain-warped sum of four sine octaves, each on an integer multiple of the
 phase so the loop has no seam, is folded into a caustic-like network of bright
 folds of varying width. That light drives a fixed device-pixel dot grid: dots
 rest tiny and faint, and swell and brighten as a fold passes over them, with a
-soft glow beneath. A mask keeps the heading and buttons clear and lets the
-light gather low and at the sides. No textures or frame-dependent noise.
+soft glow beneath. The artwork is fully clear inside each keep-out rectangle
+(rounded, so it reads as a halo) and returns over the feather distance outside,
+so the light flows around the page's text instead of under it. No textures or
+frame-dependent noise.
 
 `app/src/ui/completion_backdrop.rs` uses one full-size background quad, limits
 updates to 30 fps, animates regardless of the Windows animation setting (Atlas
 turns that setting off, so the page would otherwise always be static), and omits
 artwork in high contrast. The phase closes at 2*pi over 48 seconds. Palette
 colours and alphas come from the app theme; the dot pitch is 11 logical pixels
-scaled by the window's scale factor.
+scaled by the window's scale factor. The completion page reports its text
+column and details card through `Div::on_children_prepainted` each frame; the
+element pads each block by 12 logical pixels and feathers over 48.
 
 When upgrading GPUI, preserve tag/layout agreement with `gpui-pre/src/color.rs`
 and its style dispatch, or replace this extension with upstream custom shader
