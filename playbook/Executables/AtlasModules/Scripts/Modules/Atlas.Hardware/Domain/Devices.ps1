@@ -16,7 +16,13 @@ function Get-AtlasPresentPnpDevice {
 function Set-AtlasPnpDeviceState {
     <#
     .SYNOPSIS
-        Enables or disables one device instance and returns the provider result codes.
+        Enables or disables one device instance. A provider failure is a terminating
+        error; success produces no output.
+    .NOTES
+        Enable-/Disable-PnpDevice report a failed Win32_PnPEntity method through the
+        error stream. -PassThru only echoes the device object, which an earlier
+        version mistook for a result code and then failed to cast on every PC that
+        actually had a Bluetooth device.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -29,11 +35,11 @@ function Set-AtlasPnpDeviceState {
     )
 
     if ($State -ceq 'Enable') {
-        return @(PnpDevice\Enable-PnpDevice -InstanceId $InstanceId -Confirm:$false `
-                -PassThru -ErrorAction Stop)
+        PnpDevice\Enable-PnpDevice -InstanceId $InstanceId -Confirm:$false -ErrorAction Stop | Out-Null
     }
-    return @(PnpDevice\Disable-PnpDevice -InstanceId $InstanceId -Confirm:$false `
-            -PassThru -ErrorAction Stop)
+    else {
+        PnpDevice\Disable-PnpDevice -InstanceId $InstanceId -Confirm:$false -ErrorAction Stop | Out-Null
+    }
 }
 
 function Set-AtlasDeviceState {
@@ -107,19 +113,15 @@ function Set-AtlasDeviceState {
             throw "Matched device '$($device.FriendlyName)' has an invalid instance ID."
         }
 
-        $resultCodes = @(Set-AtlasPnpDeviceState -InstanceId $instanceId -State $State)
-        if ($resultCodes.Count -ne 1 -or [int]$resultCodes[0] -ne 0) {
-            $renderedResult = if ($resultCodes.Count -eq 0) {
-                '<no result>'
-            }
-            else {
-                ($resultCodes | ForEach-Object { [string]$_ }) -join ', '
-            }
-            throw ("{0}ing device '{1}' ({2}) returned WMI result '{3}'." -f `
+        try {
+            Set-AtlasPnpDeviceState -InstanceId $instanceId -State $State | Out-Null
+        }
+        catch {
+            throw ("{0}ing device '{1}' ({2}) failed: {3}" -f `
                     $verb,
                     [string]$device.FriendlyName,
                     $instanceId,
-                    $renderedResult)
+                    $_.Exception.Message)
         }
     }
 

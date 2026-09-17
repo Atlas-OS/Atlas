@@ -313,6 +313,20 @@ Describe 'Set-AtlasDeviceState' {
         }
     }
 
+    It 'treats whatever the provider echoes as success and only a thrown error as failure' {
+        # The inbox cmdlets echo the device object at most; the RFCOMM entity below
+        # is what a real PC returned when the result was mistaken for an integer.
+        Mock Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware {
+            New-PnpDevice -FriendlyName 'Bluetooth Device (RFCOMM Protocol TDI)' -InstanceId 'BTH\MS_RFCOMM\9&123F897D&0&0'
+        }
+        { Set-AtlasDeviceState -State Enable -Devices '*Bluetooth*' -Silent } | Should -Not -Throw
+        Should -Invoke Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware -Times 2 -Exactly
+
+        Mock Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware { throw 'Generic failure' }
+        { Set-AtlasDeviceState -State Enable -Devices '*RFCOMM*' -Silent } |
+            Should -Throw "*Enabling device 'Bluetooth Device (RFCOMM)' (BTH\MS_RFCOMM\BT2) failed: Generic failure*"
+    }
+
     It 'fails without a match unless AllowNoMatch is given' {
         { Set-AtlasDeviceState -State Disable -Devices '*Thunderbolt*' -Silent } |
             Should -Throw '*No present devices matched: *Thunderbolt*'
@@ -332,11 +346,11 @@ Describe 'Set-AtlasDeviceState' {
         }
     }
 
-    It 'reports a nonzero provider result and stops at that device' {
-        Mock Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware { @(5) }
+    It 'reports a provider failure and stops at that device' {
+        Mock Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware { throw 'Generic failure (5)' }
 
         { Set-AtlasDeviceState -State Disable -Devices '*Bluetooth*' -Silent } |
-            Should -Throw "*Disabling device 'Intel Bluetooth Adapter'*returned WMI result '5'*"
+            Should -Throw "*Disabling device 'Intel Bluetooth Adapter'*failed: Generic failure (5)*"
 
         Should -Invoke Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware -Times 1 -Exactly
     }
