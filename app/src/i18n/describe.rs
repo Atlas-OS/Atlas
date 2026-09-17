@@ -145,6 +145,9 @@ impl CheckDetail {
             CheckDetail::AntivirusFound { products } => {
                 t!("detail-antivirus-found", products = join_list(products))
             }
+            CheckDetail::AntivirusStale { products } => {
+                t!("detail-antivirus-stale", products = join_list(products))
+            }
             CheckDetail::AntivirusUnknown { error } => t!("detail-antivirus-unknown", error = error),
             CheckDetail::InternetOk => t!("detail-internet-ok"),
             CheckDetail::InternetMissing => t!("detail-internet-missing"),

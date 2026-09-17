@@ -296,6 +296,8 @@ detail-reboot-unknown = Windows'un yeniden başlatılması gerekip gerekmediği 
 detail-antivirus-none = Başka bir virüsten koruma yazılımı algılanmadı.
 # $products is a list of product names (text).
 detail-antivirus-found = Virüsten koruma yazılımı kurulumu engelleyebilir: { $products }. Devam etmeden önce bu yazılımı kaldırın.
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = Windows Güvenliği { $products } yazılımını hâlâ listeliyor, ancak dosyaları artık yok; yani artık yüklü değil. Atlas yine de yüklenebilir.
 detail-antivirus-unknown = Diğer virüsten koruma yazılımları denetlenemedi. Devam etmeden önce yüklü uygulamalarınızı gözden geçirin. ({ $error })
 detail-internet-ok = İnternete bağlısınız. Atlas yazılımları indirip kurarken bu bağlantıyı açık tutun.
 detail-internet-missing = İnternete bağlanın, sonra yeniden denetleyin.

@@ -288,6 +288,8 @@ detail-reboot-unknown = Não foi possível verificar se o Windows precisa ser re
 detail-antivirus-none = Nenhum outro antivírus foi detectado.
 # $products is a list of product names (text).
 detail-antivirus-found = Outro antivírus pode bloquear a instalação: { $products }. Desinstale esse software antes de continuar.
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = A Segurança do Windows ainda lista { $products }, mas os arquivos já não existem, então esse software não está mais instalado. O Atlas pode ser instalado mesmo assim.
 detail-antivirus-unknown = Não foi possível verificar se há outro antivírus. Confira os apps instalados antes de continuar. ({ $error })
 detail-internet-ok = Seu PC está conectado à internet. Mantenha a conexão enquanto o Atlas baixa e instala os programas.
 detail-internet-missing = Conecte-se à internet e depois verifique novamente.

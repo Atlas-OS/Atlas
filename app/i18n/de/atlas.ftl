@@ -295,6 +295,8 @@ detail-reboot-unknown = Es konnte nicht geprüft werden, ob Windows einen Neusta
 detail-antivirus-none = Es wurde keine andere Antivirensoftware gefunden.
 # $products is a list of product names (text).
 detail-antivirus-found = Antivirensoftware kann die Installation blockieren: { $products }. Deinstallieren Sie diese Software, bevor Sie fortfahren.
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = Die Windows-Sicherheit führt { $products } noch auf, aber die Dateien sind nicht mehr vorhanden, die Software ist also nicht mehr installiert. Atlas kann trotzdem installiert werden.
 detail-antivirus-unknown = Andere Antivirensoftware konnte nicht geprüft werden. Sehen Sie Ihre installierten Apps durch, bevor Sie fortfahren. ({ $error })
 detail-internet-ok = Sie sind verbunden. Halten Sie die Verbindung aufrecht, während Atlas Software herunterlädt und installiert.
 detail-internet-missing = Stellen Sie eine Internetverbindung her und prüfen Sie dann erneut.

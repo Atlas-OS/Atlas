@@ -291,6 +291,8 @@ detail-reboot-unknown = Не удалось проверить, нужна ли 
 detail-antivirus-none = Других антивирусов не обнаружено.
 # $products is a list of product names (text).
 detail-antivirus-found = Антивирусные программы могут блокировать установку: { $products }. Удалите их, прежде чем продолжить.
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = «Безопасность Windows» всё ещё показывает { $products }, но файлов этой программы больше нет, то есть она уже не установлена. Atlas всё равно можно установить.
 detail-antivirus-unknown = Не удалось проверить наличие других антивирусов. Прежде чем продолжить, проверьте установленные приложения. ({ $error })
 detail-internet-ok = Подключение есть. Не отключайтесь от интернета, пока Atlas скачивает и устанавливает программы.
 detail-internet-missing = Подключитесь к интернету, затем проверьте снова.

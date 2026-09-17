@@ -296,6 +296,8 @@ detail-reboot-unknown = यह जाँच नहीं हो सकी कि
 detail-antivirus-none = कोई दूसरा एंटीवायरस सॉफ़्टवेयर नहीं मिला।
 # $products is a list of product names (text).
 detail-antivirus-found = यह एंटीवायरस सॉफ़्टवेयर इंस्टॉलेशन रोक सकता है: { $products }। जारी रखने से पहले इसे अनइंस्टॉल करें।
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = Windows सुरक्षा में { $products } अब भी सूचीबद्ध है, लेकिन इसकी फ़ाइलें हट चुकी हैं, इसलिए यह अब इंस्टॉल नहीं है। Atlas फिर भी इंस्टॉलेशन जारी रख सकता है।
 detail-antivirus-unknown = अन्य एंटीवायरस सॉफ़्टवेयर की जाँच नहीं हो सकी। जारी रखने से पहले अपने इंस्टॉल किए गए ऐप देख लें। ({ $error })
 detail-internet-ok = आप इंटरनेट से जुड़े हैं। जब तक Atlas सॉफ़्टवेयर डाउनलोड और इंस्टॉल करता है, यह कनेक्शन बनाए रखें।
 detail-internet-missing = इंटरनेट से कनेक्ट करें, फिर दोबारा जाँचें।

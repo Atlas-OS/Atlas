@@ -282,6 +282,8 @@ detail-reboot-unknown = 无法检查 Windows 是否需要重启。请重启电�
 detail-antivirus-none = 未检测到其他防病毒软件。
 # $products 为产品名称列表（文本）。
 detail-antivirus-found = 以下防病毒软件可能会阻止安装：{ $products }。请先卸载再继续。
+# 这是警告而非阻止项：安全中心仍列出该产品，但其文件已不存在。
+detail-antivirus-stale = Windows 安全中心仍列出了 { $products }，但其文件已不存在，因此它已不再安装在电脑上。Atlas 仍可继续安装。
 detail-antivirus-unknown = 无法检查是否有其他防病毒软件。继续之前请查看已安装的应用。（{ $error }）
 detail-internet-ok = 已连接。Atlas 下载和安装软件期间请保持连接。
 detail-internet-missing = 请连接到 Internet，然后重新检查。

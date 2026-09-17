@@ -301,6 +301,20 @@ Describe 'Front door requirements and staging' {
         }
     }
 
+    It 'ignores an antivirus registration whose executable is gone' {
+        Mock Test-Path { $false }
+        Mock Get-CimInstance { @([pscustomobject]@{ displayName = 'Malwarebytes'; pathToSignedProductExe = 'C:\Program Files\Malwarebytes\Anti-Malware\mbam.exe' }) }
+        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('NoAntivirus') | Where-Object Name -eq 'No third-party antivirus'
+        $result.Passed | Should -BeTrue
+        $result.Detail | Should -Match 'leftover registration for Malwarebytes'
+
+        # The same registration with its executable present is an installed product.
+        Mock Test-Path { $LiteralPath -like '*mbam.exe' }
+        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('NoAntivirus') | Where-Object Name -eq 'No third-party antivirus'
+        $result.Passed | Should -BeFalse
+        $result.Detail | Should -Match 'found: Malwarebytes'
+    }
+
     It 'leaves undeclared antivirus and power checks advisory' {
         Mock Test-Path { $false }
         Mock Get-CimInstance { @([pscustomobject]@{ displayName = 'Contoso Shield' }) }

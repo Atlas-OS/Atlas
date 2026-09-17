@@ -291,6 +291,8 @@ detail-reboot-unknown = Tidak dapat memeriksa apakah Windows perlu dimulai ulang
 detail-antivirus-none = Tidak ada antivirus lain yang terdeteksi.
 # $products is a list of product names (text).
 detail-antivirus-found = Antivirus berikut dapat menghalangi penginstalan: { $products }. Hapus instalan perangkat lunak ini sebelum melanjutkan.
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = Keamanan Windows masih mencantumkan { $products }, tetapi file-nya sudah tidak ada, jadi perangkat lunak ini sudah tidak terinstal lagi. Atlas tetap dapat melanjutkan penginstalan.
 detail-antivirus-unknown = Tidak dapat memeriksa antivirus lain. Periksa aplikasi yang terinstal sebelum melanjutkan. ({ $error })
 detail-internet-ok = PC terhubung ke internet. Pertahankan koneksi ini saat Atlas mengunduh dan menginstal perangkat lunak.
 detail-internet-missing = Hubungkan PC ke internet, lalu periksa lagi.

@@ -278,6 +278,8 @@ detail-reboot-unknown = 無法確認 Windows 是否需要重新啟動。請重�
 detail-antivirus-none = 未偵測到其他防毒軟體。
 # $products is a list of product names (text).
 detail-antivirus-found = 下列防毒軟體可能會阻擋安裝：{ $products }。請先解除安裝再繼續。
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = Windows 安全性仍列出 { $products }，但其檔案已不存在，因此它已不再安裝於電腦上。Atlas 仍可繼續安裝。
 detail-antivirus-unknown = 無法檢查是否有其他防毒軟體。繼續之前，請先查看已安裝的應用程式。（{ $error }）
 detail-internet-ok = 已連線。Atlas 下載並安裝軟體期間，請保持網路連線。
 detail-internet-missing = 請連線到網際網路，然後再次檢查。

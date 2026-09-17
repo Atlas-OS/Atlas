@@ -297,6 +297,8 @@ detail-reboot-unknown = Couldn't check whether Windows needs a restart. Restart 
 detail-antivirus-none = No other antivirus software was detected.
 # $products is a list of product names (text).
 detail-antivirus-found = Antivirus software may block installation: { $products }. Uninstall this software before continuing.
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = Windows Security still lists { $products }, but its files are gone, so it isn't installed any more. Atlas can install anyway.
 detail-antivirus-unknown = Couldn't check for other antivirus software. Check your installed apps before continuing. ({ $error })
 detail-internet-ok = You're connected. Keep this connection available while Atlas downloads and installs software.
 detail-internet-missing = Connect to the internet, then check again.

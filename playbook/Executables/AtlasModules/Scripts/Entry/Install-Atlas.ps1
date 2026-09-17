@@ -222,11 +222,26 @@ function Test-AtlasInstallRequirement {
     $antivirusChecked = $false
     $antivirusDetail = 'none found'
     try {
-        $thirdPartyAv = @(Get-CimInstance -Namespace 'root\SecurityCenter2' -ClassName AntiVirusProduct -ErrorAction Stop |
-            Where-Object { $_.displayName -notlike 'Windows Defender*' -and $_.displayName -notlike 'Microsoft Defender*' } |
-            ForEach-Object { $_.displayName })
+        $registrations = @(Get-CimInstance -Namespace 'root\SecurityCenter2' -ClassName AntiVirusProduct -ErrorAction Stop |
+            Where-Object { $_.displayName -notlike 'Windows Defender*' -and $_.displayName -notlike 'Microsoft Defender*' })
+        # A registration whose signed executable is gone is a leftover of an
+        # uninstall (Malwarebytes leaves one); nothing is running to block anything.
+        # A registration without a file path cannot be verified and counts as installed.
+        $thirdPartyAv = @()
+        $staleAv = @()
+        foreach ($registration in $registrations) {
+            $signedExe = ([string]$registration.pathToSignedProductExe).Trim().Trim('"')
+            if (-not [string]::IsNullOrWhiteSpace($signedExe) -and $signedExe -match '[\\/]' -and
+                -not (Test-Path -LiteralPath $signedExe -PathType Leaf)) {
+                $staleAv += [string]$registration.displayName
+            }
+            else {
+                $thirdPartyAv += [string]$registration.displayName
+            }
+        }
         $antivirusChecked = $true
         if ($thirdPartyAv.Count -gt 0) { $antivirusDetail = "found: $($thirdPartyAv -join ', ')" }
+        elseif ($staleAv.Count -gt 0) { $antivirusDetail = "none running; a leftover registration for $($staleAv -join ', ') whose files are gone was ignored" }
     }
     catch {
         $antivirusDetail = "antivirus registration could not be checked: $($_.Exception.Message)"

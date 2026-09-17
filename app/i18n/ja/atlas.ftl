@@ -286,6 +286,8 @@ detail-reboot-unknown = Windows に再起動が必要かどうかを確認でき
 detail-antivirus-none = 他のウイルス対策ソフトは検出されませんでした。
 # $products is a list of product names (text).
 detail-antivirus-found = ウイルス対策ソフトがインストールを妨げる可能性があります: { $products }。続行する前に、このソフトをアンインストールしてください。
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = Windows セキュリティには { $products } がまだ表示されていますが、そのファイルはすでに削除されているため、インストールされていない状態です。Atlas はこのままインストールできます。
 detail-antivirus-unknown = 他のウイルス対策ソフトを確認できませんでした。続行する前に、インストール済みのアプリを確認してください。 ({ $error })
 detail-internet-ok = インターネットに接続されています。Atlas がソフトウェアをダウンロードしてインストールする間、接続を維持してください。
 detail-internet-missing = インターネットに接続してから、もう一度確認してください。

@@ -131,6 +131,11 @@ pub enum CheckDetail {
     AntivirusFound {
         products: Vec<String>,
     },
+    /// Security Center still lists these, but the executables they register
+    /// are gone: leftovers of an uninstall (Malwarebytes leaves one).
+    AntivirusStale {
+        products: Vec<String>,
+    },
     AntivirusUnknown {
         error: String,
     },
@@ -221,8 +226,18 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
             Err(error) => (Verdict::Unknown, D::RebootUnknown { error: format!("{error:#}") }),
         },
         CheckId::ThirdPartyAntivirus => match third_party_antivirus() {
-            Ok(products) if products.is_empty() => (Verdict::Pass, D::AntivirusNone),
-            Ok(products) => (Verdict::Fail, D::AntivirusFound { products }),
+            Ok(products) => {
+                let (installed, stale): (Vec<_>, Vec<_>) =
+                    products.into_iter().partition(AntivirusProduct::installed);
+                let names = |products: Vec<AntivirusProduct>| products.into_iter().map(|p| p.name).collect();
+                if !installed.is_empty() {
+                    (Verdict::Fail, D::AntivirusFound { products: names(installed) })
+                } else if !stale.is_empty() {
+                    (Verdict::Warn, D::AntivirusStale { products: names(stale) })
+                } else {
+                    (Verdict::Pass, D::AntivirusNone)
+                }
+            }
             Err(error) => (Verdict::Unknown, D::AntivirusUnknown { error: format!("{error:#}") }),
         },
         CheckId::Internet => {
@@ -462,7 +477,7 @@ impl<T: Clone + Send + 'static> Bounded<T> {
 }
 
 static UPDATE_SEARCH: Bounded<Vec<String>> = Bounded::new("the Windows Update search");
-static ANTIVIRUS_QUERY: Bounded<Vec<String>> = Bounded::new("the Security Center query");
+static ANTIVIRUS_QUERY: Bounded<Vec<Vec<Option<String>>>> = Bounded::new("the Security Center query");
 static ACTIVATION_QUERY: Bounded<Vec<String>> = Bounded::new("the licensing query");
 
 /// Titles of software updates that are downloaded or available but not installed.
@@ -521,14 +536,50 @@ fn pending_updates_on_this_thread() -> Result<Vec<String>> {
 
 /// Display names of antivirus products other than Defender registered with
 /// Security Center.
-fn third_party_antivirus() -> Result<Vec<String>> {
-    let names = ANTIVIRUS_QUERY.run(ANTIVIRUS_DEADLINE, || {
-        wmi_strings(r"ROOT\SecurityCenter2", "SELECT displayName FROM AntiVirusProduct", "displayName")
+/// One Security Center antivirus registration.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AntivirusProduct {
+    pub name: String,
+    /// `pathToSignedProductExe`: the product's executable, or a URI for
+    /// inbox products. Uninstallers do not always deregister, so this is
+    /// how a leftover is told from an installed product.
+    pub executable: Option<String>,
+}
+
+impl AntivirusProduct {
+    /// A registration counts as installed unless it names a file that is
+    /// gone. A missing or non-file registration (a URI, say) fails closed.
+    pub fn installed(&self) -> bool {
+        let Some(executable) = self.executable.as_deref().map(|e| e.trim().trim_matches('"')) else {
+            return true;
+        };
+        // Only a drive or UNC path can be checked; a URI (inbox products
+        // register `windowsdefender://`) cannot, so it counts as installed.
+        let looks_like_path = executable.as_bytes().get(1) == Some(&b':') || executable.starts_with(r"\\");
+        if !looks_like_path {
+            return true;
+        }
+        std::path::Path::new(executable).is_file()
+    }
+}
+
+fn third_party_antivirus() -> Result<Vec<AntivirusProduct>> {
+    let rows = ANTIVIRUS_QUERY.run(ANTIVIRUS_DEADLINE, || {
+        wmi_query(
+            r"ROOT\SecurityCenter2",
+            "SELECT displayName, pathToSignedProductExe FROM AntiVirusProduct",
+            &["displayName", "pathToSignedProductExe"],
+        )
     })?;
-    Ok(names
+    Ok(rows
         .into_iter()
-        .filter(|name| {
-            let lower = name.to_ascii_lowercase();
+        .filter_map(|mut row| {
+            let executable = row.pop().flatten();
+            let name = row.pop().flatten()?;
+            Some(AntivirusProduct { name, executable })
+        })
+        .filter(|product| {
+            let lower = product.name.to_ascii_lowercase();
             !lower.starts_with("windows defender") && !lower.starts_with("microsoft defender")
         })
         .collect())
@@ -579,12 +630,12 @@ pub enum Fetch<R> {
 /// `deadline`, and only a normal end means the rows are all there. A row
 /// whose value cannot be read fails the query too; a row with no value for
 /// the property is skipped.
-pub fn drain_rows<R>(
+pub fn drain_rows<R, T>(
     what: &str,
     mut next: impl FnMut() -> Result<Fetch<R>>,
-    mut value: impl FnMut(&R) -> Result<Option<String>>,
+    mut value: impl FnMut(&R) -> Result<Option<T>>,
     deadline: Instant,
-) -> Result<Vec<String>> {
+) -> Result<Vec<T>> {
     let mut values = Vec::new();
     loop {
         match next()? {
@@ -601,17 +652,28 @@ pub fn drain_rows<R>(
     }
 }
 
-/// Runs a WQL query and returns one property of every row as text. Fails
-/// rather than returning fewer rows when the provider fails part-way, a
-/// property cannot be read, or the query overruns its deadline.
+/// Runs a WQL query and returns one property of every row as text; rows
+/// without a value for it are left out. Fails rather than returning fewer
+/// rows when the provider fails part-way, a property cannot be read, or
+/// the query overruns its deadline.
 fn wmi_strings(namespace: &str, query: &str, property: &str) -> Result<Vec<String>> {
+    Ok(wmi_query(namespace, query, &[property])?
+        .into_iter()
+        .filter_map(|mut row| row.pop().flatten())
+        .collect())
+}
+
+/// Runs a WQL query and returns the named properties of every row as text,
+/// in the order given; `None` where a row has no value for one.
+fn wmi_query(namespace: &str, query: &str, properties: &[&str]) -> Result<Vec<Vec<Option<String>>>> {
     // One WMI query at a time: providers that are loading on first use have
     // answered concurrent queries with nothing.
     static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
     let _turn = ONE_AT_A_TIME.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     let _apartment = ComApartment::enter()?;
     let deadline = Instant::now() + WMI_QUERY_DEADLINE;
-    let property_name = HSTRING::from(property);
+    let property_names: Vec<(HSTRING, &str)> =
+        properties.iter().map(|property| (HSTRING::from(*property), *property)).collect();
     unsafe {
         let locator: IWbemLocator =
             CoCreateInstance(&WbemLocator, None, CLSCTX_INPROC_SERVER).context("create the WMI locator")?;
@@ -679,7 +741,13 @@ fn wmi_strings(namespace: &str, query: &str, property: &str) -> Result<Vec<Strin
                     _ => Ok(Fetch::End),
                 }
             },
-            |object| property_text(object, &property_name, property),
+            |object| {
+                let mut row = Vec::with_capacity(property_names.len());
+                for (name, label) in &property_names {
+                    row.push(property_text(object, name, label)?);
+                }
+                Ok(Some(row))
+            },
             deadline,
         )
     }
@@ -762,7 +830,13 @@ mod tests {
         let mut turns = vec![Ok(Fetch::Row("a")), Ok(Fetch::End)];
         turns.reverse();
         assert!(
-            drain_rows("q", || turns.pop().unwrap(), |_| anyhow::bail!("no such property"), far).is_err()
+            drain_rows::<&str, String>(
+                "q",
+                || turns.pop().unwrap(),
+                |_| anyhow::bail!("no such property"),
+                far
+            )
+            .is_err()
         );
         // A row without a value is skipped; a normal end returns the rest.
         let mut turns = vec![Ok(Fetch::Row("a")), Ok(Fetch::Row("")), Ok(Fetch::Row("c")), Ok(Fetch::End)];
@@ -783,9 +857,31 @@ mod tests {
             ["late"]
         );
         let past = Instant::now() - Duration::from_secs(1);
-        assert!(drain_rows::<&str>("q", || Ok(Fetch::Timeout), |_| Ok(None), past).is_err());
+        assert!(drain_rows::<&str, String>("q", || Ok(Fetch::Timeout), |_| Ok(None), past).is_err());
         // A genuinely empty set is fine.
-        assert!(drain_rows::<&str>("q", || Ok(Fetch::End), |_| Ok(None), far).unwrap().is_empty());
+        assert!(drain_rows::<&str, String>("q", || Ok(Fetch::End), |_| Ok(None), far).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_registration_whose_executable_is_gone_is_a_leftover() {
+        let present = std::env::current_exe().unwrap();
+        let installed =
+            AntivirusProduct { name: "Contoso".into(), executable: Some(present.display().to_string()) };
+        assert!(installed.installed());
+        let quoted = AntivirusProduct {
+            name: "Contoso".into(),
+            executable: Some(format!("\"{}\"", present.display())),
+        };
+        assert!(quoted.installed());
+        let gone = AntivirusProduct {
+            name: "Malwarebytes".into(),
+            executable: Some(r"C:\Program Files\Malwarebytes\Anti-Malware\mbam.exe".into()),
+        };
+        assert!(!gone.installed());
+        // Nothing to verify against: fail closed.
+        for executable in [None, Some(String::new()), Some("windowsdefender://".to_owned())] {
+            assert!(AntivirusProduct { name: "X".into(), executable }.installed());
+        }
     }
 
     #[test]

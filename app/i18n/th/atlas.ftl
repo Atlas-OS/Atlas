@@ -293,6 +293,8 @@ detail-reboot-unknown = ตรวจสอบไม่ได้ว่า Windows
 detail-antivirus-none = ไม่พบโปรแกรมป้องกันไวรัสอื่น
 # $products is a list of product names (text).
 detail-antivirus-found = โปรแกรมป้องกันไวรัสอาจขัดขวางการติดตั้ง: { $products } ถอนการติดตั้งซอฟต์แวร์นี้ก่อนดำเนินการต่อ
+# Warning, not a block: Security Center still lists the product but its files are gone.
+detail-antivirus-stale = ความปลอดภัยของ Windows ยังแสดง { $products } อยู่ แต่ไฟล์ของโปรแกรมหายไปแล้ว จึงไม่ถือว่าติดตั้งอยู่อีกต่อไป Atlas ยังติดตั้งต่อได้
 detail-antivirus-unknown = ตรวจหาโปรแกรมป้องกันไวรัสอื่นไม่ได้ ตรวจดูแอปที่ติดตั้งไว้ก่อนดำเนินการต่อ ({ $error })
 detail-internet-ok = เชื่อมต่ออินเทอร์เน็ตอยู่ เชื่อมต่อไว้ตลอดขณะที่ Atlas ดาวน์โหลดและติดตั้งซอฟต์แวร์
 detail-internet-missing = เชื่อมต่ออินเทอร์เน็ต แล้วตรวจสอบอีกครั้ง

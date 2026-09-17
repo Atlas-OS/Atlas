@@ -284,6 +284,8 @@ detail-reboot-unknown = Impossible de vérifier si Windows doit redémarrer. Red
 detail-antivirus-none = Aucun autre logiciel antivirus n’a été détecté.
 # $products est une liste de noms de produits (texte).
 detail-antivirus-found = Un logiciel antivirus peut bloquer l’installation : { $products }. Désinstallez ce logiciel avant de continuer.
+# Avertissement, pas un blocage : le Centre de sécurité liste encore le produit, mais ses fichiers ont disparu.
+detail-antivirus-stale = Sécurité Windows liste encore { $products }, mais ses fichiers ont disparu : ce logiciel n’est donc plus installé. Atlas peut quand même être installé.
 detail-antivirus-unknown = Impossible de vérifier la présence d’autres antivirus. Vérifiez vos applications installées avant de continuer. ({ $error })
 detail-internet-ok = Ce PC est connecté à Internet. Conservez cette connexion pendant qu’Atlas télécharge et installe des logiciels.
 detail-internet-missing = Connectez-vous à Internet, puis vérifiez à nouveau.
