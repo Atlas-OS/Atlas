@@ -319,6 +319,7 @@ pub struct AppModel {
     iso_initial_options: Option<Vec<String>>,
     pub preparation: crate::services::preparation::State,
     pub preparation_progress: Option<crate::services::preparation::Progress>,
+    pub preparation_error: Option<String>,
     pub preparation_job: Option<PathBuf>,
     preparation_restart_at: Option<String>,
     pub preparation_problem: Option<crate::services::preparation::RestartProblem>,
@@ -486,6 +487,7 @@ impl AppModel {
             },
             preparation: Default::default(),
             preparation_progress: None,
+            preparation_error: None,
             preparation_job: None,
             preparation_restart_at: None,
             preparation_problem: None,
@@ -555,6 +557,13 @@ impl AppModel {
                 model.preparation_job = Some(std::env::temp_dir());
             }
             model.elevated = true;
+            if preview == "failed" {
+                model.preparation_progress = serde_json::from_value(serde_json::json!({
+                    "schema":1,"status":"failed","stage":"store-install","completed":0,"total":1,
+                    "activity":{"failureMessage":"The package could not be installed because resources it modifies are currently in use.",
+                    "errorCode":"0x80073D02","packageName":"NanaZip"}
+                })).ok();
+            }
             model.flow.resume(Step::Ready).ok();
             model.page = Page::Install;
             return model;
@@ -607,6 +616,8 @@ impl AppModel {
             }
             Err(error) => {
                 log::error!("preparation recovery: {error:#}");
+                self.preparation_progress = None;
+                self.preparation_error = Some(format!("{error:#}"));
                 self.preparation = State::Failed;
                 cx.notify();
                 return;
@@ -621,6 +632,8 @@ impl AppModel {
             Ok(job) => job,
             Err(error) => {
                 log::error!("preparation directory: {error:#}");
+                self.preparation_progress = None;
+                self.preparation_error = Some(format!("{error:#}"));
                 self.preparation = State::Failed;
                 cx.notify();
                 return;
@@ -645,6 +658,7 @@ impl AppModel {
         self.preparation_problem = None;
         self.preparation_job = Some(job.clone());
         self.preparation_progress = None;
+        self.preparation_error = None;
         self.preparation_cancel = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let cancel = self.preparation_cancel.clone();
         self.save_draft(cx);
@@ -689,6 +703,7 @@ impl AppModel {
                 let state = result
                     .unwrap_or_else(|error| {
                         log::error!("Windows preparation: {error:#}");
+                        this.preparation_error = Some(format!("{error:#}"));
                         State::Failed
                     })
                     .settle(after_restart, did_work, reasons);

@@ -28,10 +28,12 @@ param(
 
 $scriptsRoot = [IO.Path]::GetFullPath([IO.Path]::GetDirectoryName($PSScriptRoot))
 $bootstrap = [IO.Path]::Combine($scriptsRoot, 'Initialize-AtlasPowerShell.ps1')
-if (-not [IO.File]::Exists($bootstrap)) {
-    throw "The PowerShell bootstrap is missing at '$bootstrap'."
+$sessionLog = [IO.Path]::Combine([IO.Path]::GetDirectoryName($scriptsRoot), 'Logs', "install-$($Phase.ToLowerInvariant()).log")
+
+function Write-AtlasSessionLog {
+    param([string]$Message)
+    [IO.File]::AppendAllText($sessionLog, "[$([DateTime]::UtcNow.ToString('o'))] $Message`r`n", [Text.UTF8Encoding]::new($false))
 }
-. $bootstrap
 
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -102,6 +104,15 @@ function Assert-AtlasInstallOptionSet {
 }
 
 try {
+    # The native TrustedInstaller child has no inherited console or standard handles.
+    # Persist failures before bootstrap/module loading, then let the broker relay them.
+    [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($sessionLog))
+    [IO.File]::WriteAllText($sessionLog, '', [Text.UTF8Encoding]::new($false))
+    Write-AtlasSessionLog "Starting install phase $Phase."
+    if (-not [IO.File]::Exists($bootstrap)) {
+        throw "The PowerShell bootstrap is missing at '$bootstrap'."
+    }
+    . $bootstrap
     Import-Module -Name (Join-Path -Path $scriptsRoot -ChildPath 'Modules\Atlas.Core\Atlas.Core.psd1') -Force -ErrorAction Stop
     Import-Module -Name (Join-Path -Path $scriptsRoot -ChildPath 'Modules\Atlas.InstallState\Atlas.InstallState.psd1') -Force -DisableNameChecking -ErrorAction Stop
     Assert-AtlasPrivilege -TrustedInstaller
@@ -120,20 +131,31 @@ try {
             $null = Start-AtlasInstallState -TargetVersion $targetVersion -Mode $mode -IsOobe ([bool]$installRequest.windowsSetup) `
                 -CaptureNonce ([guid]::NewGuid().ToString('D'))
             Set-AtlasInstallOptions -Options $options | Out-Null
-            Write-Output "Atlas install state ready for $mode of $targetVersion with options: $($options -join ', ')."
+            $message = "Atlas install state ready for $mode of $targetVersion with options: $($options -join ', ')."
+            Write-AtlasSessionLog $message
+            Write-Output $message
         }
         'Run' {
             $captureScript = Join-Path -Path $scriptsRoot -ChildPath 'Entry\Initialize-AtlasInstallState.ps1'
             & $captureScript -Operation Commit
             $installScript = Join-Path -Path $scriptsRoot -ChildPath 'Entry\Invoke-AtlasInstall.ps1'
-            & $installScript -Run
+            & $installScript -Run *>&1 | ForEach-Object {
+                Write-AtlasSessionLog ([string]$_)
+                Write-Output $_
+            }
+            Write-AtlasSessionLog "Install plan exited with code $LASTEXITCODE."
             exit $LASTEXITCODE
         }
     }
     exit 0
 }
 catch {
-    $exitCode = if ($_.Exception.Message -like '[[]privilege[]]*') { 2 } else { 1 }
-    [Console]::Error.WriteLine($_.Exception.Message)
+    $failure = $_
+    $exitCode = if ($failure.Exception.Message -like '[[]privilege[]]*') { 2 } else { 1 }
+    try {
+        Write-AtlasSessionLog "ERROR: $($failure.Exception.ToString())`r`n$($failure.InvocationInfo.PositionMessage)`r`n$($failure.ScriptStackTrace)"
+    }
+    catch { [Console]::Error.WriteLine("Could not persist install failure: $($_.Exception.Message)") }
+    [Console]::Error.WriteLine($failure.Exception.Message)
     exit $exitCode
 }

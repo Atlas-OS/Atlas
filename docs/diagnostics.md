@@ -55,6 +55,20 @@ specific files separately. Symbolic links/junctions are skipped. Existing export
 are not automatically deleted; users may remove ZIPs after the investigation no longer
 needs them.
 
+Staged payload traversal includes preparation evidence, the install request and
+runtime logs, but skips application code/assets. The machine report is collected
+before bulk file traversal. TrustedInstaller install phases persist startup,
+completion and exception details (including stack/position) in the staging copy's
+`Executables\AtlasModules\Logs\install-capture.log` and `install-run.log`. The broker
+relays a bounded tail on failure. These logs cover bootstrap and module-loading
+exceptions; process termination or script parse failures may leave no exception log.
+
+For an RC3 export that exhausted its entry limit, run
+`tools/dev/Get-AtlasInstallEvidence.ps1` in elevated Windows PowerShell as the affected
+account, then export diagnostics again. It reads state and recent staging requests
+without executing payload scripts, and saves a local log in the app's Logs directory
+for the existing exporter to redact. Send the resulting ZIP rather than the raw log.
+
 For triage, read `manifest.json`, correlate timestamps in app logs with the
 installation/preparation/media job, and check `report/machine-report.txt` for
 health, state and Windows events. Do not infer success merely from a completed

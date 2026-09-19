@@ -6,6 +6,6 @@
         # the policy force-deny removes the per-app override UI entirely and Microsoft
         # warns it causes missed notifications/alarms. Do not "upgrade" this to the policy.
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'; Name = 'GlobalUserDisabled'; Type = 'DWord'; Data = 1 }
-        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'BackgroundAppGlobalToggle'; Type = 'DWord'; Data = 0 }
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'BackgroundAppGlobalToggle'; Type = 'DWord'; Data = 0; AllowOsProtected = $true }
     )
 }

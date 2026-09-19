@@ -459,14 +459,55 @@ function Resolve-AtlasNanaZipReleaseAssets {
     return $resolved
 }
 
-function Get-AtlasLatestNanaZipReleaseAssets {
+function Invoke-AtlasArchiveDownload {
+    param(
+        [Parameter(Mandatory = $true)][uri[]]$Uris,
+        [Parameter(Mandatory = $true)][string]$Destination,
+        [Parameter(Mandatory = $true)][string]$Sha256,
+        [Parameter(Mandatory = $true)][long]$ExpectedBytes
+    )
+
+    # Each download verifies the same pinned bytes before returning. The pinned
+    # downloader removes its own partial file on failure. Never retry installation.
+    if (Test-Path -LiteralPath $Destination) { throw "Download destination already exists: $Destination" }
+    $failures = New-Object 'Collections.Generic.List[string]'
+    foreach ($uri in $Uris) {
+        try {
+            Write-AtlasLog -Message "Downloading archive-app asset from $uri."
+            return Invoke-AtlasPinnedDownload -Uri $uri -Destination $Destination `
+                -Sha256 $Sha256 -ExpectedBytes $ExpectedBytes -MaximumSeconds 60
+        }
+        catch {
+            $detail = "$uri : $($_.Exception.Message)"
+            $failures.Add($detail)
+            Write-AtlasLog -Level Warning -Message "Archive-app download failed: $detail"
+        }
+    }
+    throw "All archive-app download sources failed: $($failures -join '; ')"
+}
+
+function Get-AtlasPinnedNanaZipReleaseAssets {
     [CmdletBinding()]
     param()
 
-    $release = Invoke-AtlasGitHubApiJson `
-        -Uri 'https://api.github.com/repos/M2Team/NanaZip/releases/latest' `
-        -Description 'NanaZip GitHub latest-release metadata'
-    return Resolve-AtlasNanaZipReleaseAssets -Release $release
+    # Pin upstream release digests in the payload to avoid GitHub API requests
+    # during installation. SourceForge is an official NanaZip fallback host;
+    # its mirror selector can route downloads without a fixed regional mirror.
+    # Verified against M2Team/NanaZip release 7.0.1843.0 on 2026-09-19.
+    $tag = '7.0.1843.0'
+    foreach ($asset in @(
+        @{ Name = "NanaZip_$tag.msixbundle"; Size = 11931446; Sha256 = 'f5b013afff37eca32ed7e318cb7d7d1b7a1e11f9765e4c2e9afafcde15eb085d' }
+        @{ Name = "NanaZip_$tag.xml"; Size = 2667; Sha256 = '136a0dfcd5509f65434d83c770347c6638179efe16c8155bb1960aa071ccb45a' }
+    )) {
+        [pscustomobject]@{
+            Tag = $tag
+            Name = $asset.Name
+            Size = $asset.Size
+            Sha256 = $asset.Sha256
+            Uri = [uri]"https://github.com/M2Team/NanaZip/releases/download/$tag/$($asset.Name)"
+            FallbackUri = [uri]"https://downloads.sourceforge.net/project/nanazip/$tag/$($asset.Name)"
+        }
+    }
 }
 
 function Assert-AtlasNanaZipBundleIdentity {
@@ -731,9 +772,53 @@ function Install-AtlasLibreWolfBrowser {
     New-AtlasShortcut -Source $updaterExecutable -Destination "$startMenu\LibreWolf\LibreWolf WinUpdater.lnk" -WorkingDir $librewolfPath
 }
 
+function Test-AtlasVisualCppRuntimeCurrent {
+    param(
+        [Parameter(Mandatory = $true)][ValidateSet('x86', 'x64')][string]$Architecture,
+        [Parameter(Mandatory = $true)][string]$InstallerPath
+    )
+
+    # Compare against the signed package we actually downloaded, not a fixed
+    # minimum that would prevent future runtime updates.
+    $requiredVersion = $null
+    try {
+        $packageVersion = [string](Get-Item -LiteralPath $InstallerPath -ErrorAction Stop).VersionInfo.ProductVersion
+        if (-not [version]::TryParse($packageVersion.TrimStart('v'), [ref]$requiredVersion) -or
+            $requiredVersion.Major -ne 14) {
+            return $false
+        }
+    }
+    catch { return $false }
+
+    foreach ($prefix in @('SOFTWARE\Microsoft', 'SOFTWARE\Wow6432Node\Microsoft')) {
+        $path = "Registry::HKEY_LOCAL_MACHINE\$prefix\VisualStudio\14.0\VC\Runtimes\$Architecture"
+        try {
+            $runtime = Get-ItemProperty -LiteralPath $path -ErrorAction Stop
+            $installedVersion = $null
+            if ($runtime.Installed -eq 1 -and
+                [version]::TryParse(([string]$runtime.Version).TrimStart('v'), [ref]$installedVersion) -and
+                $installedVersion.Major -eq 14 -and $installedVersion -ge $requiredVersion) {
+                Write-AtlasLog -Message "Visual C++ Runtime 2015+-$Architecture already installed ($installedVersion; package $requiredVersion); skipping installation."
+                return $true
+            }
+        }
+        catch {
+            # Missing, unreadable, or incomplete registration is not proof that
+            # the prerequisite is met. Let the installer handle those cases.
+            continue
+        }
+    }
+    return $false
+}
+
 function Install-AtlasVisualCppRuntimes {
     param([Parameter(Mandatory = $true)][string]$TempDir)
 
+    # Keep native setup logs outside disposable software staging. Each attempt gets
+    # its own directory, so retries cannot erase the error we need to investigate.
+    $logRoot = Join-Path ([Environment]::GetFolderPath('Windows')) ('AtlasOS\Install\Diagnostics\vcredist-' + [guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($logRoot)
+    Write-AtlasLog -Message "Visual C++ installer logs: $logRoot"
     $legacyArgs = @('/q', '/norestart')
     $modernArgs = @('/install', '/quiet', '/norestart')
     $vcredists = @(
@@ -755,9 +840,15 @@ function Install-AtlasVisualCppRuntimes {
 
     foreach ($entry in $vcredists) {
         $vcName = $entry.Name
+        Write-AtlasLog -Message "Preparing Visual C++ Runtime $vcName from $($entry.Uri)."
         $vcExePath = Join-Path -Path $TempDir -ChildPath "vcredist-$vcName.exe"
         Invoke-AtlasSoftwareDownload -Uri $entry.Uri -Destination $vcExePath -Description "Visual C++ Runtime $vcName"
         Assert-AtlasFileSignature -Path $vcExePath -ExpectedSubjectCn 'Microsoft Corporation' -Description "Visual C++ Runtime $vcName"
+
+        if ($vcName -match '^2015\+-(x64|x86)$' -and
+            (Test-AtlasVisualCppRuntimeCurrent -Architecture $Matches[1] -InstallerPath $vcExePath)) {
+            continue
+        }
 
         if ($entry.Extract) {
             $msiDir = Join-Path -Path $TempDir -ChildPath "vcredist-$vcName"
@@ -785,7 +876,7 @@ function Install-AtlasVisualCppRuntimes {
                     -Description "The Visual C++ Runtime $vcName MSI"
                 $msiArguments = @(
                     '/log'
-                    (Join-Path -Path $msiDir -ChildPath 'logfile.log')
+                    (Join-Path -Path $logRoot -ChildPath "$vcName-$($msi.BaseName).log")
                     '/i'
                     $resolvedMsiPath
                     '/qn'
@@ -803,9 +894,13 @@ function Install-AtlasVisualCppRuntimes {
             }
         }
         else {
+            $installerArguments = @($entry.Arguments)
+            if ($vcName -match '^(2012|2013|2015\+)') {
+                $installerArguments += @('/log', (Join-Path $logRoot "$vcName.log"))
+            }
             if (-not (Start-AtlasSoftwareOptionalInstaller `
                     -FilePath $vcExePath `
-                    -ArgumentList ([string[]]$entry.Arguments) `
+                    -ArgumentList ([string[]]$installerArguments) `
                     -Description "Visual C++ Runtime $vcName" `
                     -SuccessExitCode @(0, 3010))) {
                 $failedInstallers.Add($vcName)
@@ -830,8 +925,11 @@ function Install-Atlas7Zip {
     }
     $sevenZipArch = if (Test-AtlasSoftwareArm64) { 'arm64' } else { 'x64' }
     $installerPath = Join-Path -Path $TempDir -ChildPath '7zip.exe'
-    Invoke-AtlasSoftwareDownload -Uri "https://7-zip.org/a/7z$sevenZipVersion-$sevenZipArch.exe" -Destination $installerPath -Description '7-Zip'
-    Assert-AtlasFileHash -Path $installerPath -ExpectedSha256 $sevenZipHashes[$sevenZipArch] -Description '7-Zip'
+    $sevenZipBytes = @{ x64 = 1657896; arm64 = 1590118 }
+    $null = Invoke-AtlasArchiveDownload -Uris @(
+        "https://github.com/ip7z/7zip/releases/download/26.02/7z$sevenZipVersion-$sevenZipArch.exe"
+        "https://downloads.sourceforge.net/project/sevenzip/7-Zip/26.02/7z$sevenZipVersion-$sevenZipArch.exe"
+    ) -Destination $installerPath -Sha256 $sevenZipHashes[$sevenZipArch] -ExpectedBytes $sevenZipBytes[$sevenZipArch]
     Start-AtlasSoftwareInstaller -FilePath $installerPath -ArgumentList @('/S') -Description '7-Zip'
 }
 
@@ -881,12 +979,13 @@ function Install-AtlasNanaZip {
         $assetPaths = @{}
         foreach ($asset in $Assets) {
             $destination = Join-Path -Path $nanaZipPath.FullName -ChildPath $asset.Name
-            $assetPaths[$asset.Name] = Invoke-AtlasPinnedDownload `
-                -Uri $asset.Uri `
+            $uris = @($asset.Uri)
+            if ($null -ne $asset.PSObject.Properties['FallbackUri']) { $uris += $asset.FallbackUri }
+            $assetPaths[$asset.Name] = Invoke-AtlasArchiveDownload `
+                -Uris $uris `
                 -Destination $destination `
                 -Sha256 $asset.Sha256 `
-                -ExpectedBytes $asset.Size `
-                -MaximumSeconds 900
+                -ExpectedBytes $asset.Size
         }
         if (-not $assetPaths.ContainsKey($bundleName) -or
             -not $assetPaths.ContainsKey($licenseName)) {
@@ -976,7 +1075,7 @@ function Install-AtlasArchiveTool {
     }
 
     try {
-        $assets = @(Get-AtlasLatestNanaZipReleaseAssets)
+        $assets = @(Get-AtlasPinnedNanaZipReleaseAssets)
     }
     catch {
         Write-AtlasLog -Level Warning -Message "NanaZip release integrity could not be established; installing 7-Zip instead. $($_.Exception.Message)"

@@ -47,6 +47,140 @@ BeforeAll {
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Software\Atlas.Software.psd1') -Force
 }
 
+Describe 'Official archive-app mirrors' {
+    It 'resolves a pinned NanaZip bundle and license without GitHub access' {
+        InModuleScope Atlas.Software {
+            Mock Invoke-AtlasGitHubApiJson { throw 'GitHub is unavailable' }
+            $assets = @(Get-AtlasPinnedNanaZipReleaseAssets)
+            $assets.Count | Should -Be 2
+            $assets[0].Name | Should -Be 'NanaZip_7.0.1843.0.msixbundle'
+            $assets[1].Name | Should -Be 'NanaZip_7.0.1843.0.xml'
+            foreach ($asset in $assets) {
+                $asset.Uri.Host | Should -Be 'github.com'
+                $asset.FallbackUri.Host | Should -Be 'downloads.sourceforge.net'
+                $asset.FallbackUri.AbsolutePath | Should -Be "/project/nanazip/7.0.1843.0/$($asset.Name)"
+                $asset.Sha256 | Should -Match '^[0-9a-f]{64}$'
+                $asset.Size | Should -BeGreaterThan 0
+            }
+            Should -Invoke Invoke-AtlasGitHubApiJson -Times 0 -Exactly
+        }
+    }
+
+    It 'downloads and verifies 7-Zip from its official mirror for <Architecture>' -TestCases @(
+        @{ Architecture = 'x64'; Arm64 = $false }
+        @{ Architecture = 'arm64'; Arm64 = $true }
+    ) {
+        param($Architecture, $Arm64)
+        InModuleScope Atlas.Software -Parameters @{ Architecture = $Architecture; Arm64 = $Arm64; TempDir = $TestDrive } {
+            Mock Test-AtlasSoftwareArm64 { $Arm64 }
+            Mock Invoke-AtlasArchiveDownload {}
+            Mock Start-AtlasSoftwareInstaller {}
+            Install-Atlas7Zip -TempDir $TempDir
+            Should -Invoke Invoke-AtlasArchiveDownload -Times 1 -Exactly -ParameterFilter {
+                $Uris.Count -eq 2 -and $Uris[0].Host -eq 'github.com' -and
+                $Uris[1] -eq "https://downloads.sourceforge.net/project/sevenzip/7-Zip/26.02/7z2602-$Architecture.exe" -and
+                $Sha256 -match '^[0-9a-f]{64}$' -and $ExpectedBytes -gt 0
+            }
+        }
+    }
+}
+
+Describe 'Archive download failover' {
+    It 'uses only GitHub when the first verified download succeeds' {
+        InModuleScope Atlas.Software -Parameters @{ Destination = (Join-Path $TestDrive 'success.exe') } {
+            Mock Write-AtlasLog {}
+            Mock Invoke-AtlasPinnedDownload { $Destination }
+            Invoke-AtlasArchiveDownload -Uris @('https://github.com/a', 'https://downloads.sourceforge.net/a') -Destination $Destination -Sha256 ('a' * 64) -ExpectedBytes 42 | Should -Be $Destination
+            Should -Invoke Invoke-AtlasPinnedDownload -Times 1 -Exactly -ParameterFilter { $Uri.Host -eq 'github.com' }
+        }
+    }
+
+    It 'tries the mirror with identical verification after GitHub fails' {
+        InModuleScope Atlas.Software -Parameters @{ Destination = (Join-Path $TestDrive 'fallback.exe') } {
+            Mock Write-AtlasLog {}
+            Mock Invoke-AtlasPinnedDownload {
+                if ($Uri.Host -eq 'github.com') { throw 'HTTP 403' }
+                $Destination
+            }
+            Invoke-AtlasArchiveDownload -Uris @('https://github.com/a', 'https://downloads.sourceforge.net/a') -Destination $Destination -Sha256 ('a' * 64) -ExpectedBytes 42 | Should -Be $Destination
+            Should -Invoke Invoke-AtlasPinnedDownload -Times 2 -Exactly -ParameterFilter { $Sha256 -eq ('a' * 64) -and $ExpectedBytes -eq 42 -and $MaximumSeconds -eq 60 }
+            Should -Invoke Invoke-AtlasPinnedDownload -Times 1 -Exactly -ParameterFilter { $Uri.Host -eq 'downloads.sourceforge.net' }
+        }
+    }
+
+    It 'reports both sources when neither passes verification' {
+        InModuleScope Atlas.Software -Parameters @{ Destination = (Join-Path $TestDrive 'failure.exe') } {
+            Mock Write-AtlasLog {}
+            Mock Invoke-AtlasPinnedDownload { throw 'SHA-256 mismatch' }
+            { Invoke-AtlasArchiveDownload -Uris @('https://github.com/a', 'https://downloads.sourceforge.net/a') -Destination $Destination -Sha256 ('a' * 64) -ExpectedBytes 42 } | Should -Throw '*github.com*sourceforge.net*'
+        }
+    }
+}
+
+Describe 'Visual C++ v14 prerequisite detection' {
+    BeforeEach {
+        InModuleScope Atlas.Software {
+            Mock Write-AtlasLog {}
+            Mock Get-Item { [pscustomobject]@{ VersionInfo = [pscustomobject]@{ ProductVersion = '14.44.35211.0' } } }
+            Mock Get-ItemProperty { throw 'No runtime registration' }
+        }
+    }
+
+    It 'accepts an installed equal or newer <Architecture> runtime <Version>' -TestCases @(
+        @{ Architecture = 'x64'; Version = 'v14.51.36247.0' }
+        @{ Architecture = 'x86'; Version = 'v14.51.36231.0' }
+        @{ Architecture = 'x64'; Version = 'v14.44.35211.0' }
+    ) {
+        param($Architecture, $Version)
+        InModuleScope Atlas.Software -Parameters @{ Architecture = $Architecture; Version = $Version } {
+            Mock Get-ItemProperty { [pscustomobject]@{ Installed = 1; Version = $Version } } -ParameterFilter {
+                $LiteralPath -eq "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\$Architecture"
+            }
+            Test-AtlasVisualCppRuntimeCurrent -Architecture $Architecture -InstallerPath 'fixture.exe' | Should -BeTrue
+        }
+    }
+
+    It 'does not skip for an older, malformed, unrelated, or uninstalled runtime (<Version>, <Installed>)' -TestCases @(
+        @{ Version = 'v14.43.34808.0'; Installed = 1 }
+        @{ Version = 'invalid'; Installed = 1 }
+        @{ Version = 'v15.0.0.0'; Installed = 1 }
+        @{ Version = 'v14.51.36247.0'; Installed = 0 }
+    ) {
+        param($Version, $Installed)
+        InModuleScope Atlas.Software -Parameters @{ Version = $Version; Installed = $Installed } {
+            Mock Get-ItemProperty { [pscustomobject]@{ Installed = $Installed; Version = $Version } }
+            Test-AtlasVisualCppRuntimeCurrent -Architecture x64 -InstallerPath 'fixture.exe' | Should -BeFalse
+        }
+    }
+
+    It 'does not use x64 registration to satisfy x86' {
+        InModuleScope Atlas.Software {
+            Mock Get-ItemProperty { [pscustomobject]@{ Installed = 1; Version = 'v14.51.36247.0' } } -ParameterFilter { $LiteralPath -like '*\x64' }
+            Test-AtlasVisualCppRuntimeCurrent -Architecture x86 -InstallerPath 'fixture.exe' | Should -BeFalse
+        }
+    }
+
+    It 'falls back to installation when registration is missing or unreadable' {
+        InModuleScope Atlas.Software {
+            Test-AtlasVisualCppRuntimeCurrent -Architecture x64 -InstallerPath 'fixture.exe' | Should -BeFalse
+        }
+    }
+
+    It 'falls back to installation when package metadata cannot be parsed' {
+        InModuleScope Atlas.Software {
+            Mock Get-Item { [pscustomobject]@{ VersionInfo = [pscustomobject]@{ ProductVersion = '' } } }
+            Test-AtlasVisualCppRuntimeCurrent -Architecture x64 -InstallerPath 'fixture.exe' | Should -BeFalse
+        }
+    }
+
+    It 'does not accept installer exit code 1638 as a general success' {
+        InModuleScope Atlas.Software {
+            Mock Invoke-AtlasContainedProcess { [pscustomobject]@{ ExitCodeUInt32 = 1638 } }
+            { Start-AtlasSoftwareInstaller -FilePath 'fixture.exe' -Description 'fixture' -SuccessExitCode @(0, 3010) } | Should -Throw '*exit code 1638*'
+        }
+    }
+}
+
 Describe 'Select-AtlasCbsPackage' {
     It 'matches CABs by pattern and architecture' {
         InModuleScope Atlas.Software {
@@ -940,7 +1074,7 @@ Describe 'Install-AtlasArchiveTool asset selection' {
                 [pscustomobject]@{ Name = 'NanaZip_6.5.1767.0.xml'; Tag = '6.5.1767.0' }
             )
             Mock Get-AtlasDismProvisioningCommands { $commands }
-            Mock Get-AtlasLatestNanaZipReleaseAssets { $assets }
+            Mock Get-AtlasPinnedNanaZipReleaseAssets { $assets }
             Mock Test-Path -ParameterFilter { $LiteralPath -like '*7-Zip*' } -MockWith { $false }
             Mock Install-AtlasNanaZip
             Mock Install-Atlas7Zip
@@ -969,7 +1103,7 @@ Describe 'Install-AtlasArchiveTool asset selection' {
                 AddProvisionedPackage = { }
             }
             Mock Get-AtlasDismProvisioningCommands { $commands }
-            Mock Get-AtlasLatestNanaZipReleaseAssets { throw 'digest missing' }
+            Mock Get-AtlasPinnedNanaZipReleaseAssets { throw 'digest missing' }
             Mock Install-AtlasNanaZip
             Mock Install-Atlas7Zip
             Mock Write-AtlasLog
@@ -1003,7 +1137,7 @@ Describe 'Install-AtlasArchiveTool asset selection' {
             )
 
             Mock Get-AtlasDismProvisioningCommands { $commands }
-            Mock Get-AtlasLatestNanaZipReleaseAssets { $assets }
+            Mock Get-AtlasPinnedNanaZipReleaseAssets { $assets }
             Mock Test-Path -ParameterFilter {
                 $LiteralPath -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'
             } -MockWith {

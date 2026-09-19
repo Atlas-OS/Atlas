@@ -58,6 +58,9 @@ pub struct Progress {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Activity {
+    pub failure_message: Option<String>,
+    pub error_code: Option<String>,
+    pub package_name: Option<String>,
     pub percent: Option<u32>,
     pub current_update: Option<String>,
     pub bytes_downloaded: Option<u64>,
@@ -70,6 +73,11 @@ pub struct Activity {
 }
 
 impl Progress {
+    /// Only terminal failures may display error data from a journal.
+    pub fn failure(&self) -> Option<&Activity> {
+        (self.status == Status::Failed && self.activity.failure_message.is_some()).then_some(&self.activity)
+    }
+
     pub fn fraction(&self) -> Option<f32> {
         self.activity.percent.map(|p| p as f32 / 100.).or_else(|| {
             (self.stage == Stage::StoreInstall && self.total > 0)
@@ -532,6 +540,28 @@ mod tests {
         fs::write(&marker, "").unwrap();
         write_cancel(&marker).unwrap();
         assert_eq!(fs::read_to_string(&marker).unwrap(), "cancel");
+    }
+
+    #[test]
+    fn terminal_failure_details_reach_the_monitor_and_are_not_shown_for_running_work() {
+        let temp = super::super::test_support::TempDir::new("preparation-error-detail");
+        let value = serde_json::json!({
+            "schema":1,"status":"failed","stage":"store-install","completed":0,"total":1,
+            "pid":42,"processStart":123,
+            "activity":{"failureMessage":"Resources are in use","errorCode":"0x80073D02","packageName":"NanaZip"}
+        });
+        fs::write(temp.path().join("state.json"), value.to_string()).unwrap();
+        let job =
+            RunningJob { directory: temp.path().to_owned(), pid: 42, process_start: 123, trusted: true };
+        let mut reports = Vec::new();
+        let state =
+            monitor_with(&job, |p| reports.push(p), || super::super::system::Liveness::Ended).unwrap();
+        assert_eq!(state, State::Failed);
+        let failure = reports[0].failure().unwrap();
+        assert_eq!(failure.package_name.as_deref(), Some("NanaZip"));
+        assert_eq!(failure.error_code.as_deref(), Some("0x80073D02"));
+        reports[0].status = Status::Running;
+        assert!(reports[0].failure().is_none());
     }
 
     fn journal(job: &Path, pid: u32, start: u64, status: &str) {

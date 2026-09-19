@@ -105,4 +105,19 @@ Describe 'TrustedInstaller broker private native dispatch' {
         $LASTEXITCODE | Should -Be 37
         ($output | Out-String) | Should -Match 'child exited with code 37'
     }
+
+    It 'preserves an install failure when the child could not write a session log' {
+        $env:ATLAS_BROKER_TEST_EXIT = '37'
+        $payloadRoot = Join-Path ([Environment]::GetFolderPath('Windows')) ('AtlasOS\Staging\' + [guid]::NewGuid().ToString('N') + '\Executables')
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $output = & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
+                -Operation Install -InstallPhase Capture -PayloadRoot $payloadRoot 2>&1
+        }
+        finally { $ErrorActionPreference = $previousPreference }
+        $LASTEXITCODE | Should -Be 37
+        ($output | Out-String) | Should -Match 'error details unavailable'
+        ($output | Out-String) | Should -Match 'child exited with code 37'
+    }
 }

@@ -5,7 +5,8 @@ Thank you for testing. Please read this before installing.
 What this is
 - AtlasManager.exe is a release candidate of Atlas Manager with the
   Atlas @RC_ID@ playbook built in. It installs only that playbook. It does
-  not check GitHub for releases, download anything, or open other playbooks.
+  not check GitHub for playbook releases or open other playbooks. Setup still
+  downloads Windows/Store updates and selected software from their sources.
 - The normal build may consult Microsoft's Windows release page when your
   Windows update revision is newer than the list built into the app. This
   build never contacts that page: a public revision of build 26200 that the

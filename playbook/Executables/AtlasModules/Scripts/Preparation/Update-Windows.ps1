@@ -14,6 +14,25 @@ $script:PreparationLastProgress = ''
 # journal and the app: a marker that survives a restart must be named, not
 # answered with another restart.
 $script:PreparationRestartReasons = @()
+$script:PreparationStage = 'verify'
+
+function New-PreparationStoreFailure([string]$PackageFamilyName, [string]$State, $ErrorCode) {
+    $failure = [Exception]::new("Microsoft Store needs attention: $PackageFamilyName, $State, $ErrorCode")
+    $failure.Data['packageName'] = ($PackageFamilyName -split '_')[0].Split('.')[-1]
+    if ($null -ne $ErrorCode) {
+        $failure.Data['errorCode'] = '0x{0:X8}' -f $ErrorCode.HResult
+    }
+    return $failure
+}
+
+function Get-PreparationFailureDetail([Exception]$Exception) {
+    $detail = @{ failureMessage = $Exception.Message }
+    foreach ($key in @('packageName', 'errorCode')) {
+        if ($Exception.Data.Contains($key)) { $detail[$key] = [string]$Exception.Data[$key] }
+    }
+    if (-not $detail.ContainsKey('errorCode')) { $detail.errorCode = '0x{0:X8}' -f $Exception.HResult }
+    return $detail
+}
 
 function Get-PreparationSessionOwner {
     if (-not ('AtlasPreparation.Session' -as [type])) {
@@ -115,6 +134,7 @@ function Get-PreparationStateSecurity {
 }
 
 function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed = 0, [int]$Total = 0, [hashtable]$Detail = @{}) {
+    $script:PreparationStage = $Stage
     # A heartbeat is not evidence that the provider has made progress. Keep
     # separate clocks for elapsed time and the last actual progress change.
     $elapsed = [long]$script:PreparationClock.Elapsed.TotalSeconds
@@ -380,7 +400,7 @@ function Invoke-PreparationStore {
                     continue
                 }
                 if ($state -in @('Error','Canceled','Paused','PausedLowBattery','PausedWiFiRecommended','PausedWiFiRequired')) {
-                    throw "Microsoft Store needs attention: $($item.PackageFamilyName), $state, $($status.ErrorCode)"
+                    throw (New-PreparationStoreFailure $item.PackageFamilyName $state $status.ErrorCode)
                 }
             }
             Write-PreparationState running store-install $complete $items.Count -Detail @{percent = [int][Math]::Floor($percent / $items.Count)}
@@ -480,8 +500,9 @@ catch [OperationCanceledException] {
     Write-PreparationState cancelled verify
 }
 catch {
+    $failureDetail = Get-PreparationFailureDetail $_.Exception
     $_ | Out-String | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
-    Write-PreparationState failed verify
+    Write-PreparationState failed $script:PreparationStage -Detail $failureDetail
     exit 1
 }
 finally {

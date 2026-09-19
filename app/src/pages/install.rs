@@ -570,7 +570,19 @@ impl InstallPage {
             State::RestartPersists { reasons } => {
                 t!("prepare-restart-persists", reasons = describe::restart_reasons(reasons))
             }
-            State::Failed => t!("prepare-failed"),
+            State::Failed => {
+                let failure = state.preparation_progress.as_ref().and_then(|p| p.failure());
+                match failure.and_then(|f| f.error_code.as_deref()) {
+                    Some(code) if code.eq_ignore_ascii_case("0x80073D02") => {
+                        let app = failure
+                            .and_then(|f| f.package_name.clone())
+                            .unwrap_or_else(|| t!("prepare-affected-app"));
+                        t!("prepare-app-in-use", app = app)
+                    }
+                    Some(code) if code.eq_ignore_ascii_case("0x80240016") => t!("prepare-install-busy"),
+                    _ => t!("prepare-failed"),
+                }
+            }
             State::Cancelled => t!("prepare-cancelled"),
             State::Network => t!("prepare-network-needed"),
             State::WaitingExternal => t!("prepare-previous-worker"),
@@ -591,6 +603,34 @@ impl InstallPage {
                 card_body(cx)
                     .gap(px(12.))
                     .child(div().child(a11y_text("preparation-status", message.clone())))
+                    .when(state.preparation == State::Failed, |this| {
+                        let failure = state.preparation_progress.as_ref().and_then(|p| p.failure());
+                        let detail = failure
+                            .and_then(|f| f.failure_message.as_ref())
+                            .or(state.preparation_error.as_ref());
+                        let mut body = this;
+                        if let Some(detail) = detail {
+                            let detail: String = detail.chars().take(2000).collect();
+                            body = body.child(detail_text("preparation-failure-detail", detail));
+                        }
+                        if let Some(code) = failure.and_then(|f| f.error_code.as_ref()) {
+                            body = body.child(detail_text(
+                                "preparation-error-code",
+                                t!("prepare-error-code", code = code.clone()),
+                            ));
+                        }
+                        if state
+                            .preparation_progress
+                            .as_ref()
+                            .is_some_and(|p| matches!(p.stage, Stage::StoreSearch | Stage::StoreInstall))
+                        {
+                            body = body.child(
+                                Button::new("prepare-open-store", t!("prepare-open-store"))
+                                    .opens("ms-windows-store://downloadsandupdates"),
+                            );
+                        }
+                        body
+                    })
                     .when_some(state.preparation_problem, |this, problem| {
                         use crate::services::preparation::RestartProblem;
                         let message = match problem {

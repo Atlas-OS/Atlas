@@ -547,8 +547,8 @@ Describe 'Values Windows itself refuses' {
         }
         $record.FullyQualifiedErrorId | Should -Be 'AtlasRegistryValueWriteRefused'
         $record.Exception | Should -BeOfType [System.UnauthorizedAccessException]
-        $record.Exception.Message | Should -Match "value 'Protected'"
-        $record.Exception.Message | Should -Match 'protected by the operating system'
+        $record.Exception.Message | Should -Match "value operation for 'Protected'"
+        $record.Exception.Message | Should -Match 'cause of the access denial is not established'
         $record.Exception.InnerException.Message | Should -Be 'kernel said no'
         InModuleScope Atlas.Registry -Parameters @{ record = $record } {
             Test-AtlasRegistryValueRefused -ErrorRecord $record
@@ -577,7 +577,7 @@ Describe 'Values Windows itself refuses' {
         Mock -CommandName Write-AtlasLog -ModuleName Atlas.Registry -MockWith { }
 
         { Set-AtlasRegistryValue -Path "$script:testRoot\Refused" -Name 'Policy' -Type DWord -Data 1 } |
-            Should -Throw '*protected by the operating system*'
+            Should -Throw '*cause of the access denial is not established*'
 
         { Set-AtlasRegistryValue -Path "$script:testRoot\Refused" -Name 'Policy' -Type DWord -Data 1 -AllowOsProtected } |
             Should -Not -Throw
@@ -599,11 +599,28 @@ Describe 'Values Windows itself refuses' {
         }
 
         { Remove-AtlasRegistryValue -Path "$script:testRoot\Delete" -Name 'Policy' } |
-            Should -Throw '*protected by the operating system*'
+            Should -Throw '*cause of the access denial is not established*'
         { Remove-AtlasRegistryValue -Path "$script:testRoot\Delete" -Name 'Policy' -AllowOsProtected } |
             Should -Not -Throw
         Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly `
             -ParameterFilter { $Level -eq 'Warning' -and $Message -match 'Continuing without removing it' }
+    }
+
+    It 'continues when the reported background-app preference is refused but still applies the main preference' {
+        $definition = Import-PowerShellDataFile (Join-Path $script:AtlasTestScriptsRoot 'Tweaks\performance\disable-background-apps.psd1')
+        $entries = $definition.Registry
+        foreach ($entry in $entries) { $entry.Path = "$script:testRoot\BackgroundApps" }
+        Mock Set-AtlasRegistryValueCore -ModuleName Atlas.Registry {
+            if ($Name -eq 'BackgroundAppGlobalToggle') { throw $script:RefusedRecord }
+        }
+        Mock Write-AtlasLog -ModuleName Atlas.Registry {}
+        { Invoke-AtlasRegistryEntries -Entries $entries -IsArm64 $false } | Should -Not -Throw
+        Should -Invoke Set-AtlasRegistryValueCore -ModuleName Atlas.Registry -Times 1 -Exactly -ParameterFilter {
+            $Name -eq 'GlobalUserDisabled' -and $Data -eq 1
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -match 'Continuing without it'
+        }
     }
 
     It 'reports a refused value as drift so nothing is lost silently' {

@@ -41,6 +41,18 @@ if (-not [IO.File]::Exists($bootstrap)) { throw "The PowerShell bootstrap is mis
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
+function Get-AtlasInstallFailureDetail {
+    param([string]$PayloadRoot, [string]$Phase)
+    $sessionLog = Join-Path $PayloadRoot "AtlasModules\Logs\install-$($Phase.ToLowerInvariant()).log"
+    $logFile = Get-Item -LiteralPath $sessionLog -Force -ErrorAction Stop
+    if (($logFile.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or $logFile.Length -gt 1048576) {
+        throw 'The install session log is a reparse point or exceeds 1 MiB.'
+    }
+    $detail = [IO.File]::ReadAllText($sessionLog)
+    if ($detail.Length -gt 16384) { $detail = $detail.Substring($detail.Length - 16384) }
+    return $detail
+}
+
 try {
     $atlasModulesPath = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $coreManifest = Join-Path $atlasModulesPath 'Scripts\Modules\Atlas.Core\Atlas.Core.psd1'
@@ -123,6 +135,14 @@ try {
         0
     )
     if ($signedExitCode -ne 0) {
+        if ($Operation -ceq 'Install') {
+            try {
+                [Console]::Error.WriteLine((Get-AtlasInstallFailureDetail -PayloadRoot $resolvedPayloadRoot -Phase $InstallPhase))
+            }
+            catch {
+                [Console]::Error.WriteLine("Install $InstallPhase error details unavailable: $($_.Exception.Message)")
+            }
+        }
         [Console]::Error.WriteLine(
             "TrustedInstaller $Operation child exited with code $($result.ExitCodeUInt32)."
         )

@@ -1,7 +1,7 @@
 # Atlas.Registry domain: registry value writes and deletes.
 #
-# Windows protects a small number of policy values against every caller, including
-# TrustedInstaller: the key opens for writing and the kernel then refuses the value.
+# A value operation can be denied after the key opens for writing. This alone
+# does not establish the cause, or prove that a different token cannot write it.
 # That refusal carries this error id so callers can tell it apart from an Atlas defect
 # such as a mistyped path, and treat it as best effort where a definition says so.
 #
@@ -61,7 +61,7 @@ function New-AtlasRegistryValueRefusedRecord {
     )
 
     $displayName = if ([string]::IsNullOrEmpty($Name)) { '(default)' } else { $Name }
-    $message = "Windows refused the value '$displayName' at '$ProviderPath'. The key itself opened for writing, so this value is protected by the operating system."
+    $message = "Windows denied the value operation for '$displayName' at '$ProviderPath' after the key opened for writing. The cause of the access denial is not established."
     return (New-Object System.Management.Automation.ErrorRecord(
             (New-Object System.UnauthorizedAccessException($message, $Cause)),
             $script:AtlasRegistryValueRefusedErrorId,
@@ -130,8 +130,8 @@ function Set-AtlasRegistryValueCore {
         $key.SetValue($Name, $value, [Microsoft.Win32.RegistryValueKind]$Type)
     }
     catch [System.UnauthorizedAccessException] {
-        # CreateSubKey above already proved write access to the key, so a denial here is
-        # Windows refusing this particular value. No right Atlas can hold changes that.
+        # Record the value-level denial without claiming a particular protection
+        # mechanism. Explicit best-effort entries may log and continue.
         throw (New-AtlasRegistryValueRefusedRecord -ProviderPath $ProviderPath -Name $Name -Cause $_.Exception)
     }
     finally {
@@ -161,8 +161,8 @@ function Set-AtlasRegistryValue {
 
         [object]$Data,
 
-        # Windows protects a small number of policy values against every caller. Where
-        # that is expected, a refusal is a logged warning instead of a failure; the
+        # Where a definition permits a value-level access denial, the refusal
+        # is a logged warning instead of a failure; the
         # Atlas health check still reports the value as drift.
         [switch]$AllowOsProtected
     )
@@ -222,7 +222,7 @@ function Remove-AtlasRegistryValue {
                 $key.DeleteValue($Name, $false)
             }
             catch [System.UnauthorizedAccessException] {
-                # The key opened for writing, so Windows is protecting this value.
+                # Distinguish value-level denial from failure to open the key.
                 throw (New-AtlasRegistryValueRefusedRecord -ProviderPath $providerPath -Name $Name -Cause $_.Exception)
             }
             finally {

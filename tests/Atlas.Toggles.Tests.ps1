@@ -1176,6 +1176,16 @@ Describe 'Operating-system protected toggle values' {
         @(Test-AtlasToggleDefinition -Path $root).Count | Should -Be 0
     }
 
+    It 'allows denial only for the legacy Search background preference in both toggle directions' {
+        $definition = Get-AtlasToggleDefinition -Name 'BackgroundApps' -TogglesRoot $script:ShippedTogglesRoot
+        foreach ($state in @('Enable', 'Disable')) {
+            $entries = @($definition['States'][$state]['Registry'])
+            $optional = @($entries | Where-Object { $_['AllowOsProtected'] })
+            $optional.Count | Should -Be 1
+            $optional[0].Name | Should -Be 'BackgroundAppGlobalToggle'
+        }
+    }
+
     It 'declares the widget policy values Windows can refuse' {
         $definition = Get-AtlasToggleDefinition -Name 'Widgets' -TogglesRoot $script:ShippedTogglesRoot
         $entries = @($definition['States']['Disable']['Registry'])

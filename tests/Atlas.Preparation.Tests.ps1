@@ -3,6 +3,21 @@ BeforeAll {
 }
 
 Describe 'Signed-in preparation ownership' {
+    It 'preserves the Store app and HRESULT through PowerShell exception handling' {
+        $native = [Runtime.InteropServices.COMException]::new('Resources are in use.', -2147009278)
+        try { throw (New-PreparationStoreFailure '40174MouriNaruto.NanaZip_gnj4mf6z9tkrc' 'Error' $native) }
+        catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.packageName | Should -Be 'NanaZip'
+        $detail.errorCode | Should -Be '0x80073D02'
+        $detail.failureMessage | Should -Match 'Resources are in use'
+    }
+
+    It 'preserves unexpected provider failures without inventing an app name' {
+        $detail = Get-PreparationFailureDetail ([Exception]::new('Update service unavailable'))
+        $detail.failureMessage | Should -Be 'Update service unavailable'
+        $detail.ContainsKey('packageName') | Should -BeFalse
+    }
+
     It 'rejects SYSTEM, session zero and another administrator account' {
         Mock Get-PreparationSessionOwner { 'S-1-5-21-1-2-3-1001' }
         { Assert-PreparationUser -UserSid 'S-1-5-18' -SessionId 1 } | Should -Throw '*session owner*'

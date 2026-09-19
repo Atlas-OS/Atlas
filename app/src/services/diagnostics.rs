@@ -255,6 +255,24 @@ impl Bundle {
                         .collect();
                     entries.sort_by_key(|entry| std::cmp::Reverse(entry.file_name()));
                     for entry in entries {
+                        // Staged payloads contain thousands of code/assets entries. Only
+                        // visit their request and runtime logs, preserving the budget for
+                        // install state and the other diagnostic sources.
+                        if let Some(relative) = name.strip_prefix("playbook/state/Staging/") {
+                            let parts: Vec<_> = relative.split('/').collect();
+                            let child = entry.file_name().to_string_lossy().to_ascii_lowercase();
+                            if (parts.len() == 2
+                                && parts[1].eq_ignore_ascii_case("Executables")
+                                && child != "request.json"
+                                && child != "atlasmodules")
+                                || (parts.len() == 3
+                                    && parts[1].eq_ignore_ascii_case("Executables")
+                                    && parts[2].eq_ignore_ascii_case("AtlasModules")
+                                    && child != "logs")
+                            {
+                                continue;
+                            }
+                        }
                         if self.files >= 2048 {
                             self.note(name, "remaining entries omitted: file limit");
                             break;
@@ -397,6 +415,7 @@ pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
         };
         let packed = (|| -> Result<()> {
             bundle.text("READ-ME.txt", PRIVACY.as_bytes())?;
+            bundle.collect(&working, "report", 0)?;
             if let Some(path) = &package_directory {
                 bundle.collect(&path.join("Executables/AtlasModules/Logs"), "playbook/staged-logs", 0)?;
             }
@@ -429,7 +448,6 @@ pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
                     0,
                 )?;
             }
-            bundle.collect(&working, "report", 0)?;
             let executable = std::env::current_exe().ok();
             let hash = executable.as_ref().and_then(|path| super::releases::sha256_file(path).ok());
             let info = super::system::SystemInfo::read();
@@ -544,6 +562,48 @@ mod tests {
         let digest = ring::digest::digest(&ring::digest::SHA256, log.as_bytes());
         let digest: String = digest.as_ref().iter().map(|byte| format!("{byte:02x}")).collect();
         assert_eq!(manifest["files"][0]["sha256"], digest);
+    }
+
+    #[test]
+    fn staged_payload_assets_cannot_exhaust_the_evidence_budget() {
+        let temp = TempDir::new("diagnostic-staging-budget");
+        let state = temp.path().join("state");
+        let payload = state.join("Staging/one/Executables");
+        let assets = payload.join("AtlasDesktop/assets");
+        let modules = payload.join("AtlasModules");
+        fs::create_dir_all(&assets).unwrap();
+        fs::create_dir_all(modules.join("Logs")).unwrap();
+        fs::create_dir_all(modules.join("Scripts")).unwrap();
+        fs::create_dir_all(state.join("Install")).unwrap();
+        for index in 0..2100 {
+            fs::write(assets.join(format!("asset-{index}.json")), "{}").unwrap();
+        }
+        fs::write(modules.join("Scripts/catalog.json"), "payload metadata").unwrap();
+        fs::write(modules.join("Logs/install-capture.log"), "actual exception").unwrap();
+        fs::write(payload.join("request.json"), "{\"options\":[]}").unwrap();
+        fs::write(state.join("Install/active.json"), "install state").unwrap();
+        let target = temp.path().join("test.zip");
+        let mut bundle = Bundle {
+            zip: ZipWriter::new(File::create(&target).unwrap()),
+            entries: Vec::new(),
+            bytes: 0,
+            files: 0,
+            redactor: super::super::diagnostics_redaction::Redactor::new(),
+        };
+        bundle.collect(&state, "playbook/state", 0).unwrap();
+        assert!(bundle.files < 20);
+        bundle.zip.finish().unwrap();
+        let mut zip = zip::ZipArchive::new(File::open(target).unwrap()).unwrap();
+        for name in [
+            "Install/active.json",
+            "Staging/one/Executables/request.json",
+            "Staging/one/Executables/AtlasModules/Logs/install-capture.log",
+        ] {
+            assert!(zip.by_name(&format!("playbook/state/{name}")).is_ok());
+        }
+        assert!(
+            zip.by_name("playbook/state/Staging/one/Executables/AtlasModules/Scripts/catalog.json").is_err()
+        );
     }
 
     #[test]
