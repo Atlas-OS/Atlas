@@ -39,10 +39,13 @@ try {
     }
     Receive-Job $job -ErrorAction Continue | Out-Null
     if (-not (Test-Path -LiteralPath $reportPath)) { throw 'Probe worker failed before creating a report.' }
-    Get-Content -LiteralPath $reportPath -Raw
+    $reportJson = Get-Content -LiteralPath $reportPath -Raw
+    $reportJson
+    $finalReport = $reportJson | ConvertFrom-Json
     Write-Host "Report saved to $reportPath"
 }
 finally {
     if ($job.State -eq 'Running') { Stop-Job $job }
     Remove-Job $job -Force
 }
+if ($finalReport.Decision -notin @('ProbeOnly', 'Installed', 'AlreadyProvisioned')) { exit 2 }

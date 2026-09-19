@@ -44,6 +44,9 @@ calling COM. Failed installation, cancellation, readback failure or timeout
 requires inspection before another installer is started. Stopping the client
 does not prove that the Store service cancelled the operation. The probe never
 runs download fallbacks itself or removes installed applications.
+The wrapper exits with code 2 for unsuccessful/uncertain results, including
+preflight failures. It exits successfully for lookup, installation or an already
+provisioned package.
 
 ## Evidence and release gate
 
@@ -54,14 +57,43 @@ on the developer PC. Automated tests cover lookup failure, wrong product,
 checkpointing, failed/uncertain mutation, missing provisioning and successful
 provisioning. They do not establish Store availability on a Chinese network.
 
-Before production integration, test clean elevated-user and TrustedInstaller/
-SYSTEM runs, existing user-only installation, a new user's registration after
-provisioning, unavailable COM/Store, disabled Store updates, network loss and
-cancellation during download/deployment. Confirm there is no active Store job
+Before production integration, complete the remaining cases below, including
+existing user-only installation, unavailable COM/Store, disabled Store updates,
+network loss and cancellation during download/deployment. Confirm there is no active Store job
 before testing a manual download fallback after a failed mutation. Also decide
 how to package the COM projection/module without runtime dependency downloads.
 Store installation alone does not guarantee automatic updates if Store updates
 or required services are disabled.
+
+### Hyper-V validation, 2026-09-19
+
+Tested on `Atlas-Test`, Windows build 26200, Windows PowerShell 5.1.26100.9278,
+App Installer 1.29.289.0 and module 1.29.280. NanaZip was absent initially.
+A checkpoint was taken before installation; it was restored before the SYSTEM
+test so an existing installation could not hide a failure.
+
+| Test | Result |
+| --- | --- |
+| Elevated user, Store, System scope | Passed: COM status `Ok`, installer code 0, NanaZip 7.0.1843.0 provisioned, no restart required. |
+| SYSTEM scheduled task, Store, Windows PowerShell 5.1 | Failed before mutation: `This cmdlet is not supported in Windows PowerShell.`, HRESULT -2146233087. |
+| SYSTEM scheduled task, current Atlas download/provisioning implementation | Passed: verified GitHub bundle and license downloaded; NanaZip 7.0.1843.0 provisioned. |
+
+The SYSTEM result is an intentional upstream limitation, not a Store outage.
+`Common/Utilities.cs` sets `UsesInProcWinget` for SYSTEM;
+`Commands/Common/ManagementDeploymentCommand.cs` rejects this path in its
+Windows PowerShell build. The probe now detects that combination before COM
+activation and reports an actionable error. These tests do not establish that
+all WinGet COM implementations are unsupported under SYSTEM.
+
+Recommended integration: attempt Store from a protected **elevated user** stage
+before Atlas enters its SYSTEM software phase. Retain verified NanaZip downloads
+for a failure before mutation. Do not attempt another installer after uncertain
+Store mutation. This integration is not implemented by the developer probe.
+
+Still untested: a fresh user's first logon, automatic Store updating, regional
+connectivity, cancellation during real deployment, and the exact TrustedInstaller
+broker token. The live download test used GitHub; SourceForge failover remains
+covered by download verification and unit tests, not a forced VM network failure.
 
 Source research used `microsoft/winget-cli` ref
 `5b62860167520b1503b3880d5a026809eb07c6f4` from the local docs cache:

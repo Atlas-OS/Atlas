@@ -33,6 +33,15 @@ Describe 'NanaZip Store probe operation' {
             $result.Error.Message | Should -Be 'Store unavailable'
             Should -Invoke Install-WinGetPackage -Times 0 -Exactly
         }
+        It 'reports the unsupported SYSTEM Windows PowerShell host before COM activation' {
+            if ($PSVersionTable.PSEdition -ne 'Desktop') { Set-ItResult -Skipped -Because 'Windows PowerShell specific restriction'; return }
+            Mock Get-NanaZipProbeContext { @{ IsSystem = $true; Elevated = $true } }
+            $result = Invoke-NanaZipStoreProbe -ClientManifest 'fixture.psd1' -ReportPath $script:reportFile -Install
+            $result.Decision | Should -Be DownloadFallbackAllowed
+            $result.Error.Message | Should -BeLike '*does not support SYSTEM in Windows PowerShell 5.1*'
+            Should -Invoke Find-WinGetPackage -Times 0 -Exactly
+            Should -Invoke Install-WinGetPackage -Times 0 -Exactly
+        }
         It 'refuses an ambiguous or substituted Store product' {
             Mock Find-WinGetPackage { [pscustomobject]@{ Id = 'different-product'; Source = 'msstore' } }
             $result = Invoke-NanaZipStoreProbe -ClientManifest 'fixture.psd1' -ReportPath $script:reportFile -Install
@@ -62,6 +71,7 @@ Describe 'NanaZip Store probe operation' {
             $result = Invoke-NanaZipStoreProbe -ClientManifest 'fixture.psd1' -ReportPath $script:reportFile -Install
             $result.Decision | Should -Be Installed
             $result.Phase | Should -Be Complete
+            $result.Result.ExtendedHResult | Should -BeNullOrEmpty
         }
         It 'does not reinstall a provisioned package' {
             Mock Get-NanaZipProvisioned { @{ DisplayName = '40174MouriNaruto.NanaZip' } }

@@ -58,6 +58,9 @@ function Invoke-NanaZipStoreProbe {
     Save-ProbeReport -Report $report -Path $ReportPath
     try {
         if ($Install -and -not $report.Elevated) { throw 'Machine-scope installation requires elevation.' }
+        if ($report.IsSystem -and $PSVersionTable.PSEdition -eq 'Desktop') {
+            throw 'Microsoft.WinGet.Client does not support SYSTEM in Windows PowerShell 5.1. Run this Store probe as an elevated user; the Atlas download/provisioning path supports SYSTEM.'
+        }
         $manifest = Test-ModuleManifest -Path $ClientManifest
         if ($manifest.Name -ne 'Microsoft.WinGet.Client' -or $manifest.Version -ne [version]'1.29.280') {
             throw 'Use the pinned Microsoft.WinGet.Client 1.29.280 module for this experiment.'
@@ -85,8 +88,15 @@ function Invoke-NanaZipStoreProbe {
             $report.Decision = 'InspectBeforeRetry'
             Save-ProbeReport -Report $report -Path $ReportPath
             $result = Install-WinGetPackage -PSCatalogPackage $packages[0] -Scope System -Mode Silent -ErrorAction Stop
-            $report.Result = $result | Select-Object Status, InstallerErrorCode, RebootRequired, CorrelationData,
-                @{ Name = 'ExtendedHResult'; Expression = { if ($_.ExtendedErrorCode) { $_.ExtendedErrorCode.HResult } } }
+            $extendedHResult = $null
+            if ($null -ne $result.ExtendedErrorCode) { $extendedHResult = [int]$result.ExtendedErrorCode.HResult }
+            $report.Result = [ordered]@{
+                Status = $result.Status
+                InstallerErrorCode = $result.InstallerErrorCode
+                RebootRequired = $result.RebootRequired
+                CorrelationData = $result.CorrelationData
+                ExtendedHResult = $extendedHResult
+            }
             $report.Phase = 'VerifyingProvisioning'
             Save-ProbeReport -Report $report -Path $ReportPath
             $report.After = @(Get-NanaZipProvisioned)
