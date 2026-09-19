@@ -1,6 +1,6 @@
 # Archive-app download sources
 
-NanaZip and 7-Zip installation tries the pinned GitHub release asset first,
+NanaZip installation tries the pinned GitHub release asset first,
 then the project's official SourceForge file through
 `https://downloads.sourceforge.net/project/`. SourceForge selects a
 mirror; Atlas does not select by language, country, or a fixed regional host.
@@ -19,16 +19,21 @@ version before DISM provisioning. Updating NanaZip now requires updating the
 version, sizes, and hashes together in the playbook; it no longer discovers the
 latest release during setup.
 
-7-Zip remains pinned to **26.02**, with the existing x64 and ARM64 SHA-256 hashes.
-Both SourceForge binaries were downloaded and verified on 2026-09-19.
+Atlas no longer installs 7-Zip as a fallback or offers it in the software picker.
+Exhausted NanaZip downloads or provisioning errors propagate to setup instead of
+silently installing a different archive app. Existing 7-Zip replacement remains
+opt-in, with removal only after successful NanaZip provisioning. Build/lab tools
+can still use an existing 7-Zip-compatible command. The legacy `SevenZip`
+component identifier still dispatches to NanaZip for compatibility.
+
+Store-first installation is a separate developer experiment, documented in
+[nanazip-store-probe.md](nanazip-store-probe.md). It is not enabled in the playbook.
 
 Official source references:
 
 - https://github.com/M2Team/NanaZip (identifies SourceForge as an official project site)
 - https://sourceforge.net/projects/nanazip/files/7.0.1843.0/
 - https://github.com/M2Team/NanaZip/releases/tag/7.0.1843.0
-- https://www.7-zip.org/download.html (links to the official SourceForge project)
-- https://sourceforge.net/projects/sevenzip/files/7-Zip/26.02/
 
 ## Background-app registry failure in diagnostic bundle 7776
 

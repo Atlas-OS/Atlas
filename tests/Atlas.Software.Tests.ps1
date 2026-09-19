@@ -65,24 +65,6 @@ Describe 'Official archive-app mirrors' {
             Should -Invoke Invoke-AtlasGitHubApiJson -Times 0 -Exactly
         }
     }
-
-    It 'downloads and verifies 7-Zip from its official mirror for <Architecture>' -TestCases @(
-        @{ Architecture = 'x64'; Arm64 = $false }
-        @{ Architecture = 'arm64'; Arm64 = $true }
-    ) {
-        param($Architecture, $Arm64)
-        InModuleScope Atlas.Software -Parameters @{ Architecture = $Architecture; Arm64 = $Arm64; TempDir = $TestDrive } {
-            Mock Test-AtlasSoftwareArm64 { $Arm64 }
-            Mock Invoke-AtlasArchiveDownload {}
-            Mock Start-AtlasSoftwareInstaller {}
-            Install-Atlas7Zip -TempDir $TempDir
-            Should -Invoke Invoke-AtlasArchiveDownload -Times 1 -Exactly -ParameterFilter {
-                $Uris.Count -eq 2 -and $Uris[0].Host -eq 'github.com' -and
-                $Uris[1] -eq "https://downloads.sourceforge.net/project/sevenzip/7-Zip/26.02/7z2602-$Architecture.exe" -and
-                $Sha256 -match '^[0-9a-f]{64}$' -and $ExpectedBytes -gt 0
-            }
-        }
-    }
 }
 
 Describe 'Archive download failover' {
@@ -518,7 +500,7 @@ Describe 'Get-AtlasSoftwarePickerItem' {
         InModuleScope Atlas.Software {
             $items = @(Get-AtlasSoftwarePickerItem -WindowsBuild 22631)
 
-            $items.Count | Should -Be 40
+            $items.Count | Should -Be 39
             foreach ($item in $items) {
                 $item.Text | Should -Not -BeNullOrEmpty
                 $item.Package | Should -Not -BeNullOrEmpty
@@ -987,7 +969,7 @@ Describe 'Install-AtlasNanaZip mutation boundary' {
         }
     }
 
-    It 'allows the pinned 7-Zip fallback before DISM mutation begins' {
+    It 'reports exhausted NanaZip downloads without starting another installer' {
         $temp = Join-Path -Path $TestDrive -ChildPath 'nanazip-pre-mutation'
         New-Item -Path $temp -ItemType Directory | Out-Null
         InModuleScope Atlas.Software -Parameters @{
@@ -1000,21 +982,13 @@ Describe 'Install-AtlasNanaZip mutation boundary' {
             }
             Mock Resolve-AtlasProtectedExecutionPath { $Path }
             Mock Invoke-AtlasPinnedDownload { throw 'verified download unavailable' }
-            Mock Install-Atlas7Zip
             Mock Write-AtlasLog
             Mock Test-AtlasContainedProcessContainmentUnconfirmed { $false }
             Mock Test-Path -ParameterFilter {
                 $LiteralPath -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'
             } -MockWith { $false }
 
-            Install-AtlasNanaZip `
-                -TempDir $Temp `
-                -Assets $Assets `
-                -DismCommands $commands | Should -BeFalse
-
-            Should -Invoke Install-Atlas7Zip -Times 1 -Exactly -ParameterFilter {
-                $TempDir -ceq $Temp
-            }
+            { Install-AtlasNanaZip -TempDir $Temp -Assets $Assets -DismCommands $commands } | Should -Throw '*verified download sources*'
         }
     }
 
@@ -1047,12 +1021,9 @@ Describe 'Install-AtlasNanaZip mutation boundary' {
             Mock Resolve-AtlasProtectedExecutionPath { $Path }
             Mock Invoke-AtlasPinnedDownload { $Destination }
             Mock Assert-AtlasNanaZipBundleIdentity
-            Mock Install-Atlas7Zip
 
             { Install-AtlasNanaZip -TempDir $Temp -Assets $Assets -DismCommands $commands } |
                 Should -Throw -ExpectedMessage '*without provisioning NanaZip*'
-
-            Should -Invoke Install-Atlas7Zip -Times 0 -Exactly
         }
     }
 }
@@ -1077,7 +1048,6 @@ Describe 'Install-AtlasArchiveTool asset selection' {
             Mock Get-AtlasPinnedNanaZipReleaseAssets { $assets }
             Mock Test-Path -ParameterFilter { $LiteralPath -like '*7-Zip*' } -MockWith { $false }
             Mock Install-AtlasNanaZip
-            Mock Install-Atlas7Zip
 
             Install-AtlasArchiveTool -TempDir 'C:\fake\temp'
 
@@ -1087,11 +1057,10 @@ Describe 'Install-AtlasArchiveTool asset selection' {
                 $Assets[1].Name -ceq 'NanaZip_6.5.1767.0.xml' -and
                 $null -ne $DismCommands.GetProvisionedPackage
             }
-            Should -Invoke Install-Atlas7Zip -Times 0 -Exactly
         }
     }
 
-    It 'falls back to pinned 7-Zip when NanaZip release integrity cannot be established' {
+    It 'reports a NanaZip integrity failure before installation' {
         InModuleScope Atlas.Software {
             $commands = [pscustomobject]@{
                 GetProvisionedPackage = {
@@ -1105,16 +1074,10 @@ Describe 'Install-AtlasArchiveTool asset selection' {
             Mock Get-AtlasDismProvisioningCommands { $commands }
             Mock Get-AtlasPinnedNanaZipReleaseAssets { throw 'digest missing' }
             Mock Install-AtlasNanaZip
-            Mock Install-Atlas7Zip
             Mock Write-AtlasLog
 
-            Install-AtlasArchiveTool -TempDir 'C:\fake\temp'
-
-            Should -Invoke Install-Atlas7Zip -Times 1 -Exactly
+            { Install-AtlasArchiveTool -TempDir 'C:\fake\temp' } | Should -Throw '*integrity could not be established*'
             Should -Invoke Install-AtlasNanaZip -Times 0 -Exactly
-            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
-                $Level -eq 'Warning' -and $Message -like '*integrity could not be established*'
-            }
         }
     }
 

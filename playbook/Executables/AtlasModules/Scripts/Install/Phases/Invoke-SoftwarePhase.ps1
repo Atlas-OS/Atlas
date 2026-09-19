@@ -14,7 +14,7 @@ $context = Get-AtlasContext
 $requestedComponents = New-Object 'Collections.Generic.List[string]'
 $failedComponents = New-Object 'Collections.Generic.List[string]'
 
-# Initial software: Visual C++ Runtimes, NanaZip/7-Zip, DirectX (fresh installs only)
+# Initial software: Visual C++ Runtimes, NanaZip, DirectX (fresh installs only)
 if (-not $context.IsUpgrade) {
     foreach ($component in @('VCRedist', 'SevenZip', 'DirectX')) {
         $requestedComponents.Add($component)

@@ -2,7 +2,7 @@
 
 function Get-AtlasSoftwareComponentMap {
     # Component -> installer function. 'SevenZip' maps to the archive-tool installer,
-    # which prefers NanaZip and falls back to 7-Zip.
+    # which installs NanaZip. Keep the legacy component name for callers.
     return @{
         SevenZip  = 'Install-AtlasArchiveTool'
         VCRedist  = 'Install-AtlasVisualCppRuntimes'
@@ -913,26 +913,6 @@ function Install-AtlasVisualCppRuntimes {
     }
 }
 
-function Install-Atlas7Zip {
-    param([Parameter(Mandatory = $true)][string]$TempDir)
-
-    # Bump the version + hashes together when 7-Zip releases (~1-2x/year). 7-Zip
-    # installers are not Authenticode-signed, so a pinned hash is the only integrity option.
-    $sevenZipVersion = '2602'
-    $sevenZipHashes = @{
-        'x64'   = '6745fa76dc2ea031596d8678f6f6b99c3c1b435b4164a63485adbbc7b8d82ef0'
-        'arm64' = '7c6fde79ed5e11b81c7bb6573b7962d3b6322aa5fce69c33ed19f672b55173ab'
-    }
-    $sevenZipArch = if (Test-AtlasSoftwareArm64) { 'arm64' } else { 'x64' }
-    $installerPath = Join-Path -Path $TempDir -ChildPath '7zip.exe'
-    $sevenZipBytes = @{ x64 = 1657896; arm64 = 1590118 }
-    $null = Invoke-AtlasArchiveDownload -Uris @(
-        "https://github.com/ip7z/7zip/releases/download/26.02/7z$sevenZipVersion-$sevenZipArch.exe"
-        "https://downloads.sourceforge.net/project/sevenzip/7-Zip/26.02/7z$sevenZipVersion-$sevenZipArch.exe"
-    ) -Destination $installerPath -Sha256 $sevenZipHashes[$sevenZipArch] -ExpectedBytes $sevenZipBytes[$sevenZipArch]
-    Start-AtlasSoftwareInstaller -FilePath $installerPath -ArgumentList @('/S') -Description '7-Zip'
-}
-
 function Install-AtlasNanaZip {
     param(
         [Parameter(Mandatory = $true)][string]$TempDir,
@@ -1016,12 +996,7 @@ function Install-AtlasNanaZip {
             (Test-AtlasContainedProcessContainmentUnconfirmed -Exception $_.Exception)) {
             throw
         }
-        Write-AtlasLog -Level Warning -Message "Failed to install NanaZip! Getting 7-Zip instead. $($_.Exception.Message)"
-        $sevenZipRegistry = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'
-        if (-not (Test-Path -LiteralPath $sevenZipRegistry)) {
-            Install-Atlas7Zip -TempDir $TempDir
-        }
-        return $false
+        throw "NanaZip could not be installed from the verified download sources. $($_.Exception.Message)"
     }
 }
 
@@ -1064,9 +1039,7 @@ function Install-AtlasArchiveTool {
         $provisionedPackages = @(& $dismCommands.GetProvisionedPackage -Online -ErrorAction Stop)
     }
     catch {
-        Write-AtlasLog -Level Warning -Message "NanaZip provisioning is unavailable; installing 7-Zip instead. $($_.Exception.Message)"
-        Install-Atlas7Zip -TempDir $TempDir
-        return
+        throw "NanaZip provisioning is unavailable. $($_.Exception.Message)"
     }
 
     if (Test-AtlasNanaZipProvisioned -Package $provisionedPackages) {
@@ -1078,9 +1051,7 @@ function Install-AtlasArchiveTool {
         $assets = @(Get-AtlasPinnedNanaZipReleaseAssets)
     }
     catch {
-        Write-AtlasLog -Level Warning -Message "NanaZip release integrity could not be established; installing 7-Zip instead. $($_.Exception.Message)"
-        Install-Atlas7Zip -TempDir $TempDir
-        return
+        throw "NanaZip release integrity could not be established. $($_.Exception.Message)"
     }
 
     $sevenZipRegistry = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'

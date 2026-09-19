@@ -35,7 +35,6 @@ function Get-AtlasSoftwarePickerItem {
         @{ Text = 'VLC'; Package = 'VideoLAN.VLC' }
         @{ Text = 'PuTTY'; Package = 'PuTTY.PuTTY' }
         @{ Text = 'Ditto'; Package = 'Ditto.Ditto' }
-        @{ Text = '7-Zip'; Package = '7zip.7zip' }
         @{ Text = 'Teamspeak'; Package = 'TeamSpeakSystems.TeamSpeakClient' }
         @{ Text = 'Spotify'; Package = 'Spotify.Spotify' }
         @{ Text = 'OBS Studio'; Package = 'OBSProject.OBSStudio' }
