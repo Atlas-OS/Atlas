@@ -88,8 +88,8 @@ function Test-AtlasServiceEntries {
         $name = [string]$entry['Name']
         $expected = [int]$entry['StartupType']
         $servicePath = Join-Path -Path $ServicesRoot -ChildPath $name
-        if (-not (Test-Path -LiteralPath $servicePath)) {
-            if (-not ($entry.ContainsKey('AllowMissing') -and [bool]$entry['AllowMissing'])) {
+        if (-not (Test-Path -LiteralPath $servicePath -ErrorAction Stop)) {
+            if ($expected -ne 4 -and -not ($entry.ContainsKey('AllowMissing') -and [bool]$entry['AllowMissing'])) {
                 $drift += [pscustomobject]@{ Service = $name; Expected = $expected; Actual = $null; Reason = 'service is missing' }
             }
             continue

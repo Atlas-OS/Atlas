@@ -40,6 +40,13 @@ function Set-AtlasServiceStartup {
     Assert-AtlasServiceRegistryName -Name $Name
     $servicePath = Join-Path -Path $ServicesRoot -ChildPath $Name
     if (-not (Test-Path -LiteralPath $servicePath -ErrorAction Stop)) {
+        if ($StartupType -eq 4) {
+            Write-AtlasLog -Message "Service or driver '$Name' is absent and cannot run; skipping disable."
+            if ($PassThru) {
+                return [pscustomobject]@{ Name = $Name; Applied = $false; StartupType = $null }
+            }
+            return
+        }
         if (-not $AllowMissing) {
             throw "Required service or driver '$Name' does not exist under '$ServicesRoot'."
         }
@@ -48,6 +55,23 @@ function Set-AtlasServiceStartup {
         )
         if ($PassThru) {
             return [pscustomobject]@{ Name = $Name; Applied = $false; StartupType = $null }
+        }
+        return
+    }
+
+    $key = Get-Item -LiteralPath $servicePath -ErrorAction Stop
+    try {
+        $alreadyConfigured = $key.GetValueNames() -contains 'Start' -and
+            $key.GetValueKind('Start') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
+            [int]$key.GetValue('Start') -eq $StartupType
+    }
+    finally {
+        $key.Close()
+    }
+    if ($alreadyConfigured) {
+        Write-AtlasLog -Message "Service or driver '$Name' already has startup type '$StartupType'; skipping change."
+        if ($PassThru) {
+            return [pscustomobject]@{ Name = $Name; Applied = $true; StartupType = $StartupType }
         }
         return
     }

@@ -81,13 +81,35 @@ Describe 'Scheduled-task command failure and postcondition checks' {
     }
 
     It 'logs the verified state after a successful change' {
-        Mock Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs { 'Disabled' }
+        InModuleScope Atlas.TasksProcs { $script:stateReads = 0 }
+        Mock Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs {
+            $script:stateReads++
+            if ($script:stateReads -eq 1) { 'Enabled' } else { 'Disabled' }
+        }
         Set-Content -LiteralPath $fake -Value "@echo off`r`nexit /b 0"
         Disable-AtlasScheduledTask -Path '\Atlas\Task'
         Should -Invoke Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs -Times 2 -Exactly
         Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
-            $Message -like '*Verified scheduled task*Disabled -> Disabled*'
+            $Message -like '*Verified scheduled task*Enabled -> Disabled*'
         }
+    }
+
+    It 'skips native changes when the task is already <State>' -ForEach @(
+        @{ State = 'Disabled'; Command = 'Disable-AtlasScheduledTask' }
+        @{ State = 'Enabled'; Command = 'Enable-AtlasScheduledTask' }
+    ) {
+        $script:desiredTaskState = $State
+        Mock Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs { $script:desiredTaskState }
+        Mock Get-AtlasSchtasksPath -ModuleName Atlas.TasksProcs { throw 'native command must not run' }
+        & $Command -Path '\Atlas\Task'
+        Should -Invoke Get-AtlasSchtasksPath -ModuleName Atlas.TasksProcs -Times 0 -Exactly
+        Should -Invoke Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs -Times 1 -Exactly
+    }
+
+    It 'does not treat a failed state query as an already satisfied task' {
+        Mock Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs { throw 'scheduler unavailable' }
+        { Disable-AtlasScheduledTask -Path '\Atlas\Task' } | Should -Throw '*scheduler unavailable*'
+        Should -Invoke Get-AtlasSchtasksPath -ModuleName Atlas.TasksProcs -Times 0 -Exactly
     }
 }
 

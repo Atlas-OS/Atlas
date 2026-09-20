@@ -47,14 +47,45 @@ function Invoke-AtlasDism {
     }
 }
 
-Invoke-AtlasDism -Description 'Enabling DirectPlay' -Arguments @(
-    '/Online', '/Enable-Feature', '/FeatureName:DirectPlay', '/NoRestart', '/All'
-)
+function Remove-AtlasStepsRecorder {
+    # Enumerate instead of querying a hard-coded name: Windows can remove the
+    # capability from its catalog altogether, making that name an error (87).
+    $capabilities = @(Dism\Get-WindowsCapability -Online -ErrorAction Stop | Where-Object {
+        $_.Name -like 'App.StepsRecorder~~~~*'
+    })
+    if ($capabilities.Count -eq 0) {
+        Write-AtlasLog -Message 'Steps Recorder is not listed as a Windows capability; skipping removal.'
+        return
+    }
+    foreach ($capability in $capabilities) {
+        if ([string]$capability.State -eq 'NotPresent') {
+            Write-AtlasLog -Message "Steps Recorder capability '$($capability.Name)' is already absent; skipping removal."
+            continue
+        }
+        if ([string]$capability.State -ne 'Installed') {
+            throw "Steps Recorder capability '$($capability.Name)' has unexpected state '$($capability.State)'. Complete pending Windows servicing and restart before retrying."
+        }
+        Invoke-AtlasDism -Description 'Removing the Steps Recorder capability' -Arguments @(
+            '/Online', '/Remove-Capability', "/CapabilityName:$($capability.Name)", '/NoRestart'
+        )
+    }
+}
+
+function Enable-AtlasDirectPlay {
+    $feature = Dism\Get-WindowsOptionalFeature -Online -FeatureName DirectPlay -ErrorAction Stop
+    if ([string]$feature.State -eq 'Enabled') {
+        Write-AtlasLog -Message 'DirectPlay is already enabled; skipping change.'
+        return
+    }
+    Invoke-AtlasDism -Description 'Enabling DirectPlay' -Arguments @(
+        '/Online', '/Enable-Feature', '/FeatureName:DirectPlay', '/NoRestart', '/All'
+    )
+}
+
+Enable-AtlasDirectPlay
 
 if (-not $context.IsUpgrade) {
-    Invoke-AtlasDism -Description 'Removing the Steps Recorder capability' -Arguments @(
-        '/Online', '/Remove-Capability', '/CapabilityName:App.StepsRecorder~~~~0.0.1.0', '/NoRestart'
-    )
+    Remove-AtlasStepsRecorder
 }
 
 Invoke-AtlasDism -Description 'Cleaning the component store' -Arguments @(

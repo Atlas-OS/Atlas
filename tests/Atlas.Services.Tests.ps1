@@ -55,15 +55,48 @@ Describe 'Set-AtlasServiceStartup' {
         $result.StartupType | Should -Be 4
     }
 
+    It 'succeeds without writing when the typed startup setting is already correct' {
+        New-Item -Path "$script:servicesRoot\TestSvc" -Force | Out-Null
+        New-ItemProperty -Path "$script:servicesRoot\TestSvc" -Name Start -Value 4 -PropertyType DWord | Out-Null
+        Mock Set-ItemProperty -ModuleName Atlas.Services { throw 'write must not run' }
+
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType 4 -ServicesRoot $script:servicesRoot -PassThru
+
+        $result.Applied | Should -BeTrue
+        $result.StartupType | Should -Be 4
+        Should -Invoke Set-ItemProperty -ModuleName Atlas.Services -Times 0 -Exactly
+    }
+
+    It 'repairs a matching value with the wrong registry type' {
+        New-Item -Path "$script:servicesRoot\TestSvc" -Force | Out-Null
+        New-ItemProperty -Path "$script:servicesRoot\TestSvc" -Name Start -Value '4' -PropertyType String | Out-Null
+
+        Set-AtlasServiceStartup -Name TestSvc -StartupType 4 -ServicesRoot $script:servicesRoot
+
+        $key = Get-Item -LiteralPath "$script:servicesRoot\TestSvc"
+        try { $key.GetValueKind('Start') | Should -Be ([Microsoft.Win32.RegistryValueKind]::DWord) }
+        finally { $key.Close() }
+    }
+
     It 'fails for a missing required service but allows reviewed optional absence' {
-        { Set-AtlasServiceStartup -Name 'MissingSvc' -StartupType 4 `
+        { Set-AtlasServiceStartup -Name 'MissingSvc' -StartupType 2 `
                 -ServicesRoot $script:servicesRoot } |
             Should -Throw '*Required service or driver*'
 
-        $result = Set-AtlasServiceStartup -Name 'MissingSvc' -StartupType 4 `
+        $result = Set-AtlasServiceStartup -Name 'MissingSvc' -StartupType 2 `
             -ServicesRoot $script:servicesRoot -AllowMissing -PassThru
         $result.Applied | Should -BeFalse
         $result.StartupType | Should -BeNullOrEmpty
+    }
+
+    It 'tolerates disabling an absent service and verifies it without drift' {
+        $result = Set-AtlasServiceStartup -Name MissingSvc -StartupType 4 `
+            -ServicesRoot $script:servicesRoot -PassThru
+        $result.Applied | Should -BeFalse
+        @(Test-AtlasServiceEntries -Entries @(@{ Name = 'MissingSvc'; StartupType = 4 }) `
+            -ServicesRoot $script:servicesRoot).Count | Should -Be 0
+        @(Test-AtlasServiceEntries -Entries @(@{ Name = 'MissingSvc'; StartupType = 2 }) `
+            -ServicesRoot $script:servicesRoot).Count | Should -Be 1
     }
 
     It 'does not let AllowMissing hide an existing-service write failure' {

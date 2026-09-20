@@ -26,11 +26,21 @@ function Invoke-AtlasScheduledTaskCommand {
         [switch]$IgnoreMissing
     )
 
+    $expected = switch ($OperationLabel) {
+        'disable' { 'Disabled' }
+        'enable' { 'Enabled' }
+        'delete' { 'Missing' }
+        default { throw "Unknown scheduled task operation '$OperationLabel'." }
+    }
     $before = Get-AtlasScheduledTaskState -Path $Path
     if ($before -ceq 'Missing') {
         if (-not $IgnoreMissing) {
             Write-AtlasLog -Level Warning -Message "Scheduled task '$Path' was not found; nothing to $OperationLabel."
         }
+        return
+    }
+    if ($before -ceq $expected) {
+        Write-AtlasLog -Message "Scheduled task '$Path' is already '$expected'; skipping change."
         return
     }
     $schtasksPath = Get-AtlasSchtasksPath
@@ -46,12 +56,6 @@ function Invoke-AtlasScheduledTaskCommand {
     if ($exitCode -ne 0) {
         $details = (@($output) | ForEach-Object { "$_" }) -join ' '
         throw "Couldn't $OperationLabel scheduled task '$Path' (schtasks.exe exited with code ${exitCode}): $details"
-    }
-    $expected = switch ($OperationLabel) {
-        'disable' { 'Disabled' }
-        'enable' { 'Enabled' }
-        'delete' { 'Missing' }
-        default { throw "Unknown scheduled task operation '$OperationLabel'." }
     }
     $after = Get-AtlasScheduledTaskState -Path $Path
     if ($after -cne $expected) {
