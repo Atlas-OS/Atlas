@@ -23,7 +23,7 @@ BeforeAll {
         }
     }
     foreach ($text in @(Get-ScriptFunctionText -Path $script:SessionScript -Names 'Read-AtlasInstallRequest', 'Assert-AtlasInstallOptionSet') +
-        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity')) {
+        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity')) {
         . ([scriptblock]::Create($text))
     }
     $script:Groups = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookPath)
@@ -263,11 +263,47 @@ exit $fixture.exitCode
     }
 }
 
+Describe 'User account policy preflight' {
+    It 'rejects disabled UAC before loading the user-token helper' {
+        Mock Get-ItemProperty { [pscustomobject]@{ EnableLUA = 0 } }
+        Mock Initialize-AtlasNativeType { throw 'must not load a token helper with disabled UAC' }
+        Test-AtlasUserAccountReady | Should -BeFalse
+        Should -Invoke Initialize-AtlasNativeType -Times 0 -Exactly
+        Should -Invoke Get-ItemProperty -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -and $Name -eq 'EnableLUA'
+        }
+    }
+
+    It 'does not treat an unreadable UAC policy as enabled' {
+        Mock Get-ItemProperty { throw 'UAC policy access denied' }
+        { Test-AtlasUserAccountReady } | Should -Throw '*UAC policy access denied*'
+    }
+}
+
 Describe 'Front door requirements and staging' {
     BeforeEach {
         Mock Get-AtlasWindowsReleaseStatus { 'Released' }
+        Mock Test-AtlasUserAccountReady { $true }
         Mock Get-ItemProperty { [pscustomobject]@{} }
         Mock Test-AtlasPowerConnected { $true }
+    }
+
+    It 'blocks an account without a limited token and explains how to recover' {
+        Mock Test-Path { $false }
+        Mock Test-AtlasUserAccountReady { $false }
+        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client | Where-Object Name -eq 'User account'
+        $result.Passed | Should -BeFalse
+        $result.Blocking | Should -BeTrue
+        $result.Detail | Should -BeLike '*UAC*restart*'
+    }
+
+    It 'fails closed when account verification cannot run' {
+        Mock Test-Path { $false }
+        Mock Test-AtlasUserAccountReady { throw 'token query failed' }
+        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client | Where-Object Name -eq 'User account'
+        $result.Passed | Should -BeFalse
+        $result.Blocking | Should -BeTrue
+        $result.Detail | Should -BeLike '*token query failed*'
     }
 
     It 'blocks unsupported builds, pending restart and declared prerequisites' {

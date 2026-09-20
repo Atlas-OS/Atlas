@@ -77,6 +77,7 @@ impl CheckId {
     pub fn title(self) -> String {
         match self {
             CheckId::Administrator => t!("check-administrator"),
+            CheckId::UserAccount => t!("check-user-account"),
             CheckId::SupportedBuild => t!("check-supported-build"),
             CheckId::PendingUpdates => t!("check-pending-updates"),
             CheckId::PendingReboot => t!("check-pending-reboot"),
@@ -114,6 +115,9 @@ impl CheckDetail {
         match self {
             CheckDetail::AdministratorOk => t!("detail-admin-ok"),
             CheckDetail::AdministratorMissing => t!("detail-admin-missing"),
+            CheckDetail::UserAccountOk => t!("detail-user-account-ok"),
+            CheckDetail::UserAccountNotReady => t!("detail-user-account-not-ready"),
+            CheckDetail::UserAccountUnknown { error } => t!("detail-user-account-unknown", error = error),
             CheckDetail::BuildSupported => system_description(system),
             CheckDetail::EditionUnsupported => t!("detail-edition-unsupported"),
             CheckDetail::WindowsPreview => t!("detail-windows-preview"),

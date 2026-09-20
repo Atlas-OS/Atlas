@@ -168,6 +168,10 @@ Describe 'Atlas installing-user process boundary' {
             Should -Throw -ExpectedMessage '*elevated*'
         { [Atlas.Native.UserProcess]::ValidateMediumIdentity(3, 0x1000, $false) } |
             Should -Throw -ExpectedMessage '*medium integrity*'
+        # Disabling UAC (or enabling it without a restart) leaves an admin with
+        # an unlinked high-integrity token. Preserve the boundary and give recovery steps.
+        { [Atlas.Native.UserProcess]::ValidateMediumIdentity(1, 0x3000, $true) } |
+            Should -Throw -ExpectedMessage '*Enable User Account Control (UAC), restart Windows*'
         { [Atlas.Native.UserProcess]::ValidateMediumIdentity(3, 0x2000, $true) } |
             Should -Throw -ExpectedMessage '*Administrators role*'
     }

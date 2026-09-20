@@ -8,7 +8,10 @@ use windows::Win32::Graphics::Gdi::{
     COLOR_WINDOW, COLOR_WINDOWTEXT, GetSysColor, SYS_COLOR_INDEX,
 };
 use windows::Win32::Networking::WinInet::{INTERNET_CONNECTION, InternetGetConnectedState};
-use windows::Win32::Security::{GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation};
+use windows::Win32::Security::{
+    GetTokenInformation, TOKEN_ELEVATION, TOKEN_ELEVATION_TYPE, TOKEN_QUERY, TokenElevation,
+    TokenElevationType,
+};
 use windows::Win32::System::Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS};
 use windows::Win32::System::SystemInformation::GetTickCount64;
 use windows::Win32::System::Threading::{
@@ -108,6 +111,58 @@ pub fn is_elevated() -> bool {
         let _ = CloseHandle(token);
         result.is_ok() && elevation.TokenIsElevated != 0
     }
+}
+
+/// EnableLUA alone is insufficient after re-enabling UAC without restarting.
+/// An administrator with an unlinked token still cannot launch limited user work.
+pub fn user_account_ready() -> Result<bool> {
+    let enabled = LOCAL_MACHINE
+        .open(r"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")?
+        .get_u32("EnableLUA")?;
+    unsafe {
+        let mut token = HANDLE::default();
+        OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token)?;
+        let result = (|| -> Result<bool> {
+            let mut kind = TOKEN_ELEVATION_TYPE::default();
+            let mut elevation = TOKEN_ELEVATION::default();
+            let mut returned = 0;
+            GetTokenInformation(
+                token,
+                TokenElevationType,
+                Some(&mut kind as *mut _ as *mut _),
+                std::mem::size_of_val(&kind) as u32,
+                &mut returned,
+            )?;
+            GetTokenInformation(
+                token,
+                TokenElevation,
+                Some(&mut elevation as *mut _ as *mut _),
+                std::mem::size_of_val(&elevation) as u32,
+                &mut returned,
+            )?;
+            Ok(user_account_token_ready(enabled, kind.0, elevation.TokenIsElevated != 0))
+        })();
+        let _ = CloseHandle(token);
+        result
+    }
+}
+
+fn user_account_token_ready(enabled: u32, elevation_type: i32, elevated: bool) -> bool {
+    enabled == 1 && (matches!(elevation_type, 2 | 3) || (elevation_type == 1 && !elevated))
+}
+
+#[cfg(test)]
+#[test]
+fn uac_requires_both_policy_and_a_usable_user_token() {
+    assert!(user_account_token_ready(1, 2, true));
+    assert!(user_account_token_ready(1, 3, false));
+    assert!(user_account_token_ready(1, 1, false));
+    // UAC disabled; re-enabled without restarting; unfiltered built-in Administrator.
+    assert!(!user_account_token_ready(0, 1, true));
+    assert!(!user_account_token_ready(1, 1, true));
+    assert!(!user_account_token_ready(0, 2, true));
+    assert!(!user_account_token_ready(2, 2, true));
+    assert!(!user_account_token_ready(1, 0, false));
 }
 
 fn shell_execute(verb: &str, target: &str) -> Result<()> {

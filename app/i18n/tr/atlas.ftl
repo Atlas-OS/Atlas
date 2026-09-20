@@ -807,3 +807,8 @@ prepare-app-in-use = { $app } ve pencerelerini kapatıp tekrar deneyin. Dosyalar
 prepare-install-busy = Başka bir kurulum veya gerekli bir yeniden başlatma güncellemeleri engelliyor. Kurulumların bitmesini bekleyin, istenirse Windows’u yeniden başlatın ve tekrar deneyin.
 prepare-error-code = Hata kodu: { $code }
 prepare-open-store = Microsoft Store’u aç
+
+check-user-account = Kullanıcı hesabı
+detail-user-account-ok = UAC açık ve hesabınız kuruluma hazır.
+detail-user-account-not-ready = Kullanıcı Hesabı Denetimi’ni (UAC) açın, bilgisayarınızı yeniden başlatın ve tekrar deneyin. Yerleşik Administrator hesabını kullanıyorsanız başka bir yönetici hesabıyla oturum açın.
+detail-user-account-unknown = Atlas kullanıcı hesabınızı denetleyemedi. Kurulumdan önce tekrar denetleyin. Windows bildirimi: { $error }

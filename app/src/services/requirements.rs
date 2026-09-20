@@ -39,6 +39,7 @@ const ACTIVATION_DEADLINE: Duration = Duration::from_secs(50);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum CheckId {
     Administrator,
+    UserAccount,
     SupportedBuild,
     PendingUpdates,
     PendingReboot,
@@ -50,8 +51,9 @@ pub enum CheckId {
 }
 
 impl CheckId {
-    pub const ALL: [CheckId; 8] = [
+    pub const ALL: [CheckId; 9] = [
         CheckId::Administrator,
+        CheckId::UserAccount,
         CheckId::SupportedBuild,
         CheckId::PendingUpdates,
         CheckId::PendingReboot,
@@ -97,6 +99,11 @@ pub enum Verdict {
 pub enum CheckDetail {
     AdministratorOk,
     AdministratorMissing,
+    UserAccountOk,
+    UserAccountNotReady,
+    UserAccountUnknown {
+        error: String,
+    },
     BuildSupported,
     EditionUnsupported,
     WindowsPreview,
@@ -189,6 +196,11 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
                 (Verdict::Fail, D::AdministratorMissing)
             }
         }
+        CheckId::UserAccount => match system::user_account_ready() {
+            Ok(true) => (Verdict::Pass, D::UserAccountOk),
+            Ok(false) => (Verdict::Fail, D::UserAccountNotReady),
+            Err(error) => (Verdict::Unknown, D::UserAccountUnknown { error: format!("{error:#}") }),
+        },
         CheckId::SupportedBuild => {
             if !ctx.system.supported_edition() {
                 (Verdict::Fail, D::EditionUnsupported)
@@ -796,7 +808,8 @@ mod tests {
         assert!(!result(CheckId::PendingUpdates, Verdict::Fail).needs_acknowledgement());
         assert!(!result(CheckId::PendingUpdates, Verdict::Pass).blocks_install());
         // Required safety checks cannot be bypassed when their provider fails.
-        for id in [CheckId::Power, CheckId::ThirdPartyAntivirus, CheckId::PendingReboot] {
+        for id in [CheckId::UserAccount, CheckId::Power, CheckId::ThirdPartyAntivirus, CheckId::PendingReboot]
+        {
             for verdict in [Verdict::Fail, Verdict::Unknown] {
                 assert!(result(id, verdict).blocks_install());
                 assert!(!result(id, verdict).needs_acknowledgement());

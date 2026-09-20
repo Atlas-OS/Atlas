@@ -774,3 +774,8 @@ prepare-app-in-use = 關閉 { $app } 及其視窗，然後重試。檔案使用�
 prepare-install-busy = 其他安裝或待完成的重新啟動阻止了更新。請等待安裝完成，依提示重新啟動 Windows，然後重試。
 prepare-error-code = 錯誤碼：{ $code }
 prepare-open-store = 開啟 Microsoft Store
+
+check-user-account = 使用者帳戶
+detail-user-account-ok = UAC 已啟用，您的帳戶已準備好進行安裝。
+detail-user-account-not-ready = 請啟用使用者帳戶控制 (UAC)，重新啟動電腦後再試。如果您使用的是內建 Administrator 帳戶，請使用另一個系統管理員帳戶登入。
+detail-user-account-unknown = Atlas 無法檢查您的使用者帳戶。請在安裝前重新檢查。Windows 回報：{ $error }

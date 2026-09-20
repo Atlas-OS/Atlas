@@ -311,6 +311,7 @@ fn pass(id: CheckId) -> CheckResult {
     use CheckDetail as D;
     let detail = match id {
         CheckId::Administrator => D::AdministratorOk,
+        CheckId::UserAccount => D::UserAccountOk,
         CheckId::SupportedBuild => D::BuildSupported,
         CheckId::PendingUpdates => D::UpdatesNone,
         CheckId::PendingReboot => D::RebootNone,

@@ -794,3 +794,8 @@ prepare-app-in-use = ปิด { $app } และหน้าต่างขอ�
 prepare-install-busy = การติดตั้งอื่นหรือการรีสตาร์ทที่จำเป็นกำลังขัดขวางการอัปเดต รอให้การติดตั้งเสร็จ รีสตาร์ท Windows หากได้รับแจ้ง แล้วลองอีกครั้ง
 prepare-error-code = รหัสข้อผิดพลาด: { $code }
 prepare-open-store = เปิด Microsoft Store
+
+check-user-account = บัญชีผู้ใช้
+detail-user-account-ok = เปิดใช้งาน UAC แล้ว และบัญชีของคุณพร้อมสำหรับการติดตั้ง
+detail-user-account-not-ready = เปิดการควบคุมบัญชีผู้ใช้ (UAC) รีสตาร์ทพีซี แล้วลองอีกครั้ง หากคุณใช้บัญชี Administrator ที่มีมาในระบบ ให้ลงชื่อเข้าใช้ด้วยบัญชีผู้ดูแลระบบอื่น
+detail-user-account-unknown = Atlas ไม่สามารถตรวจสอบบัญชีผู้ใช้ของคุณได้ โปรดตรวจสอบอีกครั้งก่อนติดตั้ง Windows รายงานว่า: { $error }

@@ -804,3 +804,8 @@ prepare-app-in-use = Fermez { $app } et ses fenêtres, puis réessayez. Windows 
 prepare-install-busy = Une autre installation ou un redémarrage requis bloque les mises à jour. Attendez la fin des installations, redémarrez Windows si nécessaire, puis réessayez.
 prepare-error-code = Code d’erreur : { $code }
 prepare-open-store = Ouvrir Microsoft Store
+
+check-user-account = Compte utilisateur
+detail-user-account-ok = Le contrôle de compte d’utilisateur est activé et votre compte est prêt pour l’installation.
+detail-user-account-not-ready = Activez le contrôle de compte d’utilisateur (UAC), redémarrez votre PC, puis réessayez. Si vous utilisez le compte Administrateur intégré, connectez-vous avec un autre compte administrateur.
+detail-user-account-unknown = Atlas n’a pas pu vérifier votre compte utilisateur. Relancez la vérification avant l’installation. Windows a signalé : { $error }

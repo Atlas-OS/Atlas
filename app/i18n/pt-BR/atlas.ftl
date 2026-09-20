@@ -812,3 +812,8 @@ prepare-app-in-use = Feche { $app } e suas janelas e tente novamente. O Windows 
 prepare-install-busy = Outra instalação ou uma reinicialização necessária está bloqueando as atualizações. Aguarde as instalações terminarem, reinicie o Windows se solicitado e tente novamente.
 prepare-error-code = Código do erro: { $code }
 prepare-open-store = Abrir Microsoft Store
+
+check-user-account = Conta de usuário
+detail-user-account-ok = O UAC está ativado e sua conta está pronta para a instalação.
+detail-user-account-not-ready = Ative o Controle de Conta de Usuário (UAC), reinicie o PC e tente novamente. Se você usa a conta Administrador integrada, entre com outra conta de administrador.
+detail-user-account-unknown = O Atlas não conseguiu verificar sua conta de usuário. Verifique novamente antes de instalar. O Windows informou: { $error }

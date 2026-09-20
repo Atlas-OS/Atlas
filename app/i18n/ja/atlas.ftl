@@ -786,3 +786,8 @@ prepare-app-in-use = { $app } とそのウィンドウを閉じて、再試行�
 prepare-install-busy = 別のインストールまたは必要な再起動により更新がブロックされています。インストールの完了を待ち、必要に応じて Windows を再起動して再試行してください。
 prepare-error-code = エラーコード: { $code }
 prepare-open-store = Microsoft Store を開く
+
+check-user-account = ユーザーアカウント
+detail-user-account-ok = UAC が有効で、アカウントのインストール準備が整っています。
+detail-user-account-not-ready = ユーザーアカウント制御 (UAC) を有効にし、PC を再起動してから、もう一度お試しください。組み込みの Administrator アカウントを使用している場合は、別の管理者アカウントでサインインしてください。
+detail-user-account-unknown = Atlas はユーザーアカウントを確認できませんでした。インストール前に再確認してください。Windows の報告: { $error }

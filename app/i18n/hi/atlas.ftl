@@ -796,3 +796,8 @@ prepare-app-in-use = { $app } और उसकी विंडो बंद क�
 prepare-install-busy = किसी अन्य इंस्टॉलेशन या आवश्यक रीस्टार्ट के कारण अपडेट रुके हैं। इंस्टॉलेशन पूरा होने दें, ज़रूरत हो तो Windows रीस्टार्ट करें और फिर कोशिश करें।
 prepare-error-code = त्रुटि कोड: { $code }
 prepare-open-store = Microsoft Store खोलें
+
+check-user-account = उपयोगकर्ता खाता
+detail-user-account-ok = UAC चालू है और आपका खाता इंस्टॉलेशन के लिए तैयार है।
+detail-user-account-not-ready = उपयोगकर्ता खाता नियंत्रण (UAC) चालू करें, अपना PC रीस्टार्ट करें और फिर कोशिश करें। यदि आप अंतर्निहित Administrator खाते का उपयोग करते हैं, तो किसी दूसरे एडमिनिस्ट्रेटर खाते से साइन इन करें।
+detail-user-account-unknown = Atlas आपके उपयोगकर्ता खाते की जाँच नहीं कर सका। इंस्टॉल करने से पहले फिर से जाँच करें। Windows ने बताया: { $error }

@@ -132,6 +132,14 @@ function Test-AtlasPowerConnected {
     }
 }
 
+function Test-AtlasUserAccountReady {
+    $policy = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableLUA -ErrorAction Stop
+    if ($policy.EnableLUA -ne 1) { return $false }
+    Initialize-AtlasNativeType
+    [Atlas.Native.UserProcess]::ValidateCurrentUserMediumToken()
+    return $true
+}
+
 function Test-AtlasInstallRequirement {
     <#
     .SYNOPSIS
@@ -171,6 +179,17 @@ function Test-AtlasInstallRequirement {
     $results += [pscustomobject]@{
         Name = 'Windows release'; Passed = $release -eq 'Released'; Blocking = $true
         Detail = if ($release -eq 'Released') { 'a published Windows release' } elseif ($release -eq 'Preview') { 'Insider or preview Windows builds are not supported' } else { 'Windows release could not be verified; connect to the internet and retry with official supported Windows media' }
+    }
+
+    $accountReady = $false
+    $accountDetail = 'Enable User Account Control (UAC), restart Windows, then retry. If using the built-in Administrator account, sign in with another administrator account.'
+    try {
+        $accountReady = Test-AtlasUserAccountReady
+        if ($accountReady) { $accountDetail = 'UAC is enabled and the account has a normal user token.' }
+    }
+    catch { $accountDetail += " Account verification failed: $($_.Exception.Message)" }
+    $results += [pscustomobject]@{
+        Name = 'User account'; Passed = $accountReady; Blocking = $true; Detail = $accountDetail
     }
 
     $pendingReboot = $false

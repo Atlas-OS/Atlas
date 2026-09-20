@@ -2182,7 +2182,7 @@ namespace Atlas.Native
                 throw new InvalidOperationException("The installing-user token has an invalid elevation type.");
             }
             if (integrityLevel < 0x2000 || integrityLevel >= 0x3000) {
-                throw new InvalidOperationException("The installing-user token is not medium integrity.");
+                throw new InvalidOperationException("The installing-user token is not medium integrity. Enable User Account Control (UAC), restart Windows, then retry. If using the built-in Administrator account, sign in with another administrator account.");
             }
             if (isAdministrator) {
                 throw new InvalidOperationException("The installing-user token has the Administrators role enabled.");
@@ -2192,6 +2192,21 @@ namespace Atlas.Native
         static void ValidateMediumToken(IntPtr token) {
             ValidateMediumIdentity(ReadTokenInt32(token, TokenElevationType),
                 ReadIntegrityLevel(token), IsAdministrator(token));
+        }
+
+        public static void ValidateCurrentUserMediumToken() {
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent()) {
+                IntPtr linked = IntPtr.Zero;
+                try {
+                    IntPtr token = identity.Token;
+                    if (ReadTokenInt32(token, TokenElevationType) == TokenElevationTypeFull) {
+                        linked = ReadLinkedToken(token);
+                        token = linked;
+                    }
+                    ValidateMediumToken(token);
+                }
+                finally { if (linked != IntPtr.Zero) CloseHandle(linked); }
+            }
         }
 
         public static int Launch(string applicationName, string commandLine,
