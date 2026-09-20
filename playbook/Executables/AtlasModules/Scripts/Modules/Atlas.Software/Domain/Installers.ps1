@@ -1047,13 +1047,6 @@ function Install-AtlasArchiveTool {
         return
     }
 
-    try {
-        $assets = @(Get-AtlasPinnedNanaZipReleaseAssets)
-    }
-    catch {
-        throw "NanaZip release integrity could not be established. $($_.Exception.Message)"
-    }
-
     $sevenZipRegistry = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'
     $replaceSevenZip = Test-Path -LiteralPath $sevenZipRegistry
     if ($replaceSevenZip) {
@@ -1068,10 +1061,19 @@ NanaZip is a fork of 7-Zip with an updated user interface and extra features.
         }
     }
 
-    $nanaZipInstalled = Install-AtlasNanaZip `
-        -TempDir $TempDir `
-        -Assets $assets `
-        -DismCommands $dismCommands
+    $nanaZipInstalled = Install-AtlasNanaZipFromStore -DismCommands $dismCommands
+    if (-not $nanaZipInstalled) {
+        try {
+            $assets = @(Get-AtlasPinnedNanaZipReleaseAssets)
+        }
+        catch {
+            throw "NanaZip release integrity could not be established. $($_.Exception.Message)"
+        }
+        $nanaZipInstalled = Install-AtlasNanaZip `
+            -TempDir $TempDir `
+            -Assets $assets `
+            -DismCommands $dismCommands
+    }
     if (-not $nanaZipInstalled -or -not $replaceSevenZip) {
         return
     }

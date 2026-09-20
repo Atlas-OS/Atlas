@@ -1029,6 +1029,9 @@ Describe 'Install-AtlasNanaZip mutation boundary' {
 }
 
 Describe 'Install-AtlasArchiveTool asset selection' {
+    BeforeEach {
+        Mock Install-AtlasNanaZipFromStore -ModuleName Atlas.Software { $false }
+    }
     It 'routes exactly two verified NanaZip assets through the protected provisioning helper' {
         InModuleScope Atlas.Software {
             $commands = [pscustomobject]@{

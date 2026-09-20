@@ -22,6 +22,7 @@ $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 foreach ($domainModule in @(
     'CbsPackages.ps1'
     'Installers.ps1'
+    'NanaZipStore.ps1'
     'SoftwarePicker.ps1'
     'OneDrive.ps1'
 )) {
