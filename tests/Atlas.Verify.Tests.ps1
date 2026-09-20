@@ -136,9 +136,14 @@ Describe 'Test-AtlasServiceEntries' {
         $drift[0].Actual | Should -Be 4
     }
 
-    It 'treats a missing service as drift unless AllowMissing is declared' {
-        @(Test-AtlasServiceEntries -Entries @(@{ Name = 'Nope'; StartupType = 4 }) -ServicesRoot $script:servicesRoot).Reason | Should -Be 'service is missing'
-        @(Test-AtlasServiceEntries -Entries @(@{ Name = 'Nope'; StartupType = 4; AllowMissing = $true }) -ServicesRoot $script:servicesRoot).Count | Should -Be 0
+    It 'accepts an absent service when the requested state is disabled' {
+        @(Test-AtlasServiceEntries -Entries @(@{ Name = 'Nope'; StartupType = 4 }) -ServicesRoot $script:servicesRoot).Count | Should -Be 0
+    }
+
+    It 'reports an absent service needed for startup type <StartupType> unless AllowMissing is declared' -ForEach @(0, 1, 2, 3) {
+        $startupType = $_
+        @(Test-AtlasServiceEntries -Entries @(@{ Name = 'Nope'; StartupType = $startupType }) -ServicesRoot $script:servicesRoot).Reason | Should -Be 'service is missing'
+        @(Test-AtlasServiceEntries -Entries @(@{ Name = 'Nope'; StartupType = $startupType; AllowMissing = $true }) -ServicesRoot $script:servicesRoot).Count | Should -Be 0
     }
 }
 
