@@ -124,7 +124,7 @@ function Hide-RecentItems {
 
 # Function to minimize mouse hover time for item info
 function Set-MouseHoverTimeForItemInfo {
-    reg add "HKCU\Control Panel\Desktop" /v "MouseHoverTime" /t REG_SZ /d "20" /f
+    reg add "HKCU\Control Panel\Mouse" /v "MouseHoverTime" /t REG_SZ /d "20" /f
 }
 
 # Function to configure File Explorer to open to This PC
