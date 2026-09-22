@@ -91,7 +91,7 @@ function Hide-RecentItems {
 
 function Set-MouseHoverTimeForItemInfo {
     # MouseHoverTime is in milliseconds; 20ms means tooltips appear almost instantly
-    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'MouseHoverTime' -Value '20' -Type String -Force
+    Set-ItemProperty -Path 'HKCU:\Control Panel\Mouse' -Name 'MouseHoverTime' -Value '20' -Type String -Force
 }
 
 # Function to configure File Explorer to open to This PC
