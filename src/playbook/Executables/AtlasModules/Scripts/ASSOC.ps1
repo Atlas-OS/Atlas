@@ -201,9 +201,10 @@ if ($Hive.StartsWith("S-"))
   $fileStream.Close()
   $dataString = [Text.Encoding]::Unicode.GetString($bytesData)
   $position1 = $dataString.IndexOf($userExperienceSearch)
+  if ($position1 -ge 0) {
   $position2 = $dataString.IndexOf("}", $position1)
-
   $userExperience = $dataString.Substring($position1, $position2 - $position1 + 1)
+  }
 }
 
 Write-Host "Setting file associations for HKEY_USERS\$Hive..."

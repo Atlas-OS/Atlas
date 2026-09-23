@@ -12,7 +12,7 @@ function Update-ClientCBS {
 # Variables
 $windir = [Environment]::GetFolderPath('Windows')
 $settingsExtensions = (Get-ChildItem "$windir\SystemApps" -Recurse).FullName | Where-Object { $_ -like '*wsxpacks\Account\SettingsExtensions.json*' }
-$arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+$arm = ((Get-CimInstance -Class Win32_ComputerSystem).SystemType -match 'ARM64') -or ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') -or ($env:PROCESSOR_ARCHITEW6432 -eq 'ARM64')
 if (($null -eq $settingsExtensions) -or ($settingsExtensions.Count -eq 0)) {
     Write-Output "Settings extensions ($settingsExtensions) not found."
     Write-Output "User is likely on Windows 10, nothing to do. Exiting..."
