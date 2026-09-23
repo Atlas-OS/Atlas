@@ -21,7 +21,10 @@
                 @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CDP\SettingsPage'; Name = 'BluetoothLastDisabledNearShare'; Type = 'DWord'; Data = 0 }
             )
             Services      = @(
-                @{ Name = 'CDPSvc'; StartupType = 4; AllowMissing = $true }
+                # CDPSvc is shared with Windows features beyond Phone Link.
+                # Keep it available for Night Light, including when repairing
+                # an older Atlas installation that disabled the service.
+                @{ Name = 'CDPSvc'; StartupType = 3; AllowMissing = $true }
             )
             MachineAction = 'Disable-AtlasPhoneLinkMachine'
         }

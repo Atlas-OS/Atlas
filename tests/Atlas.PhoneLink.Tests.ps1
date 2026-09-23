@@ -54,6 +54,15 @@ Describe 'Phone Link cross-device Resume state' {
         $policy[0].Data | Should -Be 0
     }
 
+    It 'keeps the shared CDP service available with Phone Link enabled or disabled' {
+        foreach ($stateName in @('Disable', 'Enable')) {
+            $service = @($script:phoneLink.States[$stateName]['Services'] | Where-Object Name -ceq 'CDPSvc')
+            $service | Should -HaveCount 1
+            $service[0].StartupType | Should -Be 3 -Because 'disabling Phone Link must not disable the shared Night Light service'
+        }
+        $script:phoneLink.States['Disable']['MachineAction'] | Should -BeExactly 'Disable-AtlasPhoneLinkMachine'
+    }
+
     It 'keeps the Resume values as per-user work beside the machine service change' {
         foreach ($stateName in @('Disable', 'Enable')) {
             $state = $script:phoneLink.States[$stateName]
