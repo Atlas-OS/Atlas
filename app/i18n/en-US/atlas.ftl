@@ -28,5 +28,7 @@ iso-edition-selection = Only supported editions are included. During Windows set
 ## Windows installation USB (Beta)
 usb-working = Keep Atlas open and the USB connected. Canceling waits for the current operation to stop safely; an unfinished USB cannot be used to install Windows.
 
+footer-prepare-required = Finish Windows and Store updates above to continue
 resume-choices-title = Continuing your previous installation
 resume-choices-detail = Your original choices have been restored and cannot be changed while this installation is unfinished.
+prepare-download-scope = Progress covers this download batch, not just the update named below. Installation follows downloading.

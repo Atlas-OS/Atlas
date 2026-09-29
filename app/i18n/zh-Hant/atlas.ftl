@@ -780,5 +780,7 @@ detail-user-account-ok = UAC 已啟用，您的帳戶已準備好進行安裝。
 detail-user-account-not-ready = 請啟用使用者帳戶控制 (UAC)，重新啟動電腦後再試。如果您使用的是內建 Administrator 帳戶，請使用另一個系統管理員帳戶登入。
 detail-user-account-unknown = Atlas 無法檢查您的使用者帳戶。請在安裝前重新檢查。Windows 回報：{ $error }
 
+footer-prepare-required = 請先完成上方的 Windows 和 Store 更新再繼續
 resume-choices-title = 繼續上次安裝
 resume-choices-detail = 已還原您原本的選項。在本次安裝完成之前，無法變更這些選項。
+prepare-download-scope = 進度涵蓋本批次的所有下載，而不只是下方列出的更新。下載完成後才會安裝。

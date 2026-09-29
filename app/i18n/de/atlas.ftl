@@ -813,5 +813,7 @@ detail-user-account-ok = Die Benutzerkontensteuerung ist aktiviert und dein Kont
 detail-user-account-not-ready = Aktiviere die Benutzerkontensteuerung (UAC), starte den PC neu und versuche es erneut. Wenn du das integrierte Administratorkonto verwendest, melde dich mit einem anderen Administratorkonto an.
 detail-user-account-unknown = Atlas konnte dein Benutzerkonto nicht prüfen. Prüfe es vor der Installation erneut. Windows meldet: { $error }
 
+footer-prepare-required = Schließen Sie oben die Windows- und Store-Updates ab, um fortzufahren
 resume-choices-title = Vorherige Installation fortsetzen
 resume-choices-detail = Ihre ursprünglichen Einstellungen wurden wiederhergestellt und können erst nach Abschluss dieser Installation geändert werden.
+prepare-download-scope = Der Fortschritt gilt für diesen Download-Durchlauf, nicht nur für das unten genannte Update. Danach folgt die Installation.

@@ -544,6 +544,7 @@ impl AppModel {
             model.preparation = match preview.as_str() {
                 "busy" => State::Running { stage: Stage::StoreInstall, completed: 4, total: 12 },
                 "complete" | "resume" => State::Ready,
+                "download" => State::Running { stage: Stage::WindowsDownload, completed: 4, total: 5 },
                 "failed" => State::Failed,
                 "reboot" => State::Reboot,
                 "restart-persists" => {
@@ -563,6 +564,14 @@ impl AppModel {
                     "activity":{"failureMessage":"The package could not be installed because resources it modifies are currently in use.",
                     "errorCode":"0x80073D02","packageName":"NanaZip"}
                 })).ok();
+            }
+            if preview == "download" {
+                model.preparation_progress = serde_json::from_value(serde_json::json!({
+                    "schema":1,"status":"running","stage":"windows-download","completed":4,"total":5,
+                    "activity":{"percent":99,"currentUpdate":"2026-09 Security Update (KB5129195)",
+                    "bytesDownloaded":1592200000u64,"bytesTotal":1592200000u64}
+                }))
+                .ok();
             }
             if preview == "resume" {
                 model.install_identity = Ok(atlas_state::InstallIdentity::Resume(

@@ -813,5 +813,7 @@ detail-user-account-ok = UAC açık ve hesabınız kuruluma hazır.
 detail-user-account-not-ready = Kullanıcı Hesabı Denetimi’ni (UAC) açın, bilgisayarınızı yeniden başlatın ve tekrar deneyin. Yerleşik Administrator hesabını kullanıyorsanız başka bir yönetici hesabıyla oturum açın.
 detail-user-account-unknown = Atlas kullanıcı hesabınızı denetleyemedi. Kurulumdan önce tekrar denetleyin. Windows bildirimi: { $error }
 
+footer-prepare-required = Devam etmek için yukarıdaki Windows ve Store güncellemelerini tamamlayın
 resume-choices-title = Önceki yüklemenize devam ediliyor
 resume-choices-detail = İlk seçimleriniz geri yüklendi ve bu yükleme tamamlanana kadar değiştirilemez.
+prepare-download-scope = İlerleme yalnızca aşağıdaki güncellemeyi değil, bu indirme grubunu kapsar. İndirmeden sonra yükleme yapılır.

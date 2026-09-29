@@ -799,5 +799,7 @@ detail-user-account-ok = UAC aktif dan akun Anda siap untuk instalasi.
 detail-user-account-not-ready = Aktifkan Kontrol Akun Pengguna (UAC), mulai ulang PC, lalu coba lagi. Jika Anda menggunakan akun Administrator bawaan, masuk dengan akun administrator lain.
 detail-user-account-unknown = Atlas tidak dapat memeriksa akun pengguna Anda. Periksa lagi sebelum menginstal. Windows melaporkan: { $error }
 
+footer-prepare-required = Selesaikan pembaruan Windows dan Store di atas untuk melanjutkan
 resume-choices-title = Melanjutkan instalasi sebelumnya
 resume-choices-detail = Pilihan awal Anda telah dipulihkan dan tidak dapat diubah sampai instalasi ini selesai.
+prepare-download-scope = Progres mencakup kelompok unduhan ini, bukan hanya pembaruan di bawah. Instalasi dilakukan setelah pengunduhan.

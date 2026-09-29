@@ -810,5 +810,7 @@ detail-user-account-ok = El Control de cuentas de usuario está activado y tu cu
 detail-user-account-not-ready = Activa el Control de cuentas de usuario (UAC), reinicia el PC y vuelve a intentarlo. Si usas la cuenta Administrador integrada, inicia sesión con otra cuenta de administrador.
 detail-user-account-unknown = Atlas no pudo comprobar tu cuenta de usuario. Vuelve a comprobarla antes de instalar. Windows informó: { $error }
 
+footer-prepare-required = Completa las actualizaciones de Windows y Store de arriba para continuar
 resume-choices-title = Continuando la instalación anterior
 resume-choices-detail = Se han restaurado tus opciones originales y no se pueden cambiar mientras esta instalación esté pendiente.
+prepare-download-scope = El progreso corresponde a este grupo de descargas, no solo a la actualización indicada abajo. La instalación se realiza después.

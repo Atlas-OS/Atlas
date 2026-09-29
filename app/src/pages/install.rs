@@ -42,6 +42,7 @@ pub struct InstallPage {
     show_command: bool,
     windows_installation: crate::services::windows_installation::Evidence,
     used_windows_warning_dismissed: bool,
+    staged_iso_setup: bool,
     /// The step drawn last frame, to reset scrolling and focus on a change.
     shown_step: Option<(Step, usize)>,
     shown_run: Option<RunState>,
@@ -71,6 +72,7 @@ impl InstallPage {
             show_command: false,
             windows_installation: Default::default(),
             used_windows_warning_dismissed: false,
+            staged_iso_setup: crate::services::iso::is_staged_setup(),
             shown_step: None,
             shown_run: None,
             focus: FocusHandles::default(),
@@ -485,7 +487,7 @@ impl InstallPage {
             matches!(state.install_identity, Ok(crate::services::atlas_state::InstallIdentity::Fresh));
         let used_windows = fresh_identity && self.windows_installation.suggests_prior_use();
         let show_used_windows_warning = used_windows && !self.used_windows_warning_dismissed;
-        let show_fresh_note = fresh_identity && !used_windows;
+        let show_fresh_note = fresh_identity && !used_windows && !self.staged_iso_setup;
         let mut cards = vec![
             drivers,
             self.preparation_card(cx),
@@ -614,6 +616,17 @@ impl InstallPage {
                 card_body(cx)
                     .gap(px(12.))
                     .child(div().child(a11y_text("preparation-status", message.clone())))
+                    .when(
+                        matches!(state.preparation, State::Running { stage: Stage::WindowsDownload, .. }),
+                        |this| {
+                            this.child(
+                                div().type_caption().text_color(cx.theme().text_secondary).child(a11y_text(
+                                    "preparation-download-scope",
+                                    t!("prepare-download-scope"),
+                                )),
+                            )
+                        },
+                    )
                     .when(state.preparation == State::Failed, |this| {
                         let failure = state.preparation_progress.as_ref().and_then(|p| p.failure());
                         let detail = failure
@@ -1692,6 +1705,10 @@ impl InstallPage {
             Step::Ready => {
                 if state.install_eligibility_problem().is_some() {
                     (t!("install-source-title"), false)
+                } else if !state.preparation.ready()
+                    && !matches!(state.preparation, crate::services::preparation::State::Idle)
+                {
+                    (t!("footer-prepare-required"), false)
                 } else if !state.checks_complete() || state.acquisition.is_busy() {
                     (t!("footer-still-checking"), false)
                 } else if state.checks_blocking() {
@@ -1701,7 +1718,7 @@ impl InstallPage {
                 } else if state.playbook.is_none() {
                     (t!("footer-need-package"), false)
                 } else if !state.preparation.ready() {
-                    (String::new(), false)
+                    (t!("footer-prepare-required"), false)
                 } else {
                     (String::new(), true)
                 }
@@ -1787,10 +1804,17 @@ impl InstallPage {
             .items_center()
             .justify_between()
             .gap(px(12.))
-            .child(div().flex().items_center().gap(px(12.)).child(cancel).child(
-                div().type_caption().text_color(theme.text_secondary).child(a11y_text("footer-hint", hint)),
-            ))
-            .child(div().flex().gap(px(8.)).child(back).child(forward))
+            .child(
+                div().flex().flex_1().min_w_0().items_center().gap(px(12.)).child(cancel).child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .type_caption()
+                        .text_color(theme.text_secondary)
+                        .child(a11y_text("footer-hint", hint)),
+                ),
+            )
+            .child(div().flex().flex_shrink_0().gap(px(8.)).child(back).child(forward))
             .into_any_element()
     }
 }

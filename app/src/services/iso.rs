@@ -198,6 +198,10 @@ pub(super) fn staged_settings() -> Option<serde_json::Value> {
     Some(value)
 }
 
+pub fn is_staged_setup() -> bool {
+    staged_settings().is_some()
+}
+
 pub fn staged_drivers() -> Option<super::preparation::Drivers> {
     serde_json::from_value(staged_settings()?["drivers"].clone()).ok()
 }

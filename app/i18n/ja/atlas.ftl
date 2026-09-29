@@ -792,5 +792,7 @@ detail-user-account-ok = UAC が有効で、アカウントのインストール
 detail-user-account-not-ready = ユーザーアカウント制御 (UAC) を有効にし、PC を再起動してから、もう一度お試しください。組み込みの Administrator アカウントを使用している場合は、別の管理者アカウントでサインインしてください。
 detail-user-account-unknown = Atlas はユーザーアカウントを確認できませんでした。インストール前に再確認してください。Windows の報告: { $error }
 
+footer-prepare-required = 続行するには、上の Windows と Store の更新を完了してください
 resume-choices-title = 前回のインストールを再開
 resume-choices-detail = 元の選択内容を復元しました。このインストールが完了するまで変更できません。
+prepare-download-scope = 進捗は下記の更新だけでなく、今回のダウンロード全体を示します。ダウンロード後にインストールが行われます。
