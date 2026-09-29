@@ -123,14 +123,14 @@ fn read_at(path: &std::path::Path) -> Result<Option<AtlasState>> {
 pub enum InstallIdentity {
     Fresh,
     Installed(String),
-    Resume(String),
+    Resume(String, Option<Vec<String>>),
 }
 
 impl InstallIdentity {
     pub fn allows(&self, manifest: &super::playbook::Manifest) -> bool {
         match self {
             Self::Fresh => true,
-            Self::Resume(target) => target == &manifest.version,
+            Self::Resume(target, _) => target == &manifest.version,
             Self::Installed(version) => {
                 version == &manifest.version || manifest.upgradable_from.contains(version)
             }
@@ -179,7 +179,16 @@ fn read_identity_at(
                     ),
                 "The active Atlas installation record is invalid"
             );
-            return Ok(InstallIdentity::Resume(target.unwrap().to_owned()));
+            let options = if doc["status"] == "Running" {
+                Some(
+                    serde_json::from_value::<Vec<String>>(doc["options"].clone())
+                        .context("read original Atlas installation choices")?,
+                )
+            } else {
+                anyhow::ensure!(doc["status"] == "Capturing", "Invalid active installation status");
+                None
+            };
+            return Ok(InstallIdentity::Resume(target.unwrap().to_owned(), options));
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(error).context("read active Atlas installation"),
@@ -249,8 +258,8 @@ mod completion_state_tests {
             assert!(!InstallIdentity::Installed(version.into()).allows(&manifest));
         }
         assert!(InstallIdentity::Fresh.allows(&manifest));
-        assert!(InstallIdentity::Resume("0.6.0".into()).allows(&manifest));
-        assert!(!InstallIdentity::Resume("0.5.1".into()).allows(&manifest));
+        assert!(InstallIdentity::Resume("0.6.0".into(), None).allows(&manifest));
+        assert!(!InstallIdentity::Resume("0.5.1".into(), None).allows(&manifest));
     }
 
     #[test]
@@ -276,12 +285,16 @@ mod completion_state_tests {
         let active = temp.path().join("Install/active.json");
         std::fs::create_dir_all(active.parent().unwrap()).unwrap();
         std::fs::write(&state, r#"{"schemaVersion":1,"installedVersion":"0.3.2"}"#).unwrap();
-        std::fs::write(&active, r#"{"schemaVersion":1,"targetVersion":"0.6.0","mode":"Fresh"}"#).unwrap();
+        std::fs::write(
+            &active,
+            r#"{"schemaVersion":1,"targetVersion":"0.6.0","mode":"Fresh","status":"Capturing"}"#,
+        )
+        .unwrap();
         let no_legacy = || -> Result<Vec<String>> { panic!("must not read legacy evidence") };
         let no_payload = || -> Result<bool> { panic!("must not read payload evidence") };
         assert_eq!(
             read_identity_at(&state, no_legacy, no_payload).unwrap(),
-            InstallIdentity::Resume("0.6.0".into())
+            InstallIdentity::Resume("0.6.0".into(), None)
         );
         std::fs::remove_file(&active).unwrap();
         assert_eq!(
@@ -302,6 +315,37 @@ mod completion_state_tests {
         std::fs::remove_file(&active).unwrap();
         std::fs::write(&state, "broken").unwrap();
         assert!(read_identity_at(&state, no_legacy, no_payload).is_err());
+    }
+
+    #[test]
+    fn running_install_recovers_exact_choices_and_rejects_missing_or_invalid_choices() {
+        let temp = super::super::test_support::TempDir::new("resume-choices");
+        let state = temp.path().join("state.json");
+        let active = temp.path().join("Install/active.json");
+        std::fs::create_dir_all(active.parent().unwrap()).unwrap();
+        for options in [
+            serde_json::json!(["auto-updates-disable", "disable-power-saving"]),
+            serde_json::Value::Null,
+            serde_json::json!([42]),
+        ] {
+            std::fs::write(&active, serde_json::json!({"schemaVersion":1,"targetVersion":"0.6.0","mode":"Fresh","status":"Running","options":options}).to_string()).unwrap();
+            let result = read_identity_at(
+                &state,
+                || panic!("must use active state"),
+                || panic!("must use active state"),
+            );
+            if options[0].is_string() {
+                assert_eq!(
+                    result.unwrap(),
+                    InstallIdentity::Resume(
+                        "0.6.0".into(),
+                        Some(vec!["auto-updates-disable".into(), "disable-power-saving".into()])
+                    )
+                );
+            } else {
+                assert!(result.is_err());
+            }
+        }
     }
 
     #[test]

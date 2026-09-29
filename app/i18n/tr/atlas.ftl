@@ -812,3 +812,6 @@ check-user-account = Kullanıcı hesabı
 detail-user-account-ok = UAC açık ve hesabınız kuruluma hazır.
 detail-user-account-not-ready = Kullanıcı Hesabı Denetimi’ni (UAC) açın, bilgisayarınızı yeniden başlatın ve tekrar deneyin. Yerleşik Administrator hesabını kullanıyorsanız başka bir yönetici hesabıyla oturum açın.
 detail-user-account-unknown = Atlas kullanıcı hesabınızı denetleyemedi. Kurulumdan önce tekrar denetleyin. Windows bildirimi: { $error }
+
+resume-choices-title = Önceki yüklemenize devam ediliyor
+resume-choices-detail = İlk seçimleriniz geri yüklendi ve bu yükleme tamamlanana kadar değiştirilemez.

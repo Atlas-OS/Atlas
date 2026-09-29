@@ -543,7 +543,7 @@ impl AppModel {
             use crate::services::preparation::{Stage, State};
             model.preparation = match preview.as_str() {
                 "busy" => State::Running { stage: Stage::StoreInstall, completed: 4, total: 12 },
-                "complete" => State::Ready,
+                "complete" | "resume" => State::Ready,
                 "failed" => State::Failed,
                 "reboot" => State::Reboot,
                 "restart-persists" => {
@@ -563,6 +563,12 @@ impl AppModel {
                     "activity":{"failureMessage":"The package could not be installed because resources it modifies are currently in use.",
                     "errorCode":"0x80073D02","packageName":"NanaZip"}
                 })).ok();
+            }
+            if preview == "resume" {
+                model.install_identity = Ok(atlas_state::InstallIdentity::Resume(
+                    "0.6.0".into(),
+                    Some(crate::services::iso::default_options(model.manifest())),
+                ));
             }
             model.flow.resume(Step::Ready).ok();
             model.page = Page::Install;
@@ -838,12 +844,24 @@ impl AppModel {
     }
 
     pub fn install_eligibility_problem(&self) -> Option<String> {
+        if let Some(options) = self.original_options()
+            && crate::services::iso::validate_options(self.manifest(), options).is_err()
+        {
+            return Some(t!("install-source-unknown"));
+        }
         match &self.install_identity {
             Ok(identity) if identity.allows(self.manifest()) => None,
             Ok(atlas_state::InstallIdentity::Installed(version)) => {
                 Some(t!("install-source-unsupported", source = version, target = &self.manifest().version))
             }
             _ => Some(t!("install-source-unknown")),
+        }
+    }
+
+    pub fn original_options(&self) -> Option<&[String]> {
+        match &self.install_identity {
+            Ok(atlas_state::InstallIdentity::Resume(_, Some(options))) => Some(options),
+            _ => None,
         }
     }
 
@@ -969,7 +987,7 @@ impl AppModel {
 
     /// The request the running (or completed) install was started with, or
     /// the one the current choices would produce. After a failed attempt the
-    /// current choices win, so a retry reflects every edit made since.
+    /// protected original choices win once the payload has committed its capture.
     pub fn install_request(&self) -> Option<InstallRequest> {
         if let Some(session) = &self.session
             && self.showing_recorded_install()
@@ -1056,11 +1074,7 @@ impl AppModel {
         let skip_saved_options = self.before_desktop
             && self.flow.step == Step::Ready
             && self.ready_to_continue()
-            && crate::services::iso::validate_options(
-                self.manifest(),
-                &self.options.iter().cloned().collect::<Vec<_>>(),
-            )
-            .is_ok();
+            && crate::services::iso::validate_options(self.manifest(), &self.effective_options()).is_ok();
         if self.flow.advance().is_ok() {
             if skip_saved_options {
                 let _ = self.flow.advance();
@@ -1266,7 +1280,7 @@ impl AppModel {
             preparation_restart_at: self.preparation_restart_at.clone(),
             preparation_ready: self.preparation.ready(),
             step: self.flow.step.name().to_owned(),
-            options: self.options.iter().cloned().collect(),
+            options: self.effective_options(),
             playbook_dir: self.playbook.as_ref().map(|p| p.dir.clone()),
             option_screen: self.option_screen,
             session: self.own_session.clone(),
@@ -1652,7 +1666,7 @@ impl AppModel {
     }
 
     pub fn choose_option(&mut self, page_index: usize, name: &str, cx: &mut Context<Self>) {
-        if self.locked() || !self.flow.may_edit() {
+        if self.original_options().is_some() || self.locked() || !self.flow.may_edit() {
             return;
         }
         let Some(page) = self.manifest().pages.get(page_index) else { return };
@@ -1676,6 +1690,9 @@ impl AppModel {
 
     /// Option names to pass to the installer, honouring `DependsOn` pages.
     pub fn effective_options(&self) -> Vec<String> {
+        if let Some(options) = self.original_options() {
+            return options.to_vec();
+        }
         let manifest = self.manifest();
         let mut names = Vec::new();
         for page in &manifest.pages {

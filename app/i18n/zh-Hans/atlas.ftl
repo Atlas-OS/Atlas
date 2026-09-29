@@ -786,3 +786,6 @@ check-user-account = 用户账户
 detail-user-account-ok = UAC 已启用，您的账户已准备好进行安装。
 detail-user-account-not-ready = 请启用用户账户控制 (UAC)，重启电脑后再试。如果您使用的是内置 Administrator 账户，请使用另一个管理员账户登录。
 detail-user-account-unknown = Atlas 无法检查您的用户账户。请在安装前重新检查。Windows 报告：{ $error }
+
+resume-choices-title = 继续上次安装
+resume-choices-detail = 已恢复您原来的选项。在本次安装完成之前，无法更改这些选项。

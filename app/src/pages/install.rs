@@ -510,6 +510,17 @@ impl InstallPage {
                 .child(list)
                 .into_any_element(),
         ];
+        if state.original_options().is_some() {
+            cards.insert(
+                0,
+                InfoBar::new(
+                    Severity::Informational,
+                    t!("resume-choices-title"),
+                    t!("resume-choices-detail"),
+                )
+                .into_any_element(),
+            );
+        }
         if show_fresh_note {
             cards.insert(
                 0,
@@ -861,8 +872,8 @@ impl InstallPage {
             let state = self.model.read(cx);
             (
                 state.manifest().clone(),
-                state.options.clone(),
-                state.flow.may_edit(),
+                state.effective_options().into_iter().collect::<std::collections::BTreeSet<_>>(),
+                state.flow.may_edit() && state.original_options().is_none(),
                 state.option_screens(),
                 state.current_option_screen(),
                 state.playbook.as_ref().map(|package| package.dir.clone()),
@@ -871,6 +882,16 @@ impl InstallPage {
         let Some(screen) = screens.get(current) else { return Vec::new() };
         let model = self.model.clone();
         let mut cards = Vec::new();
+        if self.model.read(cx).original_options().is_some() {
+            cards.push(
+                InfoBar::new(
+                    Severity::Informational,
+                    t!("resume-choices-title"),
+                    t!("resume-choices-detail"),
+                )
+                .into_any_element(),
+            );
+        }
 
         // One decision at a time: the question is the heading, the choice
         // below it, with consequences visible before either answer is chosen.
@@ -1559,17 +1580,16 @@ impl InstallPage {
         let model = self.model.clone();
         let state = self.model.read(cx);
         let manifest = state.manifest();
+        let options = state.effective_options();
         let mut rows = Vec::new();
         for (index, screen) in state.option_screens().into_iter().enumerate() {
             let chosen: Vec<String> = screen
                 .pages
                 .iter()
                 .filter_map(|&page_index| manifest.pages.get(page_index))
-                .filter(|page| {
-                    page.depends_on.as_ref().is_none_or(|dependency| state.options.contains(dependency))
-                })
+                .filter(|page| page.depends_on.as_ref().is_none_or(|dependency| options.contains(dependency)))
                 .flat_map(|page| page.options.iter())
-                .filter(|option| state.options.contains(&option.name))
+                .filter(|option| options.contains(&option.name))
                 .map(|option| describe::option_label(&option.name, &option.text))
                 .collect();
             let title = screen.kind.title();
@@ -1578,7 +1598,7 @@ impl InstallPage {
                 .hyperlink()
                 .compact()
                 .aria_label(t!("summary-change-a11y", title = title.as_str()))
-                .disabled(!state.flow.may_edit())
+                .disabled(!state.flow.may_edit() || state.original_options().is_some())
                 .on_click({
                     let model = model.clone();
                     move |_, _, cx| model.update(cx, |m, cx| m.edit_options(index, cx))

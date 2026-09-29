@@ -113,6 +113,31 @@ fn new_model(cx: &mut AsyncApp, env: Environment) -> Entity<AppModel> {
 }
 
 #[test]
+fn resume_uses_protected_choices_even_when_the_local_draft_is_missing_or_changed() {
+    run_model_test(|mut cx| async move {
+        let temp = TempDir::new("resume-options");
+        let machine = Machine::new(all_off());
+        let mut env = machine.environment(temp.path());
+        let options = crate::services::iso::default_options(&playbook::Manifest::builtin());
+        let saved = options.clone();
+        env.adapters.read_install_identity =
+            Arc::new(move || Ok(atlas_state::InstallIdentity::Resume("0.6.0".into(), Some(saved.clone()))));
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| {
+            m.options.clear();
+            assert_eq!(m.effective_options(), options);
+            assert!(m.install_eligibility_problem().is_none());
+            m.choose_option(0, "changed-local-choice", cx);
+            assert_eq!(m.effective_options(), options);
+            assert!(m.options.is_empty());
+            m.flow.resume(Step::Options).unwrap();
+            assert_eq!(m.current_draft().unwrap().options, options);
+        });
+    });
+}
+
+#[test]
 fn incomplete_preparation_blocks_install_even_when_checks_pass() {
     run_model_test(|mut cx| async move {
         let temp = TempDir::new("preparation-gate");

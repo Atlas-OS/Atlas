@@ -817,3 +817,6 @@ check-user-account = Conta de usuário
 detail-user-account-ok = O UAC está ativado e sua conta está pronta para a instalação.
 detail-user-account-not-ready = Ative o Controle de Conta de Usuário (UAC), reinicie o PC e tente novamente. Se você usa a conta Administrador integrada, entre com outra conta de administrador.
 detail-user-account-unknown = O Atlas não conseguiu verificar sua conta de usuário. Verifique novamente antes de instalar. O Windows informou: { $error }
+
+resume-choices-title = Continuando a instalação anterior
+resume-choices-detail = Suas escolhas originais foram restauradas e não podem ser alteradas enquanto esta instalação estiver incompleta.
