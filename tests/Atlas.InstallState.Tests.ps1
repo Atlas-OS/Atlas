@@ -27,6 +27,19 @@ BeforeAll {
 }
 
 Describe 'Atlas.InstallState lifecycle' {
+    It 'accepts ASCII step names under Turkish culture without accepting non-ASCII names' {
+        $previous = [Threading.Thread]::CurrentThread.CurrentCulture
+        try {
+            [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo('tr-TR')
+            $path = New-TestInstallStatePath
+            Start-TestInstallState -Path $path -Status Running | Out-Null
+            Invoke-AtlasInstallStep -StatePath $path -Name 'PreInstall' -Action {} | Out-Null
+            @((Get-AtlasInstallState -StatePath $path).completedSteps) | Should -Contain 'PreInstall'
+            $invalid = 'Pre' + [char]0x0130 + 'nstall'
+            { Invoke-AtlasInstallStep -StatePath $path -Name $invalid -Action {} } | Should -Throw '*Invalid step name*'
+        } finally { [Threading.Thread]::CurrentThread.CurrentCulture = $previous }
+    }
+
     It 'replaces an interrupted option capture instead of merging incompatible choices' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
