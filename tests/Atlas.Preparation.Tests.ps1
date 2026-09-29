@@ -248,6 +248,28 @@ Describe 'Windows installation results requiring restart' {
         Invoke-PreparationWindows | Should -Be 'reboot'
         Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'Fixture update: result=4, HRESULT=-1'
     }
+    It 'installs quiet updates before asking for an interactive driver' {
+        $driver = [pscustomobject]@{ Title='Interactive driver'; InstallationBehavior=[pscustomobject]@{CanRequestUserInput=$true} }
+        Mock Find-PreparationWindowsUpdate { @($driver, $script:offered) }
+        Invoke-PreparationWindows | Should -Be 'reboot'
+        $script:queuedUpdate.Title | Should -Be 'Fixture update'
+        $script:PreparationRestartReasons | Should -Contain 'windows-update'
+    }
+    It 'tries quiet installation before asking the user to finish an interactive update' {
+        Mock Find-PreparationWindowsUpdate { [pscustomobject]@{ Title='Interactive driver'; EulaAccepted=$true; InstallationBehavior=[pscustomobject]@{CanRequestUserInput=$true} } }
+        $script:installation.RebootRequired = $false
+        { Invoke-PreparationWindows } | Should -Throw '*Windows Settings*Interactive driver*'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 1 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+        $script:installer.ForceQuiet | Should -BeTrue
+        $script:installer.AllowSourcePrompts | Should -BeFalse
+    }
+    It 'accepts a quietly installed update that could have requested input' {
+        Mock Find-PreparationWindowsUpdate { [pscustomobject]@{ Title='Interactive driver'; EulaAccepted=$true; InstallationBehavior=[pscustomobject]@{CanRequestUserInput=$true} } }
+        $script:installation.ResultCode = 2
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=2; HResult=0} } -Force
+        Invoke-PreparationWindows | Should -Be 'reboot'
+        $script:installer.ForceQuiet | Should -BeTrue
+    }
     It 'still fails a partial installation that does not require restart' {
         $script:installation.RebootRequired = $false
         { Invoke-PreparationWindows } | Should -Throw '*could not install every update*'
@@ -424,5 +446,47 @@ Describe 'Windows preparation prerequisites' {
     It 'does not mark missing Store registration as up to date' {
         Mock Get-AppxPackage { $null }
         { New-PreparationStoreManager } | Should -Throw '*not registered*'
+    }
+}
+
+Describe 'Transient Store deployment recovery' {
+    BeforeEach {
+        Mock Assert-PreparationContinue {}
+        Mock Write-PreparationState {}
+        Mock Start-Sleep {}
+        Mock Test-PreparationRestart { $false }
+        $script:storeAttempts = 0
+        Mock Invoke-PreparationStore {
+            $script:storeAttempts++
+            if ($script:storeAttempts -le 2) {
+                throw (New-PreparationStoreFailure 'Microsoft.Xbox.TCUI_8wekyb3d8bbwe' 'Error' ([Runtime.InteropServices.COMException]::new('Deployment busy', -2145124330)))
+            }
+        }
+    }
+    It 'recovers a busy Store without returning an error to the caller' {
+        { Invoke-PreparationStoreWithRetry } | Should -Not -Throw
+        Should -Invoke Invoke-PreparationStore -Times 3 -Exactly
+        Should -Invoke Start-Sleep -Times 30 -Exactly
+    }
+    It 'stops retrying a persistent conflict after four attempts' {
+        Mock Invoke-PreparationStore { throw (New-PreparationStoreFailure 'Microsoft.Xbox.TCUI_8wekyb3d8bbwe' 'Error' ([Runtime.InteropServices.COMException]::new('Deployment busy', -2145124330))) }
+        { Invoke-PreparationStoreWithRetry } | Should -Throw '*Deployment busy*'
+        Should -Invoke Invoke-PreparationStore -Times 4 -Exactly
+    }
+    It 'does not delay a required restart' {
+        Mock Test-PreparationRestart { $true }
+        { Invoke-PreparationStoreWithRetry } | Should -Throw '*Deployment busy*'
+        Should -Invoke Invoke-PreparationStore -Times 1 -Exactly
+        Should -Invoke Start-Sleep -Times 0 -Exactly
+    }
+    It 'preserves unknown errors without repeatedly invoking the provider' {
+        Mock Invoke-PreparationStore { throw 'Unknown provider failure' }
+        { Invoke-PreparationStoreWithRetry } | Should -Throw '*Unknown provider failure*'
+        Should -Invoke Invoke-PreparationStore -Times 1 -Exactly
+    }
+    It 'honours cancellation during the retry delay' {
+        Mock Assert-PreparationContinue { throw [OperationCanceledException]::new('Stopped') }
+        { Invoke-PreparationStoreWithRetry } | Should -Throw '*Stopped*'
+        Should -Invoke Invoke-PreparationStore -Times 1 -Exactly
     }
 }

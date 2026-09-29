@@ -278,12 +278,25 @@ function Invoke-PreparationWindows {
         $session = New-Object -ComObject Microsoft.Update.Session
         $session.ClientApplicationID = 'Atlas preparation'
         $updates = New-Object -ComObject Microsoft.Update.UpdateColl
+        $interactive = @()
         foreach ($update in @(Find-PreparationWindowsUpdate $session)) {
-            if ($update.InstallationBehavior.CanRequestUserInput) { throw "Windows requires interaction for: $($update.Title)" }
+            if ($update.InstallationBehavior.CanRequestUserInput) {
+                $interactive += $update
+                continue
+            }
             if (-not $update.EulaAccepted) { $update.AcceptEula() }
             [void]$updates.Add($update)
         }
-        if ($updates.Count -eq 0) { return 'complete' }
+        if ($updates.Count -eq 0) {
+            # CanRequestUserInput does not mean interaction is required. Finish
+            # noninteractive work first, then try remaining updates with ForceQuiet.
+            # Unsupported quiet handlers return a failure instead of a prompt.
+            foreach ($update in $interactive) {
+                if (-not $update.EulaAccepted) { $update.AcceptEula() }
+                [void]$updates.Add($update)
+            }
+            if ($updates.Count -eq 0) { return 'complete' }
+        }
         Assert-PreparationContinue
         Write-PreparationState running windows-download 0 $updates.Count
         $downloader = $session.CreateUpdateDownloader()
@@ -296,13 +309,26 @@ function Invoke-PreparationWindows {
         $installer.Updates = $updates
         $installer.ForceQuiet = $true
         $installer.AllowSourcePrompts = $false
-        if ($installer.RebootRequiredBeforeInstallation) { return 'reboot' }
+        if ($installer.RebootRequiredBeforeInstallation) {
+            $script:PreparationRestartReasons = @('windows-update')
+            return 'reboot'
+        }
         $installed = Invoke-PreparationWindowsOperation $installer $updates Install
+        $manual = @()
         for ($index = 0; $index -lt $updates.Count; $index++) {
             $item = $installed.GetUpdateResult($index)
-            "$($updates.Item($index).Title): result=$($item.ResultCode), HRESULT=$($item.HResult)" | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+            $update = $updates.Item($index)
+            "$($update.Title): result=$($item.ResultCode), HRESULT=$($item.HResult)" | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+            if ([int]$item.ResultCode -ne 2 -and $update.InstallationBehavior.CanRequestUserInput) {
+                $manual += $update.Title
+            }
         }
-        if ($installed.RebootRequired -or (Test-PreparationRestart)) { return 'reboot' }
+        if ($installed.RebootRequired) {
+            $script:PreparationRestartReasons = @('windows-update')
+            return 'reboot'
+        }
+        if (Test-PreparationRestart) { return 'reboot' }
+        if ($manual.Count -gt 0) { throw "Windows could not finish these updates automatically. Finish them in Windows Settings, then retry: $($manual -join '; ')" }
         if ([int]$installed.ResultCode -ne 2) { throw "Windows could not install every update: $($installed.ResultCode). See updates.log." }
     }
     throw 'Windows still offers updates after eight passes. Resolve the remaining updates in Windows Settings.'
@@ -444,10 +470,28 @@ function Assert-PreparationCurrent {
     if (-not (Test-PreparationNetwork)) { throw 'The internet connection changed during preparation verification.' }
 }
 
+function Invoke-PreparationStoreWithRetry {
+    # Retry transient deployment conflicts, never an app-in-use or unknown error.
+    for ($attempt = 0; $attempt -lt 4; $attempt++) {
+        try { Invoke-PreparationStore; return }
+        catch {
+            $detail = Get-PreparationFailureDetail $_.Exception
+            if (-not $detail.ContainsKey('errorCode') -or $detail.errorCode -ne '0x80240016' -or $attempt -eq 3 -or (Test-PreparationRestart)) { throw }
+            "Store is busy; retrying in 15 seconds (attempt $($attempt + 2) of 4)." |
+                Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+            for ($second = 0; $second -lt 15; $second++) {
+                Assert-PreparationContinue
+                Write-PreparationState running store-search
+                Start-Sleep -Seconds 1
+            }
+        }
+    }
+}
+
 function Invoke-PreparationUpdates {
     try {
         if ((Invoke-PreparationWindows | Select-Object -Last 1) -eq 'reboot') { return 'reboot' }
-        Invoke-PreparationStore
+        Invoke-PreparationStoreWithRetry
         Assert-PreparationContinue
         Write-PreparationState running verify
         return (Invoke-PreparationWindows | Select-Object -Last 1)
