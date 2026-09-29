@@ -43,7 +43,7 @@ function Assert-PlainTree([string]$Path) {
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Reparse point: $($item.FullName)" }
     }
 }
-function Assert-BootCatalog([string]$Path) {
+function Assert-BootCatalog([string]$Path, [ValidateSet('x64','arm64')][string]$Architecture = 'x64') {
     $stream = [IO.File]::OpenRead($Path)
     try {
         $buffer = New-Object byte[] 2048
@@ -57,9 +57,13 @@ function Assert-BootCatalog([string]$Path) {
                 if ($stream.Read($buffer, 0, 2048) -ne 2048) { throw 'Truncated boot catalog.' }
                 $checksum = 0
                 for ($i = 0; $i -lt 32; $i += 2) { $checksum += [BitConverter]::ToUInt16($buffer, $i) }
-                if (($checksum -band 0xffff) -ne 0 -or $buffer[0] -ne 1 -or $buffer[1] -ne 0 -or
-                    $buffer[30] -ne 0x55 -or $buffer[31] -ne 0xaa -or $buffer[32] -ne 0x88 -or
-                    $buffer[64] -notin @(0x90, 0x91) -or $buffer[65] -ne 0xef -or $buffer[96] -ne 0x88) {
+                if (($checksum -band 0xffff) -ne 0 -or $buffer[0] -ne 1 -or
+                    $buffer[30] -ne 0x55 -or $buffer[31] -ne 0xaa -or $buffer[32] -ne 0x88) {
+                    throw 'The output does not contain a valid boot catalog.'
+                }
+                if ($Architecture -eq 'arm64') {
+                    if ($buffer[1] -ne 0xef) { throw 'The output does not contain a bootable UEFI entry for ARM64.' }
+                } elseif ($buffer[1] -ne 0 -or $buffer[64] -notin @(0x90, 0x91) -or $buffer[65] -ne 0xef -or $buffer[96] -ne 0x88) {
                     throw 'The output does not contain valid BIOS and UEFI boot entries.'
                 }
                 return
@@ -83,12 +87,17 @@ function Assert-Output {
     return $parent.FullName
 }
 function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds) {
+    $architecture = $null
     foreach ($summary in @(Get-WindowsImage -ImagePath $ImagePath)) {
         $info = Get-WindowsImage -ImagePath $ImagePath -Index $summary.ImageIndex
         $version = [version]$info.Version
-        if ([int]$info.Architecture -ne 9 -or $SupportedBuilds -notcontains $version.Build) {
+        if ([int]$info.Architecture -notin @(9,12) -or $SupportedBuilds -notcontains $version.Build) {
             Fail 'windows-unsupported' "Unsupported Windows image: $($info.ImageName), $($info.Version), architecture $($info.Architecture)."
         }
+        if ($null -ne $architecture -and $architecture -ne [int]$info.Architecture) {
+            Fail 'windows-unsupported' 'Mixed x64 and ARM64 installation images are not supported.'
+        }
+        $architecture = [int]$info.Architecture
         if ($info.InstallationType -ne 'Client') { Fail 'windows-unsupported' 'Only Windows client installation media is supported.' }
         if ((Get-AtlasWindowsReleaseStatus -Version $version) -ne 'Released') {
             Fail 'windows-release-unknown' "The Windows image version $version could not be verified as a public release. Connect to the internet and retry, or choose official release media."
@@ -114,7 +123,7 @@ function Export-AtlasMediaEditions([string]$SourceImage, [string]$DestinationIma
         $info = Get-WindowsImage -ImagePath $DestinationImage -Index $actual[$index].ImageIndex
         $expected = $Editions[$index]
         if ($info.EditionId -ne $expected.EditionId -or $info.ImageName -ne $expected.ImageName -or
-            [version]$info.Version -ne [version]$expected.Version -or [int]$info.Architecture -ne 9 -or $info.InstallationType -ne 'Client') {
+            [version]$info.Version -ne [version]$expected.Version -or [int]$info.Architecture -ne [int]$expected.Architecture -or $info.InstallationType -ne 'Client') {
             throw 'The filtered Windows image does not match the selected editions.'
         }
     }
@@ -137,7 +146,7 @@ try {
     $volumes = @($disk | Get-Volume | Where-Object DriveLetter)
     if ($volumes.Count -ne 1) { throw 'The ISO must contain one readable Windows installation volume.' }
     $root = "$($volumes[0].DriveLetter):\"
-    foreach ($relative in @('setup.exe', 'sources\boot.wim', 'boot\etfsboot.com', 'efi\microsoft\boot\efisys.bin')) {
+    foreach ($relative in @('setup.exe', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin')) {
         if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { throw "Windows installation file missing: $relative" }
     }
     foreach ($relative in @('autounattend.xml', 'unattend.xml', 'sources\autounattend.xml', 'sources\unattend.xml', 'sources\$OEM$')) {
@@ -150,6 +159,17 @@ try {
     $supportedEditions = @(Get-AtlasMediaEditions -ImagePath $images[0] -SupportedBuilds $request.supportedBuilds)
     $editions = @($supportedEditions | ForEach-Object { [string]$_.ImageName })
     if ($editions.Count -eq 0) { Fail 'edition-unsupported' 'The ISO contains no supported Windows editions. Windows Home and LTSC are not supported.' }
+    $architecture = if ([int]$supportedEditions[0].Architecture -eq 12) { 'arm64' } else { 'x64' }
+    $bootFiles = if ($architecture -eq 'arm64') { @('efi\boot\bootaa64.efi') } else { @('efi\boot\bootx64.efi', 'boot\etfsboot.com') }
+    foreach ($relative in $bootFiles) {
+        if (-not (Test-Path -LiteralPath (Join-Path $root $relative) -PathType Leaf)) { Fail 'windows-unsupported' "Windows $architecture boot file missing: $relative" }
+    }
+    if ($request.copyNetworkDrivers) {
+        $hostArchitectures = @(Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Architecture -Unique)
+        if ($hostArchitectures.Count -ne 1 -or [int]$hostArchitectures[0] -ne [int]$supportedEditions[0].Architecture) {
+            throw 'Network drivers cannot be copied between x64 and ARM64. Choose media for this PC or turn off network driver copying.'
+        }
+    }
     Write-Output ('ATLAS_RESULT:' + (@{ editions = $editions; bytes = (Get-Item -LiteralPath $source).Length } | ConvertTo-Json -Compress))
     if ($Operation -eq 'Inspect') { exit 0 }
     if ($request.mode -notin @('interactive', 'configured', 'before-desktop')) { throw 'Unknown setup mode.' }
@@ -265,6 +285,7 @@ try {
   </settings>
 </unattend>
 '@
+    if ($architecture -eq 'arm64') { $answer = $answer.Replace('processorArchitecture="amd64"', 'processorArchitecture="arm64"') }
     [xml]$document = $answer
     $namespace = New-Object Xml.XmlNamespaceManager($document.NameTable)
     $namespace.AddNamespace('u', 'urn:schemas-microsoft-com:unattend')
@@ -279,9 +300,9 @@ try {
     [void][IO.Directory]::CreateDirectory($sysprep)
     [IO.File]::WriteAllText((Join-Path $sysprep 'unattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
     Write-Stage master
-    & (Join-Path $PSScriptRoot 'Master-Iso.ps1') -Media $media -Output $partial -CancelFile (Join-Path $job 'cancel')
+    & (Join-Path $PSScriptRoot 'Master-Iso.ps1') -Media $media -Output $partial -CancelFile (Join-Path $job 'cancel') -Architecture $architecture
     Write-Stage verify
-    Assert-BootCatalog $partial
+    Assert-BootCatalog $partial $architecture
     if (-not (Test-Path -LiteralPath $partial) -or (Get-Item -LiteralPath $partial).Length -le (Get-Item -LiteralPath $mediaImage).Length) { throw 'The output ISO is missing or incomplete.' }
     # Mount the finished image and confirm its setup payload and boot files can
     # actually be read. Mount-DiskImage needs the .iso extension.
@@ -300,7 +321,7 @@ try {
         if ((Get-FileHash -LiteralPath $mediaImage -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath (Join-Path $checkRoot $imageRelative) -Algorithm SHA256).Hash) {
             throw "Output Windows image verification failed: $imageRelative"
         }
-        foreach ($relative in @('autounattend.xml', 'sources\autounattend.xml', 'sources\$OEM$\$$\System32\Sysprep\unattend.xml', 'sources\boot.wim', 'boot\etfsboot.com', 'efi\microsoft\boot\efisys.bin', 'sources\$OEM$\$$\AtlasISO\AtlasManager.exe', 'sources\$OEM$\$$\AtlasISO\Atlas.apbx', 'sources\$OEM$\$$\AtlasISO\Setup.ps1', 'sources\$OEM$\$$\AtlasISO\Desktop.ps1', 'sources\$OEM$\$$\AtlasISO\Desktop-Policy.ps1', 'sources\$OEM$\$$\AtlasISO\setup.json', 'sources\$OEM$\$$\AtlasISO\DriverPolicy.reg')) {
+        foreach ($relative in @('autounattend.xml', 'sources\autounattend.xml', 'sources\$OEM$\$$\System32\Sysprep\unattend.xml', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin', 'sources\$OEM$\$$\AtlasISO\AtlasManager.exe', 'sources\$OEM$\$$\AtlasISO\Atlas.apbx', 'sources\$OEM$\$$\AtlasISO\Setup.ps1', 'sources\$OEM$\$$\AtlasISO\Desktop.ps1', 'sources\$OEM$\$$\AtlasISO\Desktop-Policy.ps1', 'sources\$OEM$\$$\AtlasISO\setup.json', 'sources\$OEM$\$$\AtlasISO\DriverPolicy.reg') + $bootFiles) {
             $before = Get-FileHash -LiteralPath (Join-Path $media $relative) -Algorithm SHA256
             $after = Get-FileHash -LiteralPath (Join-Path $checkRoot $relative) -Algorithm SHA256
             if ($before.Hash -ne $after.Hash) { throw "Output verification failed: $relative" }

@@ -1,6 +1,7 @@
-# Windows' built-in IMAPI2FS: UDF large files and BIOS + UEFI El Torito entries.
+# Windows' built-in IMAPI2FS: UDF large files, x64 BIOS + UEFI or ARM64 UEFI.
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Media, [Parameter(Mandatory)][string]$Output, [Parameter(Mandatory)][string]$CancelFile)
+param([Parameter(Mandatory)][string]$Media, [Parameter(Mandatory)][string]$Output, [Parameter(Mandatory)][string]$CancelFile,
+    [ValidateSet('x64','arm64')][string]$Architecture = 'x64')
 $ErrorActionPreference = 'Stop'
 Add-Type @'
 using System;
@@ -16,7 +17,9 @@ public interface AtlasFileSystemImage2 {
 }
 public static class AtlasIsoStream {
  public static void SetBoots(object image, object bios, object efi) {
-  ((AtlasFileSystemImage2)image).BootImageOptionsArray = new object[] { new DispatchWrapper(bios), new DispatchWrapper(efi) };
+  ((AtlasFileSystemImage2)image).BootImageOptionsArray = bios == null
+   ? new object[] { new DispatchWrapper(efi) }
+   : new object[] { new DispatchWrapper(bios), new DispatchWrapper(efi) };
  }
  public static void Save(object source, string path, string cancel) {
   var stream = (IStream)source;
@@ -46,7 +49,9 @@ try {
     $image.FreeMediaBlocks = 2147483647
     $image.VolumeName = 'ATLAS'
     $boots = @()
-    foreach ($spec in @(@(0, 'boot\etfsboot.com'), @(239, 'efi\microsoft\boot\efisys.bin'))) {
+    $specs = ,@(239, 'efi\microsoft\boot\efisys.bin')
+    if ($Architecture -eq 'x64') { $specs = @(@(0, 'boot\etfsboot.com'), @(239, 'efi\microsoft\boot\efisys.bin')) }
+    foreach ($spec in $specs) {
         $stream = New-Object -ComObject ADODB.Stream
         [void]$comObjects.Add($stream)
         $stream.Type = 1
@@ -59,7 +64,8 @@ try {
         $boot.AssignBootImage($stream)
         $boots += $boot
     }
-    [AtlasIsoStream]::SetBoots($image, $boots[0], $boots[1])
+    if ($Architecture -eq 'arm64') { [AtlasIsoStream]::SetBoots($image, $null, $boots[0]) }
+    else { [AtlasIsoStream]::SetBoots($image, $boots[0], $boots[1]) }
     # The root retains source streams until its COM reference is released.
     $root = $image.Root
     [void]$comObjects.Add($root)

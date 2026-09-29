@@ -56,8 +56,18 @@ Describe 'Supported editions in mixed Microsoft media' {
         $script:Images[2].Version = '10.0.26100.1'
         { Get-AtlasMediaEditions source @(26200) } | Should -Throw '*Unsupported Windows image*'
     }
-    It 'rejects a wrong architecture' {
+    It 'retains supported ARM64 editions' {
+        foreach ($image in $script:Images) { $image.Architecture = 12 }
+        $result = @(Get-AtlasMediaEditions source @(26200))
+        ($result.EditionId -join ',') | Should -Be 'Professional,ProfessionalN,Education'
+        @($result | Where-Object Architecture -ne 12) | Should -HaveCount 0
+    }
+    It 'rejects mixed architectures instead of building mismatched setup media' {
         $script:Images[2].Architecture = 12
+        { Get-AtlasMediaEditions source @(26200) } | Should -Throw '*Mixed x64 and ARM64*'
+    }
+    It 'rejects a wrong architecture' {
+        $script:Images[2].Architecture = 0
         { Get-AtlasMediaEditions source @(26200) } | Should -Throw '*Unsupported Windows image*'
     }
     It 'rejects an unverified full version before exporting any edition' {
@@ -86,6 +96,21 @@ Describe 'Supported editions in mixed Microsoft media' {
     It 'fails when the export produces a different edition' {
         Mock Export-WindowsImage { $script:Exported.Add((New-ImageFixture ($script:Exported.Count + 1) Core)) }
         { Export-AtlasMediaEditions source (Join-Path $TestDrive 'wrong.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*does not match*'
+    }
+    It 'verifies ARM64 architecture after exporting supported editions' {
+        foreach ($image in $script:Images) { $image.Architecture = 12 }
+        Mock Export-WindowsImage {
+            param($SourceIndex)
+            $original = $script:Images | Where-Object ImageIndex -eq $SourceIndex
+            $copy = New-ImageFixture ($script:Exported.Count + 1) $original.EditionId
+            $copy.Architecture = 12
+            $script:Exported.Add($copy)
+        }
+        { Export-AtlasMediaEditions source (Join-Path $TestDrive 'arm.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Not -Throw
+    }
+    It 'rejects an export that changes architecture' {
+        foreach ($image in $script:Images) { $image.Architecture = 12 }
+        { Export-AtlasMediaEditions source (Join-Path $TestDrive 'wrong-arch.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*does not match*'
     }
     It 'stops exporting after cancellation at an edition boundary' {
         Mock Write-Stage { throw 'Cancelled at a safe checkpoint.' }

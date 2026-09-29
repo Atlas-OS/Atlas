@@ -3,9 +3,49 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($script:UsbScript,[ref]$null,[ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Get-AtlasUsbIdentity','Test-AtlasUsbDisk','Assert-AtlasUsbIdentity','Assert-AtlasUsbPaths','Assert-AtlasUsbContinue','Copy-AtlasUsbFile','Get-AtlasUsbParentPath','Assert-AtlasUsbVolume','Get-AtlasUsbVolumeId','Get-AtlasUsbTargetRoot','Format-AtlasUsb','Get-AtlasUsbEjectTarget')) {
+    foreach ($name in @('Get-AtlasUsbIdentity','Test-AtlasUsbDisk','Assert-AtlasUsbIdentity','Assert-AtlasUsbPaths','Assert-AtlasUsbContinue','Copy-AtlasUsbFile','Get-AtlasUsbParentPath','Assert-AtlasUsbVolume','Get-AtlasUsbVolumeId','Get-AtlasUsbTargetRoot','Format-AtlasUsb','Get-AtlasUsbEjectTarget','Get-AtlasUsbMediaInfo')) {
         $node = $ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$true)
         . ([scriptblock]::Create($node.Extent.Text))
+    }
+}
+
+Describe 'USB media architecture validation before erasing' {
+    BeforeEach {
+        $script:MediaRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path (Join-Path $MediaRoot 'sources'),(Join-Path $MediaRoot 'efi\boot') -Force | Out-Null
+        foreach ($file in @('setup.exe','sources\boot.wim','sources\install.wim','efi\boot\bootx64.efi','efi\boot\bootaa64.efi')) { Set-Content -LiteralPath (Join-Path $MediaRoot $file) 'fixture' }
+        $script:MediaImages = @([pscustomobject]@{ImageIndex=1;Architecture=9;Version='10.0.26200.8037';InstallationType='Client'})
+        Mock Get-WindowsImage {
+            param($Index)
+            if ($Index) { $script:MediaImages | Where-Object ImageIndex -eq $Index } else { $script:MediaImages }
+        }
+    }
+    It 'uses the matching UEFI loader for architecture <Architecture>' -ForEach @(
+        @{Architecture=9; OtherLoader='bootaa64.efi'}, @{Architecture=12; OtherLoader='bootx64.efi'}
+    ) {
+        $script:MediaImages[0].Architecture = $Architecture
+        Remove-Item -LiteralPath (Join-Path $MediaRoot ('efi\boot\'+$OtherLoader))
+        (Get-AtlasUsbMediaInfo $MediaRoot).architecture | Should -Be $Architecture
+    }
+    It 'rejects ARM64 media containing only an x64 loader' {
+        $script:MediaImages[0].Architecture = 12
+        Remove-Item -LiteralPath (Join-Path $MediaRoot 'efi\boot\bootaa64.efi')
+        { Get-AtlasUsbMediaInfo $MediaRoot } | Should -Throw '*bootaa64.efi*'
+    }
+    It 'rejects mixed architectures' {
+        $script:MediaImages += [pscustomobject]@{ImageIndex=2;Architecture=12;Version='10.0.26200.8037';InstallationType='Client'}
+        { Get-AtlasUsbMediaInfo $MediaRoot } | Should -Throw '*Mixed x64 and ARM64*'
+    }
+    It 'rejects empty installation images' {
+        $script:MediaImages = @()
+        { Get-AtlasUsbMediaInfo $MediaRoot } | Should -Throw '*no Windows installation images*'
+    }
+    It 'still rejects 32-bit and wrong-build images' -ForEach @(
+        @{Architecture=0;Version='10.0.26200.8037'}, @{Architecture=12;Version='10.0.26100.8037'}
+    ) {
+        $script:MediaImages[0].Architecture = $Architecture
+        $script:MediaImages[0].Version = $Version
+        { Get-AtlasUsbMediaInfo $MediaRoot } | Should -Throw '*25H2 x64 or ARM64*'
     }
 }
 

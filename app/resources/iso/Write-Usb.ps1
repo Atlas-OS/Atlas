@@ -179,6 +179,26 @@ function Get-AtlasUsbEjectTarget {
     return $target
 }
 
+function Get-AtlasUsbMediaInfo {
+    param([string]$Root)
+    foreach ($required in @('sources\boot.wim','setup.exe')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $Root $required) -PathType Leaf)) { throw 'The ISO is not Windows UEFI installation media.' }
+    }
+    $images = @('sources\install.wim','sources\install.esd' | ForEach-Object { Join-Path $Root $_ } | Where-Object { Test-Path -LiteralPath $_ })
+    if ($images.Count -ne 1) { throw 'Expected one install.wim or install.esd in the ISO.' }
+    $architecture = $null
+    foreach ($edition in @(Get-WindowsImage -ImagePath $images[0])) {
+        $info = Get-WindowsImage -ImagePath $images[0] -Index $edition.ImageIndex
+        if ([int]$info.Architecture -notin @(9,12) -or ([version]$info.Version).Build -ne 26200 -or $info.InstallationType -ne 'Client') { throw 'Use Windows 11 25H2 x64 or ARM64 installation media.' }
+        if ($null -ne $architecture -and $architecture -ne [int]$info.Architecture) { throw 'Mixed x64 and ARM64 installation images are not supported.' }
+        $architecture = [int]$info.Architecture
+    }
+    if ($null -eq $architecture) { throw 'The ISO contains no Windows installation images.' }
+    $bootFile = if ($architecture -eq 12) { 'efi\boot\bootaa64.efi' } else { 'efi\boot\bootx64.efi' }
+    if (-not (Test-Path -LiteralPath (Join-Path $Root $bootFile) -PathType Leaf)) { throw "The ISO is missing its architecture's UEFI boot file: $bootFile" }
+    return [pscustomobject]@{ imagePath=$images[0]; architecture=$architecture }
+}
+
 function Invoke-AtlasUsbWorker {
     $request = Get-Content -LiteralPath $RequestFile -Raw | ConvertFrom-Json
     if ($Operation -eq 'List') {
@@ -227,16 +247,9 @@ public static class AtlasUsbEject {
         $volume = @($mount | Get-Volume)
         if ($volume.Count -ne 1 -or -not $volume[0].DriveLetter) { throw 'The ISO has no readable filesystem.' }
         $root = "$($volume[0].DriveLetter):\"
-        foreach ($required in @('efi\boot\bootx64.efi','sources\boot.wim','setup.exe')) {
-            if (-not (Test-Path -LiteralPath (Join-Path $root $required) -PathType Leaf)) { throw 'The ISO is not x64 Windows UEFI installation media.' }
-        }
         Import-Module Dism
-        $images = @('sources\install.wim','sources\install.esd' | ForEach-Object { Join-Path $root $_ } | Where-Object { Test-Path -LiteralPath $_ })
-        if ($images.Count -ne 1) { throw 'Expected one install.wim or install.esd in the ISO.' }
-        foreach ($edition in @(Get-WindowsImage -ImagePath $images[0])) {
-            $info = Get-WindowsImage -ImagePath $images[0] -Index $edition.ImageIndex
-            if ([int]$info.Architecture -ne 9 -or ([version]$info.Version).Build -ne 26200 -or $info.InstallationType -ne 'Client') { throw 'Use Windows 11 25H2 x64 installation media.' }
-        }
+        $mediaInfo = Get-AtlasUsbMediaInfo $root
+        $images = @($mediaInfo.imagePath)
         $files = @(Get-ChildItem -LiteralPath $root -Recurse -File -Force | ForEach-Object {
             if (($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'The ISO contains a linked file.' }
             [pscustomobject]@{ source=$_.FullName; relative=$_.FullName.Substring($root.Length); bytes=$_.Length; hash=$null }

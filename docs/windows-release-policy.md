@@ -7,6 +7,17 @@ the running system's build and UBR; ISO inspection uses DISM's four-part image
 version, including its service-pack build/revision (`SPBuild`). Edition and
 architecture checks remain separate requirements.
 
+ISO creation and USB writing accept x64 and ARM64 client images. All editions in
+one image must use the same architecture. The builder generates matching
+`processorArchitecture` values in the Windows answer file and verifies the
+matching UEFI loader (`bootx64.efi` or `bootaa64.efi`). x64 ISOs retain BIOS and
+UEFI boot catalog entries; ARM64 ISOs use UEFI only. Network drivers copied from
+the host must match the installation image's architecture.
+
+Microsoft documents [servicing ARM64 images from an AMD64 technician PC](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/arm64-device-manufacturing).
+Building and verifying media on x64 does not establish that it boots on an ARM
+device: device-specific boot and storage drivers may still be required.
+
 The app, ISO worker and direct playbook entry share the reviewed
 [`windows-releases.json`](../playbook/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json)
 snapshot. The app implements the check in

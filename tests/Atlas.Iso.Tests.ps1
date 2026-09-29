@@ -50,6 +50,16 @@ Describe 'Native ISO mastering' {
         [IO.File]::WriteAllBytes($bad, (New-Object byte[] 64))
         { Assert-BootCatalog $bad } | Should -Throw '*Truncated*'
     }
+    It 'creates ARM64 media with a UEFI boot catalog and no BIOS boot file' {
+        $armMedia = Join-Path $TestDrive 'arm-media'
+        New-Item -ItemType Directory -Path (Join-Path $armMedia 'efi\microsoft\boot') -Force | Out-Null
+        [IO.File]::WriteAllBytes((Join-Path $armMedia 'efi\microsoft\boot\efisys.bin'), (New-Object byte[] 4096))
+        $armIso = Join-Path $TestDrive 'arm.iso'
+        & (Join-Path $script:IsoResources 'Master-Iso.ps1') -Media $armMedia -Output $armIso -CancelFile $script:Cancel -Architecture arm64
+        { Assert-BootCatalog $armIso arm64 } | Should -Not -Throw
+        { Assert-BootCatalog $armIso x64 } | Should -Throw '*BIOS and UEFI*'
+        { Assert-BootCatalog $script:Image arm64 } | Should -Throw '*UEFI entry for ARM64*'
+    }
     It 'does not overwrite an existing output' {
         $before = (Get-FileHash $script:Image).Hash
         { & (Join-Path $script:IsoResources 'Master-Iso.ps1') -Media $script:Media -Output $script:Image -CancelFile $script:Cancel } | Should -Throw
