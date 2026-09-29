@@ -97,10 +97,25 @@ function Wait-AtlasNanaZipStoreItems {
         }
         if ($active -eq 0) { return (-not $failed) }
         if ([DateTime]::UtcNow -ge $deadline) {
-            throw 'NanaZip is still queued or installing in Microsoft Store. Finish its download or restart Windows before retrying; no fallback installer was started.'
+            throw [TimeoutException]::new('NanaZip is still queued or installing in Microsoft Store.')
         }
         Start-Sleep -Seconds 2
     } while ($true)
+}
+
+function Stop-AtlasNanaZipStoreInstall {
+    param($Manager, [object[]]$Items, [int]$Attempts = 30)
+    Write-AtlasLog -Level Warning -Message 'NanaZip Store timed out. Canceling its request before considering verified downloads.'
+    $Manager.Cancel('9N8G7TSCL18R')
+    for ($attempt = 0; $attempt -lt $Attempts; $attempt++) {
+        # Cancellation is asynchronous. Retain the operation handles so an empty
+        # queue alone cannot hide an in-flight deployment or dependency.
+        $active = @($Items | Where-Object { [string]$_.GetCurrentStatus().InstallState -notin @('Completed','Canceled','Error') })
+        $queue = @(Get-AtlasNanaZipStoreItems -Manager $Manager)
+        if ($active.Count -eq 0 -and $queue.Count -eq 0) { return }
+        Start-Sleep -Seconds 1
+    }
+    throw 'Microsoft Store has not confirmed NanaZip cancellation. No fallback installer was started. Finish or cancel NanaZip in Microsoft Store, then retry with your original Atlas choices.'
 }
 
 function Install-AtlasNanaZipFromStore {
@@ -141,10 +156,20 @@ function Install-AtlasNanaZipFromStore {
         $items = @(Request-AtlasNanaZipStoreInstall -Manager $manager)
         if ($items.Count -eq 0) { throw 'Microsoft Store returned no NanaZip install operation. Restart Windows before retrying.' }
     }
-    $completed = Wait-AtlasNanaZipStoreItems -Manager $manager -Items $items
-    # Recheck the service queue before permitting a different installer.
-    $queue = @(Get-AtlasNanaZipStoreItems -Manager $manager)
-    if ($queue.Count -gt 0) { $completed = (Wait-AtlasNanaZipStoreItems -Manager $manager -Items $queue) -and $completed }
+    $canceled = $false
+    try {
+        $completed = Wait-AtlasNanaZipStoreItems -Manager $manager -Items $items
+        # Recheck the service queue before permitting a different installer.
+        $queue = @(Get-AtlasNanaZipStoreItems -Manager $manager)
+        if ($queue.Count -gt 0) {
+            $items = @($items) + @($queue)
+            $completed = (Wait-AtlasNanaZipStoreItems -Manager $manager -Items $queue) -and $completed
+        }
+    } catch [TimeoutException] {
+        Stop-AtlasNanaZipStoreInstall -Manager $manager -Items $items
+        $canceled = $true
+        $completed = $false
+    }
     # Provisioning can appear shortly after Store reports Completed.
     for ($attempt = 0; $attempt -lt 15; $attempt++) {
         $packages = @(& $DismCommands.GetProvisionedPackage -Online -ErrorAction Stop)
@@ -158,6 +183,11 @@ function Install-AtlasNanaZipFromStore {
     }
     if ($completed) {
         throw 'Microsoft Store completed NanaZip installation but machine provisioning could not be verified. Restart Windows before retrying.'
+    }
+    if ($canceled) {
+        Set-AtlasNanaZipStorePending -Journal $journal -Pending $false
+        Write-AtlasLog -Level Warning -Message 'Confirmed NanaZip Store cancellation; using verified downloads.'
+        return $false
     }
     # Failed/canceled jobs are terminal. Clear only NanaZip's queue record and
     # confirm it is gone before starting the pinned GitHub/SourceForge fallback.

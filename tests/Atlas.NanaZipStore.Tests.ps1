@@ -155,3 +155,49 @@ Describe 'Store deployment state handling' {
         }
     }
 }
+
+Describe 'Stalled NanaZip cancellation before download fallback' {
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Software
+        Mock Start-Sleep -ModuleName Atlas.Software
+    }
+    It 'waits for cancellation of every handle and removal from the queue' {
+        InModuleScope Atlas.Software {
+            $script:reads = 0
+            $item = [pscustomobject]@{}
+            $item | Add-Member ScriptMethod GetCurrentStatus {
+                $script:reads++
+                [pscustomobject]@{ InstallState = $(if ($script:reads -lt 3) { 'Installing' } else { 'Canceled' }) }
+            }
+            $manager = [pscustomobject]@{}
+            $manager | Add-Member ScriptMethod Cancel { param($ProductId) $ProductId | Should -BeExactly '9N8G7TSCL18R' }
+            Mock Get-AtlasNanaZipStoreItems { @() }
+            { Stop-AtlasNanaZipStoreInstall -Manager $manager -Items @($item) -Attempts 3 } | Should -Not -Throw
+            $script:reads | Should -Be 3
+        }
+    }
+    It 'refuses fallback when cancellation cannot be confirmed' {
+        InModuleScope Atlas.Software {
+            $item = [pscustomobject]@{}
+            $item | Add-Member ScriptMethod GetCurrentStatus { [pscustomobject]@{ InstallState='Installing' } }
+            $manager = [pscustomobject]@{}
+            $manager | Add-Member ScriptMethod Cancel {}
+            Mock Get-AtlasNanaZipStoreItems { @() }
+            { Stop-AtlasNanaZipStoreInstall -Manager $manager -Items @($item) -Attempts 2 } | Should -Throw '*not confirmed*'
+        }
+    }
+    It 'falls back after timeout only once cancellation is confirmed' {
+        InModuleScope Atlas.Software {
+            Mock Get-AtlasContext { [pscustomobject]@{ IsOobe=$false } }
+            Mock Get-AtlasNanaZipStoreJournal { [pscustomobject]@{ Pending=$false } }
+            Mock New-AtlasNanaZipStoreManager { [pscustomobject]@{ CanInstallForAllUsers=$true } }
+            Mock Get-AtlasNanaZipStoreItems { [pscustomobject]@{ ProductId='9N8G7TSCL18R' } }
+            Mock Wait-AtlasNanaZipStoreItems { throw [TimeoutException]::new('Stalled') }
+            Mock Stop-AtlasNanaZipStoreInstall {}
+            Mock Set-AtlasNanaZipStorePending {}
+            Install-AtlasNanaZipFromStore -DismCommands @{ GetProvisionedPackage={ @() } } | Should -BeFalse
+            Should -Invoke Stop-AtlasNanaZipStoreInstall -Times 1 -Exactly
+            Should -Invoke Set-AtlasNanaZipStorePending -Times 1 -Exactly -ParameterFilter { -not $Pending }
+        }
+    }
+}
