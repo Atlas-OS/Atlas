@@ -1264,44 +1264,36 @@ fn open_target(target: impl AsRef<OsStr>) -> Result<()> {
 }
 
 fn open_target_in_explorer(target: &Path) -> Result<()> {
+    // Normalize separators for Shell parsing, not just Win32 file APIs.
+    let normalized = target.to_string_lossy().replace('/', "\\");
+    let target = Path::new(&normalized);
+    if target.is_dir() {
+        return open_target(target);
+    }
     let dir = target.parent().context("No parent folder found")?;
-    let desktop = unsafe { SHGetDesktopFolder()? };
-
-    let mut dir_item = std::ptr::null_mut();
-    unsafe {
-        desktop.ParseDisplayName(
-            HWND::default(),
-            None,
-            &HSTRING::from(dir),
-            None,
-            &mut dir_item,
-            std::ptr::null_mut(),
-        )?;
-    }
-
-    let mut file_item = std::ptr::null_mut();
-    unsafe {
-        desktop.ParseDisplayName(
-            HWND::default(),
-            None,
-            &HSTRING::from(target),
-            None,
-            &mut file_item,
-            std::ptr::null_mut(),
-        )?;
-    }
-
-    let highlight = [file_item as *const _];
-    unsafe { SHOpenFolderAndSelectItems(dir_item as _, Some(&highlight), 0) }.or_else(|err| {
-        if err.code().0 == ERROR_FILE_NOT_FOUND.0 as i32 {
-            // On some systems, the above call mysteriously fails with "file not
-            // found" even though the file is there.  In these cases, ShellExecute()
-            // seems to work as a fallback (although it won't select the file).
-            open_target(dir).context("Opening target parent folder")
-        } else {
-            Err(anyhow::anyhow!("Can not open target path: {}", err))
+    let selected = (|| -> Result<()> {
+        let desktop = unsafe { SHGetDesktopFolder()? };
+        let mut item = std::ptr::null_mut();
+        unsafe {
+            desktop.ParseDisplayName(
+                HWND::default(),
+                None,
+                &HSTRING::from(target),
+                None,
+                &mut item,
+                std::ptr::null_mut(),
+            )?;
         }
-    })
+        // No child array: the API accepts an absolute PIDL for one item.
+        let result = unsafe { SHOpenFolderAndSelectItems(item as _, None, 0) };
+        unsafe { CoTaskMemFree(Some(item as _)); }
+        result.context("Select file in Explorer")
+    })();
+    if let Err(error) = selected {
+        log::debug!("Could not select file; opening its folder: {error:#}");
+        return open_target(dir).context("Opening target parent folder");
+    }
+    Ok(())
 }
 
 fn file_open_dialog(
