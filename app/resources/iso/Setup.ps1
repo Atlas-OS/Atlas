@@ -94,7 +94,7 @@ if ($config.mode -eq 'before-desktop') {
 }
 $runOnce = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
 New-Item -Path $runOnce -Force | Out-Null
-$command = '"' + (Join-Path $root 'AtlasManager.exe') + '" --playbook "' + (Join-Path $root 'Atlas.apbx') + '"'
+$command = '"' + (Join-Path $root 'AtlasManager.exe') + '" --setup --playbook "' + (Join-Path $root 'Atlas.apbx') + '"'
 if ($config.mode -ne 'before-desktop') {
     New-ItemProperty -LiteralPath $runOnce -Name 'Atlas ISO setup' -Value $command -PropertyType String -Force | Out-Null
 }

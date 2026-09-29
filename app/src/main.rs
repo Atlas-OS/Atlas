@@ -115,6 +115,21 @@ fn main() {
             start.playbook = None;
         }
     }
+    if std::env::args().any(|arg| arg == "--setup" || arg == "--after-preparation-restart")
+        && !services::system::is_elevated()
+    {
+        let launched = if std::env::args().any(|arg| arg == "--after-preparation-restart") {
+            // Let asynchronous draft recovery choose the page and package.
+            services::system::relaunch_elevated()
+        } else {
+            services::system::relaunch_setup_elevated(start.playbook.as_deref())
+        };
+        match launched {
+            Ok(()) => return,
+            // Cancelling UAC leaves the normal window and its elevation action available.
+            Err(error) => log::warn!("Setup elevation was not completed: {error:#}"),
+        }
+    }
     if std::env::args().any(|arg| arg == "--after-install-restart") {
         let paths = services::settings::AppPaths::from_process().session();
         if !services::session::completion_after_restart(&paths).unwrap_or(false) {

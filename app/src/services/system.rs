@@ -198,6 +198,18 @@ pub fn relaunch_elevated() -> Result<()> {
     shell_execute("runas", &exe.to_string_lossy())
 }
 
+/// ISO setup and preparation recovery retain their install page and playbook.
+pub fn relaunch_setup_elevated(playbook: Option<&std::path::Path>) -> Result<()> {
+    let exe = std::env::current_exe()?;
+    let mut args = String::from("--page install");
+    if let Some(path) = playbook {
+        let path = path.to_string_lossy();
+        anyhow::ensure!(!path.contains('"') && !path.ends_with('\\'), "Invalid playbook path");
+        args.push_str(&format!(" --playbook \"{path}\""));
+    }
+    shell_execute_with_args("runas", &exe.to_string_lossy(), &args)
+}
+
 pub fn relaunch_iso_elevated() -> Result<()> {
     let exe = std::env::current_exe()?;
     shell_execute_with_args("runas", &exe.to_string_lossy(), "--page iso")

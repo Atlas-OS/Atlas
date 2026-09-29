@@ -444,6 +444,7 @@ fn register_at(key: &windows_registry::Key, exe: &Path) -> Result<()> {
     let command = format!("\"{}\" --after-preparation-restart", exe.display());
     anyhow::ensure!(command.encode_utf16().count() < 260, "Recovery command exceeds the Windows Run limit");
     key.set_string(RESUME_VALUE, &command)?;
+    log::info!("Preparation recovery registered: {command}");
     Ok(())
 }
 
@@ -465,6 +466,7 @@ pub fn resume_after_restart(settings: &Path) -> Result<bool> {
     let state = state_after_restart(
         loaded.settings.draft.as_ref().and_then(|draft| draft.preparation_restart_at.as_deref()),
     );
+    log::info!("Preparation startup recovery: {state:?}");
     let key = windows_registry::CURRENT_USER.create(RESUME_KEY)?;
     resume_at(&key, state)
 }
