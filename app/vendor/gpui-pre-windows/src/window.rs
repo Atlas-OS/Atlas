@@ -666,9 +666,15 @@ impl PlatformWindow for WindowsWindow {
         let scale_factor = self.scale_factor();
         let point = unsafe {
             let mut point: POINT = std::mem::zeroed();
-            GetCursorPos(&mut point)
-                .context("unable to get cursor position")
-                .log_err();
+            if let Err(error) = GetCursorPos(&mut point) {
+                if error.code().0 == 0x80070005_u32 as i32 {
+                    // UAC switches input desktops; cursor access is unavailable.
+                    log::debug!("Cursor unavailable on current input desktop: {error}");
+                } else {
+                    log::warn!("Unable to get cursor position: {error}");
+                }
+                return logical_point(0., 0., scale_factor);
+            }
             ScreenToClient(self.0.hwnd, &mut point).ok().log_err();
             point
         };
