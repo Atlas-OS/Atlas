@@ -32,6 +32,11 @@ Describe 'USB media architecture validation before erasing' {
         Remove-Item -LiteralPath (Join-Path $MediaRoot 'efi\boot\bootaa64.efi')
         { Get-AtlasUsbMediaInfo $MediaRoot } | Should -Throw '*bootaa64.efi*'
     }
+    It 'accepts 26H2 installation media for architecture <Architecture>' -ForEach @(@{Architecture=9},@{Architecture=12}) {
+        $script:MediaImages[0].Architecture = $Architecture
+        $script:MediaImages[0].Version = '10.0.26300.9457'
+        (Get-AtlasUsbMediaInfo $MediaRoot).architecture | Should -Be $Architecture
+    }
     It 'rejects mixed architectures' {
         $script:MediaImages += [pscustomobject]@{ImageIndex=2;Architecture=12;Version='10.0.26200.8037';InstallationType='Client'}
         { Get-AtlasUsbMediaInfo $MediaRoot } | Should -Throw '*Mixed x64 and ARM64*'
@@ -45,7 +50,7 @@ Describe 'USB media architecture validation before erasing' {
     ) {
         $script:MediaImages[0].Architecture = $Architecture
         $script:MediaImages[0].Version = $Version
-        { Get-AtlasUsbMediaInfo $MediaRoot } | Should -Throw '*25H2 x64 or ARM64*'
+        { Get-AtlasUsbMediaInfo $MediaRoot } | Should -Throw '*25H2 or 26H2 x64 or ARM64*'
     }
 }
 

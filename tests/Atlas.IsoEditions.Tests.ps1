@@ -44,6 +44,12 @@ Describe 'Supported editions in mixed Microsoft media' {
         ($result.EditionId -join ',') | Should -Be 'Professional,ProfessionalN,Education'
         ($result.ImageIndex -join ',') | Should -Be '3,4,5'
     }
+    It 'accepts supported 26H2 editions and passes their full revision to the release check' {
+        foreach ($image in $script:Images) { $image.Version = '10.0.26300.9457' }
+        $result = @(Get-AtlasMediaEditions source @(26200,26300))
+        ($result.EditionId -join ',') | Should -Be 'Professional,ProfessionalN,Education'
+        Should -Invoke Get-AtlasWindowsReleaseStatus -Times 5 -Exactly -ParameterFilter { $Version -eq [version]'10.0.26300.9457' }
+    }
     It 'does not retain Home-only or LTSC media' {
         $script:Images = @((New-ImageFixture 1 Core), (New-ImageFixture 2 EnterpriseS))
         @(Get-AtlasMediaEditions source @(26200)) | Should -HaveCount 0

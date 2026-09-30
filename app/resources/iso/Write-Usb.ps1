@@ -189,7 +189,7 @@ function Get-AtlasUsbMediaInfo {
     $architecture = $null
     foreach ($edition in @(Get-WindowsImage -ImagePath $images[0])) {
         $info = Get-WindowsImage -ImagePath $images[0] -Index $edition.ImageIndex
-        if ([int]$info.Architecture -notin @(9,12) -or ([version]$info.Version).Build -ne 26200 -or $info.InstallationType -ne 'Client') { throw 'Use Windows 11 25H2 x64 or ARM64 installation media.' }
+        if ([int]$info.Architecture -notin @(9,12) -or ([version]$info.Version).Build -notin @(26200,26300) -or $info.InstallationType -ne 'Client') { throw 'Use Windows 11 25H2 or 26H2 x64 or ARM64 installation media.' }
         if ($null -ne $architecture -and $architecture -ne [int]$info.Architecture) { throw 'Mixed x64 and ARM64 installation images are not supported.' }
         $architecture = [int]$info.Architecture
     }
