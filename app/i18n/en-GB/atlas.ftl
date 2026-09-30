@@ -827,3 +827,37 @@ footer-prepare-required = Finish Windows and Store updates above to continue
 resume-choices-title = Continuing your previous installation
 resume-choices-detail = Your original choices have been restored and cannot be changed while this installation is unfinished.
 prepare-download-scope = Progress covers this download batch, not just the update named below. Installation follows downloading.
+
+## Voluntary reports
+report-title = Send a report
+report-received = Report received
+report-reference = Your reference: { $reference }. Keep it if you contact us about this report.
+report-details = Tell us what happened
+report-intro = Describe an issue or suggest an improvement (10–4,000 characters).
+report-message = Your message
+report-message-placeholder = I was trying to…
+report-contact = Contact details (optional)
+report-contact-placeholder = Email or Discord username
+report-attach = Include diagnostics
+report-prepare = Prepare diagnostics
+report-review = Review ZIP
+report-privacy = Atlas removes sensitive identifiers from diagnostics while keeping the technical details we need to investigate. You’re welcome to check the ZIP before sending. Your message and contact details are sent as written, privately to the Atlas team at reports.atlasos.net. Reports are deleted after 90 days. Server security logs may record your IP address.
+report-website = Privacy and report website
+report-consent = I agree to send this report and any selected diagnostics.
+report-failed = We couldn’t send your report. Your message is still here. Retry, use the website, or export diagnostics.
+report-sending = Sending…
+report-send = Send report
+
+report-validation-title = Check report details
+
+report-validation-message = Enter 10–4,000 characters.
+
+report-validation-contact = Keep contact details within 254 characters.
+
+report-validation-diagnostics = Prepare diagnostics, or turn off Include diagnostics.
+
+report-validation-collecting = Wait for diagnostics to finish, then you can check the ZIP.
+
+report-validation-consent = Confirm you agree to send this report.
+
+report-failed-title = Report wasn’t sent

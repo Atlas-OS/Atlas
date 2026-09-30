@@ -791,3 +791,37 @@ footer-prepare-required = 请先完成上方的 Windows 和 Store 更新再继�
 resume-choices-title = 继续上次安装
 resume-choices-detail = 已恢复您原来的选项。在本次安装完成之前，无法更改这些选项。
 prepare-download-scope = 进度涵盖本批次的全部下载，而不仅是下方列出的更新。下载完成后才会安装。
+
+## Voluntary reports
+report-title = 发送报告
+report-received = 报告已收到
+report-reference = 参考编号：{ $reference }。如需就此报告联系我们，请保留该编号。
+report-details = 发生了什么？
+report-intro = 描述问题或提出改进建议（10–4,000 个字符）。
+report-message = 你的消息
+report-message-placeholder = 我当时想要…
+report-contact = 联系方式（可选）
+report-contact-placeholder = 电子邮箱或 Discord 用户名
+report-attach = 附加诊断信息
+report-prepare = 准备诊断信息
+report-review = 检查 ZIP
+report-privacy = Atlas 会从诊断信息中移除敏感标识，同时保留调查所需的技术详情。你也可以在发送前检查 ZIP。消息和联系信息会按原文，通过 reports.atlasos.net 私密发送给 Atlas 团队。报告将在 90 天后删除。服务器安全日志可能记录你的 IP 地址。
+report-website = 隐私与报告网站
+report-consent = 我同意发送此报告及所选的诊断信息。
+report-failed = 无法发送报告。你的消息仍保留在这里。请重试、使用网站或导出诊断信息。
+report-sending = 正在发送…
+report-send = 发送报告
+
+report-validation-title = 检查报告详情
+
+report-validation-message = 请输入 10–4,000 个字符。
+
+report-validation-contact = 请将联系信息限制在 254 个字符以内。
+
+report-validation-diagnostics = 请准备诊断信息，或关闭“附加诊断信息”。
+
+report-validation-collecting = 请等待诊断信息准备完成，之后可以检查 ZIP。
+
+report-validation-consent = 请确认你同意发送此报告。
+
+report-failed-title = 报告未发送

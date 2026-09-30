@@ -7,6 +7,7 @@ mod install;
 mod installed;
 mod installing;
 mod iso;
+mod report;
 mod settings;
 mod usb;
 
@@ -15,6 +16,7 @@ pub use install::InstallPage;
 pub use installed::InstalledPage;
 pub use installing::InstallingPage;
 pub use iso::IsoPage;
+pub use report::ReportPage;
 pub use settings::SettingsPage;
 
 use gpui::{
@@ -74,7 +76,15 @@ pub fn diagnostics_content(model: &Entity<AppModel>, cx: &App) -> Div {
                             )
                             .icon(Icon::Diagnostic)
                             .disabled(state.diagnostics_busy)
-                            .on_click(move |_, _, cx| model.update(cx, |m, cx| m.export_diagnostics(cx))),
+                            .on_click({
+                                let model = model.clone();
+                                move |_, _, cx| model.update(cx, |m, cx| m.export_diagnostics(cx))
+                            }),
+                        )
+                        .child(
+                            Button::new("send-report", t!("report-title")).on_click(move |_, _, cx| {
+                                model.update(cx, |m, cx| m.navigate(Page::Report, cx))
+                            }),
                         )
                         .when_some(
                             state.diagnostics_result.as_ref().and_then(|result| result.as_ref().ok()),

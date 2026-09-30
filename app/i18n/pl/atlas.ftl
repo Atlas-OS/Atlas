@@ -834,3 +834,37 @@ footer-prepare-required = Aby kontynuować, ukończ powyżej aktualizacje Window
 resume-choices-title = Wznawianie poprzedniej instalacji
 resume-choices-detail = Przywrócono pierwotne wybory. Nie można ich zmieniać, dopóki ta instalacja nie zostanie ukończona.
 prepare-download-scope = Postęp dotyczy tej partii pobierania, nie tylko aktualizacji wymienionej poniżej. Instalacja nastąpi po pobraniu.
+
+## Voluntary reports
+report-title = Wyślij zgłoszenie
+report-received = Otrzymano zgłoszenie
+report-reference = Twój numer: { $reference }. Zachowaj go, jeśli skontaktujesz się z nami w tej sprawie.
+report-details = Co się stało?
+report-intro = Opisz problem lub zaproponuj ulepszenie (10–4000 znaków).
+report-message = Twoja wiadomość
+report-message-placeholder = Próbowałem…
+report-contact = Dane kontaktowe (opcjonalnie)
+report-contact-placeholder = E-mail lub nazwa użytkownika Discord
+report-attach = Dołącz diagnostykę
+report-prepare = Przygotuj diagnostykę
+report-review = Sprawdź ZIP
+report-privacy = Atlas usuwa poufne identyfikatory z diagnostyki, zachowując szczegóły techniczne potrzebne do analizy. Możesz sprawdzić ZIP przed wysłaniem. Wiadomość i dane kontaktowe są wysyłane bez zmian, prywatnie do zespołu Atlas na reports.atlasos.net. Zgłoszenia są usuwane po 90 dniach. Dzienniki bezpieczeństwa serwera mogą zapisywać Twój adres IP.
+report-website = Prywatność i strona zgłoszeń
+report-consent = Zgadzam się na wysłanie tego zgłoszenia i wybranej diagnostyki.
+report-failed = Nie udało się wysłać zgłoszenia. Twoja wiadomość jest zachowana. Spróbuj ponownie, użyj strony lub wyeksportuj diagnostykę.
+report-sending = Wysyłanie…
+report-send = Wyślij zgłoszenie
+
+report-validation-title = Sprawdź szczegóły zgłoszenia
+
+report-validation-message = Wpisz od 10 do 4000 znaków.
+
+report-validation-contact = Ogranicz dane kontaktowe do 254 znaków.
+
+report-validation-diagnostics = Przygotuj diagnostykę lub wyłącz Dołącz diagnostykę.
+
+report-validation-collecting = Poczekaj na zakończenie diagnostyki, a następnie możesz sprawdzić ZIP.
+
+report-validation-consent = Potwierdź zgodę na wysłanie tego zgłoszenia.
+
+report-failed-title = Zgłoszenie nie zostało wysłane

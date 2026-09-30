@@ -36,6 +36,11 @@ pub struct TextInput {
     focus_handle: FocusHandle,
     content: SharedString,
     placeholder: SharedString,
+    label_key: &'static str,
+    placeholder_key: &'static str,
+    element_id: &'static str,
+    read_only: bool,
+    horizontal_offset: Pixels,
     selected_range: Range<usize>,
     selection_reversed: bool,
     marked_range: Option<Range<usize>>,
@@ -64,6 +69,11 @@ impl TextInput {
             focus_handle: cx.focus_handle(),
             content: "".into(),
             placeholder: "".into(),
+            label_key: "iso-username",
+            placeholder_key: "iso-username-placeholder",
+            element_id: "iso-username-input",
+            read_only: false,
+            horizontal_offset: px(0.),
             selected_range: 0..0,
             selection_reversed: false,
             marked_range: None,
@@ -74,6 +84,19 @@ impl TextInput {
     }
     pub fn value(&self) -> &str {
         self.content.as_ref()
+    }
+    pub fn labels(
+        &mut self,
+        label_key: &'static str,
+        placeholder_key: &'static str,
+        element_id: &'static str,
+    ) {
+        self.label_key = label_key;
+        self.placeholder_key = placeholder_key;
+        self.element_id = element_id;
+    }
+    pub fn set_read_only(&mut self, read_only: bool) {
+        self.read_only = read_only;
     }
 
     /// Replaces the text, with the caret at the end and nothing selected.
@@ -221,7 +244,7 @@ impl TextInput {
         if position.y > bounds.bottom() {
             return self.content.len();
         }
-        line.closest_index_for_x(position.x - bounds.left())
+        line.closest_index_for_x(position.x - bounds.left() + self.horizontal_offset)
     }
 
     fn select_to(&mut self, offset: usize, cx: &mut Context<Self>) {
@@ -369,6 +392,9 @@ impl EntityInputHandler for TextInput {
         _: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.read_only {
+            return;
+        }
         let range = range_utf16
             .as_ref()
             .map(|range_utf16| self.range_from_utf16(range_utf16))
@@ -390,6 +416,9 @@ impl EntityInputHandler for TextInput {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.read_only {
+            return;
+        }
         let range = range_utf16
             .as_ref()
             .map(|range_utf16| self.range_from_utf16(range_utf16))
@@ -414,8 +443,14 @@ impl EntityInputHandler for TextInput {
         let last_layout = self.last_layout.as_ref()?;
         let range = self.range_from_utf16(&range_utf16);
         Some(Bounds::from_corners(
-            point(bounds.left() + last_layout.x_for_index(range.start), bounds.top()),
-            point(bounds.left() + last_layout.x_for_index(range.end), bounds.bottom()),
+            point(
+                bounds.left() + last_layout.x_for_index(range.start) - self.horizontal_offset,
+                bounds.top(),
+            ),
+            point(
+                bounds.left() + last_layout.x_for_index(range.end) - self.horizontal_offset,
+                bounds.bottom(),
+            ),
         ))
     }
 
@@ -429,7 +464,7 @@ impl EntityInputHandler for TextInput {
         let last_layout = self.last_layout.as_ref()?;
 
         assert_eq!(last_layout.text, self.content);
-        let utf8_index = last_layout.index_for_x(point.x - line_point.x)?;
+        let utf8_index = last_layout.index_for_x(line_point.x + self.horizontal_offset)?;
         Some(self.offset_to_utf16(utf8_index))
     }
 }
@@ -442,6 +477,12 @@ struct PrepaintState {
     line: Option<ShapedLine>,
     cursor: Option<PaintQuad>,
     selection: Option<PaintQuad>,
+    offset: Pixels,
+}
+
+fn visible_caret_offset(current: Pixels, cursor: Pixels, width: Pixels, line_width: Pixels) -> Pixels {
+    let available = (width - px(4.)).max(px(0.));
+    current.max(cursor - available).min(cursor).max(px(0.)).min((line_width - available).max(px(0.)))
 }
 
 impl IntoElement for TextElement {
@@ -530,7 +571,10 @@ impl Element for TextElement {
         let font_size = style.font_size.to_pixels(window.rem_size());
         let line = window.text_system().shape_line(display_text, font_size, &runs, None);
 
-        let cursor_pos = line.x_for_index(cursor);
+        let raw_cursor = line.x_for_index(cursor);
+        let offset =
+            visible_caret_offset(input.horizontal_offset, raw_cursor, bounds.size.width, line.width());
+        let cursor_pos = raw_cursor - offset;
         let (selection, cursor) = if selected_range.is_empty() {
             (
                 None,
@@ -546,15 +590,15 @@ impl Element for TextElement {
             (
                 Some(fill(
                     Bounds::from_corners(
-                        point(bounds.left() + line.x_for_index(selected_range.start), bounds.top()),
-                        point(bounds.left() + line.x_for_index(selected_range.end), bounds.bottom()),
+                        point(bounds.left() + line.x_for_index(selected_range.start) - offset, bounds.top()),
+                        point(bounds.left() + line.x_for_index(selected_range.end) - offset, bounds.bottom()),
                     ),
                     cx.theme().subtle_pressed,
                 )),
                 None,
             )
         };
-        PrepaintState { line: Some(line), cursor, selection }
+        PrepaintState { line: Some(line), cursor, selection, offset }
     }
 
     fn paint(
@@ -573,7 +617,15 @@ impl Element for TextElement {
             window.paint_quad(selection)
         }
         let line = prepaint.line.take().unwrap();
-        line.paint(bounds.origin, window.line_height(), gpui::TextAlign::Left, None, window, cx).unwrap();
+        line.paint(
+            bounds.origin - point(prepaint.offset, px(0.)),
+            window.line_height(),
+            gpui::TextAlign::Left,
+            None,
+            window,
+            cx,
+        )
+        .unwrap();
 
         if focus_handle.is_focused(window)
             && let Some(cursor) = prepaint.cursor.take()
@@ -584,18 +636,30 @@ impl Element for TextElement {
         self.input.update(cx, |input, _cx| {
             input.last_layout = Some(line);
             input.last_bounds = Some(bounds);
+            input.horizontal_offset = prepaint.offset;
         });
     }
 }
 
 impl Render for TextInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        self.placeholder = crate::t!("iso-username-placeholder").into();
+        self.placeholder = match self.placeholder_key {
+            "report-message-placeholder" => crate::t!("report-message-placeholder"),
+            "report-contact-placeholder" => crate::t!("report-contact-placeholder"),
+            _ => crate::t!("iso-username-placeholder"),
+        }
+        .into();
+        let label = match self.label_key {
+            "report-message" => crate::t!("report-message"),
+            "report-contact" => crate::t!("report-contact"),
+            _ => crate::t!("iso-username"),
+        };
         let input = div()
-            .id("iso-username-input")
+            .id(self.element_id)
             .role(gpui::Role::TextInput)
-            .aria_label(crate::t!("iso-username"))
+            .aria_label(label)
             .aria_value(self.content.clone())
+            .when(self.read_only, |this| this.aria_description(crate::t!("common-not-available")))
             .flex()
             .key_context("TextInput")
             .track_focus(&self.focus_handle(cx).tab_index(0).tab_stop(true))
@@ -649,7 +713,16 @@ impl Focusable for TextInput {
 
 #[cfg(test)]
 mod tests {
-    use super::{compose, offset_from_utf16, offset_to_utf16, single_line};
+    use super::{compose, offset_from_utf16, offset_to_utf16, single_line, visible_caret_offset};
+    use gpui::px;
+
+    #[test]
+    fn long_input_keeps_the_caret_visible_and_resets_after_deleting_or_resizing() {
+        assert_eq!(visible_caret_offset(px(0.), px(500.), px(200.), px(500.)), px(304.));
+        assert_eq!(visible_caret_offset(px(304.), px(50.), px(200.), px(500.)), px(50.));
+        assert_eq!(visible_caret_offset(px(304.), px(80.), px(200.), px(80.)), px(0.));
+        assert_eq!(visible_caret_offset(px(304.), px(500.), px(700.), px(500.)), px(0.));
+    }
 
     #[test]
     fn composing_after_ascii_marks_the_new_text_and_places_the_caret_inside_it() {

@@ -817,3 +817,37 @@ footer-prepare-required = Devam etmek için yukarıdaki Windows ve Store güncel
 resume-choices-title = Önceki yüklemenize devam ediliyor
 resume-choices-detail = İlk seçimleriniz geri yüklendi ve bu yükleme tamamlanana kadar değiştirilemez.
 prepare-download-scope = İlerleme yalnızca aşağıdaki güncellemeyi değil, bu indirme grubunu kapsar. İndirmeden sonra yükleme yapılır.
+
+## Voluntary reports
+report-title = Rapor gönder
+report-received = Rapor alındı
+report-reference = Referansınız: { $reference }. Bu raporla ilgili iletişim için saklayın.
+report-details = Ne oldu?
+report-intro = Bir sorunu açıklayın veya iyileştirme önerin (10–4.000 karakter).
+report-message = Mesajınız
+report-message-placeholder = Şunu yapmaya çalışıyordum…
+report-contact = İletişim bilgileri (isteğe bağlı)
+report-contact-placeholder = E-posta veya Discord kullanıcı adı
+report-attach = Tanılama verilerini ekle
+report-prepare = Tanılama verilerini hazırla
+report-review = ZIP’i incele
+report-privacy = Atlas, inceleme için gereken teknik ayrıntıları korurken tanılama verilerinden hassas tanımlayıcıları kaldırır. Göndermeden önce ZIP dosyasını kontrol edebilirsiniz. Mesajınız ve iletişim bilgileriniz yazıldığı biçimde, reports.atlasos.net üzerinden Atlas ekibine özel olarak gönderilir. Raporlar 90 gün sonra silinir. Sunucunun güvenlik günlükleri IP adresinizi kaydedebilir.
+report-website = Gizlilik ve rapor sitesi
+report-consent = Bu raporu ve seçilen tanılama verilerini göndermeyi kabul ediyorum.
+report-failed = Rapor gönderilemedi. Mesajınız hâlâ burada. Tekrar deneyin, web sitesini kullanın veya tanılama verilerini dışa aktarın.
+report-sending = Gönderiliyor…
+report-send = Rapor gönder
+
+report-validation-title = Rapor ayrıntılarını kontrol edin
+
+report-validation-message = 10–4.000 karakter girin.
+
+report-validation-contact = İletişim bilgilerini 254 karakterle sınırlayın.
+
+report-validation-diagnostics = Tanılama verilerini hazırlayın veya Tanılama verilerini ekle seçeneğini kapatın.
+
+report-validation-collecting = Tanılama tamamlanana kadar bekleyin, ardından ZIP dosyasını kontrol edebilirsiniz.
+
+report-validation-consent = Bu raporu göndermeyi kabul ettiğinizi onaylayın.
+
+report-failed-title = Rapor gönderilmedi

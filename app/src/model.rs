@@ -47,6 +47,7 @@ pub enum Page {
     Iso,
     Install,
     Settings,
+    Report,
     /// The completion window the payload opens after the restart.
     Installed,
 }
@@ -59,6 +60,7 @@ impl Page {
             "iso" => Some(Page::Iso),
             "install" => Some(Page::Install),
             "settings" => Some(Page::Settings),
+            "report" => Some(Page::Report),
             "installed" => Some(Page::Installed),
             _ => None,
         }

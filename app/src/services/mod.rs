@@ -10,6 +10,7 @@ pub mod licenses;
 pub mod locale;
 pub mod playbook;
 pub mod releases;
+pub mod reports;
 pub mod requirements;
 pub mod security;
 pub mod session;

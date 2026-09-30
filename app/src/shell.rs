@@ -38,6 +38,7 @@ pub struct Shell {
     installing: Entity<InstallingPage>,
     installed: Entity<InstalledPage>,
     settings: Entity<SettingsPage>,
+    report: Entity<crate::pages::ReportPage>,
     system_appearance: Appearance,
     focus_handle: FocusHandle,
     /// The user confirmed closing while an install runs.
@@ -120,6 +121,7 @@ impl Shell {
             installing: cx.new(|cx| InstallingPage::new(model.clone(), cx)),
             installed: cx.new(|cx| InstalledPage::new(model.clone(), cx)),
             settings: cx.new(|cx| SettingsPage::new(model.clone(), cx)),
+            report: cx.new(|cx| crate::pages::ReportPage::new(model.clone(), cx)),
             model,
             system_appearance,
             focus_handle,
@@ -221,7 +223,7 @@ impl Shell {
         let state = self.model.read(cx);
         let has_arrow = !state.install_in_progress()
             && match state.page {
-                Page::Settings => true,
+                Page::Settings | Page::Report => true,
                 Page::Iso => !state.iso_busy,
                 Page::Install => !state.before_desktop,
                 Page::Home | Page::Installed => false,
@@ -455,6 +457,7 @@ impl Render for Shell {
                             Page::Iso => self.iso.clone().into_any_element(),
                             Page::Install => self.install.clone().into_any_element(),
                             Page::Settings => self.settings.clone().into_any_element(),
+                            Page::Report => self.report.clone().into_any_element(),
                             Page::Installed => self.installed.clone().into_any_element(),
                         }
                     }),

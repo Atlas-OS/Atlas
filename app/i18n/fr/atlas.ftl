@@ -814,3 +814,37 @@ footer-prepare-required = Terminez les mises à jour Windows et Store ci-dessus 
 resume-choices-title = Reprise de votre installation précédente
 resume-choices-detail = Vos choix initiaux ont été restaurés et ne peuvent pas être modifiés tant que cette installation reste inachevée.
 prepare-download-scope = La progression concerne ce lot de téléchargements, pas uniquement la mise à jour indiquée ci-dessous. L’installation vient ensuite.
+
+## Voluntary reports
+report-title = Envoyer un rapport
+report-received = Rapport reçu
+report-reference = Votre référence : { $reference }. Conservez-la pour toute question sur ce rapport.
+report-details = Que s’est-il passé ?
+report-intro = Décrivez un problème ou proposez une amélioration (10 à 4 000 caractères).
+report-message = Votre message
+report-message-placeholder = J’essayais de…
+report-contact = Coordonnées (facultatif)
+report-contact-placeholder = Adresse e-mail ou nom d’utilisateur Discord
+report-attach = Joindre les diagnostics
+report-prepare = Préparer les diagnostics
+report-review = Vérifier le ZIP
+report-privacy = Atlas retire les identifiants sensibles des diagnostics tout en conservant les détails techniques nécessaires à l’analyse. Vous pouvez vérifier le ZIP avant l’envoi. Votre message et vos coordonnées sont envoyés tels quels, en privé à l’équipe Atlas sur reports.atlasos.net. Les rapports sont supprimés après 90 jours. Les journaux de sécurité du serveur peuvent enregistrer votre adresse IP.
+report-website = Confidentialité et site de signalement
+report-consent = J’accepte d’envoyer ce rapport et les diagnostics sélectionnés.
+report-failed = Impossible d’envoyer le rapport. Votre message est conservé. Réessayez, utilisez le site ou exportez les diagnostics.
+report-sending = Envoi…
+report-send = Envoyer le rapport
+
+report-validation-title = Vérifiez les détails du rapport
+
+report-validation-message = Saisissez entre 10 et 4 000 caractères.
+
+report-validation-contact = Limitez les coordonnées à 254 caractères.
+
+report-validation-diagnostics = Préparez les diagnostics ou désactivez Joindre les diagnostics.
+
+report-validation-collecting = Attendez la fin des diagnostics. Vous pourrez ensuite vérifier le ZIP.
+
+report-validation-consent = Confirmez votre accord pour envoyer ce rapport.
+
+report-failed-title = Rapport non envoyé

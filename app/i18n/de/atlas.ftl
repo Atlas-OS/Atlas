@@ -817,3 +817,37 @@ footer-prepare-required = Schließen Sie oben die Windows- und Store-Updates ab,
 resume-choices-title = Vorherige Installation fortsetzen
 resume-choices-detail = Ihre ursprünglichen Einstellungen wurden wiederhergestellt und können erst nach Abschluss dieser Installation geändert werden.
 prepare-download-scope = Der Fortschritt gilt für diesen Download-Durchlauf, nicht nur für das unten genannte Update. Danach folgt die Installation.
+
+## Voluntary reports
+report-title = Bericht senden
+report-received = Bericht erhalten
+report-reference = Deine Referenz: { $reference }. Bewahre sie für Rückfragen zu diesem Bericht auf.
+report-details = Was ist passiert?
+report-intro = Beschreibe ein Problem oder schlage eine Verbesserung vor (10–4.000 Zeichen).
+report-message = Deine Nachricht
+report-message-placeholder = Ich wollte…
+report-contact = Kontaktdaten (optional)
+report-contact-placeholder = E-Mail oder Discord-Benutzername
+report-attach = Diagnosedaten beifügen
+report-prepare = Diagnosedaten vorbereiten
+report-review = ZIP prüfen
+report-privacy = Atlas entfernt sensible Kennungen aus den Diagnosedaten und behält die technischen Details für die Untersuchung bei. Du kannst die ZIP vor dem Senden prüfen. Deine Nachricht und Kontaktdaten werden unverändert und privat an das Atlas-Team unter reports.atlasos.net gesendet. Berichte werden nach 90 Tagen gelöscht. Sicherheitsprotokolle des Servers können deine IP-Adresse erfassen.
+report-website = Datenschutz und Berichtswebsite
+report-consent = Ich stimme dem Senden dieses Berichts und der ausgewählten Diagnosedaten zu.
+report-failed = Der Bericht konnte nicht gesendet werden. Deine Nachricht bleibt erhalten. Versuche es erneut, nutze die Website oder exportiere die Diagnosedaten.
+report-sending = Wird gesendet…
+report-send = Bericht senden
+
+report-validation-title = Berichtsdetails prüfen
+
+report-validation-message = Gib 10–4.000 Zeichen ein.
+
+report-validation-contact = Beschränke die Kontaktdaten auf 254 Zeichen.
+
+report-validation-diagnostics = Bereite Diagnosedaten vor oder deaktiviere „Diagnosedaten beifügen“.
+
+report-validation-collecting = Warte, bis die Diagnosedaten bereit sind. Dann kannst du die ZIP prüfen.
+
+report-validation-consent = Bestätige, dass du dem Senden dieses Berichts zustimmst.
+
+report-failed-title = Bericht nicht gesendet

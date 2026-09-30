@@ -814,3 +814,37 @@ footer-prepare-required = Completa las actualizaciones de Windows y Store de arr
 resume-choices-title = Continuando la instalación anterior
 resume-choices-detail = Se han restaurado tus opciones originales y no se pueden cambiar mientras esta instalación esté pendiente.
 prepare-download-scope = El progreso corresponde a este grupo de descargas, no solo a la actualización indicada abajo. La instalación se realiza después.
+
+## Voluntary reports
+report-title = Enviar un informe
+report-received = Informe recibido
+report-reference = Tu referencia: { $reference }. Guárdala por si nos contactas sobre este informe.
+report-details = ¿Qué ha pasado?
+report-intro = Describe un problema o sugiere una mejora (10–4.000 caracteres).
+report-message = Tu mensaje
+report-message-placeholder = Estaba intentando…
+report-contact = Datos de contacto (opcional)
+report-contact-placeholder = Correo electrónico o usuario de Discord
+report-attach = Incluir diagnósticos
+report-prepare = Preparar diagnósticos
+report-review = Revisar ZIP
+report-privacy = Atlas elimina identificadores sensibles de los diagnósticos y conserva los detalles técnicos necesarios para investigar. Puedes revisar el ZIP antes de enviarlo. Tu mensaje y datos de contacto se envían tal como los escribiste, de forma privada al equipo de Atlas en reports.atlasos.net. Los informes se eliminan tras 90 días. Los registros de seguridad del servidor pueden incluir tu dirección IP.
+report-website = Privacidad y sitio de informes
+report-consent = Acepto enviar este informe y los diagnósticos seleccionados.
+report-failed = No pudimos enviar el informe. Tu mensaje sigue aquí. Reintenta, usa el sitio web o exporta los diagnósticos.
+report-sending = Enviando…
+report-send = Enviar informe
+
+report-validation-title = Revisa los detalles del informe
+
+report-validation-message = Escribe entre 10 y 4.000 caracteres.
+
+report-validation-contact = Limita los datos de contacto a 254 caracteres.
+
+report-validation-diagnostics = Prepara los diagnósticos o desactiva Incluir diagnósticos.
+
+report-validation-collecting = Espera a que terminen los diagnósticos; después puedes revisar el ZIP.
+
+report-validation-consent = Confirma que aceptas enviar este informe.
+
+report-failed-title = El informe no se envió

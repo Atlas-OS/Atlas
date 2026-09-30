@@ -806,3 +806,37 @@ footer-prepare-required = जारी रखने के लिए ऊपर W
 resume-choices-title = पिछली स्थापना जारी है
 resume-choices-detail = आपके मूल विकल्प बहाल कर दिए गए हैं। यह स्थापना पूरी होने तक इन्हें बदला नहीं जा सकता।
 prepare-download-scope = प्रगति इस पूरे डाउनलोड समूह की है, केवल नीचे बताए अपडेट की नहीं। डाउनलोड के बाद स्थापना होगी।
+
+## Voluntary reports
+report-title = रिपोर्ट भेजें
+report-received = रिपोर्ट मिल गई
+report-reference = आपका संदर्भ: { $reference }। इस रिपोर्ट के बारे में संपर्क करने के लिए इसे रखें।
+report-details = क्या हुआ?
+report-intro = समस्या बताएँ या सुधार सुझाएँ (10–4,000 अक्षर)।
+report-message = आपका संदेश
+report-message-placeholder = मैं यह करने की कोशिश कर रहा था…
+report-contact = संपर्क जानकारी (वैकल्पिक)
+report-contact-placeholder = ईमेल या Discord उपयोगकर्ता नाम
+report-attach = डायग्नोस्टिक्स शामिल करें
+report-prepare = डायग्नोस्टिक्स तैयार करें
+report-review = ZIP की समीक्षा करें
+report-privacy = Atlas जाँच के लिए ज़रूरी तकनीकी विवरण रखते हुए डायग्नोस्टिक्स से संवेदनशील पहचान संबंधी जानकारी हटाता है। भेजने से पहले आप ZIP जाँच सकते हैं। आपका संदेश और संपर्क विवरण ज्यों के त्यों, निजी तौर पर reports.atlasos.net पर Atlas टीम को भेजे जाते हैं। रिपोर्ट 90 दिनों बाद मिटा दी जाती हैं। सर्वर के सुरक्षा लॉग आपका IP पता दर्ज कर सकते हैं।
+report-website = गोपनीयता और रिपोर्ट वेबसाइट
+report-consent = मैं इस रिपोर्ट और चुने गए डायग्नोस्टिक्स को भेजने के लिए सहमत हूँ।
+report-failed = रिपोर्ट नहीं भेज सके। आपका संदेश सुरक्षित है। फिर कोशिश करें, वेबसाइट का उपयोग करें या डायग्नोस्टिक्स निर्यात करें।
+report-sending = भेज रहे हैं…
+report-send = रिपोर्ट भेजें
+
+report-validation-title = रिपोर्ट का विवरण जाँचें
+
+report-validation-message = 10–4,000 अक्षर लिखें।
+
+report-validation-contact = संपर्क विवरण 254 अक्षरों तक रखें।
+
+report-validation-diagnostics = डायग्नोस्टिक्स तैयार करें या डायग्नोस्टिक्स शामिल करें को बंद करें।
+
+report-validation-collecting = डायग्नोस्टिक्स तैयार होने तक रुकें, फिर ZIP जाँच सकते हैं।
+
+report-validation-consent = इस रिपोर्ट को भेजने की सहमति की पुष्टि करें।
+
+report-failed-title = रिपोर्ट नहीं भेजी गई

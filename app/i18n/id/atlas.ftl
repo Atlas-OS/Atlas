@@ -803,3 +803,37 @@ footer-prepare-required = Selesaikan pembaruan Windows dan Store di atas untuk m
 resume-choices-title = Melanjutkan instalasi sebelumnya
 resume-choices-detail = Pilihan awal Anda telah dipulihkan dan tidak dapat diubah sampai instalasi ini selesai.
 prepare-download-scope = Progres mencakup kelompok unduhan ini, bukan hanya pembaruan di bawah. Instalasi dilakukan setelah pengunduhan.
+
+## Voluntary reports
+report-title = Kirim laporan
+report-received = Laporan diterima
+report-reference = Referensi Anda: { $reference }. Simpan jika menghubungi kami tentang laporan ini.
+report-details = Apa yang terjadi?
+report-intro = Jelaskan masalah atau sarankan perbaikan (10–4.000 karakter).
+report-message = Pesan Anda
+report-message-placeholder = Saya sedang mencoba…
+report-contact = Kontak (opsional)
+report-contact-placeholder = Email atau nama pengguna Discord
+report-attach = Sertakan diagnostik
+report-prepare = Siapkan diagnostik
+report-review = Tinjau ZIP
+report-privacy = Atlas menghapus pengenal sensitif dari diagnostik sambil mempertahankan detail teknis yang diperlukan untuk penyelidikan. Anda dapat memeriksa ZIP sebelum mengirim. Pesan dan detail kontak dikirim sesuai yang ditulis, secara pribadi ke tim Atlas di reports.atlasos.net. Laporan dihapus setelah 90 hari. Log keamanan server dapat mencatat alamat IP Anda.
+report-website = Privasi dan situs laporan
+report-consent = Saya setuju mengirim laporan ini dan diagnostik yang dipilih.
+report-failed = Laporan tidak dapat dikirim. Pesan Anda masih tersimpan. Coba lagi, gunakan situs web, atau ekspor diagnostik.
+report-sending = Mengirim…
+report-send = Kirim laporan
+
+report-validation-title = Periksa detail laporan
+
+report-validation-message = Masukkan 10–4.000 karakter.
+
+report-validation-contact = Batasi detail kontak hingga 254 karakter.
+
+report-validation-diagnostics = Siapkan diagnostik atau nonaktifkan Sertakan diagnostik.
+
+report-validation-collecting = Tunggu diagnostik selesai, lalu Anda dapat memeriksa ZIP.
+
+report-validation-consent = Konfirmasikan persetujuan untuk mengirim laporan ini.
+
+report-failed-title = Laporan belum terkirim

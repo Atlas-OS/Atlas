@@ -23,7 +23,7 @@ use gpui::{
 use crate::shell::{Shell, StartAt};
 use crate::ui::actions::{FocusNext, FocusPrevious, NavigateBack, RadioNext, RadioPrevious};
 
-/// `atlas [--page home|install|iso|updates|settings|installed] [--step options|security|checks|install]
+/// `atlas [--page home|install|iso|updates|settings|report|installed] [--step options|security|checks|install]
 /// [--playbook <file.apbx>] [--language <tag>] [--just-installed]`. A bare `.apbx` argument (from
 /// "Open with") also works. `--language` (or `ATLAS_LANGUAGE`) outranks the language setting, for review.
 fn start_at() -> StartAt {

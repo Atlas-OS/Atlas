@@ -804,3 +804,37 @@ footer-prepare-required = ดำเนินการอัปเดต Windows 
 resume-choices-title = ดำเนินการติดตั้งครั้งก่อนต่อ
 resume-choices-detail = คืนค่าตัวเลือกเดิมแล้ว และไม่สามารถเปลี่ยนได้จนกว่าการติดตั้งนี้จะเสร็จสิ้น
 prepare-download-scope = ความคืบหน้าครอบคลุมการดาวน์โหลดชุดนี้ ไม่ใช่แค่การอัปเดตที่ระบุด้านล่าง การติดตั้งจะเริ่มหลังดาวน์โหลด
+
+## Voluntary reports
+report-title = ส่งรายงาน
+report-received = ได้รับรายงานแล้ว
+report-reference = หมายเลขอ้างอิง: { $reference } เก็บไว้หากติดต่อเราเกี่ยวกับรายงานนี้
+report-details = เกิดอะไรขึ้น?
+report-intro = อธิบายปัญหาหรือเสนอแนวทางปรับปรุง (10–4,000 ตัวอักษร)
+report-message = ข้อความของคุณ
+report-message-placeholder = ฉันกำลังพยายาม…
+report-contact = ข้อมูลติดต่อ (ไม่บังคับ)
+report-contact-placeholder = อีเมลหรือชื่อผู้ใช้ Discord
+report-attach = แนบข้อมูลการวินิจฉัย
+report-prepare = เตรียมข้อมูลการวินิจฉัย
+report-review = ตรวจสอบ ZIP
+report-privacy = Atlas ลบข้อมูลระบุตัวตนที่ละเอียดอ่อนออกจากข้อมูลการวินิจฉัย โดยเก็บรายละเอียดทางเทคนิคที่จำเป็นต่อการตรวจสอบไว้ คุณสามารถตรวจสอบ ZIP ก่อนส่งได้ ข้อความและข้อมูลติดต่อจะถูกส่งตามที่คุณเขียนแบบเป็นส่วนตัวให้ ทีม Atlas ที่ reports.atlasos.net รายงานจะถูกลบหลังจาก 90 วัน บันทึกความปลอดภัยของเซิร์ฟเวอร์อาจบันทึกที่อยู่ IP ของคุณ
+report-website = ความเป็นส่วนตัวและเว็บไซต์รายงาน
+report-consent = ฉันยินยอมส่งรายงานนี้และข้อมูลการวินิจฉัยที่เลือก
+report-failed = ส่งรายงานไม่ได้ ข้อความของคุณยังอยู่ ลองอีกครั้ง ใช้เว็บไซต์ หรือส่งออกข้อมูลการวินิจฉัย
+report-sending = กำลังส่ง…
+report-send = ส่งรายงาน
+
+report-validation-title = ตรวจสอบรายละเอียดรายงาน
+
+report-validation-message = กรอกข้อความ 10–4,000 ตัวอักษร
+
+report-validation-contact = จำกัดข้อมูลติดต่อไว้ไม่เกิน 254 ตัวอักษร
+
+report-validation-diagnostics = เตรียมข้อมูลการวินิจฉัย หรือปิดแนบข้อมูลการวินิจฉัย
+
+report-validation-collecting = รอให้เตรียมข้อมูลการวินิจฉัยเสร็จ จากนั้นคุณสามารถตรวจสอบ ZIP ได้
+
+report-validation-consent = ยืนยันว่าคุณยินยอมส่งรายงานนี้
+
+report-failed-title = ยังไม่ได้ส่งรายงาน
