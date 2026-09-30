@@ -40,6 +40,11 @@ administrator username before a `deny` rule for everyone else. Extend
 `session.cookies` for the reports domain while retaining existing cookie domains.
 Public report creation and upload endpoints do not require an account.
 
+Use Full (strict) origin TLS verification for the reports and authentication
+hostnames after their origin certificates have been issued. A hostname-scoped
+Cloudflare Configuration Rule can enforce this without changing unrelated hosts.
+Disable HTML/script rewriting for these application hosts to preserve their CSP.
+
 Before forwarding any reports request, remove incoming `Remote-User`,
 `Remote-Groups`, `Remote-Name`, `Remote-Email`, and `X-Atlas-Gateway`. For protected
 routes, copy `Remote-User` only from Authelia's successful authentication response.
@@ -55,6 +60,18 @@ rate limits. Refresh the allowlist when Cloudflare changes its published ranges.
 Use a dedicated HTTP-01 ACME resolver for proxied domains; TLS-ALPN challenges
 cannot pass through Cloudflare's TLS termination. Keep unrelated certificates and
 routers unchanged.
+
+If Cloudflare redirects HTTP to HTTPS, add a narrowly matched HTTPS router for
+`/.well-known/acme-challenge/` on the reports/authentication hosts, forwarding to
+Traefik's `acme-http@internal` service. Keep the Cloudflare source allowlist on this
+route. This lets the existing HTTP-01 handler answer the redirected validation
+request without publishing the application or changing zone-wide HTTPS settings.
+
+Browser challenges cannot be completed by Atlas Manager. Exclude these hosts
+from custom rules that reject ordinary API user agents or HTTP/1.1. When needed,
+skip legacy `securityLevel` and `bic` checks only for `/api/v1/` and ACME paths;
+retain managed WAF, rate limits, DDoS protection, and private administrator
+authentication. Validate with Manager's actual user agent and a real submission.
 
 Set the proxy request body limit to 64 MiB, a bounded upload timeout, a small JSON
 body limit on other endpoints, and a global concurrency bound. The API separately
