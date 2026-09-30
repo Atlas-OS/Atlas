@@ -12,7 +12,7 @@ param(
     [string]$Category,
 
     [Parameter(Mandatory = $true, ParameterSetName = 'Slug')]
-    [ValidatePattern('^[a-z0-9-]+(/[a-z0-9-]+)+$')]
+    [ValidatePattern('^[a-z0-9-]+(/[a-z0-9-]+)+$', Options = [Text.RegularExpressions.RegexOptions]::None)]
     [string]$Slug
 )
 

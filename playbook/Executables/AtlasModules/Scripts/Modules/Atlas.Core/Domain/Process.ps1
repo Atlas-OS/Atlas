@@ -94,7 +94,7 @@ function Resolve-AtlasProcessExecutable {
 
     if ([string]::IsNullOrWhiteSpace($FilePath) -or
         $FilePath.IndexOf([char]0) -ge 0 -or
-        $FilePath -notmatch '^(?:[A-Za-z]:[\\/]|\\\\)') {
+        $FilePath -cnotmatch '^(?:[A-Za-z]:[\\/]|\\\\)') {
         throw 'Invoke-AtlasHiddenProcess requires an explicit absolute executable path.'
     }
 

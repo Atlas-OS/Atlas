@@ -69,10 +69,10 @@ function Invoke-AtlasTrustedInstaller {
         [ValidateSet('Toggle', 'ResetServices', 'Install')]
         [string]$Operation,
 
-        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')]
+        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
         [string]$Name,
 
-        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')]
+        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
         [string]$State,
 
         [bool]$Silent = $true,

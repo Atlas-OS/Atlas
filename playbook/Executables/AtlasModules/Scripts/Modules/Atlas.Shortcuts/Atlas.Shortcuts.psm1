@@ -39,7 +39,7 @@ function Resolve-AtlasShortcutPath {
         [switch]$AllowMissing
     )
 
-    $isDrivePath = $Path -match '\A[A-Za-z]:[\\/]'
+    $isDrivePath = $Path -cmatch '\A[A-Za-z]:[\\/]'
     $isUncPath = $Path -match '\A\\\\[^\\]+\\[^\\]+'
     if (-not $isDrivePath -and -not $isUncPath) {
         throw "$Description must be a fully qualified path: '$Path'."

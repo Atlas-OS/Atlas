@@ -52,7 +52,7 @@ function Invoke-AtlasSoftwareDownload {
     }
     if ([string]::IsNullOrWhiteSpace($Destination) -or
         $Destination.IndexOf([char]0) -ge 0 -or
-        $Destination -notmatch '^[A-Za-z]:[\\/]' -or
+        $Destination -cnotmatch '^[A-Za-z]:[\\/]' -or
         [IO.Path]::GetFullPath($Destination).Substring(2).Contains(':')) {
         throw 'A software download destination must be an explicit local path without an alternate data stream.'
     }
@@ -1011,7 +1011,7 @@ function Get-AtlasParsedUninstallString {
 
     if ([string]::IsNullOrWhiteSpace($ExpectedFilePath) -or
         $ExpectedFilePath.IndexOf([char]0) -ge 0 -or
-        $ExpectedFilePath -notmatch '^[A-Za-z]:[\\/]') {
+        $ExpectedFilePath -cnotmatch '^[A-Za-z]:[\\/]') {
         throw 'The expected 7-Zip uninstaller must be an explicit absolute local drive path.'
     }
     if ($ExpectedFilePath.Substring(2).Contains(':')) {

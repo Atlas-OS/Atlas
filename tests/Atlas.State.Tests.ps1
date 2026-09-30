@@ -71,6 +71,21 @@ Describe 'Machine state document' {
         { Sync-AtlasStateToggles -Records @{ 'bad\name' = 1 } -Path $script:DocumentPath } | Should -Throw '*invalid*'
     }
 
+    It 'persists and reloads ASCII toggle names under Turkish culture' {
+        $previous = [Threading.Thread]::CurrentThread.CurrentCulture
+        try {
+            [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo('tr-TR')
+            Set-AtlasStateToggle -Name 'Indexing' -State 1 -Path $script:DocumentPath | Out-Null
+            Set-AtlasStateToggle -Name 'InstallSoftware' -State 0 -Path $script:DocumentPath | Out-Null
+            $document = Get-AtlasState -Path $script:DocumentPath
+            $document.toggles.Indexing.state | Should -Be 1
+            $document.toggles.InstallSoftware.state | Should -Be 0
+            $invalid = [string][char]0x0130 + 'ndexing'
+            { Set-AtlasStateToggle -Name $invalid -State 1 -Path $script:DocumentPath } | Should -Throw
+        }
+        finally { [Threading.Thread]::CurrentThread.CurrentCulture = $previous }
+    }
+
     It 'replaces the file atomically and leaves no temporary files behind' {
         Set-AtlasStateToggle -Name 'A' -State 1 -Path $script:DocumentPath | Out-Null
         Set-AtlasStateToggle -Name 'B' -State 1 -Path $script:DocumentPath | Out-Null

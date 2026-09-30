@@ -357,7 +357,7 @@ function Test-AtlasTweakFileSchema {
             if (-not $entry.ContainsKey('Exe') -or [string]::IsNullOrWhiteSpace([string]$entry['Exe'])) {
                 Add-Problem -Problem 'Run entry is missing its Exe.'
             }
-            elseif ([string]$entry['Exe'] -notmatch '^(?:\{windir\}|[A-Za-z]:[\\/])') {
+            elseif ([string]$entry['Exe'] -notmatch '^(?:\{windir\}|(?-i:[A-Za-z]):[\\/])') {
                 Add-Problem -Problem "Run entry 'Exe' must be an explicit absolute local path or start with '{windir}'."
             }
 

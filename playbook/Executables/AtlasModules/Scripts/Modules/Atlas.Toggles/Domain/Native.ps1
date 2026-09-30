@@ -29,7 +29,7 @@ function Invoke-AtlasToggleNativeCommand {
         [switch]$PassThru
     )
 
-    $isDriveQualified = $FilePath -match '^[A-Za-z]:[\\/]'
+    $isDriveQualified = $FilePath -cmatch '^[A-Za-z]:[\\/]'
     $isUncPath = $FilePath -match '^[\\/]{2}[^\\/]+[\\/][^\\/]+(?:[\\/]|$)'
     if (-not ($isDriveQualified -or $isUncPath)) {
         throw "Native executable path '$FilePath' must be fully qualified."

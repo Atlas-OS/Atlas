@@ -258,7 +258,10 @@ function Set-AtlasStateToggle {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)][ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')][string]$Name,
+        [Parameter(Mandatory = $true)]
+        # The range includes both cases; ValidatePattern's default IgnoreCase is culture-sensitive.
+        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
+        [string]$Name,
         [Parameter(Mandatory = $true)][int]$State,
         [string]$Path
     )

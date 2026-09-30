@@ -275,7 +275,7 @@ function Resolve-AtlasProtectedExecutionPath {
     )
 
     if ([string]::IsNullOrWhiteSpace($Path) -or $Path.IndexOf([char]0) -ge 0 -or
-        $Path -notmatch '^[A-Za-z]:[\\/]') {
+        $Path -cnotmatch '^[A-Za-z]:[\\/]') {
         throw "$Description must be an explicit absolute local drive path."
     }
     $fullPath = [IO.Path]::GetFullPath($Path)

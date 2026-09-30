@@ -116,7 +116,7 @@ function Invoke-AtlasSoftwarePickerPackageInstall {
     #>
     param(
         [Parameter(Mandatory = $true)]
-        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$')]
+        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
         [string]$PackageId,
 
         [Parameter(Mandatory = $true)]

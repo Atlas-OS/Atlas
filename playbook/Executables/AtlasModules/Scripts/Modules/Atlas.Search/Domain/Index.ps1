@@ -34,7 +34,7 @@ function ConvertTo-AtlasIndexPath {
         throw "The index path '$Candidate' contains invalid or wildcard characters."
     }
 
-    $driveAbsolute = $Candidate -match '^[A-Za-z]:[\\/]'
+    $driveAbsolute = $Candidate -cmatch '^[A-Za-z]:[\\/]'
     $uncAbsolute = $Candidate -match '^\\\\(?![?.]\\)[^\\]+\\[^\\]+(?:\\|$)'
     if (-not [IO.Path]::IsPathRooted($Candidate) -or
         -not ($driveAbsolute -or $uncAbsolute)) {

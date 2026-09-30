@@ -26,7 +26,7 @@ function Import-AtlasModule {
     #>
     param(
         [Parameter(Mandatory = $true)]
-        [ValidatePattern('^Atlas\.[A-Za-z]+$')]
+        [ValidatePattern('^Atlas\.[A-Za-z]+$', Options = [Text.RegularExpressions.RegexOptions]::None)]
         [string]$Name
     )
 

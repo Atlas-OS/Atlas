@@ -110,7 +110,7 @@ function Test-AtlasTweakManifest {
         $slug = [string]$Value
         if ($slug -match '\\' -or $slug -match '^/' -or $slug -match '/$' -or
             $slug -match '(^|/)\.\.?(/|$)' -or $slug -match '\.psd1$' -or
-            $slug -notmatch '^[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$') {
+            $slug -cnotmatch '^[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$') {
             Add-ManifestProblem -Problem "$Label '$slug' must be a safe forward-slash path without an extension or traversal."
             return $false
         }

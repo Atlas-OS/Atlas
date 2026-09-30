@@ -21,7 +21,7 @@ function Resolve-AtlasPriorityTarget {
         [string]$Path
     )
 
-    if ($Path -notmatch '^[A-Za-z]:[\\/]') {
+    if ($Path -cnotmatch '^[A-Za-z]:[\\/]') {
         throw 'The priority target must be an absolute path on a local drive.'
     }
 

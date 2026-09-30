@@ -36,7 +36,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidatePattern('^[a-z0-9-]+$')]
+    [ValidatePattern('^[a-z0-9-]+$', Options = [Text.RegularExpressions.RegexOptions]::None)]
     [string[]]$Option,
 
     [switch]$Unattended,
