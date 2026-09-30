@@ -1,13 +1,21 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "product": "Windows 11",
-  "release": "25H2",
-  "build": 26200,
+  "supportedReleases": [
+    {
+      "release": "25H2",
+      "build": 26200
+    },
+    {
+      "release": "26H2",
+      "build": 26300
+    }
+  ],
   "sourceUrl": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
-  "sourceCommit": "3fb6e78ccc56c4957b15ccb4e93c408c2059f376",
-  "sourceSha256": "F4A393750242B1C759ED21186CEC9402D6517634D58BAC00F2CDEBE40B3B7E4B",
-  "updatedAt": "2026-08-28T08:57:00.0000000Z",
-  "asOfDate": "2026-09-07",
+  "sourceCommit": "13ff9d05e2a9f65dc8b9efa78a9022d3c9e1f190",
+  "sourceSha256": "D37E1185B0EEB269D1509FCDE75F0DCB6470F733D3E3D60917DFC81DAE1B6B65",
+  "updatedAt": "2026-09-30T07:37:00.0000000Z",
+  "asOfDate": "2026-09-30",
   "releases": [
     {
       "version": "10.0.26200.6584",
@@ -176,6 +184,36 @@
       "availableDate": "2026-08-27",
       "updateType": "2026-08 D",
       "kb": "KB5120998"
+    },
+    {
+      "version": "10.0.26200.9445",
+      "availableDate": "2026-09-08",
+      "updateType": "2026-09 B",
+      "kb": "KB5124008"
+    },
+    {
+      "version": "10.0.26200.9457",
+      "availableDate": "2026-09-14",
+      "updateType": "2026-09 OOB",
+      "kb": "KB5129195"
+    },
+    {
+      "version": "10.0.26200.9550",
+      "availableDate": "2026-09-22",
+      "updateType": "2026-09 D",
+      "kb": "KB5124010"
+    },
+    {
+      "version": "10.0.26300.9457",
+      "availableDate": "2026-09-29",
+      "updateType": "",
+      "kb": null
+    },
+    {
+      "version": "10.0.26300.9550",
+      "availableDate": "2026-09-29",
+      "updateType": "2026-09 D",
+      "kb": "KB5124010"
     }
   ]
 }

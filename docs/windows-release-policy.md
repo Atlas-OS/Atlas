@@ -1,8 +1,13 @@
 # Windows release eligibility
 
-Atlas 0.6 installation and ISO creation support Windows 11 25H2 releases listed in
-Microsoft's General Availability release history. The build family `26200` alone
-does not establish eligibility: Insider flights have also used it. The app reads
+Atlas 0.6 installation and ISO creation accept Windows 11 25H2 (`26200`) and
+26H2 (`26300`) releases listed in Microsoft's General Availability release history.
+26H2 is enabled for release-candidate testing: a fresh x64 Hyper-V installation,
+post-reboot settings readback, app-removal inventory, runtime checks and component-store
+health scan passed on `26300.9457`. This does not establish physical-device,
+ARM64, GPU-dependent feature or upgrade-path compatibility on 26H2.
+The build family alone does not establish eligibility: Insider flights have also
+used these build numbers. The app reads
 the running system's build and UBR; ISO inspection uses DISM's four-part image
 version, including its service-pack build/revision (`SPBuild`). Edition and
 architecture checks remain separate requirements.
@@ -40,8 +45,8 @@ of the installed image's channel.
 
 Known snapshot versions work offline. An unknown version triggers a bounded HTTPS
 request to [Microsoft's Windows 11 release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information),
-requesting its Markdown representation. Only the 25H2 General Availability table
-is accepted. Responses have a 15-second deadline and a 1 MiB body limit;
+requesting its Markdown representation. Only the matching 25H2 and 26H2 General
+Availability tables are accepted. Responses have a 15-second deadline and a 1 MiB body limit;
 unexpected content or malformed tables fail closed. Successful lookups are cached
 in the process, never in a persistent trust file. PowerShell permits at most three
 redirects within the same official HTTPS origin; the Rust client rejects redirects.
@@ -68,7 +73,8 @@ For a repeatable update from a saved official Markdown response:
 
 Review the resulting JSON diff. The snapshot records the source URL, document
 commit, SHA-256 of the response, update timestamp and cutoff date alongside each
-release's version, date, update type and KB reference. Check new rows against the
+release's version, date, update type and KB reference. Schema 2 declares the supported
+release/build pairs separately from the full-version rows. Check new rows against the
 official page, preserving public optional releases while excluding Insider-channel
 rows and future availability dates. Do not add a version solely because an ISO or
 a local machine reports it.

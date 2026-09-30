@@ -24,8 +24,7 @@ pub enum Status {
 #[serde(rename_all = "camelCase")]
 struct Catalog {
     schema_version: u32,
-    build: u32,
-    release: String,
+    supported_releases: Vec<BuildFamily>,
     releases: Vec<Release>,
 }
 
@@ -36,13 +35,27 @@ struct Release {
     available_date: String,
 }
 
+#[derive(Deserialize)]
+struct BuildFamily {
+    build: u32,
+    release: String,
+}
+
+const BUILD_FAMILIES: &[(u32, &str)] = &[(26200, "25H2"), (26300, "26H2")];
+
 fn snapshot() -> &'static HashSet<String> {
     static SNAPSHOT: OnceLock<HashSet<String>> = OnceLock::new();
     SNAPSHOT.get_or_init(|| {
         let catalog: Catalog = serde_json::from_str(CATALOG).expect("validated Windows release catalog");
-        assert_eq!(catalog.schema_version, 1);
-        assert_eq!(catalog.build, 26200);
-        assert_eq!(catalog.release, "25H2");
+        assert_eq!(catalog.schema_version, 2);
+        assert_eq!(
+            catalog
+                .supported_releases
+                .iter()
+                .map(|family| (family.build, family.release.as_str()))
+                .collect::<Vec<_>>(),
+            BUILD_FAMILIES
+        );
         catalog
             .releases
             .into_iter()
@@ -61,9 +74,8 @@ fn preview_branch(build_lab: &str) -> bool {
 }
 
 /// Whether a revision missing from the bundled catalog may be looked up on
-/// Microsoft's release page. A tester build promises testers that it reaches
-/// no network of its own (README-RC: it downloads nothing), and it must not
-/// depend on a live Microsoft page to decide whether Windows is eligible, so
+/// Microsoft's release page. A tester build must not depend on a live
+/// Microsoft page to decide whether Windows is eligible, so
 /// it never refreshes. The stable build keeps the lookup: there an unlisted
 /// revision stays Unknown until the page confirms it.
 const REFRESH_ONLINE: bool = !cfg!(feature = "embedded-playbook");
@@ -98,7 +110,7 @@ fn classify_with(
 }
 
 pub fn classify(build: u32, revision: u32, build_lab: &str) -> Status {
-    if build != 26200 || revision == 0 {
+    if !BUILD_FAMILIES.iter().any(|family| family.0 == build) || revision == 0 {
         return Status::Unknown;
     }
     classify_with(
@@ -147,13 +159,25 @@ fn latest() -> Result<HashSet<String>> {
 }
 
 fn parse_markdown(text: &str, today: NaiveDate) -> Result<HashSet<String>> {
+    let mut versions = HashSet::new();
+    for &(build, release) in BUILD_FAMILIES {
+        let heading = format!("Version {release} (OS build {build})");
+        if text.lines().any(|line| line.trim().trim_start_matches('#').trim().trim_matches('*') == heading) {
+            versions.extend(parse_release_section(text, today, build, release)?);
+        }
+    }
+    ensure!(!versions.is_empty(), "No supported public Windows release table found in Microsoft's response");
+    Ok(versions)
+}
+
+fn parse_release_section(text: &str, today: NaiveDate, build: u32, release: &str) -> Result<HashSet<String>> {
     let mut inside = false;
     let mut versions = HashSet::new();
     let mut seen = HashSet::new();
     let mut header = false;
     for line in text.lines() {
         let heading = line.trim().trim_start_matches('#').trim().trim_matches('*');
-        if heading == "Version 25H2 (OS build 26200)" {
+        if heading == format!("Version {release} (OS build {build})") {
             inside = true;
             continue;
         }
@@ -173,13 +197,14 @@ fn parse_markdown(text: &str, today: NaiveDate) -> Result<HashSet<String>> {
         }
         ensure!(cells.len() == 7 && cells[0].is_empty() && cells[6].is_empty(), "Malformed GA release row");
         let date = NaiveDate::parse_from_str(cells[3], "%Y-%m-%d")?;
-        let revision = cells[4].strip_prefix("26200.").context("Unexpected GA release build")?;
+        let prefix = format!("{build}.");
+        let revision = cells[4].strip_prefix(&prefix).context("Unexpected GA release build")?;
         ensure!(
             !revision.is_empty() && revision.bytes().all(|byte| byte.is_ascii_digit()),
             "Malformed GA release revision"
         );
         let revision: i32 = revision.parse()?;
-        let version = format!("10.0.26200.{revision}");
+        let version = format!("10.0.{build}.{revision}");
         ensure!(seen.insert(version.clone()), "Duplicate GA release version");
         if date > today {
             continue;
@@ -204,7 +229,10 @@ fn parse_markdown(text: &str, today: NaiveDate) -> Result<HashSet<String>> {
         }
         versions.insert(version);
     }
-    ensure!(header && !versions.is_empty(), "No public 25H2 release table found in Microsoft's response");
+    ensure!(
+        header && !versions.is_empty(),
+        "No public {release} release table found in Microsoft's response"
+    );
     Ok(versions)
 }
 
@@ -213,6 +241,34 @@ mod tests {
     use super::*;
 
     type Refresh = fn() -> Result<HashSet<String>>;
+
+    #[test]
+    fn released_26h2_versions_are_known_offline_and_prerelease_branches_are_refused() {
+        for revision in [9457, 9550] {
+            assert_eq!(classify(26300, revision, "ge_release"), Status::Released);
+            assert_eq!(classify(26300, revision, "26300.1.amd64fre.rs_prerelease"), Status::Preview);
+        }
+        assert_eq!(classify(28000, 9457, "ge_release"), Status::Unknown);
+        assert_eq!(classify(26300, 0, "ge_release"), Status::Unknown);
+    }
+
+    #[test]
+    fn parser_combines_matching_released_sections_without_accepting_other_channels() {
+        let text = "**Version 26H2 (OS build 26300)**\n\
+            | Servicing option | Update type | Availability date | Build | KB article |\n\
+            | General Availability Channel | | 2026-09-29 | 26300.9457 | |\n\
+            | Release Preview Channel | | 2026-09-29 | 26300.9990 | |\n\
+            **Version 25H2 (OS build 26200)**\n\
+            | Servicing option | Update type | Availability date | Build | KB article |\n\
+            | General Availability Channel | | 2026-09-01 | 26200.9278 | |";
+        let today = NaiveDate::from_ymd_opt(2026, 9, 30).unwrap();
+        assert_eq!(
+            parse_markdown(text, today).unwrap(),
+            HashSet::from(["10.0.26300.9457".into(), "10.0.26200.9278".into()])
+        );
+        assert!(parse_markdown(&text.replace("26300.9457", "26200.9457"), today).is_err());
+        assert!(parse_markdown(text, NaiveDate::from_ymd_opt(2026, 9, 28).unwrap()).is_err());
+    }
 
     #[test]
     fn public_releases_include_promoted_insider_builds_and_public_optional_updates() {

@@ -8,6 +8,13 @@ BeforeAll {
 git_commit_id: 0123456789012345678901234567890123456789
 updated_at: 2026-08-28T08:57:00.0000000Z
 ---
+**Version 26H2 (OS build 26300)**
+| Servicing option | Update type | Availability date | Build | KB article |
+| --- | --- | --- | --- | --- |
+| General Availability Channel | 2026-09 D | 2026-09-29 | 26300.9550 | [KB5124010](https://support.microsoft.com/help/5124010) |
+| General Availability Channel | | 2026-09-29 | 26300.9457 | |
+| Release Preview Channel | | 2026-09-29 | 26300.9990 | |
+
 **Version 25H2 (OS build 26200)**
 
 | Servicing option | Update type | Availability date | Build | KB article |
@@ -41,6 +48,12 @@ updated_at: 2026-08-28T08:57:00.0000000Z
 }
 
 Describe 'Windows release catalog parser' {
+    It 'reads only published 26H2 rows from their matching section' {
+        $rows = @(ConvertFrom-AtlasWindowsReleaseMarkdown (New-ReleaseMarkdownFixture) -Build 26300 -AsOfDate ([datetime]'2026-09-30'))
+        $rows.version | Should -Be @('10.0.26300.9457','10.0.26300.9550')
+        { ConvertFrom-AtlasWindowsReleaseMarkdown ((New-ReleaseMarkdownFixture).Replace('26300.9457','26200.9457')) -Build 26300 } | Should -Throw '*malformed*'
+        { ConvertFrom-AtlasWindowsReleaseMarkdown (New-ReleaseMarkdownFixture) -Build 26300 -AsOfDate ([datetime]'2026-09-28') } | Should -Throw '*No published*'
+    }
     It 'accepts a public optional preview update and excludes other channels and sections' {
         $rows = @(ConvertFrom-AtlasWindowsReleaseMarkdown (New-ReleaseMarkdownFixture) -AsOfDate ([datetime]'2026-09-07'))
         $rows.Count | Should -Be 1
@@ -81,6 +94,14 @@ Describe 'Windows release eligibility' {
         Get-AtlasWindowsReleaseStatus -Version '10.0.26200.7309' | Should -Be 'Released'
         Get-AtlasWindowsReleaseStatus -Version '10.0.26200.9168' | Should -Be 'Released'
         Should -Invoke Get-AtlasWindowsReleaseMarkdown -Times 0 -Exactly
+    }
+    It 'recognizes the released 26H2 versions offline and still rejects prerelease branches' {
+        foreach ($version in '10.0.26300.9457','10.0.26300.9550') {
+            Get-AtlasWindowsReleaseStatus -Version $version | Should -Be 'Released'
+            Get-AtlasWindowsReleaseStatus -Version $version -BuildLabEx '26300.1.amd64fre.rs_prerelease' | Should -Be 'Preview'
+        }
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26300.9999' | Should -Be 'Unknown'
+        Should -Invoke Get-AtlasWindowsReleaseMarkdown -Times 1 -Exactly
     }
     It 'rejects an explicit prerelease branch marker without a network lookup' {
         Get-AtlasWindowsReleaseStatus -Version '10.0.26200.5551' -BuildLabEx '26200.1.amd64fre.rs_prerelease_flt.250101-0000' | Should -Be 'Preview'
@@ -159,12 +180,22 @@ Describe 'Reviewed release catalog regeneration' {
         $first = Join-Path $TestDrive 'first.json'
         $second = Join-Path $TestDrive 'second.json'
         $generator = Join-Path $PSScriptRoot '../tools/dev/Update-WindowsReleaseCatalog.ps1'
-        & $generator -MarkdownPath $markdownPath -AsOfDate ([datetime]'2026-09-07') -OutputPath $first
-        & $generator -MarkdownPath $markdownPath -AsOfDate ([datetime]'2026-09-07') -OutputPath $second
+        & $generator -MarkdownPath $markdownPath -AsOfDate ([datetime]'2026-09-07') -Build 26200 -OutputPath $first
+        & $generator -MarkdownPath $markdownPath -AsOfDate ([datetime]'2026-09-07') -Build 26200 -OutputPath $second
         (Get-FileHash $first).Hash | Should -Be (Get-FileHash $second).Hash
         $catalog = Get-Content $first -Raw | ConvertFrom-Json
         $catalog.sourceCommit | Should -Be '0123456789012345678901234567890123456789'
         $catalog.releases[0].version | Should -Be '10.0.26200.9999'
         $catalog.asOfDate | Should -Be '2026-09-07'
+    }
+    It 'generates both supported release families with the same provenance' {
+        $markdownPath = Join-Path $TestDrive 'both-releases.md'
+        [IO.File]::WriteAllText($markdownPath, (New-ReleaseMarkdownFixture), [Text.UTF8Encoding]::new($false))
+        $output = Join-Path $TestDrive 'both.json'
+        & (Join-Path $PSScriptRoot '../tools/dev/Update-WindowsReleaseCatalog.ps1') -MarkdownPath $markdownPath -AsOfDate ([datetime]'2026-09-30') -OutputPath $output
+        $catalog = Get-Content $output -Raw | ConvertFrom-Json
+        $catalog.schemaVersion | Should -Be 2
+        $catalog.supportedReleases.build | Should -Be @(26200,26300)
+        $catalog.releases.version | Should -Be @('10.0.26200.9999','10.0.26300.9457','10.0.26300.9550')
     }
 }

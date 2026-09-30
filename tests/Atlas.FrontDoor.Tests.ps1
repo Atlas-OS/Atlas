@@ -93,7 +93,7 @@ throw 'Stopped before install-state access.'
 Describe 'Playbook readers' {
     It 'read the version, supported builds and option groups from playbook.conf' {
         Get-AtlasPlaybookVersion -PlaybookPath $script:PlaybookPath | Should -Match '^\d+\.\d+\.\d+'
-        @(Get-AtlasPlaybookSupportedBuild -PlaybookPath $script:PlaybookPath) | Should -Be @(26200)
+        @(Get-AtlasPlaybookSupportedBuild -PlaybookPath $script:PlaybookPath) | Should -Be @(26200,26300)
         $radio = @($script:Groups | Where-Object { $_.ExactlyOne })
         $radio.Count | Should -BeGreaterThan 2
         @($script:Groups | ForEach-Object { $_.Options }) | Should -Contain 'defender-enable'

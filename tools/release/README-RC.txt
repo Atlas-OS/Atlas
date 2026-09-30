@@ -9,12 +9,15 @@ What this is
   downloads Windows/Store updates and selected software from their sources.
 - The normal build may consult Microsoft's Windows release page when your
   Windows update revision is newer than the list built into the app. This
-  build never contacts that page: a public revision of build 26200 that the
+  build never contacts that page: a public revision of build 26200 or 26300 that the
   list does not know is accepted. Insider builds are still refused.
 - The .apbx beside it is the same playbook, byte for byte, for people who
   install with AME Wizard instead.
 
 Before you start
+- Windows 11 25H2 (build 26200) and 26H2 (build 26300) are accepted.
+  26H2 is enabled for further testing after a successful x64 VM install and
+  post-restart audit; physical hardware, ARM64 and upgrades still need testing.
 - Use a disposable Windows 11 installation (a VM or a spare PC). Do not test
   on a machine you rely on.
 - Windows Update still needs an internet connection. This is not an offline

@@ -4,11 +4,14 @@ function ConvertFrom-AtlasWindowsReleaseMarkdown {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Markdown,
-        [datetime]$AsOfDate = [datetime]::UtcNow.Date
+        [datetime]$AsOfDate = [datetime]::UtcNow.Date,
+        [ValidateSet(26200,26300)][int]$Build = 26200
     )
     $Markdown = $Markdown.Replace("`r`n", "`n")
-    $heading = [regex]::Match($Markdown, '(?m)^\s*(?:\*\*|#{1,6}\s*)?Version 25H2 \(OS build 26200\)(?:\*\*)?\s*$')
-    if (-not $heading.Success) { throw 'The official 25H2 release section is missing.' }
+    $releaseName = if ($Build -eq 26200) { '25H2' } else { '26H2' }
+    $headingText = [regex]::Escape("Version $releaseName (OS build $Build)")
+    $heading = [regex]::Match($Markdown, "(?m)^\s*(?:\*\*|#{1,6}\s*)?$headingText(?:\*\*)?\s*$")
+    if (-not $heading.Success) { throw "The official $releaseName release section is missing." }
     $section = $Markdown.Substring($heading.Index + $heading.Length)
     $nextHeading = [regex]::Match($section, '(?m)^\s*(?:\*\*|#{1,6}\s*)?Version [^\r\n]+$')
     if ($nextHeading.Success) { $section = $section.Substring(0, $nextHeading.Index) }
@@ -18,7 +21,7 @@ function ConvertFrom-AtlasWindowsReleaseMarkdown {
     $seen = @{}
     $rows = foreach ($line in ($section -split '\r?\n')) {
         if ($line -notmatch '^\|\s*General Availability Channel\s*\|') { continue }
-        $row = [regex]::Match($line, '^\|\s*General Availability Channel\s*\|\s*([^|]*)\|\s*(\d{4}-\d{2}-\d{2})\s*\|\s*(26200\.\d+)\s*\|\s*([^|]*)\|\s*$')
+        $row = [regex]::Match($line, "^\|\s*General Availability Channel\s*\|\s*([^|]*)\|\s*(\d{4}-\d{2}-\d{2})\s*\|\s*($Build\.\d+)\s*\|\s*([^|]*)\|\s*$")
         if (-not $row.Success) { throw 'A General Availability release row is malformed.' }
         $date = [datetime]::ParseExact($row.Groups[2].Value, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
         $version = [version]("10.0." + $row.Groups[3].Value)
@@ -39,7 +42,7 @@ function ConvertFrom-AtlasWindowsReleaseMarkdown {
             kb = $kb
         }
     }
-    if (-not @($rows).Count) { throw 'No published 25H2 General Availability releases were found.' }
+    if (-not @($rows).Count) { throw "No published $releaseName General Availability releases were found." }
     @($rows | Sort-Object { [version]$_.version })
 }
 
@@ -106,10 +109,10 @@ function Get-AtlasWindowsReleaseStatus {
         [AllowEmptyString()][string]$BuildLabEx = ''
     )
     if ($BuildLabEx -match '(?i)(?:^|[._-])prerelease(?:[._-]|$)') { return 'Preview' }
-    if ($Version.Major -ne 10 -or $Version.Minor -ne 0 -or $Version.Build -ne 26200 -or $Version.Revision -lt 1) { return 'Unknown' }
+    if ($Version.Major -ne 10 -or $Version.Minor -ne 0 -or $Version.Build -notin @(26200,26300) -or $Version.Revision -lt 1) { return 'Unknown' }
     try {
         $catalog = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'windows-releases.json') -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-        if ($catalog.schemaVersion -eq 1 -and $catalog.build -eq 26200 -and $catalog.release -eq '25H2') {
+        if ($catalog.schemaVersion -eq 2 -and @($catalog.supportedReleases.build) -contains $Version.Build) {
             foreach ($release in $catalog.releases) {
                 if ($release.version -eq $Version.ToString() -and [datetime]::ParseExact($release.availableDate, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture).Date -le [datetime]::UtcNow.Date) {
                     return 'Released'
@@ -121,7 +124,7 @@ function Get-AtlasWindowsReleaseStatus {
         $cached = Get-Variable -Name AtlasWindowsReleasedVersions -Scope Script -ErrorAction SilentlyContinue
         if ($null -eq $cached) {
             $markdown = Get-AtlasWindowsReleaseMarkdown
-            $releases = @(ConvertFrom-AtlasWindowsReleaseMarkdown -Markdown $markdown)
+            $releases = @(foreach ($build in 26200,26300) { ConvertFrom-AtlasWindowsReleaseMarkdown -Markdown $markdown -Build $build })
             $script:AtlasWindowsReleasedVersions = @($releases | ForEach-Object { $_.version })
         }
         if ($script:AtlasWindowsReleasedVersions -contains $Version.ToString()) { return 'Released' }
