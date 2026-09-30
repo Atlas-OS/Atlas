@@ -1031,6 +1031,12 @@ Describe 'Install-AtlasNanaZip mutation boundary' {
 Describe 'Install-AtlasArchiveTool asset selection' {
     BeforeEach {
         Mock Install-AtlasNanaZipFromStore -ModuleName Atlas.Software { $false }
+        Mock Test-Path -ModuleName Atlas.Software -ParameterFilter {
+            $LiteralPath -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'
+        } -MockWith { $false }
+        Mock Read-MessageBox -ModuleName Atlas.Software {
+            throw 'An archive installation test attempted to show an interactive prompt.'
+        }
     }
     It 'routes exactly two verified NanaZip assets through the protected provisioning helper' {
         InModuleScope Atlas.Software {
@@ -1049,7 +1055,6 @@ Describe 'Install-AtlasArchiveTool asset selection' {
             )
             Mock Get-AtlasDismProvisioningCommands { $commands }
             Mock Get-AtlasPinnedNanaZipReleaseAssets { $assets }
-            Mock Test-Path -ParameterFilter { $LiteralPath -like '*7-Zip*' } -MockWith { $false }
             Mock Install-AtlasNanaZip
 
             Install-AtlasArchiveTool -TempDir 'C:\fake\temp'
@@ -1135,6 +1140,7 @@ Describe 'Install-AtlasArchiveTool asset selection' {
                 '7-Zip uninstaller validated'
                 '7-Zip uninstaller invoked'
             )
+            Should -Invoke Read-MessageBox -Times 1 -Exactly
         }
     }
 }
