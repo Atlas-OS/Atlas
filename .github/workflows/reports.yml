@@ -2,9 +2,9 @@ name: Reports service
 
 on:
   push:
-    paths: ["services/reports/**", ".github/workflows/reports.yml"]
+    paths: ["services/reports/**", "services/reports-mcp/**", ".github/workflows/reports.yml"]
   pull_request:
-    paths: ["services/reports/**", ".github/workflows/reports.yml"]
+    paths: ["services/reports/**", "services/reports-mcp/**", ".github/workflows/reports.yml"]
   workflow_dispatch:
 
 permissions:
@@ -16,11 +16,16 @@ concurrency:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        package: [reports, reports-mcp]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: services/reports
+        working-directory: services/${{ matrix.package }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -31,7 +36,7 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
-          workspaces: services/reports
+          workspaces: services/${{ matrix.package }}
       - run: cargo fmt --check
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked
