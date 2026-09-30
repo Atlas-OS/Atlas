@@ -52,7 +52,7 @@ multiple replicas against the same SQLite database.
 | --- | --- |
 | `ATLAS_REPORTS_ORIGIN` | Exact public origin, e.g. `https://reports.atlasos.net`, without trailing slash |
 | `ATLAS_REPORTS_GATEWAY_SECRET` | Random secret of at least 32 characters, injected by the trusted reverse proxy |
-| `ATLAS_REPORTS_ADMINS` | Comma-separated allowed Authelia usernames, currently `jack` |
+| `ATLAS_REPORTS_ADMINS` | Comma-separated allowed reviewer usernames |
 | `ATLAS_REPORTS_PROXY_IPS` | Explicit comma-separated proxy peer IP addresses; never a wildcard |
 | `ATLAS_REPORTS_DATA` | Private data directory, default `/data` |
 | `ATLAS_REPORTS_WEB` | Compiled website directory, default `/web` |
@@ -137,17 +137,33 @@ Authenticated routes are `/api/admin/session`, `/api/admin/reports` and
 filename, never executable page content. Downloads, edits and deletes are audited.
 The dashboard must render message/contact/note text as text, not raw HTML.
 
-## Verification and references
+## Agent access
+
+Administrators create credentials with `POST /api/admin/agent-tokens`, sending
+`name`, `days` (1–90) and optional `can_delete` (default `false`). The secret is
+returned once. `GET` lists metadata; `DELETE /api/admin/agent-tokens/{id}` revokes
+access. These routes use the same sign-in and CSRF protection as report reviews.
+
+Agent routes require a valid Bearer credential and trusted gateway, reject browser
+origins, and check expiry and revocation on every request.
+
+| Route | Behavior |
+| --- | --- |
+| `GET /api/agent/reports` | Status filter and bounded `offset`/`limit` pagination; previews omit contact details and notes |
+| `GET /api/agent/reports/{id}` | Full message, review notes and diagnostic metadata; no contact details |
+| `GET /api/agent/reports/{id}/diagnostics` | ZIP with `X-Atlas-Diagnostics-Sha256` for integrity verification |
+| `DELETE /api/agent/reports/{id}` | Requires delete scope and JSON `confirm_id` matching the report reference |
+
+Reads, downloads and deletions are audited by credential identity. Agents cannot
+edit reports, manage credentials or use browser administrator routes. The
+[MCP bridge](../reports-mcp/README.md) handles client setup and local downloads.
+
+## Verification
 
 Run `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`,
 `cargo fmt --check` and `cargo audit`. Tests exercise the API's trust boundary,
 CSRF, retries, deletion/retention, malicious archives, upload/metadata limits,
 interrupted transfers, quota recovery and client rate identities.
 
-Implementation was checked against the official local sources for
-[Axum 0.8.9 body limits](https://github.com/tokio-rs/axum/blob/main/axum-core/src/extract/default_body_limit.rs),
-[Authelia v4.39.20 Traefik integration](https://www.authelia.com/integration/proxies/traefik/),
-and [zip 8.6.0 EOF/CRC verification](https://github.com/zip-rs/zip2/blob/v8.6.0/src/crc32.rs).
-`Cargo.lock` pins the service dependencies. An advisory check does not substitute
-for keeping the proxy, identity provider, operating system and container runtime
-patched.
+`Cargo.lock` pins dependencies. Keep the proxy, identity provider, operating system
+and container runtime patched alongside the service.

@@ -1,12 +1,11 @@
-# Reports service deployment
+# Deploy the reports service
 
-The Rust API lives in this repository. The Svelte frontend is built separately and
-mounted as read-only static files. Diagnostics and SQLite stay in a private data
-directory; neither directory is published by the reverse proxy.
+The Rust API serves a separately built frontend. Reports, diagnostics and SQLite
+stay private; only the frontend directory is served as static files.
 
-## Container
+## Runtime
 
-Build the service from `services/reports` with Docker or Podman:
+From `services/reports`:
 
 ```sh
 docker build --tag localhost/atlas-reports:latest .
@@ -15,95 +14,67 @@ install -d -m 700 -o 10001 -g 10001 /srv/atlas-reports/data
 install -d -m 755 /srv/atlas-reports/web
 ```
 
-Copy `compose.yaml` and a completed `store.env` into `/srv/atlas-reports`; make the
-environment file root-owned with mode `600`. Generate a gateway secret using
-`openssl rand -hex 32`. Never commit it or expose it through the public API.
-Copy the frontend's built `dist/` contents into `web/`.
+Copy `compose.yaml`, a completed `store.env`, and the frontend's `dist/` contents
+into `/srv/atlas-reports` and `web/`. Keep `store.env` root-owned with mode `600`;
+generate its gateway secret with `openssl rand -hex 32`. Never commit secrets.
+Start with `docker compose up -d` from `/srv/atlas-reports`.
+Compose uses the existing proxy on an internal `atlas_reports_proxy` network:
+Traefik `172.30.80.2`, reports `172.30.80.3`. Adjust both addresses if necessary.
+Publish no host port. UID 10001, read-only root, dropped capabilities, resource
+limits and rotating logs are configured in the service definition.
 
-The Compose example assumes an existing internal network named
-`atlas_reports_proxy`, with Traefik at `172.30.80.2` and reports at `172.30.80.3`.
-Change those addresses together if the subnet is occupied. Expose no reports host
-port. Start the service with `docker compose up -d` in `/srv/atlas-reports`.
+`atlas-reports.container` is an optional Podman Quadlet. It requires a proxy on
+the same Podman network; Docker networks are separate. Never run both runtimes
+against the same SQLite directory.
 
-`atlas-reports.container` is an alternative Quadlet for a Podman-managed host.
-Install it under `/etc/containers/systemd` after creating the same network and
-configuring that host's proxy. Docker and Podman networks are independent;
-switching the existing proxy is a separate migration, not a prerequisite for
-deploying reports. Do not run both service definitions against the same SQLite
-directory.
+## Authentication and proxy
 
-## Proxy and authentication
+- Protect `/admin` and `/api/admin`, including descendants, with Authelia
+  ForwardAuth. Require two-factor authentication for the configured administrator
+  allowlist and deny everyone else. Preserve existing authentication domains.
+- Strip incoming `Remote-User`, `Remote-Groups`, `Remote-Name`, `Remote-Email` and
+  `X-Atlas-Gateway` on every reports route. For admin routes, copy `Remote-User`
+  only from successful ForwardAuth. Inject the gateway secret afterward.
+- Configure the API with the exact proxy socket IP, gateway secret and administrator
+  allowlist. A forwarded username alone must never authorize access.
+- Public submissions require no login. `/api/agent/reports` uses independent
+  Bearer credentials; browser cookies and forwarded usernames cannot authorize it.
+  Preserve `Authorization`, but never log it or put credentials in URLs.
+- Agent credentials expire, are revocable and are stored as signatures. Read-only
+  is the default. Deletion requires an explicitly issued delete scope and matching
+  report confirmation. Keep the client credential in private MCP configuration.
 
-Use HTTPS. Proxy `/admin`, its descendants, and `/api/admin` through Authelia's
-`/api/authz/forward-auth` endpoint. Put a `two_factor` rule for the explicit
-administrator username before a `deny` rule for everyone else. Extend
-`session.cookies` for the reports domain while retaining existing cookie domains.
-Public report creation and upload endpoints do not require an account.
+Security keys are domain-specific. On a new authentication hostname, enroll a key
+at `/settings/two-factor-authentication` and retain the original portal's key.
+Configure notification delivery; never log private filesystem enrollment codes.
 
-Use Full (strict) origin TLS verification for the reports and authentication
-hostnames after their origin certificates have been issued. A hostname-scoped
-Cloudflare Configuration Rule can enforce this without changing unrelated hosts.
-Disable HTML/script rewriting for these application hosts to preserve their CSP.
+Use HTTPS and Full (strict) origin verification. With Cloudflare, allow only its
+published IPv4/IPv6 ranges on the reports/authentication routers, checking the
+immediate connection address rather than trusting client-supplied forwarded IPs.
+Refresh these ranges when they change.
 
-Before forwarding any reports request, remove incoming `Remote-User`,
-`Remote-Groups`, `Remote-Name`, `Remote-Email`, and `X-Atlas-Gateway`. For protected
-routes, copy `Remote-User` only from Authelia's successful authentication response.
-Inject the gateway secret after authentication. Public routes inject the same
-secret after removing identity headers, allowing the API to trust client address
-metadata without trusting a public identity header. The API additionally checks
-the exact connecting proxy IP and configured administrator allowlist.
+Use a separate HTTP-01 certificate resolver. If validation redirects to HTTPS,
+route only `/.well-known/acme-challenge/` on these hosts to `acme-http@internal`,
+retaining the source-IP allowlist.
 
-When using Cloudflare, restrict reports and authentication routers to Cloudflare's
-published IP ranges using the immediate source address, not an `X-Forwarded-For`
-strategy. Then `CF-Connecting-IP` is usable by the authenticated proxy path for
-rate limits. Refresh the allowlist when Cloudflare changes its published ranges.
-Use a dedicated HTTP-01 ACME resolver for proxied domains; TLS-ALPN challenges
-cannot pass through Cloudflare's TLS termination. Keep unrelated certificates and
-routers unchanged.
+Keep the self-only CSP: disable script/HTML rewriting and automatic Web Analytics
+injection for these hosts (`disable_rum: true`). Native clients cannot solve
+browser challenges. Exclude these hosts from incompatible custom user-agent or
+HTTP/1.1 rules; limit any legacy `securityLevel`/`bic` exemption to `/api/v1/`,
+`/api/agent/` and certificate challenges. Retain managed WAF, rate limits and DDoS
+protection. Verify with the actual Manager and MCP user agents.
 
-If Cloudflare redirects HTTP to HTTPS, add a narrowly matched HTTPS router for
-`/.well-known/acme-challenge/` on the reports/authentication hosts, forwarding to
-Traefik's `acme-http@internal` service. Keep the Cloudflare source allowlist on this
-route. This lets the existing HTTP-01 handler answer the redirected validation
-request without publishing the application or changing zone-wide HTTPS settings.
+Bound uploads to 64 MiB, timeouts and concurrency at the proxy. The API enforces
+archive checks, rate limits, storage quota and expiry.
 
-Browser challenges cannot be completed by Atlas Manager. Exclude these hosts
-from custom rules that reject ordinary API user agents or HTTP/1.1. When needed,
-skip legacy `securityLevel` and `bic` checks only for `/api/v1/` and ACME paths;
-retain managed WAF, rate limits, DDoS protection, and private administrator
-authentication. Validate with Manager's actual user agent and a real submission.
+## Operations
 
-Set the proxy request body limit to 64 MiB, a bounded upload timeout, a small JSON
-body limit on other endpoints, and a global concurrency bound. The API separately
-enforces attachment limits, per-reporter and global rate limits, archive checks,
-storage quota, and expiry. Container logs rotate at 10 MiB, with three files.
+Quota: 2 GiB. Retention: 90 days. Deletion removes live reports and archives,
+but older backups may retain them. Monitor host free space.
 
-## Storage and operations
+Back up private data and proxy/authentication configuration with restricted
+permissions. For a manual SQLite backup, stop reports briefly, copy its data,
+then restart. Keep previous images for rollback; never delete data during rollback.
+Validate configuration before restarting only the affected services.
 
-The default storage quota is 2 GiB and report retention is 90 days. Administrators
-can permanently delete a report, its contact details, and its diagnostic archive
-from the dashboard. Completed deletion is recorded in the audit table without
-keeping the report body. Quotas do not replace monitoring the host's free space.
-
-Before changing proxy or Authelia configuration, save root-only backups. Validate
-Compose and Authelia configuration before restarting only those services. Check
-the existing application routes after restarting. Keep image tags for rollback;
-do not delete the data directory when rolling back the application.
-
-Backups contain private reports: keep them access restricted and apply a retention
-policy. A report deleted from live storage can still exist in an older backup.
-For a consistent manual backup, briefly stop the reports container, copy the data
-directory, and start it again. Avoid copying an active SQLite database without
-also coordinating its WAL state.
-
-Validate `/health`, `/api/v1/info`, anonymous suggestion creation, diagnostics
-upload, and unauthorized admin access after deployment. Requests with spoofed
-identity headers must still go to Authelia or receive a denial. Never relax the
-production authentication policy to test the dashboard.
-
-Implementation references: Authelia `v4.39.20` documentation under
-`docs/content/integration/proxies/traefik.md`,
-`docs/content/configuration/session/introduction.md`, and
-`docs/content/configuration/security/access-control.md`; Traefik `v3.7.10`
-IPAllowList, ForwardAuth, Headers, Buffering, and ACME configuration; Podman's
-`docs/source/markdown/podman-systemd.unit.5.md` Quadlet reference.
+Verify intake, admin sign-in, agent scopes and rejection of spoofed identities.
