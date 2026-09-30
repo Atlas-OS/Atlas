@@ -26,8 +26,14 @@ Before you start
   the next candidate or the final release.
 
 Reporting problems
-- In Atlas Manager, open Settings and choose Export diagnostics, then share
-  the ZIP it shows you. It is redacted, and nothing is uploaded automatically.
+- In Atlas Manager, open Settings and choose Send a report. Describe the issue,
+  prepare diagnostics if needed, then confirm sharing. Atlas removes sensitive
+  identifiers while keeping the technical evidence needed to investigate.
+  You can check the ZIP before sending it. Nothing is uploaded automatically.
+- Reports go privately to the Atlas team at https://reports.atlasos.net and are
+  deleted after 90 days. Contact details are optional and sent as written.
+- You can still choose Export diagnostics and share the ZIP in the bug report
+  channel, or use the report website if sending from the app does not work.
 - If the window will not open, run: AtlasManager.exe --export-diagnostics
   The ZIP is saved under %LOCALAPPDATA%\AtlasOS\App\Diagnostics and a message
   box shows the exact path.
