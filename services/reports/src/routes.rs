@@ -24,19 +24,19 @@ use uuid::Uuid;
 fn error(code: StatusCode, message: &'static str) -> ApiError {
     ApiError(code, message)
 }
-fn header<'a>(headers: &'a HeaderMap, name: &str) -> &'a str {
+pub(crate) fn header<'a>(headers: &'a HeaderMap, name: &str) -> &'a str {
     headers
         .get(name)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("")
 }
-fn trusted(state: &AppState, request: &Request) -> bool {
+pub(crate) fn trusted(state: &AppState, request: &Request) -> bool {
     let peer = request.extensions().get::<ConnectInfo<SocketAddr>>();
     let supplied = header(request.headers(), "x-atlas-gateway");
     peer.is_some_and(|peer| state.config.proxy_ips.contains(&peer.0.ip()))
         && state.verify_gateway(supplied)
 }
-fn rate(state: &AppState, request: &Request, action: &str, limit: i64) -> ApiResult<()> {
+pub(crate) fn rate(state: &AppState, request: &Request, action: &str, limit: i64) -> ApiResult<()> {
     let peer = request
         .extensions()
         .get::<ConnectInfo<SocketAddr>>()
@@ -125,6 +125,14 @@ pub fn router(state: AppState) -> Router {
         .route("/reports", get(listing))
         .route("/reports/{id}", axum::routing::patch(review).delete(delete))
         .route("/reports/{id}/diagnostics", get(download))
+        .route(
+            "/agent-tokens",
+            get(crate::agent::tokens).post(crate::agent::create_token),
+        )
+        .route(
+            "/agent-tokens/{id}",
+            axum::routing::delete(crate::agent::revoke_token),
+        )
         .layer(middleware::from_fn_with_state(state.clone(), admin_guard))
         .layer(DefaultBodyLimit::max(32768));
     let uploads = Router::new()
@@ -141,6 +149,7 @@ pub fn router(state: AppState) -> Router {
         .route("/health", get(health))
         .route_service("/admin", admin_file)
         .nest("/api/admin", admin)
+        .nest("/api/agent", crate::agent::router(state.clone()))
         .merge(uploads)
         .fallback_service(static_files)
         .with_state(state)
@@ -174,7 +183,7 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Value>> {
         .query_row("SELECT 1", [], |_| Ok(()))?;
     Ok(Json(json!({"status":"ok"})))
 }
-async fn read_json<T: serde::de::DeserializeOwned>(request: Request) -> ApiResult<T> {
+pub(crate) async fn read_json<T: serde::de::DeserializeOwned>(request: Request) -> ApiResult<T> {
     if header(request.headers(), "content-type")
         .split(';')
         .next()

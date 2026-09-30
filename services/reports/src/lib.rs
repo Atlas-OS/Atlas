@@ -1,6 +1,7 @@
 //! Public, opt-in report intake. Attachments are validated in place and never
 //! extracted, executed or made publicly readable. See README.md for the boundary
 //! between the public API and the authenticated reverse proxy.
+mod agent;
 mod archive;
 mod routes;
 
@@ -255,9 +256,21 @@ pub fn create(config: Config) -> ApiResult<(Router, AppState)> {
         CREATE TABLE IF NOT EXISTS reports(id TEXT PRIMARY KEY,key_hash TEXT UNIQUE NOT NULL,fingerprint TEXT NOT NULL,created INTEGER NOT NULL,category TEXT NOT NULL,message TEXT NOT NULL,contact TEXT NOT NULL,version TEXT NOT NULL,expects_zip INTEGER NOT NULL,ready INTEGER NOT NULL,bytes INTEGER NOT NULL DEFAULT 0,digest TEXT NOT NULL DEFAULT '',summary TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'new',notes TEXT NOT NULL DEFAULT '',privacy_version TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS rates(bucket TEXT PRIMARY KEY,n INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS audit(at INTEGER NOT NULL,actor TEXT NOT NULL,action TEXT NOT NULL,report_id TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS agent_tokens(id TEXT PRIMARY KEY,name TEXT NOT NULL,signature TEXT NOT NULL,created INTEGER NOT NULL,expires INTEGER NOT NULL,last_used INTEGER,revoked INTEGER NOT NULL DEFAULT 0,can_delete INTEGER NOT NULL DEFAULT 0);
         CREATE TRIGGER IF NOT EXISTS audit_bound AFTER INSERT ON audit BEGIN
             DELETE FROM audit WHERE rowid <= NEW.rowid - 10000;
         END;")?;
+    let has_delete_scope: bool = db.query_row(
+        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('agent_tokens') WHERE name='can_delete')",
+        [],
+        |r| r.get(0),
+    )?;
+    if !has_delete_scope {
+        db.execute(
+            "ALTER TABLE agent_tokens ADD COLUMN can_delete INTEGER NOT NULL DEFAULT 0",
+            [],
+        )?;
+    }
     let state = Arc::new(Store {
         config,
         db: Mutex::new(db),

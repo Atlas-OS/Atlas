@@ -125,6 +125,403 @@ impl Fixture {
 fn metadata() -> Value {
     json!({"submission_key":Uuid::new_v4(),"category":"issue","message":"Night Light never changes the screen.","contact":"","version":"rc.8","has_diagnostics":true,"consent":true,"privacy_version":"2026-09-30"})
 }
+
+async fn issue_agent(fixture: &Fixture, can_delete: bool) -> Value {
+    let (code, value) = fixture
+        .json(
+            "POST",
+            "/api/admin/agent-tokens",
+            json!({"name":"Test agent","days":30,"can_delete":can_delete}),
+            true,
+        )
+        .await;
+    assert_eq!(code, StatusCode::CREATED);
+    value
+}
+async fn agent_request(
+    fixture: &Fixture,
+    token: &Value,
+    method: &str,
+    path: &str,
+    body: Value,
+) -> (StatusCode, Value, axum::http::HeaderMap, Vec<u8>) {
+    let auth = format!("Bearer {}", token["token"].as_str().unwrap());
+    fixture
+        .request(
+            method,
+            path,
+            serde_json::to_vec(&body).unwrap(),
+            false,
+            &[
+                ("authorization", &auth),
+                ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx"),
+            ],
+        )
+        .await
+}
+
+#[tokio::test]
+async fn agent_credentials_require_admin_and_never_list_secrets() {
+    let f = Fixture::new();
+    let input = json!({"name":"Test agent","days":30});
+    assert_eq!(
+        f.json("POST", "/api/admin/agent-tokens", input.clone(), false)
+            .await
+            .0,
+        StatusCode::UNAUTHORIZED
+    );
+    let issued = issue_agent(&f, false).await;
+    assert_eq!(issued["scope"], "reports:read diagnostics:read");
+    let stored: String = {
+        let db = f.state.db.lock().unwrap();
+        db.query_row(
+            "SELECT signature FROM agent_tokens WHERE id=?1",
+            [issued["id"].as_str().unwrap()],
+            |r| r.get(0),
+        )
+        .unwrap()
+    };
+    assert_ne!(stored, issued["token"].as_str().unwrap());
+    assert!(f.state.verify(
+        &format!("agent:{}", issued["token"].as_str().unwrap()),
+        &stored
+    ));
+    let (_, listed) = f
+        .json("GET", "/api/admin/agent-tokens", Value::Null, true)
+        .await;
+    assert_eq!(listed["tokens"][0]["can_delete"], false);
+    assert!(
+        !listed
+            .to_string()
+            .contains(issued["token"].as_str().unwrap())
+    );
+    assert!(!listed.to_string().contains(&stored));
+    for input in [
+        json!({"name":"","days":30}),
+        json!({"name":"Test","days":0}),
+        json!({"name":"Test","days":91}),
+        json!({"name":"line\nbreak","days":30}),
+    ] {
+        assert_eq!(
+            f.json("POST", "/api/admin/agent-tokens", input, true)
+                .await
+                .0,
+            StatusCode::UNPROCESSABLE_ENTITY
+        );
+    }
+}
+
+#[tokio::test]
+async fn agent_bearer_requires_trusted_gateway_and_cannot_replace_browser_auth() {
+    let f = Fixture::new();
+    let issued = issue_agent(&f, false).await;
+    let authorization = format!("Bearer {}", issued["token"].as_str().unwrap());
+    assert_eq!(
+        f.request(
+            "GET",
+            "/api/agent/reports",
+            vec![],
+            false,
+            &[("authorization", &authorization)]
+        )
+        .await
+        .0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        f.request(
+            "GET",
+            "/api/agent/reports",
+            vec![],
+            false,
+            &[
+                ("authorization", &authorization),
+                ("x-atlas-gateway", "wrong-gateway")
+            ]
+        )
+        .await
+        .0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        f.request(
+            "GET",
+            "/api/agent/reports",
+            vec![],
+            false,
+            &[
+                ("authorization", &authorization),
+                ("origin", "https://reports.test"),
+                ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx")
+            ]
+        )
+        .await
+        .0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        f.json("GET", "/api/agent/reports", Value::Null, true)
+            .await
+            .0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        agent_request(&f, &issued, "GET", "/api/admin/reports", Value::Null)
+            .await
+            .0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        agent_request(&f, &issued, "POST", "/api/agent/reports", Value::Null)
+            .await
+            .0,
+        StatusCode::METHOD_NOT_ALLOWED
+    );
+    let (code, _, _, _) = f
+        .request(
+            "GET",
+            "/api/agent/reports",
+            vec![],
+            false,
+            &[
+                ("authorization", "Bearer atlas_reports_invalid_123"),
+                ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx"),
+            ],
+        )
+        .await;
+    assert_eq!(code, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn agent_listing_detail_and_download_preserve_privacy_and_digest() {
+    let f = Fixture::new();
+    let issued = issue_agent(&f, false).await;
+    let zip = archive(None, true);
+    let (receipt, code) = f.send(zip.clone()).await;
+    assert_eq!(code, StatusCode::OK);
+    let id = receipt["id"].as_str().unwrap();
+    f.state.db.lock().unwrap().execute("UPDATE reports SET message=?1,contact='private contact',notes='Investigation notes' WHERE id=?2",rusqlite::params!["x".repeat(300),id]).unwrap();
+    let (code, list, _, _) = agent_request(
+        &f,
+        &issued,
+        "GET",
+        "/api/agent/reports?offset=0&limit=1",
+        Value::Null,
+    )
+    .await;
+    assert_eq!(code, StatusCode::OK);
+    assert_eq!(list["limit"], 1);
+    assert_eq!(list["total"], 1);
+    assert_eq!(
+        list["reports"][0]["message_preview"]
+            .as_str()
+            .unwrap()
+            .chars()
+            .count(),
+        240
+    );
+    assert!(list["reports"][0].get("contact").is_none());
+    assert!(list["reports"][0].get("notes").is_none());
+    assert_eq!(list["untrusted_content"], true);
+    let (code, detail, _, _) = agent_request(
+        &f,
+        &issued,
+        "GET",
+        &format!("/api/agent/reports/{id}"),
+        Value::Null,
+    )
+    .await;
+    assert_eq!(code, StatusCode::OK);
+    assert_eq!(detail["report"]["message"].as_str().unwrap().len(), 300);
+    assert_eq!(detail["report"]["notes"], "Investigation notes");
+    assert!(detail["report"].get("contact").is_none());
+    let (code, _, headers, downloaded) = agent_request(
+        &f,
+        &issued,
+        "GET",
+        &format!("/api/agent/reports/{id}/diagnostics"),
+        Value::Null,
+    )
+    .await;
+    assert_eq!(code, StatusCode::OK);
+    assert_eq!(downloaded, zip);
+    assert_eq!(
+        headers["x-atlas-diagnostics-sha256"],
+        atlas_reports::sha(&zip)
+    );
+    assert_eq!(headers["cache-control"], "no-store");
+    assert!(f.state.file(id.parse().unwrap()).exists());
+    for path in [
+        "/api/agent/reports?limit=51",
+        "/api/agent/reports?offset=-1",
+        "/api/agent/reports?status=invalid",
+    ] {
+        assert_eq!(
+            agent_request(&f, &issued, "GET", path, Value::Null).await.0,
+            StatusCode::UNPROCESSABLE_ENTITY
+        );
+    }
+    assert_eq!(
+        agent_request(
+            &f,
+            &issued,
+            "GET",
+            &format!("/api/agent/reports/{}", Uuid::new_v4()),
+            Value::Null
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    let last_used: Option<i64> = f
+        .state
+        .db
+        .lock()
+        .unwrap()
+        .query_row(
+            "SELECT last_used FROM agent_tokens WHERE id=?1",
+            [issued["id"].as_str().unwrap()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(last_used.is_some());
+}
+
+#[tokio::test]
+async fn agent_revocation_and_expiry_apply_to_every_request() {
+    let f = Fixture::new();
+    let issued = issue_agent(&f, false).await;
+    assert_eq!(
+        agent_request(&f, &issued, "GET", "/api/agent/reports", Value::Null)
+            .await
+            .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        f.json(
+            "DELETE",
+            &format!("/api/admin/agent-tokens/{}", issued["id"].as_str().unwrap()),
+            Value::Null,
+            true
+        )
+        .await
+        .0,
+        StatusCode::NO_CONTENT
+    );
+    assert_eq!(
+        agent_request(&f, &issued, "GET", "/api/agent/reports", Value::Null)
+            .await
+            .0,
+        StatusCode::UNAUTHORIZED
+    );
+    let expiring = issue_agent(&f, false).await;
+    f.state
+        .db
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE agent_tokens SET expires=0 WHERE id=?1",
+            [expiring["id"].as_str().unwrap()],
+        )
+        .unwrap();
+    assert_eq!(
+        agent_request(&f, &expiring, "GET", "/api/agent/reports", Value::Null)
+            .await
+            .0,
+        StatusCode::UNAUTHORIZED
+    );
+}
+
+#[tokio::test]
+async fn agent_delete_requires_permission_and_exact_confirmation_and_is_audited() {
+    let f = Fixture::new();
+    let reader = issue_agent(&f, false).await;
+    let deleter = issue_agent(&f, true).await;
+    assert_eq!(
+        deleter["scope"],
+        "reports:read diagnostics:read reports:delete"
+    );
+    let (receipt, _) = f.send(archive(None, true)).await;
+    let id = receipt["id"].as_str().unwrap();
+    let path = format!("/api/agent/reports/{id}");
+    assert_eq!(
+        agent_request(&f, &reader, "DELETE", &path, json!({"confirm_id":id}))
+            .await
+            .0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        agent_request(
+            &f,
+            &deleter,
+            "DELETE",
+            &path,
+            json!({"confirm_id":Uuid::new_v4()})
+        )
+        .await
+        .0,
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
+    assert!(f.state.file(id.parse().unwrap()).exists());
+    assert_eq!(
+        agent_request(&f, &deleter, "DELETE", &path, json!({"confirm_id":id}))
+            .await
+            .0,
+        StatusCode::NO_CONTENT
+    );
+    assert!(!f.state.file(id.parse().unwrap()).exists());
+    assert_eq!(
+        agent_request(&f, &reader, "GET", &path, Value::Null)
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        agent_request(&f, &deleter, "DELETE", &path, json!({"confirm_id":id}))
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+    let actor: String = f
+        .state
+        .db
+        .lock()
+        .unwrap()
+        .query_row(
+            "SELECT actor FROM audit WHERE action='agent-delete' AND report_id=?1",
+            [id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(actor.starts_with(&format!("agent:{}:", deleter["id"].as_str().unwrap())));
+    assert!(!actor.contains(deleter["token"].as_str().unwrap()));
+}
+
+#[tokio::test]
+async fn agent_history_pruning_does_not_leave_credentials_unusable() {
+    let f = Fixture::new();
+    {
+        let db = f.state.db.lock().unwrap();
+        for i in 0..260 {
+            db.execute("INSERT INTO agent_tokens(id,name,signature,created,expires,revoked) VALUES(?1,'Old','unused',?2,?3,1)",rusqlite::params![Uuid::new_v4().to_string(),atlas_reports::now()-300+i,atlas_reports::now()+86400]).unwrap();
+        }
+    }
+    let issued = issue_agent(&f, false).await;
+    assert_eq!(
+        agent_request(&f, &issued, "GET", "/api/agent/reports", Value::Null)
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let count: i64 = f
+        .state
+        .db
+        .lock()
+        .unwrap()
+        .query_row("SELECT count(*) FROM agent_tokens", [], |r| r.get(0))
+        .unwrap();
+    assert!(count <= 129);
+}
 fn archive(extra: Option<(&str, &str)>, valid: bool) -> Vec<u8> {
     let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
     let options = zip::write::SimpleFileOptions::default()
