@@ -1,0 +1,32 @@
+name: atlas-reports
+services:
+  reports:
+    image: ${ATLAS_REPORTS_IMAGE:-localhost/atlas-reports:latest}
+    container_name: atlas-reports
+    restart: unless-stopped
+    env_file: ./store.env
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 384m
+    cpus: 1.0
+    stop_grace_period: 30s
+    volumes:
+      - ./data:/data
+      - ./web:/web:ro
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    networks:
+      reports_proxy:
+        ipv4_address: 172.30.80.3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+networks:
+  reports_proxy:
+    external: true
+    name: atlas_reports_proxy

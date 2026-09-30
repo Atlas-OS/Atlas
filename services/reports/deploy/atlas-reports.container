@@ -1,0 +1,28 @@
+# Alternative for a Podman-managed host. Do not run alongside the Compose service.
+# Adapt the proxy network and exact trusted proxy IP before starting.
+[Unit]
+Description=Atlas reports
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/atlas-reports:latest
+ContainerName=atlas-reports
+User=10001:10001
+ReadOnly=true
+DropCapability=all
+NoNewPrivileges=true
+Network=atlas_reports_proxy
+IP=172.30.80.3
+EnvironmentFile=/srv/atlas-reports/store.env
+Volume=/srv/atlas-reports/data:/data
+Volume=/srv/atlas-reports/web:/web:ro
+Tmpfs=/tmp:rw,noexec,nosuid,size=16m
+PodmanArgs=--pids-limit=64 --memory=384m --cpus=1 --log-opt=max-size=10mb
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
