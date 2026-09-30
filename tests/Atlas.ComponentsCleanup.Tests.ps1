@@ -64,6 +64,8 @@ BeforeAll {
     foreach ($functionName in @(
             'Get-AtlasEdgeExecutablePaths'
             'Remove-AtlasOrphanedEdgeAutoLaunch'
+            'Assert-AtlasUserPathBoundary'
+            'Remove-AtlasUserFileSystemEntry'
         )) {
         $functionAst = @($script:edgeAst.FindAll({
                     param($node)
@@ -225,6 +227,7 @@ AfterAll {
             'New-ScheduledTaskPrincipal', 'New-ScheduledTaskAction', 'Register-ScheduledTask'
             'Test-Path', 'New-Item', 'Set-ItemProperty', 'Remove-ItemProperty'
             'Get-AtlasEdgeExecutablePaths', 'Remove-AtlasOrphanedEdgeAutoLaunch'
+            'Assert-AtlasUserPathBoundary', 'Remove-AtlasUserFileSystemEntry'
         )) {
         Microsoft.PowerShell.Management\Remove-Item -LiteralPath "Function:\$shadow" `
             -ErrorAction SilentlyContinue
@@ -296,6 +299,22 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
         $warnings = @($script:LogCalls | Where-Object { $_.Level -eq 'Warning' })
         @($warnings | Where-Object {
                 $_.Message -like '*Exact-user OneDrive leftover cleanup exited with code 23*'
+            }).Count | Should -Be 1
+    }
+
+    It 'warns and reaches the remaining cleanup when Edge leftovers cannot be removed' {
+        $script:PhaseOptions = @('uninstall-edge')
+        $script:PhaseContext.IsOobe = $false
+        $script:AsUserExitCode = 1
+
+        { Invoke-ComponentsPhaseUnderTest } | Should -Not -Throw
+
+        @($script:HiddenProcessCalls).Count | Should -Be 1
+        @($script:AsUserCalls | Where-Object { $_.Arguments -like '*Remove-EdgeCurrentUserData.ps1*' }).Count | Should -Be 1
+        @($script:AsUserCalls | Where-Object { $_.Arguments -like '*Remove-OneDriveCurrentUserData.ps1*' }).Count | Should -Be 1
+        @($script:LogCalls | Where-Object {
+                $_.Level -eq 'Warning' -and
+                $_.Message -like '*Exact-user Edge leftover cleanup exited with code 1; continuing installation*'
             }).Count | Should -Be 1
     }
 
@@ -534,6 +553,64 @@ Describe 'OneDrive exact-user cleanup boundary' {
 }
 
 Describe 'Edge exact-user startup cleanup boundary' {
+    It 'records a cleanup failure before closing its transcript and still returns the error' {
+        $cleanupTry = $script:edgeAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.TryStatementAst] -and
+                    $node.Body.Extent.Text.Contains('Invoke-AtlasEdgeUserCleanup')
+            }, $true)
+        $cleanupTry | Should -Not -BeNullOrEmpty
+        function Invoke-AtlasEdgeUserCleanup { throw 'Cleanup fixture rejected a linked path.' }
+        $transcriptPath = Join-Path $TestDrive 'edge-cleanup-test.log'
+        Start-Transcript -Path $transcriptPath | Out-Null
+        Set-Variable -Name transcriptStarted -Value $true
+        try {
+            { & ([scriptblock]::Create($cleanupTry.Extent.Text)) } |
+                Should -Throw '*Cleanup fixture rejected a linked path*'
+            (Get-Content -LiteralPath $transcriptPath -Raw) | Should -Match 'ERROR: Cleanup fixture rejected a linked path'
+        }
+        finally {
+            try { Stop-Transcript -ErrorAction Stop | Out-Null } catch { $null = $_ }
+            Microsoft.PowerShell.Management\Remove-Item -LiteralPath 'Function:\Invoke-AtlasEdgeUserCleanup' -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'refuses a foreign user token before starting cleanup or logging' {
+        $savedModulePath = $env:PSModulePath
+        try {
+            { & $script:edgeUserCleanup -ExpectedUserSid 'S-1-5-21-1-2-3-500' } |
+                Should -Throw '*does not match install-state SID*'
+        }
+        finally { $env:PSModulePath = $savedModulePath }
+    }
+
+    It 'rejects linked cleanup roots without touching the destination' {
+        $root = Join-Path $TestDrive 'EdgeLinkedRoot'
+        $outside = Join-Path $TestDrive 'EdgeOutsideRoot'
+        [void][IO.Directory]::CreateDirectory($outside)
+        $marker = Join-Path $outside 'keep.txt'
+        [IO.File]::WriteAllText($marker, 'preserve shared data')
+        $null = Microsoft.PowerShell.Management\New-Item -ItemType Junction -Path $root -Target $outside
+        try {
+            { Assert-AtlasUserPathBoundary -Root $root -Path $root -RequireTarget } |
+                Should -Throw '*reparse point*'
+            [IO.File]::ReadAllText($marker) | Should -BeExactly 'preserve shared data'
+        }
+        finally { [IO.Directory]::Delete($root, $false) }
+    }
+
+    It 'retains a locked Edge cache file rather than following another cleanup path' {
+        $cache = Join-Path $TestDrive 'EdgeLockedCache.txt'
+        [IO.File]::WriteAllText($cache, 'locked cache')
+        $entry = Microsoft.PowerShell.Management\Get-Item -LiteralPath $cache
+        $handle = [IO.File]::Open($cache, 'Open', 'Read', 'None')
+        try {
+            { Remove-AtlasUserFileSystemEntry -Entry $entry } | Should -Throw
+            [IO.File]::Exists($cache) | Should -BeTrue
+        }
+        finally { $handle.Dispose() }
+    }
+
     BeforeEach {
         $script:edgeRegistryRoot = 'Software\AtlasRewriteTest\EdgeCleanup'
         $script:edgeRunSubKey = "$script:edgeRegistryRoot\Run"

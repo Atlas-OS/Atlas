@@ -275,99 +275,131 @@ if ([string]$actualSid -cne [string]$expectedSid) {
     throw "Edge-cleanup token SID '$actualSid' does not match install-state SID '$expectedSid'."
 }
 
-$rawLocalAppDataPath = [Environment]::GetFolderPath('LocalApplicationData')
-$rawRoamingAppDataPath = [Environment]::GetFolderPath('ApplicationData')
-$rawDesktopPath = [Environment]::GetFolderPath('DesktopDirectory')
-if ([string]::IsNullOrWhiteSpace($rawLocalAppDataPath)) {
-    throw 'The exact user LocalApplicationData path is unavailable.'
-}
-
-# Per-user known folders are redirectable. Bind each exact-token result as its own
-# authority root instead of assuming it is lexically below UserProfile.
-$localAppDataPath = [IO.Path]::GetFullPath($rawLocalAppDataPath)
-$localAppDataPath = Assert-AtlasUserPathBoundary -Root $localAppDataPath `
-    -Path $localAppDataPath -RequireTarget
-$edgeDataPath = Assert-AtlasUserPathBoundary -Root $localAppDataPath `
-    -Path ([IO.Path]::Combine($localAppDataPath, 'Microsoft', 'Edge'))
-
-$shortcutDirectories = @()
-if (-not [string]::IsNullOrWhiteSpace($rawRoamingAppDataPath) -and
-    [IO.Directory]::Exists($rawRoamingAppDataPath)) {
-    try {
-        $roamingAppDataPath = [IO.Path]::GetFullPath($rawRoamingAppDataPath)
-        $roamingAppDataPath = Assert-AtlasUserPathBoundary -Root $roamingAppDataPath `
-            -Path $roamingAppDataPath -RequireTarget
-        $shortcutDirectories += @(
-            (Assert-AtlasUserPathBoundary -Root $roamingAppDataPath -Path ([IO.Path]::Combine(
-                        $roamingAppDataPath,
-                        'Microsoft',
-                        'Internet Explorer',
-                        'Quick Launch'
-                    )))
-            (Assert-AtlasUserPathBoundary -Root $roamingAppDataPath -Path ([IO.Path]::Combine(
-                        $roamingAppDataPath,
-                        'Microsoft',
-                        'Internet Explorer',
-                        'Quick Launch',
-                        'User Pinned',
-                        'TaskBar'
-                    )))
-            (Assert-AtlasUserPathBoundary -Root $roamingAppDataPath -Path ([IO.Path]::Combine(
-                        $roamingAppDataPath,
-                        'Microsoft',
-                        'Windows',
-                        'Start Menu',
-                        'Programs'
-                    )))
-        )
+function Invoke-AtlasEdgeUserCleanup {
+    # Identity is checked before this operation or its transcript is started.
+    $rawLocalAppDataPath = [Environment]::GetFolderPath('LocalApplicationData')
+    $rawRoamingAppDataPath = [Environment]::GetFolderPath('ApplicationData')
+    $rawDesktopPath = [Environment]::GetFolderPath('DesktopDirectory')
+    if ([string]::IsNullOrWhiteSpace($rawLocalAppDataPath)) {
+        throw 'The exact user LocalApplicationData path is unavailable.'
     }
-    catch {
-        Write-Warning "Skipping redirected roaming shortcut cleanup: $($_.Exception.Message)"
-    }
-}
-if (-not [string]::IsNullOrWhiteSpace($rawDesktopPath) -and
-    [IO.Directory]::Exists($rawDesktopPath)) {
-    try {
-        $desktopPath = [IO.Path]::GetFullPath($rawDesktopPath)
-        $shortcutDirectories += Assert-AtlasUserPathBoundary -Root $desktopPath `
-            -Path $desktopPath -RequireTarget
-    }
-    catch {
-        Write-Warning "Skipping redirected Desktop shortcut cleanup: $($_.Exception.Message)"
-    }
-}
 
-# All identity, containment and reparse validation above must complete before the first
-# registry or filesystem mutation below.
-foreach ($registryPath in @(
-        'HKCU:\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge'
-        'HKCU:\SOFTWARE\Classes\microsoft-edge'
-        'HKCU:\SOFTWARE\Classes\MSEdgeHTM'
-    )) {
-    if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $registryPath) {
-        Microsoft.PowerShell.Management\Remove-Item -LiteralPath $registryPath -Recurse -Force
-    }
-}
+    # Per-user known folders are redirectable. Bind each exact-token result as its own
+    # authority root instead of assuming it is lexically below UserProfile.
+    $localAppDataPath = [IO.Path]::GetFullPath($rawLocalAppDataPath)
+    $localAppDataPath = Assert-AtlasUserPathBoundary -Root $localAppDataPath `
+        -Path $localAppDataPath -RequireTarget
+    $edgeDataPath = Assert-AtlasUserPathBoundary -Root $localAppDataPath `
+        -Path ([IO.Path]::Combine($localAppDataPath, 'Microsoft', 'Edge'))
 
-$removedAutoLaunchValues = @(Remove-AtlasOrphanedEdgeAutoLaunch)
-foreach ($removedAutoLaunchValue in $removedAutoLaunchValues) {
-    Write-Verbose "Removed orphaned Edge startup registration '$removedAutoLaunchValue'."
-}
-
-if ([IO.Directory]::Exists($edgeDataPath)) {
-    $edgeEntry = Microsoft.PowerShell.Management\Get-Item -LiteralPath $edgeDataPath -Force
-    Remove-AtlasUserFileSystemEntry -Entry $edgeEntry
-}
-
-foreach ($shortcutDirectory in @($shortcutDirectories | Select-Object -Unique)) {
-    if (-not [IO.Directory]::Exists($shortcutDirectory)) {
-        continue
-    }
-    foreach ($shortcutName in @('edge.lnk', 'Microsoft Edge.lnk')) {
-        $shortcutPath = [IO.Path]::Combine($shortcutDirectory, $shortcutName)
-        if ([IO.File]::Exists($shortcutPath)) {
-            [IO.File]::SetAttributes($shortcutPath, [IO.FileAttributes]::Normal)
-            [IO.File]::Delete($shortcutPath)
+    $shortcutDirectories = @()
+    if (-not [string]::IsNullOrWhiteSpace($rawRoamingAppDataPath) -and
+        [IO.Directory]::Exists($rawRoamingAppDataPath)) {
+        try {
+            $roamingAppDataPath = [IO.Path]::GetFullPath($rawRoamingAppDataPath)
+            $roamingAppDataPath = Assert-AtlasUserPathBoundary -Root $roamingAppDataPath `
+                -Path $roamingAppDataPath -RequireTarget
+            $shortcutDirectories += @(
+                (Assert-AtlasUserPathBoundary -Root $roamingAppDataPath -Path ([IO.Path]::Combine(
+                            $roamingAppDataPath,
+                            'Microsoft',
+                            'Internet Explorer',
+                            'Quick Launch'
+                        )))
+                (Assert-AtlasUserPathBoundary -Root $roamingAppDataPath -Path ([IO.Path]::Combine(
+                            $roamingAppDataPath,
+                            'Microsoft',
+                            'Internet Explorer',
+                            'Quick Launch',
+                            'User Pinned',
+                            'TaskBar'
+                        )))
+                (Assert-AtlasUserPathBoundary -Root $roamingAppDataPath -Path ([IO.Path]::Combine(
+                            $roamingAppDataPath,
+                            'Microsoft',
+                            'Windows',
+                            'Start Menu',
+                            'Programs'
+                        )))
+            )
         }
+        catch {
+            Write-Warning "Skipping redirected roaming shortcut cleanup: $($_.Exception.Message)"
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($rawDesktopPath) -and
+        [IO.Directory]::Exists($rawDesktopPath)) {
+        try {
+            $desktopPath = [IO.Path]::GetFullPath($rawDesktopPath)
+            $shortcutDirectories += Assert-AtlasUserPathBoundary -Root $desktopPath `
+                -Path $desktopPath -RequireTarget
+        }
+        catch {
+            Write-Warning "Skipping redirected Desktop shortcut cleanup: $($_.Exception.Message)"
+        }
+    }
+
+    # All identity, containment and reparse validation above must complete before the first
+    # registry or filesystem mutation below.
+    foreach ($registryPath in @(
+            'HKCU:\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge'
+            'HKCU:\SOFTWARE\Classes\microsoft-edge'
+            'HKCU:\SOFTWARE\Classes\MSEdgeHTM'
+        )) {
+        if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $registryPath) {
+            Microsoft.PowerShell.Management\Remove-Item -LiteralPath $registryPath -Recurse -Force
+        }
+    }
+
+    $removedAutoLaunchValues = @(Remove-AtlasOrphanedEdgeAutoLaunch)
+    foreach ($removedAutoLaunchValue in $removedAutoLaunchValues) {
+        Write-Verbose "Removed orphaned Edge startup registration '$removedAutoLaunchValue'."
+    }
+
+    if ([IO.Directory]::Exists($edgeDataPath)) {
+        $edgeEntry = Microsoft.PowerShell.Management\Get-Item -LiteralPath $edgeDataPath -Force
+        Remove-AtlasUserFileSystemEntry -Entry $edgeEntry
+    }
+
+    foreach ($shortcutDirectory in @($shortcutDirectories | Select-Object -Unique)) {
+        if (-not [IO.Directory]::Exists($shortcutDirectory)) {
+            continue
+        }
+        foreach ($shortcutName in @('edge.lnk', 'Microsoft Edge.lnk')) {
+            $shortcutPath = [IO.Path]::Combine($shortcutDirectory, $shortcutName)
+            if ([IO.File]::Exists($shortcutPath)) {
+                [IO.File]::SetAttributes($shortcutPath, [IO.FileAttributes]::Normal)
+                [IO.File]::Delete($shortcutPath)
+            }
+        }
+    }
+}
+
+$transcriptStarted = $false
+try {
+    $transcriptDirectory = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'AtlasOS\Logs'
+    $null = New-Item -Path $transcriptDirectory -ItemType Directory -Force
+    $transcriptName = '{0:yyyyMMdd-HHmmss}-edge-cleanup-{1}.log' -f (Get-Date), $PID
+    Start-Transcript -Path (Join-Path $transcriptDirectory $transcriptName) -ErrorAction Stop | Out-Null
+    $transcriptStarted = $true
+}
+catch {
+    # A diagnostics failure must not prevent optional leftover cleanup.
+    Write-Warning "Edge cleanup transcript could not be started: $($_.Exception.Message)"
+}
+
+try {
+    Invoke-AtlasEdgeUserCleanup
+    Write-Output 'Edge current-user cleanup completed.'
+}
+catch {
+    # Record the failure before closing the transcript; an unhandled error is displayed afterward.
+    Write-Host ("ERROR: {0}`n{1}" -f $_.Exception.Message, $_.ScriptStackTrace)
+    throw
+}
+finally {
+    if ($transcriptStarted) {
+        try { Stop-Transcript -ErrorAction Stop | Out-Null }
+        catch { Write-Warning "Edge cleanup transcript could not be stopped: $($_.Exception.Message)" }
     }
 }

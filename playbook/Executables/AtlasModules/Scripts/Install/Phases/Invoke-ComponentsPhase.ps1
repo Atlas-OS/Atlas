@@ -47,9 +47,16 @@ if (Test-AtlasOption -Name 'uninstall-edge') {
             '-File', $userCleanupScript,
             '-ExpectedUserSid', $interactiveUserSid
         ))
+        $edgeCleanupStarted = [datetime]::UtcNow
         $userExitCode = Invoke-AtlasAsUser -FilePath $powerShellExe -Arguments $userArguments
         if ($userExitCode -ne 0) {
-            throw "Exact-user Edge data cleanup failed with exit code $userExitCode."
+            # Machine removal completed. Optional user-owned leftovers must not block
+            # the remaining install phases; the child still refuses unsafe paths or identities.
+            . (Join-Path $scriptsRoot 'Install\Tasks\Get-AtlasUserFailureDetail.ps1')
+            $failureDetail = Get-AtlasUserFailureDetail -UserSid $interactiveUserSid `
+                -TranscriptPattern '*-edge-cleanup-*.log' -NotBefore $edgeCleanupStarted
+            Write-AtlasLog -Level Warning -Message `
+                "Exact-user Edge leftover cleanup exited with code $userExitCode; continuing installation.$failureDetail"
         }
     }
 }
