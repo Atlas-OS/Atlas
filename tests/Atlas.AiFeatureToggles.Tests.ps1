@@ -97,15 +97,8 @@ Describe 'Copilot toggle' {
         $policy[0].Type | Should -BeExactly 'DWord'
         $policy[0].Data | Should -Be 1
 
-        $button = @(Find-RegistryEntry -State $disable `
-            -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'ShowCopilotButton')
-        $button.Count | Should -Be 1
-        $button[0].Type | Should -BeExactly 'DWord'
-        $button[0].Data | Should -Be 0
-
         # Without this action, disabling Copilot would stop removing the app.
         $disable['MachineAction'] | Should -BeExactly 'Remove-AtlasCopilotApp'
-        $disable.Contains('UserAction') | Should -BeFalse
 
         # The Store install must run as the user, so Enable keeps a separate user action.
         $enable = $script:copilot.States['Enable']

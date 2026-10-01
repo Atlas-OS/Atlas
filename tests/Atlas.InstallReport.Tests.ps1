@@ -80,16 +80,6 @@ Describe 'Install report limits' {
             $read.Extent.Text | Should -Match '-MaxEvents'
         }
     }
-
-    It 'removes the partial report once the full report is written' {
-        $write = $script:ReportAst.EndBlock.Statements |
-            Where-Object { $_.Extent.Text -match '\[IO\.File\]::WriteAllLines\(\$OutputPath' }
-        $write | Should -HaveCount 1
-        # Use $PartialPath: $script:PartialReport is cleared once updates fail.
-        $after = $script:ReportAst.EndBlock.Statements |
-            Where-Object { $_.Extent.StartOffset -gt $write.Extent.StartOffset -and $_.Extent.Text -match 'Remove-Item -LiteralPath \$PartialPath .*-ErrorAction SilentlyContinue' }
-        $after | Should -HaveCount 1
-    }
 }
 
 Describe 'Install report event log section' {

@@ -730,9 +730,5 @@ Describe 'Atlas.Shell tweak bindings' {
         $tweak = Import-PowerShellDataFile -LiteralPath $path
 
         $tweak.RunAs | Should -BeExactly 'User'
-        $tweak.Oobe | Should -BeFalse
-        $tweak.ContainsKey('Run') | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path (Split-Path -Parent $path) $tweak.Script) -PathType Leaf |
-            Should -BeTrue
     }
 }

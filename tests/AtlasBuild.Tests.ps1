@@ -688,7 +688,6 @@ Describe 'Package version coherence' {
 Describe 'Build-AtlasNative' {
     BeforeAll {
         $script:NativeTool = Join-Path $PSScriptRoot '..\tools\native\Build-AtlasNative.ps1'
-        $script:LegacyCompiler = Join-Path $env:windir 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
         $script:Pwsh = (Get-Process -Id $PID).Path
     }
 

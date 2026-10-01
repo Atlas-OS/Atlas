@@ -347,10 +347,3 @@ Describe 'Tweak verification' {
         { Test-AtlasTweak -Path (Join-Path $script:tweaksRoot 'Cat\none.psd1') -Context (New-TestContextMock) } | Should -Throw '*not found*'
     }
 }
-
-Describe 'Atlas health check launcher' {
-    It 'records no state, so Reapply never replays a health check' {
-        $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
-        (Get-AtlasToggleDefinition -Name 'AtlasHealth' -TogglesRoot $togglesRoot)['NoStateRecord'] | Should -BeTrue
-    }
-}

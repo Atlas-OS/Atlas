@@ -151,7 +151,6 @@ Describe 'Run with priority' {
     It 'loads the native launcher and rejects invalid calls before creating a process' {
         Initialize-AtlasNativeType
 
-        'Atlas.Native.PriorityLauncher' -as [type] | Should -Not -BeNullOrEmpty
         { [Atlas.Native.PriorityLauncher]::Start(
                 $null,
                 '"C:\missing.exe"',

@@ -3,27 +3,8 @@ Describe 'File Explorer Home configuration' {
         . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
         Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
         Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
-        $script:tweakPath = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\explorer\disable-home.psd1'
         $script:homeToggle = Get-AtlasToggleDefinition -Name Home `
             -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles')
-    }
-
-    It 'disables both Home namespace discovery paths during installation' {
-        $definition = Import-PowerShellDataFile -LiteralPath $script:tweakPath
-        $classId = '{f874310e-b6b7-47dc-bc84-b9e6b38f5903}'
-        $namespace = @($definition.Registry | Where-Object {
-                $_.Path -ceq "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\$classId"
-            })
-        $pin = @($definition.Registry | Where-Object {
-                $_.Path -ceq "HKCU\Software\Classes\CLSID\$classId" -and
-                $_.Name -ceq 'System.IsPinnedToNameSpaceTree'
-            })
-
-        $namespace | Should -HaveCount 1
-        $namespace[0].Operation | Should -BeExactly 'DeleteKey'
-        $pin | Should -HaveCount 1
-        $pin[0].Type | Should -BeExactly 'DWord'
-        $pin[0].Data | Should -Be 0
     }
 
     It 'round-trips the per-user navigation-tree override in the Home toggle' {

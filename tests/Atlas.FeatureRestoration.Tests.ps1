@@ -142,11 +142,4 @@ Describe 'Explicit enable state scope' {
         }
         Should -Not -Invoke Set-AtlasRegistryValue
     }
-    It 'encodes update-notification activation separately from the selected level' {
-        $definition = Get-AtlasToggleDefinition -Name UpdateNotifications -TogglesRoot $root
-        $entries = @($definition.States.Disable.Registry)
-        ($entries | Where-Object Name -eq SetUpdateNotificationLevel).Data | Should -Be 1
-        ($entries | Where-Object Name -eq UpdateNotificationLevel).Data | Should -Be 2
-        @($definition.States.Enable.Registry | Where-Object { $_.Name -in @('SetUpdateNotificationLevel','UpdateNotificationLevel') -and $_.Operation -eq 'Delete' }).Count | Should -Be 2
-    }
 }

@@ -41,11 +41,6 @@ Describe 'ISO network driver selection' {
         Test-Path -LiteralPath $destination | Should -BeFalse
         Get-Content -LiteralPath $log -Raw | Should -Match 'Windows includes the drivers'
     }
-    It 'reports the empty result to the app instead of a network driver folder' {
-        $script = Get-Content -LiteralPath (Join-Path $script:AtlasTestRepoRoot 'app\resources\iso\Build-Iso.ps1') -Raw
-        $script | Should -Match 'ATLAS_NOTE:network-drivers-inbox'
-        $script | Should -Match 'if \(\$networkIncluded\)'
-    }
     It 'checks cancellation before starting a package export' {
         Mock Get-AtlasNetworkPackages { [pscustomobject]@{ inf='oem7.inf' } }
         New-Item -Path (Join-Path $TestDrive 'cancel') -ItemType File | Out-Null

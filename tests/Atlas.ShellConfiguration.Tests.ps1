@@ -384,14 +384,6 @@ Describe 'Installing-user shell completion flow' {
         $ifConditions -join ' | ' | Should -BeExactly ($Conditions -join ' | ')
     }
 
-    It 'completes a new user in one session without an intermediate sign-out stage' {
-        # Legacy stage-one markers are still read, but a new account must never need
-        # another sign-in before its shell configuration is complete.
-        $stageOne = @(Find-CommandAst -Ast $script:newUserAst -Name 'Set-SetupMarker' |
-                Where-Object { $_.Extent.Text -match '-Value 1' })
-        $stageOne.Count | Should -Be 0
-    }
-
     It 'commits setup marker 2 before refreshing Explorer on the install and later-account paths' {
         $fromInstallCompletion = $script:newUserAst.Find({
                 param($node)

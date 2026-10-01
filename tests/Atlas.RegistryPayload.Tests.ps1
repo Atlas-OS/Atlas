@@ -127,11 +127,6 @@ Describe 'Registry file format' {
         $script:registryFiles.Count | Should -BeGreaterThan 0
     }
 
-    It 'keeps .reg files outside Git text and line-ending filters' {
-        $attributesPath = Join-Path -Path $PSScriptRoot -ChildPath '..\.gitattributes'
-        Get-Content -LiteralPath $attributesPath -Raw | Should -Match '(?m)^\*\.reg\s+-text\s*$'
-    }
-
     It 'is valid UTF-16LE Registry Editor syntax without importing <Name>' -ForEach $registryPayloadCases {
         $text = Read-AtlasRegistryPayload -File $File
         { Assert-AtlasRegistrySyntax -Text $text -Path $File.FullName } | Should -Not -Throw

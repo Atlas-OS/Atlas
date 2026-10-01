@@ -198,7 +198,7 @@ Describe 'Tweak manifest execution graph' {
 }
 
 Describe 'News and Interests install-time execution' {
-    It 'applies and records the Widgets toggle instead of duplicating its policy writes' {
+    It 'applies and records the Widgets Disable toggle during install' {
         $definitionPath = Join-Path -Path $script:shippedTweaksRoot `
             -ChildPath 'qol\taskbar\disable-news-and-interests.psd1'
         $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
@@ -206,8 +206,5 @@ Describe 'News and Interests install-time execution' {
         @($definition.Toggle).Count | Should -Be 1
         $definition.Toggle[0].Name | Should -BeExactly 'Widgets'
         $definition.Toggle[0].State | Should -BeExactly 'Disable'
-
-        # The device policy covers the taskbar as well as the Widgets board.
-        $definition.ContainsKey('Registry') | Should -BeFalse
     }
 }

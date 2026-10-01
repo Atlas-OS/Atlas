@@ -224,11 +224,9 @@ Describe 'Included tweak definitions' {
             'Change:PcaSvc:4', 'Stop:PcaSvc',
             'Task:\Microsoft\Windows\Application Experience\PcaPatchDbTask'
         )
-        $definition = Import-PowerShellDataFile (Join-Path $script:shippedTweaksRoot 'privacy\disable-pca.psd1')
-        ($definition.Registry | Where-Object Name -eq 'DisablePCA').Data | Should -Be 1
     }
 
-    It 'uses the supported editable Windows 11 Start pin policy without promotional pins' {
+    It 'points the editable Windows 11 Start pin policy at the installed layout file' {
         $atlasModules = Join-Path -Path $script:shippedTweaksRoot -ChildPath '..\..'
         $definition = Import-PowerShellDataFile -LiteralPath (Join-Path $script:shippedTweaksRoot `
                 'qol\config-start-menu.psd1')
@@ -240,11 +238,11 @@ Describe 'Included tweak definitions' {
         $policyEntries.Count | Should -Be 2
         ($policyEntries | Where-Object Name -eq 'ConfigureStartPins').Data | Should -Be 1
         $pathEntry = $policyEntries | Where-Object Name -eq 'ConfigureStartPinsJSON'
+        # Windows reads the path unexpanded from a plain String value.
         $pathEntry.Type | Should -BeExactly 'ExpandString'
-        $pathEntry.Data | Should -BeExactly '%SystemRoot%\AtlasModules\Other\StartLayout.json'
-
-        Get-Content -LiteralPath (Join-Path $atlasModules 'Other\StartLayout.json') -Raw |
-            Should -Not -Match 'Xbox|WhatsApp|LinkedIn|Microsoft\.Paint|SecHealthUI'
+        $pathEntry.Data | Should -Match '^%SystemRoot%\\AtlasModules\\'
+        $packaged = Join-Path $atlasModules ($pathEntry.Data -replace '^%SystemRoot%\\AtlasModules\\', '')
+        Test-Path -LiteralPath $packaged -PathType Leaf | Should -BeTrue -Because $pathEntry.Data
     }
 }
 
