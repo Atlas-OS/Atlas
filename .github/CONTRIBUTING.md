@@ -7,14 +7,14 @@ quick start.
 ## Quick start
 
 Prerequisites: **PowerShell 7** and **7-Zip or NanaZip** for builds; **Windows
-PowerShell 5.1** and **Pester 5.7.1** for payload tests.
+PowerShell 5.1** and **Pester 5.7.1** for the Windows PowerShell tests.
 
 ```
-./build.cmd                                   # build a test playbook (.apbx)
+./build.cmd                                   # build a test Atlas package (.apbx)
 pwsh tools/build/Test-Apbx.ps1 -Path "playbook/Atlas Test.apbx"   # verify it
 ```
 
-Run the [payload and build tests in their separate hosts](../docs/testing.md#3-pester-unit-tests).
+Run the [Windows PowerShell tests and build tests in their separate hosts](../docs/testing.md#3-pester-unit-tests).
 Use unelevated test shells; configuration actions and installation checks belong in a
 disposable VM.
 
@@ -34,7 +34,7 @@ Get-ChildItem tools,tests -Recurse -Include *.ps1,*.psm1 |
   and where the code lives. Scripts are organized by who invokes them: `Entry` (processes
   started from outside), `Install` (install-only plan, phases, tasks), `Operations`
   (child-process and user-context entry bodies), and `Modules` (shared implementations).
-- **Compatibility surfaces:** [docs/compatibility.md](../docs/compatibility.md) — every file
+- **Compatibility:** [docs/compatibility.md](../docs/compatibility.md) — every file
   kept for an external consumer, with its removal condition.
 - **Building:** [docs/building.md](../docs/building.md).
 - **Testing:** [docs/testing.md](../docs/testing.md).
@@ -44,8 +44,8 @@ Get-ChildItem tools,tests -Recurse -Include *.ps1,*.psm1 |
 - **Add or change a tweak:** edit the relevant `.psd1` under
   `playbook/Executables/AtlasModules/Scripts/Tweaks` (schema in that folder's `README.md`)
   and its entry in `tweaks.manifest.psd1`. To disable a tweak, remove it from `Categories`
-  or `Standalone` and add its full slug and a reason to `Disabled`. Every shipped
-  definition must be classified exactly once.
+  or `Standalone` and add its full slug and a reason to `Disabled`. Every definition
+  in the Atlas package must be classified exactly once.
 - **Add or change an AtlasDesktop toggle:** edit the data-only definition
   `playbook/Executables/AtlasModules/Toggles/<Group>/<Name>.psd1` (schema in that folder's
   `README.md`); imperative work goes in the function-only companion `<Name>.ps1` beside it.
@@ -61,5 +61,5 @@ Get-ChildItem tools,tests -Recurse -Include *.ps1,*.psm1 |
   isolated tests and review tools.
 - **Bump the version:** `pwsh tools/build/Set-AtlasVersion.ps1 -Version X.Y.Z`.
 
-The payload runs under **Windows PowerShell 5.1** — avoid PowerShell 7-only syntax in
-anything under `playbook/`. The CI parse gate enforces this.
+The scripts that run on users' PCs use **Windows PowerShell 5.1** — avoid PowerShell
+7-only syntax in anything under `playbook/`. The CI parse gate enforces this.

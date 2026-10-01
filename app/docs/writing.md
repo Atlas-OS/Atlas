@@ -14,10 +14,10 @@ security, installation failures and restarts.
   consequential action explicitly: Remove Microsoft Defender, Install
   Atlas, Restart now. "Relaunch" refers to this app; "restart" refers to
   the PC.
-- Introduce technical terms in context. A playbook is an `.apbx` file
-  containing setup instructions and files. Processor protections are also
-  called security mitigations. Keep actual Windows switch names so people
-  can find them in Windows Security.
+- Introduce technical terms in context. The Atlas package is the `.apbx`
+  file containing Atlas's setup instructions and files. Processor
+  protections are also called security mitigations. Keep actual Windows
+  switch names so people can find them in Windows Security.
 - Explain both choices before selection. Explain optional changes beside
   their checkboxes, including power, compatibility and security tradeoffs.
   A checked checkbox names the action that will happen, even when that
@@ -32,6 +32,26 @@ security, installation failures and restarts.
   unsupported claims about performance gains or how soon setup will finish.
 - Preserve product names, file paths, versions, variables and plural rules.
   English UK is the source; English US overrides spelling differences.
+- Use one name for one thing. In running text, the selections made in
+  the Your choices step are "choices", the ISO modes included. Summary
+  cards list them in an "Options" row, and the ISO review in an "Atlas
+  choices" row, kept apart from the step name on purpose. "Settings" is the
+  app's own page. The `.apbx` file is "the Atlas package", or "the package"
+  once that's clear; use "playbook" only when talking about AME Wizard, which
+  uses that term. The steps are Get ready, Your choices, Windows Security and
+  Install; the ISO steps are Files, Windows setup, Your choices and Review.
+  "Windows setup" is otherwise Windows' own installer. When text tells people
+  to choose a control, use its exact label.
+- The four protection switches are turned off and turned back on, never
+  paused or disabled. Name each as Windows Security does.
+- Name the help actions as the app labels them: Export diagnostics saves a
+  ZIP, Open log folder shows the raw logs of an update, ISO or USB job, and
+  Send a report goes privately to the Atlas team. Report a problem on Home
+  opens Send a report. Privacy text never claims more than the export
+  removes: the user name, PC name, email addresses and known passwords or
+  keys.
+- English copy uses contractions (can't, isn't, couldn't) and straight
+  apostrophes.
 
 ## Package compatibility
 

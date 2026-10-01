@@ -1,28 +1,27 @@
 # Testing
 
-The checks below cover the PowerShell payload, packaging and desktop app. Run local
-checks from the repository root unless a command says otherwise. Payload tests require
-Windows PowerShell 5.1; build tooling and generators require PowerShell 7.
+Automated checks for the Windows PowerShell scripts that run on users' PCs, the Atlas
+package and the desktop app, and VM checks for release candidates. Run commands from the
+repository root.
 
-Use unelevated shells for unit tests. They use mocks, temporary files and scratch
-HKCU keys; never run configuration actions on a development host. Installation and
-interactive configuration checks belong in a disposable Windows VM.
+The Windows PowerShell tests need Windows PowerShell 5.1; the build tools and build tests
+need PowerShell 7. On each, install the CI versions of Pester (5.7.1) and PSScriptAnalyzer
+(1.25.0); see `.github/workflows/test.yml` and `lint.yml`. The inbox Pester 3 is too old.
 
-The [release verification matrix](reliability-verification-matrix.md) separates
-historical reports from the evidence required for a release candidate. Rerun the
-relevant VM and device checks against the exact package being released.
+Run unit tests unelevated; they use mocks, temporary files and scratch HKCU keys. Run
+install and configuration checks only in a disposable Windows VM, never on a development
+host.
 
-For upgrade behavior, preservation rules and migration limits, see [upgrading Atlas](upgrading.md).
+Release candidates need the evidence listed in the
+[release verification matrix](reliability-verification-matrix.md); rerun the relevant VM and
+device checks on the exact package. For upgrades, see [upgrading Atlas](upgrading.md).
 
 ## 1. PSScriptAnalyzer
 
-Two profiles under `.github/linters`:
-
-- **Payload** (`PSScriptAnalyzerSettings.Payload.psd1`) for `playbook/**` and `app/resources/**` — the code that
-  ships and runs under Windows PowerShell 5.1. Adds `PSUseCompatibleSyntax` targeting 5.1
-  and 7.4.
-- **Strict** (`PSScriptAnalyzerSettings.psd1`) for `tools/**`, `tests/**`, and the
-  app's release/notice tooling and its fixtures.
+| Profile | Settings (`.github/linters/`) | Scope |
+| --- | --- | --- |
+| Windows PowerShell | `PSScriptAnalyzerSettings.Payload.psd1` | `playbook/**`, `app/resources/**` (runs on users' PCs under Windows PowerShell 5.1). Adds `PSUseCompatibleSyntax` for 5.1 and 7.4. |
+| Strict | `PSScriptAnalyzerSettings.psd1` | `tools/**`, `tests/**`, the app's release and notice tooling and its tests |
 
 ```powershell
 Get-ChildItem playbook,app/resources -Recurse -Include *.ps1,*.psm1 |
@@ -36,48 +35,13 @@ CI fails on any Error or Warning.
 
 ## 2. Windows PowerShell 5.1 parse gate
 
-The payload must parse under Windows PowerShell 5.1 (what target machines run), so CI
-parses every payload `.ps1`, `.psm1` and `.psd1` with `[System.Management.Automation.Language.Parser]` under
-`powershell.exe`. This catches pwsh-7-only syntax before it ships.
+Target machines run Windows PowerShell 5.1. CI parses every `.ps1`, `.psm1` and `.psd1`
+under `playbook` and `app/resources` with `[System.Management.Automation.Language.Parser]`
+in `powershell.exe` to catch PowerShell 7-only syntax.
 
 ## 3. Pester unit tests
 
-Pester 5 tests under `tests/` cover shared pure logic and important behavior boundaries:
-install-state retry, registry targeting, tweak/toggle execution, process argument handling,
-package selection, and build/archive parity. They run unelevated and never make persistent
-machine changes; registry tests use and remove a scratch key under
-`HKCU:\Software\AtlasRewriteTest`.
-
-Prefer focused behavioral tests for shared logic and real process, privilege, persistence,
-or recovery boundaries. Tests assert on behavior or on data (definitions, plans,
-manifests), never on the text of a script; the one exception is an exact cross-artifact
-contract, such as a path that a `.reg` file must embed. Toggle definitions are validated
-as data by `Test-AtlasToggleDefinition`, and companion functions are exercised through the
-engine's `Invoke-AtlasToggleFunction` with mocked module commands (see
-`tests\Atlas.Toggles.Tests.ps1`).
-
-The console vocabulary is tested the same way: `tests\Atlas.ConsolePresentation.Tests.ps1`
-captures the lines the helpers print and scripts the answers they read, and checks the
-engine's heading, warning gate, closing line and single exit pause against small
-fixture toggles. `tools\dev\Show-AtlasConsoleDemo.ps1` renders the vocabulary and four
-representative flows (a simple toggle, a multi-question flow, a failure, a manual
-Settings hand-over) under Windows PowerShell 5.1 without touching the machine; use it to
-review wording changes before a VM run.
-
-CI runs the runtime and payload suites under Windows PowerShell 5.1 (`powershell`),
-the host they actually ship to. `AtlasBuild.Tests.ps1` and `app/tools/tests` run separately under PowerShell 7
-(`pwsh`), which the build tooling requires. This covers each surface on its supported host
-without running every payload test twice.
-
-Payload test files should start their `BeforeAll` with
-`. (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')`. That shared file refuses to run on
-anything but Windows PowerShell 5.1 and pins module resolution to the inbox module root,
-the payload module tree and Pester, mirroring `Scripts\Initialize-AtlasPowerShell.ps1`.
-Keep common host setup there. Repository tooling such as
-`tools\dev\New-ToggleLaunchers.ps1` is invoked through `$script:AtlasTestToolsHost`
-(PowerShell 7) when a test needs it.
-
-Run the payload suite in **Windows PowerShell 5.1** (`powershell.exe -NoProfile`):
+Windows PowerShell tests, in Windows PowerShell 5.1 (`powershell.exe -NoProfile`):
 
 ```powershell
 Import-Module Pester -RequiredVersion 5.7.1
@@ -89,7 +53,7 @@ $config.Run.Exit = $true
 Invoke-Pester -Configuration $config
 ```
 
-Run build tests separately in **PowerShell 7** (`pwsh -NoProfile`):
+Build tests, in PowerShell 7 (`pwsh -NoProfile`):
 
 ```powershell
 Import-Module Pester -RequiredVersion 5.7.1
@@ -99,29 +63,47 @@ $config.Run.Exit = $true
 Invoke-Pester -Configuration $config
 ```
 
-These commands exit their test shell with a nonzero code on failure. For a focused run,
-set `Run.Path` to the relevant test files in the appropriate host. Keep the outer
-`ErrorActionPreference` at its normal value; native-error tests exercise failures that
-a global `Stop` preference can intercept before their assertions.
+CI uses the same split, so each suite runs once, on its supported host. Both exit nonzero
+on failure. For a focused run, narrow `Run.Path` and keep the matching host. Keep
+`ErrorActionPreference` at its default: a global `Stop` can intercept native errors that
+tests assert on.
 
-CI uses Pester 5.7.1 and PSScriptAnalyzer 1.25.0. Install those versions for each host
-that needs them (see `.github/workflows/test.yml` and `lint.yml`); the inbox Pester 3
-is insufficient.
+The suites cover shared logic and key behavior such as install-state retry, registry
+targeting, tweak and toggle execution, process arguments, package selection and
+build/archive parity. They make no persistent changes; registry tests create and remove
+`HKCU:\Software\AtlasRewriteTest`. When writing tests:
+
+- Prefer focused behavioral tests of shared logic, and of the real points where code starts
+  a process, crosses a privilege boundary, saves state or recovers.
+- Assert on behavior or data (definitions, plans, manifests), never script text, except
+  for exact cross-artifact contracts such as a path a `.reg` file embeds.
+- Begin each Windows PowerShell test file's `BeforeAll` with
+  `. (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')`, which enforces the host and module
+  paths (see its header). Keep shared host setup there.
+- Call tooling such as `tools\dev\New-ToggleLaunchers.ps1` through
+  `$script:AtlasTestToolsHost` (PowerShell 7).
+- Validate toggle definitions as data with `Test-AtlasToggleDefinition`; run companion
+  functions through `Invoke-AtlasToggleFunction` with mocked module commands
+  (`tests\Atlas.Toggles.Tests.ps1`).
+- Test console output by capturing printed lines and scripting answers, as
+  `tests\Atlas.ConsolePresentation.Tests.ps1` does for the heading, warning gate, closing
+  line and single exit pause against small fixture toggles.
+
+To review console wording before a VM run, `tools\dev\Show-AtlasConsoleDemo.ps1` renders
+the vocabulary and four sample flows under Windows PowerShell 5.1 without changing the
+machine.
 
 ## 4. Apbx smoke verification
 
-`tools/build/Test-Apbx.ps1 -Path "<file>.apbx"` structurally verifies a built package and
-requires exact source/archive file-path parity (see [building.md](building.md)). It is the
-strongest end-to-end signal available without applying the playbook to a live Windows
-install.
+`tools/build/Test-Apbx.ps1 -Path "<file>.apbx"` verifies a built package, including exact
+file-path parity with the source ([details](building.md#verifying-a-build)). It is the
+strongest end-to-end check short of installing Atlas.
 
 ## 5. Generated artifacts
 
-Two generators maintain the committed launcher stubs, JSON catalog and Markdown
-references. These artifacts must stay in sync with the definitions. Both generators
-run under PowerShell 7 and are invoked by the Pester
-suites (`tests\Atlas.Toggles.Tests.ps1`, `tests\Atlas.Catalog.Tests.ps1`), so CI fails
-when a definition changes without regenerating:
+Two PowerShell 7 generators maintain the committed launcher stubs, JSON catalog and
+Markdown references. `tests\Atlas.Toggles.Tests.ps1` and `tests\Atlas.Catalog.Tests.ps1`
+run them with `-Validate`, so CI fails when a definition changes without regenerating.
 
 ```powershell
 pwsh tools/dev/New-ToggleLaunchers.ps1 -Validate   # AtlasDesktop and Toolbox .cmd stubs
@@ -132,119 +114,127 @@ Run them without `-Validate` to regenerate.
 
 ## 6. Desktop app (Rust)
 
-`.github/workflows/app.yml` builds the GPUI app under `app/` against its lockfile, checks
-formatting, runs Clippy with warnings as errors, and runs `cargo test` on `windows-latest`.
-The unit tests cover the boundaries the app owns: package version containment and
-transactional extraction (synthetic `.apbx` packages in a temporary directory), the
-Rust-to-Windows-PowerShell launch (real `powershell.exe` against harmless stub scripts:
-option arrays, exit codes, non-UTF-8 output, session reattach), release-version ordering
-and download verification, install-flow transitions and locking, settings persistence and
-recovery, registry and COM adapters (a scratch key under `HKCU:\Software\AtlasOS\AppTests`),
-theme contrast, and the language layer: Windows-language negotiation (including the
-Chinese-script and regional-overlay cases), regional number and date formatting through
-Windows, and every message catalog under `app/i18n` (syntax, completeness, variables,
-plural categories, and a scan of every `t!` call in the code against the source catalog;
-see `app/docs/i18n.md`). Nothing is installed and no machine setting changes.
-
 ```
 cd app
 cargo test
 ```
 
+`.github/workflows/app.yml` builds `app/` against its lockfile on `windows-latest`, checks
+formatting, and runs Clippy (warnings as errors) and `cargo test`, both without features
+and with `--features embedded-playbook` (the tester build).
+
+The tests install nothing and change no settings. They cover:
+
+- package version containment and transactional extraction (synthetic `.apbx` files);
+- the Windows PowerShell launch, using real `powershell.exe` and stub scripts (option
+  arrays, exit codes, non-UTF-8 output, session reattach);
+- release ordering and download verification;
+- install-flow transitions and locking, and settings persistence and recovery;
+- registry and COM adapters (scratch keys under `HKCU:\Software\AtlasOS\AppTests`);
+- theme contrast;
+- Windows-language negotiation, regional number and date formatting, every catalog under
+  `app/i18n`, and every `t!` call against the source catalog (see `app/docs/i18n.md`).
+
 ## Lab VM verification
 
-The checks above do not apply Atlas configuration. The behaviour that only a real install
-can prove (the front door, the TrustedInstaller broker, the plan phases, sign-in replay
-and the health check) runs on a Hyper-V lab VM:
+The checks above never apply Atlas configuration. A Hyper-V lab VM covers what only a real
+install can: the front door, the TrustedInstaller broker, plan phases, sign-in replay and
+the health check. Take the checkpoint after Windows setup, before installing Atlas.
 
 ```powershell
 pwsh tools/lab/Invoke-AtlasLabRun.ps1 -VMName AtlasLab -CheckpointName clean `
     -Credential (Get-Credential) -PlaybookPath "playbook\Atlas Test.apbx"
 ```
 
-One run restores the checkpoint, copies the extracted playbook into the guest over
-PowerShell Direct, takes a `Compare-SystemState` baseline, installs Atlas unattended
-through `Scripts\Entry\Install-Atlas.ps1`, reboots, runs
-`Scripts\Entry\Test-AtlasHealth.ps1 -Json`, takes a second state dump and collects the
-install log, the health report, the state diff and the Atlas logs into `lab-output\`. The
-run fails when the install exits non-zero or the health check reports drift immediately
-after a fresh install.
+Each run restores the checkpoint, copies the Atlas package in over PowerShell Direct,
+installs Atlas unattended through `Scripts\Entry\Install-Atlas.ps1`, reboots and runs
+`Scripts\Entry\Test-AtlasHealth.ps1 -Json`. The install log, health report,
+`Compare-SystemState` before/after diff and Atlas logs go to `lab-output\`. The script
+header lists steps and host requirements.
+
+The run fails if the install exits non-zero, a fresh install reports drift, or the guest
+does not come back. Exit codes: 0 verified, 1 install or verification failed, 2 lab setup
+failed.
+
+`.github/workflows/integration.yml` runs it on manual dispatch. It needs a prepared
+checkpoint and a self-hosted runner labelled `self-hosted`, `windows` and `hyperv`; the
+repository provides neither.
+
+| Setting | Kind | Value |
+| --- | --- | --- |
+| `ATLAS_LAB_VM` | Variable | VM name; the job is skipped when unset |
+| `ATLAS_LAB_CHECKPOINT` | Variable | Checkpoint name |
+| `ATLAS_LAB_USER` | Variable, optional | Guest administrator (default `Administrator`) |
+| `ATLAS_LAB_PASSWORD` | Secret | Guest administrator password |
+
+The lab run does not cover launcher interactions or upgrades from earlier releases; use the
+checklist below and the verification matrix.
 
 ### Collecting a report from a VM by hand
 
-`tools/dev/Get-AtlasInstallReport.ps1` collects one text file describing an installed
-machine, for attaching to a bug report. Copy it to the machine and run it from an
-elevated Windows PowerShell prompt as the account that installed Atlas:
+`tools/dev/Get-AtlasInstallReport.ps1` writes a read-only text report of an installed
+machine for bug reports. Copy it to the machine and run it from an elevated Windows
+PowerShell prompt as the account that installed Atlas:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Get-AtlasInstallReport.ps1
 ```
 
-It writes `atlas-install-report-<timestamp>.txt` to that user's Desktop and changes
-nothing. The authoritative section is the drift check, which runs the shipped health
-check. The rest is context the drift check cannot cover: the install state document and
-transaction, Edge, Defender, the Atlas CBS packages, services and their startup types,
-installed applications and AppX packages, scheduled tasks, startup entries, event log
-errors since the install, and the tail of the Atlas logs. Each section is independent, so
-a section that cannot be collected records why and the report still completes.
+The report goes to that user's Desktop as `atlas-install-report-<timestamp>.txt`. Its
+drift check runs the installed health check and is the result to rely on; the other
+sections add machine context, listed in the script header. A section that fails records
+why, and the report still completes.
 
-`.github/workflows/integration.yml` runs the same script from a self-hosted runner with
-the labels `self-hosted`, `windows` and `hyperv`, configured through the repository
-variables `ATLAS_LAB_VM`, `ATLAS_LAB_CHECKPOINT`, optional `ATLAS_LAB_USER` and the
-secret `ATLAS_LAB_PASSWORD`. The job is skipped when `ATLAS_LAB_VM` is unset; the checkpoint, credential and runner
-must also be configured before it can succeed. No runner machine is provided by the
-repository. The lab runner does not automate launcher interactions or upgrades from
-previous releases; use the checklist below and the verification matrix for that coverage.
+### Release candidate regression checklist
 
-### RC regression checklist
-
-Use a clean Windows checkpoint and import the rebuilt APBX into AME for fresh-install
-coverage. Reapplying over a build that seeded every default in `DEFAULT.reg` cannot
-establish the new applied-choice state contract. Compare the registry state store with
+On a clean Windows checkpoint, install the rebuilt Atlas package with Atlas Manager, and
+repeat from the same checkpoint with AME Wizard. Do not reinstall over a build that seeded
+every default from `DEFAULT.reg`: those records replay as choices, hiding whether state
+records only applied choices. Compare the registry state store with
 `C:\Windows\AtlasOS\state.json`, verify PhoneLink, RecentItems and WebSearch are applied
 and recorded as disabled, and run the installed health launcher after reboot.
 
-Exercise these boundaries when changing the relevant code:
+When changing the relevant code, also check:
 
-- Open Explorer before checking health. Transient Bags, High Contrast initialization
-  and taskbar pin bookkeeping have explicit verification exclusions; persistent
-  declarations and refused policy writes must still be checked.
-- Run indexing Disable, Enable and Minimal through the desktop launchers. In Indexing
-  Options, verify Minimal includes AtlasDesktop and Start Menu, excluding user data;
-  Enable includes user documents but excludes AppData. Check again after reboot.
-- Check both PcaSvc and PcaPatchDbTask beyond the delayed-start interval. The PCA tweak
-  disables and stops the service before disabling the task. Starting PcaSvc reproduced
-  task re-enablement in the RC investigation; DisablePCA policy alone did not prevent it.
-- Remove Edge while retaining WebView2 registration, runtime files and shared updater
-  infrastructure. Runtime binary presence alone is not sufficient detection.
-- For installer OneDrive cleanup, retain the exact-user transcripts before and after
-  reboot. Early cleanup unregisters OneDrive and schedules file removal through a
-  temporary HKCU Run entry. The boot-time guard ignores same-boot Explorer restarts;
-  the first later-boot attempt consumes the entry before cleanup. Verify leftover
-  removal, preservation of nonempty sync folders, and no recurring cleanup at later
-  sign-ins. Do not hide a user transcript failure behind a clean aggregate warning log.
-- Create a standard user with no existing profile. Observe the setup toast, Explorer
-  refresh, correct taskbar pins and completion toast without a forced sign-out. Confirm
-  one successful setup transcript and no new transcript on an ordinary later sign-in.
-  The initializer removes its RunOnce retry before refreshing Explorer; nested desktop
-  commands use `/silent /noaction`. The delayed Search finalizer performs a second
-  controlled refresh before the completion toast.
-- Exercise desktop launchers from a standard account using administrator credentials
-  when requested. Confirm user changes target the initiating account. Test both toggle
-  directions, restore the intended defaults, reboot when recommended, and check health.
-- For upgrade/reapply coverage, confirm recorded choices are replayed and that
-  `PowerSaving\PreviousPowerSchemeGuid` metadata survives without a bogus toggle warning.
+- **Health:** Open Explorer first. Transient Bags, High Contrast initialization and taskbar
+  pin bookkeeping are excluded from verification; persistent declarations and refused
+  policy writes are not.
+- **Indexing:** Run Disable, Enable and Minimal from the desktop launchers and check
+  Indexing Options, also after reboot. Minimal covers AtlasDesktop and Start Menu, not user
+  data; Enable covers user documents, not AppData.
+- **PCA:** Check PcaSvc and PcaPatchDbTask after the delayed-start interval. The tweak
+  disables and stops the service before disabling the task, because starting PcaSvc
+  re-enables the task even under the DisablePCA policy.
+- **Edge:** Remove Edge but keep WebView2 registration, runtime files and shared updater
+  infrastructure. Runtime binaries alone do not prove WebView2 is present.
+- **OneDrive:** Cleanup unregisters OneDrive at install and removes files in one attempt
+  after the reboot, through a temporary HKCU Run entry (see
+  `Scripts\Operations\Remove-OneDriveCurrentUserData.ps1`). Keep the installing user's
+  transcripts from before and after reboot. Verify leftovers are gone, nonempty sync folders
+  remain, and cleanup does not recur at later sign-ins. Check the user transcript even when
+  the aggregate warning log is clean.
+- **New user:** Sign in as a new standard user. Expect the setup toast, an Explorer
+  refresh, correct taskbar pins, a second refresh from the delayed Search finalizer, then
+  the completion toast, with no forced sign-out. Expect one successful setup transcript, and
+  none at a later ordinary sign-in. `Scripts\Entry\Initialize-NewUser.ps1` explains the
+  refresh ordering.
+- **Launchers from a standard account:** Enter administrator credentials when asked;
+  user changes must target the initiating account. Test both directions, restore the
+  intended defaults, reboot when recommended and check health.
+- **Upgrade and reapply:** Recorded choices replay, and `PowerSaving\PreviousPowerSchemeGuid`
+  metadata survives without a bogus toggle warning.
 
-For a read-only diagnostic report, run the latest collector as the installing account
-from an elevated Windows PowerShell prompt:
+For these checks, run the latest [report collector](#collecting-a-report-from-a-vm-by-hand)
+with `-RcDiagnostics`:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Get-AtlasInstallReport.ps1 -RcDiagnostics
 ```
 
-The extended report includes Search scope, PCA task XML and available task history,
-OneDrive file/owner diagnostics, WebView2 detection, local policy processing and relevant
-Windows events. Missing history is reported; collection does not enable auditing.
-`tools/dev/Start-AtlasPcaTrace.ps1` is a separate, state-changing focused diagnostic:
-it records the starting state, enables task history, disables only PcaPatchDbTask and
-prints how to restore the previous history setting. Preserve evidence before reinstalling.
+This adds Windows Search, PCA task, OneDrive shell-extension, WebView2, local policy and
+BITS diagnostics with related events (see the parameter help). It stays read-only: it
+reports missing task history and enables neither history nor auditing.
+
+`tools/dev/Start-AtlasPcaTrace.ps1` changes state: it records the starting state, enables
+task history, disables only PcaPatchDbTask and prints how to restore the history setting.
+Preserve evidence before reinstalling.

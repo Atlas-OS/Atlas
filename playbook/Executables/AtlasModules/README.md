@@ -1,8 +1,8 @@
 # Sources
 
-Some of the Playbook contains binary executables. This file lists their SHA256 hashes and sources so the shipped files can be verified reproducibly. Hashes are uppercase SHA256, as produced by `Get-FileHash` in PowerShell or `sha256sum` (uppercased) on Linux.
+The Atlas package includes some binary executables. This file lists their SHA256 hashes and sources so they can be verified reproducibly. Hashes are uppercase SHA256, as produced by `Get-FileHash` in PowerShell or `sha256sum` (uppercased) on Linux.
 
-**Completeness contract**: every binary file shipped under `playbook\Executables` (`.exe`, `.dll`, `.cab`, `.zip`) is listed here. Compare the inventory with the shipped files when replacing a binary.
+**Completeness contract**: every binary file in `playbook\Executables` (`.exe`, `.dll`, `.cab`, `.zip`) is listed here. Compare the inventory with the package's files when replacing a binary.
 
 The root of the file paths listed here starts in `playbook\Executables`.
 
@@ -29,9 +29,9 @@ Third-party components retain their separately documented terms.
     - Base source: [v1.0.0 commit 79b5c6a](https://github.com/valleyofdoom/TimerResolution/tree/79b5c6a8b2015cd1376b60753cd2c9bd5fe1326f), with reviewed Atlas sample-count, duration-validation and delta-calculation patches.
 - Path: `\AtlasModules\Sources\TimerResolution-source.zip`
     - SHA256 Hash: `0C546BC247E6D66AA94048DFB161F45837E0DDB9CD591BC1C28F0536234B2306`
-    - Corresponding source for both shipped executables: exact patched C++, args header, original licenses, patches, pinned inputs and build recipe. This is an intentional payload source archive, not temporary build output.
+    - Corresponding source for both executables above: exact patched C++, args header, original licenses, patches, pinned inputs and build recipe. This source archive is part of the package on purpose; it is not temporary build output.
 - Rebuild using `tools/timer/Build-TimerTools.ps1`; `tools/timer/accepted-build.json` records the accepted source/compiler/output hashes. MSVC 14.44.35207, Windows SDK 10.0.26100.0, x64 static CRT. Two output directories produced byte-identical executables. The utilities were not executed during provenance review; runtime validation remains required before release.
-- Timer source license: GNU GPL v3; header-only [args 6.4.6](https://github.com/Taywee/args/tree/e3e6e46699f1ce487a42fd64838f53daeb5aa89b) uses MIT. Both full license texts accompany the exact source in the payload archive.
+- Timer source license: GNU GPL v3; header-only [args 6.4.6](https://github.com/Taywee/args/tree/e3e6e46699f1ce487a42fd64838f53daeb5aa89b) uses MIT. Both full license texts accompany the exact source in `TimerResolution-source.zip`.
 - These source-built files replace legacy assets from the defunct `deaglebullet/TimerResolution` repository. Their old hashes could not be tied to corresponding source; no equivalence to those old binaries is claimed.
 
 ## ViVeTool
@@ -51,7 +51,7 @@ Third-party components retain their separately documented terms.
 
 - Path: `\AtlasModules\Tools\StoreFixer.exe`
 - SHA256 Hash: `A87F5E85FA2BF1461FBB0DEB1070C184C46F0924EE805F3D0F0D42D3504F67FA`
-- Source: https://github.com/TheyCreeper/StoreFixer/releases/download/0.0.4/StoreFixer.exe (release asset is bit-identical to the shipped file)
+- Source: https://github.com/TheyCreeper/StoreFixer/releases/download/0.0.4/StoreFixer.exe (release asset is bit-identical to the file in the package)
 - Repository: https://github.com/TheyCreeper/StoreFixer
 - Version: 0.0.4
 - License: [CC0 1.0 Universal](https://github.com/TheyCreeper/StoreFixer/blob/main/LICENSE)

@@ -2,8 +2,8 @@
 
 Install-only task scripts that the Atlas install orchestrator
 (`Scripts\Entry\Invoke-AtlasInstall.ps1`) and the install phases under
-`Scripts\Install\Phases` invoke while applying the playbook. They run from the
-extracted playbook payload or from `%windir%\AtlasModules\Scripts\Install\Tasks`
+`Scripts\Install\Phases` invoke while installing Atlas. They run from the
+extracted Atlas package or from `%windir%\AtlasModules\Scripts\Install\Tasks`
 and are not toggles or post-install operations; those live under
 `Scripts\Entry` and `Scripts\Operations`.
 

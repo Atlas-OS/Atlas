@@ -1,293 +1,452 @@
 # Atlas Manager
 
-The graphical front door for AtlasOS: a Windows 11 desktop app that shows the
-installed Atlas version, checks GitHub for newer releases, and runs a four-step
-install: get ready (elevate once, run the system checks, fetch the package),
-choose options, turn off Windows Security while the app watches the switches
-live, then hand the install to `Entry\Install-Atlas.ps1` (the same script the
-command-line front door uses). Checks come first so you can resolve setup problems
-before turning protection off.
-Windows Security comes last to reduce the time protection is off.
+Atlas Manager is the Windows 11 desktop app that installs and updates AtlasOS.
+This guide is for contributors who build, test or review it.
 
-It is written in Rust on [GPUI](https://github.com/zed-industries/zed/tree/main/crates/gpui),
-Zed's GPU-accelerated UI framework, pinned to the `gpui-pre` crates.io snapshot.
-Nothing else sits between the app and GPUI: the controls in `src/ui` are drawn
-to the Windows 11 Fluent spec (Mica backdrop, Segoe UI Variable, Segoe Fluent
-Icons, WinUI colour tokens) so the window reads as part of the OS, and they
-carry the accessible roles, names and keyboard behaviour Windows controls have.
+The app shows the installed Atlas version, checks GitHub for newer releases and
+runs a four-step install:
+
+1. **Get ready**: elevate once, run the system checks, update Windows and
+   Microsoft Store apps, and fetch the Atlas package.
+2. **Your choices**: choose the Atlas options.
+3. **Windows Security**: turn it off while the app watches the switches live.
+4. **Install**: run `Entry\Install-Atlas.ps1`, the "front door" script that
+   command-line installs also use.
+
+Checks and updates come first so problems are fixed before protection goes off.
+Windows Security comes last so protection is off as briefly as possible.
+
+The app is Rust on [GPUI](https://github.com/zed-industries/zed/tree/main/crates/gpui)
+(Zed's GPU-accelerated UI framework), pinned to the `gpui-pre` crates.io
+snapshot, with no component library. `src/ui` draws Windows 11 Fluent controls
+(Mica, Segoe UI Variable, Segoe Fluent Icons, WinUI colour tokens) so the window
+looks native, with Windows' accessible roles, names and keyboard behaviour. The
+text box adapts Zed's Apache-2.0 GPUI input example
+(`licenses/GPUI-input-APACHE-2.0.txt`).
 
 ## ISO creation (Beta)
 
-Home also offers **Create an Atlas ISO**. Choose an unmodified supported Windows
-11 x64 ISO, an Atlas `.apbx` package and a new output filename. Windows' built-in
-Storage, DISM and IMAPI services create and verify the media; the ADK is not required.
-Administrator access and sufficient space on a local NTFS or ReFS volume are required.
+**Create an Atlas ISO** on Home stages Atlas in Windows install media, which
+Windows' Storage, DISM and IMAPI services create and verify (no ADK needed). It
+needs administrator access, enough free space on a local NTFS or ReFS volume, an
+unmodified supported Windows 11 x64 or ARM64 ISO, an Atlas package (`.apbx`),
+version 0.6.0 or newer, a new output filename and a local-account name.
+Windows creates the account and asks for its password at the first sign-in;
+the ISO skips Windows setup's licence, Microsoft account and privacy screens.
+The flow has four steps, Files, Windows setup, Your choices and Review, and
+carries a Beta badge in its title.
 
-ISO creation requires Atlas 0.6.0 or newer. Provide a local-account name
-(Windows creates the account and asks for a password at the first sign-in)
-and choose one of three modes. **Choose Atlas settings after sign-in** opens
-Atlas Manager on the new desktop, where you update Windows and Store apps,
-choose your options and apply Atlas. **Choose Atlas settings now** saves your
-options in the ISO, so the destination app skips the options step and goes
-straight to updates and the install. **Finish setup before the desktop** also
-saves the options and, after the intended user's sign-in, shows Atlas Manager
-full-screen so updates and the install finish before the Windows desktop
-opens (Explorer's shell services run behind it, and Continue in Windows is
-always available). In every mode Atlas is staged in the ISO and applied after
-Windows setup and sign-in, never inside `install.wim`, and Windows, Microsoft
-Store and installed Store apps must finish updating first, which needs
-internet access.
-Use the portable release executable when creating media for a clean PC.
-See [ISO creation and release validation](docs/iso-injection.md).
+| Mode | On the new PC |
+| --- | --- |
+| **Make Atlas choices after sign-in** | Atlas Manager opens on the desktop for updates, choices and the install. |
+| **Make Atlas choices now** | Choices saved in the ISO are preselected. |
+| **Finish setup before the desktop** | Saved choices skip the Your choices step. After the intended user signs in, Atlas Manager runs full-screen, with Explorer behind it, until updates and the install finish. **Continue in Windows** works whenever no update, install, media job or restart countdown is running. |
+
+Saving choices needs a package that declares ISO setup support; otherwise only
+the first mode is available. Every mode applies Atlas after Windows setup and
+sign-in, never inside `install.wim`, once Windows, Microsoft Store and Store apps
+are updated, so the new PC needs internet access.
+
+Create media from the portable release executable, not a development build. The
+ISO carries a copy of the running executable, and the release build's static C
+runtime means the new PC needs no Visual C++ runtime. See
+[ISO creation and release validation](docs/iso-creation.md).
+
+## Diagnostics and reports
+
+**Export diagnostics** creates a ZIP of app and Atlas installation evidence for
+a bug report, with the user name, PC name, email addresses and known passwords
+or keys removed; `AtlasManager.exe --export-diagnostics` does the same if the
+window cannot open. **Send a report** sends a message privately to the Atlas
+team ([Atlas reports](../services/reports/README.md)), with diagnostics it
+collects as the page opens unless the user turns **Include diagnostics** off.
+Both are in Settings > Help and feedback, and Home's **Report a problem** opens
+Send a report. Elsewhere they appear only under a problem, such as a failed
+check, install or ISO build, and with the log of a running install.
+[Diagnostics](../docs/diagnostics.md) covers log locations, collection limits
+and the reporting process.
 
 ## Build, test and run
 
-Requirements: rustup (the compiler is pinned by `rust-toolchain.toml` to a
-stable release, currently 1.98.1, so builds here and in CI agree), the Visual
-Studio build tools (for `rc.exe`, which embeds the icon), and Windows 11 build
-22621 or later for Mica. The first build compiles GPUI and takes a few minutes.
+You need rustup (`rust-toolchain.toml` pins a stable compiler, currently 1.98.1,
+so local and CI builds agree), PowerShell 7.2 or later (`pwsh`) for the release
+script, the Visual Studio build tools (`rc.exe` embeds the icon) and Windows 11
+build 22621 or later for Mica. The first build compiles GPUI and takes a few
+minutes.
 
 ```
 cd app
 cargo run
 cargo test --locked # unit and model tests; Windows PowerShell runs harmless stubs
+cargo fmt --all -- --check
 cargo clippy --locked --all-targets -- -D warnings
-powershell -NoProfile -File tools/Build-Release.ps1
-powershell -NoProfile -File tools/Build-Release.ps1 -RcId 0.6.0-rc.1 -EmbedApbx "..\playbook\Atlas v0.6.0-rc.1.apbx"
+pwsh -NoProfile -File tools/Build-Release.ps1
+pwsh -NoProfile -File tools/Build-Release.ps1 -RcId 0.6.0-rc.1 -EmbedApbx "..\playbook\Atlas v0.6.0-rc.1.apbx"
 ```
 
-The same checks run in CI (`.github/workflows/app.yml`) on every change under `app/`,
-once without features and once with `--features embedded-playbook` against a
-LocalTest package. CI also builds and saves the release executable as
-`atlas-manager-windows-x64`. On Linux, `../tools/release/setup-linux.sh` and the
-cross-build in `../docs/building.md` replace the Visual Studio tools; the icon and
-manifest are compiled with `llvm-rc` and the shaders come from the committed
-Windows export.
+`cargo run` without `--release` is a development build; distribute and measure
+performance with the release executable.
 
-`--features embedded-playbook` builds a tester candidate: `build.rs` reads
-`ATLAS_EMBED_APBX` (the archive to carry) and `ATLAS_RC_ID` (for example
-`0.6.0-rc.1`) and fails without them. Such a build installs only its bundled
-playbook: no release check, no download, no file picker, `--playbook` and
-`.apbx` arguments ignored, ISO creation uses the bundled archive, no lookup of
-Microsoft's Windows release page (an unlisted revision of build 26200 is
-accepted rather than depending on a live page), and a draft or recovered
-session for another package is not run. The RC id appears under the title
-bar, in Settings > About with the source commit and package digest, in the
-executable's version resource (as text, and as the fourth numeric component),
-and as `rcId` in diagnostic exports. `../tools/release/build-rc.sh` produces
-the tester ZIP on Linux; see [docs/rc-testers-build.md](docs/rc-testers-build.md).
-`tools/Build-Release.ps1` writes `target/x86_64-pc-windows-msvc/release/AtlasManager.exe`
-with the C runtime linked statically, so a clean Windows installation does not
-need a separately installed Visual C++ runtime. The explicit Cargo target keeps
-this setting separate from host build scripts and procedural macros. Without
-parameters it builds the stable executable; `-RcId <id>` and `-EmbedApbx
-<path>` together build the tester variant (they set `ATLAS_RC_ID` and
-`ATLAS_EMBED_APBX` and add `--features embedded-playbook`, as `build-rc.sh`
-does), and `-Json` switches Cargo to JSON diagnostics. The script builds with
-`CARGO_INCREMENTAL=0`, because stale incremental state has produced link
-failures in release builds.
-Use the release executable for performance measurements and distribution;
-`cargo run` without `--release` is a development build.
+### Release and tester builds
 
-The app selects `gpui-pre-windows` directly through `src/platform.rs`, so
-the lockfile does not need GPUI's unrelated OS backends. The Windows
-manifest remains enabled. ZIP support includes AES and Deflate, without
-the unused Zopfli encoder. Development dependencies retain optimisation
-but omit debug symbols; Atlas itself retains full debugging. For debugging
-inside a dependency, override this with
-`cargo build --config 'profile.dev.package."*".debug=true'`.
+`tools/Build-Release.ps1` checks the third-party notices
+(`tools/Export-DependencyNotices.ps1 -Check`), then builds
+`target/x86_64-pc-windows-msvc/release/AtlasManager.exe` with a static C
+runtime, so a clean Windows installation needs no Visual C++ runtime. The
+explicit Cargo target keeps that setting out of host build scripts and
+procedural macros. The script sets `CARGO_INCREMENTAL=0` because stale
+incremental state has caused release link failures.
 
-For repeatable, read-only startup, idle and resize smoke measurements:
+| Parameters | Builds |
+| --- | --- |
+| none | The stable executable. |
+| `-RcId <id> -EmbedApbx <path>` | The tester build: sets `ATLAS_RC_ID` and `ATLAS_EMBED_APBX` and adds `--features embedded-playbook`, as `build-rc.sh` does. |
+| `-Json` | With Cargo JSON diagnostics. |
 
-```powershell
-.\tools\Measure-AppPerformance.ps1 -Executable .\target\release\AtlasManager.exe -Runs 3 -OutFile measurements.json
-```
+A tester build carries one Atlas package and installs nothing else; `build.rs` fails
+unless both variables are set. [Tester builds](docs/rc-testers-build.md) lists
+what it disables and where the RC id appears.
+On Linux, `../tools/release/build-rc.sh` produces the tester ZIP, and
+`../tools/release/setup-linux.sh` with the
+[Linux desktop cross-build](../docs/building.md#linux-desktop-cross-build)
+replaces the Visual Studio tools: `llvm-rc` compiles the icon and manifest, and
+the shaders come from the committed Windows export.
 
-This uses isolated app data and never installs Atlas or changes Windows
-settings. Window-creation time is not time to first rendered frame; CPU
-percentages represent one logical core. See `docs/performance.md` for measurement instructions and build settings.
+### CI
 
-Startup flags and environment variables exist for review and testing:
+`.github/workflows/app.yml` runs on changes under `app/` and to the `playbook/`
+files compiled into the app (`playbook.conf`, the front door, the preparation
+and compatibility scripts, the driver-policy files). It runs the format check,
+then Clippy and the tests twice (without features, and with
+`--features embedded-playbook` against a LocalTest package), and saves the
+release executable as `atlas-manager-windows-x64`.
 
-```
-AtlasManager.exe --page install --step security      # open on a page or step (ready|options|security|install)
-AtlasManager.exe --just-installed                    # the completion window the payload opens after the restart
-AtlasManager.exe --playbook "..\playbook\Atlas Test.apbx"   # unpack a local package on launch
-AtlasManager.exe "C:\Downloads\Atlas 0.6.0.apbx"     # same, as "Open with"
-AtlasManager.exe --language de                       # a shipped language tag, or qps-ploc for the pseudo-locale
-```
+### Performance
 
-- `ATLAS_APP_DATA=<dir>` keeps settings, downloads, unpacked playbooks, install
-  logs and the install session under a directory of your choice, so a review run
-  never touches the real `%LOCALAPPDATA%\AtlasOS\App`.
-- `ATLAS_STATE_FILE=<state.json>` renders the installed and update-available
-  states on a PC without Atlas. Debug builds only: a release build always reads
-  `%windir%\AtlasOS\state.json` (`src/services/atlas_state.rs`).
-- `ATLAS_LANGUAGE=<tag>` is `--language` from the environment;
-  `ATLAS_FORMAT_LOCALE=<tag>` (for example `de-DE`) overrides the Windows
-  regional format used for numbers, dates and times;
-  `ATLAS_WINDOWS_LANGUAGES=de-DE,en-US` stands in for the Windows
-  display-language list (`error` simulates a failed query).
-- `tools\Capture-Window.ps1 -OutFile shot.png` screenshots the running window.
-- `tools\Get-AccessibilityTree.ps1 [-Invoke <name>]` prints what UI Automation
-  (and so Narrator) sees, with focus and toggle states, and can press a control
-  through its accessible action.
+[App performance](docs/performance.md) covers
+`tools\Measure-AppPerformance.ps1` (repeatable, read-only startup, idle and
+resize measurements with isolated app data that never install Atlas or change
+Windows)
+and the [build settings](docs/performance.md#build-settings): GPUI backend, ZIP
+features, release profile and dependency debug symbols.
 
-[Language documentation](docs/i18n.md) covers language selection, catalog readiness
-and adding translations. [Writing guidance](docs/writing.md) describes the app's voice.
+### Review flags and variables
 
-For app or installation problems, use **Export diagnostics** in Settings or the
-installation/media pages. It creates a redacted ZIP of app and playbook evidence for public bug reports.
-Share it in a community or development channel. If the window cannot open, run
-`AtlasManager.exe --export-diagnostics`. See [diagnostics](../docs/diagnostics.md)
-for log locations, collection limits and the reporting process.
+| Flag | Effect |
+| --- | --- |
+| `--page <page>` | Opens `home`, `iso`, `install`, `settings`, `report` or `installed`. |
+| `--step <step>` | Opens an install step: `ready`, `options`, `security` or `install`. |
+| `--just-installed` | Opens the completion window shown after the install's restart. |
+| `--playbook <file.apbx>` | Unpacks a local package on launch; a bare `.apbx` path ("Open with") does the same. |
+| `--language <tag>`, `ATLAS_LANGUAGE=<tag>` | Uses one of the available languages, or `qps-ploc` for the pseudo-locale. |
+
+| Variable | Effect |
+| --- | --- |
+| `ATLAS_APP_DATA=<dir>` | Keeps settings, downloads, unpacked packages, install logs and the session in `<dir>`, never the real `%LOCALAPPDATA%\AtlasOS\App`. |
+| `ATLAS_STATE_FILE=<state.json>` | Debug builds: shows the installed or update-available state on a PC without Atlas. Release builds always read `%windir%\AtlasOS\state.json` (`src/services/atlas_state.rs`). |
+| `ATLAS_FORMAT_LOCALE=<tag>` | Overrides the regional format for numbers, dates and times, for example `de-DE`. |
+| `ATLAS_WINDOWS_LANGUAGES=de-DE,en-US` | Replaces the Windows display-language list; `error` simulates a failed query. |
+| `ATLAS_TEXT_SCALE=1.5`, `ATLAS_HIGH_CONTRAST=1` | Debug builds: preview a text size (1.0 to 2.25) or a contrast theme without changing Windows. |
+
+Debug builds also have review previews. The preparation, report and ISO
+previews never update Windows, restart the PC, install Atlas, build media or
+send a report. `ATLAS_SECURITY_PREVIEW` only replaces the switch readings, and
+`ATLAS_DESKTOP_PREVIEW` only makes the app behave as in before-desktop setup;
+neither holds anything back.
+
+| Variable | Shows |
+| --- | --- |
+| `ATLAS_PREPARATION_PREVIEW=<state>` | The install flow with a stand-in package. Get ready: `idle`, `busy`, `stopping`, `download`, `complete`, `resume`, `resumed`, `cancelled`, `failed`, `failed-battery`, `unconfirmed`, `reboot`, `restart-persists`, `network`, `network-limited`, `previous-worker`, `ineligible`, `pending-updates`, `checks-blocked`, `checks-warnings`. Windows Security: `security-on`, `security-off`, `security-readable-off`, `security-unreadable`, `security-absent`. Install: `install-ready`, `install-refused`, `install-busy`. |
+| `ATLAS_SECURITY_PREVIEW=<reading>` | Every Windows Security reading as `on`, `off`, `some-off` (Tamper Protection and Cloud-delivered protection off), `unreadable` or `absent` (Defender removed), for the reminders on Home and the completion window. |
+| `ATLAS_REPORT_PREVIEW=<state>` | Send a report as `invalid`, `collecting`, `ready`, `prepare-failed`, `waiting`, `sending`, `sent`, `failed`, `busy`, `outdated` or `diagnostics`. Nothing is collected, and Send fails without connecting. |
+| `ATLAS_REVIEW_NO_RESTART=1` | A restart Atlas asks for is logged and reported as accepted, and Windows keeps running, so capturing a countdown or **Restart now** is safe. |
+| `ATLAS_ISO_PREVIEW=<state>`, `ATLAS_DESKTOP_PREVIEW=1` | ISO, USB and before-desktop states; `tools\Review-Iso.ps1` sets them ([ISO creation](docs/iso-creation.md#review-and-localization)). |
+
+`tools\Capture-Window.ps1 -OutFile shot.png` screenshots the running window.
+`tools\Get-AccessibilityTree.ps1 [-Invoke <name>]` prints what UI Automation
+(and so Narrator) sees, with focus and toggle states; `-Invoke` presses a
+control through its accessible action.
 
 ## Languages
 
-The app follows the Windows display language by default and offers a manual
-choice in Settings. It ships English (UK and US), German, Spanish, French,
-Brazilian Portuguese, Polish, Russian, Turkish, Simplified Chinese,
-Traditional Chinese, Japanese, Indonesian, Thai and Hindi; the non-English catalogs are AI-assisted and remain previews pending native-speaker review; a preview is used when Windows speaks that language, with a
-dismissible notice that offers the English source language. Numbers, dates and times follow the Windows
-regional format independently of the app language. Text is looked up when a
-page renders, from semantic state rather than stored strings, so switching
-language re-words everything on screen, including earlier errors and
-results, without disturbing the flow or a running install. Catalogs are
-Fluent files under `i18n/<tag>/atlas.ftl`, compiled into the executable;
-tests check every catalog and every message the code uses. Right-to-left
-languages are not shipped because the pinned GPUI does not shape or order
-right-to-left text (see `docs/i18n.md`).
+The app follows the Windows display language (Settings > Language offers a
+manual choice).
+Numbers, dates and times follow the Windows regional format, whatever the app
+language. It is available in English
+(UK and US), German, Spanish, French, Brazilian Portuguese, Polish, Russian,
+Turkish, Simplified Chinese, Traditional Chinese, Japanese, Indonesian, Thai and
+Hindi. Non-English catalogs are AI-assisted previews until a native speaker
+reviews them; a preview loads when Windows uses that language, with a
+dismissible notice that offers English.
 
-## What the app does and does not do
+Catalogs are Fluent files at `i18n/<tag>/atlas.ftl`, compiled into the
+executable; tests check every catalog and every message the code uses. Text is
+worded at render time from semantic state, so a language switch re-words
+everything on screen, earlier errors and results included, without disturbing
+the flow or a running install. Right-to-left languages are not included: the
+pinned GPUI cannot shape or order them.
 
-- Reads `%windir%\AtlasOS\state.json` for the installed version, mode, options
-  and history. It never writes it; the PowerShell modules own that document.
-- Asks the GitHub releases API for the latest release and compares versions the
-  way Atlas tags them: `0.5.0-hotfix` is newer than `0.5.0`. Downloads go to
-  `%LOCALAPPDATA%\AtlasOS\App\Downloads` and are verified against the asset's
-  size and published digest before they are trusted; packages are unpacked into
-  a private staging directory and only then published as
-  `...\App\Playbooks\<version>_<digest>`, an immutable directory named by
-  the package's content, so a bad package never replaces a good one and two
-  packages that both call themselves 0.6.0 never share a directory.
-- Only playbooks that ship the front door script (Atlas 0.6.0 and newer) can
-  be installed from here. Older packages are refused with a message that points
-  to the AME Wizard.
-- "Install Atlas" relaunches the app elevated through the UAC prompt before
-  anything else. The flow's step, options and unpacked package are saved as a
-  draft in `settings.json` (written atomically; a failed save stops the
-  relaunch), so the elevated copy resumes where the user was; the draft is
-  cleared when the install succeeds or the flow is cancelled.
-- Windows Security is watched once a second through the same registry values
-  the AME Wizard reads (Tamper Protection, real-time protection, cloud-delivered
-  protection, sample submission). A switch that cannot be read is shown as
-  unreadable, never as on or off; an elevated user can confirm unreadable
-  switches by hand after checking Windows Security.
-- System checks mirror playbook.conf's requirements: administrator, supported
-  build, no pending Windows updates (Windows Update Agent, offline search), no
-  pending restart, no third-party antivirus (Security Center), internet, mains
-  power, plus an advisory Windows activation row (Atlas never changes
-  activation; the row just says so and points at the activation settings). A blocking check that fails, or that could not run, disables Next;
-  a check that could not run can be confirmed by hand. The mandatory checks and
-  the security switches are read again just before the installer starts.
-- The install runs `Install-Atlas.ps1 -Option @(...) -Unattended [-Restart]`
-  through `powershell.exe -Command` (so the option list arrives as a real
-  array) with UTF-8 output. The child writes to a log file under
-  `...\App\Logs`, and a session record (`...\App\session.json`) names the
-  process and log. Launching is one protocol under a cross-process lock: the
-  record is written before the child starts and the child only runs the front
-  door once it has the go-ahead, so no installer can run unrecorded and two
-  windows cannot start overlapping installs. While it runs, the package, options and settings are locked
-  and the window can only be closed knowingly; the install keeps going in the
-  background, and reopening the app picks the session up again and shows its
-  result. While it runs (and after it succeeds) the window shows one
-  dedicated installing view: phase, progress and when it started. The log
-  and diagnostic export controls are grouped behind "Show details". After a successful install the front door restarts
-  Windows in ten seconds; the view counts down with a "Don't restart now"
-  button (and "Restart now" once stopped). After the restart, the payload's
-  first-logon setup opens this app again with `--just-installed` (it finds the
-  app through `launcher.json`, written when the install started) to show an
-  "Atlas is installed" window; if the app can't be found it shows a persistent
-  toast instead. A failed install goes back to the Install step, which has the
-  log and Try again.
-- The Options step asks one decision per screen (Defender, mitigations,
-  updates), each as a question with the consequence of the chosen answer, then
-  one screen of optional extras; the Install summary lists the choices with
-  Change links.
+[Language documentation](docs/i18n.md) covers language selection, catalog
+readiness and adding translations; [writing guidance](docs/writing.md) covers
+the app's voice.
 
 ## Accessibility and keyboard
 
-Every control has an accessible role and name (buttons, links, radio groups,
-check boxes, headings, lists, status and alert regions, the install log). Tab
-and Shift+Tab move between controls; a radio group is a single tab stop and
-the arrow keys change the selection; Enter and Space activate. Changing step
-moves focus to the step heading, and an install result is focused so it is
-announced. A Windows contrast theme switches the palette to the system
-colours, the Ease of Access text size scales the type ramp, and turning off
-Windows animations stops the progress indicators moving.
+Every control has an accessible role and name: buttons, links, radio groups,
+check boxes, combo boxes, toggle switches, headings, lists, status and alert
+regions, and the install log.
+
+- Tab and Shift+Tab move between controls. A radio group is one tab stop whose
+  selection the arrow keys change. Enter and Space activate. The focus ring is
+  Windows' 2 px outer and 1 px inner ring.
+- Page Up/Down and Ctrl+Home/End scroll the page. The install log is a tab stop
+  that also scrolls with the arrow keys, Home and End.
+- In a text box, Ctrl+Home/End jump to the start or end; in the report message,
+  Page Up/Down move the caret a page.
+- A closed combo box ignores the arrow keys, so a value such as the app's
+  language never changes as focus passes over it. Enter, Space, Alt+Down,
+  Alt+Up or F4 opens the list; the arrow keys, Home, End and Page Up/Down move
+  the highlight; Enter or Space commits it. Escape or Tab closes the list
+  without changing anything.
+- A tooltip appears after 500 ms of hover, or at once when its control takes
+  keyboard focus, and stays until the pointer or focus leaves. Escape or a
+  press dismisses it.
+- A close confirmation is a Fluent ContentDialog over the window, in the app's
+  theme and language. Its safe answer, **Keep open**, is rightmost, accent and
+  focused, and Escape chooses it.
+- Changing page or step focuses its heading. Install results take focus so they
+  are announced, as do export results if focus has not moved since the export
+  started. Message bars that don't take focus are polite live regions, as are
+  progress bars and the status of the installation files and the Windows
+  Security switches, so Narrator reads them as they appear or change.
+- Headings report their level, so Narrator's heading navigation follows the
+  outline: 1 for the page title, 2 for a step heading or a page's cards, 3 for
+  the cards under a step. Every node reports the app's language, and each
+  language in Settings > Language reports its own.
+- Contrast themes switch to the system colours, selected text included. The
+  Ease of Access text size scales the type ramp. Turning off Windows animations
+  stops the progress indicators moving.
 
 ## Layout
 
 ```
 src/
-  main.rs         window options (Mica, custom title bar, icon), startup flags, key bindings
+  main.rs         window options (Mica, custom title bar, icon), key bindings
+  cli.rs          command-line flags
+  platform.rs     builds the GPUI application on the Windows backend
   shell.rs        title bar (with the settings gear) + one content layer, theme, focus traversal, close guard
-  model.rs        AppModel: all state, owned background tasks; model/tests.rs drives it headless
+  model.rs        AppModel: all state, owned background tasks; model/ holds it by concern,
+                  and model/tests/ drives it headless on model/test_harness.rs
   environment.rs  what the model needs from the process: paths, machine adapters, restart timing
   flow.rs         the install flow's state machine (steps, run state, allowed transitions)
   theme.rs        Fluent tokens for light, dark and contrast themes, Atlas blue accent
   assets.rs       SVGs and the window icon compiled into the binary
   i18n/           language choice, message lookup (t!), words for semantic state,
                   regional formatting, catalog checks
-  ui/             Button, InfoBar, RadioGroup, CheckBox, ProgressBar,
-                  ProgressRing, StatusLight, TitleBar, Scrollbar
-  pages/          Home (status, what's new, the one button), Install (4 steps), Installing, Installed, Settings
-  services/       Windows-facing code with no UI dependency:
-                  system, atlas_state, security, requirements, releases,
-                  playbook, installer, session, settings, locale
-i18n/<tag>/atlas.ftl   one Fluent message catalog per shipped language (en-GB is the source)
+  ui/             Fluent controls: Button, card, InfoBar, RadioGroup, CheckBox,
+                  ComboBox, ToggleSwitch, TextInput, ProgressBar, ProgressRing,
+                  StatusLight, tooltips, ContentDialog (the window's prompts),
+                  TitleBar, Scrollbar, release-note markdown
+  pages/          Home (status, what's new, the install button), Install (install/,
+                  4 steps), Installing, Installed, ISO, USB, Send a report, Settings,
+                  and the shared stepper and footer
+  services/       Windows-facing code with no UI dependency: system, atlas_state,
+                  security, requirements, windows_release, windows_installation,
+                  releases, playbook, embedded, preparation, recovery_app,
+                  installer, session, settings, registry, locale, iso, usb, desktop_setup,
+                  diagnostics (and its redaction), reports, licenses
+resources/        icon and version resource; iso/ (ISO, USB and destination
+                  setup scripts) and prepare/ (protected staging helper)
+i18n/<tag>/atlas.ftl   one Fluent message catalog per available language (en-GB is the source)
+examples/         i18n_spike, the GPUI rendering probe for RTL, CJK and mixed scripts
+licenses/         third-party notices and the dependency inventory
+vendor/           the patched GPUI crates and AccessKit's Windows adapter, which
+                  reports heading levels (see each ATLAS-PATCH.md)
+tools/            release build, notices, measurement and review scripts
 ```
 
-Slow work (HTTP, Windows Update, WMI, extraction, the installer launch) runs
-on GPUI's background executor and reports back through the model, which
-notifies observers; pages are thin views over the model. The tasks are owned
-by the model and carry a generation, so cancelling or repeating an operation
-drops the old work and a late result never lands in newer state. Provider
-probes use bounded waits. Preparation retains its servicing worker until the
-provider returns; cancellation does not kill an active Windows Update operation.
+## How it works
+
+### Releases and packages
+
+- The app reads `%windir%\AtlasOS\state.json` (installed version, mode, options,
+  history) but never writes it; the PowerShell modules own it.
+- The GitHub releases API supplies the latest release. Versions compare as Atlas
+  tags them: `0.5.0-hotfix` is newer than `0.5.0`.
+- Downloads go to `%LOCALAPPDATA%\AtlasOS\App\Downloads` and are trusted only
+  once they match the asset's size and published digest.
+- Packages unpack through a private staging directory into an immutable
+  `...\App\Playbooks\<version>_<digest>`, so a bad package never replaces a good
+  one and two packages that both call themselves 0.6.0 never share a directory
+  (`src/services/playbook.rs`).
+- Only packages with the front door script (Atlas 0.6.0 and newer) install
+  here; older ones are refused with a pointer to AME Wizard.
+
+### Install flow
+
+- **Install Atlas** first relaunches the app elevated through UAC. A draft in
+  `settings.json` (step, options, unpacked package) lets the elevated copy
+  resume; it is written atomically, a failed save stops the relaunch, and
+  success or cancelling clears it.
+- Home lists the four steps. While a setup is unfinished, it marks the steps
+  done and the current one, as the stepper does.
+- Get ready shows Installation files, PC checks, the drivers choice, and Update
+  Windows and Store apps, under one status bar that names the next action. The checks keep
+  their order while they run; then the ones that need attention come first and
+  the passed ones fold into "N checks passed" behind **Show details**. A failed
+  check offers the Windows Settings page that fixes it, such as **Open installed
+  apps** for other antivirus software.
+- Your choices asks one decision per screen (Defender, processor protections,
+  updates), each as a question showing the consequence of the answer, then one
+  screen of optional extras, where a page that depends on an option follows the
+  page offering it (the browser picker comes after the apps). The Install
+  summary lists the choices, with a caution mark on risky ones and Change
+  links; the installation files, Windows, activation and the installation
+  command (with Copy) are behind **Show details**.
+- Windows Security is read once a second from the registry values AME Wizard
+  reads: Tamper Protection, real-time protection, cloud-delivered
+  protection and sample submission. One message bar says what is left to do.
+  An unreadable switch shows as unreadable, never on or off; an elevated user
+  can confirm it by hand, with the bar's check box, after checking Windows
+  Security.
+- Protection is never left off silently. Closing the window during a setup
+  while a switch reads off asks first and offers Windows Security. Cancelling
+  the setup leaves a reminder on Home, naming the switches still off, that
+  survives a relaunch until a reading shows them back on. After an install that
+  kept Defender, once its restart is done, Home and the completion window read
+  the switches when they open and when the window is activated again, and show
+  a dismissible reminder while any is off, or a warning if Defender is missing;
+  "You're all set" appears only when every switch reads on. After an install
+  that removed Defender, the completion window says the PC has no antivirus
+  until another is installed.
+
+System checks cover `playbook.conf`'s requirements and the front door's own
+(`src/services/requirements/`):
+
+| Check | Detail |
+| --- | --- |
+| Administrator, internet, mains power | |
+| User Account Control on | The built-in Administrator account does not qualify. |
+| Supported Windows edition and build | A public release, not Insider. |
+| No pending Windows updates | Windows Update Agent, offline search. |
+| No pending restart | |
+| No third-party antivirus | Security Center. |
+| Windows activation | Advisory. Atlas never changes activation; the row says so and links to the activation settings. |
+
+A blocking check that fails or cannot run disables Continue; only an update
+scan that could not run can be confirmed by hand. Until Update Windows and
+Store apps has run, pending updates and a pending restart are notes for it to
+handle, not blockers. The mandatory checks and security switches, pending
+updates and restarts included, are read again just before the installer
+starts.
+
+### Running the install
+
+- The app runs `Install-Atlas.ps1 -Option @(...) -Unattended` through
+  `powershell.exe -Command` (so the option list arrives as a real array) with
+  UTF-8 output. The child logs to `...\App\Logs`; `...\App\session.json`
+  records the process and log.
+- Launching holds a cross-process lock. The record is written before the child
+  starts, and the child runs the front door only after a go-ahead, so no
+  installer runs unrecorded and two windows cannot start overlapping installs
+  (`src/services/installer/`, `session.rs`). Closing the window during the
+  final checks starts nothing.
+- While the install runs, the package, options and settings are locked, and
+  closing the window needs confirmation. The install continues in the
+  background; reopening the app picks the session up and shows its result.
+- During and after a successful install, one view shows the phase, progress
+  and start time, with the log and diagnostic export behind **Show details**. A
+  failed install returns to the Install step with **Try again**. One bar says
+  what happened, quoting the installer's last error line, with the next action
+  beside it (**Relaunch as administrator** when Atlas lacks permission) and
+  diagnostics under it; the log is behind **Show details**.
+
+### Restart and completion
+
+- **Restart my PC automatically after installation** (Settings and the Install
+  summary; on by default) asks Windows to restart when the countdown after a
+  successful install ends. The installing view says so while the install runs.
+  The countdown lasts 10 seconds, or 60 seconds when it starts with the window
+  in the background, whose taskbar button then flashes until the user returns.
+  **Restart later**, which has keyboard focus during the countdown, stops it in
+  every window following that install; the view then offers **Restart now**.
+  Closing the window during the countdown asks first, offering **Keep
+  open**, **Restart now** or **Close without restarting**; the countdown is
+  held while the dialog is open and starts again on Keep open.
+- Until Windows restarts after a successful install, Home shows a restart bar
+  with **Restart now** in place of Reinstall or Update. It needs no state of its
+  own: `launcher.json` was written for that install, the recorded install is
+  newer, and Windows hasn't restarted since.
+- When the install starts, the app writes `launcher.json` and the HKCU Run entry
+  `AtlasInstallCompletion`, which opens a staged copy of the app with
+  `--after-install-restart` (`src/services/session.rs`). Before-desktop setup
+  skips the entry; its supervisor shows the page.
+- The entry survives same-boot sign-ins. The first launch after a restart shows
+  "Atlas is installed" if the recorded install is newer than `launcher.json`,
+  and removes the entry about 20 seconds after sign-in, once Windows has started
+  the Run key's other programs. A failed install removes the entry.
+- Atlas's first-logon setup opens `--just-installed` only for accounts set up
+  later, and shows a toast if it cannot find the app.
 
 ### Preparation and restart recovery
 
-Before preparation starts, the app copies its exact executable into an immutable
-SHA-256 directory under the Windows Program Files folder's `Atlas Setup Recovery`
-directory. Restart registrations use this protected local copy, so removing the
-original download or unplugging its source does not remove the recovery app.
-Before-desktop ISO setup already uses its protected local copy.
+- Before preparation or an install, the app copies itself to the immutable,
+  hash-named `%ProgramFiles%\Atlas Setup Recovery\<SHA-256>\AtlasManager.exe`.
+  Restart registrations use this copy, so deleting the download or unplugging
+  its drive does not break recovery. Before-desktop ISO setup already runs from
+  the protected `%windir%\AtlasISO` and skips the copy.
+- Jobs live in `Atlas Setup Recovery\Preparation` (scoped to the app's settings
+  path) and `Atlas Setup Recovery\Media` (ISO and USB)
+  (`src/services/recovery_app.rs`, `resources/prepare/Stage-App.ps1`). Only
+  administrators and SYSTEM can write their workers, driver policies and
+  journals. A precreated cancellation file lets the installing user request a
+  stop without being able to replace executables or completion records.
+- The worker and staging helper load PowerShell modules only from the inbox
+  module root.
+- An elevated start removes finished jobs beyond the newest five, never one
+  whose worker may still be running.
+- Reopening the app reattaches to the worker by PID and process creation time
+  and reads its journal. If Windows cannot tell whether it is running, Atlas
+  assumes it is; a process that reused the PID does not count.
+- Journals in the older user-writable `%LOCALAPPDATA%\AtlasOS\App\Preparation`
+  can only make Atlas wait for their worker, never prove success or provide a
+  cancellation target. Once that worker exits, the user retries through the
+  protected path.
+- The app never starts a second servicing worker while one is running.
+  Cancelling never kills an active Windows Update operation; preparation keeps
+  its worker until Windows Update or the Store returns.
+- Preparation and direct installation share the Atlas package's
+  `Scripts/Preparation/Update-Windows.ps1`. Direct installation checks live
+  Windows and Store readiness first. Store's verification API can queue paused
+  updates but does not install them.
 
-Preparation jobs also live beneath this protected directory, scoped to the app's
-settings path. Workers, driver policies and journals allow only administrators and
-SYSTEM to write. A separate precreated cancellation file lets the installing user
-request a stop without replacing executable content or completion records. The
-worker and staging helper restrict PowerShell module lookup to the inbox module root.
+[The release policy](../docs/windows-release-policy.md) covers installed-OS and
+ISO eligibility. Servicing, UAC and restart recovery still need testing on
+Windows for each candidate.
 
-Reopening the app attaches to the recorded PID and creation time and reads its
-durable journal. Unknown process liveness keeps ownership; a reused PID does not.
-Older user-writable journals can make Atlas wait for an existing worker, but cannot
-prove preparation succeeded or supply a cancellation target. Once that worker exits,
-the user retries preparation through the protected path. The app never starts a
-second servicing worker to replace one that is still running.
+### Settings
 
-Preparation and direct installation share the payload's
-`Scripts/Preparation/Update-Windows.ps1`. Direct installation verifies live Windows
-and Store readiness before starting the install plan. Store's verification API can
-queue paused updates; it does not install them during verification. See
-[the release policy](../docs/windows-release-policy.md) for the installed-OS and
-ISO eligibility checks. Actual servicing, UAC and restart recovery still require
-candidate-specific Windows testing.
+Settings lists one card per setting, as Windows Settings does: **App theme**
+and **Language** are combo boxes, and **Restart my PC automatically after
+installation** is a toggle switch, locked while updates, an install or a media
+job runs. A combo box choice applies only when committed. **Help and feedback**
+holds Send a report and Export diagnostics, and **About** the version, licence
+and links. The note about the translucent background shows only while it is
+opaque and no contrast theme is on.
 
-The model tests (`src/model/tests.rs`) run the real model inside a headless
-GPUI application with controlled adapters for elevation, the Windows Security
-reading, the checks and the restart commands, and a real Windows PowerShell
-child running a stub front door; they cover the final security decision,
-recovery of finished installs after the app was closed, retrying a recovered
-failure and the restart countdown's timer ownership.
+### Background work and tests
+
+- Slow work (HTTP, Windows Update, WMI, extraction, the installer launch) runs
+  on GPUI's background executor and reports through the model, which notifies
+  its observers; pages are thin views over it. Each model-owned task carries a
+  generation, so cancelling or repeating an operation drops the old task and a
+  late result never lands in newer state (`src/model.rs`).
+- The Windows Update, Security Center and licensing queries behind the checks
+  time out rather than hang, with at most one worker each (`Bounded` in
+  `src/services/requirements/`).
+- The model tests (`src/model/tests/`) run the real model in headless GPUI
+  with controlled adapters (elevation, Windows Security, checks, restart
+  commands) and a real Windows PowerShell child running a stub front door.
+  Coverage includes the final security decision, recovering installs that
+  finished while the app was closed, retrying a recovered failure and the
+  restart countdown's timer ownership.

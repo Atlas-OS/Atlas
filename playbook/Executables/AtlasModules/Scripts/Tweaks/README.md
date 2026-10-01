@@ -64,8 +64,8 @@ categories/slugs, unsafe paths, unknown keys and unclassified files also fail.
 ## Tweak schema
 
 All keys are optional except `Name`. Action keys run in the machine pass in the order Registry, Services, ScheduledTasks, Toggle, Run, RemovePaths, Script;
-`PostUserRegistryRefresh` is phase orchestration metadata and runs only at its explicit
-post-live-HKCU boundary.
+`PostUserRegistryRefresh` is phase orchestration metadata and runs only at its own
+explicit point, after the live-HKCU pass.
 
 | Key | Type | Meaning |
 | --- | --- | --- |

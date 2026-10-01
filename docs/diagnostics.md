@@ -1,76 +1,121 @@
-# Reporting app and playbook problems
+# Reporting problems with Atlas Manager or Atlas
 
-In Atlas Manager, choose **Export diagnostics** in Settings or on the install,
-ISO or USB page. Use **Show diagnostic ZIP** to find the redacted archive and
-share it in a public community or development channel. Nothing is uploaded automatically. Include
-what you were doing, the expected and actual result, approximate time/timezone,
-and whether the problem repeats. A template is included in the archive.
+How to report a problem with Atlas Manager or with Atlas itself, and what the diagnostic
+export contains. [Triage](#triage) and [How it works](#how-it-works) are for
+contributors.
 
-Export after a failure before deleting app data or reinstalling Windows. Retrying
-and reopening the app retain earlier app logs. If the window cannot open, run
-`AtlasManager.exe --export-diagnostics`; archives are saved under
-`%LOCALAPPDATA%\AtlasOS\App\Diagnostics`. `ATLAS_APP_DATA` overrides that root for
-isolated testing. Run as the affected account; another user's profile is not
-collected automatically. Elevation can improve access to machine evidence but is
-not required to export the files that are readable.
+## Report a problem
 
-The ZIP contains app and playbook logs, preparation and media-worker diagnostics,
-saved settings/session state, the installing account's user logs, ISO setup and
-desktop recovery logs, and the read-only install report. It excludes executable
-payloads, scripts, ISO/WIM media and memory dumps. Exported text is redacted;
-original local logs are unchanged. Account profile names, the collecting user's
-account/computer/domain names, email addresses and account SID prefixes become
-consistent anonymous labels within the ZIP. Account RIDs and well-known Windows
-SIDs stay available for diagnosing permissions. Password fields, API credentials,
-HTTP authorization/cookies, signed URL credentials, common access-token formats,
-product keys and private keys are removed.
+Both routes are in Atlas Manager's Settings, under **Help and feedback**:
+**Send a report**, then **Export diagnostics**. The install, ISO and USB pages offer the
+same buttons under a problem. The installing view keeps them with the install log, adding
+**Send a report** once the install ends. **Report a problem** on Home opens
+**Send a report**.
 
-Error messages, stack traces, timestamps, build/version numbers, selected options,
-operation IDs, hardware models, device identifiers, installed applications and
-the useful remainder of file paths are retained. Redaction is deliberately
-targeted: arbitrary personal text or an unrecognised secret format in third-party
-output cannot be reliably detected. The UI describes the ZIP as redacted, rather
-than promising that every possible input is anonymous. UTF-8 and BOM-marked
-UTF-16 logs are supported; unknown/binary encodings are explicitly omitted.
+| Route | How | Who sees it |
+| --- | --- | --- |
+| Bug report | **Export diagnostics**, then **Show in folder**. Attach the redacted ZIP to a bug report. | Anyone: community and development channels are public. |
+| Private report | **Send a report**: pick an issue or a suggestion, describe it and confirm. Atlas Manager sends your message, optional contact details, its version and any diagnostics you include to reports.atlasos.net. | The Atlas team. It may use AI services from other companies to help investigate; these get your message and diagnostics, never your contact details. Deleted after 90 days; see [Atlas reports](../services/reports/README.md) for what is kept. |
 
-`manifest.json` records the running executable's SHA-256, app version, selected
-package identity when available, Windows build/edition, elevation, and the hash
-of each redacted file, plus the redaction policy version. Unavailable, unreadable and size-limited evidence is listed
-explicitly. Missing files are normal before installation. The machine collector
-has a 60-second deadline; a failed collector does not discard other logs. Files
-captured during a running operation are snapshots, not a consistent transaction.
+Nothing is uploaded automatically. Say what you were doing, the expected and actual
+result, roughly when (with timezone) and whether it repeats; the archive includes a
+template.
 
-App logs use separate process/session files under the app's `Logs` directory,
-with four 4 MiB segments per process and pruning of older app logs at startup
-(36 previous segments retained, plus active processes). Installation logs are
-not pruned by this policy. If the normal app log location cannot be created,
-logging falls back to `%TEMP%\AtlasDiagnostics`; the current fallback log is also
-included in an export. Rust panic messages/backtraces are flushed before exit;
-native crashes, forced termination and disk-write failures may leave no final
-message. No automatic crash upload or full dump collection is installed.
+**Send a report** collects diagnostics as soon as they are included, which is the default
+for an issue, so there is no separate step. It reuses a ZIP only if you exported it on the
+page you came from; otherwise each report collects its own. **Review ZIP** shows the ZIP
+in its folder before you send, and choosing **Send report** while collection runs sends
+once it finishes. If sending fails, your text stays on the page and a retry reuses the same
+submission. You can also use [the report website](https://reports.atlasos.net), which
+shows the same privacy notice, or share the ZIP yourself.
 
-Exports retain complete eligible files up to 32 MiB each, 256 MiB total and 2,048
-visited entries. The manifest identifies omitted evidence so contributors can request
-specific files separately. Symbolic links/junctions are skipped. Existing exports
-are not automatically deleted; users may remove ZIPs after the investigation no longer
-needs them.
+- Export after a failure, before deleting app data or reinstalling Windows. Retrying
+  and reopening the app keep earlier app logs.
+- If the window cannot open, run `AtlasManager.exe --export-diagnostics`.
+- Archives go to `%LOCALAPPDATA%\AtlasOS\App\Diagnostics` (`ATLAS_APP_DATA` overrides
+  the root for isolated testing), including those **Send a report** collects. Atlas
+  never deletes them; remove them when the investigation is over.
+- Run as the affected account; other users' profiles are not collected
+  automatically. Elevation reaches more machine evidence but is not required to
+  export readable files.
 
-Staged payload traversal includes preparation evidence, the install request and
-runtime logs, but skips application code/assets. The machine report is collected
-before bulk file traversal. TrustedInstaller install phases persist startup,
-completion and exception details (including stack/position) in the staging copy's
-`Executables\AtlasModules\Logs\install-capture.log` and `install-run.log`. The broker
-relays a bounded tail on failure. These logs cover bootstrap and module-loading
-exceptions; process termination or script parse failures may leave no exception log.
+## What the ZIP contains
 
-For an RC3 export that exhausted its entry limit, run
-`tools/dev/Get-AtlasInstallEvidence.ps1` in elevated Windows PowerShell as the affected
-account, then export diagnostics again. It reads state and recent staging requests
-without executing payload scripts, and saves a local log in the app's Logs directory
-for the existing exporter to redact. Send the resulting ZIP rather than the raw log.
+| Included | Excluded |
+| --- | --- |
+| App and Atlas logs, preparation and media-worker diagnostics, saved settings and session state, the installing account's user logs, ISO setup and desktop recovery logs, the read-only install report, and the preparation evidence, install request and runtime logs from staging copies of the Atlas package | Executable files, scripts, application code and assets, ISO/WIM media, memory dumps, symbolic links and junctions |
 
-For triage, read `manifest.json`, correlate timestamps in app logs with the
-installation/preparation/media job, and check `report/machine-report.txt` for
-health, state and Windows events. Do not infer success merely from a completed
-ZIP: inspect collection errors and the underlying operation's result. Preserve
-the executable corresponding to the recorded hash for crash investigation.
+Exports keep whole files up to 32 MiB each and 256 MiB in total (including the
+archive's READ-ME, bug report template and manifest), and visit at most 2,048
+entries.
+
+### Redaction
+
+Exported text is redacted; the original local logs are unchanged.
+
+| Treatment | Data |
+| --- | --- |
+| Replaced with consistent anonymous labels | Account profile names; the collecting user's account, computer and domain names; the local account name entered for an ISO's setup; email addresses; account SID prefixes; Microsoft Entra ID account SIDs |
+| Removed | Password fields, API credentials, HTTP authorization and cookies, signed URL credentials, common access-token formats, product keys, private keys |
+| Kept | Account RIDs and well-known Windows SIDs (for diagnosing permissions); error messages, stack traces, timestamps, build and version numbers, selected options, operation IDs, hardware models, device identifiers, network (IP and MAC) addresses, installed applications, the useful remainder of file paths |
+
+Redaction is targeted: it cannot reliably detect arbitrary personal text or an
+unrecognised secret format in third-party output. The app therefore names what it
+removes (the user name, PC name, email addresses and known passwords or keys) and never
+calls the ZIP anonymous. UTF-8 and BOM-marked UTF-16 logs are supported; unknown or binary
+encodings are explicitly omitted.
+
+## Triage
+
+- Start with `manifest.json`: the running executable's SHA-256, app version, selected
+  package identity when available, Windows build and edition, elevation, each
+  redacted file's hash, the redaction policy version, and any unavailable, unreadable
+  or size-limited evidence, which you can request separately. Missing files are normal
+  before installation.
+- Correlate app log timestamps with the installation, preparation or media job, and
+  check `report/machine-report.txt` for health, state and Windows events.
+- A completed ZIP does not mean the operation succeeded; check collection errors and
+  the operation's own result.
+- Files captured during a running operation are snapshots, not a consistent
+  transaction.
+- Keep the executable matching the recorded hash for crash investigation.
+
+### RC3 exports that hit the entry limit
+
+1. In elevated Windows PowerShell, as the account that attempted the installation,
+   run `tools/dev/Get-AtlasInstallEvidence.ps1`. It reads the state document and the
+   ten newest staging requests without running Atlas's scripts or changing
+   installation state, and saves one log in the app's Logs directory.
+2. Export diagnostics again; the exporter redacts and includes that log.
+3. Send the resulting ZIP, not the raw log.
+
+## How it works
+
+The exporter is `app/src/services/diagnostics.rs`; redaction rules are in
+`diagnostics_redaction.rs`.
+
+- **App logs:** per-process/session files under the app's `Logs` directory, four
+  4 MiB segments per process. Startup prunes older app logs to 36 previous segments
+  plus active processes; installation logs are not pruned. If `Logs` cannot be
+  created, logging falls back to `%TEMP%\AtlasDiagnostics`, and exports include the
+  current fallback log.
+- **Crashes:** Rust panic messages and backtraces are flushed before exit. Native
+  crashes, forced termination and disk-write failures may leave no final message.
+  There is no automatic crash upload or full dump collection.
+- **Machine report:** collected before the bulk of the files, with a 60-second
+  deadline. Each finished section is written to `report/machine-report.partial.txt`,
+  so a timed-out collector keeps them and `collectorError` names the section it was
+  in. A failed collector does not discard other logs.
+- **Media jobs:** each ISO check, ISO build and USB operation keeps its worker logs,
+  request and error in a job folder under `%ProgramFiles%\Atlas Setup Recovery\Media`,
+  which only administrators can change. Starting a job removes other jobs older than
+  a day, always keeping the newest 20. Jobs that earlier versions left in the app's
+  `ISO` directory are pruned the same way (`prune_legacy_jobs` in
+  `app/src/services/iso.rs`). They are exported last, without their licence notices,
+  so they cannot use up the size budget.
+- **Installation:** TrustedInstaller install phases write startup, completion and
+  exception details (including stack/position) to the staging copy's
+  `Executables\AtlasModules\Logs\install-capture.log` and `install-run.log`; the
+  broker relays the end of the phase's log, up to a size limit, on failure. These cover
+  bootstrap and module-loading exceptions, but process termination or script parse
+  failures may leave none.

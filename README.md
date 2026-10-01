@@ -29,7 +29,15 @@
 
 ## 🤔 What is Atlas?
 
-AtlasOS, or Atlas, is an open-source Windows configuration project. Its playbook applies privacy, usability and performance settings, with [AtlasDesktop controls](https://docs.atlasos.net/docs/atlas-configuration/settings/) for changing individual choices after installation.
+AtlasOS, or Atlas, is an open-source Windows configuration project. It applies privacy, usability and performance settings, with [AtlasDesktop controls](https://docs.atlasos.net/docs/atlas-configuration/settings/) for changing individual choices after installation.
+
+## 🚀 Installing Atlas
+
+**Atlas Manager** is the recommended way to install Atlas. It checks your PC, installs Windows and Microsoft Store updates, walks you through your choices and then installs Atlas. It can also create an Atlas ISO and an installation USB (Beta). Download `AtlasManager.exe` from the [latest release](https://github.com/Atlas-OS/Atlas/releases/latest).
+
+Atlas Manager is new. If it doesn't work for you, use the alternative installer, [AME Wizard](https://amelabs.net), with the Atlas package (`.apbx`) from the same release. AME Wizard calls the package a playbook.
+
+Atlas 0.6 needs a fresh installation of Windows 11 25H2 (build 26200) or 26H2 (build 26300), unless you're upgrading from Atlas 0.4.1, 0.5.0 or 0.5.1 on a supported build. See the [upgrade requirements](docs/upgrading.md).
 
 ## 👀 Why Atlas?
 ### 🔒 Enhanced Privacy
@@ -54,21 +62,19 @@ Atlas changes interface defaults, disables Windows advertisements and removes se
 
 ### 🔍 Open Source and Transparent
 
-Atlas is distributed as an [AME Wizard](https://amelabs.net) Playbook whose payload can be inspected before it runs.
+Atlas comes as a package whose files you can inspect before it runs. The Atlas package is a renamed **.zip** archive, with the password [`malte`](https://docs.amelabs.net/developers/getting-started/creation.html). Most of the package is PowerShell, data definitions and supporting assets.
 
-Playbooks are renamed **.zip** archives, with the password [`malte`](https://docs.amelabs.net/developers/getting-started/creation.html). Most of the Atlas payload is PowerShell, data definitions and supporting assets.
+Atlas Manager and AME Wizard install the same Atlas package, and the installation itself is Atlas PowerShell either way: every feature, retry and check is code included in the package, where you can read it. Atlas Manager is open source, in [`app/`](app/README.md). With AME Wizard, Atlas's AME configuration records your choices and runs the same fixed PowerShell entry points. The package's scripts run on Windows PowerShell 5.1, which is built into Windows; the build tools in this repository use PowerShell 7. See [`docs/architecture.md`](docs/architecture.md) for how an install runs, and [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for the build and test quick start.
 
-Atlas keeps AME Wizard as a thin packaging and application host. The YAML layer captures install facts and invokes fixed entry points; it does not use AME task includes as Atlas's workflow engine. Live installation, retry, and feature logic live in the auditable PowerShell framework shipped with the Playbook. The target payload uses the inbox Windows PowerShell 5.1 host, while repository build tooling uses PowerShell 7. See [`docs/architecture.md`](docs/architecture.md) for how an install runs, and [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for the build/test quick start.
+You can also run the installer yourself, without either app. Extract the Atlas package (it is a renamed ZIP), open an elevated Windows PowerShell prompt in its `Executables` folder, and run `.\AtlasModules\Scripts\Entry\Install-Atlas.ps1 -Option defender-enable, mitigations-default, auto-updates-disable`. The script checks that Windows and Microsoft Store updates are finished, copies Atlas's files to a protected directory and runs the same install plan as TrustedInstaller; see [`docs/architecture.md`](docs/architecture.md#the-atlas-front-door).
 
-Atlas can also be installed without AME Wizard. Extract the Playbook (it is a renamed ZIP), open an elevated Windows PowerShell prompt in its `Executables` folder, and run `.\AtlasModules\Scripts\Entry\Install-Atlas.ps1 -Option defender-enable, mitigations-default, auto-updates-disable`. The script stages the payload in a protected directory and runs the identical install plan as TrustedInstaller; see [`docs/architecture.md`](docs/architecture.md#the-atlas-front-door).
+After installing, `AtlasDesktop\9. Troubleshooting\Check Atlas Health.cmd` reports what Atlas installed and which of its settings have changed since, without changing anything. The full list of toggles and install tweaks is generated into [`docs/catalog`](docs/catalog/toggles.md).
 
-After installing, `AtlasDesktop\9. Troubleshooting\Check Atlas Health.cmd` reports what Atlas installed and which settings have since drifted, without changing anything. The full list of toggles and install tweaks is generated into [`docs/catalog`](docs/catalog/toggles.md).
+Optional Atlas Toolbox installation resolves the latest stable Toolbox release at install time. Toolbox is intentionally not pinned to an Atlas version, so a Toolbox update does not require a new Atlas release.
 
-Optional Atlas Toolbox installation resolves the latest stable Toolbox release at install time. Toolbox is intentionally not pinned to an Atlas Playbook version, so a Toolbox update does not require a new Playbook release.
+The [binary inventory](playbook/Executables/AtlasModules/README.md) lists the executables and Windows component packages included in the Atlas package, their hashes, source repositories, licensing and known provenance limits.
 
-The [binary inventory](playbook/Executables/AtlasModules/README.md) lists shipped executables and packages, their hashes, source repositories, licensing and known provenance limits.
-
-Although the AME Wizard GUI is not open source, its [TrustedUninstaller backend](https://github.com/Ameliorated-LLC/trusted-uninstaller-cli) is available under MIT. Atlas uses that host to apply the package and establish the initial execution identities; Atlas feature logic does not depend on a separate AME task implementation. The Atlas Playbook itself is open source under the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE).
+The Atlas package and Atlas Manager are open source under the [GPLv3 license](https://github.com/Atlas-OS/Atlas/blob/main/LICENSE). Atlas Manager starts the install through Atlas's own TrustedInstaller broker. The AME Wizard interface is not open source, but its [TrustedUninstaller backend](https://github.com/Ameliorated-LLC/trusted-uninstaller-cli), which applies the package when you use AME Wizard, is available under MIT.
 
 ### Windows licensing
 
@@ -76,21 +82,15 @@ Atlas distributes configuration files and tools rather than a Windows ISO. It do
 
 ## Developing Atlas
 
-Atlas 0.6 fresh installations and ISO creation target Windows 11 25H2 (build
-26200). A fresh Windows installation is required unless upgrading from a declared
-Atlas source version. The playbook declares upgrades from 0.4.1, 0.5.0 and 0.5.1;
-the Windows build requirement applies separately. See the [upgrade requirements
-and validation gaps](docs/upgrading.md). ISO creation and USB writing are **Beta**.
-
 Start with the [contributor quick start](.github/CONTRIBUTING.md), then follow the
 [build instructions](docs/building.md) and [testing guide](docs/testing.md). The
 [architecture](docs/architecture.md) describes the installer, identity boundaries and
-shared modules. The [desktop app guide](app/README.md) covers the Rust UI.
+shared modules. The [Atlas Manager guide](app/README.md) covers the desktop app.
 Use the [publication checklist](docs/publication.md) to review source contents,
 generated artifacts and release evidence before publishing.
 
-Release evidence requirements and historical coverage limits are in the
-[reliability verification matrix](docs/reliability-verification-matrix.md).
+The [reliability verification matrix](docs/reliability-verification-matrix.md) lists
+the evidence a release needs and what is still to be verified.
 
 ## 🎨 Brand kit
 Want to create your own Atlas wallpaper with some original creative designs? Visit our [Branding Kit on Docs](https://docs.atlasos.net/docs/branding/) and share your creations on our [GitHub Discussions](https://github.com/Atlas-OS/Atlas/discussions/categories/community-artwork)!

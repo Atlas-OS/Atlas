@@ -3,8 +3,8 @@
 `Build-TimerTools.ps1 -OutputDirectory <new-folder>` downloads hash-pinned inputs,
 applies the small reviewed patch, and compiles x64 candidates with static CRT.
 It does not execute either utility, overwrite a previous candidate, install tools,
-or replace playbook files. Use PowerShell 7, Git, MSVC 14.44.35207 and Windows SDK
-10.0.26100.0. Paths to an existing toolchain can be supplied explicitly.
+or replace files under `playbook/`. Use PowerShell 7, Git, MSVC 14.44.35207 and
+Windows SDK 10.0.26100.0. Paths to an existing toolchain can be supplied explicitly.
 
 `inputs.json` pins the original v1.0.0 source commits separately for each utility,
 and the header-only args 6.4.6 dependency. TimerResolution is GPL-3.0; args is MIT.

@@ -1,14 +1,14 @@
 # Upgrading Atlas
 
-The 0.6 playbook accepts installed versions 0.4.1, 0.5.0 and 0.5.1. The source-version list is an eligibility check, not evidence that every version and Windows build combination has been tested. The current playbook accepts Windows 11 25H2 (build 26200). Source Atlas version and Windows build are separate requirements; a declared source version does not permit a 24H2 upgrade.
+The Atlas 0.6 package accepts installed versions 0.4.1, 0.5.0 and 0.5.1. The source-version list is an eligibility check, not evidence that every version and Windows build combination has been tested. The current package accepts Windows 11 25H2 (build 26200) and 26H2 (build 26300); the upgrade path on 26H2 has not been validated (see [the Windows release policy](windows-release-policy.md)). Source Atlas version and Windows build are separate requirements; a declared source version does not permit a 24H2 upgrade.
 
 ## What an upgrade applies
 
-Upgrades replace the Atlas folder and modules, apply the selected installation features, and run the current networking, performance, privacy, quality-of-life, security, debloat, scripts and miscellaneous tweak categories. Definitions marked `OnUpgradeSkip` retain their fresh-install-only behavior.
+Upgrades replace the Atlas folder and modules, apply the selected installation features, and run the current networking, performance, privacy, quality-of-life, security, debloat, scripts and miscellaneous tweak categories. Tweaks declared with `OnUpgrade = 'Skip'` remain fresh-install only.
 
 Recorded toggle choices take precedence over overlapping registry defaults. Their selected states are reapplied using the new definitions. New defaults are recorded only when applied. On releases without recorded choices, migration adopts a choice only when existing settings uniquely identify it; unrecognized customizations cannot all be recovered automatically.
 
-Upgrades preserve existing Start and taskbar layouts, file associations, and the original service backup files. They do not repeat the fresh-install service/component removal phases or run the old blanket Microsoft Store repair. This deliberately avoids treating an established installation as a clean Windows image.
+Upgrades preserve existing Start and taskbar layouts, file associations, and the original service backup files. They do not repeat the fresh-install service, component and AppX removal phases, so an established installation is not treated as a clean Windows image.
 
 ## User settings
 
@@ -20,13 +20,14 @@ User migration transcripts are stored in `%LOCALAPPDATA%\AtlasOS\Logs`. Check th
 
 ## Verification
 
-See [testing](testing.md) for repository checks. Release validation should include an actual official-release install, a customized baseline, upgrade through AME, reboot, health checks, preservation of selected choices and backups, Microsoft Store deployment, and a BITS transfer. Test additional existing profiles and a new profile separately. VM checks do not establish performance or driver compatibility on physical hardware.
+See [testing](testing.md) for repository checks. Release validation should include an actual official-release install, a customized baseline, upgrade through Atlas Manager and through AME Wizard, reboot, health checks, preservation of selected choices and backups, Microsoft Store deployment, and a BITS transfer. Test additional existing profiles and a new profile separately. VM checks do not establish performance or driver compatibility on physical hardware.
 
 ### Windows version transition
 
-Windows 24H2 is outside the current `SupportedBuilds` list. Before releasing 0.6, establish and
-validate a supported Windows transition for an existing 0.4.1 installation, then
-exercise its Atlas upgrade on 25H2. The source-version declaration remains intact.
+Windows 24H2 is not in `SupportedBuilds`, so an installation on 24H2 must move to a
+supported Windows build before its Atlas upgrade. Before 0.6 is released, establish and
+validate that Windows transition for an existing 0.4.1 installation, then test its Atlas
+upgrade on 25H2. 0.4.1 remains a declared source version.
 
 Atlas 0.5.1, other existing profiles, new-profile first sign-in, different feature
 choices and physical hardware still require candidate-specific validation. See the

@@ -142,8 +142,8 @@ runs a script or helper checks its exit code and throws, so a helper that stoppe
 is reported as not applied.
 
 A public machine-only TrustedInstaller state may name an `InteractiveState` companion
-function. The administrator process invokes it before crossing the silent broker
-boundary. It must return exactly one existing machine-only state name; it must not
+function. The administrator process invokes it before handing the work to the
+silent TrustedInstaller broker. It must return exactly one existing machine-only state name; it must not
 return user or local work. Use fixed internal states to carry a prompted choice into
 the broker, as Indexing does. Record the public choice only after that work succeeds.
 Silent replay skips the selector and applies the original recorded state, so its

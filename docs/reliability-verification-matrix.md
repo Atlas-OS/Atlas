@@ -1,14 +1,14 @@
 # Release verification matrix
 
 Passing repository checks is necessary but does not establish installation, upgrade
-or device reliability. Record the exact app, playbook and media hashes with each
-release review. Results from a different candidate do not certify the current tree.
+or device reliability. Record the exact app, Atlas package and media hashes with
+each release review. Results from a different candidate do not certify the current tree.
 
 ## Required evidence
 
-| Surface | Required outcome | Evidence still needed for the publication candidate |
+| Area | Required outcome | Evidence still needed for the publication candidate |
 | --- | --- | --- |
-| Fresh installation | Fresh Windows 11 25H2; preparation, payload, restart and health checks complete | Exact-candidate VM runs on supported editions, then representative physical hardware |
+| Fresh installation | Fresh Windows 11 25H2 or 26H2; preparation, Atlas installation, restart and health checks complete | Exact-candidate VM runs on supported editions, then representative physical hardware |
 | Atlas upgrades | Declared 0.4.1, 0.5.0 and 0.5.1 sources; choices and backups preserved | Each official source on a supported Windows build; document the Windows transition required for older installs |
 | User lifecycle | Installing user, another existing profile and a new profile receive the intended settings | First sign-in, failed migration retry and protected-policy limitations |
 | ISO creation (Beta) | Media verification, native local account/password change and successful boot | Exact-candidate interactive, saved-choice and before-desktop flows; supported-edition filtering with firmware Home/Pro keys and keyless devices |
@@ -21,9 +21,9 @@ release review. Results from a different candidate do not certify the current tr
 
 ## Regression checks
 
-Do not commit VM disks, checkpoints,
-transcripts, screenshots or personal host paths. Attach sanitized, hash-bound test
-reports to a release review when they are independently checked.
+Keep VM disks, checkpoints, transcripts, screenshots and personal host paths out of Git
+(see [publication contents](publication.md)). Attach sanitized, hash-bound test reports
+to a release review when they are independently checked.
 
 Include these regression scenarios:
 
@@ -34,6 +34,7 @@ Include these regression scenarios:
 - Test post-reboot servicing and connectivity, and compare unexplained event-log
   failures against a pre-Atlas baseline before attributing a cause.
 
-See [testing](testing.md) for automated checks, [upgrading](upgrading.md) for the
-Windows-build conflict, and [ISO creation](../app/docs/iso-injection.md) for media
+See [testing](testing.md) for automated checks,
+[upgrading](upgrading.md#windows-version-transition) for the Windows version transition
+older installations need, and [ISO creation](../app/docs/iso-creation.md) for media
 validation. Record current review results separately from historical reports.
