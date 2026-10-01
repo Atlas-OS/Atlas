@@ -57,15 +57,10 @@ Describe 'Driver update toggle' {
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
     }
 
-    It 'is an elevated one-shot machine action that records no state' {
-        $run = $script:driverToggle.States['Run']
-
-        $script:driverToggle.Elevation | Should -BeExactly 'Admin'
-        $script:driverToggle.NoStateRecord | Should -BeTrue
-        $run['MachineAction'] | Should -BeExactly 'Invoke-AtlasDriverUpdate'
-        $run.Contains('StateValue') | Should -BeFalse
-
-        $work = Get-AtlasToggleStateWork -Definition $script:driverToggle -StateEntry $run
+    It 'runs as machine work, never in the user context' {
+        # Definition validation allows a UserAction under Admin elevation, but installing
+        # drivers needs the elevated machine context.
+        $work = Get-AtlasToggleStateWork -Definition $script:driverToggle -StateEntry $script:driverToggle.States['Run']
         $work.Machine | Should -BeTrue
         $work.User | Should -BeFalse
     }

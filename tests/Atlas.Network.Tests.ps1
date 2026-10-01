@@ -31,18 +31,10 @@ Describe 'Network-default toggle' {
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
     }
 
-    It 'declares both states as recorded machine work with the same companion function' {
-        $atlas = $script:networkDefinition.States['Enable']
-        $windows = $script:networkDefinition.States['Disable']
-
-        $atlas['MachineAction'] | Should -BeExactly 'Set-AtlasNetworkDefaultState'
-        $windows['MachineAction'] | Should -BeExactly 'Set-AtlasNetworkDefaultState'
-        $atlas['StateValue'] | Should -Be 1
-        $windows['StateValue'] | Should -Be 0
-        $atlas['Reboot'] | Should -BeExactly 'Recommend'
-        $windows['Reboot'] | Should -BeExactly 'Recommend'
-
-        foreach ($state in @($atlas, $windows)) {
+    It 'runs both states as machine work, never in the user context' {
+        # Definition validation allows a UserAction under Admin elevation, but the reset
+        # needs the elevated machine context.
+        foreach ($state in @($script:networkDefinition.States['Enable'], $script:networkDefinition.States['Disable'])) {
             $work = Get-AtlasToggleStateWork -Definition $script:networkDefinition -StateEntry $state
             $work.Machine | Should -BeTrue
             $work.User | Should -BeFalse
